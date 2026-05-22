@@ -1701,6 +1701,77 @@ class GameDB:
         ).fetchone()
         return (row["report"] if row else "") or ""
 
+    def list_archived_turns(self) -> List[Dict[str, object]]:
+        """所有已存档回合（turn_reports/turn_extractions/turn_directives 任一有数据）。
+        返回按 turn 升序的元信息列表，每项含 turn/year/period 与各来源是否存在。"""
+        rows = self.conn.execute(
+            """
+            SELECT t.turn AS turn,
+                   MAX(t.year) AS year,
+                   MAX(t.period) AS period,
+                   MAX(t.has_report) AS has_report,
+                   MAX(t.has_extraction) AS has_extraction,
+                   MAX(t.has_directive) AS has_directive
+            FROM (
+                SELECT turn, year, period, 1 AS has_report, 0 AS has_extraction, 0 AS has_directive
+                FROM turn_reports
+                UNION ALL
+                SELECT turn, year, period, 0, 1, 0 FROM turn_extractions
+                UNION ALL
+                SELECT turn, year, period, 0, 0, 1 FROM turn_directives
+                WHERE status = 'issued'
+            ) AS t
+            GROUP BY t.turn
+            ORDER BY t.turn
+            """
+        ).fetchall()
+        return [
+            {
+                "turn": int(r["turn"]),
+                "year": int(r["year"]),
+                "period": int(r["period"]),
+                "has_report": bool(r["has_report"]),
+                "has_extraction": bool(r["has_extraction"]),
+                "has_directive": bool(r["has_directive"]),
+            }
+            for r in rows
+        ]
+
+    def list_directives_by_turn(self, turn: int) -> List[Dict[str, object]]:
+        """读某回合已颁诏（issued）草案，按 id 升序。"""
+        rows = self.conn.execute(
+            """
+            SELECT d.id, d.turn, d.year, d.period, d.event_id, d.actor,
+                   d.skill_id, d.text, d.source, d.status, d.notes,
+                   d.created_at, d.updated_at,
+                   e.title AS event_title
+            FROM turn_directives d
+            LEFT JOIN events e ON e.id = d.event_id
+            WHERE d.turn = ? AND d.status = 'issued'
+            ORDER BY d.id
+            """,
+            (int(turn),),
+        ).fetchall()
+        return [
+            {
+                "id": int(r["id"]),
+                "turn": int(r["turn"]),
+                "year": int(r["year"]),
+                "period": int(r["period"]),
+                "event_id": r["event_id"] or "",
+                "event_title": r["event_title"] or "",
+                "actor": r["actor"] or "",
+                "skill_id": r["skill_id"] or "",
+                "text": r["text"] or "",
+                "source": r["source"] or "",
+                "status": r["status"] or "",
+                "notes": r["notes"] or "",
+                "created_at": r["created_at"] or "",
+                "updated_at": r["updated_at"] or "",
+            }
+            for r in rows
+        ]
+
     def save_turn_extraction(
         self,
         state: GameState,
@@ -2208,3 +2279,14 @@ class GameDB:
 
     def close(self) -> None:
         self.conn.close()
+
+    def backup_to(self, target_path: str) -> None:
+        """SQLite backup API 热备到 target_path。不需关闭主连接。"""
+        import os as _os
+        _os.makedirs(_os.path.dirname(target_path) or ".", exist_ok=True)
+        dest = sqlite3.connect(target_path)
+        try:
+            self.conn.commit()
+            self.conn.backup(dest)
+        finally:
+            dest.close()

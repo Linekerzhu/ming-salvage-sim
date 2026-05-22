@@ -23,16 +23,20 @@ from pydantic import BaseModel
 
 from ming_sim.constants import ROOT_DIR
 from ming_sim.exceptions import ExitGame, LLMUnavailable
-from ming_sim.llm_config import load_llm_config
-from ming_sim.llm_model import extract_agent_text
+from ming_sim.llm_config import (
+    load_llm_config,
+    load_runtime_llm,
+    normalize_openai_base_url,
+    save_runtime_llm,
+)
+from ming_sim.llm_model import extract_agent_text, verify_llm_available
 from ming_sim.llm_contract import fail_if_llm_error
 from ming_sim.issues import _format_issue_ongoing
-from ming_sim.models import Character
 from ming_sim.session import GameSession
 from ming_sim.skills import available_skill_ids, skill_display_name, skill_source_labels
 from ming_sim.context import match_minister_from_text
 from ming_sim.exceptions import LLMContractError  # noqa: F401  (保留：供错误处理)
-from ming_sim.models import monthly_amount
+from ming_sim.models import Character, LLMConfig, monthly_amount
 
 WEB_DIST = os.path.join(ROOT_DIR, "web", "dist")
 
@@ -61,9 +65,16 @@ class WebGame:
             db_path = os.path.join(ROOT_DIR, db_path)
         base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
         model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+        api_key = os.environ.get("OPENAI_API_KEY", "")
+        # 菜单写的 runtime_llm.json 优先于 env，让"在网页里改的配置"重启后仍生效。
+        runtime = load_runtime_llm()
+        base_url = runtime.get("base_url") or base_url
+        model = runtime.get("model") or model
+        api_key = runtime.get("api_key") or api_key
         random.seed(int(os.environ.get("MING_SIM_SEED", "7")))
         os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
-        llm_config = load_llm_config(base_url, model)
+        self.db_path = db_path
+        llm_config = load_llm_config(base_url, model, api_key)
         self.session = GameSession(db_path, llm_config)
         self.session.begin_turn()
         # 召对记录持久化在 chat_messages 表，启动时恢复进内存缓存。
@@ -73,6 +84,93 @@ class WebGame:
         for name, msgs in self.db.load_all_chat_history().items():
             self.chat_history.setdefault(name, []).extend(msgs)
         self.favorites: set = set()
+
+    # ── 存档管理 ─────────────────────────────────────────────────────────
+    def saves_dir(self) -> str:
+        path = os.path.join(ROOT_DIR, "data", "saves")
+        os.makedirs(path, exist_ok=True)
+        return path
+
+    def list_saves(self) -> List[Dict[str, Any]]:
+        out: List[Dict[str, Any]] = []
+        for fname in sorted(os.listdir(self.saves_dir())):
+            if not fname.endswith(".db"):
+                continue
+            full = os.path.join(self.saves_dir(), fname)
+            try:
+                st = os.stat(full)
+            except OSError:
+                continue
+            out.append({
+                "name": fname[:-3],
+                "size": st.st_size,
+                "mtime": int(st.st_mtime),
+            })
+        out.sort(key=lambda x: x["mtime"], reverse=True)
+        return out
+
+    def _safe_save_name(self, name: str) -> str:
+        cleaned = "".join(c for c in name.strip() if c.isalnum() or c in "._-")
+        if not cleaned or cleaned.startswith("."):
+            raise HTTPException(status_code=400, detail="存档名非法。仅允许字母/数字/._- ")
+        return cleaned
+
+    def save_to(self, name: str) -> Dict[str, Any]:
+        safe = self._safe_save_name(name)
+        target = os.path.join(self.saves_dir(), f"{safe}.db")
+        self.db.backup_to(target)
+        return {"name": safe, "path": target}
+
+    def delete_save(self, name: str) -> None:
+        safe = self._safe_save_name(name)
+        target = os.path.join(self.saves_dir(), f"{safe}.db")
+        if not os.path.isfile(target):
+            raise HTTPException(status_code=404, detail="存档不存在。")
+        os.remove(target)
+
+    def load_save(self, name: str) -> None:
+        """从存档热替换主 DB：备份当前 → 拷源到主 DB → 重建 session。"""
+        safe = self._safe_save_name(name)
+        source = os.path.join(self.saves_dir(), f"{safe}.db")
+        if not os.path.isfile(source):
+            raise HTTPException(status_code=404, detail="存档不存在。")
+        # 先关闭当前 session 的 DB 连接，避免 Windows/某些平台上的 file lock。
+        try:
+            self.session.close()
+        except Exception:
+            pass
+        # 用 sqlite backup 把存档拷回主路径
+        import sqlite3 as _sqlite3
+        src_conn = _sqlite3.connect(source)
+        dst_conn = _sqlite3.connect(self.db_path)
+        try:
+            src_conn.backup(dst_conn)
+        finally:
+            src_conn.close()
+            dst_conn.close()
+        self._rebuild_session(self.session.llm_config)
+
+    def _rebuild_session(self, llm_config: LLMConfig) -> None:
+        """用新 llm_config（或换完 DB 后）重建 GameSession + 内存缓存。"""
+        verify_llm_available(llm_config)
+        self.session = GameSession(self.db_path, llm_config)
+        self.session.begin_turn()
+        self.chat_history = {name: [] for name in self.session.content.characters}
+        for name, msgs in self.db.load_all_chat_history().items():
+            self.chat_history.setdefault(name, []).extend(msgs)
+        self.favorites = set()
+
+    def apply_llm_config(self, base_url: str, model: str, api_key: str) -> LLMConfig:
+        base = normalize_openai_base_url(base_url.strip() or self.session.llm_config.base_url)
+        new_model = model.strip() or self.session.llm_config.model
+        new_key = api_key.strip() or self.session.llm_config.api_key
+        new_config = LLMConfig(api_key=new_key, base_url=base, model=new_model)
+        verify_llm_available(new_config)
+        save_runtime_llm(new_config.base_url, new_config.model, new_config.api_key)
+        self.session.llm_config = new_config
+        # 重建 registry 让大臣 Agent 用新配置
+        self.session.begin_turn()
+        return new_config
 
     # ── 便捷属性 ──────────────────────────────────────────────────────────
     @property
@@ -144,15 +242,15 @@ class WebGame:
 
     def map_nodes(self) -> List[Dict[str, Any]]:
         region_positions = {
-            "beizhili": (56, 23), "nanzhili": (60, 54), "shandong": (66, 36),
-            "shanxi": (48, 33), "henan": (53, 45), "shaanxi": (39, 43),
-            "zhejiang": (69, 62), "jiangxi": (58, 67), "huguang": (47, 61),
-            "sichuan": (31, 62), "fujian": (67, 75), "guangdong": (54, 84),
-            "guangxi": (42, 82), "yunnan": (25, 82), "guizhou": (35, 73),
+            "beizhili": (66, 30), "nanzhili": (70, 41), "shandong": (71, 38.5),
+            "shanxi": (57, 30), "henan": (58, 46), "shaanxi": (51, 38),
+            "zhejiang": (73.7, 57.9), "jiangxi": (67, 55), "huguang": (59, 59),
+            "sichuan": (57, 52), "fujian": (73.2, 65.1), "guangdong": (62.5, 73.6),
+            "guangxi": (53.9, 69.6), "yunnan": (47, 69), "guizhou": (52, 56),
         }
         theater_positions = {
-            "liaodong": (76, 18), "dongjiang": (86, 31),
-            "xuan_da": (44, 21), "shanhaiguan": (65, 24),
+            "liaodong": (72.8, 25.5), "dongjiang": (78, 31),
+            "xuan_da": (60, 20), "shanhaiguan": (69.5, 27.7),
         }
         armies = self.db.army_payload(danger_order=True)
         nodes: List[Dict[str, Any]] = []
@@ -165,6 +263,15 @@ class WebGame:
             stationed = [a for a in armies if self._army_belongs_to_theater(a, node_id)]
             if stationed:
                 nodes.append({"id": node_id, "kind": "theater", "x": x, "y": y, "label": self._theater_label(node_id), "armies": stationed, "risk": 120})
+        # 外部势力地标：纯标签，无 region/army 数据，不可点开 intel。
+        external_labels = {
+            "ext_jianzhou": ("建州", 82, 8), "ext_chosen": ("朝鲜", 81, 31),
+            "ext_taiwan": ("台湾", 76, 70), "ext_japan": ("日本", 92, 42),
+            "ext_mongol": ("蒙古", 63, 17), "ext_tibet": ("乌斯藏", 30, 52),
+            "ext_jiaozhi": ("交趾", 55, 79),
+        }
+        for node_id, (label, x, y) in external_labels.items():
+            nodes.append({"id": node_id, "kind": "external", "x": x, "y": y, "label": label, "armies": [], "risk": 0})
         return nodes
 
     def _army_belongs_to_region(self, army: Dict[str, Any], region: Dict[str, Any]) -> bool:
@@ -465,6 +572,37 @@ async def api_turn_extraction(turn: int = -1) -> Dict[str, Any]:
     return data
 
 
+@app.get("/api/history/turns")
+async def api_history_turns() -> Dict[str, Any]:
+    """已存档回合列表（turn_reports / turn_extractions / 已颁诏 turn_directives 并集）。"""
+    return {"turns": web_game.db.list_archived_turns()}
+
+
+@app.get("/api/history/turn/{turn}")
+async def api_history_turn(turn: int) -> Dict[str, Any]:
+    """某回合历史聚合：邸报奏报 + 诏书 + 已颁草案 + extractor 输入/输出。"""
+    db = web_game.db
+    report = db.get_turn_report(turn)
+    extraction = db.get_turn_extraction(turn)
+    directives = db.list_directives_by_turn(turn)
+    if not report and extraction is None and not directives:
+        return {"turn": turn, "exists": False}
+    decree_text = ""
+    if extraction is not None:
+        decree_text = str(extraction.get("decree_text") or "")
+        extraction["exists"] = True
+    return {
+        "turn": turn,
+        "exists": True,
+        "year": extraction["year"] if extraction else (directives[0]["year"] if directives else 0),
+        "period": extraction["period"] if extraction else (directives[0]["period"] if directives else 0),
+        "report": report,
+        "decree_text": decree_text,
+        "directives": directives,
+        "extraction": extraction,
+    }
+
+
 @app.get("/api/map")
 async def api_map() -> Dict[str, Any]:
     return {"nodes": web_game.map_nodes()}
@@ -644,6 +782,67 @@ async def api_issue_decree_stream() -> StreamingResponse:
             yield sse_event(kind, {"content": data})
 
     return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+class SaveCreateRequest(BaseModel):
+    name: str
+
+
+class LLMConfigRequest(BaseModel):
+    base_url: str = ""
+    model: str = ""
+    api_key: str = ""
+
+
+@app.get("/api/saves")
+async def api_list_saves() -> Dict[str, Any]:
+    return {"saves": web_game.list_saves()}
+
+
+@app.post("/api/saves")
+async def api_create_save(request: SaveCreateRequest) -> Dict[str, Any]:
+    info = web_game.save_to(request.name)
+    return {"save": info, "saves": web_game.list_saves()}
+
+
+@app.delete("/api/saves/{name}")
+async def api_delete_save(name: str) -> Dict[str, Any]:
+    web_game.delete_save(name)
+    return {"saves": web_game.list_saves()}
+
+
+@app.post("/api/saves/{name}/load")
+async def api_load_save(name: str) -> Dict[str, Any]:
+    web_game.load_save(name)
+    return {"state": web_game.state_payload()}
+
+
+@app.get("/api/llm/config")
+async def api_get_llm_config() -> Dict[str, Any]:
+    """读当前生效的 LLM 配置。api_key 不回传明文，只回是否已设置。"""
+    cfg = web_game.session.llm_config
+    saved = load_runtime_llm()
+    return {
+        "base_url": cfg.base_url,
+        "model": cfg.model,
+        "has_api_key": bool(cfg.api_key),
+        "persisted": {
+            "base_url": saved.get("base_url", ""),
+            "model": saved.get("model", ""),
+            "has_api_key": bool(saved.get("api_key", "")),
+        },
+    }
+
+
+@app.post("/api/llm/config")
+async def api_set_llm_config(request: LLMConfigRequest) -> Dict[str, Any]:
+    try:
+        cfg = web_game.apply_llm_config(request.base_url, request.model, request.api_key)
+    except LLMUnavailable as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    return {"base_url": cfg.base_url, "model": cfg.model, "has_api_key": bool(cfg.api_key)}
 
 
 if os.path.isdir(WEB_DIST):

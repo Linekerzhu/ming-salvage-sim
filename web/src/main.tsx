@@ -7,12 +7,16 @@ import {
   Landmark,
   Loader2,
   MapPinned,
+  Menu,
+  Save,
   Send,
+  Settings,
   ScrollText,
   Shield,
   Star,
   Trash2,
   Swords,
+  Upload,
   X,
 } from "lucide-react";
 import "./styles.css";
@@ -74,7 +78,7 @@ type ExternalPower = {
 
 type MapNode = {
   id: string;
-  kind: "region" | "theater";
+  kind: "region" | "theater" | "external";
   x: number;
   y: number;
   label?: string;
@@ -196,7 +200,14 @@ type GameState = {
 type ChatMessage = { role: "user" | "minister"; content: string };
 type ChatDisplayMessage = ChatMessage & { pending?: boolean };
 type Suggestion = { label: string; text: string };
-type ModalName = "none" | "state" | "chat" | "edict" | "report" | "extraction";
+type ModalName = "none" | "state" | "chat" | "edict" | "report" | "extraction" | "history" | "menu";
+type SaveEntry = { name: string; size: number; mtime: number };
+type LLMConfigInfo = {
+  base_url: string;
+  model: string;
+  has_api_key: boolean;
+  persisted: { base_url: string; model: string; has_api_key: boolean };
+};
 type ProposedDirective = { id: number; text: string; status: string; notes: string };
 type ChatResponse = {
   answer: string;
@@ -382,14 +393,20 @@ const shortSuggestionLabel = (suggestion: Suggestion) => {
 
 const getMapIntelStyle = (node: MapNode): React.CSSProperties => {
   const left = Math.min(82, Math.max(18, node.x));
-  const top = Math.min(72, Math.max(18, node.y));
   const horizontal = node.x > 66 ? "-100%" : node.x < 34 ? "0" : "-50%";
-  const vertical = node.y > 64 ? "calc(-100% - 18px)" : "18px";
-  return {
+  const style: React.CSSProperties = {
     left: `${left}%`,
-    top: `${top}%`,
-    transform: `translate(${horizontal}, ${vertical})`,
+    transform: `translateX(${horizontal})`,
+    maxHeight: "calc(100vh - 24px)",
   };
+  if (node.y > 50) {
+    style.bottom = "12px";
+    style.top = "auto";
+  } else {
+    style.top = "12px";
+    style.bottom = "auto";
+  }
+  return style;
 };
 
 function App() {
@@ -469,6 +486,15 @@ function App() {
     setComposerHint("");
     loadMinisterChat(selectedMinister).catch((err) => setError(err.message));
   }, [selectedMinister, loadMinisterChat]);
+
+  React.useEffect(() => {
+    if (!mapIntelOpen) return;
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMapIntelOpen(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [mapIntelOpen]);
 
   if (!state) {
     return (
@@ -751,13 +777,18 @@ function App() {
   return (
     <main className="game-shell">
       <GrandMap nodes={state.map_nodes} selectedId={mapIntelOpen ? selectedNode?.id || "" : ""} onSelect={selectMapNode} />
-      <TopStatusBar state={state} onOpenState={() => setActiveModal("state")} />
+      <TopStatusBar
+        state={state}
+        onOpenState={() => setActiveModal("state")}
+        onOpenMenu={() => setActiveModal("menu")}
+      />
       <BottomCommandBar
         eventsCount={state.events.length}
         directivesCount={state.directives.length}
         onOpenMemorials={() => setActiveModal("state")}
         onOpenEdict={() => setActiveModal("edict")}
         onOpenExtraction={() => setActiveModal("extraction")}
+        onOpenHistory={() => setActiveModal("history")}
       />
 
       <CourtDrawer
@@ -844,6 +875,20 @@ function App() {
 
       {activeModal === "extraction" ? (
         <ExtractionModal onClose={guardClose(() => setActiveModal("none"))} />
+      ) : null}
+
+      {activeModal === "history" ? (
+        <HistoryModal onClose={guardClose(() => setActiveModal("none"))} />
+      ) : null}
+
+      {activeModal === "menu" ? (
+        <GameMenuModal
+          onClose={guardClose(() => setActiveModal("none"))}
+          onAfterLoad={() => {
+            setActiveModal("none");
+            window.location.reload();
+          }}
+        />
       ) : null}
 
       {closedModal.length ? (
@@ -990,7 +1035,15 @@ function CourtDrawer({
   );
 }
 
-function TopStatusBar({ state, onOpenState }: { state: GameState; onOpenState: () => void }) {
+function TopStatusBar({
+  state,
+  onOpenState,
+  onOpenMenu,
+}: {
+  state: GameState;
+  onOpenState: () => void;
+  onOpenMenu: () => void;
+}) {
   const scoreKeys = ["民心", "皇威"];
   return (
     <header className="status-bar" aria-label="国势状态栏">
@@ -1006,6 +1059,10 @@ function TopStatusBar({ state, onOpenState }: { state: GameState; onOpenState: (
             {key} <b>{state.metrics[key]}</b>
           </span>
         ))}
+        <button className="status-menu" onClick={onOpenMenu} aria-label="游戏菜单">
+          <Menu size={16} />
+          <span>菜单</span>
+        </button>
       </div>
     </header>
   );
@@ -1069,12 +1126,14 @@ function BottomCommandBar({
   onOpenMemorials,
   onOpenEdict,
   onOpenExtraction,
+  onOpenHistory,
 }: {
   eventsCount: number;
   directivesCount: number;
   onOpenMemorials: () => void;
   onOpenEdict: () => void;
   onOpenExtraction: () => void;
+  onOpenHistory: () => void;
 }) {
   return (
     <nav className="bottom-command-bar" aria-label="朝政主操作">
@@ -1083,14 +1142,18 @@ function BottomCommandBar({
         {eventsCount ? <span className="command-badge">{eventsCount}</span> : null}
         <span className="command-caption"><b>奏疏</b><small>{eventsCount} 件待览</small></span>
       </button>
-      <button className="command-icon" onClick={onOpenExtraction} aria-label="数值变化">
+      <button className="command-icon" onClick={onOpenExtraction} aria-label="邸报详明">
         <img src="/icon_scroll.png" alt="" className="command-art" />
-        <span className="command-caption"><b>数值变化</b><small>上月推演明细</small></span>
+        <span className="command-caption"><b>邸报详明</b><small>数项加减/账目明细</small></span>
       </button>
       <button className="command-icon" onClick={onOpenEdict} aria-label={`诏书草案 ${directivesCount} 道待发`}>
         <img src="/icon_scroll.png" alt="" className="command-art" />
         {directivesCount ? <span className="command-badge">{directivesCount}</span> : null}
         <span className="command-caption"><b>诏书草案</b><small>{directivesCount ? `${directivesCount} 道待发` : "本月未下旨"}</small></span>
+      </button>
+      <button className="command-icon" onClick={onOpenHistory} aria-label="历代奏报">
+        <img src="/icon_scroll.png" alt="" className="command-art" />
+        <span className="command-caption"><b>史册</b><small>历代奏报/诏书</small></span>
       </button>
     </nav>
   );
@@ -1221,11 +1284,495 @@ function ExtractionModal({ onClose }: { onClose: () => void }) {
   }, []);
 
   return (
-    <FullscreenModal title="数值变化" subtitle="上月推演明细" bgClass="modal-bg-state" onClose={onClose}>
+    <FullscreenModal title="邸报详明" subtitle="数项加减/账目明细" bgClass="modal-bg-state" onClose={onClose}>
       <article className="state-document modal-scroll">
         <ExtractionView data={extraction} loading={loading} error={error} />
       </article>
     </FullscreenModal>
+  );
+}
+
+type HistoryTurnItem = {
+  turn: number;
+  year: number;
+  period: number;
+  has_report: boolean;
+  has_extraction: boolean;
+  has_directive: boolean;
+};
+
+type HistoryDirective = {
+  id: number;
+  turn: number;
+  year: number;
+  period: number;
+  event_id: string;
+  event_title: string;
+  actor: string;
+  skill_id: string;
+  text: string;
+  source: string;
+  status: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type HistoryDetail = {
+  turn: number;
+  exists: boolean;
+  year: number;
+  period: number;
+  report: string;
+  decree_text: string;
+  directives: HistoryDirective[];
+  extraction: ExtractionData | null;
+};
+
+function HistoryModal({ onClose }: { onClose: () => void }) {
+  const [turns, setTurns] = React.useState<HistoryTurnItem[]>([]);
+  const [listLoading, setListLoading] = React.useState(true);
+  const [listError, setListError] = React.useState("");
+  const [selectedTurn, setSelectedTurn] = React.useState<number | null>(null);
+  const [detail, setDetail] = React.useState<HistoryDetail | null>(null);
+  const [detailLoading, setDetailLoading] = React.useState(false);
+  const [detailError, setDetailError] = React.useState("");
+
+  React.useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const resp = await fetch("/api/history/turns");
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        if (!alive) return;
+        const list: HistoryTurnItem[] = data.turns || [];
+        setTurns(list);
+        if (list.length) setSelectedTurn(list[list.length - 1].turn);
+      } catch (e: any) {
+        if (alive) setListError(e?.message || "加载失败");
+      } finally {
+        if (alive) setListLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  React.useEffect(() => {
+    if (selectedTurn == null) return;
+    let alive = true;
+    setDetailLoading(true);
+    setDetailError("");
+    (async () => {
+      try {
+        const resp = await fetch(`/api/history/turn/${selectedTurn}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        if (alive) setDetail(data);
+      } catch (e: any) {
+        if (alive) setDetailError(e?.message || "加载失败");
+      } finally {
+        if (alive) setDetailLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [selectedTurn]);
+
+  const subtitle = turns.length ? `共 ${turns.length} 月存档` : "尚无存档";
+
+  return (
+    <FullscreenModal title="史册：历代奏报与诏书" subtitle={subtitle} bgClass="modal-bg-state" onClose={onClose}>
+      <div className="history-modal-body">
+        <aside className="history-turn-list">
+          {listLoading ? <p className="long-copy">加载中…</p> : null}
+          {listError ? <p className="long-copy">加载失败：{listError}</p> : null}
+          {!listLoading && !listError && turns.length === 0 ? (
+            <p className="long-copy">尚无存档回合。</p>
+          ) : null}
+          <ul>
+            {turns.slice().reverse().map((t) => {
+              const active = t.turn === selectedTurn;
+              const tags: string[] = [];
+              if (t.has_report) tags.push("奏报");
+              if (t.has_directive) tags.push("诏");
+              if (t.has_extraction) tags.push("册");
+              return (
+                <li key={t.turn}>
+                  <button
+                    className={`history-turn-item ${active ? "active" : ""}`}
+                    onClick={() => setSelectedTurn(t.turn)}
+                  >
+                    <b>{t.year} 年 {t.period} 月</b>
+                    <small>第 {t.turn} 回合 · {tags.join(" / ") || "—"}</small>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </aside>
+        <article className="history-detail modal-scroll">
+          <HistoryDetailView
+            loading={detailLoading}
+            error={detailError}
+            detail={detail}
+            selectedTurn={selectedTurn}
+          />
+        </article>
+      </div>
+    </FullscreenModal>
+  );
+}
+
+function GameMenuModal({ onClose, onAfterLoad }: { onClose: () => void; onAfterLoad: () => void }) {
+  const [tab, setTab] = React.useState<"save" | "load" | "llm">("save");
+  React.useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <section className="center-layer" role="dialog" aria-modal="true" aria-label="游戏菜单">
+      <div className="center-scrim" onClick={onClose} />
+      <div className="center-modal">
+        <header className="center-modal-header">
+          <h1>游戏菜单</h1>
+          <button className="icon-button" aria-label="关闭弹窗" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </header>
+        <div className="game-menu">
+          <nav className="game-menu-tabs">
+            <button className={tab === "save" ? "active" : ""} onClick={() => setTab("save")}>
+              <Save size={14} /> 保存存档
+            </button>
+            <button className={tab === "load" ? "active" : ""} onClick={() => setTab("load")}>
+              <Upload size={14} /> 加载存档
+            </button>
+            <button className={tab === "llm" ? "active" : ""} onClick={() => setTab("llm")}>
+              <Settings size={14} /> LLM 配置
+            </button>
+          </nav>
+          <div className="game-menu-body">
+            {tab === "save" ? <SaveTab /> : null}
+            {tab === "load" ? <LoadTab onAfterLoad={onAfterLoad} /> : null}
+            {tab === "llm" ? <LLMConfigTab /> : null}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SaveTab() {
+  const [name, setName] = React.useState("");
+  const [saves, setSaves] = React.useState<SaveEntry[]>([]);
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState("");
+  const [err, setErr] = React.useState("");
+
+  const refresh = React.useCallback(async () => {
+    try {
+      const data = await api<{ saves: SaveEntry[] }>("/api/saves");
+      setSaves(data.saves);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    }
+  }, []);
+
+  React.useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const onSave = async () => {
+    if (!name.trim()) {
+      setErr("请填存档名。");
+      return;
+    }
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      await api<{ save: { name: string }; saves: SaveEntry[] }>("/api/saves", {
+        method: "POST",
+        body: JSON.stringify({ name: name.trim() }),
+      });
+      setMsg(`已保存为 ${name.trim()}.db`);
+      setName("");
+      await refresh();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="menu-section">
+      <h3>保存当前局</h3>
+      <p className="menu-hint">将当前 DB 热备到 data/saves/&lt;名字&gt;.db。同名直接覆盖。</p>
+      <div className="menu-row">
+        <input
+          className="menu-input"
+          placeholder="存档名（字母/数字/._-）"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          disabled={busy}
+        />
+        <button className="menu-btn primary" onClick={onSave} disabled={busy}>
+          {busy ? <Loader2 size={14} className="spin" /> : <Save size={14} />} 保存
+        </button>
+      </div>
+      {msg ? <div className="menu-success">{msg}</div> : null}
+      {err ? <div className="menu-error">{err}</div> : null}
+      <h4>现有存档</h4>
+      <SavesList saves={saves} onRefresh={refresh} />
+    </section>
+  );
+}
+
+function LoadTab({ onAfterLoad }: { onAfterLoad: () => void }) {
+  const [saves, setSaves] = React.useState<SaveEntry[]>([]);
+  const [busy, setBusy] = React.useState("");
+  const [err, setErr] = React.useState("");
+  const refresh = React.useCallback(async () => {
+    try {
+      const data = await api<{ saves: SaveEntry[] }>("/api/saves");
+      setSaves(data.saves);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    }
+  }, []);
+  React.useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const onLoad = async (n: string) => {
+    if (!window.confirm(`确定加载 ${n}.db？当前未保存进度会丢失。`)) return;
+    setBusy(n);
+    setErr("");
+    try {
+      await api(`/api/saves/${encodeURIComponent(n)}/load`, { method: "POST" });
+      onAfterLoad();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+      setBusy("");
+    }
+  };
+
+  return (
+    <section className="menu-section">
+      <h3>加载存档</h3>
+      <p className="menu-hint">选一份覆盖回主 DB。加载后页面会自动重新载入。</p>
+      {err ? <div className="menu-error">{err}</div> : null}
+      <SavesList saves={saves} onRefresh={refresh} action={onLoad} busy={busy} />
+    </section>
+  );
+}
+
+function SavesList({
+  saves,
+  onRefresh,
+  action,
+  busy,
+}: {
+  saves: SaveEntry[];
+  onRefresh: () => void;
+  action?: (name: string) => void;
+  busy?: string;
+}) {
+  const [delErr, setDelErr] = React.useState("");
+  const onDelete = async (n: string) => {
+    if (!window.confirm(`删除 ${n}.db？`)) return;
+    try {
+      await api(`/api/saves/${encodeURIComponent(n)}`, { method: "DELETE" });
+      onRefresh();
+    } catch (e) {
+      setDelErr(e instanceof Error ? e.message : String(e));
+    }
+  };
+  if (!saves.length) return <div className="menu-empty">尚无存档。</div>;
+  return (
+    <ul className="saves-list">
+      {delErr ? <div className="menu-error">{delErr}</div> : null}
+      {saves.map((s) => (
+        <li key={s.name} className="saves-row">
+          <div className="saves-name">
+            <b>{s.name}</b>
+            <small>
+              {new Date(s.mtime * 1000).toLocaleString()} · {(s.size / 1024).toFixed(1)} KB
+            </small>
+          </div>
+          <div className="saves-actions">
+            {action ? (
+              <button className="menu-btn primary" disabled={busy === s.name} onClick={() => action(s.name)}>
+                {busy === s.name ? <Loader2 size={14} className="spin" /> : <Upload size={14} />} 加载
+              </button>
+            ) : null}
+            <button className="menu-btn danger" onClick={() => onDelete(s.name)}>
+              <Trash2 size={14} /> 删
+            </button>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function LLMConfigTab() {
+  const [info, setInfo] = React.useState<LLMConfigInfo | null>(null);
+  const [baseUrl, setBaseUrl] = React.useState("");
+  const [model, setModel] = React.useState("");
+  const [apiKey, setApiKey] = React.useState("");
+  const [show, setShow] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState("");
+  const [err, setErr] = React.useState("");
+
+  React.useEffect(() => {
+    api<LLMConfigInfo>("/api/llm/config")
+      .then((data) => {
+        setInfo(data);
+        setBaseUrl(data.base_url);
+        setModel(data.model);
+      })
+      .catch((e) => setErr(e instanceof Error ? e.message : String(e)));
+  }, []);
+
+  const onSave = async () => {
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const data = await api<LLMConfigInfo>("/api/llm/config", {
+        method: "POST",
+        body: JSON.stringify({ base_url: baseUrl, model, api_key: apiKey }),
+      });
+      setInfo((cur) => (cur ? { ...cur, ...data } : null));
+      setApiKey("");
+      setMsg("已生效并写入 data/runtime_llm.json。");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="menu-section">
+      <h3>LLM 配置</h3>
+      <p className="menu-hint">
+        立即生效并写入 <code>data/runtime_llm.json</code>，重启进程后自动加载。api_key 留空保留当前。
+      </p>
+      <label className="menu-field">
+        <span>Base URL</span>
+        <input
+          className="menu-input"
+          value={baseUrl}
+          onChange={(e) => setBaseUrl(e.target.value)}
+          placeholder="https://api.openai.com/v1"
+        />
+      </label>
+      <label className="menu-field">
+        <span>Model</span>
+        <input
+          className="menu-input"
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
+          placeholder="gpt-4o-mini"
+        />
+      </label>
+      <label className="menu-field">
+        <span>
+          API Key{" "}
+          {info?.has_api_key ? <small className="ok">（当前已设置）</small> : <small className="warn">（未设置）</small>}
+        </span>
+        <div className="menu-row">
+          <input
+            className="menu-input"
+            type={show ? "text" : "password"}
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder={info?.has_api_key ? "留空保留当前" : "请输入"}
+            autoComplete="off"
+          />
+          <button className="menu-btn" type="button" onClick={() => setShow((v) => !v)}>
+            {show ? "隐" : "显"}
+          </button>
+        </div>
+      </label>
+      <div className="menu-row">
+        <button className="menu-btn primary" onClick={onSave} disabled={busy}>
+          {busy ? <Loader2 size={14} className="spin" /> : <Check size={14} />} 保存并应用
+        </button>
+      </div>
+      {msg ? <div className="menu-success">{msg}</div> : null}
+      {err ? <div className="menu-error">{err}</div> : null}
+    </section>
+  );
+}
+
+function HistoryDetailView({
+  loading,
+  error,
+  detail,
+  selectedTurn,
+}: {
+  loading: boolean;
+  error: string;
+  detail: HistoryDetail | null;
+  selectedTurn: number | null;
+}) {
+  if (selectedTurn == null) return <div className="document-section"><p className="long-copy">请从左侧择月。</p></div>;
+  if (loading) return <div className="document-section"><p className="long-copy">加载中…</p></div>;
+  if (error) return <div className="document-section"><p className="long-copy">加载失败：{error}</p></div>;
+  if (!detail || !detail.exists) return <div className="document-section"><p className="long-copy">该回合无存档。</p></div>;
+
+  return (
+    <>
+      {detail.decree_text ? (
+        <section className="document-section">
+          <h3 className="extraction-section-title">本月诏书</h3>
+          <pre className="memorial-text">{detail.decree_text}</pre>
+        </section>
+      ) : null}
+
+      {detail.directives.length ? (
+        <section className="document-section">
+          <h3 className="extraction-section-title">已颁草案（{detail.directives.length} 道）</h3>
+          <ul className="history-directive-list">
+            {detail.directives.map((d) => (
+              <li key={d.id} className="history-directive-item">
+                <div className="history-directive-head">
+                  <b>#{d.id}</b>
+                  {d.event_title ? <span>事项：{d.event_title}</span> : null}
+                  {d.actor ? <span>主官：{d.actor}</span> : null}
+                  {d.skill_id ? <span>技能：{d.skill_id}</span> : null}
+                  <span className="history-directive-source">{d.source}</span>
+                </div>
+                <pre className="memorial-text">{d.text}</pre>
+                {d.notes ? <div className="history-directive-notes">备注：{d.notes}</div> : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {detail.report ? (
+        <section className="document-section">
+          <h3 className="extraction-section-title">月末邸报奏报</h3>
+          <pre className="memorial-text">{detail.report}</pre>
+        </section>
+      ) : null}
+
+      {detail.extraction && detail.extraction.exists ? (
+        <section className="document-section">
+          <h3 className="extraction-section-title">邸报详明（extractor 解析）</h3>
+          <ExtractionView data={detail.extraction} loading={false} error="" />
+        </section>
+      ) : null}
+    </>
   );
 }
 
@@ -1479,15 +2026,24 @@ function BriefReport({ title, items }: { title: string; items: string[] }) {
 
 function SituationPanel({ issues, closedIssues }: { issues: Issue[]; closedIssues: ClosedIssue[] }) {
   const active = issues.filter((issue) => issue.kind === "situation" || issue.kind === "initiative");
+  const [collapsed, setCollapsed] = React.useState(false);
   if (!active.length && !closedIssues.length) return null;
   active.sort((a, b) => {
     if (a.kind !== b.kind) return a.kind === "initiative" ? -1 : 1;
     return a.id - b.id;
   });
   return (
-    <aside className="situation-panel" aria-label="局势进度">
-      <div className="situation-panel-title">局势进度</div>
-      {closedIssues.length ? (
+    <aside className={`situation-panel ${collapsed ? "collapsed" : ""}`} aria-label="局势进度">
+      <div className="situation-panel-title">
+        <span>局势进度</span>
+        <button
+          type="button"
+          className="situation-toggle"
+          aria-label={collapsed ? "展开局势" : "收起局势"}
+          onClick={() => setCollapsed((c) => !c)}
+        >{collapsed ? "+" : "−"}</button>
+      </div>
+      {!collapsed && closedIssues.length ? (
         <div className="situation-closed-list">
           {closedIssues.map((ci) => (
             <div className={`situation-closed-row ${ci.status}`} key={`closed-${ci.id}`} tabIndex={0}>
@@ -1500,7 +2056,7 @@ function SituationPanel({ issues, closedIssues }: { issues: Issue[]; closedIssue
           ))}
         </div>
       ) : null}
-      <div className="situation-list">
+      {!collapsed && <div className="situation-list">
         {active.map((issue) => (
           <div className={`situation-row ${issueTone(issue.bar_value)}`} key={issue.id} tabIndex={0}>
             <div className="situation-row-head">
@@ -1541,7 +2097,7 @@ function SituationPanel({ issues, closedIssues }: { issues: Issue[]; closedIssue
             </div>
           </div>
         ))}
-      </div>
+      </div>}
     </aside>
   );
 }
@@ -1865,24 +2421,154 @@ function filterMinisters(ministers: Minister[], group: string) {
 }
 
 function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedId: string; onSelect: (id: string) => void }) {
+  const viewportRef = React.useRef<HTMLDivElement | null>(null);
+  const [tileW, setTileW] = React.useState<number>(() => (typeof window !== "undefined" ? window.innerWidth : 1280));
+  const [offsetX, setOffsetX] = React.useState(0);
+  const dragState = React.useRef<{ pointerId: number; startX: number; originX: number; moved: boolean } | null>(null);
+  const [dragging, setDragging] = React.useState(false);
+
+  // 坐标取点工具：URL 加 ?coords=1 开启。点地图打印 x/y%（对照 web_app.py map_nodes）。
+  const coordPick = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("coords");
+  const [pick, setPick] = React.useState<{ x: number; y: number } | null>(null);
+  const onPickClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!coordPick || dragState.current?.moved) return;
+    const rect = viewportRef.current?.getBoundingClientRect();
+    if (!rect || tileW <= 0) return;
+    let lx = (e.clientX - rect.left - offsetX) % tileW;
+    if (lx < 0) lx += tileW;
+    const x = +(lx / tileW * 100).toFixed(1);
+    const y = +((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+    setPick({ x, y });
+    console.log(`map coord: (${x}, ${y})`);
+  };
+
+  const wrap = React.useCallback((x: number, w: number) => {
+    if (w <= 0) return 0;
+    let r = x % w;
+    if (r > 0) r -= w;
+    return r;
+  }, []);
+
+  React.useEffect(() => {
+    const measure = () => {
+      const w = viewportRef.current?.clientWidth ?? window.innerWidth;
+      setTileW(w);
+      setOffsetX((cur) => wrap(cur, w));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [wrap]);
+
+  React.useEffect(() => {
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && target.closest('button, a, input, textarea, select, [role="dialog"], .court-drawer, .map-intel-panel, .modal-scroll, .fullscreen-modal, .situation-panel, .chat-main')) return;
+      const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (dx === 0) return;
+      e.preventDefault();
+      setOffsetX((cur) => wrap(cur - dx, viewportRef.current?.clientWidth ?? tileW));
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, [wrap, tileW]);
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    // 点在节点按钮上：不抢 pointer capture，否则 click 被劫持到 section，按钮 onClick 不触发。
+    if ((e.target as HTMLElement).closest(".map-node")) return;
+    dragState.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      originX: offsetX,
+      moved: false,
+    };
+    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+    setDragging(true);
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const st = dragState.current;
+    if (!st || st.pointerId !== e.pointerId) return;
+    const dx = e.clientX - st.startX;
+    if (!st.moved && Math.abs(dx) > 4) st.moved = true;
+    setOffsetX(wrap(st.originX + dx, tileW));
+  };
+
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const st = dragState.current;
+    if (!st || st.pointerId !== e.pointerId) return;
+    try { (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId); } catch {}
+    dragState.current = null;
+    setDragging(false);
+  };
+
+  const wasDragged = () => dragState.current?.moved === true;
+  const tiles = [-1, 0, 1];
+
   return (
-    <section className="grand-map" aria-label="大明地图">
-      {nodes.map((node) => {
-        const selected = selectedId === node.id;
-        const danger = node.risk > 175;
-        return (
-          <button
-            key={node.id}
-            className={`map-node ${node.kind} ${selected ? "selected" : ""} ${danger ? "danger" : ""}`}
-            style={{ left: `${node.x}%`, top: `${node.y}%` }}
-            onClick={() => onSelect(node.id)}
-            aria-label={`查看${node.region?.name || node.label}`}
+    <section
+      ref={viewportRef}
+      className={`grand-map ${dragging ? "dragging" : ""}`}
+      aria-label="大明地图"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onClick={onPickClick}
+    >
+      <div
+        className="map-strip"
+        style={{ transform: `translate3d(${offsetX}px, 0, 0)` }}
+      >
+        {tiles.map((idx) => (
+          <div
+            key={idx}
+            className="map-tile"
+            style={{ width: tileW }}
+            aria-hidden={idx !== 0}
           >
-            {node.kind === "theater" ? <Shield size={16} /> : <MapPinned size={15} />}
-            <span>{node.region?.name.split(" / ")[0] || node.label}</span>
-          </button>
-        );
-      })}
+            {nodes.map((node) => {
+              const selected = idx === 0 && selectedId === node.id;
+              const danger = node.risk > 175;
+              if (node.kind === "external") {
+                return (
+                  <div
+                    key={`${idx}:${node.id}`}
+                    className="map-node external"
+                    style={{ left: `${node.x}%`, top: `${node.y}%` }}
+                    aria-hidden="true"
+                  >
+                    <span>{node.label}</span>
+                  </div>
+                );
+              }
+              return (
+                <button
+                  key={`${idx}:${node.id}`}
+                  className={`map-node ${node.kind} ${selected ? "selected" : ""} ${danger ? "danger" : ""}`}
+                  style={{ left: `${node.x}%`, top: `${node.y}%` }}
+                  onClick={(ev) => {
+                    if (wasDragged()) { ev.preventDefault(); ev.stopPropagation(); return; }
+                    onSelect(node.id);
+                  }}
+                  aria-label={`查看${node.region?.name || node.label}`}
+                  tabIndex={idx === 0 ? 0 : -1}
+                >
+                  {node.kind === "theater" ? <Shield size={16} /> : <MapPinned size={15} />}
+                  <span>{node.region?.name.split(" / ")[0] || node.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      {coordPick && pick ? (
+        <div className="coord-pick-readout">
+          x: {pick.x} &nbsp; y: {pick.y}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -1892,39 +2578,41 @@ function NodeIntel({ node }: { node: MapNode }) {
   return (
     <>
       <div className="panel-title">
-        {node.kind === "theater" ? <Shield size={17} /> : <MapPinned size={17} />}
+        {node.kind === "theater" ? <Shield size={14} /> : <MapPinned size={14} />}
         <span>{region?.name || node.label}</span>
       </div>
       {region ? (
-        <div className="intel-grid">
-          <Info label="人口" value={`${region.population}万人`} />
-          <Info label="民心" value={region.public_support} tone={scoreTone(region.public_support)} />
-          <Info label="动乱" value={region.unrest} tone={scoreTone(region.unrest, true)} />
-          <Info label="粮食" value={region.grain_security} tone={scoreTone(region.grain_security)} />
-          <Info label="田亩" value={`${region.registered_land}万亩`} />
-          <Info label="月税" value={`${monthlyAmount(region.tax_per_turn)}万两/月`} />
-        </div>
+        <table className="intel-table">
+          <tbody>
+            <tr><th>人口</th><td>{region.population}万</td><th>田亩</th><td>{region.registered_land}万亩</td></tr>
+            <tr><th>民心</th><td>{region.public_support}</td><th>动乱</th><td>{region.unrest}</td></tr>
+            <tr><th>粮食</th><td>{region.grain_security}</td><th>月税</th><td>{monthlyAmount(region.tax_per_turn)}万/月</td></tr>
+            <tr><th>天灾</th><td colSpan={3}>{region.natural_disaster}</td></tr>
+            <tr><th>人祸</th><td colSpan={3}>{region.human_disaster}</td></tr>
+            <tr><th>状况</th><td colSpan={3}>{region.status}</td></tr>
+          </tbody>
+        </table>
       ) : null}
-      {region ? <p className="intel-copy">天灾：{region.natural_disaster}。人祸：{region.human_disaster}。{region.status}</p> : null}
-      <div className="garrison-title">
-        <Swords size={16} />
-        <span>驻军</span>
-      </div>
-      <div className="army-list">
-        {node.armies.map((army) => (
-          <article className="army-card" key={army.id}>
-            <b>{army.name}</b>
-            <span>{army.troop_type}</span>
-            <div className="army-stats">
-              <small>兵 {army.manpower}</small>
-              <small>饷 {monthlyAmount(army.maintenance_per_turn)}万/月</small>
-              <small>士气 {army.morale}</small>
-              <small>欠饷 {army.arrears}</small>
-            </div>
-          </article>
-        ))}
-        {!node.armies.length && <div className="empty-note">本地未记录常驻军。</div>}
-      </div>
+      <div className="garrison-title">驻军</div>
+      {node.armies.length ? (
+        <table className="intel-table">
+          <thead>
+            <tr><th>番号</th><th>兵种</th><th>兵</th><th>饷</th><th>士气</th><th>欠饷</th></tr>
+          </thead>
+          <tbody>
+            {node.armies.map((army) => (
+              <tr key={army.id}>
+                <td>{army.name}</td>
+                <td>{army.troop_type}</td>
+                <td>{army.manpower}</td>
+                <td>{monthlyAmount(army.maintenance_per_turn)}</td>
+                <td>{army.morale}</td>
+                <td>{army.arrears}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : <div className="empty-note">本地未记录常驻军。</div>}
     </>
   );
 }
