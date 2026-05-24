@@ -180,8 +180,8 @@ class GameState:
         default_factory=lambda: {
             "国库": 320,
             "内库": 440,
-            "民心": 46,
-            "皇威": 58,
+            "民心": 50,
+            "皇威": 20,
         }
     )
     log: List[str] = field(default_factory=list)

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from ming_sim.agents import bind_content as _bind_agents
 from ming_sim.content import GameContent
@@ -60,6 +60,7 @@ class ChatTurnResult:
     next_minister: str = ""
     proposed_directive: Optional[DirectiveView] = None
     appointed_minister: str = ""   # 吏部本轮铨选新任的人物姓名（已可召见）
+    displaced_minister: str = ""   # 因新任腾缺被罢黜（dismissed）的原任者姓名
     refresh_ministers: List[str] = field(default_factory=list)
 
 
@@ -96,17 +97,37 @@ def _find_candidate_by_name(content: GameContent, name: str) -> Optional[str]:
     return None
 
 
+def _find_existing_minister(content: GameContent, name: str) -> Optional[str]:
+    """铨选查重：拟任者是否已在册（非 candidate）。精确名 → aliases 命中。
+    不做子串互含——'李标' vs '标' 那种巧合会误拒同义改写。
+    后宫人物不在此查（走 _find_candidate_by_name）。返回在册原始 key，无则 None。"""
+    if name in content.characters:
+        c = content.characters[name]
+        if c.office_type != "后宫" and c.status != "candidate":
+            return name
+    for key, c in content.characters.items():
+        if c.office_type == "后宫" or c.status == "candidate":
+            continue
+        if name in (c.aliases or []):
+            return key
+    return None
+
+
 def apply_appointment(
     db: GameDB,
     state: GameState,
     content: GameContent,
     registry: Optional[MinisterRegistry],
     data: Dict[str, object],
-) -> str:
+) -> Tuple[str, str]:
     """诏书任命/吏部铨选共用落地：建档入库 + 注册 Agent，本回合即可召见。
     LLM（吏部 propose_appointment 或档房 appointments 三道闸）已判过史实合理性；
-    代码端只做姓名查重与字段兜底，不做历史校验。返回新任者姓名；
-    payload 不合法、重名、approved=false 则返回空串。
+    代码端只做姓名查重与字段兜底，不做历史校验。
+    返回 (新任者姓名, 被腾缺罢黜者姓名)；任一无则该位留空串。
+    payload 不合法、重名、approved=false 则返回 ("", "")。
+
+    职位替换：data["replaces"] 填现任者姓名时，把其 status 改 dismissed 腾缺
+    （由吏部 LLM 判定占缺者，代码端不做职位字面校验，符合无 fallback 约束）。
 
     后宫纳妃：data 含 office_type="后宫" 时走后宫路径——office 记称号（贵妃/嫔/才人等），
     faction 留空（填"后宫"），注册 Agent 以 consort_agent_prompt 为底。
@@ -115,13 +136,13 @@ def apply_appointment(
     走 UPDATE（保留原 style/skills/portrait_id），不新建记录。
     """
     if not data:
-        return ""
+        return ("", "")
     if "approved" in data and not bool(data.get("approved")):
-        return ""
+        return ("", "")
     name = str(data.get("name") or "").strip()
     office = str(data.get("office") or "").strip()
     if not name or not office:
-        return ""
+        return ("", "")
     is_consort = str(data.get("office_type") or "").strip() == "后宫"
 
     # ── 后宫 candidate 升格路径 ──────────────────────────────────────
@@ -159,13 +180,29 @@ def apply_appointment(
                 content.characters[name] = character
             if registry is not None:
                 registry.register(character)
-            return original_key  # 返回原始 key，保持一致
+            return (original_key, "")  # 返回原始 key，保持一致
 
-    # ── 普通路径：精确名已在册则跳过 ────────────────────────────────
-    if name in content.characters:
-        c = content.characters[name]
-        if c.status != "candidate":
-            return ""  # 已在册非 candidate——不重复建档
+    # ── 普通路径查重：精确名 + aliases 命中即拒，不重复建档 ──────────
+    if not is_consort:
+        existing = _find_existing_minister(content, name)
+        if existing is not None:
+            return ("", "")
+    elif name in content.characters and content.characters[name].status != "candidate":
+        return ("", "")
+
+    # ── 职位替换：腾缺现任者 → dismissed ───────────────────────────
+    displaced = ""
+    replaces = str(data.get("replaces") or "").strip()
+    if not is_consort and replaces and replaces in content.characters:
+        old = content.characters[replaces]
+        if old.status == "active":
+            db.set_character_status(
+                state, replaces, "dismissed",
+                reason=f"{office}改授{name}，原任去职",
+            )
+            old.status = "dismissed"
+            displaced = replaces
+
     faction = "后宫" if is_consort else str(data.get("faction") or "中立").strip()
     if not is_consort and faction not in content.factions:
         faction = "中立"
@@ -190,7 +227,7 @@ def apply_appointment(
         character.portrait_id = str(row["portrait_id"])
     if registry is not None:
         registry.register(character)
-    return name
+    return (name, displaced)
 
 
 def _bind_all_content(content: GameContent) -> None:
@@ -332,21 +369,24 @@ class GameSession:
                     )
             elif tool_name == "propose_appointment" or tool_result.startswith("__pending_appointment__"):
                 payload = tool_result.removeprefix("__pending_appointment__").strip()
-                appointed = self._apply_appointment(payload, character)
+                appointed, displaced = self._apply_appointment(payload, character)
                 if appointed:
                     result.appointed_minister = appointed
                     result.refresh_ministers.append(appointed)
+                if displaced:
+                    result.displaced_minister = displaced
+                    result.refresh_ministers.append(displaced)
         return result
 
-    def _apply_appointment(self, payload: str, appointer: Character) -> str:
+    def _apply_appointment(self, payload: str, appointer: Character) -> Tuple[str, str]:
         """吏部 propose_appointment 落地：建档入库 + 注册 Agent，本回合即可召见。
         吏部尚书 LLM 已判过史实合理性；代码端只做姓名查重与字段兜底，不做历史校验。
-        返回新任者姓名；payload 不合法或重名则返回空串。"""
+        返回 (新任者姓名, 被腾缺罢黜者姓名)；payload 不合法或重名则返回 ("", "")。"""
         import json as _json
         try:
             data = _json.loads(payload) if payload else {}
         except (ValueError, TypeError):
-            return ""
+            return ("", "")
         return apply_appointment(self.db, self.state, self.content, self.registry, data)
 
     # ── 拟旨 / 草案阶段 ───────────────────────────────────────────────────

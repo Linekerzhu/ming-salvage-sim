@@ -723,13 +723,14 @@ def apply_score_extraction(
         for item in extracted.get("appointments") or []:
             if not isinstance(item, dict):
                 continue
-            name = apply_appointment(db, state, content, registry, item)
+            name, displaced = apply_appointment(db, state, content, registry, item)
             if name:
                 applied_appointments.append({
                     "name": name,
                     "office": str(item.get("office") or ""),
                     "faction": str(item.get("faction") or "中立"),
                     "reason": str(item.get("reason") or ""),
+                    "displaced": displaced,
                 })
             else:
                 rejected_name = str(item.get("name") or "").strip()

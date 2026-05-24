@@ -511,6 +511,7 @@ class WebGame:
         next_minister: str = "",
         proposed_directive: Optional[Dict[str, Any]] = None,
         appointed_minister: str = "",
+        displaced_minister: str = "",
     ) -> Dict[str, Any]:
         character = self.content.characters[minister_name]
         self.chat_history[minister_name].append({"role": "minister", "content": answer})
@@ -523,6 +524,7 @@ class WebGame:
             "next_minister": next_minister,
             "proposed_directive": proposed_directive,
             "appointed_minister": appointed_minister,
+            "displaced_minister": displaced_minister,
             "directives": [self.directive_payload(row) for row in self.directive_rows()],
             "suggestions": self.suggestions_for(character),
         }
@@ -544,6 +546,7 @@ class WebGame:
             minister_name, result.answer,
             court_action=result.court_action, next_minister=result.next_minister,
             proposed_directive=proposed, appointed_minister=result.appointed_minister,
+            displaced_minister=result.displaced_minister,
         )
 
     def chat_stream(self, minister_name: str, message: str) -> Iterator[Dict[str, Any]]:
@@ -580,6 +583,7 @@ class WebGame:
             # 截 propose_directive：入 pending；截 propose_appointment：吏部铨选建档
             proposed = None
             appointed = ""
+            displaced = ""
             if run_output is not None:
                 for tool_exec in getattr(run_output, "tools", None) or []:
                     res = str(getattr(tool_exec, "result", "") or "")
@@ -597,10 +601,10 @@ class WebGame:
                                         "notes": f"由{character.name}拟旨入档"}
                     elif res.startswith("__pending_appointment__"):
                         payload_json = res.removeprefix("__pending_appointment__").strip()
-                        appointed = self.session._apply_appointment(payload_json, character)
+                        appointed, displaced = self.session._apply_appointment(payload_json, character)
             payload = self._chat_payload(
                 minister_name, answer, proposed_directive=proposed,
-                appointed_minister=appointed,
+                appointed_minister=appointed, displaced_minister=displaced,
             )
             yield {"type": "done", "payload": payload}
         except Exception as error:

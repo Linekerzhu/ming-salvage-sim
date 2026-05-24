@@ -81,6 +81,12 @@ def simulate_season_with_agno(
             "loyalty,status FROM armies ORDER BY id"
         ).fetchall()
     ]
+    court_roster = [
+        dict(r) for r in db.conn.execute(
+            "SELECT name,office,office_type,faction,status FROM characters "
+            "WHERE status!='offstage' AND office_type!='后宫' ORDER BY rowid"
+        ).fetchall()
+    ]
     payload = {
         "year": state.year,
         "period": state.period,
@@ -99,6 +105,7 @@ def simulate_season_with_agno(
         "regions": _auto_table(region_rows),
         "armies": _auto_table(army_rows),
         "buildings": _auto_table(db.building_payload()),
+        "court_roster": court_roster,
         "fixed_flows": fixed_flows or [],
         "deaths_this_turn": deaths_this_turn or [],
         "debuts_this_turn": debuts_this_turn or [],
@@ -160,7 +167,7 @@ def extract_scores_with_agno(
     ]
     active_ministers = [
         dict(r) for r in db.conn.execute(
-            "SELECT name,office,faction FROM characters WHERE status='active' ORDER BY name"
+            "SELECT name,office,faction FROM characters WHERE status='active' ORDER BY rowid"
         ).fetchall()
     ]
     offstage_ministers = [

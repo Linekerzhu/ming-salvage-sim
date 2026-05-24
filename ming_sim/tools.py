@@ -3,9 +3,18 @@
 from __future__ import annotations
 
 from ming_sim.constants import TURN_UNIT
-from ming_sim.context import state_context
+from ming_sim.context import _ctx as _content_ctx, state_context
 from ming_sim.models import Character, CourtContext
 from ming_sim.skills import available_skill_ids, skill_template
+
+_STATUS_CN = {
+    "active": "在朝",
+    "dismissed": "已罢黜",
+    "imprisoned": "下狱",
+    "exiled": "流放",
+    "retired": "致仕",
+    "dead": "已故",
+}
 
 
 def build_minister_tools(character: Character, context: CourtContext):
@@ -87,6 +96,43 @@ def build_minister_tools(character: Character, context: CourtContext):
         except ValueError as e:
             return f"未找到建筑 '{building_name}'。可先调 list_buildings 看建筑列表。错误：{e}"
 
+    def list_court() -> str:
+        """查在朝（及被罢/下狱/流放/致仕）官员名册：姓名、现职、派系、状态。
+        被问及某官现任何职、是否在朝时，必须先查此工具，不得凭记忆臆断。"""
+        lines = []
+        for c in _content_ctx().characters.values():
+            if c.office_type == "后宫":
+                continue
+            status, _ = context.db.get_character_status(c.name)
+            if status == "offstage":
+                continue  # 未登场者不泄露，防剧透
+            tag = _STATUS_CN.get(status, status)
+            suffix = "" if status == "active" else f"（{tag}）"
+            lines.append(f"{c.name}：{c.office}，{c.faction}{suffix}")
+        return "在朝官员名册：\n" + "\n".join(lines)
+
+    def inspect_minister(name: str) -> str:
+        """查某位官员的现任官职、派系与当前状态（在朝/罢黜/下狱/流放/致仕/已故）。
+        被问及某人职位、近况、是否当差时，必须调此工具核实，禁止凭训练记忆编造史实职位。"""
+        target = None
+        key = (name or "").strip()
+        for c in _content_ctx().characters.values():
+            if c.name == key or key in (c.aliases or []):
+                target = c
+                break
+        if target is None:
+            return f"名册中无『{name}』。可先调 list_court 看在朝官员名单。"
+        status, reason = context.db.get_character_status(target.name)
+        if status == "offstage":
+            return f"『{target.name}』尚未起用入朝。"
+        tag = _STATUS_CN.get(status, status)
+        out = f"{target.name}：现职{target.office}，职位类型{target.office_type}，派系{target.faction}，状态{tag}。"
+        if reason:
+            out += f"（{reason}）"
+        if target.summary:
+            out += f"简介：{target.summary}"
+        return out
+
     def estimate_resistance(slot: int) -> str:
         """估算某条在办事项若下旨推动的主要阻力。slot 是事项编号（由 list_memorials 给出）。"""
         rows = context.db.list_active_issues()
@@ -143,7 +189,7 @@ def build_minister_tools(character: Character, context: CourtContext):
         # 返回草稿标记，由 minister_chat / GameSession.chat 截获展示给皇帝确认，不在此入库。
         return f"__pending_directive__{text}"
 
-    def propose_appointment(name: str, office: str, faction: str = "中立", reason: str = "") -> str:
+    def propose_appointment(name: str, office: str, faction: str = "中立", reason: str = "", replaces: str = "") -> str:
         """【吏部专属】皇帝点名起用某位尚未在朝臣名单上的官员（如把当时还是底层小官的史可法
         擢为浙江巡抚），由吏部尚书铨选拟任。**只要任命说得通**（资历、官职合理）即可调此 tool
         把人补入名册——史有其人按其史实资历判，杜撰名按诏书自陈/常识推定的资历判，无须强求
@@ -154,11 +200,17 @@ def build_minister_tools(character: Character, context: CourtContext):
         - 官职非明制（「军师」「军长」之类）→ 不要调，提醒皇帝改正。
         - 资历相称、官职合法 → 调此 tool。是否史有其人不作硬性要求。
 
+        **职位替换**：明制一缺一人。若拟授官职是个独缺实职（如某省巡抚、某镇总兵、某部尚书），
+        且现朝堂上已有人正任此职，须把现任者姓名填进 replaces，由代码端把原任者罢黜（dismissed）
+        腾缺。你凭朝臣名册判断谁正占此缺——拿不准（如泛称「内阁大学士」可并存多员、或现无人任此职）
+        就留空，不要乱填。replaces 填的人必须是当前在朝（active）的大臣姓名。
+
         参数：
         - name：拟任者姓名。
         - office：拟授官职（如「浙江巡抚」「登莱巡抚」）。
         - faction：派系，取值须是现有派系之一（东林/阉党/皇党/军队/宗室/中立/西学），拿不准填「中立」。
         - reason：铨选理由一句话，写明此人资历与任命依据。
+        - replaces：被此任命腾缺的现任官员姓名；无人占缺或不确定则留空。
         """
         nm = (name or "").strip()
         off = (office or "").strip()
@@ -166,7 +218,12 @@ def build_minister_tools(character: Character, context: CourtContext):
             return "铨选失败：姓名或拟授官职为空。"
         import json as _json
         payload = _json.dumps(
-            {"name": nm, "office": off, "faction": (faction or "中立").strip(), "reason": (reason or "").strip()},
+            {
+                "name": nm, "office": off,
+                "faction": (faction or "中立").strip(),
+                "reason": (reason or "").strip(),
+                "replaces": (replaces or "").strip(),
+            },
             ensure_ascii=False,
         )
         return f"__pending_appointment__{payload}"
@@ -190,6 +247,8 @@ def build_minister_tools(character: Character, context: CourtContext):
         list_external_powers,
         list_buildings,
         inspect_building,
+        list_court,
+        inspect_minister,
         estimate_resistance,
         propose_directive,
         dismiss_minister,

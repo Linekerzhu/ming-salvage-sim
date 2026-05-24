@@ -45,27 +45,544 @@
   ],
   "characters": [
     {
-      "name": "王承恩",
-      "office": "信邸内官随驾",
-      "office_type": "司礼监",
-      "faction": "皇党",
+      "name": "韩爌",
+      "office": "前内阁首辅，罢居蒲州",
+      "office_type": "内阁",
+      "faction": "东林",
       "aliases": [
-        "王伴伴",
-        "老王",
-        "王公公",
-        "司礼监"
+        "韩爌",
+        "韩阁老",
+        "前首辅",
+        "韩虞臣"
       ],
       "personal_skills": [
-        "谨慎传旨",
-        "宫中人情",
-        "贴身侍奉"
+        "制度名分",
+        "清流舆论",
+        "持重调和"
       ],
-      "loyalty": 92,
-      "ability": 54,
-      "integrity": 70,
-      "courage": 62,
-      "style": "谨慎忠诚",
-      "birth_year": 1610,
+      "loyalty": 63,
+      "ability": 69,
+      "integrity": 78,
+      "courage": 55,
+      "style": "持重守法",
+      "birth_year": 1559,
+      "historical_death_year": 1637,
+      "historical_death_month": 0
+    },
+    {
+      "name": "张瑞图",
+      "office": "内阁大学士",
+      "office_type": "内阁",
+      "faction": "阉党",
+      "aliases": [
+        "张瑞图",
+        "张阁老",
+        "张大学士",
+        "张长公"
+      ],
+      "personal_skills": [
+        "书法名家",
+        "票拟附阉",
+        "为魏忠贤题碑"
+      ],
+      "loyalty": 45,
+      "ability": 62,
+      "integrity": 35,
+      "courage": 40,
+      "style": "文名附阉",
+      "birth_year": 1570,
+      "historical_death_year": 1641,
+      "historical_death_month": 0
+    },
+    {
+      "name": "来宗道",
+      "office": "礼部尚书兼东阁大学士",
+      "office_type": "内阁",
+      "faction": "阉党",
+      "aliases": [
+        "来宗道",
+        "来尚书",
+        "来阁老"
+      ],
+      "personal_skills": [
+        "典礼仪制",
+        "票拟附和",
+        "明哲附阉"
+      ],
+      "loyalty": 46,
+      "ability": 62,
+      "integrity": 40,
+      "courage": 38,
+      "style": "明哲守位",
+      "birth_year": 1560,
+      "historical_death_year": 1632,
+      "historical_death_month": 0
+    },
+    {
+      "name": "施凤来",
+      "office": "内阁次辅",
+      "office_type": "内阁",
+      "faction": "阉党",
+      "aliases": [
+        "施凤来",
+        "施阁老",
+        "施次辅",
+        "次辅"
+      ],
+      "personal_skills": [
+        "票拟附和",
+        "阁中调停",
+        "明哲附阉"
+      ],
+      "loyalty": 42,
+      "ability": 60,
+      "integrity": 30,
+      "courage": 38,
+      "style": "依违苟且",
+      "birth_year": 1563,
+      "historical_death_year": 1642,
+      "historical_death_month": 0
+    },
+    {
+      "name": "黄立极",
+      "office": "内阁首辅",
+      "office_type": "内阁",
+      "faction": "阉党",
+      "aliases": [
+        "黄立极",
+        "黄阁老",
+        "黄首辅",
+        "首辅"
+      ],
+      "personal_skills": [
+        "魏党附庸",
+        "票拟附和",
+        "首辅虚名"
+      ],
+      "loyalty": 40,
+      "ability": 58,
+      "integrity": 28,
+      "courage": 40,
+      "style": "畏葸附阉",
+      "birth_year": 1568,
+      "historical_death_year": 1637,
+      "historical_death_month": 0
+    },
+    {
+      "name": "王绍徽",
+      "office": "吏部尚书",
+      "office_type": "吏部",
+      "faction": "阉党",
+      "aliases": [
+        "王绍徽",
+        "王吏部",
+        "王尚书",
+        "王雠"
+      ],
+      "personal_skills": [
+        "铨选党同",
+        "东林点将录",
+        "排挤异己"
+      ],
+      "loyalty": 35,
+      "ability": 66,
+      "integrity": 20,
+      "courage": 48,
+      "style": "党锢酷烈",
+      "birth_year": 1564,
+      "historical_death_year": 0,
+      "historical_death_month": 0
+    },
+    {
+      "name": "毕自严",
+      "office": "南京户部尚书",
+      "office_type": "户部",
+      "faction": "皇党",
+      "aliases": [
+        "毕自严",
+        "毕尚书",
+        "南户部",
+        "毕户部"
+      ],
+      "personal_skills": [
+        "财政核算",
+        "清查亏空",
+        "军饷调度",
+        "务实算账"
+      ],
+      "loyalty": 68,
+      "ability": 84,
+      "integrity": 78,
+      "courage": 60,
+      "style": "务实算账",
+      "birth_year": 1569,
+      "historical_death_year": 1638,
+      "historical_death_month": 0
+    },
+    {
+      "name": "杨嗣昌",
+      "office": "户部郎中",
+      "office_type": "户部",
+      "faction": "皇党",
+      "aliases": [
+        "杨嗣昌",
+        "杨郎中",
+        "杨文弱"
+      ],
+      "personal_skills": [
+        "钱粮筹划",
+        "条议边务",
+        "筹谋深远"
+      ],
+      "loyalty": 75,
+      "ability": 80,
+      "integrity": 58,
+      "courage": 65,
+      "style": "筹谋深远",
+      "birth_year": 1588,
+      "historical_death_year": 0,
+      "historical_death_month": 0
+    },
+    {
+      "name": "温体仁",
+      "office": "礼部尚书",
+      "office_type": "礼部",
+      "faction": "皇党",
+      "aliases": [
+        "温体仁",
+        "温尚书",
+        "温阁老",
+        "温长卿"
+      ],
+      "personal_skills": [
+        "迎合上意",
+        "排挤异己",
+        "察言观色"
+      ],
+      "loyalty": 55,
+      "ability": 72,
+      "integrity": 30,
+      "courage": 50,
+      "style": "阴柔工心",
+      "birth_year": 1573,
+      "historical_death_year": 1638,
+      "historical_death_month": 7
+    },
+    {
+      "name": "钱龙锡",
+      "office": "前礼部尚书，罢居松江",
+      "office_type": "礼部",
+      "faction": "东林",
+      "aliases": [
+        "钱龙锡",
+        "钱阁老",
+        "钱机山"
+      ],
+      "personal_skills": [
+        "定逆案",
+        "枢机谋断",
+        "清流人脉"
+      ],
+      "loyalty": 66,
+      "ability": 71,
+      "integrity": 74,
+      "courage": 58,
+      "style": "缜密任事",
+      "birth_year": 1579,
+      "historical_death_year": 1645,
+      "historical_death_month": 0
+    },
+    {
+      "name": "刘鸿训",
+      "office": "册封朝鲜使归途",
+      "office_type": "礼部",
+      "faction": "东林",
+      "aliases": [
+        "刘鸿训",
+        "刘阁老",
+        "刘默承"
+      ],
+      "personal_skills": [
+        "票拟决断",
+        "边饷筹划",
+        "敢言直谏"
+      ],
+      "loyalty": 64,
+      "ability": 70,
+      "integrity": 72,
+      "courage": 68,
+      "style": "果敢负气",
+      "birth_year": 1565,
+      "historical_death_year": 1634,
+      "historical_death_month": 0
+    },
+    {
+      "name": "钱谦益",
+      "office": "前礼部右侍郎，罢居常熟",
+      "office_type": "礼部",
+      "faction": "东林",
+      "aliases": [
+        "钱谦益",
+        "钱牧斋",
+        "牧斋"
+      ],
+      "personal_skills": [
+        "东林领袖",
+        "清议文望",
+        "结党经营"
+      ],
+      "loyalty": 52,
+      "ability": 70,
+      "integrity": 45,
+      "courage": 40,
+      "style": "文采虚矫",
+      "birth_year": 1582,
+      "historical_death_year": 1664,
+      "historical_death_month": 0
+    },
+    {
+      "name": "李标",
+      "office": "礼部右侍郎",
+      "office_type": "礼部",
+      "faction": "东林",
+      "aliases": [
+        "李标",
+        "李侍郎",
+        "李建霞"
+      ],
+      "personal_skills": [
+        "持正用人",
+        "票拟稳健",
+        "调和阁务"
+      ],
+      "loyalty": 70,
+      "ability": 68,
+      "integrity": 80,
+      "courage": 54,
+      "style": "公正谨饬",
+      "birth_year": 1571,
+      "historical_death_year": 1642,
+      "historical_death_month": 0
+    },
+    {
+      "name": "孙承宗",
+      "office": "前蓟辽督师，罢居高阳",
+      "office_type": "兵部",
+      "faction": "东林",
+      "aliases": [
+        "孙承宗",
+        "孙阁老",
+        "孙督师",
+        "前督师"
+      ],
+      "personal_skills": [
+        "辽东战略",
+        "将领评估",
+        "老成持重",
+        "清议名分"
+      ],
+      "loyalty": 69,
+      "ability": 85,
+      "integrity": 81,
+      "courage": 72,
+      "style": "老成持重",
+      "birth_year": 1563,
+      "historical_death_year": 0,
+      "historical_death_month": 0
+    },
+    {
+      "name": "崔呈秀",
+      "office": "兵部尚书兼左都御史",
+      "office_type": "兵部",
+      "faction": "阉党",
+      "aliases": [
+        "崔呈秀",
+        "崔尚书",
+        "崔少司马",
+        "崔本兵"
+      ],
+      "personal_skills": [
+        "魏党首谋",
+        "兵部权柄",
+        "陷构异己",
+        "结党营私"
+      ],
+      "loyalty": 22,
+      "ability": 72,
+      "integrity": 8,
+      "courage": 60,
+      "style": "阴狠贪鄙",
+      "birth_year": 1584,
+      "historical_death_year": 0,
+      "historical_death_month": 0
+    },
+    {
+      "name": "王在晋",
+      "office": "南京兵部尚书",
+      "office_type": "兵部",
+      "faction": "中立",
+      "aliases": [
+        "王在晋",
+        "王兵部",
+        "王岵云"
+      ],
+      "personal_skills": [
+        "边镇方略",
+        "钱粮综核",
+        "重关守议"
+      ],
+      "loyalty": 60,
+      "ability": 72,
+      "integrity": 60,
+      "courage": 55,
+      "style": "持重多虑",
+      "birth_year": 1567,
+      "historical_death_year": 1643,
+      "historical_death_month": 0
+    },
+    {
+      "name": "王永光",
+      "office": "兵部尚书",
+      "office_type": "兵部",
+      "faction": "中立",
+      "aliases": [
+        "王永光",
+        "王尚书",
+        "王本兵"
+      ],
+      "personal_skills": [
+        "兵部综核",
+        "铨选注官",
+        "通晓掌故"
+      ],
+      "loyalty": 55,
+      "ability": 70,
+      "integrity": 50,
+      "courage": 50,
+      "style": "圆熟趋避",
+      "birth_year": 1559,
+      "historical_death_year": 1638,
+      "historical_death_month": 0
+    },
+    {
+      "name": "徐光启",
+      "office": "前礼部右少卿，罢居上海",
+      "office_type": "工部",
+      "faction": "西学",
+      "aliases": [
+        "徐光启",
+        "徐先生",
+        "徐农政",
+        "西学重臣"
+      ],
+      "personal_skills": [
+        "西学",
+        "农政",
+        "火器试办"
+      ],
+      "loyalty": 72,
+      "ability": 77,
+      "integrity": 82,
+      "courage": 61,
+      "style": "稳健试办",
+      "birth_year": 1562,
+      "historical_death_year": 1633,
+      "historical_death_month": 10
+    },
+    {
+      "name": "袁可立",
+      "office": "前登莱巡抚，罢居睢州",
+      "office_type": "都察院",
+      "faction": "东林",
+      "aliases": [
+        "袁可立",
+        "袁巡抚",
+        "袁节寰"
+      ],
+      "personal_skills": [
+        "登莱海防",
+        "节制东江",
+        "刚正持法"
+      ],
+      "loyalty": 79,
+      "ability": 80,
+      "integrity": 86,
+      "courage": 75,
+      "style": "刚方老练",
+      "birth_year": 1562,
+      "historical_death_year": 1633,
+      "historical_death_month": 10
+    },
+    {
+      "name": "周延儒",
+      "office": "少詹事兼掌南京翰林院",
+      "office_type": "翰林院",
+      "faction": "皇党",
+      "aliases": [
+        "周延儒",
+        "周少詹",
+        "周玉绳"
+      ],
+      "personal_skills": [
+        "迎合上意",
+        "敏给应对",
+        "结纳逢迎"
+      ],
+      "loyalty": 62,
+      "ability": 74,
+      "integrity": 32,
+      "courage": 52,
+      "style": "机巧善谀",
+      "birth_year": 1593,
+      "historical_death_year": 0,
+      "historical_death_month": 0
+    },
+    {
+      "name": "倪元璐",
+      "office": "翰林院编修",
+      "office_type": "翰林院",
+      "faction": "东林",
+      "aliases": [
+        "倪元璐",
+        "倪编修",
+        "倪鸿宝"
+      ],
+      "personal_skills": [
+        "论劾阉党",
+        "财赋条议",
+        "书画文章"
+      ],
+      "loyalty": 80,
+      "ability": 69,
+      "integrity": 85,
+      "courage": 78,
+      "style": "清正敢任",
+      "birth_year": 1593,
+      "historical_death_year": 0,
+      "historical_death_month": 0
+    },
+    {
+      "name": "黄道周",
+      "office": "翰林院编修",
+      "office_type": "翰林院",
+      "faction": "东林",
+      "aliases": [
+        "黄道周",
+        "黄编修",
+        "黄石斋",
+        "石斋"
+      ],
+      "personal_skills": [
+        "经术学问",
+        "刚直敢谏",
+        "清议风节"
+      ],
+      "loyalty": 78,
+      "ability": 68,
+      "integrity": 92,
+      "courage": 86,
+      "style": "孤介刚介",
+      "birth_year": 1585,
       "historical_death_year": 0,
       "historical_death_month": 0
     },
@@ -95,6 +612,55 @@
       "historical_death_month": 0
     },
     {
+      "name": "王体乾",
+      "office": "司礼监掌印太监",
+      "office_type": "司礼监",
+      "faction": "阉党",
+      "aliases": [
+        "王体乾",
+        "王掌印",
+        "司礼监掌印"
+      ],
+      "personal_skills": [
+        "披红盖印",
+        "魏党内应",
+        "圆滑自保"
+      ],
+      "loyalty": 35,
+      "ability": 65,
+      "integrity": 25,
+      "courage": 50,
+      "style": "圆滑附势",
+      "birth_year": 1571,
+      "historical_death_year": 0,
+      "historical_death_month": 0
+    },
+    {
+      "name": "王承恩",
+      "office": "信邸内官随驾",
+      "office_type": "司礼监",
+      "faction": "皇党",
+      "aliases": [
+        "王伴伴",
+        "老王",
+        "王公公",
+        "司礼监"
+      ],
+      "personal_skills": [
+        "谨慎传旨",
+        "宫中人情",
+        "贴身侍奉"
+      ],
+      "loyalty": 92,
+      "ability": 54,
+      "integrity": 70,
+      "courage": 62,
+      "style": "谨慎忠诚",
+      "birth_year": 1610,
+      "historical_death_year": 0,
+      "historical_death_month": 0
+    },
+    {
       "name": "魏忠贤",
       "office": "司礼监秉笔太监兼东厂提督",
       "office_type": "东厂",
@@ -118,56 +684,6 @@
       "courage": 74,
       "style": "狠辣专权",
       "birth_year": 1568,
-      "historical_death_year": 0,
-      "historical_death_month": 0
-    },
-    {
-      "name": "客氏",
-      "office": "奉圣夫人（先帝乳母）",
-      "office_type": "内廷",
-      "faction": "阉党",
-      "aliases": [
-        "客印月",
-        "奉圣夫人",
-        "客氏"
-      ],
-      "personal_skills": [
-        "内廷把持",
-        "结纳宫人",
-        "干预宫闱"
-      ],
-      "loyalty": 20,
-      "ability": 55,
-      "integrity": 10,
-      "courage": 55,
-      "style": "骄横阴毒",
-      "birth_year": 1588,
-      "historical_death_year": 0,
-      "historical_death_month": 0
-    },
-    {
-      "name": "崔呈秀",
-      "office": "兵部尚书兼左都御史",
-      "office_type": "兵部",
-      "faction": "阉党",
-      "aliases": [
-        "崔呈秀",
-        "崔尚书",
-        "崔少司马",
-        "崔本兵"
-      ],
-      "personal_skills": [
-        "魏党首谋",
-        "兵部权柄",
-        "陷构异己",
-        "结党营私"
-      ],
-      "loyalty": 22,
-      "ability": 72,
-      "integrity": 8,
-      "courage": 60,
-      "style": "阴狠贪鄙",
-      "birth_year": 1584,
       "historical_death_year": 0,
       "historical_death_month": 0
     },
@@ -223,199 +739,101 @@
       "historical_death_month": 0
     },
     {
-      "name": "王体乾",
-      "office": "司礼监掌印太监",
-      "office_type": "司礼监",
+      "name": "客氏",
+      "office": "奉圣夫人（先帝乳母）",
+      "office_type": "内廷",
       "faction": "阉党",
       "aliases": [
-        "王体乾",
-        "王掌印",
-        "司礼监掌印"
+        "客印月",
+        "奉圣夫人",
+        "客氏"
       ],
       "personal_skills": [
-        "披红盖印",
-        "魏党内应",
-        "圆滑自保"
+        "内廷把持",
+        "结纳宫人",
+        "干预宫闱"
       ],
-      "loyalty": 35,
-      "ability": 65,
-      "integrity": 25,
-      "courage": 50,
-      "style": "圆滑附势",
-      "birth_year": 1571,
+      "loyalty": 20,
+      "ability": 55,
+      "integrity": 10,
+      "courage": 55,
+      "style": "骄横阴毒",
+      "birth_year": 1588,
       "historical_death_year": 0,
       "historical_death_month": 0
     },
     {
-      "name": "黄立极",
-      "office": "内阁首辅",
-      "office_type": "内阁",
-      "faction": "阉党",
-      "aliases": [
-        "黄立极",
-        "黄阁老",
-        "黄首辅",
-        "首辅"
-      ],
-      "personal_skills": [
-        "魏党附庸",
-        "票拟附和",
-        "首辅虚名"
-      ],
-      "loyalty": 40,
-      "ability": 58,
-      "integrity": 28,
-      "courage": 40,
-      "style": "畏葸附阉",
-      "birth_year": 1568,
-      "historical_death_year": 1637,
-      "historical_death_month": 0
-    },
-    {
-      "name": "施凤来",
-      "office": "内阁次辅",
-      "office_type": "内阁",
-      "faction": "阉党",
-      "aliases": [
-        "施凤来",
-        "施阁老",
-        "施次辅",
-        "次辅"
-      ],
-      "personal_skills": [
-        "票拟附和",
-        "阁中调停",
-        "明哲附阉"
-      ],
-      "loyalty": 42,
-      "ability": 60,
-      "integrity": 30,
-      "courage": 38,
-      "style": "依违苟且",
-      "birth_year": 1563,
-      "historical_death_year": 1642,
-      "historical_death_month": 0
-    },
-    {
-      "name": "张瑞图",
-      "office": "内阁大学士",
-      "office_type": "内阁",
-      "faction": "阉党",
-      "aliases": [
-        "张瑞图",
-        "张阁老",
-        "张大学士",
-        "张长公"
-      ],
-      "personal_skills": [
-        "书法名家",
-        "票拟附阉",
-        "为魏忠贤题碑"
-      ],
-      "loyalty": 45,
-      "ability": 62,
-      "integrity": 35,
-      "courage": 40,
-      "style": "文名附阉",
-      "birth_year": 1570,
-      "historical_death_year": 1641,
-      "historical_death_month": 0
-    },
-    {
-      "name": "来宗道",
-      "office": "礼部尚书兼东阁大学士",
-      "office_type": "内阁",
-      "faction": "阉党",
-      "aliases": [
-        "来宗道",
-        "来尚书",
-        "来阁老"
-      ],
-      "personal_skills": [
-        "典礼仪制",
-        "票拟附和",
-        "明哲附阉"
-      ],
-      "loyalty": 46,
-      "ability": 62,
-      "integrity": 40,
-      "courage": 38,
-      "style": "明哲守位",
-      "birth_year": 1560,
-      "historical_death_year": 1632,
-      "historical_death_month": 0
-    },
-    {
-      "name": "王绍徽",
-      "office": "吏部尚书",
-      "office_type": "吏部",
-      "faction": "阉党",
-      "aliases": [
-        "王绍徽",
-        "王吏部",
-        "王尚书",
-        "王雠"
-      ],
-      "personal_skills": [
-        "铨选党同",
-        "东林点将录",
-        "排挤异己"
-      ],
-      "loyalty": 35,
-      "ability": 66,
-      "integrity": 20,
-      "courage": 48,
-      "style": "党锢酷烈",
-      "birth_year": 1564,
-      "historical_death_year": 0,
-      "historical_death_month": 0
-    },
-    {
-      "name": "阎鸣泰",
-      "office": "蓟辽总督",
-      "office_type": "边镇",
-      "faction": "阉党",
-      "aliases": [
-        "阎鸣泰",
-        "阎总督",
-        "蓟辽总督"
-      ],
-      "personal_skills": [
-        "蓟辽防务",
-        "为魏忠贤建生祠",
-        "边镇钱粮"
-      ],
-      "loyalty": 38,
-      "ability": 60,
-      "integrity": 25,
-      "courage": 50,
-      "style": "附阉守边",
-      "birth_year": 1568,
-      "historical_death_year": 0,
-      "historical_death_month": 0
-    },
-    {
-      "name": "王之臣",
-      "office": "蓟辽督师",
+      "name": "袁崇焕",
+      "office": "前辽东巡抚，罢居东莞",
       "office_type": "边镇",
       "faction": "军队",
       "aliases": [
-        "王之臣",
-        "王督师",
-        "蓟辽督师"
+        "袁崇焕",
+        "袁巡抚",
+        "前辽东"
       ],
       "personal_skills": [
         "辽东军务",
-        "经略边防",
-        "持重守议"
+        "守城筑防",
+        "前线谈判",
+        "敢任事"
       ],
-      "loyalty": 60,
-      "ability": 68,
-      "integrity": 55,
-      "courage": 58,
-      "style": "持重少功",
-      "birth_year": 1570,
-      "historical_death_year": 1631,
+      "loyalty": 56,
+      "ability": 81,
+      "integrity": 61,
+      "courage": 88,
+      "style": "敢任事",
+      "birth_year": 1584,
+      "historical_death_year": 0,
+      "historical_death_month": 0
+    },
+    {
+      "name": "曹文诏",
+      "office": "辽东游击将军",
+      "office_type": "边镇",
+      "faction": "军队",
+      "aliases": [
+        "曹文诏",
+        "曹游击",
+        "曹将军"
+      ],
+      "personal_skills": [
+        "马队突击",
+        "身先士卒",
+        "辽东征战"
+      ],
+      "loyalty": 72,
+      "ability": 78,
+      "integrity": 64,
+      "courage": 91,
+      "style": "勇冠诸将",
+      "birth_year": 1590,
+      "historical_death_year": 0,
+      "historical_death_month": 0
+    },
+    {
+      "name": "祖大寿",
+      "office": "锦州副总兵",
+      "office_type": "边镇",
+      "faction": "军队",
+      "aliases": [
+        "祖大寿",
+        "祖总兵",
+        "祖副将",
+        "祖复宇"
+      ],
+      "personal_skills": [
+        "辽兵将门",
+        "守城用炮",
+        "保存实力"
+      ],
+      "loyalty": 50,
+      "ability": 77,
+      "integrity": 48,
+      "courage": 80,
+      "style": "护军自重",
+      "birth_year": 1579,
+      "historical_death_year": 1656,
       "historical_death_month": 0
     },
     {
@@ -467,28 +885,27 @@
       "historical_death_month": 0
     },
     {
-      "name": "祖大寿",
-      "office": "锦州副总兵",
+      "name": "王之臣",
+      "office": "蓟辽督师",
       "office_type": "边镇",
       "faction": "军队",
       "aliases": [
-        "祖大寿",
-        "祖总兵",
-        "祖副将",
-        "祖复宇"
+        "王之臣",
+        "王督师",
+        "蓟辽督师"
       ],
       "personal_skills": [
-        "辽兵将门",
-        "守城用炮",
-        "保存实力"
+        "辽东军务",
+        "经略边防",
+        "持重守议"
       ],
-      "loyalty": 50,
-      "ability": 77,
-      "integrity": 48,
-      "courage": 80,
-      "style": "护军自重",
-      "birth_year": 1579,
-      "historical_death_year": 1656,
+      "loyalty": 60,
+      "ability": 68,
+      "integrity": 55,
+      "courage": 58,
+      "style": "持重少功",
+      "birth_year": 1570,
+      "historical_death_year": 1631,
       "historical_death_month": 0
     },
     {
@@ -517,396 +934,27 @@
       "historical_death_month": 0
     },
     {
-      "name": "王永光",
-      "office": "兵部尚书",
-      "office_type": "兵部",
-      "faction": "中立",
-      "aliases": [
-        "王永光",
-        "王尚书",
-        "王本兵"
-      ],
-      "personal_skills": [
-        "兵部综核",
-        "铨选注官",
-        "通晓掌故"
-      ],
-      "loyalty": 55,
-      "ability": 70,
-      "integrity": 50,
-      "courage": 50,
-      "style": "圆熟趋避",
-      "birth_year": 1559,
-      "historical_death_year": 1638,
-      "historical_death_month": 0
-    },
-    {
-      "name": "温体仁",
-      "office": "礼部尚书",
-      "office_type": "礼部",
-      "faction": "皇党",
-      "aliases": [
-        "温体仁",
-        "温尚书",
-        "温阁老",
-        "温长卿"
-      ],
-      "personal_skills": [
-        "迎合上意",
-        "排挤异己",
-        "察言观色"
-      ],
-      "loyalty": 55,
-      "ability": 72,
-      "integrity": 30,
-      "courage": 50,
-      "style": "阴柔工心",
-      "birth_year": 1573,
-      "historical_death_year": 1638,
-      "historical_death_month": 7
-    },
-    {
-      "name": "李标",
-      "office": "礼部右侍郎",
-      "office_type": "礼部",
-      "faction": "东林",
-      "aliases": [
-        "李标",
-        "李侍郎",
-        "李建霞"
-      ],
-      "personal_skills": [
-        "持正用人",
-        "票拟稳健",
-        "调和阁务"
-      ],
-      "loyalty": 70,
-      "ability": 68,
-      "integrity": 80,
-      "courage": 54,
-      "style": "公正谨饬",
-      "birth_year": 1571,
-      "historical_death_year": 1642,
-      "historical_death_month": 0
-    },
-    {
-      "name": "周延儒",
-      "office": "少詹事兼掌南京翰林院",
-      "office_type": "翰林院",
-      "faction": "皇党",
-      "aliases": [
-        "周延儒",
-        "周少詹",
-        "周玉绳"
-      ],
-      "personal_skills": [
-        "迎合上意",
-        "敏给应对",
-        "结纳逢迎"
-      ],
-      "loyalty": 62,
-      "ability": 74,
-      "integrity": 32,
-      "courage": 52,
-      "style": "机巧善谀",
-      "birth_year": 1593,
-      "historical_death_year": 0,
-      "historical_death_month": 0
-    },
-    {
-      "name": "黄道周",
-      "office": "翰林院编修",
-      "office_type": "翰林院",
-      "faction": "东林",
-      "aliases": [
-        "黄道周",
-        "黄编修",
-        "黄石斋",
-        "石斋"
-      ],
-      "personal_skills": [
-        "经术学问",
-        "刚直敢谏",
-        "清议风节"
-      ],
-      "loyalty": 78,
-      "ability": 68,
-      "integrity": 92,
-      "courage": 86,
-      "style": "孤介刚介",
-      "birth_year": 1585,
-      "historical_death_year": 0,
-      "historical_death_month": 0
-    },
-    {
-      "name": "倪元璐",
-      "office": "翰林院编修",
-      "office_type": "翰林院",
-      "faction": "东林",
-      "aliases": [
-        "倪元璐",
-        "倪编修",
-        "倪鸿宝"
-      ],
-      "personal_skills": [
-        "论劾阉党",
-        "财赋条议",
-        "书画文章"
-      ],
-      "loyalty": 80,
-      "ability": 69,
-      "integrity": 85,
-      "courage": 78,
-      "style": "清正敢任",
-      "birth_year": 1593,
-      "historical_death_year": 0,
-      "historical_death_month": 0
-    },
-    {
-      "name": "韩爌",
-      "office": "前内阁首辅，罢居蒲州",
-      "office_type": "内阁",
-      "faction": "东林",
-      "aliases": [
-        "韩爌",
-        "韩阁老",
-        "前首辅",
-        "韩虞臣"
-      ],
-      "personal_skills": [
-        "制度名分",
-        "清流舆论",
-        "持重调和"
-      ],
-      "loyalty": 63,
-      "ability": 69,
-      "integrity": 78,
-      "courage": 55,
-      "style": "持重守法",
-      "birth_year": 1559,
-      "historical_death_year": 1637,
-      "historical_death_month": 0
-    },
-    {
-      "name": "孙承宗",
-      "office": "前蓟辽督师，罢居高阳",
-      "office_type": "兵部",
-      "faction": "东林",
-      "aliases": [
-        "孙承宗",
-        "孙阁老",
-        "孙督师",
-        "前督师"
-      ],
-      "personal_skills": [
-        "辽东战略",
-        "将领评估",
-        "老成持重",
-        "清议名分"
-      ],
-      "loyalty": 69,
-      "ability": 85,
-      "integrity": 81,
-      "courage": 72,
-      "style": "老成持重",
-      "birth_year": 1563,
-      "historical_death_year": 0,
-      "historical_death_month": 0
-    },
-    {
-      "name": "袁崇焕",
-      "office": "前辽东巡抚，罢居东莞",
+      "name": "阎鸣泰",
+      "office": "蓟辽总督",
       "office_type": "边镇",
-      "faction": "军队",
+      "faction": "阉党",
       "aliases": [
-        "袁崇焕",
-        "袁巡抚",
-        "前辽东"
+        "阎鸣泰",
+        "阎总督",
+        "蓟辽总督"
       ],
       "personal_skills": [
-        "辽东军务",
-        "守城筑防",
-        "前线谈判",
-        "敢任事"
+        "蓟辽防务",
+        "为魏忠贤建生祠",
+        "边镇钱粮"
       ],
-      "loyalty": 56,
-      "ability": 81,
-      "integrity": 61,
-      "courage": 88,
-      "style": "敢任事",
-      "birth_year": 1584,
+      "loyalty": 38,
+      "ability": 60,
+      "integrity": 25,
+      "courage": 50,
+      "style": "附阉守边",
+      "birth_year": 1568,
       "historical_death_year": 0,
-      "historical_death_month": 0
-    },
-    {
-      "name": "毕自严",
-      "office": "南京户部尚书",
-      "office_type": "户部",
-      "faction": "皇党",
-      "aliases": [
-        "毕自严",
-        "毕尚书",
-        "南户部",
-        "毕户部"
-      ],
-      "personal_skills": [
-        "财政核算",
-        "清查亏空",
-        "军饷调度",
-        "务实算账"
-      ],
-      "loyalty": 68,
-      "ability": 84,
-      "integrity": 78,
-      "courage": 60,
-      "style": "务实算账",
-      "birth_year": 1569,
-      "historical_death_year": 1638,
-      "historical_death_month": 0
-    },
-    {
-      "name": "徐光启",
-      "office": "前礼部右少卿，罢居上海",
-      "office_type": "工部",
-      "faction": "西学",
-      "aliases": [
-        "徐光启",
-        "徐先生",
-        "徐农政",
-        "西学重臣"
-      ],
-      "personal_skills": [
-        "西学",
-        "农政",
-        "火器试办"
-      ],
-      "loyalty": 72,
-      "ability": 77,
-      "integrity": 82,
-      "courage": 61,
-      "style": "稳健试办",
-      "birth_year": 1562,
-      "historical_death_year": 1633,
-      "historical_death_month": 10
-    },
-    {
-      "name": "袁可立",
-      "office": "前登莱巡抚，罢居睢州",
-      "office_type": "都察院",
-      "faction": "东林",
-      "aliases": [
-        "袁可立",
-        "袁巡抚",
-        "袁节寰"
-      ],
-      "personal_skills": [
-        "登莱海防",
-        "节制东江",
-        "刚正持法"
-      ],
-      "loyalty": 79,
-      "ability": 80,
-      "integrity": 86,
-      "courage": 75,
-      "style": "刚方老练",
-      "birth_year": 1562,
-      "historical_death_year": 1633,
-      "historical_death_month": 10
-    },
-    {
-      "name": "钱龙锡",
-      "office": "前礼部尚书，罢居松江",
-      "office_type": "礼部",
-      "faction": "东林",
-      "aliases": [
-        "钱龙锡",
-        "钱阁老",
-        "钱机山"
-      ],
-      "personal_skills": [
-        "定逆案",
-        "枢机谋断",
-        "清流人脉"
-      ],
-      "loyalty": 66,
-      "ability": 71,
-      "integrity": 74,
-      "courage": 58,
-      "style": "缜密任事",
-      "birth_year": 1579,
-      "historical_death_year": 1645,
-      "historical_death_month": 0
-    },
-    {
-      "name": "钱谦益",
-      "office": "前礼部右侍郎，罢居常熟",
-      "office_type": "礼部",
-      "faction": "东林",
-      "aliases": [
-        "钱谦益",
-        "钱牧斋",
-        "牧斋"
-      ],
-      "personal_skills": [
-        "东林领袖",
-        "清议文望",
-        "结党经营"
-      ],
-      "loyalty": 52,
-      "ability": 70,
-      "integrity": 45,
-      "courage": 40,
-      "style": "文采虚矫",
-      "birth_year": 1582,
-      "historical_death_year": 1664,
-      "historical_death_month": 0
-    },
-    {
-      "name": "刘鸿训",
-      "office": "册封朝鲜使归途",
-      "office_type": "礼部",
-      "faction": "东林",
-      "aliases": [
-        "刘鸿训",
-        "刘阁老",
-        "刘默承"
-      ],
-      "personal_skills": [
-        "票拟决断",
-        "边饷筹划",
-        "敢言直谏"
-      ],
-      "loyalty": 64,
-      "ability": 70,
-      "integrity": 72,
-      "courage": 68,
-      "style": "果敢负气",
-      "birth_year": 1565,
-      "historical_death_year": 1634,
-      "historical_death_month": 0
-    },
-    {
-      "name": "王在晋",
-      "office": "南京兵部尚书",
-      "office_type": "兵部",
-      "faction": "中立",
-      "aliases": [
-        "王在晋",
-        "王兵部",
-        "王岵云"
-      ],
-      "personal_skills": [
-        "边镇方略",
-        "钱粮综核",
-        "重关守议"
-      ],
-      "loyalty": 60,
-      "ability": 72,
-      "integrity": 60,
-      "courage": 55,
-      "style": "持重多虑",
-      "birth_year": 1567,
-      "historical_death_year": 1643,
       "historical_death_month": 0
     },
     {
@@ -934,6 +982,30 @@
       "historical_death_month": 0
     },
     {
+      "name": "孙传庭",
+      "office": "永城知县",
+      "office_type": "地方",
+      "faction": "中立",
+      "aliases": [
+        "孙传庭",
+        "孙知县",
+        "孙白谷"
+      ],
+      "personal_skills": [
+        "牧民理讼",
+        "刚愎知兵",
+        "经世自负"
+      ],
+      "loyalty": 76,
+      "ability": 84,
+      "integrity": 78,
+      "courage": 85,
+      "style": "刚毅自负",
+      "birth_year": 1593,
+      "historical_death_year": 0,
+      "historical_death_month": 0
+    },
+    {
       "name": "卢象升",
       "office": "大名府知府",
       "office_type": "地方",
@@ -954,54 +1026,6 @@
       "courage": 92,
       "style": "刚烈忠勇",
       "birth_year": 1600,
-      "historical_death_year": 0,
-      "historical_death_month": 0
-    },
-    {
-      "name": "杨嗣昌",
-      "office": "户部郎中",
-      "office_type": "户部",
-      "faction": "皇党",
-      "aliases": [
-        "杨嗣昌",
-        "杨郎中",
-        "杨文弱"
-      ],
-      "personal_skills": [
-        "钱粮筹划",
-        "条议边务",
-        "筹谋深远"
-      ],
-      "loyalty": 75,
-      "ability": 80,
-      "integrity": 58,
-      "courage": 65,
-      "style": "筹谋深远",
-      "birth_year": 1588,
-      "historical_death_year": 0,
-      "historical_death_month": 0
-    },
-    {
-      "name": "曹文诏",
-      "office": "辽东游击将军",
-      "office_type": "边镇",
-      "faction": "军队",
-      "aliases": [
-        "曹文诏",
-        "曹游击",
-        "曹将军"
-      ],
-      "personal_skills": [
-        "马队突击",
-        "身先士卒",
-        "辽东征战"
-      ],
-      "loyalty": 72,
-      "ability": 78,
-      "integrity": 64,
-      "courage": 91,
-      "style": "勇冠诸将",
-      "birth_year": 1590,
       "historical_death_year": 0,
       "historical_death_month": 0
     },
@@ -1029,660 +1053,30 @@
       "historical_death_month": 0
     },
     {
-      "name": "孙传庭",
-      "office": "永城知县",
-      "office_type": "地方",
-      "faction": "中立",
-      "aliases": [
-        "孙传庭",
-        "孙知县",
-        "孙白谷"
-      ],
-      "personal_skills": [
-        "牧民理讼",
-        "刚愎知兵",
-        "经世自负"
-      ],
-      "loyalty": 76,
-      "ability": 84,
-      "integrity": 78,
-      "courage": 85,
-      "style": "刚毅自负",
-      "birth_year": 1593,
-      "historical_death_year": 0,
-      "historical_death_month": 0
-    },
-    {
-      "name": "周皇后",
-      "office": "中宫皇后",
-      "office_type": "后宫",
-      "rank": "皇后",
-      "faction": "中宫",
-      "aliases": [
-        "皇后",
-        "中宫",
-        "梓童"
-      ],
-      "personal_skills": [
-        "母仪天下",
-        "协理六宫",
-        "规谏皇帝"
-      ],
-      "loyalty": 88,
-      "ability": 72,
-      "integrity": 85,
-      "courage": 60,
-      "style": "端庄贤德",
-      "birth_year": 1611,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "active",
-      "summary": "皇后，端庄贤德，母仪天下，时常规谏圣上。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "田贵妃",
-      "office": "贵妃",
-      "office_type": "后宫",
-      "rank": "贵妃",
-      "faction": "宠妃",
-      "aliases": [
-        "田妃",
-        "田贵人"
-      ],
-      "personal_skills": [
-        "专宠御前",
-        "歌舞娱圣",
-        "枕边进言"
-      ],
-      "loyalty": 75,
-      "ability": 65,
-      "integrity": 50,
-      "courage": 55,
-      "style": "娇媚善宠",
-      "birth_year": 1618,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "active",
-      "summary": "贵妃，娇媚善宠，专擅圣心，善歌舞，偶为外戚进言。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "袁贵妃",
-      "office": "贵妃",
-      "office_type": "后宫",
-      "rank": "贵妃",
-      "faction": "宠妃",
-      "aliases": [
-        "袁妃"
-      ],
-      "personal_skills": [
-        "沉静自守",
-        "侍奉圣驾",
-        "宫闱消息"
-      ],
-      "loyalty": 82,
-      "ability": 58,
-      "integrity": 78,
-      "courage": 40,
-      "style": "沉静内敛",
-      "birth_year": 1612,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "active",
-      "summary": "贵妃，沉静内敛，守分安命，不争宠，深得崇祯敬重。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "慧妃",
-      "office": "妃",
-      "office_type": "后宫",
-      "rank": "妃",
-      "faction": "嫔妃",
-      "aliases": [
-        "慧娘"
-      ],
-      "personal_skills": [
-        "天真烂漫",
-        "侍寝奉茶",
-        "宫中消息"
-      ],
-      "loyalty": 70,
-      "ability": 40,
-      "integrity": 72,
-      "courage": 35,
-      "style": "天真纯良",
-      "birth_year": 1615,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "active",
-      "summary": "妃，年轻纯真，侍奉温柔，无争宠之心。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "周贵人",
-      "office": "贵人",
-      "office_type": "后宫",
-      "rank": "贵人",
-      "faction": "嫔妃",
-      "aliases": [
-        "周贵人"
-      ],
-      "personal_skills": [
-        "精明理事",
-        "宫廷消息",
-        "联络外戚"
-      ],
-      "loyalty": 65,
-      "ability": 68,
-      "integrity": 55,
-      "courage": 62,
-      "style": "精明干练",
-      "birth_year": 1613,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "active",
-      "summary": "贵人，精明干练，善于周旋，有时为娘家打探消息。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "李雪凝",
+      "name": "苏寒烟",
       "office": "采女（待选）",
       "office_type": "后宫",
       "rank": "采女",
       "faction": "嫔妃",
       "aliases": [
-        "李氏"
+        "苏氏",
+        "寒烟"
       ],
       "personal_skills": [
-        "琴艺超群",
-        "温婉侍人",
-        "书法见长"
+        "冰雪聪明",
+        "洞察人心",
+        "步步为营"
       ],
-      "loyalty": 78,
-      "ability": 55,
-      "integrity": 80,
-      "courage": 30,
-      "style": "温婉娴静",
+      "loyalty": 62,
+      "ability": 88,
+      "integrity": 52,
+      "courage": 78,
+      "style": "工于心计",
       "birth_year": 1613,
       "historical_death_year": 0,
       "historical_death_month": 0,
       "status": "candidate",
-      "summary": "江南书香门第之女，琴棋书画皆通，性情温婉。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "沈芷烟",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "沈氏"
-      ],
-      "personal_skills": [
-        "舞姿绝伦",
-        "善解人意",
-        "察言观色"
-      ],
-      "loyalty": 60,
-      "ability": 70,
-      "integrity": 45,
-      "courage": 65,
-      "style": "妩媚聪慧",
-      "birth_year": 1614,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "苏州名门之女，能歌善舞，颇具心机，志在晋位。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "顾清尘",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "顾氏"
-      ],
-      "personal_skills": [
-        "诗词出众",
-        "医术粗通",
-        "淡泊名利"
-      ],
-      "loyalty": 85,
-      "ability": 62,
-      "integrity": 88,
-      "courage": 45,
-      "style": "清雅脱俗",
-      "birth_year": 1612,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "书香世家出身，淡泊名利，入宫纯因家道中落。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "陈月华",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "陈氏"
-      ],
-      "personal_skills": [
-        "厨艺精湛",
-        "体贴入微",
-        "聆听安抚"
-      ],
-      "loyalty": 82,
-      "ability": 48,
-      "integrity": 75,
-      "courage": 40,
-      "style": "朴实温厚",
-      "birth_year": 1616,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "武将之女，性格朴实，善烹饪，体贴周到，无争宠野心。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "方碧落",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "方氏"
-      ],
-      "personal_skills": [
-        "棋艺高超",
-        "独立果断",
-        "军政见解"
-      ],
-      "loyalty": 70,
-      "ability": 78,
-      "integrity": 72,
-      "courage": 80,
-      "style": "英气豪爽",
-      "birth_year": 1611,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "将门虎女，性格豪爽，对军政时局颇有见解，不拘宫廷礼数。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "朱婉仪",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "朱氏",
-        "婉仪"
-      ],
-      "personal_skills": [
-        "宗室关系",
-        "礼法精通",
-        "稳重处事"
-      ],
-      "loyalty": 68,
-      "ability": 66,
-      "integrity": 60,
-      "courage": 50,
-      "style": "端庄持重",
-      "birth_year": 1610,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "远支宗室之女，精通礼法，处事稳重，背后有宗亲势力。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "林晚香",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "林氏"
-      ],
-      "personal_skills": [
-        "草药医术",
-        "清心寡欲",
-        "佛法禅心"
-      ],
-      "loyalty": 88,
-      "ability": 58,
-      "integrity": 90,
-      "courage": 35,
-      "style": "淡然出尘",
-      "birth_year": 1614,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "道观出身，精通草药，性情淡然，对富贵无所求。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "唐红玉",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "唐氏",
-        "红玉"
-      ],
-      "personal_skills": [
-        "武艺防身",
-        "直言敢谏",
-        "忠诚护主"
-      ],
-      "loyalty": 90,
-      "ability": 65,
-      "integrity": 82,
-      "courage": 88,
-      "style": "侠义直爽",
-      "birth_year": 1613,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "武官之女，习得拳脚，性格侠义，敢于直言，忠心耿耿。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "严若兰",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "严氏"
-      ],
-      "personal_skills": [
-        "账目精算",
-        "节俭持家",
-        "理财调度"
-      ],
-      "loyalty": 74,
-      "ability": 80,
-      "integrity": 70,
-      "courage": 55,
-      "style": "精明务实",
-      "birth_year": 1615,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "商贾之女，善于理财，头脑精明，可协理内廷账目。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "蒋梨雪",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "蒋氏"
-      ],
-      "personal_skills": [
-        "天文历法",
-        "西学见闻",
-        "好奇求知"
-      ],
-      "loyalty": 72,
-      "ability": 75,
-      "integrity": 78,
-      "courage": 60,
-      "style": "博学好奇",
-      "birth_year": 1616,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "传教士接触过的士绅之女，懂些西洋历法与器械，见识广博。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "裴霜月",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "裴氏",
-        "霜月"
-      ],
-      "personal_skills": [
-        "诗词联句",
-        "月下抚琴",
-        "深情款款"
-      ],
-      "loyalty": 80,
-      "ability": 52,
-      "integrity": 76,
-      "courage": 28,
-      "style": "忧郁多情",
-      "birth_year": 1614,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "江南才女，诗词俱佳，性情忧郁多愁，常借诗抒怀，深情却不善争宠。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "姜暖玉",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "姜氏",
-        "暖玉"
-      ],
-      "personal_skills": [
-        "烹茶侍膳",
-        "暖言宽慰",
-        "细心体贴"
-      ],
-      "loyalty": 86,
-      "ability": 45,
-      "integrity": 80,
-      "courage": 38,
-      "style": "温暖治愈",
-      "birth_year": 1617,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "小家碧玉出身，善烹茶煮膳，性情温暖如玉，最能宽慰人心，无争宠之念。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "韩凌烟",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "韩氏",
-        "凌烟"
-      ],
-      "personal_skills": [
-        "工笔丹青",
-        "绣工精妙",
-        "观察入微"
-      ],
-      "loyalty": 75,
-      "ability": 68,
-      "integrity": 74,
-      "courage": 42,
-      "style": "静谧细腻",
-      "birth_year": 1615,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "画师之女，工笔极精，绣品冠绝六宫，性情静谧，善于察颜观色却少言。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "叶青鸾",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "叶氏",
-        "青鸾"
-      ],
-      "personal_skills": [
-        "驯鸟弄禽",
-        "活泼好动",
-        "笑声悦耳"
-      ],
-      "loyalty": 72,
-      "ability": 50,
-      "integrity": 68,
-      "courage": 70,
-      "style": "活泼烂漫",
-      "birth_year": 1618,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "山林猎户之女，自幼驯鸟弄禽，性格活泼大胆，笑声爽朗，不懂深宫心机。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "卫素心",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "卫氏",
-        "素心"
-      ],
-      "personal_skills": [
-        "誊写文书",
-        "记忆超群",
-        "谨言守密"
-      ],
-      "loyalty": 88,
-      "ability": 72,
-      "integrity": 85,
-      "courage": 45,
-      "style": "沉默寡言",
-      "birth_year": 1613,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "官府文书之女，记忆力异于常人，极善守密，沉默寡言却看透人心。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "夏流萤",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "夏氏",
-        "流萤"
-      ],
-      "personal_skills": [
-        "夜观天象",
-        "奇门遁甲",
-        "预感敏锐"
-      ],
-      "loyalty": 65,
-      "ability": 76,
-      "integrity": 70,
-      "courage": 62,
-      "style": "神秘莫测",
-      "birth_year": 1612,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "钦天监世家之女，懂天象占卜，性情神秘，偶尔预感奇准，令人捉摸不透。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "罗锦绣",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "罗氏",
-        "锦绣"
-      ],
-      "personal_skills": [
-        "歌喉绝妙",
-        "舞袖飘逸",
-        "撒娇邀宠"
-      ],
-      "loyalty": 55,
-      "ability": 60,
-      "integrity": 38,
-      "courage": 72,
-      "style": "娇纵任性",
-      "birth_year": 1617,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "富商之女，自幼娇养，能歌善舞，个性任性娇纵，进宫是为家族镀金。",
-      "debut_year": 0,
-      "debut_month": 0
-    },
-    {
-      "name": "钟幽兰",
-      "office": "采女（待选）",
-      "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
-      "aliases": [
-        "钟氏",
-        "幽兰"
-      ],
-      "personal_skills": [
-        "兰花培育",
-        "香道熏染",
-        "养生调息"
-      ],
-      "loyalty": 82,
-      "ability": 55,
-      "integrity": 82,
-      "courage": 32,
-      "style": "雅致恬淡",
-      "birth_year": 1614,
-      "historical_death_year": 0,
-      "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "隐士之女，擅培名兰，精通香道养生，性情恬淡雅致，不慕荣华。",
+      "summary": "御史之女，自幼耳濡目染官场权谋，冰雪聪明，入宫志在问鼎贵妃之位。",
       "debut_year": 0,
       "debut_month": 0
     },
@@ -1715,114 +1109,196 @@
       "debut_month": 0
     },
     {
-      "name": "白鹤云",
+      "name": "严若兰",
       "office": "采女（待选）",
       "office_type": "后宫",
       "rank": "采女",
       "faction": "嫔妃",
       "aliases": [
-        "白氏",
-        "鹤云"
+        "严氏"
       ],
       "personal_skills": [
-        "剑舞表演",
-        "巾帼豪情",
-        "慷慨激昂"
+        "账目精算",
+        "节俭持家",
+        "理财调度"
       ],
-      "loyalty": 84,
-      "ability": 70,
-      "integrity": 80,
-      "courage": 90,
-      "style": "慷慨豪迈",
+      "loyalty": 74,
+      "ability": 80,
+      "integrity": 70,
+      "courage": 55,
+      "style": "精明务实",
+      "birth_year": 1615,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "商贾之女，善于理财，头脑精明，可协理内廷账目。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "方碧落",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "方氏"
+      ],
+      "personal_skills": [
+        "棋艺高超",
+        "独立果断",
+        "军政见解"
+      ],
+      "loyalty": 70,
+      "ability": 78,
+      "integrity": 72,
+      "courage": 80,
+      "style": "英气豪爽",
+      "birth_year": 1611,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "将门虎女，性格豪爽，对军政时局颇有见解，不拘宫廷礼数。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "夏流萤",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "夏氏",
+        "流萤"
+      ],
+      "personal_skills": [
+        "夜观天象",
+        "奇门遁甲",
+        "预感敏锐"
+      ],
+      "loyalty": 65,
+      "ability": 76,
+      "integrity": 70,
+      "courage": 62,
+      "style": "神秘莫测",
       "birth_year": 1612,
       "historical_death_year": 0,
       "historical_death_month": 0,
       "status": "candidate",
-      "summary": "边关守将遗孤，自幼习剑，性情慷慨豪迈，深忧国事，入宫愿为崇祯分忧。",
+      "summary": "钦天监世家之女，懂天象占卜，性情神秘，偶尔预感奇准，令人捉摸不透。",
       "debut_year": 0,
       "debut_month": 0
     },
     {
-      "name": "冯如烟",
+      "name": "蒋梨雪",
       "office": "采女（待选）",
       "office_type": "后宫",
       "rank": "采女",
       "faction": "嫔妃",
       "aliases": [
-        "冯氏",
-        "如烟"
+        "蒋氏"
       ],
       "personal_skills": [
-        "曲艺说书",
-        "模仿口技",
-        "逗笑解闷"
+        "天文历法",
+        "西学见闻",
+        "好奇求知"
       ],
-      "loyalty": 70,
-      "ability": 58,
-      "integrity": 65,
-      "courage": 68,
-      "style": "风趣幽默",
-      "birth_year": 1617,
+      "loyalty": 72,
+      "ability": 75,
+      "integrity": 78,
+      "courage": 60,
+      "style": "博学好奇",
+      "birth_year": 1616,
       "historical_death_year": 0,
       "historical_death_month": 0,
       "status": "candidate",
-      "summary": "梨园世家出身，能说能唱，口技绝妙，性格风趣，最善逗皇帝开怀一笑。",
+      "summary": "传教士接触过的士绅之女，懂些西洋历法与器械，见识广博。",
       "debut_year": 0,
       "debut_month": 0
     },
     {
-      "name": "苏寒烟",
+      "name": "纪秋容",
       "office": "采女（待选）",
       "office_type": "后宫",
       "rank": "采女",
       "faction": "嫔妃",
       "aliases": [
-        "苏氏",
-        "寒烟"
+        "纪氏",
+        "秋容"
       ],
       "personal_skills": [
-        "冰雪聪明",
-        "洞察人心",
-        "步步为营"
+        "识药辨毒",
+        "暗中护主",
+        "阴柔坚韧"
       ],
-      "loyalty": 62,
-      "ability": 88,
-      "integrity": 52,
-      "courage": 78,
-      "style": "工于心计",
+      "loyalty": 78,
+      "ability": 74,
+      "integrity": 68,
+      "courage": 72,
+      "style": "阴柔坚韧",
+      "birth_year": 1612,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "宫廷太医之女，识草药辨毒性，外表柔弱内心如铁，曾目睹宫廷倾轧，处世谨慎。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "卫素心",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "卫氏",
+        "素心"
+      ],
+      "personal_skills": [
+        "誊写文书",
+        "记忆超群",
+        "谨言守密"
+      ],
+      "loyalty": 88,
+      "ability": 72,
+      "integrity": 85,
+      "courage": 45,
+      "style": "沉默寡言",
       "birth_year": 1613,
       "historical_death_year": 0,
       "historical_death_month": 0,
       "status": "candidate",
-      "summary": "御史之女，自幼耳濡目染官场权谋，冰雪聪明，入宫志在问鼎贵妃之位。",
+      "summary": "官府文书之女，记忆力异于常人，极善守密，沉默寡言却看透人心。",
       "debut_year": 0,
       "debut_month": 0
     },
     {
-      "name": "童芙蓉",
-      "office": "采女（待选）",
+      "name": "周皇后",
+      "office": "中宫皇后",
       "office_type": "后宫",
-      "rank": "采女",
-      "faction": "嫔妃",
+      "rank": "皇后",
+      "faction": "中宫",
       "aliases": [
-        "童氏",
-        "芙蓉"
+        "皇后",
+        "中宫",
+        "梓童"
       ],
       "personal_skills": [
-        "天真无邪",
-        "赤子之心",
-        "无意间打动人"
+        "母仪天下",
+        "协理六宫",
+        "规谏皇帝"
       ],
-      "loyalty": 85,
-      "ability": 38,
-      "integrity": 90,
-      "courage": 45,
-      "style": "天真无邪",
-      "birth_year": 1619,
+      "loyalty": 88,
+      "ability": 72,
+      "integrity": 85,
+      "courage": 60,
+      "style": "端庄贤德",
+      "birth_year": 1611,
       "historical_death_year": 0,
       "historical_death_month": 0,
-      "status": "candidate",
-      "summary": "农家小女，年岁最幼，对宫廷一无所知，天真无邪，反而让人心生怜爱。",
+      "status": "active",
+      "summary": "皇后，端庄贤德，母仪天下，时常规谏圣上。",
       "debut_year": 0,
       "debut_month": 0
     },
@@ -1855,30 +1331,554 @@
       "debut_month": 0
     },
     {
-      "name": "纪秋容",
+      "name": "沈芷烟",
       "office": "采女（待选）",
       "office_type": "后宫",
       "rank": "采女",
       "faction": "嫔妃",
       "aliases": [
-        "纪氏",
-        "秋容"
+        "沈氏"
       ],
       "personal_skills": [
-        "识药辨毒",
-        "暗中护主",
-        "阴柔坚韧"
+        "舞姿绝伦",
+        "善解人意",
+        "察言观色"
       ],
-      "loyalty": 78,
-      "ability": 74,
-      "integrity": 68,
-      "courage": 72,
-      "style": "阴柔坚韧",
+      "loyalty": 60,
+      "ability": 70,
+      "integrity": 45,
+      "courage": 65,
+      "style": "妩媚聪慧",
+      "birth_year": 1614,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "苏州名门之女，能歌善舞，颇具心机，志在晋位。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "白鹤云",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "白氏",
+        "鹤云"
+      ],
+      "personal_skills": [
+        "剑舞表演",
+        "巾帼豪情",
+        "慷慨激昂"
+      ],
+      "loyalty": 84,
+      "ability": 70,
+      "integrity": 80,
+      "courage": 90,
+      "style": "慷慨豪迈",
       "birth_year": 1612,
       "historical_death_year": 0,
       "historical_death_month": 0,
       "status": "candidate",
-      "summary": "宫廷太医之女，识草药辨毒性，外表柔弱内心如铁，曾目睹宫廷倾轧，处世谨慎。",
+      "summary": "边关守将遗孤，自幼习剑，性情慷慨豪迈，深忧国事，入宫愿为崇祯分忧。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "周贵人",
+      "office": "贵人",
+      "office_type": "后宫",
+      "rank": "贵人",
+      "faction": "嫔妃",
+      "aliases": [
+        "周贵人"
+      ],
+      "personal_skills": [
+        "精明理事",
+        "宫廷消息",
+        "联络外戚"
+      ],
+      "loyalty": 65,
+      "ability": 68,
+      "integrity": 55,
+      "courage": 62,
+      "style": "精明干练",
+      "birth_year": 1613,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "active",
+      "summary": "贵人，精明干练，善于周旋，有时为娘家打探消息。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "韩凌烟",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "韩氏",
+        "凌烟"
+      ],
+      "personal_skills": [
+        "工笔丹青",
+        "绣工精妙",
+        "观察入微"
+      ],
+      "loyalty": 75,
+      "ability": 68,
+      "integrity": 74,
+      "courage": 42,
+      "style": "静谧细腻",
+      "birth_year": 1615,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "画师之女，工笔极精，绣品冠绝六宫，性情静谧，善于察颜观色却少言。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "朱婉仪",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "朱氏",
+        "婉仪"
+      ],
+      "personal_skills": [
+        "宗室关系",
+        "礼法精通",
+        "稳重处事"
+      ],
+      "loyalty": 68,
+      "ability": 66,
+      "integrity": 60,
+      "courage": 50,
+      "style": "端庄持重",
+      "birth_year": 1610,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "远支宗室之女，精通礼法，处事稳重，背后有宗亲势力。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "唐红玉",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "唐氏",
+        "红玉"
+      ],
+      "personal_skills": [
+        "武艺防身",
+        "直言敢谏",
+        "忠诚护主"
+      ],
+      "loyalty": 90,
+      "ability": 65,
+      "integrity": 82,
+      "courage": 88,
+      "style": "侠义直爽",
+      "birth_year": 1613,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "武官之女，习得拳脚，性格侠义，敢于直言，忠心耿耿。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "田贵妃",
+      "office": "贵妃",
+      "office_type": "后宫",
+      "rank": "贵妃",
+      "faction": "宠妃",
+      "aliases": [
+        "田妃",
+        "田贵人"
+      ],
+      "personal_skills": [
+        "专宠御前",
+        "歌舞娱圣",
+        "枕边进言"
+      ],
+      "loyalty": 75,
+      "ability": 65,
+      "integrity": 50,
+      "courage": 55,
+      "style": "娇媚善宠",
+      "birth_year": 1618,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "active",
+      "summary": "贵妃，娇媚善宠，专擅圣心，善歌舞，偶为外戚进言。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "顾清尘",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "顾氏"
+      ],
+      "personal_skills": [
+        "诗词出众",
+        "医术粗通",
+        "淡泊名利"
+      ],
+      "loyalty": 85,
+      "ability": 62,
+      "integrity": 88,
+      "courage": 45,
+      "style": "清雅脱俗",
+      "birth_year": 1612,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "书香世家出身，淡泊名利，入宫纯因家道中落。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "罗锦绣",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "罗氏",
+        "锦绣"
+      ],
+      "personal_skills": [
+        "歌喉绝妙",
+        "舞袖飘逸",
+        "撒娇邀宠"
+      ],
+      "loyalty": 55,
+      "ability": 60,
+      "integrity": 38,
+      "courage": 72,
+      "style": "娇纵任性",
+      "birth_year": 1617,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "富商之女，自幼娇养，能歌善舞，个性任性娇纵，进宫是为家族镀金。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "冯如烟",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "冯氏",
+        "如烟"
+      ],
+      "personal_skills": [
+        "曲艺说书",
+        "模仿口技",
+        "逗笑解闷"
+      ],
+      "loyalty": 70,
+      "ability": 58,
+      "integrity": 65,
+      "courage": 68,
+      "style": "风趣幽默",
+      "birth_year": 1617,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "梨园世家出身，能说能唱，口技绝妙，性格风趣，最善逗皇帝开怀一笑。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "林晚香",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "林氏"
+      ],
+      "personal_skills": [
+        "草药医术",
+        "清心寡欲",
+        "佛法禅心"
+      ],
+      "loyalty": 88,
+      "ability": 58,
+      "integrity": 90,
+      "courage": 35,
+      "style": "淡然出尘",
+      "birth_year": 1614,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "道观出身，精通草药，性情淡然，对富贵无所求。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "袁贵妃",
+      "office": "贵妃",
+      "office_type": "后宫",
+      "rank": "贵妃",
+      "faction": "宠妃",
+      "aliases": [
+        "袁妃"
+      ],
+      "personal_skills": [
+        "沉静自守",
+        "侍奉圣驾",
+        "宫闱消息"
+      ],
+      "loyalty": 82,
+      "ability": 58,
+      "integrity": 78,
+      "courage": 40,
+      "style": "沉静内敛",
+      "birth_year": 1612,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "active",
+      "summary": "贵妃，沉静内敛，守分安命，不争宠，深得崇祯敬重。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "李雪凝",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "李氏"
+      ],
+      "personal_skills": [
+        "琴艺超群",
+        "温婉侍人",
+        "书法见长"
+      ],
+      "loyalty": 78,
+      "ability": 55,
+      "integrity": 80,
+      "courage": 30,
+      "style": "温婉娴静",
+      "birth_year": 1613,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "江南书香门第之女，琴棋书画皆通，性情温婉。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "钟幽兰",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "钟氏",
+        "幽兰"
+      ],
+      "personal_skills": [
+        "兰花培育",
+        "香道熏染",
+        "养生调息"
+      ],
+      "loyalty": 82,
+      "ability": 55,
+      "integrity": 82,
+      "courage": 32,
+      "style": "雅致恬淡",
+      "birth_year": 1614,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "隐士之女，擅培名兰，精通香道养生，性情恬淡雅致，不慕荣华。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "裴霜月",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "裴氏",
+        "霜月"
+      ],
+      "personal_skills": [
+        "诗词联句",
+        "月下抚琴",
+        "深情款款"
+      ],
+      "loyalty": 80,
+      "ability": 52,
+      "integrity": 76,
+      "courage": 28,
+      "style": "忧郁多情",
+      "birth_year": 1614,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "江南才女，诗词俱佳，性情忧郁多愁，常借诗抒怀，深情却不善争宠。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "叶青鸾",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "叶氏",
+        "青鸾"
+      ],
+      "personal_skills": [
+        "驯鸟弄禽",
+        "活泼好动",
+        "笑声悦耳"
+      ],
+      "loyalty": 72,
+      "ability": 50,
+      "integrity": 68,
+      "courage": 70,
+      "style": "活泼烂漫",
+      "birth_year": 1618,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "山林猎户之女，自幼驯鸟弄禽，性格活泼大胆，笑声爽朗，不懂深宫心机。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "陈月华",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "陈氏"
+      ],
+      "personal_skills": [
+        "厨艺精湛",
+        "体贴入微",
+        "聆听安抚"
+      ],
+      "loyalty": 82,
+      "ability": 48,
+      "integrity": 75,
+      "courage": 40,
+      "style": "朴实温厚",
+      "birth_year": 1616,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "武将之女，性格朴实，善烹饪，体贴周到，无争宠野心。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "姜暖玉",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "姜氏",
+        "暖玉"
+      ],
+      "personal_skills": [
+        "烹茶侍膳",
+        "暖言宽慰",
+        "细心体贴"
+      ],
+      "loyalty": 86,
+      "ability": 45,
+      "integrity": 80,
+      "courage": 38,
+      "style": "温暖治愈",
+      "birth_year": 1617,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "小家碧玉出身，善烹茶煮膳，性情温暖如玉，最能宽慰人心，无争宠之念。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "慧妃",
+      "office": "妃",
+      "office_type": "后宫",
+      "rank": "妃",
+      "faction": "嫔妃",
+      "aliases": [
+        "慧娘"
+      ],
+      "personal_skills": [
+        "天真烂漫",
+        "侍寝奉茶",
+        "宫中消息"
+      ],
+      "loyalty": 70,
+      "ability": 40,
+      "integrity": 72,
+      "courage": 35,
+      "style": "天真纯良",
+      "birth_year": 1615,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "active",
+      "summary": "妃，年轻纯真，侍奉温柔，无争宠之心。",
+      "debut_year": 0,
+      "debut_month": 0
+    },
+    {
+      "name": "童芙蓉",
+      "office": "采女（待选）",
+      "office_type": "后宫",
+      "rank": "采女",
+      "faction": "嫔妃",
+      "aliases": [
+        "童氏",
+        "芙蓉"
+      ],
+      "personal_skills": [
+        "天真无邪",
+        "赤子之心",
+        "无意间打动人"
+      ],
+      "loyalty": 85,
+      "ability": 38,
+      "integrity": 90,
+      "courage": 45,
+      "style": "天真无邪",
+      "birth_year": 1619,
+      "historical_death_year": 0,
+      "historical_death_month": 0,
+      "status": "candidate",
+      "summary": "农家小女，年岁最幼，对宫廷一无所知，天真无邪，反而让人心生怜爱。",
       "debut_year": 0,
       "debut_month": 0
     }
