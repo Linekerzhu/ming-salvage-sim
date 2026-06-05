@@ -2089,14 +2089,14 @@ select:focus-visible {
 
 .xinpan-grid {
   display: grid;
-  grid-template-columns: 118px minmax(0, 1fr);
+  grid-template-columns: minmax(136px, 0.74fr) minmax(0, 1.26fr);
   gap: 10px;
   align-items: stretch;
 }
 
 .xinpan-plane {
   position: relative;
-  min-height: 104px;
+  min-height: 118px;
   border: 1px solid rgba(111, 77, 36, 0.24);
   border-radius: 6px;
   background:
@@ -2106,81 +2106,27 @@ select:focus-visible {
   overflow: hidden;
 }
 
-.xinpan-plane .axis-x,
-.xinpan-plane .axis-y,
 .xinpan-plane .threshold-x,
 .xinpan-plane .threshold-y {
   position: absolute;
   display: block;
   background: transparent;
   pointer-events: none;
-}
-
-.xinpan-plane .axis-x,
-.xinpan-plane .axis-y {
-  z-index: 2;
-}
-
-.xinpan-plane .threshold-x,
-.xinpan-plane .threshold-y {
   z-index: 1;
-}
-
-.xinpan-plane .axis-x {
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 0;
-  border-top: 2px solid rgba(82, 52, 25, 0.68);
-  box-shadow: 0 1px 0 rgba(255, 248, 226, 0.74);
-}
-
-.xinpan-plane .axis-y {
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 0;
-  border-left: 2px solid rgba(82, 52, 25, 0.68);
-  box-shadow: 1px 0 0 rgba(255, 248, 226, 0.74);
 }
 
 .xinpan-plane .threshold-x {
   left: 0;
   right: 0;
   height: 0;
-  border-top: 1px dashed rgba(122, 46, 36, 0.42);
+  border-top: 1px dashed rgba(122, 46, 36, 0.48);
 }
 
 .xinpan-plane .threshold-y {
   top: 0;
   bottom: 0;
   width: 0;
-  border-left: 1px dashed rgba(122, 46, 36, 0.42);
-}
-
-.xinpan-plane .axis-origin {
-  position: absolute;
-  z-index: 4;
-  width: 7px;
-  height: 7px;
-  border: 1px solid rgba(82, 52, 25, 0.76);
-  border-radius: 999px;
-  background: rgba(255, 248, 226, 0.94);
-  box-shadow: 0 0 0 2px rgba(82, 52, 25, 0.12);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
-.xinpan-plane .threshold-origin {
-  position: absolute;
-  z-index: 2;
-  width: 5px;
-  height: 5px;
-  border: 1px solid rgba(122, 46, 36, 0.54);
-  border-radius: 999px;
-  background: rgba(255, 248, 226, 0.88);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
+  border-left: 1px dashed rgba(122, 46, 36, 0.48);
 }
 
 .xinpan-plane .axis-label,
@@ -2259,22 +2205,73 @@ select:focus-visible {
 
 .xinpan-point {
   position: absolute;
-  width: 15px;
-  height: 15px;
-  border: 2px solid #fff8df;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff0cf;
   border-radius: 999px;
-  background: #7a2e24;
-  box-shadow: 0 0 0 2px rgba(79, 41, 23, 0.28), 0 4px 12px rgba(41, 24, 13, 0.32);
+  background: #b4201b;
+  box-shadow:
+    0 0 0 3px rgba(180, 32, 27, 0.24),
+    0 0 16px rgba(180, 32, 27, 0.48),
+    0 4px 12px rgba(41, 24, 13, 0.32);
   transform: translate(-50%, -50%);
-  z-index: 4;
+  z-index: 5;
+  animation: xinpanCurrentBlink 1.35s ease-in-out infinite;
+}
+
+.xinpan-point::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border: 2px solid rgba(180, 32, 27, 0.46);
+  border-radius: inherit;
+  animation: xinpanCurrentPulse 1.35s ease-out infinite;
+  pointer-events: none;
 }
 
 .xinpan-point::after {
   content: "";
   position: absolute;
-  inset: 3px;
+  inset: 4px;
   border-radius: inherit;
-  background: #f3c35a;
+  background: #ffe5b0;
+  box-shadow: 0 0 0 1px rgba(94, 27, 20, 0.16);
+}
+
+@keyframes xinpanCurrentBlink {
+  0%,
+  100% {
+    filter: saturate(1);
+    box-shadow:
+      0 0 0 3px rgba(180, 32, 27, 0.22),
+      0 0 12px rgba(180, 32, 27, 0.38),
+      0 4px 12px rgba(41, 24, 13, 0.3);
+  }
+  50% {
+    filter: saturate(1.22);
+    box-shadow:
+      0 0 0 5px rgba(180, 32, 27, 0.28),
+      0 0 22px rgba(180, 32, 27, 0.68),
+      0 4px 14px rgba(41, 24, 13, 0.36);
+  }
+}
+
+@keyframes xinpanCurrentPulse {
+  0% {
+    opacity: 0.78;
+    transform: scale(0.68);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xinpan-point,
+  .xinpan-point::before {
+    animation: none;
+  }
 }
 
 .xinpan-plane-note {
@@ -2282,6 +2279,7 @@ select:focus-visible {
   left: 50%;
   bottom: 6px;
   z-index: 5;
+  max-width: calc(100% - 12px);
   padding: 2px 5px;
   border: 1px solid rgba(126, 86, 38, 0.16);
   border-radius: 4px;
@@ -2289,6 +2287,9 @@ select:focus-visible {
   background: rgba(255, 248, 226, 0.72);
   font-size: 0.58rem;
   font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transform: translateX(-50%);
 }
 
@@ -2488,6 +2489,18 @@ select:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.xinpan-insight-group {
+  display: grid;
+  gap: 5px;
+}
+
+.xinpan-insight-title {
+  color: #6f2b1f;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
 }
 
 .xinpan-concerns span {

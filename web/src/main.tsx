@@ -6600,6 +6600,15 @@ const xinpanSourceLabel: Record<string, string> = {
   current: "当前",
 };
 
+const xinpanConcernReason = (reason?: string) => {
+  const text = String(reason || "").trim();
+  if (!text) return "核心关切";
+  if (text.includes("极值")) return "立场很硬";
+  if (text.includes("偏向")) return "有明显偏向";
+  if (text.includes("身份") || text.includes("派系")) return "身份/派系牵动";
+  return text;
+};
+
 function XinpanProfileBlock({ profile }: { profile?: XinpanProfile }) {
   if (!profile || !profile.quadrant) return null;
   const dao = Math.max(-100, Math.min(100, Number(profile.dao_he || 0)));
@@ -6619,12 +6628,8 @@ function XinpanProfileBlock({ profile }: { profile?: XinpanProfile }) {
     left: `${currentPoint.x}%`,
     top: `${currentPoint.y}%`,
   };
-  const axisXStyle = { top: "50%" };
-  const axisYStyle = { left: "50%" };
-  const axisOriginStyle = { left: axisYStyle.left, top: axisXStyle.top };
   const thresholdXStyle = { top: `${thresholdPoint.y}%` };
   const thresholdYStyle = { left: `${thresholdPoint.x}%` };
-  const thresholdOriginStyle = { left: thresholdYStyle.left, top: thresholdXStyle.top };
   const quadrantClass = String(profile.quadrant || "").replace(/[^\w\u4e00-\u9fff-]/g, "");
   const concerns = profile.core_concerns || [];
   const abilities = profile.top_abilities || [];
@@ -6670,16 +6675,12 @@ function XinpanProfileBlock({ profile }: { profile?: XinpanProfile }) {
         <span>{reading.summary}</span>
       </div>
       <div className="xinpan-grid">
-        <div className="xinpan-plane" style={planeStyle} aria-label={`心盘：道合${dao}，势合${shi}；象限阈值道合${daoCutoff}，势合${shiCutoff}`}>
-          <i className="axis-x" style={axisXStyle} />
-          <i className="axis-y" style={axisYStyle} />
-          <span className="axis-origin" style={axisOriginStyle} />
+        <div className="xinpan-plane" style={planeStyle} aria-label={`心盘：红点为真实位置，道合${dao}，势合${shi}；虚线为象限分界，道合${daoCutoff}，势合${shiCutoff}`}>
           <i className="threshold-x" style={thresholdXStyle} />
           <i className="threshold-y" style={thresholdYStyle} />
-          <span className="threshold-origin" style={thresholdOriginStyle} />
           <span className="axis-label axis-label-dao">道合↑</span>
           <span className="axis-label axis-label-shi">势合→</span>
-          <span className="threshold-label">成象线</span>
+          <span className="threshold-label">象限分界</span>
           <span className="quad q1">股肱</span>
           <span className="quad q2">道隐</span>
           <span className="quad q3">离心</span>
@@ -6690,8 +6691,8 @@ function XinpanProfileBlock({ profile }: { profile?: XinpanProfile }) {
               <circle key={`${index}-${point.x}-${point.y}`} cx={point.x} cy={point.y} r={2.3} />
             ))}
           </svg>
-          <b className="xinpan-point" style={pointStyle} title={`道合${dao}，势合${shi}`} />
-          <span className="xinpan-plane-note">{hasTrail ? `${trailPoints.length}点轨迹` : "当前点"}</span>
+          <b className="xinpan-point" style={pointStyle} title={`真实位置：道合${dao}，势合${shi}`} />
+          <span className="xinpan-plane-note">{hasTrail ? `${trailPoints.length}点轨迹 · 红点为真实位置` : "红点为真实位置"}</span>
         </div>
         <div className="xinpan-metrics">
           <span className={positiveTone(dao)}><b>道合</b>{dao > 0 ? "+" : ""}{dao}</span>
@@ -6725,22 +6726,28 @@ function XinpanProfileBlock({ profile }: { profile?: XinpanProfile }) {
         </div>
       ) : null}
       {concerns.length ? (
-        <div className="xinpan-concerns">
-          {concerns.slice(0, 5).map((concern) => (
-            <span key={concern.dim_id || `${concern.symbol}-${concern.name}`}>
-              <b>{concern.symbol}{concern.name}</b>
-              <small>{concern.reason || "核心关切"}</small>
-            </span>
-          ))}
+        <div className="xinpan-insight-group">
+          <b className="xinpan-insight-title">他最在意</b>
+          <div className="xinpan-concerns">
+            {concerns.slice(0, 5).map((concern) => (
+              <span key={concern.dim_id || `${concern.symbol}-${concern.name}`} title={xinpanConcernReason(concern.reason)}>
+                <b>{concern.symbol}{concern.name}</b>
+                <small>{xinpanConcernReason(concern.reason)}</small>
+              </span>
+            ))}
+          </div>
         </div>
       ) : null}
       {abilities.length ? (
-        <div className="xinpan-abilities">
-          {abilities.slice(0, 5).map((ability) => (
-            <i key={ability.dim_id || `${ability.symbol}-${ability.name}`}>
-              {ability.symbol}{ability.name}{ability.band ? ` · ${ability.band}` : ""}
-            </i>
-          ))}
+        <div className="xinpan-insight-group">
+          <b className="xinpan-insight-title">可用强项</b>
+          <div className="xinpan-abilities">
+            {abilities.slice(0, 5).map((ability) => (
+              <i key={ability.dim_id || `${ability.symbol}-${ability.name}`}>
+                {ability.symbol}{ability.name}{ability.band ? ` · ${ability.band}` : ""}
+              </i>
+            ))}
+          </div>
         </div>
       ) : null}
       {warnings.length ? (
