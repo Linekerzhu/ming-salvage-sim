@@ -52,6 +52,11 @@ if [[ "$DO_BUILD" -eq 1 ]]; then
   echo "[start] 构建前端"
   (cd web && npm run build)
 else
+  if [[ ! -f web/dist/index.html ]]; then
+    echo "[error] --no-build 但 web/dist/index.html 不存在，无法服务前端页面。" >&2
+    echo "[hint] 先运行：./start.sh --port ${PORT}" >&2
+    exit 1
+  fi
   echo "[start] 跳过前端 build (--no-build)"
 fi
 
