@@ -23,6 +23,10 @@
   --hud-deep: #14120f;
   --hud-line: rgba(226, 180, 86, 0.34);
   --shadow: 0 22px 54px rgba(24, 18, 11, 0.38);
+  --right-nav-rail-width: 44px;
+  --right-nav-rail-gap: 8px;
+  --right-drawer-safe-right: calc(var(--right-nav-rail-width) + var(--right-nav-rail-gap));
+  --right-drawer-viewport-gutter: 8px;
 }
 
 * {
@@ -1239,7 +1243,7 @@ select:focus-visible {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto auto auto auto 1fr;
-  padding: 0 28px 0;
+  padding: 0 calc(28px + var(--right-drawer-safe-right)) 0 28px;
   overflow-x: hidden;
   visibility: hidden;
   opacity: 1;
@@ -7718,7 +7722,7 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
+  width: var(--right-nav-rail-width);
   height: 44px;
   border: none;
   background: transparent;
@@ -7757,11 +7761,11 @@ button:disabled {
 .right-drawer {
   position: fixed;
   top: 0;
-  right: 0;
+  right: var(--right-drawer-safe-right);
   bottom: 0;
   z-index: 18;
   width: 360px;
-  max-width: calc(100vw - 52px);
+  max-width: calc(100vw - var(--right-drawer-safe-right) - var(--right-drawer-viewport-gutter));
   display: flex;
   flex-direction: column;
   background: rgba(238, 228, 198, 0.97);
@@ -8021,7 +8025,7 @@ button:disabled {
 }
 
 .right-drawer-appointment {
-  width: min(940px, calc(100vw - 52px));
+  width: min(940px, calc(100vw - var(--right-drawer-safe-right) - var(--right-drawer-viewport-gutter)));
 }
 
 .right-drawer-appointment .right-drawer-body {
@@ -8030,7 +8034,7 @@ button:disabled {
 }
 
 .right-drawer-organization {
-  width: min(880px, calc(100vw - 52px));
+  width: min(880px, calc(100vw - var(--right-drawer-safe-right) - var(--right-drawer-viewport-gutter)));
 }
 
 .right-drawer-organization .right-drawer-body {
