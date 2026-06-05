@@ -1044,6 +1044,11 @@ select:focus-visible {
   filter: drop-shadow(0 9px 14px rgba(15, 8, 4, 0.7));
 }
 
+.command-art-adventure {
+  height: 13.8vh;
+  transform: translateY(0.4vh);
+}
+
 .bottom-command-bar .command-icon > svg {
   box-sizing: content-box;
   width: clamp(42px, 6.4vh, 72px);
@@ -1139,7 +1144,7 @@ select:focus-visible {
 .edict-turn-art {
   position: relative;
   display: grid;
-  place-items: center;
+  place-items: end center;
   width: 180px;
   height: 180px;
   filter: drop-shadow(0 4px 6px rgba(18, 7, 2, 0.58));
@@ -1150,6 +1155,7 @@ select:focus-visible {
   height: 14vh;
   max-width: 18vw;
   object-fit: contain;
+  transform: translateY(clamp(10px, 1.2vh, 18px));
 }
 
 .edict-turn-badge {
@@ -5723,6 +5729,7 @@ button:disabled {
   .command-art {
     width: 50px;
     height: 50px;
+    transform: none;
   }
 
   .command-caption b {
@@ -5749,6 +5756,7 @@ button:disabled {
   .edict-turn-art img {
     width: 72px;
     height: 72px;
+    transform: none;
   }
 
   .edict-turn-copy {
@@ -9751,6 +9759,7 @@ button:disabled {
     height: 30px;
     max-width: 30px;
     object-fit: contain;
+    transform: none;
   }
 
   .bottom-command-bar .command-icon > svg {

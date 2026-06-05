@@ -32,7 +32,6 @@ import {
   Move,
   ZoomIn,
   ZoomOut,
-  Scroll,
 } from "lucide-react";
 import { EXTERNAL_PATH_GROUPS, MAP_VIEW_BOX, REGION_PATH_GROUPS } from "./mapPaths";
 import "./styles.css";
@@ -4868,7 +4867,7 @@ function BottomCommandBar({
             <img src="/ui/exact/lishi.png" alt="" className="command-art" />
           </button>
           <button className="command-icon" onClick={onOpenAdventure} aria-label={`天命异闻 ${adventureCount} 条记录`}>
-            <Scroll size={24} />
+            <img src="/ui/exact/yiwen.png" alt="" className="command-art command-art-adventure" />
             {adventureCount ? <span className="command-badge command-badge-adventure">{adventureCount}</span> : null}
           </button>
           <button className="edict-turn-button" onClick={onOpenEdict} aria-label={`诏书草案 ${directivesCount} 道待发`}>
