@@ -7032,6 +7032,10 @@ function XinpanProfileBlock({ profile }: { profile?: XinpanProfile }) {
   const planeStyle = {
     "--xinpan-cutoff-x": `${thresholdPoint.x}%`,
     "--xinpan-cutoff-y": `${thresholdPoint.y}%`,
+    "--xinpan-left-center-x": `${thresholdPoint.x / 2}%`,
+    "--xinpan-right-center-x": `${thresholdPoint.x + (100 - thresholdPoint.x) / 2}%`,
+    "--xinpan-top-center-y": `${thresholdPoint.y / 2}%`,
+    "--xinpan-bottom-center-y": `${thresholdPoint.y + (100 - thresholdPoint.y) / 2}%`,
   } as React.CSSProperties;
   const pointStyle = {
     left: `${currentPoint.x}%`,
@@ -7508,15 +7512,6 @@ function ChatModal({
             </div>
             <p className="profile-copy">{minister.summary}</p>
           </div>
-          <details className="chat-intel-details" open>
-            <summary>人物情报</summary>
-            <div className="chat-intel-detail-body">
-              <NetworkProfileBlock profile={minister.network_profile} />
-              <StanceNotes notes={minister.stance_notes} />
-              <XinpanProfileBlock profile={minister.xinpan_profile} />
-              <TiangangSpectrum profile={minister.tiangang_profile} />
-            </div>
-          </details>
           <button className="secondary-action" onClick={onOpenEdict}>
             <ScrollText size={15} />
             转入诏书草案
@@ -7539,6 +7534,15 @@ function ChatModal({
       </aside>
 
       <section className="modal-pane chat-main">
+        <details className="chat-intel-details chat-intel-dossier" open>
+          <summary>人物情报</summary>
+          <div className="chat-intel-detail-body">
+            <NetworkProfileBlock profile={minister.network_profile} />
+            <StanceNotes notes={minister.stance_notes} />
+            <XinpanProfileBlock profile={minister.xinpan_profile} />
+            <TiangangSpectrum profile={minister.tiangang_profile} />
+          </div>
+        </details>
         <div className="chat-log" ref={chatLogRef}>
           {!displayMessages.length && !busy && !chatEffectNotices.length && !chatNotice && !error ? (
             <div className="chat-empty-state">
