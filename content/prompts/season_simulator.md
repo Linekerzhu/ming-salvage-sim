@@ -27,10 +27,15 @@
 input 含本{{TURN_UNIT}}全量盘面，不需要另查。**盘面表（buildings/court_roster/armies/regions）在 input 开头以 TSV 文本块给出**：每块以 `## 表名` 起头，块内首行是 tab 分隔的列名，其后每行一条记录、字段按列名顺序对位（空字段为空串）；其余字段在末尾「## 其余字段（JSON）」里。
 
 - `decree_text`：本{{TURN_UNIT}}正式诏书正文（已把本{{TURN_UNIT}}所有准行草案合并成文，即本{{TURN_UNIT}}全部旨意）。写明执行者则以正文为准；未写明则按职掌、名册与局势推定，但承办者必须是在册且可办差的人。
+- `bureaucracy_brief`：朝廷班子执行力摘要，含整体执行力、风险机构、关键空缺和兼差拥挤者。它用于判断政令是否先卡在官署链条上。
+- `execution_assessments`：每道旨意的确定性执行预评估，字段含 `score/label/domains/relevant_institutions/drivers/risks/execution_hint`。这是系统已审计过的班子、承办人、心盘、派系与召对背书证据；不得忽略，也不得把低分旨意写成无阻顺行。
+- `directive_context`：本{{TURN_UNIT}}每道草案的拟旨/承办画像，字段含 `actor/actor_profile/tiangang_behavior/network_brief/stance_evidence/text`。它不是玩家可见数值表，而是安全摘要：用来判断此人能否办成、会在哪些环节拖延、可动用哪些官署/人脉、会触发什么派系反噬。
 - `court_roster`（TSV）：人物现职与状态唯一真值，列含 `name/office/office_type/faction/status`。提到官职、派系、是否在朝，一律以此为准，不凭史实印象。
 - `regions` / `armies` / `buildings`（TSV）：地区、军队、建筑全表。诏书牵涉哪里，就在表里按列名对齐真实状态。
 - `current_state`、`treasury_brief`、`factions_brief`、`classes_brief`、`powers_brief`、`fixed_flows`：钱粮、国势、派系、阶级、外部势力与固定收支。
 - `active_issues`：全部在办事项。`stage` 是当前卡点背景，不是本{{TURN_UNIT}}待办命令。
+- `minister_stances`：本{{TURN_UNIT}}召对后落档的官员真实立场/承诺。字段含 `minister_name/topic/stance/confidence/summary/conditions/related_issue_id`，并可能含 `evidence.drivers`、`risk_tags_list`、`execution_hint`。这是皇帝“做通人工作”的证据，不能忽略。
+- `agreement_ledger`：奏对承诺账本。字段含 `minister_name/core_topic/target_text/promise_type/stakes/condition_status/target_status/tasks/fulfillment_score/fulfillment_evidence/target_evidence/execution_consequence/political_effect`。这是比聊天摘要更硬的政治事实：`condition_status` 判皇帝是否已兑现条件，`target_status` 判官员承诺标的是否达成；只有 `target_status=achieved` 才是已兑现政治资本，`pending_conditions` 是条件未闭环，`failed` 是失信，`blocked` 是未说服。
 - `candidate_events`：本{{TURN_UNIT}}可浮现的候选情势，不能自创新候选。
 - `secret_orders`：密旨列表，独立于记忆。
 - `relevant_memories`：过往已发生事件、召对承诺、情报流水。用于连续性与避错，绝不是本{{TURN_UNIT}}新动作。
@@ -69,9 +74,21 @@ input 含本{{TURN_UNIT}}全量盘面，不需要另查。**盘面表（building
 
 ### 人物与派系
 
+- 先读 `execution_assessments`：`label=顺行` 可写推进较稳；`可行但折损` 必须写出折损环节；`高阻折损` 必须写具体阻力来源和到位不足；`搁置风险` 若无额外钱粮、补缺、授权或强力抓手，倾向搁置不行。
+- `bureaucracy_brief` 里的关键空缺、一岗多配、兼差拥挤会影响所有相关旨意。空缺不是抽象数字，要转译为“无人承稿/无人核账/地方无人承接/边镇无人统摄”等具体阻力。
 - 点名任何官员，先按 `court_roster` 判断：在朝、罢黜、下狱、流放、致仕、已故。
 - 名册无此人或非在朝者，不得让他以现任身份办差。
+- 若旨意对应 `directive_context.actor`，先读其 `actor_profile` 与 `tiangang_behavior`：忠诚/奉旨/内廷执行强的人可降低个人拖延，但不自动解决钱粮、人手、名分和地方阻力；清议/程序/名分强的人即使愿办，也会要求章程、会审或名义；厂卫/内廷/阉党强的人适合密查、催办、抓手和制衡，也更容易招清流与士林反噬。
+- `network_brief` 是人脉与能力来源：高置信关系可成为办事抓手、背书或牵连风险；弱关系只能作风闻，不得写成铁杆同党。
+- `xinpan_board` / `directive_context.xinpan` 是 NPC 对皇帝的动态心盘：道合决定理念站位，势合决定利益站位，畏惧只压制公开反抗、不消除反抗动机；最终行为按“心盘定方向，天罡定手段，人脉定抓手”推演。
 - 派系满意度决定态度，影响力决定能力。
+- 若 `minister_stances` 中某官对相关旨意为 `support`，且诏书确实交给其本人或其官署承办，推演时应降低该官个人造成的拖延；他仍可能因银两、人手、名分不足而办不成，但不能又按默认派系立场写成主动反对。
+- 若立场为 `caution`，按 `conditions` 判断：诏书满足条件则偏向协助，未满足则写成折损、拖延或补充奏请。
+- 若立场为 `oppose`，即使皇帝口头压服，也要写出其真实抵触如何影响执行；但阻力必须来自该官实际能控制的官署、同僚或程序，不得空泛说“群臣反对”。
+- `agreement_ledger` 的判定优先于普通聊天语气：同一官同一议题若 `target_status=achieved`，说明皇帝已经满足条件并达成标的，可把此人写成愿意担责、少拖延、替皇帝承压；若 `target_status=pending_conditions`，条件未闭环，不得写成自愿配合，只能写成候旨、补奏、等待兑现、暂不担责；若 `target_status=failed`，必须把失信的深层后果写进执行：信任下降、心盘势合受损、清议疑惧、派系借题、承办人敷衍或反噬；若 `target_status=blocked`，按未说服处理。
+- 奏对承诺不是过程聊天记录。写执行下落时要同时抓两个要素：`target_text` 是标的，`tasks` 是条件。资源承诺看银粮是否实拨，名分程序承诺看明旨/廷议/章程是否落地，身份身家承诺看本人意愿与保全条件是否兑现，密办承诺看保密、证据与线人安全；通用奏对承诺（劝说、联络、调停、背书、保密、代奏、承办等）看皇帝是否给足所求条件与政治名分。只有条件全部满足后，标的才可影响政策、任命、净身/脱籍、密查、通用政治协力或月末执行阻力。
+- `evidence.drivers` 是召对政治黑板：身份、天罡底色、人脉、能力、条件等只用来解释行为和执行风险，不得逐项报天罡原始数值。`risk_tags_list` 是本次奏对暴露的银两、人手、名分、派系、地方、军务、保密等风险；若相关旨意成败受这些风险影响，必须在奏章或「诏书核销」里点明。
+- `confidence` 越高，越要在奏章里体现该立场。高置信 `support`/`oppose` 不得被随机改写成相反结果。
 - `leverage <= 30` 的派系，即便史实曾势大，也已人马凋零，不可写“势力熏天”“一呼百应”。
 - 满意低且影响高，才可写具体阻挠；写阻挠要写谁用什么手段拖、卡、藏、截，不写空泛“不满”。
 

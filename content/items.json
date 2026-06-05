@@ -1,0 +1,204 @@
+{
+  "items": [
+    {
+      "id": "xuanyuan_sword",
+      "name": "轩辕古剑",
+      "category": "武器",
+      "rarity": "传说",
+      "description": "传闻为上古圣道之剑，剑身刻日月星辰，持之可增皇威。",
+      "effects": {"force": 15, "cultivation": 10, "皇威": 10},
+      "equip_slot": "weapon",
+      "level_req": 5
+    },
+    {
+      "id": "taibai_poetry",
+      "name": "太白诗卷",
+      "category": "典籍",
+      "rarity": "史诗",
+      "description": "李白真迹残卷，内藏剑仙遗意，读之可悟剑道。",
+      "effects": {"wisdom": 12, "charm": 8, "cultivation": 15},
+      "equip_slot": "accessory",
+      "level_req": 3
+    },
+    {
+      "id": "dragon_armor",
+      "name": "蟠龙铠",
+      "category": "防具",
+      "rarity": "史诗",
+      "description": "以秘法淬炼的精铁铠甲，上有蟠龙纹饰，可挡刀剑。",
+      "effects": {"force": 5, "max_hp": 50, "cultivation": 5},
+      "equip_slot": "armor",
+      "level_req": 4
+    },
+    {
+      "id": "imperial_jade",
+      "name": "传国玉玺",
+      "category": "宝物",
+      "rarity": "传说",
+      "description": "受命于天，既寿永昌。持之者可号令天下。",
+      "effects": {"charm": 20, "luck": 15, "皇威": 20, "民心": 10},
+      "equip_slot": "accessory",
+      "level_req": 1
+    },
+    {
+      "id": "moon_palace_pill",
+      "name": "广寒丹",
+      "category": "丹药",
+      "rarity": "史诗",
+      "description": "传闻来自月宫秘方的延寿丹药，可增修为、续寿元。",
+      "effects": {"cultivation": 20, "max_hp": 30, "luck": 5},
+      "consumable": true,
+      "level_req": 1
+    },
+    {
+      "id": "seven_stars_sword",
+      "name": "七星龙渊",
+      "category": "武器",
+      "rarity": "史诗",
+      "description": "欧冶子所铸名剑，剑成时俯视剑身如登高山而下望深渊。",
+      "effects": {"force": 18, "wisdom": 5, "cultivation": 8},
+      "equip_slot": "weapon",
+      "level_req": 5
+    },
+    {
+      "id": "taiyi_needle",
+      "name": "太乙神针",
+      "category": "武器",
+      "rarity": "稀有",
+      "description": "以玄铁打造的细针，可救人亦可杀人于无形。",
+      "effects": {"force": 8, "wisdom": 10, "cultivation": 5},
+      "equip_slot": "weapon",
+      "level_req": 3
+    },
+    {
+      "id": "wudang_manual",
+      "name": "武当心法",
+      "category": "典籍",
+      "rarity": "稀有",
+      "description": "武当内家心法入门，以柔克刚，以静制动。",
+      "effects": {"cultivation": 12, "wisdom": 5, "force": 3},
+      "equip_slot": "accessory",
+      "level_req": 2
+    },
+    {
+      "id": "shaolin_staff",
+      "name": "达摩杖",
+      "category": "武器",
+      "rarity": "稀有",
+      "description": "少林寺达摩院传承的齐眉棍，朴实无华却威力无穷。",
+      "effects": {"force": 12, "cultivation": 8, "max_hp": 20},
+      "equip_slot": "weapon",
+      "level_req": 3
+    },
+    {
+      "id": "ghost_mask",
+      "name": "鬼面",
+      "category": "防具",
+      "rarity": "稀有",
+      "description": "西域传来的神秘面具，戴之可隐匿气息。",
+      "effects": {"luck": 10, "charm": -5, "wisdom": 8},
+      "equip_slot": "armor",
+      "level_req": 2
+    },
+    {
+      "id": "silver_ingot",
+      "name": "雪花银",
+      "category": "财宝",
+      "rarity": "普通",
+      "description": "上好的雪花纹银，流通天下的硬通货。",
+      "effects": {"charm": 2},
+      "consumable": true,
+      "value_silver": 100,
+      "level_req": 1
+    },
+    {
+      "id": "red_pill",
+      "name": "九转金丹",
+      "category": "丹药",
+      "rarity": "传说",
+      "description": "太上老君炉中炼就的仙丹，起死回生，脱胎换骨。",
+      "effects": {"cultivation": 50, "max_hp": 100, "force": 10, "wisdom": 10},
+      "consumable": true,
+      "level_req": 1
+    },
+    {
+      "id": "dragon_slaying_manual",
+      "name": "屠龙纲要",
+      "category": "典籍",
+      "rarity": "传说",
+      "description": "传说中的兵书，得之可得天下。",
+      "effects": {"wisdom": 20, "charm": 10, "皇威": 15},
+      "equip_slot": "accessory",
+      "level_req": 5
+    },
+    {
+      "id": "phoenix_feather",
+      "name": "凤凰翎",
+      "category": "材料",
+      "rarity": "史诗",
+      "description": "传说中的凤凰羽毛，拥有不可思议的力量。",
+      "effects": {"luck": 20, "charm": 15},
+      "level_req": 1
+    },
+    {
+      "id": "poison_dart",
+      "name": "孔雀翎",
+      "category": "武器",
+      "rarity": "史诗",
+      "description": "天下最可怕的暗器，见血封喉。",
+      "effects": {"force": 25, "wisdom": -5},
+      "equip_slot": "weapon",
+      "level_req": 4
+    },
+    {
+      "id": "kunlun_jade",
+      "name": "昆仑玉",
+      "category": "宝物",
+      "rarity": "稀有",
+      "description": "昆仑山巅采得的灵玉，佩戴可清心明目。",
+      "effects": {"wisdom": 10, "cultivation": 8, "luck": 5},
+      "equip_slot": "accessory",
+      "level_req": 2
+    },
+    {
+      "id": "tiger_tally",
+      "name": "虎符",
+      "category": "宝物",
+      "rarity": "史诗",
+      "description": "调兵遣将的兵符，右半在皇帝手中，左半在将军手中。",
+      "effects": {"force": 5, "charm": 10, "皇威": 10},
+      "equip_slot": "accessory",
+      "level_req": 3
+    },
+    {
+      "id": "liangzhu_bow",
+      "name": "良渚神弓",
+      "category": "武器",
+      "rarity": "史诗",
+      "description": "上古良渚遗物，以神木为胎、蛟筋为弦。",
+      "effects": {"force": 15, "wisdom": 5, "luck": 10},
+      "equip_slot": "weapon",
+      "level_req": 4
+    },
+    {
+      "id": "soul_catching_bell",
+      "name": "摄魂铃",
+      "category": "宝物",
+      "rarity": "史诗",
+      "description": "苗疆秘传的法器，铃声可摄人心魄。",
+      "effects": {"charm": 15, "wisdom": 10, "cultivation": 12},
+      "equip_slot": "accessory",
+      "level_req": 4
+    },
+    {
+      "id": "mirage_pearl",
+      "name": "蜃楼珠",
+      "category": "宝物",
+      "rarity": "传说",
+      "description": "东海蜃龙内丹所化，可制造幻象迷惑敌人。",
+      "effects": {"wisdom": 15, "luck": 15, "cultivation": 20},
+      "equip_slot": "accessory",
+      "level_req": 5
+    }
+  ]
+}

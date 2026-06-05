@@ -1,0 +1,228 @@
+{
+  "adventures": [
+    {
+      "id": "night_memorial",
+      "title": "夜半无名奏",
+      "kind": "朝堂暗涌",
+      "summary": "子夜时分，司礼监呈上一封无名密奏，称某部堂官借清理内廷旧网之名私吞抄没银。字迹被刻意改过，真假难辨。",
+      "trigger_probability": 0.045,
+      "required_turn_min": 2,
+      "choices": [
+        {
+          "text": "交都察院暗覆，三日内只查账不拿人",
+          "required_ability": "wisdom",
+          "dc": 12,
+          "success_effects": {"皇威": 2, "wisdom": 2},
+          "fail_effects": {"皇威": -1},
+          "success_narrative": "都察院查出两笔账尾不合，先封账册后问人，朝臣一时不敢轻慢。",
+          "fail_narrative": "御史查无实据，密奏来源反被人利用，朝中多了几句陛下多疑的闲话。"
+        },
+        {
+          "text": "令锦衣卫循笔迹追源，先控住递奏链条",
+          "required_ability": "luck",
+          "dc": 14,
+          "success_effects": {"皇威": 3, "民心": -1},
+          "fail_effects": {"皇威": -3},
+          "success_narrative": "锦衣卫摸到一名内书办与外朝胥吏私通，密奏虽未全实，却挖出一条递话暗线。",
+          "fail_narrative": "缇骑动作过重，几名无辜书吏受惊逃散，外朝借机攻讦内廷滥捕。"
+        }
+      ]
+    },
+    {
+      "id": "salt_ledger_shadow",
+      "title": "盐引暗账",
+      "kind": "财政异闻",
+      "summary": "两淮盐商托人递来旧账抄本，声称盐引积弊里藏着一笔可追的欠银，但若追得太急，江南士绅会一起反弹。",
+      "trigger_probability": 0.04,
+      "required_metrics": {"国库": "<=260"},
+      "choices": [
+        {
+          "text": "命户部会同巡盐御史逐项核销，先追可坐实的一段",
+          "required_ability": "wisdom",
+          "dc": 13,
+          "success_effects": {"国库": 35, "皇威": 1, "wisdom": 1},
+          "fail_effects": {"国库": -8, "皇威": -1},
+          "success_narrative": "户部挑出几处无法抵赖的旧欠，盐商补缴一批现银，未至于惊动整片江南。",
+          "fail_narrative": "账抄本残缺太多，查账成本先落在朝廷头上，盐商反而合词拖延。"
+        },
+        {
+          "text": "暂借海商私线补库，换取日后清账窗口",
+          "required_ability": "charm",
+          "dc": 14,
+          "success_effects": {"国库": 45, "民心": -2, "charm": 1},
+          "fail_effects": {"皇威": -3, "民心": -2},
+          "success_narrative": "海商愿以短银救急，条件是朝廷给出清账缓冲。库中见银，但清流已开始皱眉。",
+          "fail_narrative": "海商口风走漏，朝野皆疑皇帝与商贾私相授受，盐政尚未动，声名先受损。"
+        }
+      ]
+    },
+    {
+      "id": "granary_mildew",
+      "title": "仓场霉粮",
+      "kind": "民生警讯",
+      "summary": "京仓盘验时发现数仓粮色发黑，仓吏称连雨所致，民间却传言仓场早被蠹空，只剩霉米糊账。",
+      "trigger_probability": 0.04,
+      "required_metrics": {"民心": "<=58"},
+      "choices": [
+        {
+          "text": "开仓验样，当众换粮，先稳京师粮价",
+          "required_ability": "charm",
+          "dc": 12,
+          "success_effects": {"民心": 5, "国库": -18, "charm": 1},
+          "fail_effects": {"民心": -4, "国库": -10},
+          "success_narrative": "霉粮被当众封存，户部另调好粮补仓，京师粮价虽未大降，谣言先止住了。",
+          "fail_narrative": "换粮太慢，市井只看见仓场门前车马混乱，霉粮传言越滚越大。"
+        },
+        {
+          "text": "先拿仓吏问罪，逼出背后承包粮商",
+          "required_ability": "wisdom",
+          "dc": 15,
+          "success_effects": {"皇威": 4, "国库": 12, "wisdom": 1},
+          "fail_effects": {"民心": -3, "皇威": -2},
+          "success_narrative": "仓吏供出承包粮商偷换陈粮，抄回一笔折银，京仓规矩也紧了一层。",
+          "fail_narrative": "仓吏死咬天灾，粮商早已换约脱身，外朝反说陛下只会拿小吏泄愤。"
+        }
+      ]
+    },
+    {
+      "id": "border_eclipse",
+      "title": "边关月蚀",
+      "kind": "边塞异闻",
+      "summary": "辽东军报称月蚀之夜敌骑在远处举火，军中谣言四起：有人说后金萨满作法，有人说只是试探军心。",
+      "trigger_probability": 0.035,
+      "required_turn_min": 3,
+      "required_metrics": {"皇威": "<=55"},
+      "choices": [
+        {
+          "text": "令总兵按军法安营，严禁妖言，补发一段欠饷",
+          "required_ability": "wisdom",
+          "dc": 13,
+          "success_effects": {"皇威": 2, "国库": -22, "wisdom": 1},
+          "fail_effects": {"皇威": -2, "国库": -10},
+          "success_narrative": "军中先得一笔饷银，又有明令压住谣言，敌骑举火未能扰动营心。",
+          "fail_narrative": "饷银不足以平旧欠，禁令反被传成朝廷心虚，边军夜间巡哨更显浮躁。"
+        },
+        {
+          "text": "命钦天监拟谕安军，借天象反压敌胆",
+          "required_ability": "charm",
+          "dc": 14,
+          "success_effects": {"皇威": 4, "charm": 1},
+          "fail_effects": {"皇威": -3},
+          "success_narrative": "钦天监把月蚀解释成敌酋气衰，边镇照谕宣读，至少让士卒有了可说的胆气。",
+          "fail_narrative": "谕旨写得太虚，军中老卒听后只笑，敌骑试探反显得更刺眼。"
+        }
+      ]
+    },
+    {
+      "id": "palace_shadow",
+      "title": "宫门刺影",
+      "kind": "深宫危机",
+      "summary": "乾清门外有黑影越墙，被侍卫惊走。地上只留半枚腰牌，似属旧日内廷人，也可能是有人故意嫁祸。",
+      "trigger_probability": 0.03,
+      "required_turn_min": 2,
+      "choices": [
+        {
+          "text": "封门不声张，先核内廷腰牌和夜值名册",
+          "required_ability": "wisdom",
+          "dc": 12,
+          "success_effects": {"皇威": 2, "wisdom": 1},
+          "fail_effects": {"皇威": -2},
+          "success_narrative": "夜值名册查出一处替班漏洞，内廷整肃而外朝未闻风，宫禁体面尚存。",
+          "fail_narrative": "腰牌线索被人提前抹掉，封门之举反让宫里人心惶惶。"
+        },
+        {
+          "text": "命侍卫营设伏，务求活口",
+          "required_ability": "force",
+          "dc": 15,
+          "success_effects": {"皇威": 5, "force": 1},
+          "fail_effects": {"hp": -12, "皇威": -4},
+          "success_narrative": "侍卫营二夜后擒住一名探路人，虽非主谋，却供出有人想借宫禁制造大案。",
+          "fail_narrative": "设伏被识破，追捕中误伤近侍，宫禁有刺的消息还是传了出去。"
+        }
+      ]
+    },
+    {
+      "id": "river_coffer",
+      "title": "河工沉匣",
+      "kind": "河工异闻",
+      "summary": "黄河清淤时捞出一只旧铜匣，内有前任河道官留下的账册和一批碎银。账册牵连现任官绅。",
+      "trigger_probability": 0.035,
+      "choices": [
+        {
+          "text": "公开账册，银两全入河工赈济",
+          "required_ability": "charm",
+          "dc": 13,
+          "success_effects": {"民心": 6, "国库": 8, "charm": 1},
+          "fail_effects": {"民心": -2, "皇威": -1},
+          "success_narrative": "账册公开后地方难以抵赖，碎银转作河工口粮，灾民至少知道朝廷在看。",
+          "fail_narrative": "地方官抢先说账册伪造，公开反成一场口水仗，灾民只见官府互咬。"
+        },
+        {
+          "text": "暂扣账册，借它逼地方绅户出资修堤",
+          "required_ability": "wisdom",
+          "dc": 14,
+          "success_effects": {"国库": 28, "皇威": 2, "wisdom": 1},
+          "fail_effects": {"皇威": -2, "民心": -2},
+          "success_narrative": "几家绅户明白账册分量，愿出银修堤换一个体面说法，朝廷省下一笔急支。",
+          "fail_narrative": "绅户反咬朝廷挟私册勒捐，河工未起，地方议论先乱。"
+        }
+      ]
+    },
+    {
+      "id": "white_lotus_rumor",
+      "title": "白莲谶语",
+      "kind": "宗教结社",
+      "summary": "北直隶、山东交界处流传新谶：'旧龙失水，新火入京'。地方官称不过乡民妄语，锦衣卫却报闻香教徒活动频繁。",
+      "trigger_probability": 0.035,
+      "required_metrics": {"民心": "<=52"},
+      "choices": [
+        {
+          "text": "先赈后查，把谶语当作饥民组织的信号",
+          "required_ability": "wisdom",
+          "dc": 13,
+          "success_effects": {"民心": 6, "国库": -20, "wisdom": 1},
+          "fail_effects": {"民心": -2, "国库": -8},
+          "success_narrative": "赈济压住最容易被煽动的一批饥民，密探再循香会查人，谶语热度慢慢退下。",
+          "fail_narrative": "赈银下去太慢，香会借施粥收人，朝廷花了钱却没压住人心。"
+        },
+        {
+          "text": "拔掉香会骨干，公开申明妖言惑众",
+          "required_ability": "force",
+          "dc": 15,
+          "success_effects": {"皇威": 4, "民心": -1, "force": 1},
+          "fail_effects": {"民心": -6, "皇威": -3},
+          "success_narrative": "几个骨干被拿后，香会一时不敢聚众；地方虽有怨气，却知道朝廷手还够长。",
+          "fail_narrative": "抓捕惊动乡里，谶语从暗处传成明处，百姓越怕越信。"
+        }
+      ]
+    },
+    {
+      "id": "ancestral_warning",
+      "title": "太庙冷灯",
+      "kind": "天命异象",
+      "summary": "太庙夜祭后，一盏长明灯无风自灭。礼官惶恐，内廷有人说是祖宗示警，也有人说只是油料掺假。",
+      "trigger_probability": 0.025,
+      "required_turn_min": 4,
+      "choices": [
+        {
+          "text": "按礼重祭，同时查供油采买",
+          "required_ability": "wisdom",
+          "dc": 12,
+          "success_effects": {"皇威": 3, "wisdom": 1},
+          "fail_effects": {"皇威": -1, "国库": -5},
+          "success_narrative": "礼数补足，供油采买也查出掺假，所谓天命异象最后落回一张可问责的账。",
+          "fail_narrative": "重祭耗费不多，却未查出由头，宫中仍有人私下谈论祖宗不悦。"
+        },
+        {
+          "text": "借示警之名整饬朝纲，限各部自陈积弊",
+          "required_ability": "charm",
+          "dc": 15,
+          "success_effects": {"皇威": 5, "charm": 1},
+          "fail_effects": {"皇威": -4},
+          "success_narrative": "各部知道陛下要借天命敲打人心，纷纷交出几件旧弊，朝纲一时肃然。",
+          "fail_narrative": "朝臣觉得借题太重，表面自陈、暗中抱团，太庙冷灯成了新的笑柄。"
+        }
+      ]
+    }
+  ]
+}

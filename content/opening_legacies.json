@@ -5,16 +5,16 @@
   "legacies": [
     {
       "key": "yandang_zhuanquan",
-      "name": "阉党专权·朝纲败坏",
+      "name": "内廷旧网·外朝失衡",
       "modifiers": {
         "皇威": -3,
         "国库": -2
       },
-      "narrative_hint": "魏忠贤把持司礼监厂卫，崔呈秀据兵部，党羽塞满台省，吏治中饱，朝纲不振",
+      "narrative_hint": "魏忠贤把持司礼监厂卫，崔呈秀据兵部，内廷旧网与近权外臣压过部院常制，朝局失衡",
       "clear_gate": {
-        "faction.阉党.leverage": "<30"
+        "faction.皇党.leverage": ">=55"
       },
-      "clear_narrative": "阉党尽除、逆案布告天下，朝纲一肃"
+      "clear_narrative": "司礼监、厂卫与外朝边界重定，旧网归入皇帝直控，朝局渐稳"
     },
     {
       "key": "gentry_resist",

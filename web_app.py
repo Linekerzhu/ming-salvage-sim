@@ -18,7 +18,7 @@ from typing import Any, AsyncIterator, Dict, Iterator, List, Optional
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -33,14 +33,47 @@ from ming_sim.llm_config import (
     save_runtime_llm,
 )
 from ming_sim.agents import _dump_llm_messages
+from ming_sim.bureaucracy import base_institution_specs, organization_diagnostics
 from ming_sim.llm_model import extract_agent_text, verify_llm_available
 from ming_sim.llm_contract import fail_if_llm_error
 from ming_sim.issues import _format_issue_ongoing
 from ming_sim.session import GameSession
-from ming_sim.session import AUTO_SAVE_PREFIX
+from ming_sim.session import AUTO_SAVE_PREFIX, _parse_registered_secret_order_result
 from ming_sim.skills import available_skill_ids, skill_display_name, skill_source_labels
-from ming_sim.context import match_minister_from_text
+from ming_sim.context import (
+    match_minister_from_text,
+    npc_dialogue_behavior_brief,
+    npc_dialogue_behavior_profile,
+    npc_network_profile,
+    npc_network_recommendations,
+    npc_tiangang_behavior_brief,
+    npc_tiangang_profile,
+)
+from ming_sim.db import effective_stored_office_type, infer_office_type_from_office, normalize_office
 from ming_sim.flows import compute_budget_lines
+from ming_sim.personnel_actions import (
+    convert_character_to_eunuch,
+    convert_eunuch_to_commoner,
+    is_eunuch_office,
+)
+from ming_sim.negotiation import (
+    HANDSHAKE_BLOCKED,
+    HANDSHAKE_CONDITIONAL,
+    HANDSHAKE_SEALED,
+    evaluate_negotiation,
+    handshake_label,
+)
+from ming_sim.portraits import (
+    DNA_SHEET_ASPECT_RATIO,
+    GENERATED_PORTRAIT_PREFIX,
+    NANO_BANANA_MODEL,
+    PORTRAIT_ASPECT_RATIO,
+    build_portrait_spec,
+    detect_image_mime,
+    image_data_url,
+    nano_banana_generate_png,
+    normalize_portrait_png,
+)
 from ming_sim.exceptions import LLMContractError  # noqa: F401  (保留：供错误处理)
 from ming_sim.models import Character, LLMConfig
 
@@ -52,6 +85,25 @@ UPLOAD_PORTRAIT_DIR = user_data_path("uploads", "portraits")
 CUSTOM_PORTRAIT_PREFIX = "custom:"
 ALLOWED_PORTRAIT_TYPES = {"image/png", "image/jpeg", "image/webp"}
 MAX_PORTRAIT_BYTES = 8 * 1024 * 1024  # 8MB 上限
+GAME_START_YEAR = 1627
+_PORTRAIT_KEY_PLACEHOLDERS = {
+    "",
+    "your_302_ai_key_here",
+    "your_openai_image_key_here",
+    "changeme",
+    "change_me",
+}
+
+
+def _portrait_generation_configured() -> bool:
+    key = (os.environ.get("NANO_BANANA_API_KEY", "").strip()
+           or os.environ.get("OPENAI_IMAGE_KEY", "").strip())
+    return key.lower() not in _PORTRAIT_KEY_PLACEHOLDERS
+
+
+def _clean_obsidian_text(value: object) -> str:
+    return re.sub(r"\[\[([^\]]+)\]\]", r"\1", str(value or "").strip())
+
 
 # resolve/fail_condition 同时喂 extractor（需 input.factions/leverage 等技术 key）与展示给玩家。
 # 展示前把技术词替换成中文，原文不动（LLM 仍读原文判定）。按长键先替，避免子串误伤。
@@ -274,6 +326,69 @@ def _delete_sqlite_db_files_or_raise(db_path: str) -> None:
             ) from exc
 
 
+def _prepare_sqlite_save_for_replace(source_path: str, db_path: str) -> str:
+    """复制并校验存档，返回可 os.replace 到主库的临时 DB 路径。
+
+    先准备临时文件再关闭/替换当前主库，避免无效存档破坏正在运行的进度。
+    """
+    import shutil
+    import sqlite3 as _sqlite3
+    import tempfile
+
+    db_dir = os.path.dirname(db_path) or "."
+    os.makedirs(db_dir, exist_ok=True)
+    fd, temp_path = tempfile.mkstemp(prefix=".ming-load-", suffix=".db", dir=db_dir)
+    os.close(fd)
+    try:
+        shutil.copy2(source_path, temp_path)
+        try:
+            conn = _sqlite3.connect(temp_path)
+            try:
+                row = conn.execute("PRAGMA quick_check").fetchone()
+                if row is None or str(row[0]).lower() != "ok":
+                    detail = row[0] if row else "无返回"
+                    raise HTTPException(status_code=400, detail=f"存档校验失败：{detail}")
+                required = conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('game_state','characters','kv_store')"
+                ).fetchall()
+                if len(required) < 3:
+                    raise HTTPException(status_code=400, detail="存档缺少必要表，不能加载。")
+            finally:
+                conn.close()
+        except _sqlite3.DatabaseError as exc:
+            raise HTTPException(status_code=400, detail=f"存档不是有效 SQLite 数据库：{exc}") from exc
+        return temp_path
+    except Exception:
+        try:
+            os.remove(temp_path)
+        except OSError:
+            pass
+        raise
+
+
+def _replace_main_db_with_prepared_save(prepared_path: str, db_path: str) -> None:
+    """用已校验的临时 DB 原子替换主库，并清理旧 WAL/SHM。"""
+    try:
+        os.replace(prepared_path, db_path)
+        for suffix in ("-wal", "-shm"):
+            try:
+                os.remove(db_path + suffix)
+            except FileNotFoundError:
+                pass
+            except OSError as exc:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"加载存档失败：无法清理旧数据库日志 {db_path + suffix}。系统返回：{exc}。",
+                ) from exc
+    except Exception:
+        if os.path.exists(prepared_path):
+            try:
+                os.remove(prepared_path)
+            except OSError:
+                pass
+        raise
+
+
 def _verify_llm_configs_or_raise(config: LLMConfig) -> None:
     """校验主模型；若配置了 advanced_model，也用其实际 base/key 单独校验。"""
     try:
@@ -335,6 +450,27 @@ class SecretOrderRequest(BaseModel):
 class DirectivePatch(BaseModel):
     text: Optional[str] = None
     notes: Optional[str] = None
+
+
+class CustomInstitutionRequest(BaseModel):
+    name: str
+    category: str = "非常规"
+    mandate: str = ""
+    slots: List[str] = []
+
+
+class CastrateRequest(BaseModel):
+    name: str
+    force: bool = False
+
+
+class AgreementTaskPatch(BaseModel):
+    status: str
+    evidence: str = ""
+
+
+class ConsortActionRequest(BaseModel):
+    action: str
 
 
 class WebGame:
@@ -409,24 +545,13 @@ class WebGame:
         return user_data_path("saves")
 
     def list_saves(self) -> List[Dict[str, Any]]:
-        out: List[Dict[str, Any]] = []
         campaign_id = (self.db.kv_get("campaign_id") or "").strip()
-        for fname in sorted(os.listdir(self.saves_dir())):
-            if not fname.endswith(".db"):
-                continue
-            if not _save_visible_for_campaign(fname, campaign_id):
-                continue
-            full = os.path.join(self.saves_dir(), fname)
-            try:
-                st = os.stat(full)
-            except OSError:
-                continue
-            out.append({
-                "name": fname[:-3],
-                "size": st.st_size,
-                "mtime": int(st.st_mtime),
-            })
-        out.sort(key=lambda x: x["mtime"], reverse=True)
+        out = []
+        for item in _scan_saves():
+            row = dict(item)
+            save_campaign = str(row.get("campaign_id") or "")
+            row["current"] = bool(save_campaign and save_campaign == campaign_id)
+            out.append(row)
         return out
 
     def _safe_save_name(self, name: str) -> str:
@@ -464,20 +589,13 @@ class WebGame:
         source = os.path.join(self.saves_dir(), f"{safe}.db")
         if not os.path.isfile(source):
             raise HTTPException(status_code=404, detail="存档不存在。")
+        prepared = _prepare_sqlite_save_for_replace(source, self.db_path)
         # 先关闭当前 session 的 DB 连接，避免 Windows/某些平台上的 file lock。
         try:
             self.session.close()
         except Exception:
             pass
-        # 用 sqlite backup 把存档拷回主路径
-        import sqlite3 as _sqlite3
-        src_conn = _sqlite3.connect(source)
-        dst_conn = _sqlite3.connect(self.db_path)
-        try:
-            src_conn.backup(dst_conn)
-        finally:
-            src_conn.close()
-            dst_conn.close()
+        _replace_main_db_with_prepared_save(prepared, self.db_path)
         self._rebuild_session(self.session.llm_config)
 
     def _rebuild_session(self, llm_config: LLMConfig) -> None:
@@ -603,46 +721,369 @@ class WebGame:
         if character is not None:
             character.portrait_id = portrait_id
 
-    # ── 序列化 ────────────────────────────────────────────────────────────
-    def public_character(self, character: Character) -> Dict[str, Any]:
-        status, status_reason = self.db.get_character_status(character.name)
-        status_label = _STATUS_LABEL_WEB.get(status, "在朝" if status == "active" else status)
-        office = character.office  # 去职者已被清空，可能为空串
-        # summary 不含官职（卡片/详情已单独显 office），避免重复
-        summary = f"{character.faction}一系，行事{character.style}。"
-        power_row = self.db.conn.execute(
-            "SELECT power_id FROM characters WHERE name=?", (character.name,)
-        ).fetchone()
-        power_id = (power_row["power_id"] if power_row else None) or getattr(character, "power_id", "ming") or "ming"
+    def portrait_generation_signatures(self) -> Dict[str, str]:
+        signatures: Dict[str, str] = {}
+        for name, character in self.content.characters.items():
+            signatures[name] = build_portrait_spec(character, self.state, self.session.campaign_id).asset_id
+        return signatures
+
+    def queue_portrait_generation_for_signature_changes(
+        self,
+        before: Dict[str, str],
+        reason: str = "职服变化",
+    ) -> List[Dict[str, Any]]:
+        queued: List[Dict[str, Any]] = []
+        if not _portrait_generation_configured():
+            return queued
+        rows = self.db.conn.execute(
+            "SELECT name FROM characters WHERE status='active' AND power_id='ming'"
+        ).fetchall()
+        for row in rows:
+            name = str(row["name"] or "")
+            character = self.find_character(name)
+            if character is None:
+                continue
+            after = build_portrait_spec(character, self.state, self.session.campaign_id).asset_id
+            if before.get(name) == after:
+                continue
+            try:
+                queued.append(self.queue_portrait_generation(name, reason))
+            except Exception as exc:  # noqa: BLE001 - portrait queue must not break turn settlement
+                print(f"[WARN] 立绘重绘排队失败 {name}: {exc}")
+        return queued
+
+    def queue_portrait_generation(self, name: str, reason: str = "manual") -> Dict[str, Any]:
+        if not _portrait_generation_configured():
+            raise HTTPException(status_code=409, detail="未配置 NANO_BANANA_API_KEY，无法生成立绘。")
+        character = self.find_character(name)
+        if character is None:
+            raise HTTPException(status_code=404, detail=f"未找到人物：{name}")
+        spec = build_portrait_spec(character, self.state, self.session.campaign_id)
+        portrait_id = f"{GENERATED_PORTRAIT_PREFIX}{spec.asset_id}"
+        dna_existing = self.db.get_portrait_asset(spec.dna_asset_id)
+        dna_status = str(dna_existing["status"] or "") if dna_existing is not None else "missing"
+        should_generate_dna = (
+            dna_existing is None
+            or dna_status == "error"
+            or (dna_status == "ready" and dna_existing["image_blob"] is None)
+        )
+        if should_generate_dna:
+            self.db.upsert_portrait_asset(
+                asset_id=spec.dna_asset_id,
+                character_name=character.name,
+                kind="dna",
+                dna_seed=spec.dna_seed,
+                wardrobe_key="dna_sheet",
+                prompt=spec.dna_prompt,
+                provider="302.ai",
+                model=NANO_BANANA_MODEL,
+                status="pending",
+                updated_turn=self.state.turn,
+                error="",
+            )
+        existing = self.db.get_portrait_asset(spec.asset_id)
+        if existing is not None and str(existing["status"] or "") == "ready" and existing["image_blob"] is not None:
+            self.set_custom_portrait(character.name, portrait_id)
+            if should_generate_dna:
+                def _dna_worker() -> None:
+                    try:
+                        dna_png = normalize_portrait_png(
+                            nano_banana_generate_png(
+                                spec.dna_prompt,
+                                aspect_ratio=DNA_SHEET_ASPECT_RATIO,
+                                reference_images=spec.dna_reference_images,
+                            ),
+                            target_width=768,
+                            target_aspect_ratio=DNA_SHEET_ASPECT_RATIO,
+                            cutout_background=False,
+                        )
+                        self.db.mark_portrait_asset_ready(
+                            spec.dna_asset_id,
+                            dna_png,
+                            mime_type=detect_image_mime(dna_png),
+                        )
+                    except Exception as exc:  # noqa: BLE001 - background job records player-facing status
+                        self.db.mark_portrait_asset_error(spec.dna_asset_id, str(exc))
+
+                threading.Thread(target=_dna_worker, name=f"portrait-dna-{spec.dna_asset_id}", daemon=True).start()
+            return {
+                "name": character.name,
+                "portrait_id": portrait_id,
+                "asset_id": spec.asset_id,
+                "dna_asset_id": spec.dna_asset_id,
+                "status": "ready",
+                "dna_status": "pending" if should_generate_dna else dna_status or "ready",
+                "dna_seed": spec.dna_seed,
+                "wardrobe_key": spec.wardrobe_key,
+            }
+        self.db.upsert_portrait_asset(
+            asset_id=spec.asset_id,
+            character_name=character.name,
+            kind="portrait",
+            dna_seed=spec.dna_seed,
+            wardrobe_key=spec.wardrobe_key,
+            prompt=spec.prompt,
+            provider="302.ai",
+            model=NANO_BANANA_MODEL,
+            status="pending",
+            updated_turn=self.state.turn,
+            error="",
+        )
+        self.set_custom_portrait(character.name, portrait_id)
+
+        def _worker() -> None:
+            try:
+                dna_ref = ""
+                if should_generate_dna:
+                    dna_png = normalize_portrait_png(
+                        nano_banana_generate_png(
+                            spec.dna_prompt,
+                            aspect_ratio=DNA_SHEET_ASPECT_RATIO,
+                            reference_images=spec.dna_reference_images,
+                        ),
+                        target_width=768,
+                        target_aspect_ratio=DNA_SHEET_ASPECT_RATIO,
+                        cutout_background=False,
+                    )
+                    self.db.mark_portrait_asset_ready(spec.dna_asset_id, dna_png, mime_type=detect_image_mime(dna_png))
+                    dna_ref = image_data_url(dna_png, detect_image_mime(dna_png))
+                elif dna_existing is not None and dna_existing["image_blob"] is not None:
+                    dna_bytes = bytes(dna_existing["image_blob"])
+                    dna_ref = image_data_url(dna_bytes, str(dna_existing["mime_type"] or detect_image_mime(dna_bytes)))
+                portrait_refs = ((dna_ref,) if dna_ref else ()) + tuple(spec.reference_images)
+                png = normalize_portrait_png(
+                    nano_banana_generate_png(
+                        spec.prompt,
+                        aspect_ratio=PORTRAIT_ASPECT_RATIO,
+                        reference_images=portrait_refs,
+                    ),
+                    target_width=512,
+                    target_aspect_ratio=PORTRAIT_ASPECT_RATIO,
+                    cutout_background=True,
+                )
+                self.db.mark_portrait_asset_ready(spec.asset_id, png, mime_type=detect_image_mime(png))
+            except Exception as exc:  # noqa: BLE001 - background job records player-facing status
+                if should_generate_dna:
+                    self.db.mark_portrait_asset_error(spec.dna_asset_id, str(exc))
+                self.db.mark_portrait_asset_error(spec.asset_id, str(exc))
+
+        threading.Thread(target=_worker, name=f"portrait-{spec.asset_id}", daemon=True).start()
         return {
             "name": character.name,
+            "portrait_id": portrait_id,
+            "asset_id": spec.asset_id,
+            "dna_asset_id": spec.dna_asset_id,
+            "status": "pending",
+            "dna_status": "pending" if should_generate_dna else dna_status or "ready",
+            "dna_seed": spec.dna_seed,
+            "wardrobe_key": spec.wardrobe_key,
+            "reason": reason,
+        }
+
+    def maybe_queue_portrait_generation(self, name: str, reason: str = "manual") -> Optional[Dict[str, Any]]:
+        """Best-effort portrait refresh for gameplay side effects.
+
+        Portrait generation is optional; when no image key is configured, keep
+        existing static or pool portraits instead of turning them into failed
+        generated assets.
+        """
+        if not _portrait_generation_configured():
+            return None
+        try:
+            return self.queue_portrait_generation(name, reason)
+        except HTTPException:
+            raise
+        except Exception as exc:  # noqa: BLE001 - image refresh must not block gameplay mutation
+            print(f"[WARN] 立绘重绘排队失败 {name}: {exc}")
+            return None
+
+    # ── 序列化 ────────────────────────────────────────────────────────────
+    def _public_stance_notes(self, minister_name: str, *, limit: int = 3) -> List[Dict[str, Any]]:
+        """玩家可见的奏对立场：保留证据与风险，隐藏月末推演用字段。"""
+        public_rows: List[Dict[str, Any]] = []
+        for row in self.db.list_minister_stances(
+            turn=self.state.turn,
+            minister_name=minister_name,
+            limit=limit,
+        ):
+            item = dict(row)
+            for private_key in (
+                "evidence_json",
+                "risk_tags",
+                "execution_hint",
+                "source_chat_turn_id",
+            ):
+                item.pop(private_key, None)
+            public_rows.append(item)
+        return public_rows
+
+    def _age_payload(self, character: Character, birth_year_override: int = 0) -> Dict[str, Any]:
+        birth_year = int(birth_year_override or getattr(character, "birth_year", 0) or 0)
+        start_age = GAME_START_YEAR - birth_year if birth_year > 0 else 0
+        if start_age <= 0:
+            start_age = 0
+        return {
+            "birth_year": birth_year,
+            "start_age": start_age,
+            "age_label": f"开局{start_age}岁" if start_age else "开局年龄未详",
+        }
+
+    def public_character(self, character: Character, *, include_detail: bool = True) -> Dict[str, Any]:
+        status, status_reason = self.db.get_character_status(character.name)
+        status_label = _STATUS_LABEL_WEB.get(status, "在朝" if status == "active" else status)
+        db_row = self.db.conn.execute(
+            "SELECT office, office_type, faction, portrait_id, power_id, birth_year FROM characters WHERE name=?", (character.name,)
+        ).fetchone()
+        office = (db_row["office"] if db_row else character.office) or ""  # 去职者已被清空，可能为空串
+        office_type = (db_row["office_type"] if db_row else character.office_type) or character.office_type
+        office_type = effective_stored_office_type(office, office_type)
+        faction = (db_row["faction"] if db_row else character.faction) or character.faction
+        portrait_id = (db_row["portrait_id"] if db_row else character.portrait_id) or character.portrait_id
+        power_id = (db_row["power_id"] if db_row else None) or getattr(character, "power_id", "ming") or "ming"
+        age_payload = self._age_payload(character, int(db_row["birth_year"] or 0) if db_row else 0)
+        portrait_prefix = "consort_" if office_type == "后宫" else "minister_"
+        portrait_meta = self._portrait_meta(character, portrait_id, portrait_prefix)
+        career_state = "出仕"
+        if status == "offstage":
+            career_state = "隐藏"
+        elif status == "candidate":
+            career_state = "待选"
+        elif status in {"dismissed", "exiled", "retired"}:
+            career_state = "在野"
+        elif status in {"imprisoned", "dead"}:
+            career_state = status_label
+        power = self.content.powers.get(power_id)
+        power_name = str(getattr(power, "name", "") or "大明")
+        identity_bits = [power_name, faction, office_type, status_label]
+        # 公开摘要只展示身份与处境；性情/行事逻辑交给天罡谱尺和人物网络表达。
+        summary = " · ".join(bit for bit in identity_bits if bit)
+        payload: Dict[str, Any] = {
+            "name": character.name,
             "office": office,
-            "office_type": character.office_type,
-            "faction": character.faction,
-            "style": character.style,
+            "office_type": office_type,
+            "faction": faction,
             "status": status,
             "status_reason": status_reason,
             "status_label": status_label,
+            "career_state": career_state,
             "summary": summary,
-            "portrait_id": character.portrait_id,
+            "portrait_id": portrait_id,
+            **portrait_meta,
+            **age_payload,
             "power_id": power_id,
-            "skills": [
-                {
-                    "id": skill_id,
-                    "name": skill_display_name(skill_id),
-                    "sources": skill_source_labels(character, skill_id, self.db),
-                    "description": self.content.skill_descriptions.get(skill_id, ""),
-                }
-                for skill_id in available_skill_ids(character, self.db)
-            ],
+            "stance_notes": self._public_stance_notes(character.name, limit=3),
+            "xinpan_profile": self.db.get_xinpan_profile(character.name, self.state),
+            "skills": [],
             "favorite": character.name in self.favorites,
         }
+        if include_detail:
+            payload.update({
+                "network_profile": npc_network_profile(character.name, db=self.db, limit=8),
+                "tiangang_profile": npc_tiangang_profile(character.name),
+                "skills": [
+                    {
+                        "id": skill_id,
+                        "name": skill_display_name(skill_id),
+                        "sources": skill_source_labels(character, skill_id, self.db),
+                        "description": self.content.skill_descriptions.get(skill_id, ""),
+                    }
+                    for skill_id in available_skill_ids(character, self.db)
+                ],
+            })
+        return payload
+
+    def character_index_payload(self) -> List[Dict[str, Any]]:
+        """全 NPC 只读索引：轻量展示用，不携带天罡/人脉大对象。"""
+        rows: List[Dict[str, Any]] = []
+        for character in self.content.characters.values():
+            status, status_reason = self.db.get_character_status(character.name)
+            status_label = _STATUS_LABEL_WEB.get(status, "在朝" if status == "active" else status)
+            db_row = self.db.conn.execute(
+                "SELECT office, office_type, faction, portrait_id, power_id, birth_year FROM characters WHERE name=?",
+                (character.name,),
+            ).fetchone()
+            office = (db_row["office"] if db_row else character.office) or ""
+            office_type = (db_row["office_type"] if db_row else character.office_type) or character.office_type
+            office_type = effective_stored_office_type(office, office_type)
+            faction = (db_row["faction"] if db_row else character.faction) or character.faction
+            portrait_id = (db_row["portrait_id"] if db_row else character.portrait_id) or character.portrait_id
+            power_id = (db_row["power_id"] if db_row else None) or getattr(character, "power_id", "ming") or "ming"
+            age_payload = self._age_payload(character, int(db_row["birth_year"] or 0) if db_row else 0)
+            power = self.content.powers.get(power_id)
+            power_name = str(getattr(power, "name", "") or power_id or "大明")
+            portrait_prefix = "consort_" if office_type == "后宫" else "minister_"
+            portrait_meta = self._portrait_meta(character, portrait_id, portrait_prefix)
+            identity_bits = [power_name, faction, office_type, status_label]
+            rows.append({
+                "name": character.name,
+                "office": office,
+                "office_type": office_type,
+                "faction": faction,
+                "status": status,
+                "status_reason": status_reason,
+                "status_label": status_label,
+                "power_id": power_id,
+                "power_name": power_name,
+                "summary": " · ".join(bit for bit in identity_bits if bit),
+                "xinpan_quadrant": str((self.db.get_xinpan_profile(character.name, self.state) or {}).get("quadrant") or ""),
+                **age_payload,
+                **portrait_meta,
+                "can_summon": bool(power_id == "ming" and status == "active"),
+            })
+        return rows
 
     def character_power_id(self, character: Character) -> str:
         row = self.db.conn.execute(
             "SELECT power_id FROM characters WHERE name=?", (character.name,)
         ).fetchone()
         return (row["power_id"] if row else None) or getattr(character, "power_id", "ming") or "ming"
+
+    def _portrait_meta(self, character: Character, portrait_id: str, portrait_prefix: str) -> Dict[str, Any]:
+        status = "missing"
+        error = ""
+        dna_seed = ""
+        dna_asset_id = ""
+        dna_status = "missing"
+        wardrobe_key = ""
+        available = False
+        if portrait_id.startswith(GENERATED_PORTRAIT_PREFIX):
+            asset_id = portrait_id.removeprefix(GENERATED_PORTRAIT_PREFIX)
+            row = self.db.get_portrait_asset(asset_id)
+            if row is not None:
+                status = str(row["status"] or "pending")
+                error = str(row["error"] or "")
+                dna_seed = str(row["dna_seed"] or "")
+                wardrobe_key = str(row["wardrobe_key"] or "")
+                available = bool(status == "ready" and row["image_blob"] is not None)
+            else:
+                status = "missing"
+        elif portrait_id.startswith(CUSTOM_PORTRAIT_PREFIX):
+            status = "ready" if _find_portrait_file(character.name) is not None else "missing"
+            available = status == "ready"
+        else:
+            available = (
+                _static_portrait_exists(f"{portrait_prefix}{character.name}.png")
+                or (bool(portrait_id) and _static_portrait_exists(f"{portrait_id}.png"))
+            )
+            status = "ready" if available else "missing"
+        spec = build_portrait_spec(character, self.state, self.session.campaign_id)
+        dna_asset_id = spec.dna_asset_id
+        dna_row = self.db.get_portrait_asset(dna_asset_id)
+        if dna_row is not None:
+            dna_status = str(dna_row["status"] or "pending")
+        if not dna_seed:
+            dna_seed = spec.dna_seed
+        if not wardrobe_key:
+            wardrobe_key = spec.wardrobe_key
+        return {
+            "portrait_available": available,
+            "portrait_status": status,
+            "portrait_error": error,
+            "portrait_dna_seed": dna_seed,
+            "portrait_dna_asset_id": dna_asset_id,
+            "portrait_dna_status": dna_status,
+            "portrait_wardrobe_key": wardrobe_key,
+        }
 
     def directive_payload(self, row) -> Dict[str, Any]:
         return {
@@ -662,6 +1103,33 @@ class WebGame:
     def directive_rows(self):
         # 颁诏候选 = draft；UI 列表含 pending
         return self.db.list_directives(self.state, statuses=("pending", "draft"))
+
+    def _record_pending_directive(
+        self,
+        character: Character,
+        draft_text: str,
+    ) -> Optional[Dict[str, Any]]:
+        draft_text = (draft_text or "").strip()
+        if not draft_text:
+            return None
+        notes = f"由{character.name}拟旨入档"
+        directive_id = self.db.add_directive(
+            self.state,
+            None,
+            draft_text,
+            "大臣拟旨",
+            actor=character.name,
+            notes=notes,
+            status="pending",
+        )
+        return {
+            "id": directive_id,
+            "text": draft_text,
+            "status": "pending",
+            "source": "大臣拟旨",
+            "actor": character.name,
+            "notes": notes,
+        }
 
     def map_nodes(self) -> List[Dict[str, Any]]:
         region_positions = {
@@ -872,6 +1340,685 @@ class WebGame:
             "timeline": row.get("timeline", []),
         }
 
+    def adventure_payload(self) -> List[Dict[str, Any]]:
+        return self.db.list_adventure_logs(limit=10)
+
+    def item_payload(self) -> List[Dict[str, Any]]:
+        return self.db.list_player_inventory()
+
+    # ── 组织架构 / 人才来源 ────────────────────────────────────────────────
+    def _custom_institutions(self) -> List[Dict[str, Any]]:
+        raw = self.db.kv_get("custom_institutions")
+        if not raw:
+            return []
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            return []
+        return data if isinstance(data, list) else []
+
+    def _save_custom_institutions(self, institutions: List[Dict[str, Any]]) -> None:
+        self.db.kv_set("custom_institutions", json.dumps(institutions, ensure_ascii=False))
+
+    def add_custom_institution(self, name: str, category: str, mandate: str, slots: List[str]) -> Dict[str, Any]:
+        clean_name = re.sub(r"\s+", "", (name or "").strip())[:20]
+        if not clean_name:
+            raise HTTPException(status_code=400, detail="机构名不能为空。")
+        clean_slots = [s.strip()[:18] for s in slots if s and s.strip()]
+        if not clean_slots:
+            clean_slots = [f"{clean_name}提举", f"{clean_name}副使"]
+        current = self._custom_institutions()
+        if any(str(item.get("name")) == clean_name for item in current):
+            raise HTTPException(status_code=409, detail=f"{clean_name}已在组织图中。")
+        item = {
+            "id": f"custom-{self.state.turn}-{len(current) + 1}-{abs(hash(clean_name)) % 10000}",
+            "name": clean_name,
+            "category": (category or "非常规").strip()[:12] or "非常规",
+            "mandate": (mandate or "奉旨新设，权责待议。").strip()[:120],
+            "custom": True,
+            "slots": [{"title": slot, "office_type": clean_name, "count": 1} for slot in clean_slots],
+        }
+        current.append(item)
+        self._save_custom_institutions(current)
+        return item
+
+    def organization_payload(self) -> Dict[str, Any]:
+        base_institutions: List[Dict[str, Any]] = base_institution_specs()
+        custom_institutions = self._custom_institutions()
+        diagnostics = organization_diagnostics(self.db, custom_institutions)
+        diagnostic_by_id = {
+            str(item.get("id") or ""): item
+            for item in diagnostics.get("institutions", [])
+            if isinstance(item, dict)
+        }
+
+        characters = [
+            c for c in self.content.characters.values()
+            if c.office_type != "后宫" and self.character_power_id(c) == "ming"
+        ]
+        active_snapshots: List[tuple[Character, str, str]] = []
+        for character in characters:
+            status, _reason = self.db.get_character_status(character.name)
+            if status != "active":
+                continue
+            row = self.db.conn.execute(
+                "SELECT office, office_type FROM characters WHERE name=?", (character.name,)
+            ).fetchone()
+            office = (row["office"] if row else character.office) or ""
+            office_type = (row["office_type"] if row else character.office_type) or character.office_type
+            office_type = effective_stored_office_type(office, office_type)
+            active_snapshots.append((character, office, office_type))
+
+        assigned_names: set[str] = set()
+
+        def usable_parts(office: str) -> List[str]:
+            parts = [part.strip() for part in normalize_office(office).split(",") if part.strip()]
+            return [
+                part for part in parts
+                if not re.search(r"^(前|原)|罢居|候补|归途|潜在|少年|诸生|待铨|未仕", part)
+            ]
+
+        def holders_for(slot: Dict[str, Any]) -> List[Dict[str, Any]]:
+            title = str(slot.get("title") or "").strip()
+            terms = [str(item).strip() for item in (slot.get("match_terms") or [title]) if str(item).strip()]
+            match_re = str(slot.get("match_regex") or "").strip()
+            office_types = {str(item).strip() for item in (slot.get("office_types") or []) if str(item).strip()}
+            holders: List[Dict[str, Any]] = []
+            for character, office, actual_type in active_snapshots:
+                parts = usable_parts(office)
+                text = " ".join(parts)
+                hit = False
+                if slot.get("office_type_only") and office_types and actual_type in office_types:
+                    hit = True
+                if not hit and terms:
+                    hit = any(term in part for term in terms for part in parts)
+                if not hit and match_re:
+                    hit = any(re.search(match_re, part) for part in parts)
+                if not hit and office_types and actual_type in office_types:
+                    hit = any(term in text for term in terms)
+                if hit:
+                    assigned_names.add(character.name)
+                    holders.append(self.public_character(character, include_detail=False))
+            return holders
+
+        institutions: List[Dict[str, Any]] = []
+        vacancy_total = 0
+        assigned_total = 0
+        for raw in [*base_institutions, *custom_institutions]:
+            slots = []
+            for slot in raw.get("slots", []):
+                if not isinstance(slot, dict):
+                    continue
+                count = max(1, int(slot.get("count") or 1))
+                holders = holders_for(slot)
+                open_pool = bool(slot.get("open_pool"))
+                effective_count = max(count, len(holders)) if open_pool else count
+                filled = len(holders) if open_pool else min(len(holders), effective_count)
+                vacancy = 0 if open_pool else max(0, effective_count - len(holders))
+                overflow = 0 if open_pool else max(0, len(holders) - effective_count)
+                vacancy_total += vacancy
+                assigned_total += filled
+                slots.append({
+                    "title": str(slot.get("title") or ""),
+                    "office_type": str(slot.get("office_type") or ""),
+                    "count": effective_count,
+                    "holders": holders,
+                    "filled_count": filled,
+                    "vacancies": vacancy,
+                    "overflow_count": overflow,
+                    "open_pool": open_pool,
+                    "match_hint": str(slot.get("match_hint") or ""),
+                })
+            diag = diagnostic_by_id.get(str(raw.get("id") or raw.get("name") or ""), {})
+            institutions.append({
+                "id": str(raw.get("id") or raw.get("name") or ""),
+                "name": str(raw.get("name") or ""),
+                "category": str(raw.get("category") or "朝堂"),
+                "mandate": str(raw.get("mandate") or ""),
+                "custom": bool(raw.get("custom")),
+                "readiness": int(diag.get("readiness") or 0),
+                "coverage": int(diag.get("coverage") or 0),
+                "holder_quality": int(diag.get("holder_quality") or 0),
+                "execution_summary": str(diag.get("summary") or ""),
+                "execution_risks": diag.get("risks") if isinstance(diag.get("risks"), list) else [],
+                "slots": slots,
+                "vacancy_count": sum(int(slot["vacancies"]) for slot in slots),
+                "holder_count": sum(int(slot["filled_count"]) for slot in slots),
+            })
+        unassigned = [
+            self.public_character(character, include_detail=False)
+            for character, office, actual_type in active_snapshots
+            if character.name not in assigned_names
+            and usable_parts(office)
+            and actual_type not in {"外臣"}
+        ]
+        unassigned.sort(key=lambda item: (str(item.get("office_type") or ""), str(item.get("name") or "")))
+        return {
+            "institutions": institutions,
+            "vacancy_count": vacancy_total,
+            "custom_count": len(custom_institutions),
+            "assigned_count": assigned_total,
+            "unassigned": unassigned,
+            "court_readiness": int(diagnostics.get("court_readiness") or 0),
+            "risk_count": int(diagnostics.get("risk_count") or 0),
+            "execution_summary": str(diagnostics.get("summary") or ""),
+            "overloaded_holders": diagnostics.get("overloaded_holders", []),
+        }
+
+    def _generated_name(self, source: str) -> str:
+        surnames = ["沈", "陆", "顾", "钱", "严", "许", "方", "周", "赵", "韩", "曹", "董", "袁", "程", "夏", "魏"]
+        exam_given = ["承谟", "允中", "廷璧", "士衡", "景明", "伯修", "文炳", "维桢"]
+        eunuch_given = ["承恩", "守忠", "怀谨", "进忠", "奉节", "谨言", "守义", "承旨"]
+        wild_given = ["有恒", "元亮", "道衡", "伯言", "子实", "闻道", "衡石", "汝霖"]
+        givens = eunuch_given if source == "eunuch" else exam_given if source == "exam" else wild_given
+        for _ in range(80):
+            name = random.choice(surnames) + random.choice(givens)
+            if name not in self.content.characters:
+                return name
+        return f"{random.choice(surnames)}{source}{self.state.turn}{random.randint(10, 99)}"
+
+    def _add_runtime_character(self, character: Character, source: str) -> Character:
+        self.db.add_character(self.state, character, source=source)
+        row = self.db.conn.execute(
+            "SELECT portrait_id, office, office_type, faction FROM characters WHERE name=?", (character.name,)
+        ).fetchone()
+        if row:
+            character.portrait_id = row["portrait_id"] or character.portrait_id
+            character.office = row["office"] or character.office
+            character.office_type = row["office_type"] or character.office_type
+            character.faction = row["faction"] or character.faction
+        self.content.characters[character.name] = character
+        if self.session.registry is not None and character.status == "active":
+            self.session.registry.register(character)
+        self.chat_history.setdefault(character.name, [])
+        self.maybe_queue_portrait_generation(character.name, source)
+        return character
+
+    def recruit_exam_official(self) -> Dict[str, Any]:
+        office = random.choice(["翰林院庶吉士", "吏部主事", "户部主事", "兵部主事", "六科给事中"])
+        faction = random.choice(["清流", "东林党", "中立", "实务派"])
+        ability = random.randint(58, 78)
+        wisdom = min(90, ability + random.randint(4, 14))
+        integrity = random.randint(55, 84) if faction in {"清流", "东林党"} else random.randint(48, 76)
+        character = Character(
+            name=self._generated_name("exam"),
+            office=office,
+            office_type=infer_office_type_from_office(office, "待铨"),
+            faction=faction,
+            aliases=[],
+            personal_skills=["科举", "奏对", "文书", "廷议"],
+            loyalty=random.randint(52, 78),
+            ability=ability,
+            integrity=integrity,
+            courage=random.randint(45, 72),
+            style=random.choice(["新科锐气，重名分与章程", "书生气未退，肯办事但怕背锅", "文理清楚，急于求一件实绩"]),
+            birth_year=self.state.year - random.randint(22, 38),
+            power_id="ming",
+            location="京师",
+            status="active",
+            summary=f"{self.state.year}年科举新进士，初入朝局，尚未卷入深派系。",
+            force=random.randint(35, 55),
+            wisdom=wisdom,
+            charm=random.randint(48, 72),
+            luck=random.randint(45, 80),
+        )
+        added = self._add_runtime_character(character, "科举取士")
+        return {"message": f"新科取士：{added.name}补入{added.office}。", "minister": self.public_character(added)}
+
+    def recruit_eunuch(self) -> Dict[str, Any]:
+        office = random.choice(["司礼监小火者", "司礼监随堂太监", "司礼监书办太监"])
+        loyalty = random.randint(80, 96)
+        character = Character(
+            name=self._generated_name("eunuch"),
+            office=office,
+            office_type="司礼监",
+            faction=random.choice(["内廷", "阉党"]),
+            aliases=[],
+            personal_skills=["内廷传旨", "宫禁熟习", "保密复命", "执行"],
+            loyalty=loyalty,
+            ability=random.randint(46, 70),
+            integrity=random.randint(45, 72),
+            courage=random.randint(56, 82),
+            style=random.choice(["谨密奉旨，先复命后议理", "出身寒微，视入宫为正途", "言少手快，重皇命轻清议"]),
+            birth_year=self.state.year - random.randint(15, 30),
+            power_id="ming",
+            location="紫禁城",
+            status="active",
+            summary="净身入宫的内廷新人。太监是皇帝家奴，入仕路径正常；其能力未必压倒外朝，但忠诚与执行链清晰。",
+            force=random.randint(38, 62),
+            wisdom=random.randint(46, 70),
+            charm=random.randint(42, 66),
+            luck=random.randint(48, 80),
+        )
+        added = self._add_runtime_character(character, "招募太监")
+        return {"message": f"内廷募入：{added.name}补入{added.office}。", "minister": self.public_character(added)}
+
+    def recommend_hidden_official(self) -> Dict[str, Any]:
+        active_recommenders = [
+            c for c in self.content.characters.values()
+            if c.office_type != "后宫"
+            and self.character_power_id(c) == "ming"
+            and self.db.get_character_status(c.name)[0] == "active"
+        ]
+        network_hits: List[Dict[str, Any]] = []
+        for recommender in active_recommenders:
+            for row in npc_network_recommendations(
+                recommender.name,
+                db=self.db,
+                limit=12,
+                include_statuses={"offstage", "dismissed", "retired"},
+            ):
+                if row.get("status") != "offstage":
+                    continue
+                network_hits.append({**row, "recommender": recommender.name})
+        network_hits.sort(key=lambda item: int(item.get("score") or 0), reverse=True)
+        if network_hits:
+            hit = network_hits[0]
+            chosen = self.content.characters[str(hit["name"])]
+            office = chosen.office or "待铨（举贤入京）"
+            office_type = infer_office_type_from_office(office, chosen.office_type or "待铨")
+            self.db.set_character_office(chosen.name, office, office_type, source="举贤发现")
+            evidence = "；".join(_clean_obsidian_text(item) for item in hit.get("evidence", [])[:3])
+            self.db.set_character_status(
+                self.state, chosen.name, "active",
+                f"{hit['recommender']}据人脉举荐：{evidence}"[:180],
+            )
+            chosen.office = office
+            chosen.office_type = office_type
+            chosen.status = "active"
+            if self.session.registry is not None:
+                self.session.registry.register(chosen)
+            self.maybe_queue_portrait_generation(chosen.name, "举贤发现")
+            return {
+                "message": f"举贤发现：{hit['recommender']}举荐{chosen.name}出仕（{evidence}）。",
+                "minister": self.public_character(chosen),
+            }
+
+        name = self._generated_name("recommend")
+        character = Character(
+            name=name,
+            office="待铨（举贤入京）",
+            office_type="待铨",
+            faction=random.choice(["中立", "清流", "实务派"]),
+            aliases=[],
+            personal_skills=["地方阅历", "文书", "举贤"],
+            loyalty=random.randint(48, 74),
+            ability=random.randint(52, 76),
+            integrity=random.randint(50, 82),
+            courage=random.randint(44, 75),
+            style="在野有名，初入京师，先观望各派风向",
+            birth_year=self.state.year - random.randint(28, 55),
+            power_id="ming",
+            location="京师",
+            status="active",
+            summary="由地方举荐入京的在野人物，尚无稳固靠山。",
+            force=random.randint(35, 58),
+            wisdom=random.randint(52, 78),
+            charm=random.randint(46, 74),
+            luck=random.randint(40, 82),
+        )
+        added = self._add_runtime_character(character, "举贤入京")
+        return {"message": f"举贤入京：{added.name}列入待铨。", "minister": self.public_character(added)}
+
+    def _castration_consent_note(self, name: str) -> Optional[Dict[str, Any]]:
+        agreement = self.db.has_successful_agreement(
+            name,
+            "castration",
+            max_age_turns=12,
+            current_turn=self.state.turn,
+        )
+        if agreement is not None:
+            return {
+                "stance": "support",
+                "handshake_status": HANDSHAKE_SEALED,
+                "summary": str(agreement.get("summary") or "已有净身入内廷的握手协议。"),
+                "conditions": str(agreement.get("conditions") or ""),
+                "agreement": agreement,
+            }
+        latest_relevant: Optional[Dict[str, Any]] = None
+        for row in self.db.list_minister_stances(turn=self.state.turn, minister_name=name, limit=12):
+            text = f"{row.get('topic', '')} {row.get('summary', '')} {row.get('conditions', '')}"
+            if not re.search(r"净身|入宫|内廷|司礼监|太监|宦官|宫禁", text):
+                continue
+            latest_relevant = row
+            if row.get("handshake_status") == HANDSHAKE_SEALED:
+                return row
+            break
+        return latest_relevant
+
+    def _emancipation_consent_note(self, name: str) -> Optional[Dict[str, Any]]:
+        agreement = self.db.has_successful_agreement(
+            name,
+            "emancipation",
+            max_age_turns=12,
+            current_turn=self.state.turn,
+        )
+        if agreement is not None:
+            return {
+                "stance": "support",
+                "handshake_status": HANDSHAKE_SEALED,
+                "summary": str(agreement.get("summary") or "已有奴籍转民籍的握手协议。"),
+                "conditions": str(agreement.get("conditions") or ""),
+                "agreement": agreement,
+            }
+        latest_relevant: Optional[Dict[str, Any]] = None
+        for row in self.db.list_minister_stances(turn=self.state.turn, minister_name=name, limit=12):
+            text = f"{row.get('topic', '')} {row.get('summary', '')} {row.get('conditions', '')}"
+            if not re.search(r"奴籍|民籍|脱籍|还民|转为民|转民籍|出宫为民|归为百姓|赐还为民", text):
+                continue
+            latest_relevant = row
+            if row.get("handshake_status") == HANDSHAKE_SEALED:
+                return row
+            break
+        return latest_relevant
+
+    def _current_office_identity(self, character: Character) -> tuple[str, str, str]:
+        row = self.db.conn.execute(
+            "SELECT office, office_type, faction FROM characters WHERE name=?", (character.name,)
+        ).fetchone()
+        office = (row["office"] if row else character.office) or character.office or ""
+        office_type = (row["office_type"] if row else character.office_type) or character.office_type or ""
+        faction = (row["faction"] if row else character.faction) or character.faction or ""
+        return office, effective_stored_office_type(office, office_type), faction
+
+    @staticmethod
+    def _xinpan_effect_summary(before: Optional[Dict[str, object]], after: Optional[Dict[str, object]]) -> str:
+        if not isinstance(after, dict):
+            return ""
+        before_map = before if isinstance(before, dict) else {}
+
+        def value(data: Dict[str, object], key: str, fallback: float = 0.0) -> float:
+            try:
+                return float(data.get(key, fallback) or fallback)
+            except (TypeError, ValueError):
+                return fallback
+
+        def signed(delta: float, digits: int = 1) -> str:
+            rounded = round(delta, digits)
+            text = f"{rounded:.{digits}f}".rstrip("0").rstrip(".")
+            if text == "-0":
+                text = "0"
+            return f"+{text}" if rounded > 0 else text
+
+        parts: List[str] = []
+        for key, label, digits, threshold in (
+            ("dao_he", "道", 1, 0.05),
+            ("shi_he", "势", 1, 0.05),
+            ("fear", "惧", 1, 0.05),
+            ("hatred", "恨", 1, 0.05),
+            ("trust_coeff", "信", 3, 0.004),
+        ):
+            fallback = 1.0 if key == "trust_coeff" else 0.0
+            delta = value(after, key, fallback) - value(before_map, key, fallback)
+            if abs(delta) >= threshold:
+                parts.append(f"{label}{signed(delta, digits)}")
+        if not parts:
+            return ""
+        quadrant = str(after.get("quadrant") or "")
+        tail = f"；现为{quadrant}" if quadrant else ""
+        return f"心盘实记：{' · '.join(parts)}{tail}。"
+
+    def _castration_applicable(self, character: Character) -> bool:
+        office, office_type, faction = self._current_office_identity(character)
+        if character.office_type == "后宫" or office_type == "后宫":
+            return False
+        if is_eunuch_office(office, office_type) or re.search(r"太监|宦官|内官|内廷", faction):
+            return False
+        text = f"{office} {office_type} {faction}"
+        if re.search(r"民籍|百姓|布衣|江湖|商人|隐士|传教士|后金|蒙古|朝鲜|流寇", text):
+            return False
+        return bool(re.search(r"内阁|吏部|户部|礼部|兵部|刑部|工部|都察院|翰林|地方|边镇|锦衣卫|待铨|官|将|督|抚|御史|尚书|侍郎|郎中|主事|总兵|千户|百户", text))
+
+    def castrate_official(self, name: str, force: bool = False) -> Dict[str, Any]:
+        clean_name = (name or "").strip()
+        character = self.content.characters.get(clean_name)
+        if character is None or character.office_type == "后宫":
+            raise HTTPException(status_code=404, detail=f"未找到可净身入内廷的人物：{clean_name}")
+        if self.character_power_id(character) != "ming":
+            raise HTTPException(status_code=409, detail=f"{clean_name}不属大明，不能入内廷。")
+        status, reason = self.db.get_character_status(clean_name)
+        if status != "active":
+            raise HTTPException(status_code=409, detail=f"{clean_name}当前{_STATUS_LABEL_WEB.get(status, status)}，不可净身入宫。{reason}")
+        if not self._castration_applicable(character):
+            raise HTTPException(status_code=409, detail=f"{clean_name}并非可净身入内廷的文官或武官。")
+        consent = self._castration_consent_note(clean_name)
+        if not force:
+            if not consent:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"尚未与{clean_name}奏对谈妥净身入内廷。请先召对劝说，待心理量表握手成功后，再行身份转换；否则只能下旨强行净身。",
+                )
+            if consent.get("handshake_status") != HANDSHAKE_SEALED:
+                status = str(consent.get("handshake_status") or "none")
+                if status == HANDSHAKE_CONDITIONAL:
+                    tasks = (consent.get("agreement") or {}).get("tasks") if isinstance(consent.get("agreement"), dict) else []
+                    todo = "；".join(str(item.get("description") or "") for item in tasks if isinstance(item, dict)) or str(consent.get("conditions") or "")
+                    detail = f"{clean_name}只是附条件松口，尚未履约闭环：{todo or consent.get('summary', '条件不明')}。"
+                elif status == HANDSHAKE_BLOCKED:
+                    detail = f"{clean_name}未被说服（{consent.get('summary', '态度不明')}）。"
+                else:
+                    detail = f"{clean_name}本回合没有形成净身握手协议（{consent.get('summary', '态度不明')}）。"
+                raise HTTPException(
+                    status_code=409,
+                    detail=detail + "若陛下仍要执行，只能下旨强行净身。",
+                )
+        new_office = "司礼监随堂太监"
+        source = "强旨净身入宫" if force else "自愿净身入宫"
+        try:
+            xinpan_before = self.db.get_xinpan_profile(clean_name, self.state)
+        except Exception:
+            xinpan_before = {}
+        character, political_reactions = convert_character_to_eunuch(
+            self.db,
+            self.state,
+            self.content,
+            clean_name,
+            force=force,
+            source=source,
+            new_office=new_office,
+        )
+        if self.session.registry is not None:
+            self.session.registry.register(character)
+        xinpan_effect_text = ""
+        try:
+            if force:
+                xinpan_after = self.db.apply_direct_xinpan_adjustment(
+                    self.state,
+                    character.name,
+                    shi_delta=-48,
+                    fear_delta=24,
+                    hatred_delta=52,
+                    trust_multiplier=0.58,
+                    event="强旨净身入内廷",
+                    source_kind="identity_conversion",
+                    source_id="forced_castration",
+                )
+            else:
+                xinpan_after = self.db.apply_direct_xinpan_adjustment(
+                    self.state,
+                    character.name,
+                    shi_delta=16,
+                    fear_delta=-2,
+                    hatred_delta=-3,
+                    trust_multiplier=1.06,
+                    event="自愿净身入内廷，转入近侍执行链",
+                    source_kind="identity_conversion",
+                    source_id="voluntary_castration",
+                )
+            xinpan_effect_text = self._xinpan_effect_summary(xinpan_before, xinpan_after)
+        except Exception as exc:  # noqa: BLE001 - identity conversion should still succeed
+            print(f"[WARN] 净身入内廷心盘更新失败 {character.name}: {exc}")
+        self.maybe_queue_portrait_generation(character.name, source)
+        prefix = "强旨已下，" if force else ""
+        reaction_text = f" 朝局反应：{political_reactions[0].get('summary')}" if political_reactions else ""
+        return {
+            "message": f"{prefix}{clean_name}已净身入内廷，补为{new_office}。{reaction_text}{(' ' + xinpan_effect_text) if xinpan_effect_text else ''}",
+            "minister": self.public_character(character),
+            "political_reactions": political_reactions,
+        }
+
+    def emancipate_eunuch(self, name: str, force: bool = False) -> Dict[str, Any]:
+        clean_name = (name or "").strip()
+        character = self.content.characters.get(clean_name)
+        if character is None or character.office_type == "后宫":
+            raise HTTPException(status_code=404, detail=f"未找到可转民籍的太监：{clean_name}")
+        if self.character_power_id(character) != "ming":
+            raise HTTPException(status_code=409, detail=f"{clean_name}不属大明，不能由内廷转出。")
+        status, reason = self.db.get_character_status(clean_name)
+        if status != "active":
+            raise HTTPException(status_code=409, detail=f"{clean_name}当前{_STATUS_LABEL_WEB.get(status, status)}，不可转民籍。{reason}")
+        office, office_type, faction = self._current_office_identity(character)
+        if not (is_eunuch_office(office, office_type) or re.search(r"太监|宦官|内官|内廷", f"{faction} {office} {office_type}")):
+            raise HTTPException(status_code=409, detail=f"{clean_name}并非太监/内廷奴籍，不适用奴籍转民籍。")
+        consent = self._emancipation_consent_note(clean_name)
+        if not force:
+            if not consent:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"尚未与{clean_name}奏对谈妥奴籍转民籍。请先劝导，待心理量表握手成功后，再行身份转换；否则只能下旨强行脱籍。",
+                )
+            if consent.get("handshake_status") != HANDSHAKE_SEALED:
+                status = str(consent.get("handshake_status") or "none")
+                if status == HANDSHAKE_CONDITIONAL:
+                    tasks = (consent.get("agreement") or {}).get("tasks") if isinstance(consent.get("agreement"), dict) else []
+                    todo = "；".join(str(item.get("description") or "") for item in tasks if isinstance(item, dict)) or str(consent.get("conditions") or "")
+                    detail = f"{clean_name}只是附条件松口，尚未履约闭环：{todo or consent.get('summary', '条件不明')}。"
+                elif status == HANDSHAKE_BLOCKED:
+                    detail = f"{clean_name}未被说服（{consent.get('summary', '态度不明')}）。"
+                else:
+                    detail = f"{clean_name}本回合没有形成奴籍转民籍握手协议（{consent.get('summary', '态度不明')}）。"
+                raise HTTPException(
+                    status_code=409,
+                    detail=detail + "若陛下仍要执行，只能下旨强行脱籍。",
+                )
+        source = "强旨奴籍转民籍" if force else "自愿奴籍转民籍"
+        try:
+            xinpan_before = self.db.get_xinpan_profile(clean_name, self.state)
+        except Exception:
+            xinpan_before = {}
+        character, political_reactions = convert_eunuch_to_commoner(
+            self.db,
+            self.state,
+            self.content,
+            clean_name,
+            force=force,
+            source=source,
+        )
+        if self.session.registry is not None:
+            self.session.registry.register(character)
+        xinpan_effect_text = ""
+        try:
+            if force:
+                xinpan_after = self.db.apply_direct_xinpan_adjustment(
+                    self.state,
+                    character.name,
+                    shi_delta=-36,
+                    fear_delta=10,
+                    hatred_delta=58,
+                    trust_multiplier=0.76,
+                    event="强旨赶出内廷，脱籍为民",
+                    source_kind="identity_conversion",
+                    source_id="forced_emancipation",
+                )
+            else:
+                xinpan_after = self.db.apply_direct_xinpan_adjustment(
+                    self.state,
+                    character.name,
+                    shi_delta=6,
+                    fear_delta=-2,
+                    hatred_delta=0,
+                    trust_multiplier=1.02,
+                    event="自愿脱离内廷奴籍，放归民籍",
+                    source_kind="identity_conversion",
+                    source_id="voluntary_emancipation",
+                )
+            xinpan_effect_text = self._xinpan_effect_summary(xinpan_before, xinpan_after)
+        except Exception as exc:  # noqa: BLE001 - identity conversion should still succeed
+            print(f"[WARN] 奴籍转民籍心盘更新失败 {character.name}: {exc}")
+        self.maybe_queue_portrait_generation(character.name, source)
+        prefix = "强旨已下，" if force else ""
+        return {
+            "message": f"{prefix}{clean_name}已脱离内廷奴籍，转为民籍百姓；新立绘将改为布衣头巾。{(' ' + xinpan_effect_text) if xinpan_effect_text else ''}",
+            "minister": self.public_character(character),
+            "political_reactions": political_reactions,
+        }
+
+    def perform_consort_action(self, name: str, action: str) -> Dict[str, Any]:
+        consort = self.content.characters.get((name or "").strip())
+        if consort is None or consort.office_type != "后宫":
+            raise HTTPException(status_code=404, detail=f"未找到后宫人物：{name}")
+        status, _reason = self.db.get_character_status(consort.name)
+        if status != "active":
+            raise HTTPException(status_code=409, detail=f"{consort.name}尚未入宫或不可行动。")
+        actions = {
+            "stabilize": ("协理六宫", "宫务裁断", "晓宫禁恩威", "皇威", 1),
+            "treasury": ("盘点内库", "内库盘点", "谨慎钱粮", "内库", random.randint(3, 8)),
+            "appease": ("安抚内廷", "内廷调停", "能缓和宫禁怨气", "皇威", 1),
+        }
+        if action == "recommend":
+            candidate = Character(
+                name=self._generated_name("recommend"),
+                office="采女（待选）",
+                office_type="后宫",
+                faction="后宫",
+                aliases=[],
+                personal_skills=["宫礼", "察言观色"],
+                loyalty=random.randint(52, 78),
+                ability=random.randint(42, 66),
+                integrity=random.randint(45, 78),
+                courage=random.randint(35, 62),
+                style="由宫中举荐，入册待选",
+                power_id="ming",
+                location="紫禁城",
+                status="candidate",
+                summary=f"由{consort.name}举荐入册的宫人，待皇帝拣选。",
+                charm=random.randint(52, 82),
+                luck=random.randint(45, 82),
+            )
+            self._add_runtime_character(candidate, f"{consort.name}举荐宫人")
+            return {"message": f"{consort.name}举荐{candidate.name}入待选名册。", "candidate": self.public_character(candidate)}
+        if action not in actions:
+            raise HTTPException(status_code=400, detail="未知后宫行动。")
+        label, skill, trait, metric, delta = actions[action]
+        self.db.cultivate_consort(consort.name, self.state.turn, skill=skill, trait=trait)
+        if metric in {"国库", "内库"}:
+            self.db.record_issue_economy_move(self.state, metric, delta, label, f"{consort.name}{label}")
+        else:
+            self.state.metrics[metric] = max(0, min(100, int(self.state.metrics.get(metric, 0)) + delta))
+            self.db.save_state(self.state)
+        return {
+            "message": f"{consort.name}已{label}：{metric}+{delta}。",
+            "consort": self.public_character(consort),
+        }
+
+    def agreement_payload(self, minister_name: str = "") -> List[Dict[str, Any]]:
+        rows = self.db.list_negotiation_agreements(minister_name=minister_name, limit=80)
+        out: List[Dict[str, Any]] = []
+        for row in rows:
+            item = dict(row)
+            item["verbal_only"] = bool(int(item.get("verbal_only") or 0))
+            item["handshake_label"] = handshake_label(str(item.get("handshake_status") or "none"))
+            item["core_topic"] = item.get("core_topic") or item.get("topic") or ""
+            try:
+                item["auto_review"] = json.loads(str(item.get("auto_review_json") or "{}"))
+            except Exception:
+                item["auto_review"] = {}
+            try:
+                item["llm_review"] = json.loads(str(item.get("llm_review_json") or "{}"))
+            except Exception:
+                item["llm_review"] = {}
+            try:
+                item["political_effect"] = json.loads(str(item.get("political_effect_json") or "{}"))
+            except Exception:
+                item["political_effect"] = {}
+            item["tasks"] = [dict(task) for task in (item.get("tasks") or []) if isinstance(task, dict)]
+            try:
+                item["execution_consequence"] = self.db._agreement_execution_consequence(item, item["tasks"])
+            except Exception:
+                item["execution_consequence"] = ""
+            out.append(item)
+        return out
+
     def state_payload(self) -> Dict[str, Any]:
         directives = [self.directive_payload(row) for row in self.directive_rows()]
         return {
@@ -894,20 +2041,28 @@ class WebGame:
             "regions": self.db.region_payload(),
             "armies": self.db.army_payload(),
             "map_nodes": self.map_nodes(),
+            "organizations": self.organization_payload(),
+            "character_index": self.character_index_payload(),
             "ministers": [
-                self.public_character(c)
+                self.public_character(c, include_detail=False)
                 for c in self.content.characters.values()
                 if c.office_type != "后宫" and self.character_power_id(c) == "ming"
             ],
             "consorts": [
-                self.public_character(c)
+                self.public_character(c, include_detail=False)
                 for c in self.content.characters.values()
-                if c.office_type == "后宫" and c.status == "active" and self.character_power_id(c) == "ming"
+                if c.office_type == "后宫"
+                and self.db.get_character_status(c.name)[0] == "active"
+                and self.character_power_id(c) == "ming"
             ],
             "directives": directives,
+            "agreements": self.agreement_payload(),
             "pending_count": self.session.pending_count(),
             "last_decree": self.last_decree,
             "last_report": self.last_report,
+            # 传奇文字冒险新增数据
+            "adventures": self.adventure_payload(),
+            "items": self.item_payload(),
         }
 
     # ── 聊天 ──────────────────────────────────────────────────────────────
@@ -917,8 +2072,9 @@ class WebGame:
     def _minister_agno_session_id(self, minister_name: str) -> str:
         registry = self.session.registry
         if registry is None:
-            return f"minister-{minister_name}-turn-{self.state.turn}"
-        return registry.session_ids.get(minister_name, f"minister-{minister_name}-turn-{self.state.turn}")
+            campaign_id = (self.db.kv_get("campaign_id") or getattr(self.session, "campaign_id", "") or "legacy").strip()
+            return f"npc-{campaign_id}-{minister_name}"
+        return registry.session_ids.get(minister_name, f"npc-{registry.campaign_id}-{minister_name}")
 
     def can_undo_last_chat(self, minister_name: str) -> bool:
         if not self._persistent_chat_minister(minister_name):
@@ -926,6 +2082,392 @@ class WebGame:
         if self.state.turn_phase not in ("summoning", "reviewing"):
             return False
         return self.db.can_undo_last_chat_turn(minister_name, self.state.turn)
+
+    def _related_issue_for_chat(self, text: str) -> int:
+        combined = text or ""
+        for row in self.db.list_active_issues():
+            title = str(row["title"] or "")
+            tags = []
+            try:
+                tags = json.loads(str(row["tags"] or "[]"))
+            except Exception:
+                tags = []
+            needles = [title, *[str(tag) for tag in tags]]
+            if any(needle and needle[:12] in combined for needle in needles):
+                return int(row["id"])
+        return 0
+
+    def _extract_conditions(self, answer: str) -> str:
+        clauses = re.split(r"[。！？\n；;]", answer or "")
+        condition_keywords = (
+            r"但|只是|须|需|若|恐|难|除非|条件|银|钱|饷|粮|人手|名分|明旨|圣旨|"
+            r"廷议|成例|期限|掣肘|反噬|阻|保全|家眷|家小|族人|官|赏|安置|"
+            r"体面|不辱|抚恤|遮护|边界|职掌|程序"
+        )
+        picked = [
+            clause.strip()
+            for clause in clauses
+            if clause.strip() and re.search(condition_keywords, clause)
+        ]
+        return "；".join(picked[:3])
+
+    def _adjust_stance_by_persona(
+        self,
+        minister_name: str,
+        combined: str,
+        answer: str,
+        stance: str,
+        confidence: int,
+        *,
+        hard_oppose: bool,
+        soft_oppose: bool,
+        support: bool,
+        caution: bool,
+    ) -> tuple[str, int, Dict[str, object]]:
+        try:
+            xinpan_profile = self.db.get_xinpan_profile(minister_name, self.state)
+        except Exception:
+            xinpan_profile = {}
+        behavior = npc_dialogue_behavior_profile(
+            minister_name,
+            xinpan_profile=xinpan_profile if isinstance(xinpan_profile, dict) else {},
+            text=combined,
+        )
+        preferred = str(behavior.get("preferred_stance") or "neutral")
+        try:
+            margin = int(behavior.get("margin") or 0)
+        except (TypeError, ValueError):
+            margin = 0
+        try:
+            fear = float((xinpan_profile or {}).get("fear") or 0)
+        except (TypeError, ValueError):
+            fear = 0.0
+        try:
+            hatred = float((xinpan_profile or {}).get("hatred") or 0)
+        except (TypeError, ValueError):
+            hatred = 0.0
+        explicit_commitment = bool(
+            re.search(
+                r"臣愿|奴才愿|小的愿|愿为陛下|臣领旨|遵旨|愿领|愿奉旨|敢不奉行|臣当奉行|臣愿担此",
+                answer or "",
+            )
+        )
+        adjusted = stance
+        if not hard_oppose:
+            if preferred == "support":
+                if stance == "neutral" and margin >= 4:
+                    adjusted = "support"
+                elif stance == "caution" and margin >= 6 and support and not caution:
+                    adjusted = "support"
+            elif preferred == "caution":
+                if stance == "support" and margin >= 3 and not explicit_commitment:
+                    adjusted = "caution"
+                elif stance == "neutral" and margin >= 3:
+                    adjusted = "caution"
+            elif preferred == "oppose":
+                if stance == "support" and (margin >= 4 or hatred >= 50) and not explicit_commitment:
+                    adjusted = "caution"
+                elif stance == "support" and margin >= 7:
+                    adjusted = "caution"
+                elif stance in {"neutral", "caution"} and margin >= 4 and not support:
+                    adjusted = "oppose" if fear < 70 and not soft_oppose else "caution"
+                elif stance == "neutral" and hatred >= 80:
+                    adjusted = "oppose" if fear < 70 else "caution"
+            if preferred == "oppose" and adjusted == "oppose" and fear >= 70 and not hard_oppose:
+                adjusted = "caution"
+
+        if adjusted != stance:
+            confidence = max(confidence, 4)
+            behavior["stance_adjustment"] = f"{stance}->{adjusted}"
+        elif preferred == stance and margin >= 4:
+            confidence = min(5, confidence + 1)
+        return adjusted, max(1, min(5, int(confidence or 3))), behavior
+
+    def _stance_evidence_from_chat(
+        self,
+        minister_name: str,
+        user_text: str,
+        answer: str,
+        stance: str,
+        conditions: str,
+        behavior_profile: Optional[Dict[str, object]] = None,
+    ) -> tuple[Dict[str, object], List[str], str]:
+        """把一次召对转成政治黑板证据；不暴露天罡原始数值。"""
+        character = self.content.characters.get(minister_name)
+        combined = f"{user_text}\n{answer}"
+        drivers: List[Dict[str, str]] = []
+        risks: List[str] = []
+
+        def add_driver(kind: str, text: str) -> None:
+            text = re.sub(r"\s+", " ", (text or "").strip())
+            if not text:
+                return
+            item = {"kind": kind[:12], "text": text[:96]}
+            if item not in drivers:
+                drivers.append(item)
+
+        if character is not None:
+            add_driver("身份", f"{character.office_type} / {character.faction}，当前官职：{character.office or '无实职'}")
+            if character.loyalty >= 78:
+                add_driver("忠诚", "皇命优先，通常愿先确认圣意再办。")
+            elif character.loyalty <= 48:
+                add_driver("自保", "忠诚摇摆，容易先衡量个人退路与派系风向。")
+            if character.ability >= 72 or character.wisdom >= 72:
+                add_driver("能力", "能较快抓住手续、钱粮或执行瓶颈。")
+            elif character.ability <= 48:
+                add_driver("能力", "承办复杂政务时容易依赖他人或拖成文书往返。")
+            if character.integrity >= 72:
+                add_driver("清议", "重账目清楚与名分干净。")
+            elif character.integrity <= 45:
+                add_driver("手段", "更容易把灰色操作视为可用工具。")
+            if character.courage >= 72:
+                add_driver("胆略", "敢担责，遇阻不易立刻退缩。")
+            elif character.courage <= 45:
+                add_driver("胆略", "畏祸趋避，遇高压差事容易求保全。")
+
+        tiangang = npc_tiangang_behavior_brief(minister_name)
+        for line in tiangang.splitlines():
+            clean = line.strip().lstrip("-").strip()
+            if clean.startswith("原型："):
+                add_driver("天罡", clean)
+            elif clean.startswith("政治底色："):
+                add_driver("天罡", clean)
+            if len([d for d in drivers if d["kind"] == "天罡"]) >= 2:
+                break
+
+        xinpan = self.db.get_xinpan_profile(minister_name, self.state)
+        if xinpan:
+            quadrant = str(xinpan.get("quadrant") or "")
+            behavior_hint = str(xinpan.get("behavior_hint") or "")
+            add_driver("心盘", f"{quadrant}：{behavior_hint}")
+            if xinpan.get("warnings"):
+                risks.append("心盘")
+
+        if behavior_profile:
+            preferred = str(behavior_profile.get("preferred_stance") or "")
+            preferred_label = {
+                "support": "偏支持",
+                "caution": "偏附条件",
+                "oppose": "偏反对",
+                "neutral": "偏审慎",
+            }.get(preferred, preferred)
+            reasons = "；".join(
+                str(item).strip()
+                for item in (behavior_profile.get("reasons") or [])[:3]
+                if str(item).strip()
+            )
+            adjustment = str(behavior_profile.get("stance_adjustment") or "")
+            note = preferred_label + (f"；{reasons}" if reasons else "")
+            if adjustment:
+                note += f"；规则修正{adjustment}"
+            add_driver("行为档案", note)
+            for tag in behavior_profile.get("risk_tags") or []:
+                clean_tag = str(tag).strip()
+                if clean_tag and clean_tag not in risks:
+                    risks.append(clean_tag)
+
+        if character is not None:
+            recs = npc_network_recommendations(character.name, db=self.db, limit=24)
+            mentioned = []
+            for rec in recs:
+                target = str(rec.get("name") or "")
+                if target and target in combined:
+                    evidence = "；".join(_clean_obsidian_text(x) for x in (rec.get("evidence") or [])[:2])
+                    mentioned.append(f"{target}（{evidence or '人脉可牵动'}）")
+            if mentioned:
+                add_driver("人脉", "、".join(mentioned[:3]))
+
+        risk_patterns = [
+            ("银两", r"银|钱|饷|国库|内库|经费|财用|亏空"),
+            ("人手", r"人手|胥吏|差役|官员|属官|书吏|匠"),
+            ("名分", r"名分|祖制|成例|法度|体统|章程|会审|廷议"),
+            ("期限", r"期限|时日|急|缓|月内|旬日|仓促"),
+            ("派系", r"清流|东林|阉党|内廷|厂卫|士林|公论|弹劾|朋党"),
+            ("地方", r"地方|士绅|豪右|民变|灾|粮|州县|巡抚|布政"),
+            ("军务", r"兵|军|边镇|辽东|关宁|总兵|营伍|补给"),
+            ("保密", r"密|泄|风声|耳目|线索|查访|锦衣卫|东厂"),
+        ]
+        for label, pattern in risk_patterns:
+            if re.search(pattern, combined) and label not in risks:
+                risks.append(label)
+
+        if conditions:
+            add_driver("条件", conditions)
+
+        hint_by_stance = {
+            "support": "若诏书交给其本人或本衙门，月末推演应降低其个人拖延；仍须检验钱粮、人手、名分和外部阻力。",
+            "caution": "只有满足其条件时才算做通；未满足则应表现为折损、补奏、拖延或转求程序。",
+            "oppose": "若强推，阻力应来自其能影响的官署、同僚、程序或舆论，不应写成空泛群臣不满。",
+            "neutral": "尚未形成承诺，只能作为一般意见，不能当成执行背书。",
+        }
+        execution_hint = hint_by_stance.get(stance, hint_by_stance["neutral"])
+        return {"drivers": drivers[:8], "source": "chat"}, risks[:8], execution_hint
+
+    def _record_stance_from_chat(
+        self,
+        minister_name: str,
+        user_text: str,
+        answer: str,
+        chat_turn_id: int,
+    ) -> None:
+        if not chat_turn_id or minister_name in self.session.temporary_characters:
+            return
+        combined = f"{user_text}\n{answer}"
+        if not re.search(r"政|旨|诏|办|查|任|罢|饷|银|税|粮|兵|厂卫|内廷|司礼监|太监|宦官|净身|入宫|清流|东林|阉党|密令|举荐|铨选|调任|下狱|抄家", combined):
+            return
+        hard_oppose = re.search(
+            r"万不可|断不可|绝不可|不可行|不可为|臣不敢从|臣不敢奉诏|不能从|不能奉行|难以奉行|不愿奉行|恕难奉行|请陛下收回成命",
+            answer,
+        )
+        soft_oppose = re.search(r"不宜|不当|请陛下三思|恐不可|不可急|不可骤|不可轻", answer)
+        support = re.search(r"臣愿|愿为陛下|臣领旨|遵旨|可行|可以|臣以为可|宜行|应当|当奉旨|愿领|敢不奉行", answer)
+        caution = re.search(r"但|只是|须|需|若|恐|难|银|人手|名分|期限|掣肘|反噬|阻", answer)
+        if hard_oppose:
+            stance = "oppose"
+            confidence = 5
+        elif support and caution:
+            stance = "caution"
+            confidence = 4
+        elif soft_oppose and caution:
+            stance = "caution"
+            confidence = 4
+        elif soft_oppose:
+            stance = "oppose"
+            confidence = 4
+        elif support:
+            stance = "support"
+            confidence = 4
+        elif caution:
+            stance = "caution"
+            confidence = 3
+        else:
+            stance = "neutral"
+            confidence = 2
+        stance, confidence, behavior_profile = self._adjust_stance_by_persona(
+            minister_name,
+            combined,
+            answer,
+            stance,
+            confidence,
+            hard_oppose=bool(hard_oppose),
+            soft_oppose=bool(soft_oppose),
+            support=bool(support),
+            caution=bool(caution),
+        )
+        conditions = self._extract_conditions(answer)
+        related_issue_id = self._related_issue_for_chat(combined)
+        related_issue_title = ""
+        if related_issue_id:
+            try:
+                issue_row = self.db.conn.execute("SELECT title FROM issues WHERE id=?", (related_issue_id,)).fetchone()
+                related_issue_title = str(issue_row["title"] or "") if issue_row else ""
+            except Exception:
+                related_issue_title = ""
+        negotiation = evaluate_negotiation(
+            self.content.characters.get(minister_name),
+            user_text,
+            answer,
+            stance,
+            conditions,
+            related_issue_title,
+        )
+        topic = negotiation.core_topic or re.sub(r"\s+", " ", user_text).strip()
+        topic = re.sub(r"^(朕|我|你|卿|问|请|拟|密令|旨意)[:：，,\s]*", "", topic)[:80] or "本次奏对事项"
+        summary = {
+            "support": f"{minister_name}已表示愿意支持/承办此事。",
+            "oppose": f"{minister_name}明确反对或不愿奉行此事。",
+            "caution": f"{minister_name}附条件赞成或有重大保留。",
+            "neutral": f"{minister_name}未给出明确承诺，只作一般分析。",
+        }[stance]
+        if conditions:
+            summary += f" 条件/顾虑：{conditions}"
+        summary += f" 奏对量表：{handshake_label(negotiation.handshake_status)}，{negotiation.psychological_score}/{negotiation.threshold}。"
+        evidence, risk_tags, execution_hint = self._stance_evidence_from_chat(
+            minister_name, user_text, answer, stance, conditions, behavior_profile=behavior_profile
+        )
+        if negotiation.handshake_status == HANDSHAKE_SEALED:
+            execution_hint = "已形成握手协议；嘴炮可解仅在无待办条件且月末仍会检验实际资源与外部阻力。" if negotiation.verbal_only else execution_hint
+        elif negotiation.handshake_status == HANDSHAKE_CONDITIONAL:
+            execution_hint = "附条件松口，不算成功说服；必须完成履约 todo 后，才能把它当作执行背书。"
+        elif negotiation.handshake_status == HANDSHAKE_BLOCKED:
+            execution_hint = "心理量表未握手；若强推，应按强旨/政治高压处理，而不是自愿配合。"
+        psychological = {
+            "action_kind": negotiation.action_kind,
+            "handshake_status": negotiation.handshake_status,
+            "score": negotiation.psychological_score,
+            "threshold": negotiation.threshold,
+            "verbal_only": negotiation.verbal_only,
+            "explicit_commitment": negotiation.explicit_commitment,
+            "core_topic": negotiation.core_topic,
+            "target_text": negotiation.target_text,
+            "promise_type": negotiation.promise_type,
+            "stakes": negotiation.stakes,
+            "due_turns": negotiation.due_turns,
+            "tasks": negotiation.tasks,
+            "blockers": negotiation.blockers,
+            "factors": negotiation.factors,
+            "persona_behavior": behavior_profile,
+        }
+        stance_id = self.db.record_minister_stance(
+            self.state,
+            minister_name,
+            topic=topic,
+            stance=stance,
+            confidence=confidence,
+            summary=summary,
+            conditions=conditions,
+            related_issue_id=self._related_issue_for_chat(combined),
+            source_chat_turn_id=chat_turn_id,
+            user_message=user_text,
+            minister_answer=answer,
+            evidence=evidence,
+            risk_tags=risk_tags,
+            execution_hint=execution_hint,
+            handshake_status=negotiation.handshake_status,
+            psychological_score=negotiation.psychological_score,
+            psychological=psychological,
+        )
+        try:
+            self.db.apply_chat_xinpan_update(
+                self.state,
+                minister_name,
+                user_text,
+                answer,
+                stance=stance,
+                handshake_status=negotiation.handshake_status,
+                psychological_score=negotiation.psychological_score,
+                source_chat_turn_id=chat_turn_id,
+            )
+        except Exception as exc:
+            print(f"[WARN] 心盘召对更新失败：{exc}")
+        if negotiation.action_kind != "general" and negotiation.handshake_status != "none":
+            if negotiation.handshake_status == HANDSHAKE_SEALED:
+                agreement_status = "sealed"
+            elif negotiation.handshake_status == HANDSHAKE_CONDITIONAL:
+                agreement_status = "pending"
+            else:
+                agreement_status = "blocked"
+            agreement_id = self.db.create_negotiation_agreement(
+                self.state,
+                minister_name=minister_name,
+                topic=topic,
+                action_kind=negotiation.action_kind,
+                status=agreement_status,
+                stance_id=stance_id,
+                handshake_status=negotiation.handshake_status,
+                psychological_score=negotiation.psychological_score,
+                threshold=negotiation.threshold,
+                verbal_only=negotiation.verbal_only,
+                core_topic=negotiation.core_topic,
+                target_text=negotiation.target_text,
+                promise_type=negotiation.promise_type,
+                stakes=negotiation.stakes,
+                due_turn=self.state.turn + negotiation.due_turns if negotiation.due_turns else 0,
+                conditions=conditions,
+                summary=summary,
+                tasks=negotiation.tasks,
+            )
+            self.db.update_minister_stance_agreement(stance_id, agreement_id)
 
     def _start_chat_turn(self, minister_name: str) -> tuple[int, Dict[str, Any]]:
         agno_session_id = self._minister_agno_session_id(minister_name)
@@ -972,6 +2514,7 @@ class WebGame:
         character = self.session._character(minister_name)
         return {
             "minister": minister_name,
+            "minister_profile": self.public_character(character),
             "undone_chat_turn_id": int(undone["id"]),
             "history": self.chat_history.get(minister_name, []),
             "directives": [self.directive_payload(row) for row in self.directive_rows()],
@@ -991,7 +2534,10 @@ class WebGame:
         appointed_minister: str = "",
         registered_minister: str = "",
         displaced_minister: str = "",
+        displaced_effect: Optional[Dict[str, Any]] = None,
         secret_order_id: int = 0,
+        secret_order_assignee: str = "",
+        secret_order_effect: Optional[Dict[str, Any]] = None,
         chat_turn_id: int = 0,
     ) -> Dict[str, Any]:
         character = self.session._character(minister_name)
@@ -1002,6 +2548,7 @@ class WebGame:
                 self.db.update_chat_turn_messages(chat_turn_id, minister_message_id=message_id)
         return {
             "minister": minister_name,
+            "minister_profile": self.public_character(character),
             "answer": answer,
             "history": self.chat_history[minister_name],
             "court_action": court_action,
@@ -1010,7 +2557,10 @@ class WebGame:
             "appointed_minister": appointed_minister,
             "registered_minister": registered_minister,
             "displaced_minister": displaced_minister,
+            "displaced_effect": displaced_effect or {},
             "secret_order_id": secret_order_id or 0,
+            "secret_order_assignee": secret_order_assignee,
+            "secret_order_effect": secret_order_effect or {},
             "directives": [self.directive_payload(row) for row in self.directive_rows()],
             "pending_count": self.session.pending_count(),
             "suggestions": self.suggestions_for(character),
@@ -1025,6 +2575,7 @@ class WebGame:
             raise HTTPException(status_code=400, detail="问话不能为空。")
         chat_turn_id = 0
         before_snapshot: Dict[str, Any] = {}
+        history_before_len = len(self.chat_history.get(minister_name, []))
         if self._persistent_chat_minister(minister_name):
             chat_turn_id, before_snapshot = self._start_chat_turn(minister_name)
         self.chat_history.setdefault(minister_name, []).append({"role": "user", "content": text})
@@ -1034,22 +2585,40 @@ class WebGame:
                 self.db.update_chat_turn_messages(chat_turn_id, user_message_id=message_id)
         try:
             result = self.session.chat(minister_name, text)
+            self._record_stance_from_chat(minister_name, text, result.answer, chat_turn_id)
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
         except Exception:
             if chat_turn_id:
-                self.db.mark_chat_turn_failed(chat_turn_id)
+                self.db.abort_chat_turn(chat_turn_id, before_snapshot)
+            self.chat_history[minister_name] = self.chat_history.get(minister_name, [])[:history_before_len]
             raise
         proposed = None
         if result.proposed_directive is not None:
             d = result.proposed_directive
-            proposed = {"id": d.id, "text": d.text, "status": d.status, "notes": d.notes}
+            proposed = {
+                "id": d.id,
+                "text": d.text,
+                "status": d.status,
+                "source": d.source,
+                "actor": d.actor,
+                "notes": d.notes,
+            }
+        for portrait_name, reason in (
+            (result.appointed_minister, "吏部铨选"),
+            (result.registered_minister, "名册补档"),
+        ):
+            if portrait_name:
+                self.maybe_queue_portrait_generation(portrait_name, reason)
         return self._chat_payload(
             minister_name, result.answer,
             court_action=result.court_action, next_minister=result.next_minister,
             proposed_directive=proposed, appointed_minister=result.appointed_minister,
             registered_minister=result.registered_minister,
             displaced_minister=result.displaced_minister,
+            displaced_effect=result.displaced_effect,
             secret_order_id=result.secret_order_id,
+            secret_order_assignee=result.secret_order_assignee,
+            secret_order_effect=result.secret_order_effect,
             chat_turn_id=chat_turn_id,
         )
 
@@ -1063,6 +2632,7 @@ class WebGame:
             return
         chat_turn_id = 0
         before_snapshot: Dict[str, Any] = {}
+        history_before_len = len(self.chat_history.get(minister_name, []))
         if self._persistent_chat_minister(minister_name):
             chat_turn_id, before_snapshot = self._start_chat_turn(minister_name)
         self.chat_history.setdefault(minister_name, []).append({"role": "user", "content": text})
@@ -1073,9 +2643,26 @@ class WebGame:
         character = self.session._character(minister_name)
         chunks: List[str] = []
         try:
+            if self.session.registry is None:
+                raise RuntimeError("GameSession.begin_turn() 未调用。")
             agent = self.session.registry.get(character)
+            augmented = self.session._retrieve_memories_for_message(text)
+            try:
+                xinpan_profile = self.db.get_xinpan_profile(character.name, self.state)
+            except Exception:
+                xinpan_profile = {}
+            behavior_brief = npc_dialogue_behavior_brief(
+                character.name,
+                xinpan_profile=xinpan_profile if isinstance(xinpan_profile, dict) else {},
+                text=text,
+            )
+            if behavior_brief:
+                augmented = f"{behavior_brief}\n\n{augmented}"
+            draft_line = self.session.registry.build_draft_line()
+            if draft_line and draft_line != "无":
+                augmented = f"【本月已核定草案】{draft_line}\n\n{augmented}"
             run_output = None
-            stream = agent.run(text, stream=True, stream_events=True, yield_run_output=True)
+            stream = agent.run(augmented, stream=True, stream_events=True, yield_run_output=True)
             for event in stream:
                 content = getattr(event, "content", None)
                 event_name = getattr(event, "event", "")
@@ -1101,7 +2688,10 @@ class WebGame:
             court_action = ""
             next_minister = ""
             displaced = ""
+            displaced_effect: Dict[str, Any] = {}
             secret_order_id = 0
+            secret_order_assignee = ""
+            secret_order_effect: Dict[str, Any] = {}
             if run_output is not None:
                 for tool_exec in getattr(run_output, "tools", None) or []:
                     res = str(getattr(tool_exec, "result", "") or "")
@@ -1111,19 +2701,13 @@ class WebGame:
                         if not draft_text:
                             args = getattr(tool_exec, "arguments", {}) or getattr(tool_exec, "tool_args", {}) or {}
                             draft_text = (args.get("decree_text") or "").strip()
-                        if draft_text:
-                            did = self.db.add_directive(
-                                self.state, None, draft_text, "大臣拟旨",
-                                notes=f"由{character.name}拟旨入档", status="pending",
-                            )
-                            proposed = {"id": did, "text": draft_text, "status": "pending",
-                                        "notes": f"由{character.name}拟旨入档"}
+                        proposed = self._record_pending_directive(character, draft_text)
                     elif tool_name == "propose_appointment" or res.startswith("__pending_appointment__"):
                         payload_json = res.removeprefix("__pending_appointment__").strip()
                         if not payload_json:
                             args = getattr(tool_exec, "arguments", {}) or getattr(tool_exec, "tool_args", {}) or {}
                             payload_json = json.dumps(args, ensure_ascii=False)
-                        appointed, displaced = self.session._apply_appointment(payload_json, character)
+                        appointed, displaced, displaced_effect = self.session._apply_appointment(payload_json, character)
                     elif tool_name == "register_unlisted_person" or res.startswith("__pending_unlisted_person__"):
                         payload_json = res.removeprefix("__pending_unlisted_person__").strip()
                         if not payload_json:
@@ -1154,30 +2738,52 @@ class WebGame:
                         court_action = "dismiss"
                     elif tool_name == "issue_secret_order" or res.startswith("__secret_order_registered__") or res.startswith("__secret_order__"):
                         if res.startswith("__secret_order_registered__"):
-                            try:
-                                secret_order_id = int(res.split("__")[3])
-                            except Exception:
-                                secret_order_id = 0
+                            secret_order_id, secret_order_assignee = _parse_registered_secret_order_result(res)
                         else:
                             payload_json = res.removeprefix("__secret_order__").strip()
                             if not payload_json:
                                 args = getattr(tool_exec, "arguments", {}) or getattr(tool_exec, "tool_args", {}) or {}
                                 payload_json = json.dumps(args, ensure_ascii=False)
+                            try:
+                                payload_data = json.loads(payload_json) if payload_json else {}
+                                if isinstance(payload_data, dict):
+                                    secret_order_assignee = str(payload_data.get("assignee") or "").strip() or minister_name
+                            except (TypeError, ValueError):
+                                secret_order_assignee = minister_name
                             secret_order_id = self.session._apply_secret_order(payload_json, minister_name)
+                        if secret_order_id:
+                            secret_order_effect = self.session.record_secret_order_effect(
+                                secret_order_id,
+                                secret_order_assignee or minister_name,
+                            )
                     # 密令结案不再走大臣工具，由月末推演 + extractor 写入
+            self._record_stance_from_chat(minister_name, text, answer, chat_turn_id)
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
+            for portrait_name, reason in (
+                (appointed, "吏部铨选"),
+                (registered, "名册补档"),
+            ):
+                if portrait_name:
+                    self.maybe_queue_portrait_generation(portrait_name, reason)
             payload = self._chat_payload(
                 minister_name, answer, court_action=court_action, next_minister=next_minister,
                 proposed_directive=proposed, appointed_minister=appointed,
                 registered_minister=registered,
                 displaced_minister=displaced,
+                displaced_effect=displaced_effect,
                 secret_order_id=secret_order_id,
+                secret_order_assignee=secret_order_assignee,
+                secret_order_effect=secret_order_effect,
                 chat_turn_id=chat_turn_id,
             )
             yield {"type": "done", "payload": payload}
         except Exception as error:
             if chat_turn_id:
-                self.db.mark_chat_turn_failed(chat_turn_id)
+                try:
+                    self.db.abort_chat_turn(chat_turn_id, before_snapshot)
+                except Exception:
+                    self.db.mark_chat_turn_failed(chat_turn_id)
+            self.chat_history[minister_name] = self.chat_history.get(minister_name, [])[:history_before_len]
             if isinstance(error, LLMUnavailable):
                 yield {"type": "error", "detail": _llm_error_detail(error)}
             else:
@@ -1213,13 +2819,6 @@ def get_game() -> WebGame:
     if web_game is None:
         raise HTTPException(status_code=409, detail="尚未开局，请回菜单选择新游戏/继续/加载存档。")
     return web_game
-
-
-def _save_visible_for_campaign(fname: str, campaign_id: str) -> bool:
-    if not fname.startswith(AUTO_SAVE_PREFIX):
-        return True
-    campaign_id = (campaign_id or "").strip()
-    return bool(campaign_id and fname.startswith(f"{AUTO_SAVE_PREFIX}{campaign_id}_"))
 
 
 # 自动存档文件名：auto_<campaign_id>_<year>_<period>_t<turn>_<tag>.db
@@ -1559,11 +3158,63 @@ async def api_state() -> Dict[str, Any]:
     return get_game().state_payload()
 
 
+@app.get("/api/organizations")
+async def api_organizations() -> Dict[str, Any]:
+    return get_game().organization_payload()
+
+
+@app.post("/api/organizations/custom")
+async def api_add_custom_institution(body: CustomInstitutionRequest) -> Dict[str, Any]:
+    game = get_game()
+    item = game.add_custom_institution(body.name, body.category, body.mandate, body.slots)
+    return {
+        "message": f"已增设{item['name']}，空缺已进入组织图。",
+        "organizations": game.organization_payload(),
+    }
+
+
+@app.post("/api/recruitment/exam")
+async def api_recruit_exam() -> Dict[str, Any]:
+    return get_game().recruit_exam_official()
+
+
+@app.post("/api/recruitment/eunuch")
+async def api_recruit_eunuch() -> Dict[str, Any]:
+    return get_game().recruit_eunuch()
+
+
+@app.post("/api/recruitment/recommend")
+async def api_recommend_hidden() -> Dict[str, Any]:
+    return get_game().recommend_hidden_official()
+
+
+@app.post("/api/recruitment/castrate")
+async def api_castrate_official(body: CastrateRequest) -> Dict[str, Any]:
+    return get_game().castrate_official(body.name, force=body.force)
+
+
+@app.post("/api/recruitment/emancipate")
+async def api_emancipate_eunuch(body: CastrateRequest) -> Dict[str, Any]:
+    return get_game().emancipate_eunuch(body.name, force=body.force)
+
+
 @app.get("/api/secret_orders")
 async def api_secret_orders(status: str = "") -> Dict[str, Any]:
     """列出密令。status 为空返回全部，否则按 active/done/failed 过滤。"""
     orders = get_game().db.list_secret_orders(status=status or None)
     return {"orders": orders}
+
+
+@app.get("/api/agreements")
+async def api_agreements(minister_name: str = "") -> Dict[str, Any]:
+    """列出奏对协议与履约 todo。"""
+    return {"agreements": get_game().agreement_payload(minister_name=minister_name)}
+
+
+@app.patch("/api/agreements/tasks/{task_id}")
+async def api_update_agreement_task(task_id: int, body: AgreementTaskPatch) -> Dict[str, Any]:
+    """旧手动履约入口保留为兼容路由，但不再允许玩家自点完成。"""
+    raise HTTPException(status_code=409, detail="履约已改为系统自动判定：请通过诏书、邸报或明确落库事实形成证据。")
 
 
 @app.get("/api/turn_extraction")
@@ -1619,6 +3270,14 @@ async def api_buildings(region_id: str = "") -> Dict[str, Any]:
     return {"buildings": get_game().db.building_payload(region_id)}
 
 
+@app.get("/api/characters/{character_name}")
+async def api_character_detail(character_name: str) -> Dict[str, Any]:
+    character = get_game().content.characters.get(character_name)
+    if character is None:
+        raise HTTPException(status_code=404, detail=f"未找到人物：{character_name}")
+    return {"character": get_game().public_character(character)}
+
+
 @app.post("/api/favorites/{minister_name}")
 async def api_add_favorite(minister_name: str) -> Dict[str, Any]:
     if minister_name not in get_game().content.characters:
@@ -1637,21 +3296,21 @@ async def api_remove_favorite(minister_name: str) -> Dict[str, Any]:
 
 _STATUS_LABEL_WEB = {
     "active": "在朝", "offstage": "尚未登场", "dead": "已殁", "dismissed": "已罢黜",
-    "imprisoned": "下狱", "exiled": "流放", "retired": "致仕",
+    "imprisoned": "下狱", "exiled": "流放", "retired": "致仕", "candidate": "待选",
 }
 
 
-def _require_active_minister(minister_name: str) -> None:
+def _require_active_minister(minister_name: str, action_label: str = "召见") -> None:
     if minister_name in get_game().session.temporary_characters:
         return
     if minister_name not in get_game().content.characters:
         raise HTTPException(status_code=404, detail=f"未找到人物：{minister_name}")
     if get_game().character_power_id(get_game().content.characters[minister_name]) != "ming":
-        raise HTTPException(status_code=409, detail=f"{minister_name}不属大明朝廷，无法召见。")
+        raise HTTPException(status_code=409, detail=f"{minister_name}不属大明朝廷，无法{action_label}。")
     status, reason = get_game().db.get_character_status(minister_name)
     if status != "active":
         label = _STATUS_LABEL_WEB.get(status, status)
-        detail = f"{minister_name}已{label}，无法召见。" + (reason or "")
+        detail = f"{minister_name}{label}，无法{action_label}。" + (reason or "")
         raise HTTPException(status_code=409, detail=detail.strip())
 
 
@@ -1671,23 +3330,25 @@ async def api_chat_history(minister_name: str) -> Dict[str, Any]:
 async def api_create_secret_order(minister_name: str, request: SecretOrderRequest) -> Dict[str, Any]:
     """皇帝直接下达密令，不经 LLM，直接落库。"""
     game = get_game()
+    _require_active_minister(minister_name, "下达密令")
     character = game.session.content.characters.get(minister_name)
     if not character:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail=f"未找到大臣：{minister_name}")
     if game.character_power_id(character) != "ming":
-        from fastapi import HTTPException
         raise HTTPException(status_code=409, detail=f"{minister_name}不属大明朝廷，无法下达密令。")
     title = request.title.strip()[:20]
     content = request.content.strip()
     if not title or not content:
-        from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="title 和 content 不能为空")
-    order_id = game.db.create_secret_order(
-        game.session.state, minister_name, title, content, request.tags, deadline_months=request.deadline_months
-    )
+    try:
+        order_id = game.db.create_secret_order(
+            game.session.state, minister_name, title, content, request.tags, deadline_months=request.deadline_months
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
+    effect = game.session.record_secret_order_effect(order_id, minister_name)
     print(f"[secret_order/api] 直接落库 minister={minister_name} title={title!r} id={order_id}")
-    return {"order_id": order_id, "minister_name": minister_name, "title": title, "status": "active"}
+    return {"order_id": order_id, "minister_name": minister_name, "title": title, "status": "active", "effect": effect}
 
 
 @app.post("/api/ministers/{minister_name}/chat")
@@ -1722,7 +3383,10 @@ async def api_chat_stream(minister_name: str, request: ChatRequest) -> Streaming
 async def api_create_directive(request: DirectiveRequest) -> Dict[str, Any]:
     if not request.text.strip():
         raise HTTPException(status_code=400, detail="指令内容不能为空。")
-    dv = get_game().session.add_directive(request.text.strip(), notes=request.notes)
+    try:
+        dv = get_game().session.add_directive(request.text.strip(), notes=request.notes)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
     return {
         "directive": {"id": dv.id, "text": dv.text, "status": dv.status},
         "directives": [get_game().directive_payload(item) for item in get_game().directive_rows()],
@@ -1738,20 +3402,29 @@ async def api_update_directive(directive_id: int, request: DirectivePatch) -> Di
     text = request.text if request.text is not None else str(row["text"])
     if not text.strip():
         raise HTTPException(status_code=400, detail="指令内容不能为空。")
-    get_game().session.update_directive(directive_id, text.strip())
+    try:
+        get_game().session.update_directive(directive_id, text.strip())
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
     return {"directives": [get_game().directive_payload(item) for item in get_game().directive_rows()]}
 
 
 @app.delete("/api/directives/{directive_id}")
 async def api_delete_directive(directive_id: int) -> Dict[str, Any]:
-    get_game().session.delete_directive(directive_id)
+    try:
+        get_game().session.delete_directive(directive_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
     return {"directives": [get_game().directive_payload(item) for item in get_game().directive_rows()]}
 
 
 @app.post("/api/directives/{directive_id}/confirm")
 async def api_confirm_directive(directive_id: int) -> Dict[str, Any]:
     """大臣拟旨经皇帝核定：pending → draft。"""
-    get_game().session.confirm_directive(directive_id)
+    try:
+        get_game().session.confirm_directive(directive_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
     return {
         "directives": [get_game().directive_payload(item) for item in get_game().directive_rows()],
         "pending_count": get_game().session.pending_count(),
@@ -1761,7 +3434,10 @@ async def api_confirm_directive(directive_id: int) -> Dict[str, Any]:
 @app.post("/api/directives/{directive_id}/reject")
 async def api_reject_directive(directive_id: int) -> Dict[str, Any]:
     """皇帝驳回大臣拟旨：pending → rejected。"""
-    get_game().session.reject_directive(directive_id)
+    try:
+        get_game().session.reject_directive(directive_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
     return {
         "directives": [get_game().directive_payload(item) for item in get_game().directive_rows()],
         "pending_count": get_game().session.pending_count(),
@@ -1799,13 +3475,16 @@ class IssueDecreeRequest(BaseModel):
 @app.post("/api/decree/issue")
 async def api_issue_decree(body: IssueDecreeRequest = IssueDecreeRequest()) -> Dict[str, Any]:
     """非流式颁诏（保留兼容）。前端默认走 /api/decree/issue/stream。"""
+    game = get_game()
+    portrait_before = game.portrait_generation_signatures()
     try:
-        report = get_game().session.resolve_turn(cheat_directive=body.cheat)
+        report = game.session.resolve_turn(cheat_directive=body.cheat)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from None
-    decree = get_game().session.last_decree
-    get_game().refresh_turn()
-    return {"decree": decree, "report": report, "state": get_game().state_payload()}
+    decree = game.session.last_decree
+    game.refresh_turn()
+    portrait_jobs = game.queue_portrait_generation_for_signature_changes(portrait_before, "月末职服变化")
+    return {"decree": decree, "report": report, "state": game.state_payload(), "portrait_jobs": portrait_jobs}
 
 
 @app.post("/api/decree/issue/stream")
@@ -1823,13 +3502,17 @@ async def api_issue_decree_stream(body: IssueDecreeRequest = IssueDecreeRequest(
 
     def worker() -> None:
         try:
-            report = get_game().session.resolve_turn(on_event=on_event, cheat_directive=body.cheat)
-            decree = get_game().session.last_decree
-            get_game().refresh_turn()
+            game = get_game()
+            portrait_before = game.portrait_generation_signatures()
+            report = game.session.resolve_turn(on_event=on_event, cheat_directive=body.cheat)
+            decree = game.session.last_decree
+            game.refresh_turn()
+            portrait_jobs = game.queue_portrait_generation_for_signature_changes(portrait_before, "月末职服变化")
             ev_queue.put(("__done__", {
                 "decree": decree,
                 "report": report,
-                "state": get_game().state_payload(),
+                "state": game.state_payload(),
+                "portrait_jobs": portrait_jobs,
             }))
         except ValueError as e:
             ev_queue.put(("__error__", str(e)))
@@ -1875,10 +3558,13 @@ class LLMConfigRequest(BaseModel):
 @app.get("/api/consorts/candidates")
 async def api_consort_candidates() -> Dict[str, Any]:
     """返回 status=candidate 的待选秀女，供选妃事件展示。"""
+    game = get_game()
     candidates = [
-        get_game().public_character(c)
-        for c in get_game().content.characters.values()
-        if c.office_type == "后宫" and c.status == "candidate" and get_game().character_power_id(c) == "ming"
+        game.public_character(c)
+        for c in game.content.characters.values()
+        if c.office_type == "后宫"
+        and game.db.get_character_status(c.name)[0] == "candidate"
+        and game.character_power_id(c) == "ming"
     ]
     return {"candidates": candidates}
 
@@ -1890,8 +3576,11 @@ async def api_select_consort(name: str) -> Dict[str, Any]:
     consort = game.content.characters.get(name)
     if consort is None or consort.office_type != "后宫":
         raise HTTPException(status_code=404, detail=f"未找到候选秀女：{name}")
-    if consort.status != "candidate":
-        raise HTTPException(status_code=409, detail=f"{name} 当前状态为 {consort.status}，不可再选。")
+    status, reason = game.db.get_character_status(name)
+    if status != "candidate":
+        label = _STATUS_LABEL_WEB.get(status, status)
+        suffix = f"（{reason}）" if reason else ""
+        raise HTTPException(status_code=409, detail=f"{name} 当前状态为 {label}{suffix}，不可再选。")
     game.db.set_character_office(name, "嫔", "后宫", source="皇帝选妃")
     game.db.set_character_status(game.state, name, "active", "皇帝选中入宫")
     consort.office = "嫔"
@@ -1900,7 +3589,13 @@ async def api_select_consort(name: str) -> Dict[str, Any]:
     # 同步进 registry（新增 agent）
     game.session.registry.register(consort)
     game.chat_history.setdefault(name, [])
+    game.maybe_queue_portrait_generation(consort.name, "皇帝选妃")
     return {"selected": game.public_character(consort)}
+
+
+@app.post("/api/consorts/{name}/action")
+async def api_consort_action(name: str, body: ConsortActionRequest) -> Dict[str, Any]:
+    return get_game().perform_consort_action(name, body.action)
 
 
 @app.get("/api/saves")
@@ -2016,6 +3711,76 @@ def _find_portrait_file(name: str) -> Optional[str]:
     return None
 
 
+def _static_portrait_exists(filename: str) -> bool:
+    """检查随包/源码静态立绘是否存在。"""
+    clean = os.path.basename(str(filename or ""))
+    if not clean:
+        return False
+    for base in (
+        bundled_path("web", "public", "portraits"),
+        bundled_path("web", "dist", "portraits"),
+    ):
+        if os.path.exists(os.path.join(str(base), clean)):
+            return True
+    return False
+
+
+@app.get("/portraits/generated/{asset_id}.png")
+async def api_generated_portrait(asset_id: str) -> Response:
+    clean = re.sub(r"[^0-9a-f]", "", asset_id.lower())[:40]
+    if not clean:
+        raise HTTPException(status_code=404, detail="立绘不存在")
+    row = get_game().db.get_portrait_asset(clean)
+    if row is None or str(row["status"] or "") != "ready" or row["image_blob"] is None:
+        raise HTTPException(status_code=404, detail="立绘尚未绘成")
+    return Response(
+        content=bytes(row["image_blob"]),
+        media_type=str(row["mime_type"] or "image/png"),
+        headers={"Cache-Control": "private, max-age=3600"},
+    )
+
+
+@app.post("/api/portraits/{name}/generate")
+async def api_generate_portrait(name: str) -> Dict[str, Any]:
+    game = get_game()
+    job = game.queue_portrait_generation(name, "皇命重绘")
+    character = game.find_character(name)
+    return {"job": job, "character": game.public_character(character) if character else None}
+
+
+@app.get("/api/portraits/{name}/status")
+async def api_portrait_status(name: str) -> Dict[str, Any]:
+    game = get_game()
+    character = game.find_character(name)
+    if character is None:
+        raise HTTPException(status_code=404, detail=f"未找到人物：{name}")
+    spec = build_portrait_spec(character, game.state, game.session.campaign_id)
+    dna_row = game.db.get_portrait_asset(spec.dna_asset_id)
+    dna_status = str(dna_row["status"] or "pending") if dna_row is not None else "missing"
+    row = game.db.latest_character_portrait_asset(character.name)
+    if row is None:
+        return {
+            "name": character.name,
+            "status": "missing",
+            "dna_seed": spec.dna_seed,
+            "dna_asset_id": spec.dna_asset_id,
+            "dna_status": dna_status,
+            "wardrobe_key": spec.wardrobe_key,
+            "portrait_id": character.portrait_id,
+        }
+    return {
+        "name": character.name,
+        "asset_id": row["asset_id"],
+        "status": row["status"],
+        "error": row["error"],
+        "dna_seed": row["dna_seed"],
+        "dna_asset_id": spec.dna_asset_id,
+        "dna_status": dna_status,
+        "wardrobe_key": row["wardrobe_key"],
+        "portrait_id": character.portrait_id,
+    }
+
+
 @app.post("/api/consorts/{name}/portrait")
 async def api_upload_portrait(name: str, file: UploadFile = File(...)) -> Dict[str, Any]:
     # 只接受已存在的人物名 → 集合固定，杜绝路径穿越/任意写。
@@ -2030,13 +3795,21 @@ async def api_upload_portrait(name: str, file: UploadFile = File(...)) -> Dict[s
         raise HTTPException(status_code=400, detail="文件为空")
     if len(data) > MAX_PORTRAIT_BYTES:
         raise HTTPException(status_code=400, detail="图片过大（上限 8MB）")
+    processed = normalize_portrait_png(
+        data,
+        target_width=512,
+        target_aspect_ratio=PORTRAIT_ASPECT_RATIO,
+        cutout_background=True,
+    )
+    if detect_image_mime(processed) != "image/png":
+        raise HTTPException(status_code=400, detail="图片无法解析或后处理失败")
     os.makedirs(UPLOAD_PORTRAIT_DIR, exist_ok=True)
-    # 先清掉该人物的旧图（可能扩展名不同），再写新图。
+    # 后处理成功后再清旧图，避免失败上传导致原立绘丢失。
     old = _find_portrait_file(name)
     if old is not None:
         os.remove(old)
-    with open(os.path.join(UPLOAD_PORTRAIT_DIR, f"{name}.{ext}"), "wb") as fh:
-        fh.write(data)
+    with open(os.path.join(UPLOAD_PORTRAIT_DIR, f"{name}.png"), "wb") as fh:
+        fh.write(processed)
     get_game().set_custom_portrait(name, f"{CUSTOM_PORTRAIT_PREFIX}{name}")
     return {"name": name, "portrait_id": f"{CUSTOM_PORTRAIT_PREFIX}{name}"}
 

@@ -448,6 +448,61 @@ def create_json_sanitizer_agent(llm_config: LLMConfig, agno_db: SqliteDb) -> Age
     )
 
 
+AGREEMENT_REVIEWER_PROMPT = """
+你是大明奏对履约审计官。你只做结构化裁断，不写奏章。
+
+核心规则：
+1. 每条 agreement 有两个层次：
+   - target_text：履约标的，即官员被说服后同意做/接受/背书的事。
+   - tasks：履约条件，即皇帝必须先兑现的银两、人手、名分、官职、家眷保全、期限、保密等条件。
+2. 条件全部满足，标的才可达成。条件未全满足时，即便话语里说“愿意”，target_status 也只能是 pending_conditions。
+3. 不要因为邸报夸饰或“意向可行”就判满足；必须能从 evidence_context 找到诏书、草案、邸报或落库事实中的明确证据。
+4. 条件若被驳回、未拨、未安置、强行绕过、逾期未见证据，判 failed。
+5. 无 tasks 的协议，条件视为 satisfied；若原握手有效且无相反证据，target_status 为 achieved。
+
+请只输出合法 JSON：
+{
+  "reviews": [
+    {
+      "agreement_id": 1,
+      "condition_status": "pending|satisfied|failed",
+      "target_status": "pending_conditions|achieved|failed|blocked",
+      "condition_score": 0,
+      "condition_evidence": "用一句话说明条件证据",
+      "target_evidence": "用一句话说明标的为何达成/未达成",
+      "reason": "简短总理由",
+      "task_reviews": [
+        {"task_id": 1, "status": "pending|done|failed", "evidence": "证据"}
+      ]
+    }
+  ]
+}
+
+只审输入里的 agreements，不要新增协议。不要输出 Markdown。
+""".strip()
+
+
+def create_agreement_reviewer_agent(llm_config: LLMConfig, agno_db: SqliteDb) -> Agent:
+    """奏对履约审计：判断条件是否满足、标的是否达成。一次性，不持久化。"""
+    del agno_db
+    cfg = _llm_for_role(llm_config, "extractor")
+    return Agent(
+        name="奏对履约审计官",
+        id="agreement-reviewer",
+        model=create_chat_model(
+            cfg,
+            temperature=0.1,
+            top_p=0.7,
+            max_tokens=max(1800, min(5000, cfg.max_tokens)),
+            enable_thinking=False,
+            force_json_output=True,
+        ),
+        instructions=[_ctx().game_world_prompt, AGREEMENT_REVIEWER_PROMPT],
+        add_history_to_context=False,
+        markdown=False,
+    )
+
+
 def create_chapter_memory_agent(llm_config: LLMConfig, agno_db: SqliteDb) -> Agent:
     """章节记忆：把本回合诏书+邸报+落库效果浓缩成 {body, tags} JSON（body 叙事，tags 召回标签）。
     一次性，不持久化。"""

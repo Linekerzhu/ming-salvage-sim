@@ -21,6 +21,7 @@ import {
   ScrollText,
   Shield,
   Star,
+  Paintbrush,
   Target,
   Trash2,
   Swords,
@@ -31,6 +32,7 @@ import {
   Move,
   ZoomIn,
   ZoomOut,
+  Scroll,
 } from "lucide-react";
 import { EXTERNAL_PATH_GROUPS, MAP_VIEW_BOX, REGION_PATH_GROUPS } from "./mapPaths";
 import "./styles.css";
@@ -108,6 +110,239 @@ type Building = {
   origin: string;
 };
 
+type OrgSlot = {
+  title: string;
+  office_type: string;
+  count: number;
+  holders: Minister[];
+  filled_count?: number;
+  vacancies: number;
+  overflow_count?: number;
+  open_pool?: boolean;
+  match_hint?: string;
+};
+
+type Institution = {
+  id: string;
+  name: string;
+  category: string;
+  mandate: string;
+  custom?: boolean;
+  readiness?: number;
+  coverage?: number;
+  holder_quality?: number;
+  execution_summary?: string;
+  execution_risks?: string[];
+  slots: OrgSlot[];
+  vacancy_count: number;
+  holder_count?: number;
+};
+
+type OrganizationPayload = {
+  institutions: Institution[];
+  vacancy_count: number;
+  custom_count: number;
+  assigned_count?: number;
+  unassigned?: Minister[];
+  court_readiness?: number;
+  risk_count?: number;
+  execution_summary?: string;
+  overloaded_holders?: Array<{ name: string; slot_count: number }>;
+};
+
+type TiangangDimension = {
+  id?: string;
+  symbol: string;
+  name: string;
+  type: string;
+  band?: {
+    tone?: "left" | "center" | "right";
+    left: number;
+    width: number;
+  };
+  poles?: {
+    left: string;
+    right: string;
+  };
+};
+
+type TiangangGroup = {
+  name: string;
+  dimensions: TiangangDimension[];
+};
+
+type TiangangProfile = {
+  archetype: string;
+  hidden: boolean;
+  derived?: boolean;
+  groups: TiangangGroup[];
+};
+
+type XinpanConcern = {
+  dim_id: string;
+  symbol: string;
+  name: string;
+  npc_value?: number;
+  weight?: number;
+  perceived_player_value?: number;
+  reason?: string;
+};
+
+type XinpanAbility = {
+  dim_id: string;
+  symbol: string;
+  name: string;
+  band?: string;
+};
+
+type XinpanTrajectoryPoint = {
+  turn: number;
+  dao_he: number;
+  shi_he: number;
+  fear?: number;
+  hatred?: number;
+  trust_coeff?: number;
+  has_delta?: boolean;
+  dao_delta?: number;
+  shi_delta?: number;
+  fear_delta?: number;
+  hatred_delta?: number;
+  trust_delta?: number;
+  quadrant?: string;
+  event?: string;
+  source_kind?: string;
+};
+
+type XinpanProfile = {
+  quadrant: "股肱" | "权附" | "道隐" | "离心" | string;
+  dao_he: number;
+  shi_he: number;
+  fear: number;
+  trust_coeff: number;
+  hatred: number;
+  patience_threshold?: number;
+  dao_cutoff?: number;
+  shi_cutoff?: number;
+  core_concerns?: XinpanConcern[];
+  top_abilities?: XinpanAbility[];
+  behavior_hint?: string;
+  warnings?: string[];
+  trajectory?: XinpanTrajectoryPoint[];
+  updated_turn?: number;
+};
+
+type NetworkRelation = {
+  target: string;
+  type: string;
+  note?: string;
+  confidence?: string;
+  office?: string;
+  office_type?: string;
+  faction?: string;
+  status?: string;
+};
+
+type NetworkRecommendation = {
+  name: string;
+  office?: string;
+  office_type?: string;
+  faction?: string;
+  status?: string;
+  confidence?: string;
+  evidence?: string[];
+};
+
+type NetworkProfile = {
+  biography?: string;
+  ability_logic?: string;
+  growth_arc?: Record<string, string>;
+  relations?: NetworkRelation[];
+  recommendations?: NetworkRecommendation[];
+  derived?: boolean;
+};
+
+type StanceEvidenceDriver = {
+  kind: string;
+  text: string;
+};
+
+type StanceEvidence = {
+  drivers?: StanceEvidenceDriver[];
+  source?: string;
+};
+
+type StanceNote = {
+  id: number;
+  topic: string;
+  stance: "support" | "oppose" | "caution" | "neutral";
+  confidence: number;
+  summary: string;
+  conditions: string;
+  related_issue_id: number;
+  evidence?: StanceEvidence;
+  risk_tags_list?: string[];
+  execution_hint?: string;
+  handshake_status?: "sealed" | "conditional" | "blocked" | "none";
+  psychological_score?: number;
+  psychological?: {
+    threshold?: number;
+    verbal_only?: boolean;
+    tasks?: string[];
+    blockers?: string[];
+    action_kind?: string;
+  };
+  agreement_id?: number;
+};
+
+type AgreementTask = {
+  id: number;
+  description: string;
+  task_kind?: string;
+  status: "pending" | "done" | "failed";
+  evidence?: string;
+  last_checked_turn?: number;
+};
+
+type Agreement = {
+  id: number;
+  minister_name: string;
+  topic: string;
+  core_topic?: string;
+  target_text?: string;
+  action_kind: string;
+  promise_type?: string;
+  stakes?: string;
+  status: "sealed" | "pending" | "blocked" | "fulfilled" | "failed";
+  condition_status?: "pending" | "satisfied" | "failed";
+  target_status?: "pending_conditions" | "achieved" | "failed" | "blocked";
+  handshake_status: "sealed" | "conditional" | "blocked" | "none";
+  handshake_label?: string;
+  psychological_score: number;
+  threshold: number;
+  verbal_only?: boolean;
+  due_turn?: number;
+  fulfillment_score?: number;
+  fulfillment_evidence?: string;
+  target_evidence?: string;
+  execution_consequence?: string;
+  auto_review?: Record<string, unknown>;
+  llm_review?: Record<string, unknown>;
+  political_effect?: Record<string, unknown>;
+  conditions?: string;
+  summary?: string;
+  tasks?: AgreementTask[];
+};
+
+type CausalNote = {
+  kind: string;
+  tone?: "good" | "warn" | "bad" | "neutral";
+  title: string;
+  summary?: string;
+  drivers?: string[];
+  risks?: string[];
+  execution_hint?: string;
+};
+
 type MapNode = {
   id: string;
   kind: "region" | "theater" | "external";
@@ -152,15 +387,50 @@ type Minister = {
   office: string;  // 去职者已清空，可能为空串
   office_type: string;
   faction: string;
-  style: string;
   status: string;  // active/dismissed/imprisoned/exiled/retired/dead/offstage
   status_reason?: string;
   status_label: string;  // 中文：在朝/已罢黜/下狱/流放/致仕…
+  career_state?: string;
   summary: string;
+  birth_year?: number;
+  start_age?: number;
+  age_label?: string;
   favorite: boolean;
   portrait_id?: string;  // 空/undefined=无专属，前端 fallback 到池
+  portrait_available?: boolean;
+  portrait_status?: "ready" | "pending" | "error" | "missing" | string;
+  portrait_error?: string;
+  portrait_dna_seed?: string;
+  portrait_wardrobe_key?: string;
   power_id?: string;     // 大明=ming, 后金=houjin, 流寇=bandits 等
+  network_profile?: NetworkProfile;
+  xinpan_profile?: XinpanProfile;
+  tiangang_profile?: TiangangProfile;
+  stance_notes?: StanceNote[];
   skills: Array<{ id: string; name: string; sources: string[]; description: string }>;
+};
+
+type CharacterIndexEntry = {
+  name: string;
+  office: string;
+  office_type: string;
+  faction: string;
+  status: string;
+  status_reason?: string;
+  status_label: string;
+  power_id: string;
+  power_name: string;
+  summary: string;
+  birth_year?: number;
+  start_age?: number;
+  age_label?: string;
+  portrait_available?: boolean;
+  portrait_status?: "ready" | "pending" | "error" | "missing" | string;
+  portrait_error?: string;
+  portrait_dna_seed?: string;
+  portrait_wardrobe_key?: string;
+  can_summon?: boolean;
+  xinpan_quadrant?: string;
 };
 
 type EventItem = {
@@ -266,6 +536,16 @@ type BudgetAccount = {
 
 type Budget = Record<"国库" | "内库", BudgetAccount>;
 
+type AdventureLog = {
+  turn: number; year: number; period: number;
+  adventure_id: string; title: string; choice: string;
+  success: boolean; narrative: string;
+  items_found: string[]; metrics_change: Record<string, number>;
+};
+type PlayerItem = {
+  id: string; name: string; category: string;
+  rarity: string; quantity: number; equipped: boolean;
+};
 type GameState = {
   turn: { year: number; period: number; turn: number };
   metrics: Metrics;
@@ -285,12 +565,17 @@ type GameState = {
   regions: Region[];
   armies: Army[];
   map_nodes: MapNode[];
+  organizations: OrganizationPayload;
+  character_index?: CharacterIndexEntry[];
   ministers: Minister[];
   consorts: Minister[];
   directives: Directive[];
+  agreements?: Agreement[];
   pending_count: number;
   last_decree: string;
   last_report: string;
+  adventures: AdventureLog[];
+  items: PlayerItem[];
 };
 
 type EndingTimelineItem = {
@@ -303,8 +588,8 @@ type EndingPayload = {
 type ChatMessage = { role: "user" | "minister"; content: string };
 type ChatDisplayMessage = ChatMessage & { pending?: boolean };
 type Suggestion = { label: string; text: string; prefix?: boolean };
-type ModalName = "none" | "state" | "chat" | "edict" | "report" | "extraction" | "history" | "menu" | "secret_orders" | "ending" | "long_goals";
-type SaveEntry = { name: string; size: number; mtime: number };
+type ModalName = "none" | "state" | "chat" | "edict" | "report" | "extraction" | "history" | "menu" | "secret_orders" | "ending" | "long_goals" | "adventure";
+type SaveEntry = MenuSave & { current?: boolean };
 type LLMConfigInfo = {
   base_url: string;
   model: string;
@@ -346,8 +631,16 @@ type SecretOrder = {
   turn_closed: number | null;
 };
 
-type ProposedDirective = { id: number; text: string; status: string; notes: string };
+type ProposedDirective = {
+  id: number;
+  text: string;
+  status: string;
+  source?: string;
+  actor?: string;
+  notes: string;
+};
 type ChatResponse = {
+  minister_profile?: Minister;
   answer: string;
   history: ChatMessage[];
   suggestions: Suggestion[];
@@ -356,18 +649,118 @@ type ChatResponse = {
   can_undo_last_chat?: boolean;
   court_action?: string;
   next_minister?: string;
+  appointed_minister?: string;
   registered_minister?: string;
+  displaced_minister?: string;
+  displaced_effect?: {
+    summary?: string;
+    reaction_summary?: string;
+    old_office?: string;
+    old_office_type?: string;
+    old_faction?: string;
+    xinpan?: Record<string, number>;
+  };
   proposed_directive?: ProposedDirective | null;
   secret_order_id?: number;
+  secret_order_assignee?: string;
+  secret_order_effect?: {
+    summary?: string;
+    risk_label?: string;
+    risk_score?: number;
+    xinpan?: Record<string, number>;
+  };
+};
+
+type ChatEffectChip = {
+  label: string;
+  value: string;
+  tone?: "good" | "bad" | "warn" | "neutral";
+};
+
+type ChatEffectNotice = {
+  id: string;
+  kind: "appointment" | "secret" | "registry";
+  title: string;
+  source: string;
+  summary: string;
+  detail?: string;
+  chips?: ChatEffectChip[];
+  tone?: "danger" | "warn" | "neutral";
 };
 
 type ChatUndoResponse = {
+  minister_profile?: Minister;
   history: ChatMessage[];
   suggestions: Suggestion[];
   directives: Directive[];
   pending_count: number;
   secret_orders: SecretOrder[];
   can_undo_last_chat: boolean;
+};
+
+const signedEffect = (value: number, digits = 1) => {
+  const rounded = Number(value.toFixed(digits));
+  return `${rounded > 0 ? "+" : ""}${rounded}`;
+};
+
+const xinpanEffectChips = (xinpan?: Record<string, number>): ChatEffectChip[] => {
+  if (!xinpan) return [];
+  const chips: ChatEffectChip[] = [];
+  const shi = Number(xinpan.shi_delta || 0);
+  const fear = Number(xinpan.fear_delta || 0);
+  const hatred = Number(xinpan.hatred_delta || 0);
+  const trust = Number(xinpan.trust_multiplier || 1);
+  if (Math.abs(shi) >= 0.05) {
+    chips.push({ label: "势合", value: signedEffect(shi), tone: shi > 0 ? "good" : "bad" });
+  }
+  if (Math.abs(fear) >= 0.05) {
+    chips.push({ label: "畏惧", value: signedEffect(fear), tone: fear > 0 ? "warn" : "good" });
+  }
+  if (Math.abs(hatred) >= 0.05) {
+    chips.push({ label: "仇恨", value: signedEffect(hatred), tone: hatred > 0 ? "bad" : "good" });
+  }
+  if (Math.abs(trust - 1) >= 0.004) {
+    chips.push({ label: "信言", value: `x${Number(trust.toFixed(3))}`, tone: trust >= 1 ? "good" : "bad" });
+  }
+  return chips;
+};
+
+const secretOrderUrgency = (order: SecretOrder, currentTurn: number) => {
+  const total = Number(order.due_turn || 0) ? Number(order.due_turn || 0) - Number(order.turn_issued || 0) : 0;
+  const remaining = Number(order.due_turn || 0) ? Number(order.due_turn || 0) - Number(currentTurn || order.turn_issued || 0) : 0;
+  if (["done", "failed", "cancelled"].includes(order.status)) {
+    const closedLabel = order.status === "done" ? "已完成" : order.status === "failed" ? "已失败" : "已撤销";
+    return { total, remaining, text: closedLabel, tone: "neutral" };
+  }
+  const text = order.due_turn
+    ? remaining <= 0
+      ? "已到限"
+      : remaining === 1
+        ? "剩1月"
+        : `剩${remaining}月`
+    : "无硬限";
+  const tone = order.due_turn && remaining <= 1 ? "danger" : order.due_turn && remaining <= 3 ? "warn" : "neutral";
+  return { total, remaining, text, tone };
+};
+
+const secretOrderRisk = (order: SecretOrder, currentTurn: number) => {
+  const context = `${order.title || ""} ${order.content || ""} ${(order.tags || []).join(" ")}`;
+  let score = 0;
+  const urgency = secretOrderUrgency(order, currentTurn);
+  const closed = ["done", "failed", "cancelled"].includes(order.status);
+  if (!closed) {
+    if (order.due_turn && urgency.remaining <= 1) score += 2;
+    else if (order.due_turn) score += 1;
+  } else if (order.due_turn) {
+    score += 1;
+  }
+  if (/刺杀|赐死|诛|抄家|下狱|廷杖/.test(context)) score += 3;
+  if (/东厂|锦衣卫|厂卫|密查|暗查|线人|取证|盯梢/.test(context)) score += 1;
+  if (/辽东|边镇|军饷|清丈|盐课|东林|阉党|后金|流寇/.test(context)) score += 1;
+  const bounded = Math.max(0, Math.min(5, score));
+  const label = ["常密", "限密", "险密", "危密", "危密", "死密"][bounded] || "常密";
+  const tone = bounded >= 4 ? "danger" : bounded >= 2 ? "warn" : "neutral";
+  return { score: bounded, label, tone };
 };
 
 type ApiErrorDetail = {
@@ -687,6 +1080,102 @@ const briefArmyWarnings = (text: string) => {
   return [...items.slice(0, 3), tail].filter(Boolean);
 };
 
+type EdictReadinessItem = {
+  tone: "danger" | "warn" | "good";
+  title: string;
+  body: string;
+};
+
+const decreeActionText = (directives: Directive[]) =>
+  directives.map((item) => `${item.text} ${item.notes || ""}`).join("\n");
+
+const buildEdictReadiness = (state: GameState, draftDirectives: Directive[], pendingDirectives: Directive[]): EdictReadinessItem[] => {
+  const items: EdictReadinessItem[] = [];
+  const guoku = state.budget["国库"];
+  const neiku = state.budget["内库"];
+  const actionText = decreeActionText(draftDirectives);
+  const hasMoneyAction = /银|饷|粮|赈|拨|库|税|清丈|盐|商|抄没|追缴|借|厘/.test(actionText);
+  const hasMilitaryAction = /辽|关宁|山海|蓟|宣|大同|兵|军|饷|练|镇|边|后金|建州|锦州|宁远/.test(actionText);
+  const activeIssues = [...(state.issues || [])]
+    .filter((issue) => issue.kind === "situation")
+    .sort((a, b) => (a.bar_value + Math.min(0, a.inertia) * 2) - (b.bar_value + Math.min(0, b.inertia) * 2));
+
+  if (pendingDirectives.length) {
+    items.push({
+      tone: "danger",
+      title: "尚有拟旨未核",
+      body: `${pendingDirectives.length} 道大臣拟旨需先准/驳，否则不能颁诏。`,
+    });
+  }
+
+  if (!draftDirectives.length) {
+    items.push({
+      tone: "danger",
+      title: "本月无可颁指令",
+      body: "网页端不可空过。至少新增一道指令，或召见大臣形成草案。",
+    });
+  }
+
+  if (guoku.balance + guoku.net <= 80 || guoku.net < -40) {
+    items.push({
+      tone: guoku.balance + guoku.net <= 0 ? "danger" : "warn",
+      title: "国库承压",
+      body: `国库当前${formatMoney(guoku.balance)}，定额月净${formatSignedMoney(guoku.net)}。若诏令还要用银，最好明示来源。`,
+    });
+  }
+
+  if (neiku.balance + neiku.net <= 60 || neiku.net < -18) {
+    items.push({
+      tone: "warn",
+      title: "内库余地有限",
+      body: `内库当前${formatMoney(neiku.balance)}，定额月净${formatSignedMoney(neiku.net)}。连续挪用会削弱宫廷与内廷线。`,
+    });
+  }
+
+  const urgent = activeIssues.find((issue) => issue.bar_value <= 35 || issue.inertia < 0);
+  if (urgent) {
+    items.push({
+      tone: urgent.bar_value <= 25 ? "danger" : "warn",
+      title: `局势逼近：${urgent.title}`,
+      body: `${urgent.stage_text || "仍在发酵"}；${urgent.inertia < 0 ? `自然恶化${urgent.inertia}/月` : "本月需继续压住惯性"}。`,
+    });
+  }
+
+  if (draftDirectives.length && !hasMoneyAction && (guoku.net < 0 || activeIssues.some((issue) => /亏空|赈|饷|仓|税|银|粮/.test(issue.title + issue.tags.join(""))))) {
+    items.push({
+      tone: "warn",
+      title: "缺少钱粮口径",
+      body: "草案没有明显的拨银、税源、清账或赈济安排，结算时容易被判为执行条件不足。",
+    });
+  }
+
+  if (draftDirectives.length && activeIssues.some((issue) => /辽|边|后金|军|饷|兵/.test(issue.title + issue.tags.join(""))) && !hasMilitaryAction) {
+    items.push({
+      tone: "warn",
+      title: "边军线未被触及",
+      body: "当前有边防或军务压力，但草案没有明显军饷、整军、换将或战备动作。",
+    });
+  }
+
+  if (draftDirectives.length && hasMoneyAction) {
+    items.push({
+      tone: "good",
+      title: "执行条件较清楚",
+      body: "草案已出现钱粮/税源/拨付口径，月末推演更容易把圣旨落到具体账目。",
+    });
+  }
+
+  if (draftDirectives.length && items.every((item) => item.tone === "good")) {
+    items.push({
+      tone: "good",
+      title: "可颁",
+      body: "未见阻断项。仍建议在正式诏书中写清承办人、银粮来源和时限。",
+    });
+  }
+
+  return items.slice(0, 5);
+};
+
 
 const getMapIntelStyle = (node: MapNode): React.CSSProperties => {
   const left = Math.min(82, Math.max(18, node.x));
@@ -763,9 +1252,10 @@ function App() {
   const [buildingDrawerOpen, setBuildingDrawerOpen] = React.useState(false);
   const [economyDrawerOpen, setEconomyDrawerOpen] = React.useState(false);
   const [appointmentDrawerOpen, setAppointmentDrawerOpen] = React.useState(false);
+  const [organizationDrawerOpen, setOrganizationDrawerOpen] = React.useState(false);
   const [selectedRegionId, setSelectedRegionId] = React.useState<string>("");
   const [selectedArmyId, setSelectedArmyId] = React.useState<string>("");
-  const [ministerGroup, setMinisterGroup] = React.useState("内阁+六部");
+  const [ministerGroup, setMinisterGroup] = React.useState("在职");
   const [haremGroup, setHaremGroup] = React.useState("全部");
   const [selectedMinister, setSelectedMinister] = React.useState<string>("");
   const [temporaryActiveMinister, setTemporaryActiveMinister] = React.useState<Minister | null>(null);
@@ -775,6 +1265,7 @@ function App() {
   const [pendingUserMessage, setPendingUserMessage] = React.useState("");
   const [streamingMinisterMessage, setStreamingMinisterMessage] = React.useState("");
   const [chatNotice, setChatNotice] = React.useState("");
+  const [chatEffectNotices, setChatEffectNotices] = React.useState<ChatEffectNotice[]>([]);
   const [canUndoLastChat, setCanUndoLastChat] = React.useState(false);
   const [composerHint, setComposerHint] = React.useState("");
   const [input, setInput] = React.useState("");
@@ -814,15 +1305,43 @@ function App() {
 
   const loadMinisterChat = React.useCallback(async (ministerName: string) => {
     const data = await api<{ minister: Minister; history: ChatMessage[]; suggestions: Suggestion[]; can_undo_last_chat: boolean }>(`/api/ministers/${encodeURIComponent(ministerName)}/chat`);
-    const allKnown = [
-      ...(state?.ministers || []),
-      ...(state?.consorts || []),
-    ];
-    setTemporaryActiveMinister(allKnown.some((m) => m.name === data.minister.name) ? null : data.minister);
+    setTemporaryActiveMinister(data.minister);
     setChat(data.history);
     setSuggestions(data.suggestions);
     setCanUndoLastChat(!!data.can_undo_last_chat);
-  }, [state]);
+  }, []);
+
+  React.useEffect(() => {
+    if (!state) return;
+    const pending = [...(state.ministers || []), ...(state.consorts || [])]
+      .filter((m) => m.portrait_status === "pending" && m.portrait_id?.startsWith("generated:"));
+    if (!pending.length) return;
+    let cancelled = false;
+    const poll = async () => {
+      let changed = false;
+      for (const minister of pending) {
+        try {
+          const data = await api<{ status: string; portrait_id?: string }>(`/api/portraits/${encodeURIComponent(minister.name)}/status`);
+          if (data.status && data.status !== "pending") {
+            const key = data.portrait_id || minister.portrait_id || "";
+            if (key) _portraitBust[key] = Date.now();
+            changed = true;
+          }
+        } catch {
+          // 状态轮询是旁路，失败时等下轮或玩家手动刷新。
+        }
+      }
+      if (changed && !cancelled) {
+        await loadState();
+      }
+    };
+    const timer = window.setInterval(() => { void poll(); }, 5000);
+    void poll();
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [state, loadState]);
 
   const uploadPortrait = React.useCallback(async (ministerName: string, file: File) => {
     const form = new FormData();
@@ -836,6 +1355,17 @@ function App() {
       throw new Error(err.detail || resp.statusText);
     }
     await loadState();  // 重新拉 state，新 portrait_id 流回卡片
+  }, [loadState]);
+
+  const generatePortrait = React.useCallback(async (ministerName: string) => {
+    const data = await api<{ job: { portrait_id: string; status: string }; character?: Minister | null }>(
+      `/api/portraits/${encodeURIComponent(ministerName)}/generate`,
+      { method: "POST" },
+    );
+    if (data.job?.portrait_id) {
+      _portraitBust[data.job.portrait_id] = Date.now();
+    }
+    await loadState();
   }, [loadState]);
 
   const refreshMenuStatus = React.useCallback(async () => {
@@ -926,6 +1456,7 @@ function App() {
       setPendingUserMessage("");
       setStreamingMinisterMessage("");
       setChatNotice("");
+      setChatEffectNotices([]);
       setCanUndoLastChat(false);
       setComposerHint("");
       return;
@@ -934,6 +1465,7 @@ function App() {
     setSuggestions([]);
     setPendingUserMessage("");
     setStreamingMinisterMessage("");
+    setChatEffectNotices([]);
     setCanUndoLastChat(false);
     setComposerHint("");
     loadMinisterChat(selectedMinister).catch((err) => setError(err.message));
@@ -943,7 +1475,7 @@ function App() {
   React.useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (activeModal === "chat" || activeModal === "edict" || activeModal === "state" || activeModal === "history" || activeModal === "report" || activeModal === "secret_orders" || activeModal === "long_goals") {
+      if (activeModal === "chat" || activeModal === "edict" || activeModal === "state" || activeModal === "history" || activeModal === "report" || activeModal === "secret_orders" || activeModal === "long_goals" || activeModal === "adventure") {
         // 召对/诏书等全屏弹窗最优先
         setActiveModal("none");
       } else if (drawerOpen) {
@@ -960,13 +1492,26 @@ function App() {
         setEconomyDrawerOpen(false);
       } else if (appointmentDrawerOpen) {
         setAppointmentDrawerOpen(false);
+      } else if (organizationDrawerOpen) {
+        setOrganizationDrawerOpen(false);
       } else if (mapIntelOpen) {
         setMapIntelOpen(false);
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [activeModal, drawerOpen, haremDrawerOpen, mapIntelOpen]);
+  }, [
+    activeModal,
+    drawerOpen,
+    haremDrawerOpen,
+    armyDrawerOpen,
+    regionDrawerOpen,
+    buildingDrawerOpen,
+    economyDrawerOpen,
+    appointmentDrawerOpen,
+    organizationDrawerOpen,
+    mapIntelOpen,
+  ]);
 
   // 作弊控制台：Ctrl+~（或 Ctrl+`）切换显隐。强制结算唯一入口。
   React.useEffect(() => {
@@ -1013,13 +1558,14 @@ function App() {
   const consorts = filterConsorts(state.consorts || [], haremGroup);
   const allCharacters = [...state.ministers, ...(state.consorts || [])];
   const activeMinister = selectedMinister
-    ? allCharacters.find((m) => m.name === selectedMinister) || temporaryActiveMinister
+    ? (temporaryActiveMinister?.name === selectedMinister ? temporaryActiveMinister : null)
+      || allCharacters.find((m) => m.name === selectedMinister)
     : null;
   const mapIntelStyle = selectedNode ? getMapIntelStyle(selectedNode) : undefined;
 
-  const openChat = (minister: Minister) => {
+  const openChat = (minister: Minister, prefill = "") => {
     if (minister.status && minister.status !== "active") {
-      setError(`${minister.name}已${minister.status_label}${minister.status_reason ? "（" + minister.status_reason + "）" : ""}，无法召见。`);
+      setError(`${minister.name}${minister.status_label}${minister.status_reason ? "（" + minister.status_reason + "）" : ""}，无法召见。`);
       return;
     }
     const switchingMinister = selectedMinister !== minister.name;
@@ -1032,8 +1578,10 @@ function App() {
     setSelectedMinister(minister.name);
     setActiveModal("chat");
     setError("");
-    setComposerHint("");
+    setInput(prefill);
+    setComposerHint(prefill ? "已为净身劝说预置奏对，请斟酌后发送" : "");
     setChatNotice("");
+    setChatEffectNotices([]);
     setCanUndoLastChat(false);
     setPendingUserMessage("");
     setStreamingMinisterMessage("");
@@ -1061,6 +1609,7 @@ function App() {
     setError("");
     setComposerHint("");
     setChatNotice("");
+    setChatEffectNotices([]);
     if (fromComposer) {
       setInput("");
     }
@@ -1070,20 +1619,56 @@ function App() {
       });
       setPendingUserMessage("");
       setStreamingMinisterMessage("");
+      if (data.minister_profile) {
+        setTemporaryActiveMinister(data.minister_profile);
+      }
       setChat(data.history);
       setSuggestions(data.suggestions);
       setCanUndoLastChat(!!data.can_undo_last_chat);
       setState((current) => (current ? { ...current, directives: data.directives, pending_count: data.pending_count ?? current.pending_count } : current));
       await loadState();
+      if (!data.next_minister) {
+        await loadMinisterChat(activeMinister.name);
+      }
       // 刷新密令列表（含历史，大臣可能调了 issue_secret_order tool）
       api<{ orders: SecretOrder[] }>("/api/secret_orders")
         .then(({ orders }) => setSecretOrders(orders))
         .catch(() => {});
+      const notices: string[] = [];
+      const effectNotices: ChatEffectNotice[] = [];
+      if (data.appointed_minister) {
+        notices.push(`吏部已铨补${data.appointed_minister}入朝，名册已更新。`);
+      }
+      if (data.displaced_minister) {
+        effectNotices.push({
+          id: `displaced-${data.displaced_minister}`,
+          kind: "appointment",
+          title: `腾缺去职：${data.displaced_minister}`,
+          source: "吏部铨选",
+          summary: data.displaced_effect?.summary || `${data.displaced_minister}已因腾缺去任。`,
+          detail: data.displaced_effect?.reaction_summary ? `朝局余波：${data.displaced_effect.reaction_summary}` : "",
+          chips: xinpanEffectChips(data.displaced_effect?.xinpan),
+          tone: "danger",
+        });
+      }
+      if (data.registered_minister) {
+        const summoned = data.next_minister === data.registered_minister ? "，并已传入殿" : "";
+        notices.push(`已将${data.registered_minister}补入名册${summoned}。`);
+      }
       if (data.secret_order_id) {
-        setChatNotice(`密令已秘密交付${activeMinister.name}，编号 #${data.secret_order_id}。`);
+        const riskScore = Number(data.secret_order_effect?.risk_score || 0);
+        effectNotices.push({
+          id: `secret-${data.secret_order_id}`,
+          kind: "secret",
+          title: `密令交付 #${data.secret_order_id}`,
+          source: data.secret_order_effect?.risk_label || "密令",
+          summary: data.secret_order_effect?.summary || `密令已秘密交付${data.secret_order_assignee || activeMinister.name}。`,
+          chips: xinpanEffectChips(data.secret_order_effect?.xinpan),
+          tone: riskScore >= 3 ? "danger" : riskScore >= 2 ? "warn" : "neutral",
+        });
       }
       if (data.proposed_directive) {
-        setChatNotice(`${activeMinister.name}已拟旨一道，待陛下在「诏书草案」核定（准/驳）。`);
+        notices.push(`${data.proposed_directive.actor || activeMinister.name}已拟旨一道，待陛下在「诏书草案」核定（准/驳）。`);
       }
       if (data.next_minister) {
         setChat([]);
@@ -1092,13 +1677,19 @@ function App() {
         setCanUndoLastChat(false);
         setSelectedMinister(data.next_minister);
         setActiveModal("chat");
-        setChatNotice(`已传${data.next_minister}入殿。`);
+        if (data.next_minister !== data.registered_minister) {
+          notices.push(`已传${data.next_minister}入殿。`);
+        }
         loadMinisterChat(data.next_minister).catch((err) => setError(err.message));
       }
       if (data.court_action === "dismiss") {
         setPendingUserMessage("");
-        setChatNotice(`${activeMinister.name}已退下。请从左侧召见下一位大臣。`);
+        notices.push(`${activeMinister.name}已退下。请从左侧召见下一位大臣。`);
       }
+      if (notices.length) {
+        setChatNotice(notices.join("\n"));
+      }
+      setChatEffectNotices(effectNotices);
     } catch (err) {
       if (fromComposer) {
         setInput(message);
@@ -1118,6 +1709,7 @@ function App() {
     setBusy("撤回召对");
     setError("");
     setChatNotice("");
+    setChatEffectNotices([]);
     setComposerHint("");
     setPendingUserMessage("");
     setStreamingMinisterMessage("");
@@ -1125,12 +1717,16 @@ function App() {
       const data = await api<ChatUndoResponse>(`/api/ministers/${encodeURIComponent(activeMinister.name)}/chat/undo`, {
         method: "POST",
       });
+      if (data.minister_profile) {
+        setTemporaryActiveMinister(data.minister_profile);
+      }
       setChat(data.history);
       setSuggestions(data.suggestions);
       setCanUndoLastChat(!!data.can_undo_last_chat);
       setSecretOrders(data.secret_orders || []);
       setState((current) => (current ? { ...current, directives: data.directives, pending_count: data.pending_count } : current));
       await loadState();
+      await loadMinisterChat(activeMinister.name);
       setChatNotice("已撤回最近一轮召对。");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -1163,9 +1759,14 @@ function App() {
     setBusy(minister.favorite ? "移出收藏" : "加入收藏");
     setError("");
     try {
-      await api<{ favorites: string[] }>(`/api/favorites/${encodeURIComponent(minister.name)}`, {
+      const data = await api<{ favorites: string[] }>(`/api/favorites/${encodeURIComponent(minister.name)}`, {
         method: minister.favorite ? "DELETE" : "POST",
       });
+      setTemporaryActiveMinister((current) => (
+        current?.name === minister.name
+          ? { ...current, favorite: data.favorites.includes(minister.name) }
+          : current
+      ));
       await loadState();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -1343,6 +1944,78 @@ function App() {
     }
   };
 
+  const addCustomInstitution = async (payload: { name: string; category: string; mandate: string; slots: string[] }) => {
+    setBusy("增设机构");
+    setError("");
+    try {
+      const data = await api<{ message: string; organizations: OrganizationPayload }>("/api/organizations/custom", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      await loadState();
+      return data.message;
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const runRecruitment = async (action: "exam" | "eunuch" | "recommend") => {
+    setBusy("遴选人才");
+    setError("");
+    try {
+      const data = await api<{ message: string; minister?: Minister }>(`/api/recruitment/${action}`, { method: "POST" });
+      await loadState();
+      return data.message;
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const castrateMinister = async (name: string, force = false) => {
+    setBusy("净身入宫");
+    setError("");
+    try {
+      const data = await api<{ message: string; minister: Minister }>("/api/recruitment/castrate", {
+        method: "POST",
+        body: JSON.stringify({ name, force }),
+      });
+      await loadState();
+      return data.message;
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const emancipateMinister = async (name: string, force = false) => {
+    setBusy("奴籍转民籍");
+    setError("");
+    try {
+      const data = await api<{ message: string; minister: Minister }>("/api/recruitment/emancipate", {
+        method: "POST",
+        body: JSON.stringify({ name, force }),
+      });
+      await loadState();
+      return data.message;
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const runConsortAction = async (name: string, action: "stabilize" | "treasury" | "appease" | "recommend") => {
+    setBusy("后宫行事");
+    setError("");
+    try {
+      const data = await api<{ message: string }>(`/api/consorts/${encodeURIComponent(name)}/action`, {
+        method: "POST",
+        body: JSON.stringify({ action }),
+      });
+      await loadState();
+      return data.message;
+    } finally {
+      setBusy("");
+    }
+  };
+
   const settling = busy === "月末结算";
   const guardClose = (fn: () => void) => () => {
     if (settling) return;
@@ -1365,6 +2038,7 @@ function App() {
         onToggleBuilding={() => { setBuildingDrawerOpen((v) => !v); }}
         onToggleEconomy={() => { setEconomyDrawerOpen((v) => !v); }}
         onToggleAppointment={() => { setAppointmentDrawerOpen((v) => !v); }}
+        onToggleOrganization={() => { setOrganizationDrawerOpen((v) => !v); }}
         onOpenLongGoals={() => setActiveModal("long_goals")}
         activeDrawer={
           drawerOpen ? "court" :
@@ -1373,18 +2047,21 @@ function App() {
           regionDrawerOpen ? "region" :
           buildingDrawerOpen ? "building" :
           economyDrawerOpen ? "economy" :
-          appointmentDrawerOpen ? "appointment" : ""
+          appointmentDrawerOpen ? "appointment" :
+          organizationDrawerOpen ? "organization" : ""
         }
       />
       <BottomCommandBar
         eventsCount={state.events.length}
         directivesCount={state.directives.length}
         secretOrdersCount={secretOrders.filter((o) => o.status === "active" || o.status === "pending_review").length}
+        adventureCount={(state.adventures || []).length}
         onOpenMemorials={() => setActiveModal("state")}
         onOpenEdict={() => setActiveModal("edict")}
         onOpenExtraction={() => setActiveModal("extraction")}
         onOpenHistory={() => setActiveModal("history")}
         onOpenSecretOrders={() => setActiveModal("secret_orders")}
+        onOpenAdventure={() => setActiveModal("adventure")}
       />
 
       <CourtDrawer
@@ -1397,6 +2074,7 @@ function App() {
         onClose={guardClose(() => setDrawerOpen(false))}
         onOpenChat={openChat}
         onUploadPortrait={uploadPortrait}
+        onGeneratePortrait={generatePortrait}
       />
 
       <HaremDrawer
@@ -1408,6 +2086,8 @@ function App() {
         onClose={guardClose(() => setHaremDrawerOpen(false))}
         onOpenChat={openChat}
         onUploadPortrait={uploadPortrait}
+        onGeneratePortrait={generatePortrait}
+        onAction={runConsortAction}
       />
 
       <ArmyDrawer
@@ -1441,9 +2121,22 @@ function App() {
 
       <AppointmentDrawer
         ministers={state.ministers}
+        characterIndex={state.character_index || []}
+        agreements={state.agreements || []}
         open={appointmentDrawerOpen}
         onOpenChat={openChat}
+        onRecruit={runRecruitment}
+        onCastrate={castrateMinister}
+        onEmancipate={emancipateMinister}
         onClose={guardClose(() => setAppointmentDrawerOpen(false))}
+      />
+
+      <OrganizationDrawer
+        organizations={state.organizations}
+        open={organizationDrawerOpen}
+        onAddCustom={addCustomInstitution}
+        onOpenChat={openChat}
+        onClose={guardClose(() => setOrganizationDrawerOpen(false))}
       />
 
       <SituationPanel
@@ -1481,6 +2174,7 @@ function App() {
             pendingUserMessage={pendingUserMessage}
             streamingMinisterMessage={streamingMinisterMessage}
             chatNotice={chatNotice}
+            chatEffectNotices={chatEffectNotices}
             canUndoLastChat={canUndoLastChat}
             composerHint={composerHint}
             input={input}
@@ -1562,12 +2256,17 @@ function App() {
       {activeModal === "secret_orders" ? (
         <SecretOrdersModal
           orders={secretOrders}
+          currentTurn={state.turn.turn}
           onClose={() => setActiveModal("none")}
           onOpenMinister={(name) => {
             setActiveModal("chat");
             setSelectedMinister(name);
           }}
         />
+      ) : null}
+
+      {activeModal === "adventure" ? (
+        <AdventureLogModal state={state} onClose={guardClose(() => setActiveModal("none"))} />
       ) : null}
 
       {settling ? (
@@ -1734,6 +2433,9 @@ function MinisterPortrait({ primary, fallback, name }: { primary: string; fallba
   const [stage, setStage] = React.useState<"primary" | "fallback" | "placeholder">(
     fallback ? "primary" : (primary ? "primary" : "placeholder")
   );
+  React.useEffect(() => {
+    setStage(primary ? "primary" : fallback ? "fallback" : "placeholder");
+  }, [primary, fallback, name]);
   const src = stage === "primary" ? primary : stage === "fallback" ? (fallback ?? "") : "";
   if (stage === "placeholder") {
     return <div className="minister-card-portrait-placeholder">臣</div>;
@@ -1749,6 +2451,13 @@ function MinisterPortrait({ primary, fallback, name }: { primary: string; fallba
       }}
     />
   );
+}
+
+function PortraitMissingBadge({ minister }: { minister: Minister }) {
+  if (minister.portrait_status === "pending") return <span className="portrait-missing-badge pending">画师绘制中</span>;
+  if (minister.portrait_status === "error") return <span className="portrait-missing-badge error">重绘失败</span>;
+  if (minister.portrait_available !== false) return null;
+  return <span className="portrait-missing-badge">缺图</span>;
 }
 
 // 朝班两条透视线（百分比锚点，由用户拖定）
@@ -1831,6 +2540,7 @@ function MinisterCardList({
   emptyNote,
   onOpenChat,
   onUploadPortrait,
+  onGeneratePortrait,
   courtMode = false,
 }: {
   list: Minister[];
@@ -1839,6 +2549,7 @@ function MinisterCardList({
   emptyNote: string;
   onOpenChat: (minister: Minister) => void;
   onUploadPortrait?: (ministerName: string, file: File) => Promise<void>;
+  onGeneratePortrait?: (ministerName: string) => Promise<void>;
   courtMode?: boolean;
 }) {
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -1990,11 +2701,7 @@ function MinisterCardList({
     return (
       <div className="minister-list">
         {list.map((minister) => {
-          const isCustom = minister.portrait_id?.startsWith("custom:");
-          const dedicated = isCustom
-            ? `/portraits/custom/${encodeURIComponent(minister.name)}?t=${cacheBust(minister.portrait_id!)}`
-            : `/portraits/${portraitPrefix}${minister.id ?? minister.name}.png`;
-          const poolFallback = !isCustom && minister.portrait_id ? `/portraits/${minister.portrait_id}.png` : undefined;
+          const { primary: dedicated, fallback: poolFallback } = portraitSources(minister, portraitPrefix);
           const ousted = minister.status !== "active";
           return (
             <button key={minister.name}
@@ -2002,7 +2709,9 @@ function MinisterCardList({
               onClick={() => onOpenChat(minister)}>
               <div className="minister-card-portrait-wrap">
                 <MinisterPortrait primary={dedicated} fallback={poolFallback} name={minister.name} />
+                <PortraitMissingBadge minister={minister} />
                 {onUploadPortrait && <PortraitUploadButton ministerName={minister.name} onUpload={onUploadPortrait} />}
+                {onGeneratePortrait && <PortraitGenerateButton minister={minister} onGenerate={onGeneratePortrait} />}
               </div>
               <div className="minister-card-info">
                 <div className="minister-card-top">
@@ -2023,13 +2732,7 @@ function MinisterCardList({
   return (
     <div className="minister-list minister-list-court" ref={containerRef}>
       {list.map((minister) => {
-        const isCustom = minister.portrait_id?.startsWith("custom:");
-        const dedicated = isCustom
-          ? `/portraits/custom/${encodeURIComponent(minister.name)}?t=${cacheBust(minister.portrait_id!)}`
-          : `/portraits/${portraitPrefix}${minister.id ?? minister.name}.png`;
-        const poolFallback = !isCustom && minister.portrait_id
-          ? `/portraits/${minister.portrait_id}.png`
-          : undefined;
+        const { primary: dedicated, fallback: poolFallback } = portraitSources(minister, portraitPrefix);
         const ousted = minister.status !== "active";
         const pct = positions[minister.name];
         // 透视缩放：py=0最远最小，py=1最近最大
@@ -2053,9 +2756,11 @@ function MinisterCardList({
           >
             <div className="minister-card-portrait-wrap">
               <MinisterPortrait primary={dedicated} fallback={poolFallback} name={minister.name} />
+              <PortraitMissingBadge minister={minister} />
               {onUploadPortrait && (
                 <PortraitUploadButton ministerName={minister.name} onUpload={onUploadPortrait} />
               )}
+              {onGeneratePortrait && <PortraitGenerateButton minister={minister} onGenerate={onGeneratePortrait} />}
             </div>
             <div className="minister-card-info">
               <div className="minister-card-top">
@@ -2078,6 +2783,27 @@ const _portraitBust: Record<string, number> = {};
 function cacheBust(key: string): number {
   if (!_portraitBust[key]) _portraitBust[key] = Date.now();
   return _portraitBust[key];
+}
+
+function portraitSources(minister: Minister, portraitPrefix: string) {
+  const portraitId = minister.portrait_id || "";
+  if (portraitId.startsWith("generated:")) {
+    const assetId = portraitId.slice("generated:".length);
+    return {
+      primary: `/portraits/generated/${encodeURIComponent(assetId)}.png?t=${cacheBust(portraitId)}`,
+      fallback: `/portraits/${portraitPrefix}${minister.id ?? minister.name}.png`,
+    };
+  }
+  if (portraitId.startsWith("custom:")) {
+    return {
+      primary: `/portraits/custom/${encodeURIComponent(minister.name)}?t=${cacheBust(portraitId)}`,
+      fallback: undefined,
+    };
+  }
+  return {
+    primary: `/portraits/${portraitPrefix}${minister.id ?? minister.name}.png`,
+    fallback: portraitId ? `/portraits/${portraitId}.png` : undefined,
+  };
 }
 
 function PortraitUploadButton({
@@ -2129,6 +2855,38 @@ function PortraitUploadButton({
   );
 }
 
+function PortraitGenerateButton({
+  minister,
+  onGenerate,
+}: {
+  minister: Minister;
+  onGenerate: (ministerName: string) => Promise<void>;
+}) {
+  const [busy, setBusy] = React.useState(false);
+  const pending = minister.portrait_status === "pending";
+  return (
+    <button
+      type="button"
+      className="portrait-generate-btn"
+      title={pending ? "画师绘制中" : "画师重绘"}
+      disabled={busy || pending}
+      onClick={async (e) => {
+        e.stopPropagation();
+        setBusy(true);
+        try {
+          await onGenerate(minister.name);
+        } catch (err) {
+          window.alert(`重绘失败：${(err as Error).message}`);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {busy || pending ? <Loader2 size={13} className="spin-icon" /> : <Paintbrush size={13} />}
+    </button>
+  );
+}
+
 function RightNavBar({
   onToggleCourt,
   onToggleHarem,
@@ -2137,6 +2895,7 @@ function RightNavBar({
   onToggleBuilding,
   onToggleEconomy,
   onToggleAppointment,
+  onToggleOrganization,
   onOpenLongGoals,
   activeDrawer,
 }: {
@@ -2147,6 +2906,7 @@ function RightNavBar({
   onToggleBuilding: () => void;
   onToggleEconomy: () => void;
   onToggleAppointment: () => void;
+  onToggleOrganization: () => void;
   onOpenLongGoals: () => void;
   activeDrawer: string;
 }) {
@@ -2157,7 +2917,8 @@ function RightNavBar({
     { key: "region", label: "省", title: "省份列表", onClick: onToggleRegion },
     { key: "building", label: "工", title: "建筑列表", onClick: onToggleBuilding },
     { key: "economy", label: "户", title: "经济面板", onClick: onToggleEconomy },
-    { key: "appointment", label: "吏", title: "官员任免", onClick: onToggleAppointment },
+    { key: "appointment", label: "吏", title: "吏部考核", onClick: onToggleAppointment },
+    { key: "organization", label: "制", title: "组织架构", onClick: onToggleOrganization },
   ];
   return (
     <nav className="right-nav-bar" aria-label="六部入口">
@@ -2474,59 +3235,802 @@ function EconomyDrawer({
 
 function AppointmentDrawer({
   ministers,
+  characterIndex,
+  agreements,
   open,
   onOpenChat,
+  onRecruit,
+  onCastrate,
+  onEmancipate,
   onClose,
 }: {
   ministers: Minister[];
+  characterIndex: CharacterIndexEntry[];
+  agreements: Agreement[];
   open: boolean;
+  onOpenChat: (minister: Minister, prefill?: string) => void;
+  onRecruit: (action: "exam" | "eunuch" | "recommend") => Promise<string>;
+  onCastrate: (name: string, force?: boolean) => Promise<string>;
+  onEmancipate: (name: string, force?: boolean) => Promise<string>;
+  onClose: () => void;
+}) {
+  const [q, setQ] = React.useState("");
+  const [notice, setNotice] = React.useState("");
+  const [actionBusy, setActionBusy] = React.useState("");
+  const [selectedName, setSelectedName] = React.useState("");
+  const [scope, setScope] = React.useState("全部");
+  const [detail, setDetail] = React.useState<Minister | null>(null);
+  const [detailCache, setDetailCache] = React.useState<Record<string, { signature: string; detail: Minister }>>({});
+  const [loadingDetail, setLoadingDetail] = React.useState("");
+  const [detailError, setDetailError] = React.useState("");
+  const offices = ["内阁", "吏部", "户部", "礼部", "兵部", "刑部", "工部"];
+  const bureauScopes = ["全部", "在职", "内阁六部", "边镇厂卫", "待铨外缘", "在野", "缺图"];
+  const mingMinisters = ministers.filter((m) => (m.power_id || "ming") === "ming");
+  const activeMinisters = mingMinisters.filter((m) => m.status === "active");
+  const hiddenCount = mingMinisters.filter((m) => m.status === "offstage").length;
+  const fieldCount = mingMinisters.filter((m) => ["dismissed", "exiled", "retired"].includes(m.status)).length;
+  const imprisonedCount = mingMinisters.filter((m) => m.status === "imprisoned").length;
+  const totalArchive = characterIndex.length || ministers.length;
+  const archiveMing = characterIndex.filter((m) => (m.power_id || "ming") === "ming");
+  const archiveExternal = characterIndex.filter((m) => (m.power_id || "ming") !== "ming").length;
+  const archiveHarem = characterIndex.filter((m) => m.office_type === "后宫").length;
+  const archiveManaged = archiveMing.filter((m) => m.office_type !== "后宫").length || mingMinisters.length;
+  const filterHit = (m: Minister) => !q || m.name.includes(q) || (m.office || "").includes(q) || (m.office_type || "").includes(q) || (m.faction || "").includes(q) || (m.age_label || "").includes(q);
+  const scopedHit = (m: Minister) => {
+    if (scope === "在职") return m.status === "active";
+    if (scope === "内阁六部") return offices.some((office) => (m.office_type || "").includes(office));
+    if (scope === "边镇厂卫") return /边镇|锦衣卫|东厂|司礼监|兵部/.test(`${m.office_type}${m.office}`);
+    if (scope === "待铨外缘") return /待铨|外臣|地方|未仕|翰林/.test(`${m.office_type}${m.office}`);
+    if (scope === "在野") return ["dismissed", "exiled", "retired", "offstage"].includes(m.status);
+    if (scope === "缺图") return m.portrait_available === false;
+    return true;
+  };
+  const filteredMinisters = mingMinisters.filter((m) => filterHit(m) && scopedHit(m));
+  React.useEffect(() => {
+    if (selectedName && mingMinisters.some((m) => m.name === selectedName)) return;
+    const preferred = activeMinisters[0]?.name || mingMinisters[0]?.name || "";
+    setSelectedName(preferred);
+  }, [selectedName, mingMinisters, activeMinisters]);
+  React.useEffect(() => {
+    if (!filteredMinisters.length) return;
+    if (selectedName && filteredMinisters.some((m) => m.name === selectedName)) return;
+    setSelectedName(filteredMinisters[0].name);
+  }, [selectedName, filteredMinisters]);
+  const selectedOfficer = mingMinisters.find((m) => m.name === selectedName) || filteredMinisters[0] || null;
+  const selectedSignature = selectedOfficer
+    ? [selectedOfficer.office, selectedOfficer.office_type, selectedOfficer.faction, selectedOfficer.status, selectedOfficer.power_id, selectedOfficer.portrait_available ? "1" : "0"].join("|")
+    : "";
+  React.useEffect(() => {
+    if (!selectedOfficer) {
+      setDetail(null);
+      setLoadingDetail("");
+      return;
+    }
+    const cached = detailCache[selectedOfficer.name];
+    if (cached && cached.signature === selectedSignature) {
+      setDetail(cached.detail);
+      setLoadingDetail("");
+      setDetailError("");
+      return;
+    }
+    let cancelled = false;
+    setLoadingDetail(selectedOfficer.name);
+    setDetailError("");
+    api<{ character: Minister }>(`/api/characters/${encodeURIComponent(selectedOfficer.name)}`)
+      .then((data) => {
+        if (cancelled) return;
+        setDetail(data.character);
+        setDetailCache((current) => ({
+          ...current,
+          [selectedOfficer.name]: { signature: selectedSignature, detail: data.character },
+        }));
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setDetail(null);
+        setDetailError(formatApiError(err, "调阅考核档失败"));
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingDetail("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedOfficer?.name, selectedSignature, detailCache]);
+  const identityText = (m?: Minister | null) => `${m?.office || ""} ${m?.office_type || ""} ${m?.faction || ""}`;
+  const isEunuchIdentity = (m?: Minister | null) => /司礼监|东厂|太监|宦官|内官|内廷|秉笔|掌印|随堂/.test(identityText(m));
+  const isCommonerIdentity = (m?: Minister | null) => /民籍|百姓|布衣|还民|脱籍/.test(identityText(m));
+  const isCivilOrMilitaryOfficial = (m?: Minister | null) => {
+    const text = identityText(m);
+    if (/民籍|百姓|布衣|江湖|商人|隐士|传教士|后宫|流寇|后金|蒙古|朝鲜/.test(text)) return false;
+    return /内阁|吏部|户部|礼部|兵部|刑部|工部|都察院|翰林|地方|边镇|锦衣卫|待铨|官|将|督|抚|御史|尚书|侍郎|郎中|主事|总兵|千户|百户/.test(text);
+  };
+  const selectedDetail = detail?.name === selectedOfficer?.name ? detail : null;
+  const canUseIdentityAction = !!selectedOfficer && selectedOfficer.status === "active" && (selectedOfficer.power_id || "ming") === "ming" && selectedOfficer.office_type !== "后宫";
+  const canCastrateSelected = canUseIdentityAction && isCivilOrMilitaryOfficial(selectedOfficer) && !isEunuchIdentity(selectedOfficer) && !isCommonerIdentity(selectedOfficer);
+  const canEmancipateSelected = canUseIdentityAction && isEunuchIdentity(selectedOfficer);
+  const selectedCastrate = canCastrateSelected ? (selectedDetail || selectedOfficer) : null;
+  const selectedEmancipate = canEmancipateSelected ? (selectedDetail || selectedOfficer) : null;
+  const castrationNote = selectedCastrate?.stance_notes?.find((note) => (
+    /净身|入宫|内廷|司礼监|太监|宦官/.test(`${note.topic}${note.summary}${note.conditions}`)
+  ));
+  const castrationAgreement = agreements.find((agreement) => (
+    agreement.minister_name === (selectedCastrate?.name || "")
+    && agreement.action_kind === "castration"
+    && ["sealed", "fulfilled", "pending", "blocked", "failed"].includes(agreement.status)
+  ));
+  const hasCastrationConsent = (
+    castrationNote?.handshake_status === "sealed"
+    || castrationAgreement?.target_status === "achieved"
+    || (!castrationAgreement?.target_status && ["sealed", "fulfilled"].includes(castrationAgreement?.status || ""))
+  );
+  const castrationBlocked = castrationNote?.handshake_status === "blocked" || ["blocked", "failed"].includes(castrationAgreement?.target_status || castrationAgreement?.status || "");
+  const castrationConditional = castrationNote?.handshake_status === "conditional" || castrationAgreement?.target_status === "pending_conditions" || castrationAgreement?.status === "pending";
+  const castrationTasks = castrationAgreement?.tasks?.filter((task) => task.status !== "done") || [];
+  const emancipationNote = selectedEmancipate?.stance_notes?.find((note) => (
+    /奴籍|民籍|脱籍|还民|转为民|转民籍|出宫为民|归为百姓|赐还为民/.test(`${note.topic}${note.summary}${note.conditions}`)
+  ));
+  const emancipationAgreement = agreements.find((agreement) => (
+    agreement.minister_name === (selectedEmancipate?.name || "")
+    && agreement.action_kind === "emancipation"
+    && ["sealed", "fulfilled", "pending", "blocked", "failed"].includes(agreement.status)
+  ));
+  const hasEmancipationConsent = (
+    emancipationNote?.handshake_status === "sealed"
+    || emancipationAgreement?.target_status === "achieved"
+    || (!emancipationAgreement?.target_status && ["sealed", "fulfilled"].includes(emancipationAgreement?.status || ""))
+  );
+  const emancipationBlocked = emancipationNote?.handshake_status === "blocked" || ["blocked", "failed"].includes(emancipationAgreement?.target_status || emancipationAgreement?.status || "");
+  const emancipationConditional = emancipationNote?.handshake_status === "conditional" || emancipationAgreement?.target_status === "pending_conditions" || emancipationAgreement?.status === "pending";
+  const emancipationTasks = emancipationAgreement?.tasks?.filter((task) => task.status !== "done") || [];
+  const selectedAgreements = agreements.filter((agreement) => (
+    agreement.minister_name === (selectedOfficer?.name || "")
+    && ["pending", "sealed", "fulfilled", "blocked", "failed"].includes(agreement.status)
+  )).slice(0, 5);
+  const castrationPrompt = selectedCastrate
+    ? `朕欲问卿一件极重之事：若令卿净身入宫，转入司礼监，为朕近侍家奴，专司密奏、传旨与催办，以制衡外朝诸派，卿是否自愿？若愿，须明言愿入内廷；若有条件，也请当面奏明。`
+    : "";
+  const emancipationPrompt = selectedEmancipate
+    ? `朕念汝久在内廷，身属奴籍，不得自择去留。若今日赐汝脱离内廷奴籍，转为民籍百姓，着布衣头巾，出宫自立，汝是否自愿？若愿，须明言愿脱籍还民；若有条件，也请当面奏明。`
+    : "";
+  const runRecruit = async (action: "exam" | "eunuch" | "recommend") => {
+    if (actionBusy) return;
+    setActionBusy(action);
+    setNotice("");
+    try {
+      setNotice(await onRecruit(action));
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActionBusy("");
+    }
+  };
+  const runPersuadeCastration = () => {
+    if (!selectedCastrate || actionBusy) return;
+    onClose();
+    onOpenChat(selectedCastrate, castrationPrompt);
+  };
+  const runCastrate = async (force = false) => {
+    if (!selectedCastrate || actionBusy) return;
+    if (force) {
+      const ok = window.confirm(`确定强旨令${selectedCastrate.name}净身入内廷？这会绕过本人同意，外朝会视为重罚与奇辱。`);
+      if (!ok) return;
+    }
+    setActionBusy("castrate");
+    setNotice("");
+    try {
+      setNotice(await onCastrate(selectedCastrate.name, force));
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActionBusy("");
+    }
+  };
+  const runPersuadeEmancipation = () => {
+    if (!selectedEmancipate || actionBusy) return;
+    onClose();
+    onOpenChat(selectedEmancipate, emancipationPrompt);
+  };
+  const runEmancipate = async (force = false) => {
+    if (!selectedEmancipate || actionBusy) return;
+    if (force) {
+      const ok = window.confirm(`确定下旨令${selectedEmancipate.name}脱离内廷奴籍、转为民籍百姓？`);
+      if (!ok) return;
+    }
+    setActionBusy("emancipate");
+    setNotice("");
+    try {
+      setNotice(await onEmancipate(selectedEmancipate.name, force));
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActionBusy("");
+    }
+  };
+  const ageText = (item?: Pick<Minister, "age_label" | "start_age"> | null) => item?.age_label || (item?.start_age ? `开局${item.start_age}岁` : "开局年龄未详");
+  const detailCharacter = selectedDetail || selectedOfficer;
+  const recentStanceCount = detailCharacter?.stance_notes?.length || 0;
+  const pendingAgreementCount = selectedAgreements.filter((agreement) => agreement.target_status === "pending_conditions" || agreement.status === "pending").length;
+  const readyAgreementCount = selectedAgreements.filter((agreement) => agreement.target_status === "achieved" || (!agreement.target_status && ["sealed", "fulfilled"].includes(agreement.status))).length;
+  const agreementStatusLabel: Record<Agreement["status"], string> = {
+    sealed: "已成约",
+    pending: "待审计",
+    blocked: "未说服",
+    fulfilled: "已兑现",
+    failed: "已失信",
+  };
+  const taskStatusLabel: Record<AgreementTask["status"], string> = {
+    pending: "待证",
+    done: "已证",
+    failed: "失信",
+  };
+  const conditionStatusLabel: Record<string, string> = {
+    pending: "条件待证",
+    satisfied: "条件已足",
+    failed: "条件失败",
+  };
+  const targetStatusLabel: Record<string, string> = {
+    pending_conditions: "标的未成",
+    achieved: "标的达成",
+    failed: "标的失败",
+    blocked: "未说服",
+  };
+  const canChatSelected = !!selectedOfficer && selectedOfficer.status === "active" && (selectedOfficer.power_id || "ming") === "ming";
+  return (
+    <RightDrawer open={open} onClose={onClose} title="吏部考核" icon={<Star size={17} />} extraClass="right-drawer-appointment">
+      <div className="bureau-audit-shell">
+        <section className="bureau-summary">
+          <div className="bureau-summary-title">
+            <span>铨选簿</span>
+            <b>{archiveManaged} / {totalArchive}</b>
+          </div>
+          <div className="bureau-count-strip">
+            <span>吏部管辖 <b>{archiveManaged}</b></span>
+            <span>在职 <b>{activeMinisters.length}</b></span>
+            <span>未登场 <b>{hiddenCount}</b></span>
+            <span>在野 <b>{fieldCount}</b></span>
+            <span>下狱 <b>{imprisonedCount}</b></span>
+            <span>外部 <b>{archiveExternal}</b></span>
+            <span>后宫 <b>{archiveHarem}</b></span>
+          </div>
+          <p>总录含大明、后金、流寇、蒙古、朝鲜与后宫；本台只处理大明非后宫人物，所以开局看到 77 名不是丢人，是吏部管理口径。</p>
+        </section>
+
+        <section className="bureau-recruit-row">
+          <button onClick={() => runRecruit("exam")} disabled={!!actionBusy}>科举取士</button>
+          <button onClick={() => runRecruit("recommend")} disabled={!!actionBusy}>举贤发现</button>
+          <button onClick={() => runRecruit("eunuch")} disabled={!!actionBusy}>内廷募入</button>
+          {notice && <div className="drawer-action-notice">{notice}</div>}
+        </section>
+
+        <section className="bureau-main-grid">
+          <div className="bureau-roster-panel">
+            <div className="right-drawer-search">
+              <input className="right-drawer-search-input" placeholder="检索姓名/职位/派系/年龄…" value={q} onChange={(e) => setQ(e.target.value)} />
+            </div>
+            <div className="bureau-scope-tabs">
+              {bureauScopes.map((item) => (
+                <button key={item} className={scope === item ? "active" : ""} onClick={() => setScope(item)}>
+                  {item}
+                </button>
+              ))}
+            </div>
+            <div className="bureau-roster-count">当前筛出 {filteredMinisters.length} 人</div>
+            <div className="bureau-roster-list">
+              {filteredMinisters.map((m) => (
+                <button
+                  key={m.name}
+                  className={`bureau-roster-row status-${m.status} ${selectedOfficer?.name === m.name ? "selected" : ""}`}
+                  onClick={() => setSelectedName(m.name)}
+                >
+                  <span>
+                    <b>{m.name}</b>
+                    <i>{m.faction} · {m.office_type}</i>
+                  </span>
+                  <em>{m.office || m.status_label}</em>
+                  <small>{ageText(m)} · {m.status_label}</small>
+                </button>
+              ))}
+              {!filteredMinisters.length ? <div className="empty-note">{q ? "无匹配官员。" : "此类暂无官员。"}</div> : null}
+            </div>
+          </div>
+
+          <div className="bureau-detail-panel">
+            {selectedOfficer ? (
+              <>
+                <header className="bureau-person-head">
+                  <div>
+                    <span>{selectedOfficer.summary}</span>
+                    <h3>{selectedOfficer.name}</h3>
+                  </div>
+                  <b className={`minister-status status-${selectedOfficer.status}`}>{selectedOfficer.status_label}</b>
+                </header>
+
+                <div className="bureau-person-lines">
+                  <span>{selectedOfficer.office || selectedOfficer.office_type}</span>
+                  <span>{ageText(detailCharacter)}</span>
+                  <span>{selectedOfficer.portrait_available === false ? "立绘缺失" : "立绘可用"}</span>
+                </div>
+
+                <div className="bureau-eval-grid">
+                  <div>
+                    <small>任事状态</small>
+                    <b>{selectedOfficer.status_label}</b>
+                    <span>{selectedOfficer.status_reason || "无特别案由"}</span>
+                  </div>
+                  <div>
+                    <small>奏对记录</small>
+                    <b>{recentStanceCount}</b>
+                    <span>{recentStanceCount ? "本回合已有立场证据" : "尚未形成考核证据"}</span>
+                  </div>
+                  <div>
+                    <small>履约协议</small>
+                    <b>{readyAgreementCount}/{selectedAgreements.length}</b>
+                    <span>{pendingAgreementCount ? `${pendingAgreementCount} 项待履约` : "无待办条件"}</span>
+                  </div>
+                  <div>
+                    <small>名册范围</small>
+                    <b>{archiveManaged}</b>
+                    <span>大明非后宫官僚池</span>
+                  </div>
+                </div>
+
+                <div className="bureau-command-row">
+                  <button onClick={() => selectedOfficer && onOpenChat(selectedDetail || selectedOfficer)} disabled={!canChatSelected}>召见考问</button>
+                  <button onClick={() => setScope("缺图")}>查缺图</button>
+                  <button onClick={() => setScope("待铨外缘")}>查待铨</button>
+                </div>
+
+                {selectedAgreements.length ? (
+                  <div className="agreement-mini-list">
+                    <b>履约清单</b>
+                    {selectedAgreements.map((agreement) => (
+                      <article key={agreement.id} className={`agreement-mini status-${agreement.status}`}>
+                        <span>{targetStatusLabel[agreement.target_status || ""] || agreementStatusLabel[agreement.status]} · {agreement.core_topic || agreement.topic}</span>
+                        <small>
+                          {conditionStatusLabel[agreement.condition_status || ""] || agreement.promise_type || agreement.handshake_label || agreement.handshake_status}
+                          {agreement.stakes ? ` · ${agreement.stakes}` : ""}
+                          {typeof agreement.fulfillment_score === "number" ? ` · 审计${agreement.fulfillment_score}` : ""}
+                        </small>
+                        {agreement.target_text ? <p className="agreement-target">标的：{agreement.target_text}</p> : null}
+                        {agreement.fulfillment_evidence ? <p className="agreement-evidence">{agreement.fulfillment_evidence}</p> : null}
+                        {agreement.target_evidence ? <p className="agreement-evidence">标的裁断：{agreement.target_evidence}</p> : null}
+                        {agreement.tasks?.length ? (
+                          <div>
+                            {agreement.tasks.map((task) => (
+                              <p key={task.id}>
+                                <i className={`task-${task.status}`}>{taskStatusLabel[task.status]}</i>
+                                <em>{task.description}</em>
+                                {task.evidence ? <small>{task.evidence}</small> : null}
+                              </p>
+                            ))}
+                          </div>
+                        ) : null}
+                        {agreement.execution_consequence ? <p className="agreement-consequence">{agreement.execution_consequence}</p> : null}
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
+
+                <StanceNotes notes={detailCharacter?.stance_notes} />
+
+                {loadingDetail ? <div className="empty-note">正在调阅{loadingDetail}考核档...</div> : null}
+                {detailError ? <div className="empty-note">{detailError}</div> : null}
+                {selectedDetail?.network_profile ? <NetworkProfileBlock profile={selectedDetail.network_profile} /> : null}
+                {selectedDetail?.xinpan_profile ? <XinpanProfileBlock profile={selectedDetail.xinpan_profile} /> : null}
+                {selectedDetail?.tiangang_profile ? <TiangangSpectrum profile={selectedDetail.tiangang_profile} /> : null}
+
+                <details className="bureau-special-action">
+                  <summary>特殊身份转换</summary>
+                  <div className="identity-action-list">
+                    <section className={`identity-action-card ${selectedCastrate ? "" : "disabled"}`} aria-disabled={!selectedCastrate}>
+                      <div className="drawer-action-head">
+                        <b>净身入内廷</b>
+                        <span>当前：{selectedOfficer.name}</span>
+                      </div>
+                      <small>适用于在朝文官、武官；转入司礼监太监身份。</small>
+                      <div className="identity-consequence-row" aria-label="净身入内廷后果预估">
+                        <span><b>自愿</b>势合+16 · 信言↑</span>
+                        <span className="danger"><b>强旨</b>势合-48 · 畏惧+24 · 仇恨+52起</span>
+                      </div>
+                      {selectedCastrate ? (
+                        <>
+                          <div className={`castration-consent ${hasCastrationConsent ? "ready" : castrationBlocked ? "blocked" : castrationConditional ? "conditional" : ""}`}>
+                            <b>{hasCastrationConsent ? "握手成功" : castrationConditional ? "附条件未闭环" : castrationBlocked ? "本人未同意" : "尚未奏对"}</b>
+                            <span>
+                              {hasCastrationConsent
+                                ? "可按自愿入内廷办理。"
+                                : castrationConditional
+                                  ? `需先履约：${castrationTasks.map((task) => task.description).join("；") || castrationNote?.conditions || "条件未明"}`
+                                  : "先劝说，心理量表握手成功后才可自愿转换；否则只能强旨。"}
+                            </span>
+                          </div>
+                          <div className="castration-actions">
+                            <button onClick={runPersuadeCastration} disabled={!!actionBusy}>劝说奏对</button>
+                            <button onClick={() => runCastrate(false)} disabled={!hasCastrationConsent || !!actionBusy}>自愿入内廷</button>
+                            <button className="danger" onClick={() => runCastrate(true)} disabled={!!actionBusy}>强旨净身</button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="identity-disabled-note">当前人物不适用净身入内廷。</div>
+                      )}
+                    </section>
+
+                    <section className={`identity-action-card ${selectedEmancipate ? "" : "disabled"}`} aria-disabled={!selectedEmancipate}>
+                      <div className="drawer-action-head">
+                        <b>奴籍转民籍</b>
+                        <span>当前：{selectedOfficer.name}</span>
+                      </div>
+                      <small>适用于太监/内廷奴籍；转出后立绘改为百姓布衣与头巾。</small>
+                      <div className="identity-consequence-row" aria-label="奴籍转民籍后果预估">
+                        <span><b>自愿</b>势合+6 · 畏惧-2</span>
+                        <span className="danger"><b>下旨</b>势合-36 · 畏惧+10 · 仇恨+58起</span>
+                      </div>
+                      {selectedEmancipate ? (
+                        <>
+                          <div className={`castration-consent ${hasEmancipationConsent ? "ready" : emancipationBlocked ? "blocked" : emancipationConditional ? "conditional" : ""}`}>
+                            <b>{hasEmancipationConsent ? "握手成功" : emancipationConditional ? "附条件未闭环" : emancipationBlocked ? "本人未同意" : "尚未奏对"}</b>
+                            <span>
+                              {hasEmancipationConsent
+                                ? "可按自愿脱籍还民办理。"
+                                : emancipationConditional
+                                  ? `需先履约：${emancipationTasks.map((task) => task.description).join("；") || emancipationNote?.conditions || "条件未明"}`
+                                  : "先劝导，心理量表握手成功后才可自愿转民籍；否则只能下旨。"}
+                            </span>
+                          </div>
+                          <div className="castration-actions">
+                            <button onClick={runPersuadeEmancipation} disabled={!!actionBusy}>劝导奏对</button>
+                            <button onClick={() => runEmancipate(false)} disabled={!hasEmancipationConsent || !!actionBusy}>自愿转民籍</button>
+                            <button className="danger" onClick={() => runEmancipate(true)} disabled={!!actionBusy}>直接下旨</button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="identity-disabled-note">当前人物不是太监/内廷奴籍。</div>
+                      )}
+                    </section>
+                  </div>
+                </details>
+              </>
+            ) : (
+              <div className="empty-note">选择一名官员调阅考核簿。</div>
+            )}
+          </div>
+        </section>
+      </div>
+    </RightDrawer>
+  );
+}
+
+function OrganizationDrawer({
+  organizations,
+  open,
+  onAddCustom,
+  onOpenChat,
+  onClose,
+}: {
+  organizations: OrganizationPayload;
+  open: boolean;
+  onAddCustom: (payload: { name: string; category: string; mandate: string; slots: string[] }) => Promise<string>;
   onOpenChat: (minister: Minister) => void;
   onClose: () => void;
 }) {
   const [q, setQ] = React.useState("");
-  const offices = ["内阁", "吏部", "户部", "礼部", "兵部", "刑部", "工部"];
-  const byOffice = new Map<string, Minister[]>();
-  for (const office of offices) byOffice.set(office, []);
-  byOffice.set("其他", []);
-  for (const m of ministers) {
-    if ((m.power_id || "ming") !== "ming") continue;
-    if (m.status !== "active") continue;
-    if (q && !m.name.includes(q) && !(m.office || "").includes(q) && !(m.office_type || "").includes(q)) continue;
-    const matched = offices.find((o) => (m.office_type || "").includes(o));
-    const key = matched || "其他";
-    byOffice.get(key)!.push(m);
-  }
+  const [selectedId, setSelectedId] = React.useState("");
+  const [selectedCategory, setSelectedCategory] = React.useState("全部");
+  const [viewMode, setViewMode] = React.useState<"institutions" | "vacancies" | "unassigned">("institutions");
+  const [name, setName] = React.useState("海关");
+  const [mandate, setMandate] = React.useState("稽查海贸、抽分商税、兼察沿海走私。");
+  const [slotsText, setSlotsText] = React.useState("海关提举\n海关副使\n海关巡检");
+  const [notice, setNotice] = React.useState("");
+  const [adding, setAdding] = React.useState(false);
+  const institutions = organizations?.institutions || [];
+  const unassigned = organizations?.unassigned || [];
+  const query = q.trim();
+  const categories = React.useMemo(
+    () => ["全部", ...Array.from(new Set(institutions.map((item) => item.category).filter(Boolean)))],
+    [institutions],
+  );
+  const categoryStats = React.useMemo(() => categories.map((category) => {
+    const rows = category === "全部" ? institutions : institutions.filter((item) => item.category === category);
+    return {
+      category,
+      count: rows.length,
+      vacancies: rows.reduce((sum, item) => sum + item.vacancy_count, 0),
+    };
+  }), [categories, institutions]);
+  const filtered = React.useMemo(() => institutions.filter((item) => {
+    const categoryHit = selectedCategory === "全部" || item.category === selectedCategory;
+    const slotHit = item.slots.some((slot) => (
+      slot.title.includes(query)
+      || (slot.match_hint || "").includes(query)
+      || slot.holders.some((holder) => (
+        holder.name.includes(query)
+        || (holder.office || "").includes(query)
+        || (holder.office_type || "").includes(query)
+        || (holder.faction || "").includes(query)
+      ))
+    ));
+    const queryHit = !query || item.name.includes(query) || item.category.includes(query) || item.mandate.includes(query) || slotHit;
+    return categoryHit && queryHit;
+  }), [institutions, query, selectedCategory]);
+  const unassignedRows = React.useMemo(() => unassigned.filter((m) => (
+    !query || m.name.includes(query) || (m.office || "").includes(query) || (m.office_type || "").includes(query) || (m.faction || "").includes(query)
+  )), [query, unassigned]);
+  const vacancyGroups = React.useMemo(() => institutions.map((item) => {
+    const slots = item.slots.filter((slot) => {
+      if (!slot.vacancies) return false;
+      if (!query) return true;
+      return (
+        item.name.includes(query)
+        || item.category.includes(query)
+        || item.mandate.includes(query)
+        || slot.title.includes(query)
+        || (slot.match_hint || "").includes(query)
+      );
+    });
+    return { item, slots };
+  }).filter((group) => {
+    const categoryHit = selectedCategory === "全部" || group.item.category === selectedCategory;
+    return categoryHit && group.slots.length > 0;
+  }), [institutions, query, selectedCategory]);
+  const vacancySlotCount = vacancyGroups.reduce(
+    (sum, group) => sum + group.slots.reduce((slotSum, slot) => slotSum + slot.vacancies, 0),
+    0,
+  );
+  React.useEffect(() => {
+    const candidates = filtered.length ? filtered : institutions;
+    if (!candidates.length) {
+      if (selectedId) setSelectedId("");
+      return;
+    }
+    if (!selectedId || !candidates.some((item) => item.id === selectedId)) {
+      setSelectedId(candidates[0].id);
+    }
+  }, [filtered, institutions, selectedId]);
+  const selected = filtered.find((item) => item.id === selectedId) || filtered[0];
+  const selectedSlots = selected?.slots || [];
+  const selectedHolderCount = selectedSlots.reduce((sum, slot) => sum + (slot.filled_count ?? Math.min(slot.holders.length, slot.count)), 0);
+  const selectedCapacity = selectedSlots.reduce((sum, slot) => sum + (slot.open_pool ? (slot.filled_count ?? slot.holders.length) : slot.count), 0);
+  const selectedVacancies = selectedSlots.reduce((sum, slot) => sum + slot.vacancies, 0);
+  const addCustom = async () => {
+    if (adding) return;
+    setAdding(true);
+    setNotice("");
+    try {
+      const message = await onAddCustom({
+        name,
+        category: "非常规",
+        mandate,
+        slots: slotsText.split(/\r?\n|、|,/).map((item) => item.trim()).filter(Boolean),
+      });
+      setNotice(message);
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAdding(false);
+    }
+  };
   return (
-    <RightDrawer open={open} onClose={onClose} title="官员任免" icon={<Star size={17} />} extraClass="right-drawer-appointment">
-      <div className="right-drawer-search">
-        <input className="right-drawer-search-input" placeholder="搜索姓名/职位…" value={q} onChange={(e) => setQ(e.target.value)} />
+    <RightDrawer open={open} onClose={onClose} title="组织架构" icon={<Landmark size={17} />} extraClass="right-drawer-organization">
+      <div className="org-command-strip">
+        <div>
+          <span>执行力</span>
+          <b>{organizations?.court_readiness ?? 0}</b>
+        </div>
+        <div>
+          <span>机构</span>
+          <b>{institutions.length}</b>
+        </div>
+        <div>
+          <span>空缺</span>
+          <b>{organizations?.vacancy_count || 0}</b>
+        </div>
+        <div>
+          <span>非常规</span>
+          <b>{organizations?.custom_count || 0}</b>
+        </div>
+        <div>
+          <span>未归位</span>
+          <b>{unassigned.length}</b>
+        </div>
       </div>
-      <div className="right-drawer-list">
-        {[...offices, "其他"].map((office) => {
-          const group = byOffice.get(office) || [];
-          if (!group.length) return null;
-          return (
-            <div key={office}>
-              <div className="right-drawer-section-title">{office}</div>
-              {group.map((m) => (
+      {organizations?.execution_summary ? (
+        <div className="org-execution-summary">
+          <span>班子审计</span>
+          <p>{organizations.execution_summary}</p>
+        </div>
+      ) : null}
+      <div className="org-category-tabs" aria-label="机构类别">
+        {categoryStats.map((item) => (
+          <button
+            key={item.category}
+            className={selectedCategory === item.category ? "active" : ""}
+            onClick={() => setSelectedCategory(item.category)}
+          >
+            <span>{item.category}</span>
+            <small>{item.count} 所 · 空 {item.vacancies}</small>
+          </button>
+        ))}
+      </div>
+      <div className="org-view-tabs" aria-label="组织图视图">
+        <button className={viewMode === "institutions" ? "active" : ""} onClick={() => setViewMode("institutions")}>
+          <span>机构</span>
+          <small>{filtered.length} 所</small>
+        </button>
+        <button className={viewMode === "vacancies" ? "active" : ""} onClick={() => setViewMode("vacancies")}>
+          <span>缺员</span>
+          <small>{vacancySlotCount} 席</small>
+        </button>
+        <button className={viewMode === "unassigned" ? "active" : ""} onClick={() => setViewMode("unassigned")}>
+          <span>未归位</span>
+          <small>{unassignedRows.length} 人</small>
+        </button>
+      </div>
+      <div className="org-toolbar">
+        <input className="right-drawer-search-input" placeholder="搜索机构、席位、人名或派系…" value={q} onChange={(e) => setQ(e.target.value)} />
+      </div>
+      {viewMode === "institutions" && (
+        <div className="org-layout">
+          <aside className="org-index">
+            <div className="org-index-head">
+              <b>机构目录</b>
+              <span>{filtered.length} 所</span>
+            </div>
+            <div className="org-index-list">
+              {filtered.map((item) => (
                 <button
-                  key={m.name}
-                  className="right-drawer-row right-drawer-row-minister"
-                  onClick={() => onOpenChat(m)}
+                  key={item.id}
+                  className={`org-index-row${selected?.id === item.id ? " selected" : ""} ${item.vacancy_count || (item.readiness ?? 100) < 55 ? "warn" : ""}`}
+                  onClick={() => setSelectedId(item.id)}
                 >
-                  <div className="right-drawer-minister-row">
-                    <span className="right-drawer-row-name">{m.name}</span>
-                    <span className="right-drawer-minister-office">{m.office || m.office_type}</span>
-                  </div>
+                  <span>{item.name}</span>
+                  <small>{item.category}</small>
+                  <b>{item.readiness != null ? `${item.readiness}` : item.vacancy_count ? `空 ${item.vacancy_count}` : `${item.holder_count || 0} 人`}</b>
                 </button>
               ))}
+              {!filtered.length && <div className="empty-note">无匹配机构。</div>}
             </div>
-          );
-        })}
-        {[...offices, "其他"].every((o) => !(byOffice.get(o) || []).length) && (
-          <div className="empty-note">{q ? "无匹配结果。" : "暂无在职官员。"}</div>
-        )}
-      </div>
+          </aside>
+          {selected ? (
+            <section className="org-ledger">
+              <header className="org-ledger-head">
+                <div>
+                  <span>{selected.category}</span>
+                  <h2>{selected.name}</h2>
+                </div>
+                <div className={`org-vacancy-seal ${selectedVacancies ? "warn" : ""}`}>
+                  <b>{selectedHolderCount}/{selectedCapacity}</b>
+                  <small>{selectedVacancies ? `空缺 ${selectedVacancies}` : "额满"}</small>
+                </div>
+              </header>
+              <p className="org-mandate">{selected.mandate}</p>
+              <div className="org-readiness-panel">
+                <div>
+                  <span>执行力</span>
+                  <b>{selected.readiness ?? 0}</b>
+                </div>
+                <div>
+                  <span>席位覆盖</span>
+                  <b>{selected.coverage ?? 0}</b>
+                </div>
+                <div>
+                  <span>在任质量</span>
+                  <b>{selected.holder_quality ?? 0}</b>
+                </div>
+              </div>
+              {selected.execution_summary ? <p className="org-execution-note">{selected.execution_summary}</p> : null}
+              {selected.execution_risks?.length ? (
+                <div className="org-risk-list">
+                  {selected.execution_risks.slice(0, 4).map((risk) => <span key={risk}>{risk}</span>)}
+                </div>
+              ) : null}
+              <div className="org-slot-grid">
+                {selected.slots.map((slot) => (
+                  <div key={`${selected.id}-${slot.title}`} className={`org-slot ${slot.vacancies ? "vacant" : ""} ${slot.open_pool ? "open-pool" : ""}`}>
+                    <div className="org-slot-head">
+                      <b>{slot.title}</b>
+                      <span>
+                        {slot.open_pool
+                          ? `${slot.holders.length} 人`
+                          : `${slot.filled_count ?? Math.min(slot.holders.length, slot.count)}/${slot.count}`}
+                      </span>
+                    </div>
+                    {slot.match_hint ? <em className="org-slot-hint">{slot.match_hint}</em> : null}
+                    {slot.holders.length ? (
+                      <div className="org-holder-list">
+                        {slot.holders.map((holder) => (
+                          <button key={holder.name} onClick={() => onOpenChat(holder)}>
+                            <span>{holder.name}</span>
+                            <small>{holder.office || holder.faction}</small>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <small>空缺</small>
+                    )}
+                    {slot.overflow_count ? <small>同类超额 {slot.overflow_count} 人，已列出供调任裁撤。</small> : null}
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : (
+            <section className="org-ledger empty-note">未选择机构。</section>
+          )}
+        </div>
+      )}
+      {viewMode === "vacancies" && (
+        <section className="org-ledger org-vacancy-board">
+          <header className="org-ledger-head">
+            <div>
+              <span>{selectedCategory}</span>
+              <h2>缺员清单</h2>
+            </div>
+            <div className={`org-vacancy-seal ${vacancySlotCount ? "warn" : ""}`}>
+              <b>{vacancySlotCount}</b>
+              <small>空席</small>
+            </div>
+          </header>
+          <div className="org-vacancy-list">
+            {vacancyGroups.map(({ item, slots }) => (
+              <article key={item.id} className="org-vacancy-card">
+                <div className="org-vacancy-card-head">
+                  <div>
+                    <span>{item.category}</span>
+                    <b>{item.name}</b>
+                  </div>
+                  <button onClick={() => { setSelectedId(item.id); setViewMode("institutions"); }}>查看</button>
+                </div>
+                <div className="org-vacancy-slot-list">
+                  {slots.map((slot) => (
+                    <div key={`${item.id}-${slot.title}`} className="org-vacancy-slot">
+                      <b>{slot.title}</b>
+                      <span>缺 {slot.vacancies}</span>
+                      {slot.match_hint ? <small>{slot.match_hint}</small> : null}
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ))}
+            {!vacancyGroups.length && <div className="empty-note">无匹配空缺。</div>}
+          </div>
+        </section>
+      )}
+      {viewMode === "unassigned" && (
+        <section className="org-ledger org-unassigned-ledger">
+          <header className="org-ledger-head">
+            <div>
+              <span>{selectedCategory}</span>
+              <h2>未归位人物</h2>
+            </div>
+            <div className={`org-vacancy-seal ${unassignedRows.length ? "warn" : ""}`}>
+              <b>{unassignedRows.length}</b>
+              <small>人物</small>
+            </div>
+          </header>
+          <div className="org-unassigned-list">
+            {unassignedRows.map((holder) => (
+              <button key={holder.name} className="org-unassigned-row" onClick={() => onOpenChat(holder)}>
+                <span>{holder.name}</span>
+                <small>{holder.office || holder.office_type || "无实任"}</small>
+                <i>{holder.faction}</i>
+              </button>
+            ))}
+            {!unassignedRows.length && <div className="empty-note">无匹配人物。</div>}
+          </div>
+        </section>
+      )}
+      <details className="org-custom-panel">
+        <summary>增设非常规机构</summary>
+        <div className="org-custom-form">
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="机构名" />
+          <textarea value={mandate} onChange={(e) => setMandate(e.target.value)} rows={2} placeholder="权责" />
+          <textarea value={slotsText} onChange={(e) => setSlotsText(e.target.value)} rows={3} placeholder="每行一个席位" />
+          <button className="drawer-wide-action" onClick={addCustom} disabled={adding || !name.trim()}>
+            增设机构
+          </button>
+          {notice && <div className="drawer-action-notice">{notice}</div>}
+        </div>
+      </details>
     </RightDrawer>
   );
 }
@@ -2541,6 +4045,7 @@ function CourtDrawer({
   onClose,
   onOpenChat,
   onUploadPortrait,
+  onGeneratePortrait,
 }: {
   state: GameState;
   ministers: Minister[];
@@ -2551,9 +4056,21 @@ function CourtDrawer({
   onClose: () => void;
   onOpenChat: (minister: Minister) => void;
   onUploadPortrait: (ministerName: string, file: File) => Promise<void>;
+  onGeneratePortrait: (ministerName: string) => Promise<void>;
 }) {
   const [q, setQ] = React.useState("");
-  const filtered = q ? ministers.filter((m) => m.name.includes(q) || (m.office || "").includes(q)) : ministers;
+  const filtered = q
+    ? ministers.filter((m) => m.name.includes(q) || (m.office || "").includes(q) || (m.office_type || "").includes(q) || (m.faction || "").includes(q))
+    : ministers;
+  const missingPortraits = ministers.filter((m) => m.portrait_available === false).length;
+  const activeCount = _state.ministers.filter((m) => (m.power_id || "ming") === "ming" && m.status === "active").length;
+  const groups = ["在职", "内阁+六部", "边镇厂卫", "江湖外缘", "收藏", "全部", "人物志"];
+  const characterByName = new Map([..._state.ministers, ...(_state.consorts || [])].map((item) => [item.name, item]));
+  const archiveRows = _state.character_index || [];
+  const archiveFilteredCount = archiveRows.filter((m) => {
+    if (!q.trim()) return true;
+    return m.name.includes(q) || m.office.includes(q) || m.office_type.includes(q) || m.faction.includes(q) || m.power_name.includes(q);
+  }).length;
   return (
     <>
       {open && <button className="drawer-scrim" aria-label="收起" onClick={onClose} />}
@@ -2566,7 +4083,7 @@ function CourtDrawer({
           <button className="icon-button" aria-label="收起" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="segmented">
-          {["内阁+六部", "收藏", "在职", "全部"].map((group) => (
+          {groups.map((group) => (
             <button
               className={ministerGroup === group ? "active" : ""}
               key={group}
@@ -2576,20 +4093,216 @@ function CourtDrawer({
             </button>
           ))}
         </div>
-        <div className="right-drawer-search court-search">
-          <input className="right-drawer-search-input" placeholder="搜索姓名/职位…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="court-drawer-meta">
+          <span>当前 {ministerGroup === "人物志" ? archiveFilteredCount : filtered.length} 人</span>
+          <span>在职 {activeCount} 人</span>
+          {missingPortraits > 0 && <span className="warn">缺图 {missingPortraits}</span>}
         </div>
-        <MinisterCardList
-          list={filtered}
-          portraitPrefix="minister_"
-          selectedMinister={selectedMinister}
-          emptyNote={q ? "无匹配大臣。" : "此栏暂无可召见大臣。"}
-          onOpenChat={onOpenChat}
-          courtMode={ministerGroup === "内阁+六部" || ministerGroup === "收藏"}
-          onUploadPortrait={onUploadPortrait}
-        />
+        <div className="right-drawer-search court-search">
+          <input className="right-drawer-search-input" placeholder="搜索姓名/职位/派系…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        {ministerGroup === "人物志" ? (
+          <CharacterArchive
+            rows={archiveRows}
+            query={q}
+            characterByName={characterByName}
+            onOpenChat={onOpenChat}
+          />
+        ) : (
+          <MinisterCardList
+            list={filtered}
+            portraitPrefix="minister_"
+            selectedMinister={selectedMinister}
+            emptyNote={q ? "无匹配大臣。" : "此栏暂无可召见大臣。"}
+            onOpenChat={onOpenChat}
+            courtMode={ministerGroup === "内阁+六部"}
+            onUploadPortrait={onUploadPortrait}
+            onGeneratePortrait={onGeneratePortrait}
+          />
+        )}
       </aside>
     </>
+  );
+}
+
+function CharacterArchive({
+  rows,
+  query,
+  characterByName,
+  onOpenChat,
+}: {
+  rows: CharacterIndexEntry[];
+  query: string;
+  characterByName: Map<string, Minister>;
+  onOpenChat: (minister: Minister) => void;
+}) {
+  const [scope, setScope] = React.useState("全部");
+  const [selectedName, setSelectedName] = React.useState(rows[0]?.name || "");
+  const [detail, setDetail] = React.useState<Minister | null>(null);
+  const [loadingName, setLoadingName] = React.useState("");
+  const [detailError, setDetailError] = React.useState("");
+  const [detailCache, setDetailCache] = React.useState<Record<string, { signature: string; detail: Minister }>>({});
+  const scopes = ["全部", "大明", "外部", "后宫", "尚未登场", "缺图"];
+  const filtered = rows.filter((row) => {
+    const q = query.trim();
+    const queryHit = !q || row.name.includes(q) || row.office.includes(q) || row.office_type.includes(q) || row.faction.includes(q) || row.power_name.includes(q);
+    if (!queryHit) return false;
+    if (scope === "大明") return (row.power_id || "ming") === "ming" && row.office_type !== "后宫";
+    if (scope === "外部") return (row.power_id || "ming") !== "ming";
+    if (scope === "后宫") return row.office_type === "后宫";
+    if (scope === "尚未登场") return row.status === "offstage";
+    if (scope === "缺图") return row.portrait_available === false;
+    return true;
+  });
+  React.useEffect(() => {
+    if (selectedName && filtered.some((row) => row.name === selectedName)) return;
+    setSelectedName(filtered[0]?.name || "");
+  }, [selectedName, filtered, rows]);
+  const selectedRow = rows.find((row) => row.name === selectedName);
+  const selectedSignature = selectedRow
+    ? [selectedRow.office, selectedRow.office_type, selectedRow.faction, selectedRow.status, selectedRow.power_id, selectedRow.portrait_available ? "1" : "0"].join("|")
+    : "";
+  React.useEffect(() => {
+    if (!selectedName) {
+      setDetail(null);
+      setLoadingName("");
+      return;
+    }
+    const cached = detailCache[selectedName];
+    if (cached && cached.signature === selectedSignature) {
+      setDetail(cached.detail);
+      setLoadingName("");
+      setDetailError("");
+      return;
+    }
+    let cancelled = false;
+    setLoadingName(selectedName);
+    setDetailError("");
+    api<{ character: Minister }>(`/api/characters/${encodeURIComponent(selectedName)}`)
+      .then((data) => {
+        if (cancelled) return;
+        setDetail(data.character);
+        setDetailCache((current) => ({
+          ...current,
+          [selectedName]: { signature: selectedSignature, detail: data.character },
+        }));
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setDetail(null);
+        setDetailError(formatApiError(err, "读取人物档案失败"));
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingName("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedName, selectedSignature, detailCache]);
+  const active = rows.filter((row) => row.status === "active").length;
+  const offstage = rows.filter((row) => row.status === "offstage").length;
+  const external = rows.filter((row) => (row.power_id || "ming") !== "ming").length;
+  const missing = rows.filter((row) => row.portrait_available === false).length;
+  const openArchiveChat = (row: CharacterIndexEntry, known?: Minister) => {
+    if (!row.can_summon) return;
+    if (known) {
+      onOpenChat(known);
+      return;
+    }
+    if (detail?.name === row.name) {
+      onOpenChat(detail);
+      return;
+    }
+    setLoadingName(row.name);
+    setDetailError("");
+    api<{ character: Minister }>(`/api/characters/${encodeURIComponent(row.name)}`)
+      .then((data) => {
+        setDetail(data.character);
+        setDetailCache((current) => ({
+          ...current,
+          [row.name]: { signature: [row.office, row.office_type, row.faction, row.status, row.power_id, row.portrait_available ? "1" : "0"].join("|"), detail: data.character },
+        }));
+        onOpenChat(data.character);
+      })
+      .catch((err) => setDetailError(formatApiError(err, "读取人物档案失败")))
+      .finally(() => setLoadingName(""));
+  };
+  return (
+    <section className="character-archive">
+      <div className="character-archive-stats">
+        <span>总录 <b>{rows.length}</b></span>
+        <span>在场 <b>{active}</b></span>
+        <span>未登场 <b>{offstage}</b></span>
+        <span>外部 <b>{external}</b></span>
+        <span className={missing ? "warn" : ""}>缺图 <b>{missing}</b></span>
+      </div>
+      <div className="character-archive-tabs">
+        {scopes.map((item) => (
+          <button key={item} className={scope === item ? "active" : ""} onClick={() => setScope(item)}>
+            {item}
+          </button>
+        ))}
+      </div>
+      <div className="character-archive-detail">
+        {detail ? (
+          <>
+            <header>
+              <div>
+                <span>{detail.summary}</span>
+                <h3>{detail.name}</h3>
+              </div>
+              {detail.status !== "active" ? <b>{detail.status_label}</b> : null}
+              {detail.status === "active" && detail.power_id === "ming" ? (
+                <button onClick={() => onOpenChat(detail)}>召见</button>
+              ) : null}
+            </header>
+            {detail.office ? <p>{detail.office}</p> : null}
+            <NetworkProfileBlock profile={detail.network_profile} />
+            <XinpanProfileBlock profile={detail.xinpan_profile} />
+            <TiangangSpectrum profile={detail.tiangang_profile} />
+          </>
+        ) : loadingName ? (
+          <div className="empty-note">正在调阅{loadingName}档案...</div>
+        ) : detailError ? (
+          <div className="empty-note">{detailError}</div>
+        ) : (
+          <div className="empty-note">选择一名人物查看小传、人脉与天罡谱尺。</div>
+        )}
+      </div>
+      <div className="character-archive-list">
+        {filtered.map((row) => {
+          const minister = characterByName.get(row.name);
+          const callable = !!row.can_summon;
+          return (
+            <article
+              className={`character-archive-row status-${row.status} ${callable ? "callable" : ""} ${selectedName === row.name ? "selected" : ""}`}
+              key={row.name}
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedName(row.name)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                setSelectedName(row.name);
+              }}
+            >
+              <div>
+                <b>{row.name}</b>
+                <span>{row.power_name} · {row.faction} · {row.office_type}</span>
+              </div>
+              <small>{row.office || row.status_label}</small>
+              <em>{row.status_label}{row.portrait_available === false ? " · 缺立绘" : ""}</em>
+              {callable ? (
+                <button onClick={(event) => { event.stopPropagation(); openArchiveChat(row, minister); }}>
+                  召见
+                </button>
+              ) : null}
+            </article>
+          );
+        })}
+        {!filtered.length ? <div className="empty-note">人物志无匹配记录。</div> : null}
+      </div>
+    </section>
   );
 }
 
@@ -2602,6 +4315,8 @@ function HaremDrawer({
   onClose,
   onOpenChat,
   onUploadPortrait,
+  onGeneratePortrait,
+  onAction,
 }: {
   consorts: Minister[];
   haremGroup: string;
@@ -2611,9 +4326,32 @@ function HaremDrawer({
   onClose: () => void;
   onOpenChat: (minister: Minister) => void;
   onUploadPortrait: (ministerName: string, file: File) => Promise<void>;
+  onGeneratePortrait: (ministerName: string) => Promise<void>;
+  onAction: (name: string, action: "stabilize" | "treasury" | "appease" | "recommend") => Promise<string>;
 }) {
   const [q, setQ] = React.useState("");
+  const [actionName, setActionName] = React.useState("");
+  const [notice, setNotice] = React.useState("");
+  const [actionBusy, setActionBusy] = React.useState("");
   const filtered = q ? consorts.filter((c) => c.name.includes(q)) : consorts;
+  const activeConsorts = consorts.filter((c) => c.status === "active");
+  React.useEffect(() => {
+    if (actionName && activeConsorts.some((c) => c.name === actionName)) return;
+    const preferred = activeConsorts.find((c) => c.name === selectedMinister)?.name || activeConsorts[0]?.name || "";
+    setActionName(preferred);
+  }, [actionName, activeConsorts, selectedMinister]);
+  const runAction = async (action: "stabilize" | "treasury" | "appease" | "recommend") => {
+    if (!actionName || actionBusy) return;
+    setActionBusy(action);
+    setNotice("");
+    try {
+      setNotice(await onAction(actionName, action));
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActionBusy("");
+    }
+  };
   return (
     <>
       {open && <button className="drawer-scrim" aria-label="收起" onClick={onClose} />}
@@ -2639,6 +4377,21 @@ function HaremDrawer({
         <div className="right-drawer-search court-search">
           <input className="right-drawer-search-input" placeholder="搜索姓名…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
+        <div className="drawer-action-panel harem-action-panel">
+          <div className="drawer-action-head">
+            <b>宫务</b>
+            <select value={actionName} onChange={(e) => setActionName(e.target.value)}>
+              {activeConsorts.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+            </select>
+          </div>
+          <div className="drawer-action-grid">
+            <button onClick={() => runAction("stabilize")} disabled={!actionName || !!actionBusy}>协理六宫</button>
+            <button onClick={() => runAction("treasury")} disabled={!actionName || !!actionBusy}>盘点内库</button>
+            <button onClick={() => runAction("appease")} disabled={!actionName || !!actionBusy}>安抚内廷</button>
+            <button onClick={() => runAction("recommend")} disabled={!actionName || !!actionBusy}>举荐宫人</button>
+          </div>
+          {notice && <div className="drawer-action-notice">{notice}</div>}
+        </div>
         <MinisterCardList
           list={filtered}
           portraitPrefix="consort_"
@@ -2646,6 +4399,7 @@ function HaremDrawer({
           emptyNote={q ? "无匹配结果。" : "后宫暂无可召见之人。"}
           onOpenChat={onOpenChat}
           onUploadPortrait={onUploadPortrait}
+          onGeneratePortrait={onGeneratePortrait}
         />
       </aside>
     </>
@@ -2905,20 +4659,24 @@ function BottomCommandBar({
   eventsCount,
   directivesCount,
   secretOrdersCount,
+  adventureCount,
   onOpenMemorials,
   onOpenEdict,
   onOpenExtraction,
   onOpenHistory,
   onOpenSecretOrders,
+  onOpenAdventure,
 }: {
   eventsCount: number;
   directivesCount: number;
   secretOrdersCount: number;
+  adventureCount: number;
   onOpenMemorials: () => void;
   onOpenEdict: () => void;
   onOpenExtraction: () => void;
   onOpenHistory: () => void;
   onOpenSecretOrders: () => void;
+  onOpenAdventure: () => void;
 }) {
   return (
     <div className="ui-stage">
@@ -2940,6 +4698,10 @@ function BottomCommandBar({
           <button className="command-icon" onClick={onOpenHistory} aria-label="历代奏报">
             <img src="/ui/exact/lishi.png" alt="" className="command-art" />
           </button>
+          <button className="command-icon" onClick={onOpenAdventure} aria-label={`天命异闻 ${adventureCount} 条记录`}>
+            <Scroll size={24} />
+            {adventureCount ? <span className="command-badge command-badge-adventure">{adventureCount}</span> : null}
+          </button>
           <button className="edict-turn-button" onClick={onOpenEdict} aria-label={`诏书草案 ${directivesCount} 道待发`}>
             <span className="edict-turn-art">
               <img src="/ui/exact/nizhao.png" alt="" />
@@ -2953,6 +4715,7 @@ function BottomCommandBar({
           <span className="command-caption"><b>邸报详明</b><small>数项加减/账目明细</small></span>
           <span className="command-caption"><b>密令</b><small>{secretOrdersCount ? `${secretOrdersCount} 条进行中` : "暂无密令"}</small></span>
           <span className="command-caption"><b>史册</b><small>历代奏报/诏书</small></span>
+          <span className="command-caption"><b>异闻</b><small>{adventureCount ? `${adventureCount} 条` : "暂无异闻"}</small></span>
           <span className="command-caption"><b>拟诏</b><small>{directivesCount ? `${directivesCount} 道` : "本回合"}</small></span>
         </div>
       </div>
@@ -3005,6 +4768,7 @@ type ExtractionData = {
   period: number;
   exists: boolean;
   extractor_output?: any;
+  causal_notes?: CausalNote[];
 };
 
 function ReportModal({ report, onClose }: { report: string; onClose: () => void }) {
@@ -3087,10 +4851,12 @@ function EndingModal({ ending, onClose }: { ending: EndingPayload; onClose: () =
 
 function SecretOrdersModal({
   orders,
+  currentTurn,
   onClose,
   onOpenMinister,
 }: {
   orders: SecretOrder[];
+  currentTurn: number;
   onClose: () => void;
   onOpenMinister: (name: string) => void;
 }) {
@@ -3130,39 +4896,55 @@ function SecretOrdersModal({
         </div>
         <div className="secret-orders-list">
           {visible.length === 0 && <p className="so-empty">暂无此类密令。</p>}
-          {visible.map((o) => (
-            <button
-              key={o.id}
-              type="button"
-              className={`secret-order-card secret-order-card-button ${statusCls[o.status] || ""}`}
-              onClick={() => setSelectedOrder(o)}
-            >
-              <div className="so-header">
-                <span className="so-title"><Lock size={13} />{o.title}</span>
-                <span className={`so-status ${statusCls[o.status] || ""}`}>{statusLabel[o.status] || o.status}</span>
-              </div>
-              <div className="so-meta">第 {o.year_issued} 年 {o.period_issued} 月下令 · 承办：{o.minister_name}</div>
-              <div className="so-open-hint">点击查看密令详情</div>
-              {o.status === "active" && (
-                <button
-                  className="secondary-action so-goto"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onClose();
-                    onOpenMinister(o.minister_name);
-                  }}
-                >
-                  <MessageSquare size={13} />
-                  召见 {o.minister_name}
-                </button>
-              )}
-            </button>
-          ))}
+          {visible.map((o) => {
+            const urgency = secretOrderUrgency(o, currentTurn);
+            const risk = secretOrderRisk(o, currentTurn);
+            return (
+              <button
+                key={o.id}
+                type="button"
+                className={`secret-order-card secret-order-card-button ${statusCls[o.status] || ""} risk-${risk.tone}`}
+                onClick={() => setSelectedOrder(o)}
+              >
+                <div className="so-header">
+                  <span className="so-title"><Lock size={13} />{o.title}</span>
+                  <span className={`so-status ${statusCls[o.status] || ""}`}>{statusLabel[o.status] || o.status}</span>
+                </div>
+                <div className="so-meta">第 {o.year_issued} 年 {o.period_issued} 月下令 · 承办：{o.minister_name}</div>
+                <div className="so-signal-row">
+                  <i className={`tone-${risk.tone}`}>{risk.label}</i>
+                  <i className={`tone-${urgency.tone}`}>{urgency.text}</i>
+                  {typeof o.importance === "number" ? <i>重{o.importance}</i> : null}
+                </div>
+                {o.tags?.length ? (
+                  <div className="so-tag-row">
+                    {o.tags.slice(0, 5).map((tag) => <small key={tag}>{tag}</small>)}
+                  </div>
+                ) : null}
+                {o.content ? <p className="so-card-preview">{o.content}</p> : null}
+                <div className="so-open-hint">点击查看密令详情</div>
+                {o.status === "active" && (
+                  <button
+                    className="secondary-action so-goto"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onClose();
+                      onOpenMinister(o.minister_name);
+                    }}
+                  >
+                    <MessageSquare size={13} />
+                    召见 {o.minister_name}
+                  </button>
+                )}
+              </button>
+            );
+          })}
         </div>
       </article>
       {selectedOrder ? (
         <SecretOrderDetailDialog
           order={selectedOrder}
+          currentTurn={currentTurn}
           statusLabel={statusLabel}
           statusCls={statusCls}
           onClose={() => setSelectedOrder(null)}
@@ -3179,12 +4961,14 @@ function SecretOrdersModal({
 
 function SecretOrderDetailDialog({
   order,
+  currentTurn,
   statusLabel,
   statusCls,
   onClose,
   onOpenMinister,
 }: {
   order: SecretOrder;
+  currentTurn: number;
   statusLabel: Record<string, string>;
   statusCls: Record<string, string>;
   onClose: () => void;
@@ -3193,6 +4977,8 @@ function SecretOrderDetailDialog({
   const deadlineText = order.due_turn
     ? `第 ${order.due_turn} 回合核议${order.due_turn <= order.turn_issued ? "" : `（限 ${order.due_turn - order.turn_issued} 个月）`}`
     : "无硬期限";
+  const urgency = secretOrderUrgency(order, currentTurn);
+  const risk = secretOrderRisk(order, currentTurn);
   const detailRows = [
     ["编号", `#${order.id}`],
     ["承办", order.minister_name],
@@ -3209,6 +4995,10 @@ function SecretOrderDetailDialog({
           <div>
             <span className={`so-status ${statusCls[order.status] || ""}`}>{statusLabel[order.status] || order.status}</span>
             <h2>{order.title}</h2>
+            <div className="so-detail-signals">
+              <i className={`tone-${risk.tone}`}>{risk.label}</i>
+              <i className={`tone-${urgency.tone}`}>{urgency.text}</i>
+            </div>
           </div>
           <button className="icon-button" aria-label="关闭密令详情" onClick={onClose}>
             <X size={18} />
@@ -3753,26 +5543,39 @@ function SavesList({
   return (
     <ul className="saves-list">
       {delErr ? <div className="menu-error">{delErr}</div> : null}
-      {saves.map((s) => (
-        <li key={s.name} className="saves-row">
-          <div className="saves-name">
-            <b>{s.name}</b>
-            <small>
-              {new Date(s.mtime * 1000).toLocaleString()} · {(s.size / 1024).toFixed(1)} KB
-            </small>
-          </div>
-          <div className="saves-actions">
-            {action ? (
-              <button className="menu-btn primary" disabled={busy === s.name} onClick={() => action(s.name)}>
-                {busy === s.name ? <Loader2 size={14} className="spin" /> : <Upload size={14} />} 加载
+      {saves.map((s) => {
+        const isAuto = s.kind === "auto";
+        const badge = isAuto
+          ? s.current
+            ? "本局自动档"
+            : `战局 ${s.campaign_id?.slice(0, 6) || "未知"}`
+          : "手动存档";
+        const displayName = s.label || s.name;
+        return (
+          <li key={s.name} className="saves-row">
+            <div className="saves-name">
+              <div className="saves-title-line">
+                <b>{displayName}</b>
+                <span className={`saves-badge ${isAuto ? "auto" : "manual"} ${s.current ? "current" : ""}`}>{badge}</span>
+              </div>
+              <small>
+                {s.label ? `${s.name}.db · ` : ""}
+                {new Date(s.mtime * 1000).toLocaleString()} · {(s.size / 1024).toFixed(1)} KB
+              </small>
+            </div>
+            <div className="saves-actions">
+              {action ? (
+                <button className="menu-btn primary" disabled={busy === s.name} onClick={() => action(s.name)}>
+                  {busy === s.name ? <Loader2 size={14} className="spin" /> : <Upload size={14} />} 加载
+                </button>
+              ) : null}
+              <button className="menu-btn danger" onClick={() => onDelete(s.name)}>
+                <Trash2 size={14} /> 删
               </button>
-            ) : null}
-            <button className="menu-btn danger" onClick={() => onDelete(s.name)}>
-              <Trash2 size={14} /> 删
-            </button>
-          </div>
-        </li>
-      ))}
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -4042,7 +5845,12 @@ function ExtractionView({ data, loading, error }: { data: ExtractionData | null;
   if (!data || !data.exists) return <div className="document-section"><p className="long-copy">该回合无 extractor 数据。</p></div>;
   const rawOut = data.extractor_output;
   if (!rawOut || typeof rawOut !== "object") {
-    return <div className="document-section"><pre className="memorial-text">{String(rawOut ?? "")}</pre></div>;
+    return (
+      <div className="document-section">
+        <CausalNotesBlock notes={data.causal_notes} />
+        <pre className="memorial-text">{String(rawOut ?? "")}</pre>
+      </div>
+    );
   }
   // modular 结构：数据在 merged（已合并扁平），顶层只有 mode/modules/merged/raw。老存档是扁平对象，直接用。
   const out = (rawOut as any).mode === "modular" && (rawOut as any).merged && typeof (rawOut as any).merged === "object"
@@ -4050,6 +5858,7 @@ function ExtractionView({ data, loading, error }: { data: ExtractionData | null;
     : rawOut;
   return (
     <div className="document-section extraction-view">
+      <CausalNotesBlock notes={data.causal_notes} />
       <ExtractionSection title="国势变化">
         <MetricDeltaBlock data={pickField(out, "国势变化", "metric_delta")} />
       </ExtractionSection>
@@ -4516,6 +6325,73 @@ function StateModal({ state }: { state: GameState }) {
   );
 }
 
+function AdventureLogModal({ state, onClose }: { state: GameState; onClose: () => void }) {
+  const adventures = state.adventures || [];
+  const items = state.items || [];
+  const rarityClass = (r: string) => {
+    switch (r) {
+      case "legendary": return "rarity-legendary";
+      case "epic": return "rarity-epic";
+      case "rare": return "rarity-rare";
+      default: return "rarity-common";
+    }
+  };
+  return (
+    <FullscreenModal title="天命异闻" subtitle="月末秘奏、异象与处置验算" bgClass="modal-bg-state" onClose={onClose}>
+      <div className="modal-scroll">
+        {adventures.length === 0 && items.length === 0 ? (
+          <div className="empty-note">暂无异闻。月末结算时，秘奏、谣言、天象或地方暗线可能低频入档。</div>
+        ) : null}
+        {adventures.length > 0 && (
+          <section className="document-section">
+            <h2>异闻记录</h2>
+            <div className="adventure-list">
+              {adventures.map((adv, idx) => (
+                <div className={`adventure-card ${adv.success ? "success" : "fail"}`} key={`${adv.adventure_id}-${idx}`}>
+                  <div className="adventure-head">
+                    <span className="adventure-title">{adv.title}</span>
+                    <span className="adventure-turn">{adv.year}年{adv.period}月</span>
+                  </div>
+                  <div className="adventure-choice">处置：{adv.choice}</div>
+                  <div className="adventure-narrative">{adv.narrative}</div>
+                  {adv.items_found.length > 0 && (
+                    <div className="adventure-loot">
+                      获得：{adv.items_found.join("、")}
+                    </div>
+                  )}
+                  {adv.success ? (
+                    <span className="adventure-badge success">得力</span>
+                  ) : (
+                    <span className="adventure-badge fail">失措</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+        {items.length > 0 && (
+          <section className="document-section">
+            <h2>档内物证</h2>
+            <div className="item-grid">
+              {items.map((item) => (
+                <div className={`item-card ${rarityClass(item.rarity)} ${item.equipped ? "equipped" : ""}`} key={item.id}>
+                  <div className="item-name">{item.name}</div>
+                  <div className="item-meta">
+                    <span className={`item-rarity ${rarityClass(item.rarity)}`}>{item.rarity}</span>
+                    <span className="item-category">{item.category}</span>
+                    {item.equipped && <span className="item-equipped">已装备</span>}
+                  </div>
+                  <div className="item-quantity">×{item.quantity}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </FullscreenModal>
+  );
+}
+
 function BriefReport({ title, items }: { title: string; items: string[] }) {
   return (
     <article>
@@ -4666,6 +6542,410 @@ function IssueGroup({ title, issues }: { title: string; issues: Issue[] }) {
   );
 }
 
+const xinpanPlanePoint = (daoRaw: number, shiRaw: number) => {
+  const dao = Math.max(-100, Math.min(100, Number(daoRaw || 0)));
+  const shi = Math.max(-100, Math.min(100, Number(shiRaw || 0)));
+  return {
+    x: Math.max(0, Math.min(100, 50 + shi / 2)),
+    y: Math.max(0, Math.min(100, 50 - dao / 2)),
+  };
+};
+
+const xinpanQuadrantReading: Record<string, { title: string; summary: string }> = {
+  股肱: { title: "同道同利", summary: "价值与利益都站在皇权一侧，适合托付重任与预警。" },
+  权附: { title: "逐势依附", summary: "利益暂附，忠诚多半来自局势和赏罚，需持续给出可兑现好处。" },
+  道隐: { title: "同道失势", summary: "价值可谈但利益受损，长期亏待会把清议拖成离心。" },
+  离心: { title: "异心积怨", summary: "价值和利益都远离皇权，畏惧只能压住表面，不能消除反抗动机。" },
+};
+
+const xinpanSourceLabel: Record<string, string> = {
+  turn: "月末",
+  chat: "奏对",
+  agreement: "履约",
+  identity_conversion: "身份",
+  appointment_displacement: "腾缺",
+  secret_order: "密令",
+  current: "当前",
+};
+
+function XinpanProfileBlock({ profile }: { profile?: XinpanProfile }) {
+  if (!profile || !profile.quadrant) return null;
+  const dao = Math.max(-100, Math.min(100, Number(profile.dao_he || 0)));
+  const shi = Math.max(-100, Math.min(100, Number(profile.shi_he || 0)));
+  const fear = Math.round(Number(profile.fear || 0));
+  const hatred = Math.round(Number(profile.hatred || 0));
+  const trust = Number(profile.trust_coeff || 0);
+  const currentPoint = xinpanPlanePoint(dao, shi);
+  const daoCutoff = Math.max(-100, Math.min(100, Number(profile.dao_cutoff ?? 15)));
+  const shiCutoff = Math.max(-100, Math.min(100, Number(profile.shi_cutoff ?? 15)));
+  const thresholdPoint = xinpanPlanePoint(daoCutoff, shiCutoff);
+  const planeStyle = {
+    "--xinpan-cutoff-x": `${thresholdPoint.x}%`,
+    "--xinpan-cutoff-y": `${thresholdPoint.y}%`,
+  } as React.CSSProperties;
+  const pointStyle = {
+    left: `${currentPoint.x}%`,
+    top: `${currentPoint.y}%`,
+  };
+  const axisXStyle = { top: "50%" };
+  const axisYStyle = { left: "50%" };
+  const axisOriginStyle = { left: axisYStyle.left, top: axisXStyle.top };
+  const thresholdXStyle = { top: `${thresholdPoint.y}%` };
+  const thresholdYStyle = { left: `${thresholdPoint.x}%` };
+  const thresholdOriginStyle = { left: thresholdYStyle.left, top: thresholdXStyle.top };
+  const quadrantClass = String(profile.quadrant || "").replace(/[^\w\u4e00-\u9fff-]/g, "");
+  const concerns = profile.core_concerns || [];
+  const abilities = profile.top_abilities || [];
+  const warnings = profile.warnings || [];
+  const trajectory = (profile.trajectory || [])
+    .map((point) => ({
+      ...point,
+      dao_he: Math.max(-100, Math.min(100, Number(point.dao_he || 0))),
+      shi_he: Math.max(-100, Math.min(100, Number(point.shi_he || 0))),
+    }))
+    .filter((point) => Number.isFinite(point.dao_he) && Number.isFinite(point.shi_he));
+  const trailPoints = trajectory.map((point) => xinpanPlanePoint(point.dao_he, point.shi_he));
+  const trailPath = trailPoints.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" ");
+  const hasTrail = trailPoints.length > 1;
+  const reading = xinpanQuadrantReading[String(profile.quadrant)] || { title: "心迹未定", summary: "需继续观察奏对、履约与人事处置后的变化。" };
+  const recentEvents = trajectory
+    .filter((point) => point.event && !["当前", "初始点"].includes(point.event))
+    .slice(-4)
+    .reverse();
+  const positiveTone = (value: number) => (value > 8 ? "good" : value < -8 ? "bad" : "neutral");
+  const pressureTone = (value: number) => (value >= 70 ? "bad" : value >= 40 ? "warn" : "neutral");
+  const trustTone = trust >= 0.9 ? "good" : trust <= 0.62 ? "bad" : "neutral";
+  const deltaText = (value?: number, digits = 1) => {
+    const numeric = Number(value || 0);
+    const rounded = Number(numeric.toFixed(digits));
+    return `${rounded > 0 ? "+" : ""}${rounded}`;
+  };
+  const deltaTone = (value?: number, positiveIsGood = true) => {
+    const numeric = Number(value || 0);
+    if (Math.abs(numeric) < 0.05) return "neutral";
+    const good = positiveIsGood ? numeric > 0 : numeric < 0;
+    return good ? "good" : "bad";
+  };
+  return (
+    <div className={`xinpan-profile quadrant-${quadrantClass}`}>
+      <div className="xinpan-profile-head">
+        <Shield size={13} />
+        <span>心盘</span>
+        <b>{profile.quadrant}</b>
+      </div>
+      <div className="xinpan-judgement">
+        <strong>{reading.title}</strong>
+        <span>{reading.summary}</span>
+      </div>
+      <div className="xinpan-grid">
+        <div className="xinpan-plane" style={planeStyle} aria-label={`心盘：道合${dao}，势合${shi}；象限阈值道合${daoCutoff}，势合${shiCutoff}`}>
+          <i className="axis-x" style={axisXStyle} />
+          <i className="axis-y" style={axisYStyle} />
+          <span className="axis-origin" style={axisOriginStyle} />
+          <i className="threshold-x" style={thresholdXStyle} />
+          <i className="threshold-y" style={thresholdYStyle} />
+          <span className="threshold-origin" style={thresholdOriginStyle} />
+          <span className="axis-label axis-label-dao">道合↑</span>
+          <span className="axis-label axis-label-shi">势合→</span>
+          <span className="threshold-label">成象线</span>
+          <span className="quad q1">股肱</span>
+          <span className="quad q2">道隐</span>
+          <span className="quad q3">离心</span>
+          <span className="quad q4">权附</span>
+          <svg className="xinpan-trail" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            {hasTrail ? <polyline points={trailPath} /> : null}
+            {trailPoints.slice(0, -1).map((point, index) => (
+              <circle key={`${index}-${point.x}-${point.y}`} cx={point.x} cy={point.y} r={2.3} />
+            ))}
+          </svg>
+          <b className="xinpan-point" style={pointStyle} title={`道合${dao}，势合${shi}`} />
+          <span className="xinpan-plane-note">{hasTrail ? `${trailPoints.length}点轨迹` : "当前点"}</span>
+        </div>
+        <div className="xinpan-metrics">
+          <span className={positiveTone(dao)}><b>道合</b>{dao > 0 ? "+" : ""}{dao}</span>
+          <span className={positiveTone(shi)}><b>势合</b>{shi > 0 ? "+" : ""}{shi}</span>
+          <span className={pressureTone(fear)}><b>畏惧</b>{fear}</span>
+          <span className={trustTone}><b>信言</b>{trust.toFixed(2)}</span>
+          <span className={pressureTone(hatred)}><b>仇恨</b>{hatred}</span>
+        </div>
+      </div>
+      {profile.behavior_hint ? <p className="xinpan-behavior">{profile.behavior_hint}</p> : null}
+      {recentEvents.length ? (
+        <div className="xinpan-ledger">
+          <b>近期心证</b>
+          {recentEvents.map((point, index) => (
+            <span key={`${point.turn}-${point.event}-${index}`}>
+              <i>{point.turn ? `第${point.turn}回合` : "本局"}</i>
+              <em>{xinpanSourceLabel[point.source_kind || ""] || point.source_kind || "记录"}</em>
+              <strong>{point.event}</strong>
+              {point.has_delta ? (
+                <small className="xinpan-delta-line">
+                  <b className={deltaTone(point.dao_delta)}>道{deltaText(point.dao_delta)}</b>
+                  <b className={deltaTone(point.shi_delta)}>势{deltaText(point.shi_delta)}</b>
+                  <b className={deltaTone(point.fear_delta, false)}>惧{deltaText(point.fear_delta)}</b>
+                  <b className={deltaTone(point.hatred_delta, false)}>恨{deltaText(point.hatred_delta)}</b>
+                  <b className={deltaTone(point.trust_delta)}>信{deltaText(point.trust_delta, 3)}</b>
+                </small>
+              ) : null}
+              <small className="xinpan-landing-line">事后落点 道{point.dao_he > 0 ? "+" : ""}{point.dao_he} · 势{point.shi_he > 0 ? "+" : ""}{point.shi_he} · {point.quadrant || "未定"}</small>
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {concerns.length ? (
+        <div className="xinpan-concerns">
+          {concerns.slice(0, 5).map((concern) => (
+            <span key={concern.dim_id || `${concern.symbol}-${concern.name}`}>
+              <b>{concern.symbol}{concern.name}</b>
+              <small>{concern.reason || "核心关切"}</small>
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {abilities.length ? (
+        <div className="xinpan-abilities">
+          {abilities.slice(0, 5).map((ability) => (
+            <i key={ability.dim_id || `${ability.symbol}-${ability.name}`}>
+              {ability.symbol}{ability.name}{ability.band ? ` · ${ability.band}` : ""}
+            </i>
+          ))}
+        </div>
+      ) : null}
+      {warnings.length ? (
+        <div className="xinpan-warnings">
+          {warnings.slice(0, 3).map((warning) => <span key={warning}>{warning}</span>)}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function TiangangSpectrum({ profile }: { profile?: TiangangProfile }) {
+  const groups = profile?.groups || [];
+  if (!groups.length) return null;
+  return (
+    <div className="tiangang-spectrum">
+      <div className="tiangang-spectrum-head">
+        <Target size={13} />
+        <span>天罡谱尺</span>
+        {profile?.archetype && <b>{profile.archetype}</b>}
+      </div>
+      <div className="tiangang-spectrum-groups">
+        {groups.map((group) => (
+          <section className="tiangang-spectrum-group" key={group.name}>
+            <h3>{group.name}</h3>
+            <div className="tiangang-spectrum-list">
+              {group.dimensions.map((dim) => {
+                const left = dim.poles?.left || "一端";
+                const right = dim.poles?.right || "另一端";
+                const band = dim.band || { left: 28, width: 44, tone: "center" as const };
+                const bandLeft = Math.max(0, Math.min(100, Number(band.left) || 0));
+                const bandWidth = Math.max(16, Math.min(100 - bandLeft, Number(band.width) || 36));
+                return (
+                  <div className={`tiangang-spectrum-row type-${dim.type || "mixed"}`} key={`${group.name}-${dim.symbol}-${dim.name}`}>
+                    <div className="tiangang-spectrum-name">
+                      <span>{dim.symbol}</span>
+                      <b>{dim.name}</b>
+                    </div>
+                    <div className="tiangang-spectrum-scale" aria-label={`${dim.name}：谱尺显影`}>
+                      <i
+                        className={`tiangang-spectrum-band tone-${band.tone || "center"}`}
+                        style={{ left: `${bandLeft}%`, width: `${bandWidth}%` }}
+                      />
+                    </div>
+                    <div className="tiangang-spectrum-labels">
+                      <small>{left}</small>
+                      <small>{right}</small>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StanceNotes({ notes }: { notes?: StanceNote[] }) {
+  const rows = notes || [];
+  if (!rows.length) return null;
+  const label: Record<StanceNote["stance"], string> = {
+    support: "支持",
+    oppose: "反对",
+    caution: "附条件",
+    neutral: "未定",
+  };
+  const handshakeLabel: Record<string, string> = {
+    sealed: "握手成功",
+    conditional: "附条件",
+    blocked: "未说服",
+    none: "未成约",
+  };
+  return (
+    <div className="stance-notes">
+      <div className="stance-notes-head">
+        <Check size={13} />
+        <span>本月奏对立场</span>
+      </div>
+      {rows.map((note) => (
+        <div className={`stance-note ${note.stance}`} key={note.id}>
+          <b>{label[note.stance] || note.stance}</b>
+          <span>{note.topic}</span>
+          {note.handshake_status ? (
+            <div className={`stance-handshake ${note.handshake_status}`}>
+              <strong>{handshakeLabel[note.handshake_status] || "未成约"}</strong>
+              <em>{Number(note.psychological_score || 0)}/{Number(note.psychological?.threshold || 0)}</em>
+              {note.psychological?.verbal_only ? <small>口头承诺已足</small> : null}
+            </div>
+          ) : null}
+          {note.conditions && <small>{note.conditions}</small>}
+          {note.psychological?.tasks?.length ? (
+            <ul className="stance-tasks">
+              {note.psychological.tasks.slice(0, 4).map((task, index) => <li key={`${note.id}-task-${index}`}>{task}</li>)}
+            </ul>
+          ) : null}
+          {note.evidence?.drivers?.length ? (
+            <div className="stance-evidence">
+              {note.evidence.drivers.slice(0, 4).map((driver, index) => (
+                <span key={`${note.id}-driver-${index}`}>
+                  <b>{driver.kind}</b>{driver.text}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {note.risk_tags_list?.length ? (
+            <div className="stance-risk-tags">
+              {note.risk_tags_list.slice(0, 6).map((risk) => <i key={risk}>{risk}</i>)}
+            </div>
+          ) : null}
+          {note.execution_hint ? <small>{note.execution_hint}</small> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function NetworkProfileBlock({ profile }: { profile?: NetworkProfile }) {
+  const relations = profile?.relations || [];
+  const recommendations = profile?.recommendations || [];
+  const growth = profile?.growth_arc || {};
+  const hasGrowth = Boolean(growth.seed || growth.rise || growth.risk);
+  if (!profile || (!profile.biography && !relations.length && !hasGrowth && !recommendations.length)) {
+    return null;
+  }
+  return (
+    <div className="network-profile">
+      <div className="network-profile-head">
+        <Landmark size={13} />
+        <span>人物网络</span>
+        {profile.derived ? <b>局中推定</b> : null}
+      </div>
+      {profile.biography ? <p className="network-biography">{profile.biography}</p> : null}
+      {relations.length ? (
+        <div className="network-relations">
+          {relations.slice(0, 8).map((relation) => (
+            <article className={`network-relation ${relation.confidence === "high" ? "strong" : "weak"}`} key={`${relation.type}-${relation.target}`}>
+              <div>
+                <b>{relation.target}</b>
+                <small>{relation.type}</small>
+              </div>
+              <span>{[relation.faction, relation.office_type].filter(Boolean).join(" · ")}</span>
+              {relation.note ? <p>{relation.note}</p> : null}
+            </article>
+          ))}
+        </div>
+      ) : null}
+      {hasGrowth ? (
+        <div className="network-growth">
+          {growth.seed ? <span><b>起</b>{growth.seed}</span> : null}
+          {growth.rise ? <span><b>升</b>{growth.rise}</span> : null}
+          {growth.risk ? <span><b>险</b>{growth.risk}</span> : null}
+        </div>
+      ) : null}
+      {profile.ability_logic ? (
+        <details className="network-ability">
+          <summary>能力构成</summary>
+          <p>{profile.ability_logic}</p>
+        </details>
+      ) : null}
+      {recommendations.length ? (
+        <div className="network-recommendations">
+          <b>可联络</b>
+          <div>
+            {recommendations.slice(0, 5).map((item) => (
+              <span key={item.name} title={(item.evidence || []).join("；")}>
+                {item.name}<small>{item.faction || item.office_type || "中立"}</small>
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function CausalNotesBlock({ notes }: { notes?: CausalNote[] }) {
+  const rows = (notes || []).filter((note) => note && (note.title || note.summary));
+  if (!rows.length) return null;
+  return (
+    <section className="causal-notes">
+      <div className="causal-notes-head">
+        <ScrollText size={14} />
+        <span>成因札记</span>
+      </div>
+      <div className="causal-notes-list">
+        {rows.map((note, index) => (
+          <article className={`causal-note tone-${note.tone || "neutral"}`} key={`${note.kind}-${index}`}>
+            <b>{note.title}</b>
+            {note.summary ? <p>{note.summary}</p> : null}
+            {note.drivers?.length ? (
+              <ul>
+                {note.drivers.slice(0, 4).map((driver, i) => <li key={i}>{driver}</li>)}
+              </ul>
+            ) : null}
+            {note.risks?.length ? (
+              <div className="stance-risk-tags">
+                {note.risks.slice(0, 6).map((risk) => <i key={risk}>{risk}</i>)}
+              </div>
+            ) : null}
+            {note.execution_hint ? <small>{note.execution_hint}</small> : null}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ChatEffectLedger({ notices }: { notices: ChatEffectNotice[] }) {
+  if (!notices.length) return null;
+  return (
+    <div className="chat-effect-ledger" aria-label="奏对留痕">
+      <b>奏对留痕</b>
+      {notices.map((notice) => (
+        <article className={`chat-effect-note tone-${notice.tone || "neutral"} kind-${notice.kind}`} key={notice.id}>
+          <div>
+            <span>{notice.source}</span>
+            <strong>{notice.title}</strong>
+          </div>
+          <p>{notice.summary}</p>
+          {notice.detail ? <small>{notice.detail}</small> : null}
+          {notice.chips?.length ? (
+            <div className="chat-effect-chips">
+              {notice.chips.map((chip) => (
+                <i className={`tone-${chip.tone || "neutral"}`} key={`${notice.id}-${chip.label}`}>
+                  <b>{chip.label}</b>{chip.value}
+                </i>
+              ))}
+            </div>
+          ) : null}
+        </article>
+      ))}
+    </div>
+  );
+}
+
 function ChatModal({
   minister,
   portraitPrefix,
@@ -4674,6 +6954,7 @@ function ChatModal({
   pendingUserMessage,
   streamingMinisterMessage,
   chatNotice,
+  chatEffectNotices,
   canUndoLastChat,
   composerHint,
   input,
@@ -4695,6 +6976,7 @@ function ChatModal({
   pendingUserMessage: string;
   streamingMinisterMessage: string;
   chatNotice: string;
+  chatEffectNotices: ChatEffectNotice[];
   canUndoLastChat: boolean;
   composerHint: string;
   input: string;
@@ -4709,13 +6991,7 @@ function ChatModal({
   onOpenEdict: () => void;
   onClose: () => void;
 }) {
-  const isCustom = minister.portrait_id?.startsWith("custom:");
-  const portraitPrimary = isCustom
-    ? `/portraits/custom/${encodeURIComponent(minister.name)}?t=${cacheBust(minister.portrait_id!)}`
-    : `/portraits/${portraitPrefix}${minister.id ?? minister.name}.png`;
-  const portraitFallback = !isCustom && minister.portrait_id
-    ? `/portraits/${minister.portrait_id}.png`
-    : undefined;
+  const { primary: portraitPrimary, fallback: portraitFallback } = portraitSources(minister, portraitPrefix);
   const chatLogRef = React.useRef<HTMLDivElement | null>(null);
   const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
   const displayMessages: ChatDisplayMessage[] = [...chat];
@@ -4736,7 +7012,7 @@ function ChatModal({
     if (node) {
       node.scrollTop = node.scrollHeight;
     }
-  }, [minister.name, chat, pendingUserMessage, streamingMinisterMessage, chatNotice, busy, error]);
+  }, [minister.name, chat, pendingUserMessage, streamingMinisterMessage, chatNotice, chatEffectNotices, busy, error]);
 
   const handleSend = () => {
     onSend(input);
@@ -4761,42 +7037,52 @@ function ChatModal({
   return (
     <div className="chat-full-grid">
       <aside className="modal-pane minister-side">
-        <div className="minister-profile">
-          <div>
-            <h2>{minister.name}</h2>
-            <p>
-              {minister.status !== "active" && (
-                <span className={`minister-status status-${minister.status}`}>{minister.status_label}</span>
-              )}
-              {minister.office && <span className="profile-office">{minister.office}</span>}
-            </p>
+        <div className="chat-character-stage">
+          <div className="chat-portrait-wrap">
+            <MinisterPortrait primary={portraitPrimary} fallback={portraitFallback} name={minister.name} />
           </div>
-          <button className="icon-button" aria-label="收藏大臣" onClick={onFavorite}>
-            <Star size={16} fill={minister.favorite ? "currentColor" : "none"} />
-          </button>
         </div>
-        <p className="profile-copy">{minister.summary}</p>
-        <button className="secondary-action" onClick={onOpenEdict}>
-          <ScrollText size={15} />
-          转入诏书草案
-        </button>
-        <div className="chat-portrait-wrap">
-          <MinisterPortrait primary={portraitPrimary} fallback={portraitFallback} name={minister.name} />
-        </div>
-        {secretOrders.length > 0 && (
-          <div className="chat-secret-orders">
-            <div className="secret-orders-label"><Lock size={12} />密令</div>
-            {secretOrders.map((o) => (
-              <div key={o.id} className="secret-order-item">
-                <div className="secret-order-title">{o.title}</div>
-                <div className="secret-order-meta">第 {o.year_issued} 年 {o.period_issued} 月下令</div>
-                {o.content && <div className="secret-order-content">{o.content}</div>}
-                {o.sim_note && <div className="secret-order-content"><b>月度动向：</b>{o.sim_note}</div>}
-                {o.result && <div className="secret-order-content"><b>承办回报：</b>{o.result}</div>}
+        <div className="chat-intel-stack">
+          <div className="chat-identity-plate">
+            <div className="minister-profile">
+              <div>
+                <h2>{minister.name}</h2>
+                <p>
+                  {minister.status !== "active" && (
+                    <span className={`minister-status status-${minister.status}`}>{minister.status_label}</span>
+                  )}
+                  {minister.office && <span className="profile-office">{minister.office}</span>}
+                </p>
               </div>
-            ))}
+              <button className="icon-button" aria-label="收藏大臣" onClick={onFavorite}>
+                <Star size={16} fill={minister.favorite ? "currentColor" : "none"} />
+              </button>
+            </div>
+            <p className="profile-copy">{minister.summary}</p>
           </div>
-        )}
+          <NetworkProfileBlock profile={minister.network_profile} />
+          <StanceNotes notes={minister.stance_notes} />
+          <XinpanProfileBlock profile={minister.xinpan_profile} />
+          <TiangangSpectrum profile={minister.tiangang_profile} />
+          <button className="secondary-action" onClick={onOpenEdict}>
+            <ScrollText size={15} />
+            转入诏书草案
+          </button>
+          {secretOrders.length > 0 && (
+            <div className="chat-secret-orders">
+              <div className="secret-orders-label"><Lock size={12} />密令</div>
+              {secretOrders.map((o) => (
+                <div key={o.id} className="secret-order-item">
+                  <div className="secret-order-title">{o.title}</div>
+                  <div className="secret-order-meta">第 {o.year_issued} 年 {o.period_issued} 月下令</div>
+                  {o.content && <div className="secret-order-content">{o.content}</div>}
+                  {o.sim_note && <div className="secret-order-content"><b>月度动向：</b>{o.sim_note}</div>}
+                  {o.result && <div className="secret-order-content"><b>承办回报：</b>{o.result}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </aside>
 
       <section className="modal-pane chat-main">
@@ -4813,6 +7099,7 @@ function ChatModal({
               <p><Loader2 size={14} />大臣思索中...</p>
             </div>
           )}
+          <ChatEffectLedger notices={chatEffectNotices} />
           {chatNotice && <div className="chat-system-note">{chatNotice}</div>}
           {error && <div className="chat-system-note danger" role="alert">{error}</div>}
         </div>
@@ -4910,6 +7197,7 @@ function EdictModal({
   const pendingDirectives = state.directives.filter((d) => d.status === "pending");
   const draftDirectives = state.directives.filter((d) => d.status !== "pending");
   const hasPending = pendingDirectives.length > 0;
+  const readinessItems = buildEdictReadiness(state, draftDirectives, pendingDirectives);
   const [decreeDraft, setDecreeDraft] = React.useState(decree);
   React.useEffect(() => {
     setDecreeDraft(decree);
@@ -4985,6 +7273,7 @@ function EdictModal({
 
       <section className="modal-pane settlement-box">
         <h2>诏书与奏章</h2>
+        <EdictReadinessPanel items={readinessItems} />
         {busy && <div className="busy-line"><Loader2 size={15} />{busy}...</div>}
         {error && <div className="error-line" role="alert">{error}</div>}
         {decree && !report ? (
@@ -5019,6 +7308,24 @@ function EdictModal({
   );
 }
 
+function EdictReadinessPanel({ items }: { items: EdictReadinessItem[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="edict-readiness" aria-label="御前核验">
+      <div className="edict-readiness-head">
+        <Shield size={15} />
+        <span>御前核验</span>
+      </div>
+      {items.map((item) => (
+        <div className={`edict-readiness-item ${item.tone}`} key={`${item.title}-${item.body}`}>
+          <b>{item.title}</b>
+          <span>{item.body}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // 官职品级权重，数字越小品级越高（排越前）
 function officeRank(office: string): number {
   if (/首辅/.test(office)) return 1;
@@ -5033,6 +7340,7 @@ function officeRank(office: string): number {
 
 function filterMinisters(ministers: Minister[], group: string) {
   const courtMinisters = ministers.filter((m) => (m.power_id || "ming") === "ming");
+  const byOfficeRank = (a: Minister, b: Minister) => officeRank(a.office || "") - officeRank(b.office || "");
   if (group === "内阁+六部" || group === "内阁" || group === "六部") {
     return courtMinisters
       .filter((m) =>
@@ -5041,9 +7349,26 @@ function filterMinisters(ministers: Minister[], group: string) {
         && !!(m.office || "").trim()
         && !/前|罢|致仕/.test(m.office || "")  // 无实职不排朝班
       )
-      .sort((a, b) => officeRank(a.office || "") - officeRank(b.office || ""));
+      .sort(byOfficeRank);
   }
-  if (group === "在职") return courtMinisters.filter((m) => m.status === "active");
+  if (group === "边镇厂卫") {
+    return courtMinisters
+      .filter((m) => m.status === "active" && ["边镇", "司礼监", "锦衣卫", "东厂", "都察院", "地方"].includes(m.office_type))
+      .sort(byOfficeRank);
+  }
+  if (group === "江湖外缘") {
+    return courtMinisters
+      .filter((m) => {
+        const identity = `${m.office || ""} ${m.office_type || ""}`;
+        return m.status === "active" && (
+          ["待铨", "未仕"].includes(m.office_type)
+          || m.faction === "西学"
+          || /江湖|山庄|少林|武当|龙虎山|教主|商人|隐士|琴师|刀客|蛊师|传教士|华侨|游侠|侠女|真人|道长|药王/.test(identity)
+        );
+      })
+      .sort((a, b) => (a.office_type || "").localeCompare(b.office_type || "", "zh-Hans-CN") || a.name.localeCompare(b.name, "zh-Hans-CN"));
+  }
+  if (group === "在职") return courtMinisters.filter((m) => m.status === "active").sort(byOfficeRank);
   if (group === "收藏") return courtMinisters.filter((minister) => minister.favorite);
   return courtMinisters;
 }

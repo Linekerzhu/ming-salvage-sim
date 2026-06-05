@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
+import threading
 from typing import Any, Dict, List, Optional, Tuple
 
 from ming_sim.assets import format_money, format_money_delta
@@ -23,6 +24,7 @@ from ming_sim.constants import (
 from ming_sim.content import GameContent
 from ming_sim.matching import match_army_id_from_text, match_region_id_from_text
 from ming_sim.models import Event, GameState, monthly_amount, period_label
+from ming_sim.negotiation import classify_task_kind
 from ming_sim.token_stats import tlog
 
 
@@ -46,6 +48,16 @@ def normalize_office(office: str) -> str:
 
 COURT_OFFICE_TYPES = {"内阁", "吏部", "户部", "礼部", "兵部", "刑部", "工部"}
 MINISTRY_OFFICE_TYPES = {"吏部", "户部", "礼部", "兵部", "刑部", "工部"}
+CHARACTER_STATUS_LABELS = {
+    "active": "在朝",
+    "offstage": "尚未登场",
+    "candidate": "待选",
+    "dismissed": "已罢黜",
+    "imprisoned": "下狱",
+    "exiled": "流放",
+    "retired": "致仕",
+    "dead": "已故",
+}
 
 
 def infer_office_type_from_office(office: str, current_type: str = "") -> str:
@@ -81,16 +93,43 @@ def infer_office_type_from_office(office: str, current_type: str = "") -> str:
     return "待铨" if kind in COURT_OFFICE_TYPES or not kind else kind
 
 
+def infer_assignment_office_type(office: str, office_type: str = "", current_type: str = "") -> str:
+    """授官/调任口径：无法归入常设体系的实职，保留为非常设官位类型。"""
+    clean_office = normalize_office(office)
+    explicit_type = (office_type or "").strip()
+    if not clean_office:
+        return infer_office_type_from_office(clean_office, explicit_type or current_type)
+    if explicit_type:
+        inferred = infer_office_type_from_office(clean_office, explicit_type)
+    else:
+        # 调任时不能让旧官署兜底吞掉新授的原创官位。
+        inferred = infer_office_type_from_office(clean_office, "")
+    if inferred == "待铨":
+        first_title = clean_office.split(",", 1)[0].strip()
+        if first_title and not re.search(r"^(前|原)|罢居|候补|归途|潜在|少年|诸生|待铨|未仕", first_title):
+            return first_title[:20]
+    return inferred
+
+
+def effective_stored_office_type(office: str, stored_type: str = "") -> str:
+    """读档/展示口径：旧存档若存了旧官署，用当前 office 文本重算有效类型。"""
+    raw_type = (stored_type or "").strip()
+    if raw_type == "后宫":
+        return raw_type
+    return infer_assignment_office_type(office, current_type=raw_type)
+
+
 class GameDB:
     def __init__(self, path: str, content: Optional[GameContent] = None):
         self.path = path
         # 静态设定来源。过渡期 content 可省略，省略时自行加载；
         # 步骤7 起由 GameSession 统一传入同一份 GameContent。
         self.content = content if content is not None else GameContent.load()
-        # check_same_thread=False：流式颁诏在 worker 线程跑 resolve_turn，
-        # 复用同一 GameDB 连接。游戏单写者、无并发写，跨线程安全。
+        # check_same_thread=False：流式颁诏在 worker 线程跑 resolve_turn。
+        # 画像后台任务不用这条连接写库，避免多个线程同时操作同一 sqlite3.Connection。
         self.conn = sqlite3.connect(path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
+        self._portrait_asset_lock = threading.RLock()
         # 遗产修正符缓存：legacy_modifiers 在落账热路径被频繁调用，缓存聚合结果，
         # 仅在 active 遗产集变化（insert_legacy / expire_legacies）时失效。
         self._legacy_mod_cache: Optional[Dict[str, object]] = None
@@ -153,6 +192,27 @@ class GameDB:
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(character_name) REFERENCES characters(name),
                 FOREIGN KEY(office_type) REFERENCES offices(office_type)
+            );
+
+            CREATE TABLE IF NOT EXISTS portrait_assets (
+                asset_id TEXT PRIMARY KEY,
+                character_name TEXT NOT NULL,
+                kind TEXT NOT NULL DEFAULT 'portrait',
+                dna_seed TEXT NOT NULL DEFAULT '',
+                wardrobe_key TEXT NOT NULL DEFAULT '',
+                prompt TEXT NOT NULL DEFAULT '',
+                provider TEXT NOT NULL DEFAULT '',
+                model TEXT NOT NULL DEFAULT '',
+                status TEXT NOT NULL DEFAULT 'pending',
+                mime_type TEXT NOT NULL DEFAULT 'image/png',
+                image_blob BLOB,
+                width INTEGER NOT NULL DEFAULT 0,
+                height INTEGER NOT NULL DEFAULT 0,
+                error TEXT NOT NULL DEFAULT '',
+                updated_turn INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(character_name) REFERENCES characters(name)
             );
 
             CREATE TABLE IF NOT EXISTS factions (
@@ -403,6 +463,7 @@ class GameDB:
                 narrative TEXT NOT NULL DEFAULT '',
                 extractor_input TEXT NOT NULL DEFAULT '',
                 extractor_output TEXT NOT NULL DEFAULT '',
+                causal_notes TEXT NOT NULL DEFAULT '[]',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -453,6 +514,128 @@ class GameDB:
             );
             CREATE INDEX IF NOT EXISTS idx_chat_turn_rollback_items_turn
                 ON chat_turn_rollback_items(chat_turn_id, id);
+
+            CREATE TABLE IF NOT EXISTS minister_stances (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                turn INTEGER NOT NULL,
+                year INTEGER NOT NULL,
+                period INTEGER NOT NULL,
+                minister_name TEXT NOT NULL,
+                topic TEXT NOT NULL,
+                stance TEXT NOT NULL,
+                confidence INTEGER NOT NULL DEFAULT 3,
+                summary TEXT NOT NULL DEFAULT '',
+                conditions TEXT NOT NULL DEFAULT '',
+                related_issue_id INTEGER NOT NULL DEFAULT 0,
+                source_chat_turn_id INTEGER NOT NULL DEFAULT 0,
+                user_message TEXT NOT NULL DEFAULT '',
+                minister_answer TEXT NOT NULL DEFAULT '',
+                evidence_json TEXT NOT NULL DEFAULT '{}',
+                risk_tags TEXT NOT NULL DEFAULT '',
+                execution_hint TEXT NOT NULL DEFAULT '',
+                handshake_status TEXT NOT NULL DEFAULT 'none',
+                psychological_score INTEGER NOT NULL DEFAULT 0,
+                psychological_json TEXT NOT NULL DEFAULT '{}',
+                agreement_id INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_minister_stances_turn
+                ON minister_stances(turn, minister_name, id);
+            CREATE INDEX IF NOT EXISTS idx_minister_stances_issue
+                ON minister_stances(related_issue_id, turn);
+
+            CREATE TABLE IF NOT EXISTS xinpan_states (
+                character_name TEXT PRIMARY KEY,
+                dao_he REAL NOT NULL DEFAULT 0,
+                shi_he REAL NOT NULL DEFAULT 0,
+                fear REAL NOT NULL DEFAULT 0,
+                trust_coeff REAL NOT NULL DEFAULT 1.0,
+                hatred REAL NOT NULL DEFAULT 0,
+                quadrant TEXT NOT NULL DEFAULT '',
+                core_concerns_json TEXT NOT NULL DEFAULT '[]',
+                perception_json TEXT NOT NULL DEFAULT '{}',
+                flags_json TEXT NOT NULL DEFAULT '{}',
+                updated_turn INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(character_name) REFERENCES characters(name)
+            );
+
+            CREATE TABLE IF NOT EXISTS xinpan_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                turn INTEGER NOT NULL,
+                year INTEGER NOT NULL,
+                period INTEGER NOT NULL,
+                character_name TEXT NOT NULL,
+                source_kind TEXT NOT NULL DEFAULT '',
+                source_id TEXT NOT NULL DEFAULT '',
+                event TEXT NOT NULL DEFAULT '',
+                dao_delta REAL NOT NULL DEFAULT 0,
+                shi_delta REAL NOT NULL DEFAULT 0,
+                fear_delta REAL NOT NULL DEFAULT 0,
+                hatred_delta REAL NOT NULL DEFAULT 0,
+                trust_delta REAL NOT NULL DEFAULT 0,
+                before_json TEXT NOT NULL DEFAULT '{}',
+                after_json TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(character_name) REFERENCES characters(name)
+            );
+            CREATE INDEX IF NOT EXISTS idx_xinpan_logs_character
+                ON xinpan_logs(character_name, turn, id);
+            CREATE INDEX IF NOT EXISTS idx_xinpan_states_quadrant
+                ON xinpan_states(quadrant);
+
+            CREATE TABLE IF NOT EXISTS negotiation_agreements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                turn_created INTEGER NOT NULL,
+                year_created INTEGER NOT NULL,
+                period_created INTEGER NOT NULL,
+                minister_name TEXT NOT NULL,
+                topic TEXT NOT NULL,
+                core_topic TEXT NOT NULL DEFAULT '',
+                target_text TEXT NOT NULL DEFAULT '',
+                action_kind TEXT NOT NULL DEFAULT 'general',
+                promise_type TEXT NOT NULL DEFAULT '',
+                stakes TEXT NOT NULL DEFAULT '',
+                status TEXT NOT NULL DEFAULT 'pending',
+                condition_status TEXT NOT NULL DEFAULT 'pending',
+                target_status TEXT NOT NULL DEFAULT 'pending_conditions',
+                stance_id INTEGER NOT NULL DEFAULT 0,
+                handshake_status TEXT NOT NULL DEFAULT 'none',
+                psychological_score INTEGER NOT NULL DEFAULT 0,
+                threshold INTEGER NOT NULL DEFAULT 0,
+                verbal_only INTEGER NOT NULL DEFAULT 0,
+                due_turn INTEGER NOT NULL DEFAULT 0,
+                last_checked_turn INTEGER NOT NULL DEFAULT 0,
+                resolved_turn INTEGER NOT NULL DEFAULT 0,
+                fulfillment_score INTEGER NOT NULL DEFAULT 0,
+                fulfillment_evidence TEXT NOT NULL DEFAULT '',
+                target_evidence TEXT NOT NULL DEFAULT '',
+                political_effect_json TEXT NOT NULL DEFAULT '{}',
+                auto_review_json TEXT NOT NULL DEFAULT '{}',
+                llm_review_json TEXT NOT NULL DEFAULT '{}',
+                conditions TEXT NOT NULL DEFAULT '',
+                summary TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_negotiation_agreements_minister
+                ON negotiation_agreements(minister_name, action_kind, status, id);
+
+            CREATE TABLE IF NOT EXISTS negotiation_tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                agreement_id INTEGER NOT NULL,
+                description TEXT NOT NULL,
+                task_kind TEXT NOT NULL DEFAULT 'general',
+                status TEXT NOT NULL DEFAULT 'pending',
+                evidence TEXT NOT NULL DEFAULT '',
+                last_checked_turn INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(agreement_id) REFERENCES negotiation_agreements(id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_negotiation_tasks_agreement
+                ON negotiation_tasks(agreement_id, status, id);
 
             CREATE TABLE IF NOT EXISTS secret_orders (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -702,6 +885,16 @@ class GameDB:
         self.ensure_column("characters", "court_role", "TEXT NOT NULL DEFAULT ''")
         self.ensure_column("characters", "summary", "TEXT NOT NULL DEFAULT ''")
         self.ensure_column("characters", "aliases", "TEXT NOT NULL DEFAULT '[]'")
+        # ── 人物校量（兼容旧档迁移）──
+        self.ensure_column("characters", "force", "INTEGER NOT NULL DEFAULT 50")
+        self.ensure_column("characters", "wisdom", "INTEGER NOT NULL DEFAULT 50")
+        self.ensure_column("characters", "charm", "INTEGER NOT NULL DEFAULT 50")
+        self.ensure_column("characters", "luck", "INTEGER NOT NULL DEFAULT 50")
+        self.ensure_column("characters", "cultivation", "INTEGER NOT NULL DEFAULT 0")
+        self.ensure_column("characters", "hp", "INTEGER NOT NULL DEFAULT 100")
+        self.ensure_column("characters", "max_hp", "INTEGER NOT NULL DEFAULT 100")
+        self.ensure_column("characters", "exp", "INTEGER NOT NULL DEFAULT 0")
+        self.ensure_column("characters", "level", "INTEGER NOT NULL DEFAULT 1")
         # 步骤7：回合阶段（旧库迁移，schema 升级非 fallback）
         self.ensure_column("game_state", "turn_phase", "TEXT NOT NULL DEFAULT 'summoning'")
         # 结局：ended=1 时游戏终结；ending_status 为 context.ENDING_* 类型。
@@ -724,6 +917,35 @@ class GameDB:
         self.ensure_column("economy_ledger", "purpose", "TEXT")
         self.ensure_column("economy_ledger", "target_kind", "TEXT")
         self.ensure_column("economy_ledger", "target_id", "TEXT")
+        # 政治黑板：召对证据与月末成因札记。旧档为空，前端按缺省隐藏。
+        self.ensure_column("minister_stances", "evidence_json", "TEXT NOT NULL DEFAULT '{}'")
+        self.ensure_column("minister_stances", "risk_tags", "TEXT NOT NULL DEFAULT ''")
+        self.ensure_column("minister_stances", "execution_hint", "TEXT NOT NULL DEFAULT ''")
+        self.ensure_column("minister_stances", "handshake_status", "TEXT NOT NULL DEFAULT 'none'")
+        self.ensure_column("minister_stances", "psychological_score", "INTEGER NOT NULL DEFAULT 0")
+        self.ensure_column("minister_stances", "psychological_json", "TEXT NOT NULL DEFAULT '{}'")
+        self.ensure_column("minister_stances", "agreement_id", "INTEGER NOT NULL DEFAULT 0")
+        self.ensure_column("negotiation_agreements", "core_topic", "TEXT NOT NULL DEFAULT ''")
+        self.ensure_column("negotiation_agreements", "target_text", "TEXT NOT NULL DEFAULT ''")
+        self.ensure_column("negotiation_agreements", "promise_type", "TEXT NOT NULL DEFAULT ''")
+        self.ensure_column("negotiation_agreements", "stakes", "TEXT NOT NULL DEFAULT ''")
+        self.ensure_column("negotiation_agreements", "condition_status", "TEXT NOT NULL DEFAULT 'pending'")
+        self.ensure_column("negotiation_agreements", "target_status", "TEXT NOT NULL DEFAULT 'pending_conditions'")
+        self.ensure_column("negotiation_agreements", "due_turn", "INTEGER NOT NULL DEFAULT 0")
+        self.ensure_column("negotiation_agreements", "last_checked_turn", "INTEGER NOT NULL DEFAULT 0")
+        self.ensure_column("negotiation_agreements", "resolved_turn", "INTEGER NOT NULL DEFAULT 0")
+        self.ensure_column("negotiation_agreements", "fulfillment_score", "INTEGER NOT NULL DEFAULT 0")
+        self.ensure_column("negotiation_agreements", "fulfillment_evidence", "TEXT NOT NULL DEFAULT ''")
+        self.ensure_column("negotiation_agreements", "target_evidence", "TEXT NOT NULL DEFAULT ''")
+        self.ensure_column("negotiation_agreements", "political_effect_json", "TEXT NOT NULL DEFAULT '{}'")
+        self.ensure_column("negotiation_agreements", "auto_review_json", "TEXT NOT NULL DEFAULT '{}'")
+        self.ensure_column("negotiation_agreements", "llm_review_json", "TEXT NOT NULL DEFAULT '{}'")
+        self.ensure_column("negotiation_tasks", "task_kind", "TEXT NOT NULL DEFAULT 'general'")
+        self.ensure_column("negotiation_tasks", "last_checked_turn", "INTEGER NOT NULL DEFAULT 0")
+        self.ensure_column("xinpan_states", "flags_json", "TEXT NOT NULL DEFAULT '{}'")
+        self.ensure_column("xinpan_states", "updated_turn", "INTEGER NOT NULL DEFAULT 0")
+        self.ensure_column("xinpan_logs", "trust_delta", "REAL NOT NULL DEFAULT 0")
+        self.ensure_column("turn_extractions", "causal_notes", "TEXT NOT NULL DEFAULT '[]'")
         # 开局负面帝国修正：clear_gate(机器消除条件)、legacy_key(对应 opening_legacies.key，开局修正去重用)
         self.ensure_column("legacies", "clear_gate", "TEXT NOT NULL DEFAULT '{}'")
         self.ensure_column("legacies", "legacy_key", "TEXT NOT NULL DEFAULT ''")
@@ -751,8 +973,186 @@ class GameDB:
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        # ── 天命异闻新增表 ──
+        # 玩家/皇帝物品栏
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS player_inventory (
+                item_id TEXT PRIMARY KEY,
+                quantity INTEGER NOT NULL DEFAULT 1,
+                equipped INTEGER NOT NULL DEFAULT 0,
+                acquired_turn INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        # 玩家/皇帝自身校量。不要把崇祯塞进 NPC 名册，否则会污染召见名单。
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS player_profile (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                name TEXT NOT NULL DEFAULT '崇祯',
+                force INTEGER NOT NULL DEFAULT 45,
+                wisdom INTEGER NOT NULL DEFAULT 76,
+                charm INTEGER NOT NULL DEFAULT 62,
+                luck INTEGER NOT NULL DEFAULT 55,
+                cultivation INTEGER NOT NULL DEFAULT 0,
+                hp INTEGER NOT NULL DEFAULT 105,
+                max_hp INTEGER NOT NULL DEFAULT 105,
+                exp INTEGER NOT NULL DEFAULT 0,
+                level INTEGER NOT NULL DEFAULT 3,
+                updated_turn INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        self.conn.execute(
+            """
+            INSERT OR IGNORE INTO player_profile
+                (id, name, force, wisdom, charm, luck, cultivation, hp, max_hp, exp, level)
+            VALUES (1, '崇祯', 45, 76, 62, 55, 0, 105, 105, 0, 3)
+            """
+        )
+        # 人物装备栏
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS character_equipment (
+                character_name TEXT PRIMARY KEY,
+                weapon_id TEXT NOT NULL DEFAULT '',
+                armor_id TEXT NOT NULL DEFAULT '',
+                accessory_id TEXT NOT NULL DEFAULT '',
+                updated_turn INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        # 奇遇记录
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS adventure_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                turn INTEGER NOT NULL,
+                year INTEGER NOT NULL,
+                period INTEGER NOT NULL,
+                adventure_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                chosen_index INTEGER NOT NULL,
+                choice_text TEXT NOT NULL DEFAULT '',
+                success INTEGER NOT NULL DEFAULT 0,
+                narrative TEXT NOT NULL DEFAULT '',
+                effects TEXT NOT NULL DEFAULT '{}',
+                item_reward TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         self.conn.commit()
         self.init_fiscal_config()
+
+    def get_player_profile(self) -> Dict[str, Any]:
+        row = self.conn.execute("SELECT * FROM player_profile WHERE id = 1").fetchone()
+        if row is None:
+            self.conn.execute(
+                """
+                INSERT INTO player_profile
+                    (id, name, force, wisdom, charm, luck, cultivation, hp, max_hp, exp, level)
+                VALUES (1, '崇祯', 45, 76, 62, 55, 0, 105, 105, 0, 3)
+                """
+            )
+            self.conn.commit()
+            row = self.conn.execute("SELECT * FROM player_profile WHERE id = 1").fetchone()
+        return self._row_dict(row)
+
+    def apply_player_profile_delta(self, state: GameState, field: str, delta: int) -> None:
+        limits = {
+            "force": (0, 100),
+            "wisdom": (0, 100),
+            "charm": (0, 100),
+            "luck": (0, 100),
+            "cultivation": (0, 100),
+            "hp": (0, 200),
+            "max_hp": (1, 200),
+            "exp": (0, 999999),
+            "level": (1, 99),
+        }
+        if field not in limits:
+            return
+        profile = self.get_player_profile()
+        low, high = limits[field]
+        new_value = max(low, min(high, int(profile.get(field, 0)) + int(delta)))
+        self.conn.execute(
+            f"UPDATE player_profile SET {field} = ?, updated_turn = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1",
+            (new_value, int(state.turn)),
+        )
+
+    def grant_player_item(self, item_id: str, state: GameState, quantity: int = 1) -> None:
+        clean_id = str(item_id or "").strip()
+        if not clean_id:
+            return
+        qty = max(1, int(quantity or 1))
+        self.conn.execute(
+            """
+            INSERT INTO player_inventory (item_id, quantity, equipped, acquired_turn)
+            VALUES (?, ?, 0, ?)
+            ON CONFLICT(item_id) DO UPDATE SET
+                quantity = player_inventory.quantity + excluded.quantity,
+                acquired_turn = CASE
+                    WHEN player_inventory.acquired_turn = 0 THEN excluded.acquired_turn
+                    ELSE player_inventory.acquired_turn
+                END
+            """,
+            (clean_id, qty, int(state.turn)),
+        )
+
+    def list_adventure_logs(self, limit: int = 10) -> List[Dict[str, Any]]:
+        rows = self.conn.execute(
+            """
+            SELECT turn, year, period, adventure_id, title, choice_text,
+                   success, narrative, effects, item_reward
+            FROM adventure_log
+            ORDER BY turn DESC, id DESC
+            LIMIT ?
+            """,
+            (max(1, int(limit or 10)),),
+        ).fetchall()
+        output: List[Dict[str, Any]] = []
+        for row in rows:
+            try:
+                effects = json.loads(row["effects"] or "{}")
+            except (TypeError, ValueError):
+                effects = {}
+            output.append({
+                "turn": int(row["turn"]),
+                "year": int(row["year"]),
+                "period": int(row["period"]),
+                "adventure_id": str(row["adventure_id"]),
+                "title": str(row["title"]),
+                "choice": str(row["choice_text"]),
+                "success": bool(row["success"]),
+                "narrative": str(row["narrative"]),
+                "items_found": [str(row["item_reward"])] if row["item_reward"] else [],
+                "metrics_change": effects if isinstance(effects, dict) else {},
+            })
+        return output
+
+    def list_player_inventory(self) -> List[Dict[str, Any]]:
+        catalog = {
+            str(item.get("id")): item
+            for item in getattr(self.content, "items", [])
+            if isinstance(item, dict) and item.get("id")
+        }
+        rows = self.conn.execute(
+            """
+            SELECT item_id, quantity, equipped
+            FROM player_inventory
+            ORDER BY equipped DESC, item_id ASC
+            """
+        ).fetchall()
+        output: List[Dict[str, Any]] = []
+        for row in rows:
+            item_id = str(row["item_id"])
+            meta = catalog.get(item_id, {})
+            output.append({
+                "id": item_id,
+                "name": str(meta.get("name") or item_id),
+                "category": str(meta.get("category") or "未知"),
+                "rarity": str(meta.get("rarity") or "普通"),
+                "quantity": int(row["quantity"]),
+                "equipped": bool(row["equipped"]),
+            })
+        return output
 
     def init_fiscal_config(self) -> None:
         """从 content/fiscal_config.json（self.content.fiscal_items）seed 财政科目目录。
@@ -1022,8 +1422,10 @@ class GameDB:
                     INSERT INTO characters
                     (name, office, office_type, faction, aliases, personal_skills, loyalty, ability, integrity, courage, style,
                      birth_year, historical_death_year, historical_death_month, debut_year, debut_month,
-                     status, status_reason, status_changed_turn, portrait_id, power_id, location, summary)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     status, status_reason, status_changed_turn, portrait_id, power_id, location, summary,
+                     force, wisdom, charm, luck, cultivation, hp, max_hp, exp, level)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                            ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         character.name,
@@ -1049,8 +1451,36 @@ class GameDB:
                         character.power_id,
                         character.location,
                         character.summary,
+                        character.force,
+                        character.wisdom,
+                        character.charm,
+                        character.luck,
+                        character.cultivation,
+                        character.hp,
+                        character.max_hp,
+                        character.exp,
+                        character.level,
                     ),
                 )
+        else:
+            for character in self.content.characters.values():
+                self.conn.execute(
+                    """
+                    UPDATE characters
+                    SET summary = ?
+                    WHERE name = ? AND (summary = '' OR summary IS NULL)
+                    """,
+                    (character.summary, character.name),
+                )
+                if character.birth_year:
+                    self.conn.execute(
+                        """
+                        UPDATE characters
+                        SET birth_year = ?
+                        WHERE name = ? AND (birth_year = 0 OR birth_year IS NULL)
+                        """,
+                        (int(character.birth_year), character.name),
+                    )
         if not self.table_has_rows("character_offices"):
             for row in self.conn.execute("SELECT name, office, office_type FROM characters").fetchall():
                 self.conn.execute(
@@ -1060,6 +1490,7 @@ class GameDB:
                     """,
                     (row["name"], row["office"], row["office_type"], "存档迁移"),
                 )
+        self._reconcile_character_office_types()
 
         if not self.table_has_rows("factions"):
             for faction in self.content.factions.values():
@@ -1210,6 +1641,38 @@ class GameDB:
                 )
         self._migrate_arrears_unit_to_silver(is_fresh_armies_seed)
         self.conn.commit()
+
+    def _reconcile_character_office_types(self) -> int:
+        """迁移旧档：修正 office 与 office_type 不一致的原创/非常设官位。"""
+        rows = self.conn.execute(
+            "SELECT name, office, office_type FROM characters"
+        ).fetchall()
+        changed = 0
+        for row in rows:
+            name = str(row["name"] or "")
+            office = str(row["office"] or "")
+            old_type = str(row["office_type"] or "")
+            new_type = effective_stored_office_type(office, old_type)
+            if not name or new_type == old_type:
+                continue
+            self.conn.execute(
+                "UPDATE characters SET office_type=? WHERE name=?",
+                (new_type, name),
+            )
+            self.conn.execute(
+                """
+                UPDATE character_offices
+                SET office_type=?, updated_at=CURRENT_TIMESTAMP
+                WHERE character_name=?
+                """,
+                (new_type, name),
+            )
+            if name in self.content.characters:
+                self.content.characters[name].office_type = new_type
+            changed += 1
+        if changed:
+            self.conn.commit()
+        return changed
 
     def _migrate_arrears_unit_to_silver(self, is_fresh_armies_seed: bool) -> None:
         """一次性迁移：armies.arrears 从 0-100 抽象分换成累计欠饷万两。
@@ -1433,9 +1896,9 @@ class GameDB:
         status: str,
         reason: str = "",
     ) -> None:
-        """改人物状态：active/offstage/dismissed/imprisoned/exiled/retired/dead。
+        """改人物状态：active/offstage/candidate/dismissed/imprisoned/exiled/retired/dead。
         大臣走 characters 表；后宫（consorts）走内存对象 + consort_traits 备档。"""
-        valid = {"active", "offstage", "dismissed", "imprisoned", "exiled", "retired", "dead"}
+        valid = {"active", "offstage", "candidate", "dismissed", "imprisoned", "exiled", "retired", "dead"}
         if status not in valid:
             raise ValueError(f"character status 非法：{status}")
         # 去职（下狱/革职/流放/致仕/死）即削职：清空 characters.office，
@@ -1451,6 +1914,12 @@ class GameDB:
                 "UPDATE characters SET status=?, status_reason=?, status_changed_turn=? WHERE name=?",
                 (status, reason[:200], state.turn, name),
             )
+        if status != "active":
+            label = CHARACTER_STATUS_LABELS.get(status, status)
+            detail = f"承办人{name}{label}，密令中止。"
+            if reason:
+                detail += reason
+            self.fail_active_secret_orders_for_minister(name, state, detail)
         self.conn.commit()
 
     def get_character_status(self, name: str) -> Tuple[str, str]:
@@ -1464,6 +1933,7 @@ class GameDB:
     def apply_character_power_changes(
         self,
         changes: List[Dict[str, object]],
+        state: Optional[GameState] = None,
     ) -> List[Dict[str, object]]:
         """据 extractor 输出改人物 power_id（降将/叛臣/归正）。new_power 须为合法 power id。"""
         applied: List[Dict[str, object]] = []
@@ -1495,6 +1965,13 @@ class GameDB:
                 "UPDATE characters SET power_id = ? WHERE name = ?",
                 (new_power, name),
             )
+            if old_power == "ming" and new_power != "ming":
+                current_state = state or self.load_state("")
+                self.fail_active_secret_orders_for_minister(
+                    name,
+                    current_state,
+                    f"承办人{name}转投{new_power}，不再属大明朝廷，密令中止。" + reason,
+                )
             applied.append({"name": name, "old_power": old_power, "new_power": new_power, "reason": reason})
         self.conn.commit()
         return applied
@@ -1516,7 +1993,7 @@ class GameDB:
         )["office_type"]
         if not current_type:
             raise ValueError(f"{name}不属大明朝廷，不能授予大明官职")
-        eff_type = infer_office_type_from_office(office, office_type or current_type)
+        eff_type = infer_assignment_office_type(office, office_type=office_type, current_type=current_type)
         if office_type or eff_type != current_type:
             self.conn.execute(
                 "UPDATE characters SET office=?, office_type=? WHERE name=?",
@@ -1697,6 +2174,108 @@ class GameDB:
         )
         self.conn.commit()
 
+    def upsert_portrait_asset(
+        self,
+        *,
+        asset_id: str,
+        character_name: str,
+        kind: str,
+        dna_seed: str,
+        wardrobe_key: str,
+        prompt: str,
+        provider: str,
+        model: str,
+        status: str,
+        updated_turn: int,
+        error: str = "",
+    ) -> None:
+        self.conn.execute(
+            """
+            INSERT INTO portrait_assets
+                (asset_id, character_name, kind, dna_seed, wardrobe_key, prompt, provider, model,
+                 status, error, updated_turn)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(asset_id) DO UPDATE SET
+                character_name=excluded.character_name,
+                kind=excluded.kind,
+                dna_seed=excluded.dna_seed,
+                wardrobe_key=excluded.wardrobe_key,
+                prompt=excluded.prompt,
+                provider=excluded.provider,
+                model=excluded.model,
+                status=excluded.status,
+                error=excluded.error,
+                updated_turn=excluded.updated_turn,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (
+                asset_id, character_name, kind, dna_seed, wardrobe_key, prompt,
+                provider, model, status, error[:500], updated_turn,
+            ),
+        )
+        self.conn.commit()
+
+    def mark_portrait_asset_ready(
+        self,
+        asset_id: str,
+        image_blob: bytes,
+        *,
+        mime_type: str = "image/png",
+        width: int = 0,
+        height: int = 0,
+    ) -> None:
+        self._execute_portrait_asset_update(
+            """
+            UPDATE portrait_assets
+            SET status='ready', image_blob=?, mime_type=?, width=?, height=?,
+                error='', updated_at=CURRENT_TIMESTAMP
+            WHERE asset_id=?
+            """,
+            (image_blob, mime_type, width, height, asset_id),
+        )
+
+    def mark_portrait_asset_error(self, asset_id: str, error: str) -> None:
+        self._execute_portrait_asset_update(
+            """
+            UPDATE portrait_assets
+            SET status='error', error=?, updated_at=CURRENT_TIMESTAMP
+            WHERE asset_id=?
+            """,
+            (error[:500], asset_id),
+        )
+
+    def _execute_portrait_asset_update(self, sql: str, params: Tuple[Any, ...]) -> None:
+        """Serialize portrait-worker writes without sharing the main connection."""
+        with self._portrait_asset_lock:
+            if self.path == ":memory:":
+                self.conn.execute(sql, params)
+                self.conn.commit()
+                return
+            conn = sqlite3.connect(self.path, timeout=30)
+            try:
+                conn.execute("PRAGMA busy_timeout=30000")
+                conn.execute(sql, params)
+                conn.commit()
+            finally:
+                conn.close()
+
+    def get_portrait_asset(self, asset_id: str) -> Optional[sqlite3.Row]:
+        return self.conn.execute(
+            "SELECT * FROM portrait_assets WHERE asset_id=?",
+            (asset_id,),
+        ).fetchone()
+
+    def latest_character_portrait_asset(self, character_name: str, kind: str = "portrait") -> Optional[sqlite3.Row]:
+        return self.conn.execute(
+            """
+            SELECT * FROM portrait_assets
+            WHERE character_name=? AND kind=?
+            ORDER BY updated_at DESC, created_at DESC
+            LIMIT 1
+            """,
+            (character_name, kind),
+        ).fetchone()
+
     def add_character(self, state: GameState, character: "Character", source: str = "") -> None:
         """运行时新建人物（吏部任命/皇帝点名）。已存在同名则不动，避免覆盖既有状态。"""
         existing = self.conn.execute(
@@ -1705,7 +2284,7 @@ class GameDB:
         if existing is not None:
             return
         character.office = normalize_office(character.office)
-        character.office_type = infer_office_type_from_office(character.office, character.office_type)
+        character.office_type = infer_assignment_office_type(character.office, office_type=character.office_type)
         # 若没有专属 portrait_id，按 office_type 分配预设池头像
         portrait_id = character.portrait_id
         if not portrait_id:
@@ -1718,8 +2297,10 @@ class GameDB:
             INSERT INTO characters
             (name, office, office_type, faction, aliases, personal_skills, loyalty, ability, integrity, courage, style,
              birth_year, historical_death_year, historical_death_month, debut_year, debut_month,
-             status, status_reason, status_changed_turn, portrait_id, power_id, location, summary)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             status, status_reason, status_changed_turn, portrait_id, power_id, location, summary,
+             force, wisdom, charm, luck, cultivation, hp, max_hp, exp, level)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 character.name,
@@ -1745,6 +2326,15 @@ class GameDB:
                 getattr(character, "power_id", "ming") or "ming",
                 getattr(character, "location", "") or "",
                 getattr(character, "summary", "") or "",
+                getattr(character, "force", 50),
+                getattr(character, "wisdom", 50),
+                getattr(character, "charm", 50),
+                getattr(character, "luck", 50),
+                getattr(character, "cultivation", 0),
+                getattr(character, "hp", 100),
+                getattr(character, "max_hp", 100),
+                getattr(character, "exp", 0),
+                getattr(character, "level", 1),
             ),
         )
         self.conn.execute(
@@ -3281,6 +3871,11 @@ class GameDB:
         "characters": "name",
         "character_offices": "character_name",
         "consort_traits": "name",
+        "minister_stances": "id",
+        "xinpan_states": "character_name",
+        "xinpan_logs": "id",
+        "negotiation_agreements": "id",
+        "negotiation_tasks": "id",
     }
 
     def _row_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
@@ -3367,6 +3962,76 @@ class GameDB:
             (int(chat_turn_id),),
         )
         self.conn.commit()
+
+    def abort_chat_turn(
+        self,
+        chat_turn_id: int,
+        before_snapshot: Optional[Dict[str, Dict[str, Dict[str, Any]]]] = None,
+    ) -> Dict[str, Any]:
+        """Abort a failed summons cleanly.
+
+        A failed LLM/tool run must not leave an orphan user message, partial
+        Agno history, or side-effect rows that later contaminate the same NPC.
+        """
+        row = self.conn.execute(
+            "SELECT * FROM chat_turns WHERE id = ?",
+            (int(chat_turn_id),),
+        ).fetchone()
+        if row is None:
+            return {}
+        turn_row = self._row_dict(row)
+        if turn_row.get("status") != "active":
+            return turn_row
+        if before_snapshot:
+            self.record_chat_turn_rollback_diffs(
+                int(chat_turn_id),
+                before_snapshot,
+                self.capture_chat_rollback_snapshot(),
+            )
+        items = self.conn.execute(
+            """
+            SELECT * FROM chat_turn_rollback_items
+            WHERE chat_turn_id = ?
+            ORDER BY id DESC
+            """,
+            (int(chat_turn_id),),
+        ).fetchall()
+        message_ids = [
+            int(mid)
+            for mid in (turn_row.get("user_message_id"), turn_row.get("minister_message_id"))
+            if mid
+        ]
+        with self.conn:
+            for item in items:
+                table = str(item["target_table"])
+                strategy = str(item["rollback_strategy"])
+                target_id = str(item["target_id"])
+                if strategy == "delete_inserted_row":
+                    self._delete_row_in_tx(table, target_id)
+                elif strategy in {"restore_row", "restore_deleted_row"}:
+                    before_row = self._json_load_row(item["before_json"])
+                    self._restore_row_in_tx(table, before_row)
+                else:
+                    raise ValueError(f"不支持的回滚策略：{strategy}")
+            if message_ids:
+                placeholders = ",".join("?" for _ in message_ids)
+                self.conn.execute(
+                    f"DELETE FROM chat_messages WHERE id IN ({placeholders})",
+                    message_ids,
+                )
+            self.conn.execute(
+                """
+                UPDATE chat_turns
+                SET status = 'failed'
+                WHERE id = ?
+                """,
+                (int(chat_turn_id),),
+            )
+            self._truncate_agno_runs_in_tx(
+                str(turn_row.get("agno_session_id") or ""),
+                int(turn_row.get("agno_runs_before") or 0),
+            )
+        return turn_row
 
     def record_chat_turn_rollback_diffs(
         self,
@@ -3482,6 +4147,1044 @@ class GameDB:
         if not row.get("user_message_id") or not row.get("minister_message_id"):
             return False
         return self.is_global_last_active_chat_turn(int(row["id"]))
+
+    def record_minister_stance(
+        self,
+        state: GameState,
+        minister_name: str,
+        topic: str,
+        stance: str,
+        confidence: int = 3,
+        summary: str = "",
+        conditions: str = "",
+        related_issue_id: int = 0,
+        source_chat_turn_id: int = 0,
+        user_message: str = "",
+        minister_answer: str = "",
+        evidence: Dict[str, object] | None = None,
+        risk_tags: List[str] | None = None,
+        execution_hint: str = "",
+        handshake_status: str = "none",
+        psychological_score: int = 0,
+        psychological: Dict[str, object] | None = None,
+        agreement_id: int = 0,
+    ) -> int:
+        """记录本回合召对后，某官对某事的真实立场/承诺，供月末推演读取。"""
+        minister_name = str(minister_name or "").strip()
+        topic = str(topic or "").strip()[:80]
+        stance = str(stance or "neutral").strip()
+        if stance not in {"support", "oppose", "caution", "neutral"}:
+            stance = "neutral"
+        handshake_status = str(handshake_status or "none").strip()
+        if handshake_status not in {"sealed", "conditional", "blocked", "none"}:
+            handshake_status = "none"
+        if not minister_name or not topic:
+            return 0
+        cur = self.conn.execute(
+            """
+            INSERT INTO minister_stances
+                (turn, year, period, minister_name, topic, stance, confidence, summary,
+                 conditions, related_issue_id, source_chat_turn_id, user_message, minister_answer,
+                 evidence_json, risk_tags, execution_hint, handshake_status,
+                 psychological_score, psychological_json, agreement_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                int(state.turn), int(state.year), int(state.period),
+                minister_name, topic, stance, max(1, min(5, int(confidence or 3))),
+                str(summary or "").strip()[:240],
+                str(conditions or "").strip()[:240],
+                max(0, int(related_issue_id or 0)),
+                max(0, int(source_chat_turn_id or 0)),
+                str(user_message or "").strip()[:400],
+                str(minister_answer or "").strip()[:600],
+                json.dumps(evidence or {}, ensure_ascii=False),
+                "、".join(str(tag).strip() for tag in (risk_tags or []) if str(tag).strip())[:160],
+                str(execution_hint or "").strip()[:180],
+                handshake_status,
+                max(0, min(100, int(psychological_score or 0))),
+                json.dumps(psychological or {}, ensure_ascii=False),
+                max(0, int(agreement_id or 0)),
+            ),
+        )
+        self.conn.commit()
+        return int(cur.lastrowid)
+
+    def update_minister_stance_agreement(self, stance_id: int, agreement_id: int) -> None:
+        if not stance_id:
+            return
+        self.conn.execute(
+            """
+            UPDATE minister_stances
+            SET agreement_id = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (max(0, int(agreement_id or 0)), int(stance_id)),
+        )
+        self.conn.commit()
+
+    def list_minister_stances(
+        self,
+        turn: Optional[int] = None,
+        minister_name: str = "",
+        limit: int = 40,
+    ) -> List[Dict[str, object]]:
+        where: List[str] = []
+        params: List[Any] = []
+        if turn is not None:
+            where.append("turn = ?")
+            params.append(int(turn))
+        if minister_name:
+            where.append("minister_name = ?")
+            params.append(str(minister_name))
+        sql_where = ("WHERE " + " AND ".join(where)) if where else ""
+        params.append(max(1, min(200, int(limit or 40))))
+        rows = self.conn.execute(
+            f"""
+            SELECT id, turn, year, period, minister_name, topic, stance, confidence,
+                   summary, conditions, related_issue_id, source_chat_turn_id,
+                   evidence_json, risk_tags, execution_hint, handshake_status,
+                   psychological_score, psychological_json, agreement_id
+            FROM minister_stances
+            {sql_where}
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+        parsed: List[Dict[str, object]] = []
+        for row in rows:
+            item = dict(row)
+            try:
+                evidence = json.loads(str(item.get("evidence_json") or "{}"))
+            except (TypeError, ValueError):
+                evidence = {}
+            item["evidence"] = evidence if isinstance(evidence, dict) else {}
+            try:
+                psychological = json.loads(str(item.get("psychological_json") or "{}"))
+            except (TypeError, ValueError):
+                psychological = {}
+            item["psychological"] = psychological if isinstance(psychological, dict) else {}
+            raw_tags = str(item.get("risk_tags") or "")
+            item["risk_tags_list"] = [part for part in re.split(r"[、,，;；\s]+", raw_tags) if part]
+            parsed.append(item)
+        return parsed
+
+    # ----- xinpan（NPC 对皇帝的动态心盘）-----
+
+    def ensure_xinpan_states(self, state: Optional[GameState] = None) -> int:
+        from ming_sim.xinpan import ensure_all_xinpan_states
+
+        return ensure_all_xinpan_states(self, state)
+
+    def get_xinpan_profile(self, name: str, state: Optional[GameState] = None) -> Dict[str, object]:
+        from ming_sim.xinpan import public_profile
+
+        return public_profile(self, state, name)
+
+    def xinpan_agent_brief(self, name: str, state: Optional[GameState] = None) -> str:
+        from ming_sim.xinpan import agent_brief
+
+        return agent_brief(self, state, name)
+
+    def xinpan_simulator_rows(self, state: Optional[GameState] = None, limit: int = 80) -> List[Dict[str, object]]:
+        from ming_sim.xinpan import simulator_brief_rows
+
+        return simulator_brief_rows(self, state, limit=limit)
+
+    def apply_chat_xinpan_update(
+        self,
+        state: GameState,
+        minister_name: str,
+        user_text: str,
+        answer: str,
+        *,
+        stance: str = "neutral",
+        handshake_status: str = "none",
+        psychological_score: int = 0,
+        source_chat_turn_id: int = 0,
+    ) -> Optional[Dict[str, object]]:
+        from ming_sim.xinpan import apply_chat_xinpan_update
+
+        return apply_chat_xinpan_update(
+            self,
+            state,
+            minister_name,
+            user_text,
+            answer,
+            stance=stance,
+            handshake_status=handshake_status,
+            psychological_score=psychological_score,
+            source_chat_turn_id=source_chat_turn_id,
+        )
+
+    def apply_turn_xinpan_update(
+        self,
+        state: GameState,
+        decree_text: str,
+        narrative: str,
+        applied: Dict[str, object],
+    ) -> Dict[str, object]:
+        from ming_sim.xinpan import apply_turn_xinpan_update
+
+        return apply_turn_xinpan_update(self, state, decree_text, narrative, applied)
+
+    def apply_direct_xinpan_adjustment(
+        self,
+        state: GameState,
+        name: str,
+        *,
+        shi_delta: float = 0.0,
+        fear_delta: float = 0.0,
+        hatred_delta: float = 0.0,
+        trust_multiplier: float = 1.0,
+        event: str = "直接处置更新心盘",
+        source_kind: str = "direct",
+        source_id: str = "",
+    ) -> Optional[Dict[str, object]]:
+        from ming_sim.xinpan import apply_direct_xinpan_adjustment
+
+        return apply_direct_xinpan_adjustment(
+            self,
+            state,
+            name,
+            shi_delta=shi_delta,
+            fear_delta=fear_delta,
+            hatred_delta=hatred_delta,
+            trust_multiplier=trust_multiplier,
+            event=event,
+            source_kind=source_kind,
+            source_id=source_id,
+        )
+
+    # ----- negotiation agreements（奏对协议 / 履约系统）-----
+
+    def create_negotiation_agreement(
+        self,
+        state: GameState,
+        *,
+        minister_name: str,
+        topic: str,
+        action_kind: str,
+        status: str,
+        stance_id: int,
+        handshake_status: str,
+        psychological_score: int,
+        threshold: int,
+        verbal_only: bool,
+        core_topic: str = "",
+        target_text: str = "",
+        promise_type: str = "",
+        stakes: str = "",
+        due_turn: int = 0,
+        conditions: str = "",
+        summary: str = "",
+        tasks: List[str] | None = None,
+    ) -> int:
+        clean_name = str(minister_name or "").strip()
+        if not clean_name:
+            return 0
+        status = str(status or "pending").strip()
+        if status not in {"sealed", "pending", "blocked", "fulfilled", "failed"}:
+            status = "pending"
+        task_list = [str(task or "").strip() for task in (tasks or []) if str(task or "").strip()]
+        if status == "blocked":
+            condition_status = "failed"
+            target_status = "blocked"
+            fulfillment_score = 0
+            fulfillment_evidence = ""
+            target_evidence = "奏对未说服，标的未达成。"
+        elif task_list:
+            status = "pending"
+            condition_status = "pending"
+            target_status = "pending_conditions"
+            fulfillment_score = 0
+            fulfillment_evidence = ""
+            target_evidence = "条件未全部满足，标的暂未达成。"
+        else:
+            status = "fulfilled" if status == "sealed" else status
+            condition_status = "satisfied" if status in {"fulfilled", "sealed"} else "pending"
+            target_status = "achieved" if status in {"fulfilled", "sealed"} else "pending_conditions"
+            fulfillment_score = 100 if status in {"fulfilled", "sealed"} else 0
+            fulfillment_evidence = "无待办条件，已形成即时政治承诺。" if status in {"fulfilled", "sealed"} else ""
+            target_evidence = "条件已满足，标的即时达成。" if status in {"fulfilled", "sealed"} else ""
+        cur = self.conn.execute(
+            """
+            INSERT INTO negotiation_agreements
+                (turn_created, year_created, period_created, minister_name, topic,
+                 core_topic, target_text, action_kind, promise_type, stakes, status,
+                 condition_status, target_status, stance_id, handshake_status,
+                 psychological_score, threshold, verbal_only, due_turn,
+                 fulfillment_score, fulfillment_evidence, target_evidence, conditions, summary)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                int(state.turn), int(state.year), int(state.period),
+                clean_name, str(topic or "").strip()[:120],
+                str(core_topic or topic or "").strip()[:120],
+                str(target_text or core_topic or topic or "").strip()[:180],
+                str(action_kind or "general").strip()[:40],
+                str(promise_type or "").strip()[:40],
+                str(stakes or "").strip()[:120],
+                status, condition_status, target_status,
+                max(0, int(stance_id or 0)), str(handshake_status or "none").strip(),
+                max(0, min(100, int(psychological_score or 0))),
+                max(0, min(100, int(threshold or 0))),
+                1 if verbal_only else 0,
+                max(0, int(due_turn or 0)),
+                fulfillment_score,
+                fulfillment_evidence,
+                target_evidence,
+                str(conditions or "").strip()[:400],
+                str(summary or "").strip()[:300],
+            ),
+        )
+        agreement_id = int(cur.lastrowid)
+        for desc in task_list:
+            self.conn.execute(
+                """
+                INSERT INTO negotiation_tasks (agreement_id, description, task_kind, status)
+                VALUES (?, ?, ?, 'pending')
+                """,
+                (agreement_id, desc[:180], classify_task_kind(desc)),
+            )
+        self.conn.commit()
+        return agreement_id
+
+    def update_negotiation_task(self, task_id: int, status: str, evidence: str = "") -> None:
+        status = str(status or "pending").strip()
+        if status not in {"pending", "done", "failed"}:
+            status = "pending"
+        self.conn.execute(
+            """
+            UPDATE negotiation_tasks
+            SET status=?, evidence=?, updated_at=CURRENT_TIMESTAMP
+            WHERE id=?
+            """,
+            (status, str(evidence or "").strip()[:240], int(task_id)),
+        )
+        row = self.conn.execute(
+            "SELECT agreement_id FROM negotiation_tasks WHERE id=?", (int(task_id),)
+        ).fetchone()
+        if row is not None:
+            self._refresh_negotiation_agreement_status(int(row["agreement_id"]))
+        self.conn.commit()
+
+    def _refresh_negotiation_agreement_status(self, agreement_id: int) -> None:
+        agreement = self.conn.execute(
+            "SELECT status FROM negotiation_agreements WHERE id=?", (int(agreement_id),)
+        ).fetchone()
+        if agreement is None:
+            return
+        rows = self.conn.execute(
+            "SELECT status FROM negotiation_tasks WHERE agreement_id=?",
+            (int(agreement_id),),
+        ).fetchall()
+        if not rows:
+            return
+        statuses = [str(row["status"] or "pending") for row in rows]
+        if any(status == "failed" for status in statuses):
+            next_status = "failed"
+        elif all(status == "done" for status in statuses):
+            next_status = "fulfilled"
+        else:
+            next_status = "pending"
+        self.conn.execute(
+            "UPDATE negotiation_agreements SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+            (next_status, int(agreement_id)),
+        )
+
+    def _agreement_review_context(
+        self,
+        *,
+        decree_text: str = "",
+        narrative: str = "",
+        directives: Optional[List[Any]] = None,
+        applied: Optional[Dict[str, object]] = None,
+    ) -> str:
+        parts: List[str] = []
+        if decree_text:
+            parts.append(f"诏书：{decree_text[:4000]}")
+        for row in directives or []:
+            try:
+                actor = str(row["actor"] or "")
+                title = str(row["event_title"] or "")
+                text = str(row["text"] or "")
+            except Exception:
+                actor = str(getattr(row, "actor", "") or "")
+                title = str(getattr(row, "event_title", "") or "")
+                text = str(getattr(row, "text", "") or "")
+            if actor or title or text:
+                parts.append(f"草案：{actor} {title} {text[:600]}")
+        if narrative:
+            parts.append(f"邸报：{narrative[:5000]}")
+        if applied:
+            try:
+                parts.append("落库：" + json.dumps(applied, ensure_ascii=False)[:2400])
+            except Exception:
+                pass
+        return "\n".join(parts)
+
+    def _agreement_keywords(self, agreement: Dict[str, object]) -> List[str]:
+        base = " ".join(
+            str(agreement.get(key) or "")
+            for key in ("minister_name", "topic", "core_topic", "target_text", "conditions", "summary", "stakes")
+        )
+        stop = {
+            "本次", "奏对", "事项", "条件", "顾虑", "奏对量表", "握手成功", "附条件",
+            "未说服", "未成约", "臣愿", "陛下", "皇帝", "大明", "此事", "本回合",
+        }
+        words: List[str] = []
+        for term in (
+            "辽饷", "辽东", "关宁", "山海关", "陕西", "赈灾", "流寇", "户部", "太仓",
+            "国库", "内库", "阉党", "东厂", "锦衣卫", "司礼监", "东林", "清流",
+            "廷议", "密旨", "密令", "净身", "民籍", "奴籍", "清丈", "商税", "盐课",
+        ):
+            if term in base and term not in words:
+                words.append(term)
+        for word in re.findall(r"[\u4e00-\u9fff]{2,12}", base):
+            if word in stop:
+                continue
+            if re.fullmatch(r"(银两|人手|名分|期限|派系|地方|军务|保密|条件|顾虑)", word):
+                continue
+            if word not in words:
+                words.append(word)
+        return words[:10]
+
+    def _agreement_relevant_in_context(self, agreement: Dict[str, object], context: str) -> bool:
+        if not context:
+            return False
+        minister = str(agreement.get("minister_name") or "").strip()
+        if minister and minister in context:
+            return True
+        core = str(agreement.get("core_topic") or agreement.get("topic") or "").strip()
+        if core and core in context:
+            return True
+        hits = 0
+        for word in self._agreement_keywords(agreement):
+            if word and word in context:
+                hits += 1
+            if hits >= 2:
+                return True
+        action_kind = str(agreement.get("action_kind") or "")
+        if action_kind == "castration" and re.search(r"净身|入内廷|司礼监|太监|宦官", context):
+            return True
+        if action_kind == "emancipation" and re.search(r"奴籍|民籍|脱籍|还民|出宫为民", context):
+            return True
+        if action_kind == "court_commitment" and re.search(
+            r"劝|说服|游说|调停|转圜|斡旋|背书|代奏|联络|试探|探口风|保密|守口|不泄|承办|协办|办成|奉旨|照办",
+            context,
+        ):
+            return True
+        return False
+
+    def _task_relevant_in_context(self, description: str, context: str) -> bool:
+        if not description or not context:
+            return False
+        for term in (
+            "辽饷", "辽东", "关宁", "山海关", "陕西", "赈灾", "流寇", "户部", "太仓",
+            "国库", "内库", "家眷", "安置", "抚恤", "廷议", "会审", "明旨", "密旨",
+            "密令", "净身", "民籍", "奴籍", "人手", "胥吏", "粮", "银", "饷",
+        ):
+            if term in description and term in context:
+                return True
+        return False
+
+    def _task_auto_decision(
+        self,
+        agreement: Dict[str, object],
+        task: Dict[str, object],
+        context: str,
+        *,
+        state: GameState,
+        phase: str,
+    ) -> tuple[str, str]:
+        current = str(task.get("status") or "pending")
+        if current in {"done", "failed"}:
+            return current, str(task.get("evidence") or "")
+        if not context:
+            return current, str(task.get("evidence") or "")
+
+        desc = str(task.get("description") or "")
+        relevant = self._agreement_relevant_in_context(agreement, context) or self._task_relevant_in_context(desc, context)
+        kind = str(task.get("task_kind") or "")
+        if not kind or kind == "general":
+            kind = classify_task_kind(desc)
+        combined = f"{desc}\n{context}"
+        contradiction = (
+            relevant
+            and re.search(
+                r"未准|驳回|搁置|不予|不许|未拨|无银可拨|未给|未设|未议|未下|未见|"
+                r"无.{0,8}(安置|保全|抚恤|明旨|廷议|拨|给|人手|银|粮|饷)|"
+                r"食言|失信|背约|不兑现|作罢|强旨|强行|勒令",
+                combined,
+            )
+        )
+        if contradiction:
+            return "failed", "自动判定：诏书或邸报出现未兑现/强推/驳回等相反证据。"
+
+        done_patterns = {
+            "resource": r"(拨|发|支|给|赏|赐|解|筹|调|运|采买|平粜).{0,18}(银|钱|饷|粮|米|经费|内库|国库|太仓)|(银|钱|饷|粮|米).{0,18}(拨|发|给|解|支|赏|赐)",
+            "staff": r"(添|派|拨|调|给|差).{0,18}(人手|胥吏|差役|属官|书吏|匠|兵|校尉|人)",
+            "legitimacy": r"明旨|圣旨|诏|廷议|会审|议覆|部议|章程|条议|成例|定例|专责|授权|交.{0,12}办理|会同",
+            "protection": r"保全|安置|抚恤|不辱|体面|遮护|家眷|家小|族人|免罪|免坐",
+            "office": r"(任|授|补|擢|升|调|加|赏|赐).{0,18}(官|职|衔|缺|银|蟒|服)|职掌|边界|专责",
+            "deadline": r"(限|准|许|给|赐|宽).{0,12}(日|旬|月|年)|[一二三四五六七八九十百\d]+.{0,4}(日|旬|月|年)(内|后|间)?|月内|旬日|刻期|缓办|展限",
+            "secrecy": r"密旨|密令|暗查|密查|秘|不得泄|封口|耳目|线人|取证",
+            "general": r"准|照办|奉旨|已办|成议|允行|照准|如议",
+        }
+        pattern = done_patterns.get(kind, done_patterns["general"])
+        if relevant and re.search(pattern, combined):
+            return "done", f"自动判定：发现与「{desc[:48]}」相符的{kind}类履约证据。"
+
+        due_turn = int(agreement.get("due_turn") or 0)
+        if phase == "postresolve" and due_turn and int(state.turn) >= due_turn:
+            return "failed", "自动判定：本回合诏书、邸报与落库记录未见条件兑现，承诺逾期失信。"
+        return current, str(task.get("evidence") or "")
+
+    def _normalize_agreement_reviews(
+        self,
+        reviews: Optional[object],
+    ) -> Dict[int, Dict[str, object]]:
+        if not reviews:
+            return {}
+        if isinstance(reviews, dict):
+            raw_items = reviews.get("reviews") if isinstance(reviews.get("reviews"), list) else list(reviews.values())
+        elif isinstance(reviews, list):
+            raw_items = reviews
+        else:
+            return {}
+        out: Dict[int, Dict[str, object]] = {}
+        for item in raw_items:
+            if not isinstance(item, dict):
+                continue
+            try:
+                agreement_id = int(item.get("agreement_id") or item.get("id") or 0)
+            except (TypeError, ValueError):
+                agreement_id = 0
+            if agreement_id:
+                out[agreement_id] = item
+        return out
+
+    def _llm_task_review(
+        self,
+        llm_review: Dict[str, object],
+        task: Dict[str, object],
+    ) -> Optional[tuple[str, str]]:
+        task_reviews = llm_review.get("task_reviews")
+        if not isinstance(task_reviews, list):
+            return None
+        desc = str(task.get("description") or "")
+        task_id = int(task.get("id") or 0)
+        for item in task_reviews:
+            if not isinstance(item, dict):
+                continue
+            try:
+                reviewed_task_id = int(item.get("task_id") or item.get("id") or 0)
+            except (TypeError, ValueError):
+                reviewed_task_id = 0
+            same_id = bool(task_id and reviewed_task_id == task_id)
+            same_desc = desc and str(item.get("description") or "").strip() == desc
+            if not (same_id or same_desc):
+                continue
+            status = str(item.get("status") or "").strip()
+            if status not in {"pending", "done", "failed"}:
+                condition_status = str(item.get("condition_status") or "").strip()
+                status = {"satisfied": "done", "failed": "failed", "pending": "pending"}.get(condition_status, "")
+            if status in {"pending", "done", "failed"}:
+                evidence = str(item.get("evidence") or item.get("reason") or "LLM 判定。").strip()
+                return status, f"LLM判定：{evidence}"[:240]
+        return None
+
+    def _condition_target_statuses(
+        self,
+        agreement: Dict[str, object],
+        tasks: List[Dict[str, object]],
+        llm_review: Dict[str, object],
+        *,
+        phase: str,
+        state: GameState,
+    ) -> tuple[str, str, int, str, str]:
+        old_target = str(agreement.get("target_status") or "")
+        if old_target == "blocked":
+            return "failed", "blocked", 0, str(agreement.get("fulfillment_evidence") or ""), str(agreement.get("target_evidence") or "")
+
+        statuses = [str(task.get("status") or "pending") for task in tasks]
+        llm_condition = str(llm_review.get("condition_status") or "").strip()
+        llm_reason = str(llm_review.get("condition_evidence") or llm_review.get("reason") or "").strip()
+
+        if tasks:
+            if llm_condition == "satisfied" and not any(status == "failed" for status in statuses):
+                for task in tasks:
+                    if task.get("status") == "pending":
+                        task["status"] = "done"
+                        task["evidence"] = f"LLM判定：{llm_reason or '全部条件已有足够证据。'}"[:240]
+                statuses = [str(task.get("status") or "pending") for task in tasks]
+            elif llm_condition == "failed":
+                for task in tasks:
+                    if task.get("status") == "pending":
+                        task["status"] = "failed"
+                        task["evidence"] = f"LLM判定：{llm_reason or '关键条件未兑现或已被否定。'}"[:240]
+                statuses = [str(task.get("status") or "pending") for task in tasks]
+
+        if not tasks:
+            condition_status = "satisfied"
+            condition_score = 100
+            condition_evidence = str(agreement.get("fulfillment_evidence") or "无待办条件，条件视为满足。")
+        elif any(status == "failed" for status in statuses):
+            condition_status = "failed"
+            condition_score = 0
+            condition_evidence = next(
+                (str(task.get("evidence") or "") for task in tasks if task.get("status") == "failed" and task.get("evidence")),
+                "存在条件未兑现或被否定。",
+            )
+        elif all(status == "done" for status in statuses):
+            condition_status = "satisfied"
+            condition_score = 100
+            condition_evidence = "全部履约条件均已有显式证据。"
+        else:
+            condition_status = "pending"
+            condition_score = round(100 * statuses.count("done") / max(1, len(statuses)))
+            condition_evidence = "仍有条件未见显式证据。"
+
+        if condition_status == "satisfied":
+            llm_target = str(llm_review.get("target_status") or "").strip()
+            if llm_target in {"failed", "blocked"}:
+                target_status = llm_target
+            else:
+                target_status = "achieved"
+            target_evidence = str(
+                llm_review.get("target_evidence")
+                or llm_review.get("reason")
+                or "条件已全部满足，标的达成。"
+            ).strip()
+        elif condition_status == "failed":
+            target_status = "failed"
+            target_evidence = "条件未满足或已失败，标的未达成。"
+        else:
+            due_turn = int(agreement.get("due_turn") or 0)
+            if phase == "postresolve" and due_turn and int(state.turn) >= due_turn:
+                condition_status = "failed"
+                condition_score = 0
+                condition_evidence = "本回合已到期，仍未见全部条件兑现。"
+                target_status = "failed"
+                target_evidence = "条件逾期未满足，标的未达成。"
+            else:
+                target_status = "pending_conditions"
+                target_evidence = "条件未全部满足，标的暂未达成。"
+
+        return condition_status, target_status, condition_score, condition_evidence[:240], target_evidence[:240]
+
+    def _agreement_status_from_target(self, target_status: str) -> str:
+        if target_status == "achieved":
+            return "fulfilled"
+        if target_status == "blocked":
+            return "blocked"
+        if target_status == "failed":
+            return "failed"
+        return "pending"
+
+    def _apply_negotiation_political_effect(
+        self,
+        state: GameState,
+        agreement: Dict[str, object],
+        *,
+        new_status: str,
+        evidence: str,
+    ) -> Dict[str, object]:
+        try:
+            old_effect = json.loads(str(agreement.get("political_effect_json") or "{}"))
+        except (TypeError, ValueError):
+            old_effect = {}
+        if isinstance(old_effect, dict) and old_effect.get("applied_status") == new_status:
+            return old_effect
+
+        minister = str(agreement.get("minister_name") or "")
+        action_kind = str(agreement.get("action_kind") or "general")
+        stakes = str(agreement.get("stakes") or "")
+        row = self.conn.execute(
+            "SELECT faction FROM characters WHERE name=?",
+            (minister,),
+        ).fetchone()
+        faction = str(row["faction"] or "") if row else ""
+        effect: Dict[str, object] = {
+            "applied_turn": int(state.turn),
+            "applied_status": new_status,
+            "evidence": evidence[:180],
+            "metric_delta": {},
+            "faction_delta": {},
+            "xinpan": {},
+        }
+        if new_status == "fulfilled":
+            wei_delta = 1 if action_kind in {"policy", "personnel", "secret_order", "castration", "emancipation", "court_commitment"} else 0
+            if wei_delta:
+                state.metrics["皇威"] = max(0, min(100, int(state.metrics.get("皇威", 0)) + wei_delta))
+                effect["metric_delta"] = {"皇威": wei_delta}
+            if faction:
+                self.adjust_factions({faction: {"satisfaction": 2}})
+                effect["faction_delta"] = {faction: {"satisfaction": 2}}
+            try:
+                self.apply_direct_xinpan_adjustment(
+                    state,
+                    minister,
+                    shi_delta=5.0,
+                    hatred_delta=-2.0,
+                    trust_multiplier=1.04,
+                    event="奏对协议条件满足，标的达成",
+                    source_kind="agreement",
+                    source_id=str(agreement.get("id") or ""),
+                )
+                effect["xinpan"] = {"shi_delta": 5.0, "hatred_delta": -2.0, "trust_multiplier": 1.04}
+            except Exception:
+                pass
+            self.record_log(state, f"奏对标的达成：{minister}「{agreement.get('target_text') or agreement.get('core_topic') or agreement.get('topic')}」。")
+        elif new_status == "failed":
+            wei_delta = -2 if re.search(r"身家名节|制度名分|军国成败", stakes) else -1
+            state.metrics["皇威"] = max(0, min(100, int(state.metrics.get("皇威", 0)) + wei_delta))
+            effect["metric_delta"] = {"皇威": wei_delta}
+            if faction:
+                self.adjust_factions({faction: {"satisfaction": -4}})
+                effect["faction_delta"] = {faction: {"satisfaction": -4}}
+            try:
+                self.apply_direct_xinpan_adjustment(
+                    state,
+                    minister,
+                    shi_delta=-8.0,
+                    fear_delta=1.0,
+                    hatred_delta=5.0,
+                    trust_multiplier=0.90,
+                    event="奏对协议条件失败，标的未达成",
+                    source_kind="agreement",
+                    source_id=str(agreement.get("id") or ""),
+                )
+                effect["xinpan"] = {"shi_delta": -8.0, "fear_delta": 1.0, "hatred_delta": 5.0, "trust_multiplier": 0.90}
+            except Exception:
+                pass
+            self.record_log(state, f"奏对标的失信：{minister}「{agreement.get('target_text') or agreement.get('core_topic') or agreement.get('topic')}」未达成。")
+        self.save_state(state)
+        return effect
+
+    def auto_review_negotiation_agreements(
+        self,
+        state: GameState,
+        *,
+        decree_text: str = "",
+        narrative: str = "",
+        directives: Optional[List[Any]] = None,
+        applied: Optional[Dict[str, object]] = None,
+        llm_reviews: Optional[object] = None,
+        phase: str = "preresolve",
+        limit: int = 80,
+    ) -> List[Dict[str, object]]:
+        """Automatically judge negotiation fulfillment from explicit game evidence.
+
+        This replaces the old "player clicks done" loop. The review reads official
+        texts and structured results; unresolved conditional promises become court
+        debt, fulfilled promises become political capital, and breaches damage trust.
+        """
+        context = self._agreement_review_context(
+            decree_text=decree_text,
+            narrative=narrative,
+            directives=directives,
+            applied=applied,
+        )
+        llm_review_by_id = self._normalize_agreement_reviews(llm_reviews)
+        rows = self.conn.execute(
+            """
+            SELECT * FROM negotiation_agreements
+            WHERE status IN ('pending', 'sealed')
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (max(1, min(200, int(limit or 80))),),
+        ).fetchall()
+        reviewed: List[Dict[str, object]] = []
+        for row in rows:
+            agreement = dict(row)
+            llm_review = llm_review_by_id.get(int(agreement["id"]), {})
+            tasks = [
+                dict(task)
+                for task in self.conn.execute(
+                    "SELECT * FROM negotiation_tasks WHERE agreement_id=? ORDER BY id",
+                    (int(agreement["id"]),),
+                ).fetchall()
+            ]
+            changed_tasks = False
+            for task in tasks:
+                llm_task = self._llm_task_review(llm_review, task) if isinstance(llm_review, dict) else None
+                if llm_task is not None:
+                    next_status, evidence = llm_task
+                else:
+                    next_status, evidence = self._task_auto_decision(
+                        agreement, task, context, state=state, phase=phase
+                    )
+                if next_status != str(task.get("status") or "pending") or evidence != str(task.get("evidence") or ""):
+                    self.conn.execute(
+                        """
+                        UPDATE negotiation_tasks
+                        SET status=?, evidence=?, last_checked_turn=?, updated_at=CURRENT_TIMESTAMP
+                        WHERE id=?
+                        """,
+                        (next_status, evidence[:240], int(state.turn), int(task["id"])),
+                    )
+                    task["status"] = next_status
+                    task["evidence"] = evidence
+                    changed_tasks = True
+                elif phase == "postresolve":
+                    self.conn.execute(
+                        "UPDATE negotiation_tasks SET last_checked_turn=? WHERE id=?",
+                        (int(state.turn), int(task["id"])),
+                    )
+            condition_status, target_status, score, evidence, target_evidence = self._condition_target_statuses(
+                agreement,
+                tasks,
+                llm_review if isinstance(llm_review, dict) else {},
+                phase=phase,
+                state=state,
+            )
+            for task in tasks:
+                self.conn.execute(
+                    """
+                    UPDATE negotiation_tasks
+                    SET status=?, evidence=?, last_checked_turn=?, updated_at=CURRENT_TIMESTAMP
+                    WHERE id=?
+                    """,
+                    (
+                        str(task.get("status") or "pending"),
+                        str(task.get("evidence") or "")[:240],
+                        int(state.turn),
+                        int(task["id"]),
+                    ),
+                )
+            next_status = self._agreement_status_from_target(target_status)
+
+            effect: Dict[str, object] = {}
+            old_target_status = str(agreement.get("target_status") or "")
+            if target_status in {"achieved", "failed", "blocked"} and target_status != old_target_status:
+                effect = self._apply_negotiation_political_effect(
+                    state,
+                    agreement,
+                    new_status=next_status,
+                    evidence=target_evidence or evidence,
+                )
+            review = {
+                "phase": phase,
+                "turn": int(state.turn),
+                "status": next_status,
+                "condition_status": condition_status,
+                "target_status": target_status,
+                "condition_score": score,
+                "condition_evidence": evidence[:180],
+                "target_evidence": target_evidence[:180],
+                "llm_used": bool(llm_review),
+                "tasks": [{"id": task.get("id"), "status": task.get("status"), "evidence": task.get("evidence")} for task in tasks],
+            }
+            self.conn.execute(
+                """
+                UPDATE negotiation_agreements
+                SET status=?, condition_status=?, target_status=?,
+                    last_checked_turn=?,
+                    resolved_turn=CASE WHEN ? IN ('fulfilled','failed','blocked') THEN ? ELSE resolved_turn END,
+                    fulfillment_score=?, fulfillment_evidence=?, target_evidence=?,
+                    political_effect_json=?, auto_review_json=?, llm_review_json=?,
+                    updated_at=CURRENT_TIMESTAMP
+                WHERE id=?
+                """,
+                (
+                    next_status,
+                    condition_status,
+                    target_status,
+                    int(state.turn),
+                    next_status,
+                    int(state.turn),
+                    score,
+                    evidence[:240],
+                    target_evidence[:240],
+                    json.dumps(effect, ensure_ascii=False) if effect else str(agreement.get("political_effect_json") or "{}"),
+                    json.dumps(review, ensure_ascii=False),
+                    json.dumps(llm_review, ensure_ascii=False) if isinstance(llm_review, dict) else "{}",
+                    int(agreement["id"]),
+                ),
+            )
+            if (
+                changed_tasks
+                or next_status != str(agreement.get("status") or "")
+                or condition_status != str(agreement.get("condition_status") or "")
+                or target_status != str(agreement.get("target_status") or "")
+            ):
+                reviewed.append({
+                    **agreement,
+                    "status": next_status,
+                    "condition_status": condition_status,
+                    "target_status": target_status,
+                    "fulfillment_score": score,
+                    "review": review,
+                })
+        self.conn.commit()
+        return reviewed
+
+    def list_negotiation_agreements(
+        self,
+        minister_name: str = "",
+        action_kind: str = "",
+        status: str = "",
+        limit: int = 80,
+    ) -> List[Dict[str, object]]:
+        clauses: List[str] = []
+        params: List[Any] = []
+        if minister_name:
+            clauses.append("minister_name=?")
+            params.append(str(minister_name))
+        if action_kind:
+            clauses.append("action_kind=?")
+            params.append(str(action_kind))
+        if status:
+            clauses.append("status=?")
+            params.append(str(status))
+        where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+        params.append(max(1, min(200, int(limit or 80))))
+        rows = self.conn.execute(
+            f"""
+            SELECT * FROM negotiation_agreements
+            {where}
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+        out: List[Dict[str, object]] = []
+        for row in rows:
+            item = dict(row)
+            tasks = self.conn.execute(
+                """
+                SELECT id, description, task_kind, status, evidence, last_checked_turn
+                FROM negotiation_tasks
+                WHERE agreement_id=?
+                ORDER BY id
+                """,
+                (int(row["id"]),),
+            ).fetchall()
+            item["tasks"] = [dict(task) for task in tasks]
+            out.append(item)
+        return out
+
+    def negotiation_agreement_ledger(
+        self,
+        state: Optional[GameState] = None,
+        *,
+        minister_name: str = "",
+        limit: int = 80,
+    ) -> List[Dict[str, object]]:
+        rows = self.list_negotiation_agreements(minister_name=minister_name, limit=limit)
+        ledger: List[Dict[str, object]] = []
+        for row in rows:
+            status = str(row.get("status") or "")
+            if status not in {"pending", "sealed", "fulfilled", "failed", "blocked"}:
+                continue
+            try:
+                auto_review = json.loads(str(row.get("auto_review_json") or "{}"))
+            except (TypeError, ValueError):
+                auto_review = {}
+            try:
+                political_effect = json.loads(str(row.get("political_effect_json") or "{}"))
+            except (TypeError, ValueError):
+                political_effect = {}
+            try:
+                llm_review = json.loads(str(row.get("llm_review_json") or "{}"))
+            except (TypeError, ValueError):
+                llm_review = {}
+            target_status = str(row.get("target_status") or "")
+            condition_status = str(row.get("condition_status") or "")
+            if not target_status or (target_status == "pending_conditions" and status in {"fulfilled", "sealed"}):
+                target_status = "achieved"
+            if not condition_status or (condition_status == "pending" and status in {"fulfilled", "sealed"}):
+                condition_status = "satisfied"
+            tasks = []
+            for task in row.get("tasks") or []:
+                if not isinstance(task, dict):
+                    continue
+                tasks.append({
+                    "description": task.get("description") or "",
+                    "kind": task.get("task_kind") or classify_task_kind(str(task.get("description") or "")),
+                    "status": task.get("status") or "pending",
+                    "evidence": task.get("evidence") or "",
+                })
+            item = {
+                "id": row.get("id"),
+                "minister_name": row.get("minister_name"),
+                "core_topic": row.get("core_topic") or row.get("topic"),
+                "topic": row.get("topic"),
+                "target_text": row.get("target_text") or row.get("core_topic") or row.get("topic"),
+                "action_kind": row.get("action_kind"),
+                "promise_type": row.get("promise_type") or "",
+                "stakes": row.get("stakes") or "",
+                "status": status,
+                "condition_status": condition_status,
+                "target_status": target_status,
+                "handshake_status": row.get("handshake_status"),
+                "psychological_score": row.get("psychological_score"),
+                "threshold": row.get("threshold"),
+                "due_turn": row.get("due_turn") or 0,
+                "age_turns": (int(state.turn) - int(row.get("turn_created") or 0)) if state is not None else 0,
+                "fulfillment_score": row.get("fulfillment_score") or 0,
+                "fulfillment_evidence": row.get("fulfillment_evidence") or "",
+                "target_evidence": row.get("target_evidence") or "",
+                "conditions": row.get("conditions") or "",
+                "execution_consequence": self._agreement_execution_consequence(row, tasks),
+                "tasks": tasks,
+                "auto_review": auto_review if isinstance(auto_review, dict) else {},
+                "llm_review": llm_review if isinstance(llm_review, dict) else {},
+                "political_effect": political_effect if isinstance(political_effect, dict) else {},
+            }
+            ledger.append(item)
+        return ledger
+
+    def _agreement_execution_consequence(
+        self,
+        row: Dict[str, object],
+        tasks: List[Dict[str, object]],
+    ) -> str:
+        status = str(row.get("status") or "")
+        target_status = str(row.get("target_status") or "")
+        condition_status = str(row.get("condition_status") or "")
+        stakes = str(row.get("stakes") or "")
+        if target_status == "achieved" or status == "fulfilled":
+            return "可作为真实政治资本：降低该官个人拖延，增强其对皇帝势合；仍须检验外部资源与派系阻力。"
+        if condition_status == "satisfied" and status == "sealed":
+            return "无待办条件的即时承诺：可作执行背书，但若后续诏书反向处置，会转为失信伤害。"
+        if condition_status == "pending" or target_status == "pending_conditions" or status == "pending":
+            pending = [str(task.get("description") or "") for task in tasks if task.get("status") == "pending"]
+            return f"条件未闭环，标的未达成：{('；'.join(pending[:3]) or row.get('conditions') or '条件未明')}。未兑现前不得当作自愿配合。"
+        if target_status == "failed" or status == "failed":
+            return f"已成失信记录：刺痛{stakes or '一般政务'}，月末推演应写入不信任、补奏、拖延、清议或派系反噬。"
+        if target_status == "blocked" or status == "blocked":
+            return "未说服：若强推，按高压诏令和真实阻力结算，不能视为臣工协办。"
+        return ""
+
+    def has_successful_agreement(
+        self,
+        minister_name: str,
+        action_kind: str,
+        *,
+        max_age_turns: int = 12,
+        current_turn: int = 0,
+    ) -> Optional[Dict[str, object]]:
+        rows = self.list_negotiation_agreements(
+            minister_name=minister_name,
+            action_kind=action_kind,
+            limit=20,
+        )
+        for row in rows:
+            target_status = str(row.get("target_status") or "")
+            status = str(row.get("status") or "")
+            if target_status != "achieved" and status not in {"sealed", "fulfilled"}:
+                continue
+            if max_age_turns and current_turn:
+                created = int(row.get("turn_created") or 0)
+                if created and int(current_turn) - created > max_age_turns:
+                    continue
+            return row
+        return None
 
     def _restore_row_in_tx(self, table: str, row: Dict[str, Any]) -> None:
         if not row:
@@ -4167,30 +5870,33 @@ class GameDB:
         narrative: str = "",
         extractor_input: str = "",
         extractor_output: str = "",
+        causal_notes: List[Dict[str, object]] | None = None,
     ) -> None:
         """推演链原始输入/输出留痕（turn_extractions），事后可追可重放。"""
         self.conn.execute(
             """
             INSERT INTO turn_extractions
-                (turn, year, period, decree_text, narrative, extractor_input, extractor_output)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (turn, year, period, decree_text, narrative, extractor_input, extractor_output, causal_notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(turn) DO UPDATE SET
                 year = excluded.year,
                 period = excluded.period,
                 decree_text = excluded.decree_text,
                 narrative = excluded.narrative,
                 extractor_input = excluded.extractor_input,
-                extractor_output = excluded.extractor_output
+                extractor_output = excluded.extractor_output,
+                causal_notes = excluded.causal_notes
             """,
             (state.turn, state.year, state.period, decree_text, narrative,
-             extractor_input, extractor_output),
+             extractor_input, extractor_output,
+             json.dumps(causal_notes or [], ensure_ascii=False)),
         )
         self.conn.commit()
 
     def get_turn_extraction(self, turn: int) -> Optional[Dict[str, object]]:
         """读 turn_extractions 一行；extractor_output JSON 解析失败时原样回字符串。"""
         row = self.conn.execute(
-            "SELECT turn, year, period, decree_text, narrative, extractor_input, extractor_output "
+            "SELECT turn, year, period, decree_text, narrative, extractor_input, extractor_output, causal_notes "
             "FROM turn_extractions WHERE turn = ?",
             (int(turn),),
         ).fetchone()
@@ -4230,6 +5936,7 @@ class GameDB:
             "narrative": row["narrative"] or "",
             "extractor_input": _parse(row["extractor_input"] or ""),
             "extractor_output": _parse(row["extractor_output"] or ""),
+            "causal_notes": _parse(row["causal_notes"] or "[]") or [],
         }
 
     def grant_skill(self, state: GameState, character_name: str, skill_id: str, granted_by: str = "皇帝") -> bool:
@@ -4862,6 +6569,51 @@ class GameDB:
 
     # ----- secret_orders（密令系统）-----
 
+    def fail_active_secret_orders_for_minister(
+        self,
+        minister_name: str,
+        state: GameState,
+        reason: str = "",
+    ) -> List[Dict[str, object]]:
+        """承办人退场/转势力时，中止其 active 密令。
+
+        已提交核议的 pending_review 保留给月末推演判成败；这里仅处理仍在执行中的密令，
+        防止罢黜、下狱、死亡或投敌后仍继续推进。
+        """
+        clean_minister = str(minister_name or "").strip()
+        if not clean_minister:
+            return []
+        rows = self.conn.execute(
+            """
+            SELECT id, title, result FROM secret_orders
+            WHERE status = 'active' AND minister_name = ?
+            ORDER BY id
+            """,
+            (clean_minister,),
+        ).fetchall()
+        if not rows:
+            return []
+        note = (reason or f"承办人{clean_minister}已不可承办，密令中止。").strip()
+        stamp = f"〔{period_label(state.year, state.period)}〕[承办中止] "
+        failed: List[Dict[str, object]] = []
+        for row in rows:
+            prev = row["result"] or ""
+            lines = [ln for ln in prev.split("\n") if ln.strip()]
+            if not any("[承办中止]" in ln for ln in lines):
+                lines.append(f"{stamp}{note[:300]}")
+            self.conn.execute(
+                """
+                UPDATE secret_orders
+                SET status = 'failed', result = ?, turn_closed = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                ("\n".join(lines), int(state.turn), int(row["id"])),
+            )
+            failed.append({"id": int(row["id"]), "title": row["title"], "reason": note})
+        self.conn.commit()
+        tlog(f"[secret_order] fail_assignee minister={clean_minister} ids={[item['id'] for item in failed]}")
+        return failed
+
     def create_secret_order(
         self,
         state: GameState,
@@ -4872,6 +6624,22 @@ class GameDB:
         importance: int = 4,
         deadline_months: int = 0,
     ) -> int:
+        clean_minister = str(minister_name or "").strip()
+        if not clean_minister:
+            raise ValueError("密令承办人不能为空。")
+        assignee = self.conn.execute(
+            "SELECT status, status_reason, power_id FROM characters WHERE name=?",
+            (clean_minister,),
+        ).fetchone()
+        if assignee is None:
+            raise ValueError(f"密令承办人未在大明名册：{clean_minister}。请先补档入朝，再下密令。")
+        if str(assignee["power_id"] or "ming") != "ming":
+            raise ValueError(f"{clean_minister}不属大明朝廷，不能承办密令。")
+        assignee_status = str(assignee["status"] or "")
+        if assignee_status != "active":
+            label = CHARACTER_STATUS_LABELS.get(assignee_status, assignee_status)
+            reason = str(assignee["status_reason"] or "")
+            raise ValueError(f"{clean_minister}{label}，不能承办密令。" + reason)
         active_count = self.conn.execute(
             "SELECT COUNT(*) FROM secret_orders WHERE status='active'"
         ).fetchone()[0]
@@ -4886,10 +6654,10 @@ class GameDB:
                 (turn_issued, due_turn, year_issued, period_issued, minister_name, title, content, tags, importance, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
             """,
-            (state.turn, due_turn, state.year, state.period, minister_name, title[:20], content, tags_json, importance),
+            (state.turn, due_turn, state.year, state.period, clean_minister, title[:20], content, tags_json, importance),
         )
         self.conn.commit()
-        tlog(f"[secret_order] create id={cur.lastrowid} minister={minister_name} title={title[:20]}")
+        tlog(f"[secret_order] create id={cur.lastrowid} minister={clean_minister} title={title[:20]}")
         return cur.lastrowid  # type: ignore[return-value]
 
     def list_secret_orders(

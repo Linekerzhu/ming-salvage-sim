@@ -55,6 +55,20 @@ class Character:
     status: str = "active"  # active | offstage | dismissed | imprisoned | exiled | retired | dead
     summary: str = ""  # 人物简介，后宫/大臣均有
     portrait_id: str = ""  # 头像文件标识：空=无专属；"minister_pool_3"=用第3号预设头像
+    rank: str = ""  # 后宫位分或内容档原始品级文本
+    rank_grade: int = 0  # 明制视觉品级：1-9；0=无品级/外部/内廷/在野
+    rank_label: str = ""  # 面向画像/AI 的品级说明
+    rank_category: str = ""  # civil/military/eunuch/harem/foreign/unranked...
+    # ── 人物校量：召对、统兵与天命异闻验算 ──
+    force: int = 50           # 武力：个人战斗、统兵冲锋
+    wisdom: int = 50          # 智谋：计策、识破、政务
+    charm: int = 50           # 魅力：说服、感召、外交
+    luck: int = 50            # 气运：异闻、暴击、闪避
+    cultivation: int = 0      # 修为：0-100，武学/道术修为（0=常人）
+    hp: int = 100             # 生命值
+    max_hp: int = 100
+    exp: int = 0              # 经验值
+    level: int = 1            # 等级
 
 
 @dataclass

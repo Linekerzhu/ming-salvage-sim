@@ -6,6 +6,8 @@
 from __future__ import annotations
 
 import json
+import re
+import uuid
 from typing import Dict, List, Optional
 
 from agno.agent import Agent
@@ -15,7 +17,13 @@ from agno.skills.loaders.local import LocalSkills
 
 from ming_sim.constants import TURN_UNIT
 from ming_sim.content import GameContent
-from ming_sim.context import character_context_with_db
+from ming_sim.context import (
+    character_age_label,
+    character_context_with_db,
+    npc_dialogue_behavior_brief,
+    npc_network_brief,
+    npc_tiangang_hidden_brief,
+)
 from ming_sim.models import Character, CourtContext, LLMConfig
 from ming_sim.llm_model import create_chat_model
 from ming_sim.token_stats import tlog
@@ -41,6 +49,47 @@ def _skills() -> Skills:
     if _agent_skills is None:
         _agent_skills = Skills([LocalSkills(".agno_skills", validate=False)])
     return _agent_skills
+
+
+def _npc_session_id(name: str, campaign_id: str = "", temporary: bool = False) -> str:
+    """每个 NPC 一个隔离 session。
+
+    同一存档同一 NPC 使用同一个 session，可保留其短历史；不同存档/战局用 campaign_id
+    隔离，避免同名 NPC 的 LLM 历史串到另一条剧情线。
+    """
+    prefix = "temporary-npc" if temporary else "npc"
+    campaign = (campaign_id or "legacy").strip()
+    return f"{prefix}-{campaign}-{name}"
+
+
+def _is_inner_court_servant(character: Character) -> bool:
+    identity = f"{character.office} {character.office_type} {character.faction}"
+    return (
+        character.office_type in {"司礼监", "东厂", "内廷"}
+        or bool(re.search(r"太监|宦官|内侍|小火者|司礼监|东厂|宫禁", identity))
+    )
+
+
+def persona_self_address_rule(character: Character) -> str:
+    """按当前身份给 Agent 一条硬称谓规则；身份变化后重建 Agent 即更新。"""
+    if character.office_type == "后宫":
+        is_empress = "皇后" in f"{character.name}{character.office}"
+        title = "臣女" if is_empress else "臣妾"
+        return (
+            "【称谓规则】你在御前自称必须随身份走："
+            f"你当前属后宫，{'皇后' if is_empress else '妃嫔'}对皇帝自称「{title}」。"
+            "不要自称「臣」「微臣」「奴婢」「奴才」，除非是在转述他人原话。"
+        )
+    if _is_inner_court_servant(character):
+        return (
+            "【称谓规则】你当前是内廷/太监身份，是皇帝家奴和私人执行链。"
+            "在御前自称以「奴婢」为主，卑谨、请罪或求恩时可用「奴才」「小人」。"
+            "不要再自称「臣」「微臣」「愚臣」，除非是在追述净身入宫以前的旧身份。"
+        )
+    return (
+        "【称谓规则】你当前是外朝/军镇/地方官员身份。"
+        "在御前自称「臣」「微臣」「愚臣」等，不要自称「奴婢」「奴才」「小人」「臣妾」。"
+    )
 
 
 def build_court_brief(context: CourtContext) -> str:
@@ -95,14 +144,15 @@ def build_court_roster(context: CourtContext) -> str:
             continue
         # 直接按字段吐原值，不脑补、不翻译。状态原值 + 缘由（如有）。
         state_cell = f"{status}（{reason}）" if reason else status
+        age_cell = character_age_label(c, context.state.year, compact=True)
         lines.append(
-            "|".join((c.name, c.office or "无现任官职", c.office_type, c.faction, state_cell))
+            "|".join((c.name, age_cell, c.office or "无现任官职", c.office_type, c.faction, state_cell))
         )
     if not lines:
         return ""
     return (
-        "【在朝人事名册（现状以此为准，提及他人官职/状态直接据此作答，不要凭历史印象）】\n"
-        "（| 分隔，列序＝姓名|现职|官署|派系|状态）：\n"
+        "【在朝人事名册（现状以此为准，提及他人年龄/官职/状态直接据此作答，不要凭历史印象）】\n"
+        "（| 分隔，列序＝姓名|年龄|现职|官署|派系|状态）：\n"
         + "\n".join(lines)
     )
 
@@ -145,6 +195,45 @@ def build_memory_brief(character: Character, context: CourtContext) -> str:
         f"让他作答能记得这几月发生过什么。本次装 {len(chapters)} 章：{chap_list}，共 {len(brief)} 字"
     )
     return brief
+
+
+def build_stance_brief(character: Character, context: CourtContext) -> str:
+    """本回合召对立场，提醒 Agent 接续自身承诺/保留。"""
+    rows = context.db.list_minister_stances(
+        turn=context.state.turn,
+        minister_name=character.name,
+        limit=6,
+    )
+    if not rows:
+        return ""
+    label = {"support": "支持", "oppose": "反对", "caution": "附条件", "neutral": "未定"}
+    lines = ["【本回合你已表明的立场/承诺】"]
+    for row in rows:
+        conditions = str(row.get("conditions") or "")
+        suffix = f"；条件/顾虑：{conditions}" if conditions else ""
+        evidence = row.get("evidence") if isinstance(row.get("evidence"), dict) else {}
+        drivers = evidence.get("drivers") if isinstance(evidence, dict) else []
+        driver_text = ""
+        if isinstance(drivers, list) and drivers:
+            parts = []
+            for raw in drivers[:4]:
+                if not isinstance(raw, dict):
+                    continue
+                kind = str(raw.get("kind") or "").strip()
+                text = str(raw.get("text") or "").strip()
+                if kind and text:
+                    parts.append(f"{kind}:{text}")
+            if parts:
+                driver_text = "；证据：" + "；".join(parts)
+        risk_tags = row.get("risk_tags_list") if isinstance(row.get("risk_tags_list"), list) else []
+        risk_text = f"；风险：{'、'.join(str(x) for x in risk_tags[:6])}" if risk_tags else ""
+        execution_hint = str(row.get("execution_hint") or "").strip()
+        hint_text = f"；推演提示：{execution_hint}" if execution_hint else ""
+        lines.append(
+            f"- {row.get('topic')}：{label.get(str(row.get('stance')), str(row.get('stance')))}"
+            f"（置信{row.get('confidence')}）{suffix}{driver_text}{risk_text}{hint_text}"
+        )
+    return "\n".join(lines)
 
 
 def build_secret_order_brief(character: Character, context: CourtContext) -> str:
@@ -356,12 +445,22 @@ def create_minister_agent(
             cultivate_desc += f"经皇帝调教后习得：{extra_skills_str}。"
         if extra_traits_str:
             cultivate_desc += f"性情逐渐变化：{extra_traits_str}。"
+        network_brief = npc_network_brief(character.name, year=context.state.year)
+        tiangang_brief = npc_tiangang_hidden_brief(character.name)
+        xinpan_profile = context.db.get_xinpan_profile(character.name, context.state)
+        xinpan_brief = context.db.xinpan_agent_brief(character.name, context.state)
+        behavior_brief = npc_dialogue_behavior_brief(character.name, xinpan_profile=xinpan_profile)
         instructions = [
             c.game_world_prompt,
             c.consort_agent_prompt,
-            f"你当前扮演：{character.name}，{character.office}，性格{character.style}，"
+            f"你当前扮演：{character.name}，{character.office}，{character_age_label(character, context.state.year)}，性格{character.style}，"
             f"人物特质：{'、'.join(character.personal_skills)}。个人简介：{character.summary}"
             + (f"\n{cultivate_desc}" if cultivate_desc else ""),
+            persona_self_address_rule(character),
+            network_brief,
+            tiangang_brief,
+            xinpan_brief,
+            behavior_brief,
             f"你与皇帝的对话在后宫寝殿；同一回合复召时接续此前对话，不要重置记忆。",
             f"当前为 {context.state.year} 年 {context.state.period} 月。",
         ]
@@ -375,7 +474,13 @@ def create_minister_agent(
         army_roster = context.db.army_roster()
         last_gazette = build_last_gazette_brief(context)
         memory_brief = build_memory_brief(character, context)
+        stance_brief = build_stance_brief(character, context)
         secret_brief = build_secret_order_brief(character, context)
+        network_brief = npc_network_brief(character.name, year=context.state.year)
+        tiangang_brief = npc_tiangang_hidden_brief(character.name)
+        xinpan_profile = context.db.get_xinpan_profile(character.name, context.state)
+        xinpan_brief = context.db.xinpan_agent_brief(character.name, context.state)
+        behavior_brief = npc_dialogue_behavior_brief(character.name, xinpan_profile=xinpan_profile)
         monthly_block_parts = [
             f"当前为 {context.state.year} 年 {context.state.period} 月（第 {context.state.turn} 回合）。"
             "作答涉及时序（某事多久前、某人是否已亡、某限期是否到）时以此为准。",
@@ -389,13 +494,20 @@ def create_minister_agent(
             monthly_block_parts.append(last_gazette)
         if memory_brief:
             monthly_block_parts.append(memory_brief)
+        if stance_brief:
+            monthly_block_parts.append(stance_brief)
         if secret_brief:
             monthly_block_parts.append(secret_brief)
         instructions = [
             c.game_world_prompt,
             c.minister_agent_prompt,
-            f"你当前扮演：{character_context_with_db(character, context.db)}，"
+            f"你当前扮演：{character_context_with_db(character, context.db, context.state.year)}，"
             f"任事处：{_duty_location(character.office, character.office_type, 'active')}。",
+            persona_self_address_rule(character),
+            network_brief,
+            tiangang_brief,
+            xinpan_brief,
+            behavior_brief,
             f"你与皇帝的多轮对话会持续到本{TURN_UNIT}退朝；同一{TURN_UNIT}复召时要接续此前奏对，不要重置记忆。",
             "\n\n".join(monthly_block_parts),
         ]
@@ -406,14 +518,14 @@ def create_minister_agent(
     return Agent(
         name=character.name,
         id=f"minister-{character.name}",
-        session_id=session_id or f"minister-{character.name}-turn-{context.state.turn}",
+        session_id=session_id or _npc_session_id(character.name),
         db=agno_db,
         model=model,
         instructions=instructions,
         tools=tools,
         skills=_skills() if not is_consort else None,
         add_history_to_context=True,
-        num_history_runs=6,
+        num_history_runs=4,
         tool_call_limit=5,
         markdown=False,
     )
@@ -425,14 +537,16 @@ class MinisterRegistry:
         llm_config: LLMConfig,
         agno_db: SqliteDb,
         context: CourtContext,
+        campaign_id: str = "",
     ) -> None:
         self.llm_config = llm_config
         self.agno_db = agno_db
         self.context = context
+        self.campaign_id = (campaign_id or context.db.kv_get("campaign_id") or "legacy").strip()
         self.agents: Dict[str, Agent] = {}
         characters = _ctx().characters
         self.session_ids: Dict[str, str] = {
-            name: f"minister-{name}-turn-{context.state.turn}"
+            name: _npc_session_id(name, self.campaign_id)
             for name in characters
         }
         # 懒加载：不在构造时预建全人物 agent（一整月通常只召见两三人，预建 50+ 个
@@ -473,14 +587,18 @@ class MinisterRegistry:
 
     def register(self, character: Character) -> None:
         """运行时新建人物（吏部铨选任命）后注册其 Agent，使本回合即可召见。"""
-        self.session_ids[character.name] = (
-            f"minister-{character.name}-turn-{self.context.state.turn}"
-        )
+        self.session_ids[character.name] = _npc_session_id(character.name, self.campaign_id)
         self.agents[character.name] = self._create(character)
 
-    def register_runtime(self, character: Character) -> None:
+    def register_runtime(self, character: Character, session_id: str = "") -> str:
         """注册不入正式名册的临时召见人物。"""
-        self.session_ids[character.name] = (
-            f"temporary-{character.name}-turn-{self.context.state.turn}"
-        )
+        if not session_id:
+            nonce = uuid.uuid4().hex[:8]
+            session_id = _npc_session_id(
+                f"{character.name}-{self.context.state.turn}-{nonce}",
+                self.campaign_id,
+                temporary=True,
+            )
+        self.session_ids[character.name] = session_id
         self.agents[character.name] = self._create(character)
+        return session_id

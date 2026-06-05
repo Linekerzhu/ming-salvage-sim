@@ -22,6 +22,7 @@ _openai_data, _openai_bin, _openai_hidden = collect_all("openai")
 _tiktoken_data, _tiktoken_bin, _tiktoken_hidden = collect_all("tiktoken")
 # pywebview + Mac WKWebView (pyobjc)
 _webview_data, _webview_bin, _webview_hidden = collect_all("webview")
+_pillow_hidden = collect_submodules("PIL")
 
 
 def tree_datas(root: str, dest: str, exclude_parts=()):
@@ -45,10 +46,11 @@ hiddenimports = (
     + _tiktoken_hidden
     + _webview_hidden
     + collect_submodules("uvicorn")
-    + collect_submodules("fastapi")
-    + collect_submodules("anyio")
-    + collect_submodules("starlette")
-    + [
+        + collect_submodules("fastapi")
+        + collect_submodules("anyio")
+        + collect_submodules("starlette")
+        + _pillow_hidden
+        + [
         "ming_sim",
         "ming_sim.cli.terminal",
         "uvicorn.logging",

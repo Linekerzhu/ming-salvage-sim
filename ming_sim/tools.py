@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
+import re
 
 from ming_sim.constants import TURN_UNIT
-from ming_sim.context import _ctx as _content_ctx, state_context
+from ming_sim.context import _ctx as _content_ctx, npc_network_brief, npc_network_recommendations, state_context
 from ming_sim.models import Character, CourtContext
 from ming_sim.skills import available_skill_ids, skill_template
 
@@ -17,6 +18,10 @@ _STATUS_CN = {
     "retired": "致仕",
     "dead": "已故",
 }
+
+
+def _clean_obsidian_text(value: object) -> str:
+    return re.sub(r"\[\[([^\]]+)\]\]", r"\1", str(value or "").strip())
 
 
 def _duty_location(office: str, office_type: str, status: str) -> str:
@@ -115,6 +120,48 @@ def build_minister_tools(character: Character, context: CourtContext):
             return context.db.building_detail(building_name)
         except ValueError as e:
             return f"未找到建筑 '{building_name}'。可先调 list_buildings 看建筑列表。错误：{e}"
+
+    def inspect_npc_network(name: str) -> str:
+        """查看某人的人物小传、人脉关系、能力构成和天罡行为摘要。name 填人物姓名或别名；隐藏数值原值不会返回。"""
+        query = str(name or "").strip()
+        if not query:
+            return "请给出人物姓名。"
+        content = _content_ctx()
+        key = query if query in content.characters else ""
+        if not key:
+            for candidate, character in content.characters.items():
+                if query == candidate or query in character.aliases:
+                    key = candidate
+                    break
+        if not key:
+            for candidate, character in content.characters.items():
+                if query in candidate or candidate in query or any(query in alias for alias in character.aliases):
+                    key = candidate
+                    break
+        if not key:
+            return f"未找到人物网络卡：{query}。"
+        return npc_network_brief(key, max_relations=12, year=context.state.year) or f"{key} 暂无人脉卡。"
+
+    def recommend_candidates_by_network(need: str = "", office: str = "", limit: int = 6) -> str:
+        """按本人多维人脉、反向关系、同乡/同年/师徒/同官署/风闻等举荐候选。
+        举荐他人、保荐、铨选、请某人办差前先调用；不要只按派系举荐。
+        """
+        rows = npc_network_recommendations(character.name, db=context.db, limit=limit)
+        if not rows:
+            return f"{character.name}暂无可据的人脉举荐候选。"
+        lines = [f"【{character.name}人脉举荐候选】需求：{need or '未明'}；拟缺：{office or '未明'}"]
+        for idx, row in enumerate(rows, 1):
+            evidence = "；".join(_clean_obsidian_text(item) for item in row.get("evidence", [])[:3])
+            try:
+                score = int(row.get("score") or 0)
+            except (TypeError, ValueError):
+                score = 0
+            weight = "强背书" if score >= 30 else "可参考" if score >= 18 else "弱风闻"
+            lines.append(
+                f"{idx}. {row['name']}（{row['office'] or row['office_type']}，{row['faction']}，{row['status']}）"
+                f" {weight}，依据：{evidence}"
+            )
+        return "\n".join(lines)
 
     def estimate_resistance(slot: int) -> str:
         """估算某条在办事项若下旨推动的主要阻力。slot 是事项编号（由 list_memorials 给出）。"""
@@ -266,12 +313,22 @@ def build_minister_tools(character: Character, context: CourtContext):
         off = (office or "").strip()
         if not nm or not off:
             return "铨选失败：姓名或拟授官职为空。"
+        recommendations = npc_network_recommendations(character.name, db=context.db, limit=12)
+        evidence = ""
+        for row in recommendations:
+            if row["name"] == nm:
+                evidence = "；".join(_clean_obsidian_text(item) for item in row.get("evidence", [])[:3])
+                break
+        if not evidence:
+            evidence = "无直接人脉强背书；若仍举荐，须在 reason 里说明史实、才具或皇帝已确认的来源。"
         import json as _json
         payload = _json.dumps(
             {
                 "name": nm, "office": off,
                 "faction": (faction or "中立").strip(),
                 "reason": (reason or "").strip(),
+                "recommendation_basis": evidence,
+                "recommender": character.name,
                 "replaces": (replaces or "").strip(),
             },
             ensure_ascii=False,
@@ -477,6 +534,8 @@ def build_minister_tools(character: Character, context: CourtContext):
         list_powers,
         list_buildings,
         inspect_building,
+        inspect_npc_network,
+        recommend_candidates_by_network,
         estimate_resistance,
         read_past_report,
         search_memories,

@@ -7,6 +7,7 @@ CLI 和 Web 各自只做 I/O 包装。
 
 from __future__ import annotations
 
+import json
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
@@ -20,15 +21,18 @@ from ming_sim.context import (
     bind_content as _bind_context,
     character_from_name,
     match_minister_from_text,
+    npc_dialogue_behavior_brief,
     victory_status,
 )
-from ming_sim.db import GameDB, infer_office_type_from_office, normalize_office
+from ming_sim.db import GameDB, effective_stored_office_type, infer_assignment_office_type, normalize_office
 from ming_sim.decree import advance_without_edict, resolve_directives, write_decree_with_agno
 from ming_sim.issues import bind_content as _bind_issues
 from ming_sim.issues import sync_opening_legacies
 from ming_sim.llm_model import create_agno_db, extract_agent_text, verify_llm_available
 from ming_sim.models import Character, CourtContext, GameState, LLMConfig
 from ming_sim.paths import user_data_path
+from ming_sim.political_reactions import apply_status_change_reaction, character_political_row
+from ming_sim.ranks import official_rank_for
 from ming_sim.registry import MinisterRegistry, bind_content as _bind_registry
 from ming_sim.skills import bind_content as _bind_skills
 
@@ -108,8 +112,38 @@ class ChatTurnResult:
     appointed_minister: str = ""   # 吏部本轮铨选新任的人物姓名（已可召见）
     registered_minister: str = ""  # 名册外史实/用户确认人物建档后可召见
     displaced_minister: str = ""   # 因新任腾缺被罢黜（dismissed）的原任者姓名
+    displaced_effect: Dict[str, object] = field(default_factory=dict)
     refresh_ministers: List[str] = field(default_factory=list)
     secret_order_id: int = 0       # 本轮新建密令 id（0=未下密令）
+    secret_order_assignee: str = ""  # 真实承办人，可能不是当前奏对者
+    secret_order_effect: Dict[str, object] = field(default_factory=dict)
+
+
+def _parse_registered_secret_order_result(text: str) -> Tuple[int, str]:
+    """解析 issue_secret_order 直接落库哨兵：__secret_order_registered__<id>__...承办：某人..."""
+    order_id = 0
+    assignee = ""
+    try:
+        order_id = int(str(text or "").split("__")[2])
+    except Exception:
+        order_id = 0
+    marker = "承办："
+    if marker in text:
+        assignee = text.split(marker, 1)[1].split("，", 1)[0].split("。", 1)[0].strip()
+    return order_id, assignee
+
+
+def _tool_args(tool_exec: object) -> Dict[str, object]:
+    for attr in ("arguments", "tool_args"):
+        value = getattr(tool_exec, attr, None) or {}
+        if isinstance(value, dict):
+            return value
+    return {}
+
+
+def _tool_args_json(tool_exec: object) -> str:
+    args = _tool_args(tool_exec)
+    return json.dumps(args, ensure_ascii=False, default=str) if args else ""
 
 
 @dataclass
@@ -195,7 +229,8 @@ def apply_appointment(
     # 朝臣多职统一逗号分隔（后宫记称号，不动）；与 db 层 normalize_office 同源。
     if not is_consort:
         office = normalize_office(office)
-    office_type = "后宫" if is_consort else infer_office_type_from_office(office, str(data.get("office_type") or "待铨").strip())
+    raw_office_type = str(data.get("office_type") or "").strip()
+    office_type = "后宫" if is_consort else infer_assignment_office_type(office, office_type=raw_office_type)
 
     # ── 后宫 candidate 升格路径 ──────────────────────────────────────
     if is_consort:
@@ -206,15 +241,23 @@ def apply_appointment(
             character.office = office
             character.faction = "后宫"
             character.status = "active"
+            if name != original_key and name not in character.aliases:
+                character.aliases.append(name)
             # 若还没有 portrait_id，补分配
             if not character.portrait_id:
                 character.portrait_id = db.next_pool_portrait_id("consort_pool_")
             db.conn.execute(
-                """UPDATE characters SET office=?, office_type='后宫', faction='后宫',
+                """UPDATE characters SET office=?, office_type='后宫', faction='后宫', aliases=?,
                    status='active', status_reason='诏书册封', status_changed_turn=?,
                    portrait_id=CASE WHEN portrait_id='' THEN ? ELSE portrait_id END
                    WHERE name=?""",
-                (office, state.turn, character.portrait_id, original_key),
+                (
+                    office,
+                    json.dumps(character.aliases, ensure_ascii=False),
+                    state.turn,
+                    character.portrait_id,
+                    original_key,
+                ),
             )
             db.conn.execute(
                 """INSERT INTO character_offices (character_name, office_title, office_type, source)
@@ -227,9 +270,6 @@ def apply_appointment(
                 (original_key, office),
             )
             db.conn.commit()
-            # 若 extractor 用了新称呼，在 content 里建别名指向原对象
-            if name != original_key:
-                content.characters[name] = character
             if registry is not None:
                 registry.register(character)
             return (original_key, "")  # 返回原始 key，保持一致
@@ -292,14 +332,15 @@ def _sync_offices_from_db_impl(content: GameContent, db: "GameDB") -> None:
                loyalty, ability, integrity, courage, style,
                birth_year, historical_death_year, historical_death_month,
                debut_year, debut_month, status, portrait_id, power_id, location,
-               summary
+               summary,
+               force, wisdom, charm, luck, cultivation, hp, max_hp, exp, level
         FROM characters
         """
     ).fetchall()
     characters: Dict[str, Character] = {}
     for row in rows:
         name = row["name"]
-        office_type = infer_office_type_from_office(row["office"], row["office_type"])
+        office_type = effective_stored_office_type(row["office"], row["office_type"])
         import json as _json
 
         try:
@@ -314,6 +355,12 @@ def _sync_offices_from_db_impl(content: GameContent, db: "GameDB") -> None:
             personal_skills = []
         if not isinstance(personal_skills, list):
             personal_skills = []
+        inferred_rank = official_rank_for(
+            row["office"],
+            office_type,
+            power_id=row["power_id"],
+            faction=row["faction"],
+        )
         characters[name] = Character(
             name=name,
             office=row["office"],
@@ -336,6 +383,18 @@ def _sync_offices_from_db_impl(content: GameContent, db: "GameDB") -> None:
             location=row["location"],
             portrait_id=row["portrait_id"],
             summary=row["summary"],
+            rank_grade=inferred_rank.grade,
+            rank_label=inferred_rank.label,
+            rank_category=inferred_rank.category,
+            force=int(row["force"] or 50),
+            wisdom=int(row["wisdom"] or 50),
+            charm=int(row["charm"] or 50),
+            luck=int(row["luck"] or 50),
+            cultivation=int(row["cultivation"] or 0),
+            hp=int(row["hp"] or 100),
+            max_hp=int(row["max_hp"] or 100),
+            exp=int(row["exp"] or 0),
+            level=int(row["level"] or 1),
         )
     content.characters = characters
 
@@ -370,6 +429,8 @@ class GameSession:
         _sync_offices_from_db_impl(self.content, self.db)
         self.agno_db = create_agno_db(db_path)
         self.state = self.db.load_state(start_ym)
+        self.db.ensure_xinpan_states(self.state)
+        self.campaign_id = self._ensure_campaign_id()
         # 开局负面帝国修正：新档补全、旧档补缺、已达消除条件的不补/清残。不立 issue、不进推演。
         sync_opening_legacies(self.db, self.state)
         self.deaths_this_turn: List[Dict[str, str]] = []
@@ -378,22 +439,34 @@ class GameSession:
         self.previous_summary = ""
         self.registry: Optional[MinisterRegistry] = None
         self.temporary_characters: Dict[str, Character] = {}
+        self.temporary_session_ids: Dict[str, str] = {}
         self.last_decree = ""
         self.last_report = ""
         self._begun = False
+
+    def _ensure_campaign_id(self) -> str:
+        """每个存档/战局一个稳定 id，用于自动存档和 NPC LLM session 隔离。"""
+        campaign_id = (self.db.kv_get("campaign_id") or "").strip()
+        if not campaign_id:
+            campaign_id = uuid.uuid4().hex[:12]
+            self.db.kv_set("campaign_id", campaign_id)
+        return campaign_id
 
     # ── 回合生命周期 ──────────────────────────────────────────────────────
 
     def begin_turn(self) -> TurnSnapshot:
         """加载/刷新本回合：历史卒、上回合奏报、重建 registry。幂等。"""
         self.state = self.db.load_state()
+        self.db.ensure_xinpan_states(self.state)
         self.deaths_this_turn = self.db.apply_historical_deaths(self.state)
         self.debuts_this_turn = self.db.apply_historical_debuts(self.state)
         self.power_renames_this_turn = self.db.apply_historical_power_renames(self.state)
         _sync_offices_from_db_impl(self.content, self.db)
         self.previous_summary = self.db.previous_turn_summary(self.state) or ""
         context = CourtContext(state=self.state, db=self.db, previous_summary=self.previous_summary)
-        self.registry = MinisterRegistry(self.llm_config, self.agno_db, context)
+        self.campaign_id = self._ensure_campaign_id()
+        self.registry = MinisterRegistry(self.llm_config, self.agno_db, context, campaign_id=self.campaign_id)
+        self._register_temporary_characters()
         self.last_decree = ""
         self.last_report = ""
         if self.state.turn_phase not in (TurnPhase.SUMMONING.value, TurnPhase.REVIEWING.value):
@@ -436,7 +509,9 @@ class GameSession:
                 db=self.db,
                 previous_summary=self.previous_summary,
             )
-            self.registry = MinisterRegistry(self.llm_config, self.agno_db, context)
+            self.campaign_id = self._ensure_campaign_id()
+            self.registry = MinisterRegistry(self.llm_config, self.agno_db, context, campaign_id=self.campaign_id)
+            self._register_temporary_characters()
 
     # ── 召见阶段 ──────────────────────────────────────────────────────────
 
@@ -483,12 +558,26 @@ class GameSession:
             tlog(f"[chat/chapter-recall] 失败跳过：{exc}")
             return message
 
+    def _register_temporary_characters(self) -> None:
+        """Registry 重建后恢复临时召见人物的内存 session。
+
+        临时人物不写入正式名册，也不跨进程持久化；但同一运行期内若 registry
+        因撤回、换配置或刷新重建，仍应可继续召见而不崩。
+        """
+        if self.registry is None:
+            return
+        for name, character in self.temporary_characters.items():
+            session_id = self.temporary_session_ids.get(name, "")
+            self.temporary_session_ids[name] = self.registry.register_runtime(character, session_id=session_id)
+
     def _temporary_character(self, name: str) -> Character:
         clean_name = str(name or "").strip()
         if not clean_name:
             raise ValueError("临时召见姓名不能为空。")
         existing = self.temporary_characters.get(clean_name)
         if existing is not None:
+            if self.registry is not None and clean_name not in self.registry.session_ids:
+                self._register_temporary_characters()
             return existing
         character = Character(
             name=clean_name,
@@ -508,7 +597,7 @@ class GameSession:
         )
         self.temporary_characters[clean_name] = character
         if self.registry is not None:
-            self.registry.register_runtime(character)
+            self.temporary_session_ids[clean_name] = self.registry.register_runtime(character)
         return character
 
     def summon_character(
@@ -531,11 +620,23 @@ class GameSession:
     def can_summon(self, character: Character) -> Tuple[bool, str]:
         if character.name in self.temporary_characters:
             return (True, "")
-        status, reason = self.db.get_character_status(character.name)
+        row = self.db.conn.execute(
+            "SELECT status, status_reason, power_id FROM characters WHERE name=?",
+            (character.name,),
+        ).fetchone()
+        if row is not None:
+            power_id = str(row["power_id"] or getattr(character, "power_id", "ming") or "ming")
+            if power_id != "ming":
+                return (False, f"{character.name}不属大明朝廷，无法召见。")
+            status = str(row["status"] or "active")
+            reason = str(row["status_reason"] or "")
+        else:
+            status, reason = self.db.get_character_status(character.name)
         if status == "active":
             return (True, "")
         label = {
             "offstage": "尚未登场",
+            "candidate": "待选",
             "dismissed": "已罢黜",
             "imprisoned": "下狱",
             "exiled": "流放",
@@ -555,6 +656,17 @@ class GameSession:
         # GameSession.chat 只负责与 agent 对话与 tool 截获。
         agent = self.registry.get(character)
         augmented = self._retrieve_memories_for_message(message)
+        try:
+            xinpan_profile = self.db.get_xinpan_profile(character.name, self.state)
+        except Exception:
+            xinpan_profile = {}
+        behavior_brief = npc_dialogue_behavior_brief(
+            character.name,
+            xinpan_profile=xinpan_profile if isinstance(xinpan_profile, dict) else {},
+            text=message,
+        )
+        if behavior_brief:
+            augmented = f"{behavior_brief}\n\n{augmented}"
         # 本回合已核定草案随大臣议事滚动累加，agent system 在月初冻结拿不到——
         # 每次 chat 前置实时 draft_line 到 user message 头，确保大臣看得到兄弟大臣最新动作。
         draft_line = self.registry.build_draft_line()
@@ -587,7 +699,7 @@ class GameSession:
             elif tool_name == "propose_directive" or tool_result.startswith("__pending_directive__"):
                 draft_text = tool_result.removeprefix("__pending_directive__").strip()
                 if not draft_text:
-                    args = getattr(tool_exec, "tool_args", {}) or {}
+                    args = _tool_args(tool_exec)
                     draft_text = (args.get("decree_text") or "").strip()
                 if draft_text:
                     directive_id = self.db.add_directive(
@@ -597,18 +709,24 @@ class GameSession:
                     result.proposed_directive = DirectiveView(
                         id=directive_id, text=draft_text, status="pending",
                         source="大臣拟旨", notes=f"由{character.name}拟旨入档",
+                        actor=character.name,
                     )
             elif tool_name == "propose_appointment" or tool_result.startswith("__pending_appointment__"):
                 payload = tool_result.removeprefix("__pending_appointment__").strip()
-                appointed, displaced = self._apply_appointment(payload, character)
+                if not payload:
+                    payload = _tool_args_json(tool_exec)
+                appointed, displaced, displaced_effect = self._apply_appointment(payload, character)
                 if appointed:
                     result.appointed_minister = appointed
                     result.refresh_ministers.append(appointed)
                 if displaced:
                     result.displaced_minister = displaced
+                    result.displaced_effect = displaced_effect
                     result.refresh_ministers.append(displaced)
             elif tool_name == "register_unlisted_person" or tool_result.startswith("__pending_unlisted_person__"):
                 payload = tool_result.removeprefix("__pending_unlisted_person__").strip()
+                if not payload:
+                    payload = _tool_args_json(tool_exec)
                 registered, summon_after = self._apply_unlisted_person_registration(payload)
                 if registered:
                     result.registered_minister = registered
@@ -619,29 +737,103 @@ class GameSession:
             elif tool_name == "issue_secret_order" or tool_result.startswith("__secret_order_registered__") or tool_result.startswith("__secret_order__"):
                 if tool_result.startswith("__secret_order_registered__"):
                     # 工具已直接落库，提取 order_id
-                    try:
-                        order_id = int(tool_result.split("__")[3])
-                    except Exception:
-                        order_id = 0
+                    order_id, assignee = _parse_registered_secret_order_result(tool_result)
                 else:
                     payload = tool_result.removeprefix("__secret_order__").strip()
+                    if not payload:
+                        payload = _tool_args_json(tool_exec)
+                    assignee = character.name
+                    try:
+                        import json as _json
+                        payload_data = _json.loads(payload) if payload else {}
+                        if isinstance(payload_data, dict):
+                            assignee = str(payload_data.get("assignee") or "").strip() or character.name
+                    except (TypeError, ValueError):
+                        assignee = character.name
                     order_id = self._apply_secret_order(payload, character.name)
                 if order_id:
                     result.secret_order_id = order_id
+                    result.secret_order_assignee = assignee or character.name
+                    result.secret_order_effect = self.record_secret_order_effect(order_id, result.secret_order_assignee)
             # report_secret_order_progress / submit_secret_order_for_review 工具内部直接落库，session 无需拦截
             # 密令结案 done/failed 由月末推演 + extractor 写入，不再走大臣工具
         return result
 
-    def _apply_appointment(self, payload: str, appointer: Character) -> Tuple[str, str]:
+    def _apply_appointment(self, payload: str, appointer: Character) -> Tuple[str, str, Dict[str, object]]:
         """吏部 propose_appointment 落地：建档入库 + 注册 Agent，本回合即可召见。
         吏部尚书 LLM 已判过史实合理性；代码端只做姓名查重与字段兜底，不做历史校验。
-        返回 (新任者姓名, 被腾缺罢黜者姓名)；payload 不合法或重名则返回 ("", "")。"""
+        返回 (新任者姓名, 被腾缺罢黜者姓名, 腾缺影响)；payload 不合法或重名则返回空值。"""
         import json as _json
         try:
             data = _json.loads(payload) if payload else {}
         except (ValueError, TypeError):
-            return ("", "")
-        return apply_appointment(self.db, self.state, self.content, self.registry, data)
+            return ("", "", {})
+        if not isinstance(data, dict):
+            return ("", "", {})
+        replaces = str(data.get("replaces") or "").strip()
+        replaced_row = character_political_row(self.db, replaces) if replaces else {}
+        appointed, displaced = apply_appointment(self.db, self.state, self.content, self.registry, data)
+        effect = self._record_displacement_effect(appointed, displaced, data, replaced_row)
+        return (appointed, displaced, effect)
+
+    def _record_displacement_effect(
+        self,
+        appointed: str,
+        displaced: str,
+        data: Dict[str, object],
+        replaced_row: Dict[str, str],
+    ) -> Dict[str, object]:
+        if not appointed or not displaced:
+            return {}
+        old_office = str(replaced_row.get("office") or "")
+        old_type = str(replaced_row.get("office_type") or "")
+        old_faction = str(replaced_row.get("faction") or "")
+        new_office = normalize_office(str(data.get("office") or "")) or str(data.get("office") or "")
+        reason = f"{new_office}改授{appointed}，原任去职"
+        reactions = apply_status_change_reaction(
+            self.db,
+            self.state,
+            displaced,
+            old_office,
+            old_type,
+            old_faction,
+            "dismissed",
+            reason,
+        )
+        xinpan = {
+            "shi_delta": -26,
+            "fear_delta": 5,
+            "hatred_delta": 12,
+            "trust_multiplier": 0.84,
+        }
+        try:
+            self.db.apply_direct_xinpan_adjustment(
+                self.state,
+                displaced,
+                shi_delta=float(xinpan["shi_delta"]),
+                fear_delta=float(xinpan["fear_delta"]),
+                hatred_delta=float(xinpan["hatred_delta"]),
+                trust_multiplier=float(xinpan["trust_multiplier"]),
+                event=reason,
+                source_kind="appointment_displacement",
+                source_id=f"{self.state.turn}:{appointed}:{displaced}",
+            )
+        except Exception as exc:  # noqa: BLE001 - appointment itself is already committed
+            print(f"[WARN] 腾缺去职心盘更新失败 {displaced}: {exc}")
+        summary = (
+            f"{displaced}因{new_office or '新缺'}改授{appointed}被腾缺去职；"
+            f"原任{old_office or old_type or '旧缺'}已削，心盘势合-26、仇恨+12。"
+        )
+        reaction_summary = str(reactions[0].get("summary") or "") if reactions else ""
+        self.db.record_log(self.state, reaction_summary or summary)
+        return {
+            "summary": summary,
+            "reaction_summary": reaction_summary,
+            "old_office": old_office,
+            "old_office_type": old_type,
+            "old_faction": old_faction,
+            "xinpan": xinpan,
+        }
 
     def _apply_unlisted_person_registration(self, payload: str) -> Tuple[str, bool]:
         """登记史实未预设/用户确认背景的人物，进入本局正式可召见人物池。"""
@@ -706,6 +898,7 @@ class GameSession:
         if self.registry is not None:
             self.registry.register(character)
         self.temporary_characters.pop(name, None)
+        self.temporary_session_ids.pop(name, None)
         return (name, bool(data.get("summon_after", True)))
 
     def _apply_secret_order(self, payload: str, minister_name: str) -> int:
@@ -729,7 +922,106 @@ class GameSession:
         except (TypeError, ValueError):
             deadline = 0
         print(f"[secret_order] 截获密令 minister={minister_name} assignee={assignee} title={title!r} tags={tags}")
-        return self.db.create_secret_order(self.state, assignee, title, content, tags, deadline_months=deadline)
+        try:
+            return self.db.create_secret_order(self.state, assignee, title, content, tags, deadline_months=deadline)
+        except ValueError as exc:
+            print(f"[secret_order] 拒绝落库：{exc}")
+            return 0
+
+    def record_secret_order_effect(self, order_id: int, assignee: str = "") -> Dict[str, object]:
+        """密令建档后的即时心理账：信任不等于轻松，秘密差遣会带来压力。"""
+        if not order_id:
+            return {}
+        order = self.db.get_secret_order(int(order_id))
+        if not order:
+            return {}
+        minister = str(assignee or order.get("minister_name") or "").strip()
+        if not minister:
+            return {}
+        title = str(order.get("title") or f"#{order_id}")
+        content = str(order.get("content") or "")
+        due_turn = int(order.get("due_turn") or 0)
+        tags = []
+        try:
+            raw = self.db.conn.execute("SELECT tags FROM secret_orders WHERE id=?", (int(order_id),)).fetchone()
+            if raw:
+                parsed = json.loads(str(raw["tags"] or "[]"))
+                if isinstance(parsed, list):
+                    tags = [str(item) for item in parsed if str(item).strip()]
+        except Exception:
+            tags = []
+        context = f"{title} {content} {' '.join(tags)}"
+        risk_score = 0
+        if due_turn and due_turn <= int(self.state.turn) + 1:
+            risk_score += 2
+        elif due_turn:
+            risk_score += 1
+        if any(tag in context for tag in ("刺杀", "赐死", "诛", "抄家", "下狱", "廷杖")):
+            risk_score += 3
+        if any(tag in context for tag in ("东厂", "锦衣卫", "厂卫", "密查", "暗查", "线人", "取证", "盯梢")):
+            risk_score += 1
+        if any(tag in context for tag in ("辽东", "边镇", "军饷", "清丈", "盐课", "东林", "阉党", "后金", "流寇")):
+            risk_score += 1
+        risk_score = max(0, min(5, risk_score))
+        risk_label = ("常密", "限密", "险密", "危密", "危密", "死密")[risk_score]
+        # Low-risk secret work reads as private trust; dangerous clandestine
+        # work reads as coercive exposure, so it should stop being a free
+        # relationship gain.
+        shi_delta = 5.0 - risk_score * 2.0
+        fear_delta = 1.0 + risk_score * 1.5
+        hatred_delta = 0.0 if risk_score < 3 else (risk_score - 2) * 2.5
+        trust_multiplier = 1.015 if risk_score <= 1 else max(0.92, 1.0 - max(0, risk_score - 2) * 0.015)
+        xinpan = {
+            "shi_delta": round(shi_delta, 1),
+            "fear_delta": round(fear_delta, 1),
+            "hatred_delta": round(hatred_delta, 1),
+            "trust_multiplier": round(trust_multiplier, 3),
+        }
+        summary = (
+            f"密令 #{int(order_id)}「{title}」已交付{minister}；"
+            f"{risk_label}，心盘势合{xinpan['shi_delta']:+g}、畏惧+{xinpan['fear_delta']:g}"
+            + (f"、仇恨+{xinpan['hatred_delta']:g}" if xinpan["hatred_delta"] else "")
+            + (f"、信言×{xinpan['trust_multiplier']:g}" if xinpan["trust_multiplier"] != 1 else "")
+            + "。"
+        )
+        already_recorded = self.db.conn.execute(
+            """
+            SELECT 1 FROM xinpan_logs
+            WHERE character_name=? AND source_kind='secret_order' AND source_id=?
+            LIMIT 1
+            """,
+            (minister, str(int(order_id))),
+        ).fetchone()
+        if already_recorded:
+            return {
+                "summary": f"{summary}（已登记心盘，不重复叠加。）",
+                "risk_label": risk_label,
+                "risk_score": risk_score,
+                "xinpan": xinpan,
+                "already_recorded": True,
+            }
+        try:
+            self.db.apply_direct_xinpan_adjustment(
+                self.state,
+                minister,
+                shi_delta=xinpan["shi_delta"],
+                fear_delta=xinpan["fear_delta"],
+                hatred_delta=xinpan["hatred_delta"],
+                trust_multiplier=xinpan["trust_multiplier"],
+                event=f"受领密令 #{int(order_id)}「{title}」",
+                source_kind="secret_order",
+                source_id=str(int(order_id)),
+            )
+        except Exception as exc:  # noqa: BLE001 - secret order itself is already committed
+            print(f"[WARN] 密令心盘更新失败 {minister} #{order_id}: {exc}")
+        self.db.record_log(self.state, summary)
+        return {
+            "summary": summary,
+            "risk_label": risk_label,
+            "risk_score": risk_score,
+            "xinpan": xinpan,
+            "already_recorded": False,
+        }
 
     def _apply_close_secret_order(self, payload: str) -> None:
         """report_secret_order_result 哨兵落库。"""
@@ -749,6 +1041,10 @@ class GameSession:
 
     # ── 拟旨 / 草案阶段 ───────────────────────────────────────────────────
 
+    def _ensure_directive_editable_phase(self) -> None:
+        if self.state.turn_phase == TurnPhase.ISSUED.value:
+            raise ValueError("本回合已经颁诏结算，不能再改动诏书草案。")
+
     def list_directives(self, include_pending: bool = True) -> List[DirectiveView]:
         statuses = ("pending", "draft") if include_pending else ("draft",)
         rows = self.db.list_directives(self.state, statuses=statuses)
@@ -761,21 +1057,38 @@ class GameSession:
             for r in rows
         ]
 
+    def _current_directive_row(self, directive_id: int, statuses: Tuple[str, ...]) -> object:
+        target_id = int(directive_id)
+        for row in self.db.list_directives(self.state, statuses=statuses):
+            if int(row["id"]) == target_id:
+                return row
+        allowed = "、".join(statuses)
+        raise ValueError(f"未找到当前回合可操作草案（id={target_id}，允许状态：{allowed}）。")
+
     def confirm_directive(self, directive_id: int) -> None:
+        self._ensure_directive_editable_phase()
+        self._current_directive_row(directive_id, ("pending",))
         self.db.confirm_directive(directive_id)
 
     def reject_directive(self, directive_id: int) -> None:
+        self._ensure_directive_editable_phase()
+        self._current_directive_row(directive_id, ("pending",))
         self.db.reject_directive(directive_id)
 
     def add_directive(self, text: str, notes: str = "") -> DirectiveView:
+        self._ensure_directive_editable_phase()
         directive_id = self.db.add_directive(self.state, None, text, "手动新增", notes=notes)
         return DirectiveView(id=directive_id, text=text, status="draft",
                              source="手动新增", notes=notes)
 
     def update_directive(self, directive_id: int, text: str) -> None:
+        self._ensure_directive_editable_phase()
+        self._current_directive_row(directive_id, ("pending", "draft"))
         self.db.update_directive_text(directive_id, text)
 
     def delete_directive(self, directive_id: int) -> None:
+        self._ensure_directive_editable_phase()
+        self._current_directive_row(directive_id, ("pending", "draft"))
         self.db.delete_directive(directive_id)
 
     def pending_count(self) -> int:
@@ -856,10 +1169,8 @@ class GameSession:
             import os as _os
             saves_dir = user_data_path("saves", "_keep")  # 确保父目录建好
             saves_dir = _os.path.dirname(saves_dir)
-            campaign_id = (self.db.kv_get("campaign_id") or "").strip()
-            if not campaign_id:
-                campaign_id = uuid.uuid4().hex[:12]
-                self.db.kv_set("campaign_id", campaign_id)
+            campaign_id = self._ensure_campaign_id()
+            self.campaign_id = campaign_id
             fname = (
                 f"{AUTO_SAVE_PREFIX}{campaign_id}_{self.state.year:04d}_"
                 f"{self.state.period:02d}_t{self.state.turn:04d}_{tag}.db"

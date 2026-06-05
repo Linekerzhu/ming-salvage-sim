@@ -1,114 +1,151 @@
 #!/usr/bin/env python3
-"""批量生人物立绘。从 docs/portrait-prompts.md 解析 (文件名, prompt)，调 gpt-image-2 落盘。
+"""批量生人物 DNA 参考图与立绘。
 
-key 走环境变量 OPENAI_IMAGE_KEY，绝不写文件。可重跑：已存在的 png 跳过。
+默认读取 ``content/portrait_generation_manifest.json``，调用 302.ai nano-banana-2。
+key 走 .env / 环境变量 NANO_BANANA_API_KEY，绝不写入产物。可重跑：已存在的 png 跳过。
 
 用法：
-  export OPENAI_IMAGE_KEY=sk-xxx
-  .venv/bin/python scripts/gen_portraits.py            # 跑全部缺失
-  .venv/bin/python scripts/gen_portraits.py --only wang_chengen   # 只跑文件名含此串的
-  .venv/bin/python scripts/gen_portraits.py --limit 3  # 只跑前 N 张（试水）
+  .venv/bin/python scripts/export_portrait_prompts.py
+  .venv/bin/python scripts/gen_portraits.py                  # 跑全部缺失立绘
+  .venv/bin/python scripts/gen_portraits.py --kind dna        # 跑 DNA 四视图
+  .venv/bin/python scripts/gen_portraits.py --kind both       # DNA + 立绘
+  .venv/bin/python scripts/gen_portraits.py --kind both --replace  # 重绘并替换旧图
+  .venv/bin/python scripts/gen_portraits.py --only 王承恩      # 只跑名称/文件名含此串的
+  .venv/bin/python scripts/gen_portraits.py --only 王承恩 --only 曹化淳
+  .venv/bin/python scripts/gen_portraits.py --limit 3         # 只跑前 N 张（试水）
 """
 from __future__ import annotations
 
 import argparse
-import base64
-import hashlib
 import json
 import os
-import re
 import sys
 import threading
 import time
-import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-MD = ROOT / "docs" / "portrait-prompts.md"
+sys.path.insert(0, str(ROOT))
+
+from ming_sim.portraits import (  # noqa: E402
+    DNA_SHEET_ASPECT_RATIO,
+    PORTRAIT_ASPECT_RATIO,
+    nano_banana_generate_png,
+    normalize_portrait_png,
+)
+
+MANIFEST = ROOT / "content" / "portrait_generation_manifest.json"
 OUT = ROOT / "web" / "public" / "portraits"
-BASE_URL = "https://vip.auto-code.net/v1"
-MODEL = "gpt-image-2"
-SIZE = "1024x1024"
-UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-      "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-
-# 标题行：#### 名字 `minister_xxx.png`，下一段围栏代码块是 prompt。
-# 文件名可能是中文名（如 consort_周皇后.png），所以不能只认 ASCII。
-HEADER_RE = re.compile(r"^#{2,4}\s+\S.*`((?:minister|consort)_[^`/<>]+\.png)`")
+DNA_OUT = OUT / "_dna"
+REFERENCE_ROOT = Path(os.environ.get("MING_PORTRAIT_REFERENCE_DIR") or (Path.home() / "Downloads"))
 
 
-def parse_entries() -> list[tuple[str, str]]:
-    """返回 [(filename, prompt), ...]，按 md 出现顺序。"""
-    lines = MD.read_text(encoding="utf-8").splitlines()
-    entries: list[tuple[str, str]] = []
-    i = 0
-    while i < len(lines):
-        m = HEADER_RE.match(lines[i])
-        if not m:
-            i += 1
+def load_dotenv() -> None:
+    path = ROOT / ".env"
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        clean = line.strip()
+        if not clean or clean.startswith("#") or "=" not in clean:
             continue
-        fname = m.group(1)
-        # 向下找下一个 ``` 围栏
-        j = i + 1
-        while j < len(lines) and lines[j].strip() != "```":
-            j += 1
-        if j >= len(lines):
-            raise SystemExit(f"{fname}: 标题后无代码块围栏")
-        body: list[str] = []
-        j += 1
-        while j < len(lines) and lines[j].strip() != "```":
-            body.append(lines[j])
-            j += 1
-        prompt = " ".join(x.strip() for x in body if x.strip())
-        if not prompt:
-            raise SystemExit(f"{fname}: 代码块为空")
-        entries.append((fname, prompt))
-        i = j + 1
+        key, value = clean.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        os.environ.setdefault(key, value)
+
+
+def resolve_reference(ref: str) -> str:
+    clean = str(ref).strip()
+    if not clean or clean.startswith(("data:image", "http://", "https://")):
+        return clean
+    if clean.startswith("reference://"):
+        return str(REFERENCE_ROOT / clean.removeprefix("reference://"))
+    path = Path(clean)
+    if path.is_absolute():
+        return str(path)
+    return str(ROOT / path)
+
+
+def parse_entries(kind: str) -> list[tuple[str, Path, str, str, tuple[str, ...]]]:
+    """返回 [(name, out_path, prompt, aspect_ratio, refs), ...]，按 manifest 出现顺序。"""
+    if not MANIFEST.exists():
+        raise SystemExit("缺 content/portrait_generation_manifest.json；请先运行 scripts/export_portrait_prompts.py")
+    data = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    entries: list[tuple[str, Path, str, str, tuple[str, ...]]] = []
+    for rec in data.get("portraits", []):
+        name = str(rec.get("name") or "")
+        if kind in {"dna", "both"}:
+            filename = str(rec.get("dna_filename") or f"dna_{name}.png")
+            prompt = str(rec.get("dna_prompt") or "")
+            refs = tuple(resolve_reference(str(item)) for item in (rec.get("dna_reference_images") or []) if str(item).strip())
+            if filename and prompt:
+                entries.append((name, DNA_OUT / filename, prompt, DNA_SHEET_ASPECT_RATIO, refs))
+        if kind in {"portrait", "both"}:
+            filename = str(rec.get("filename") or "")
+            prompt = str(rec.get("prompt") or "")
+            refs = tuple(resolve_reference(str(item)) for item in (rec.get("reference_images") or []) if str(item).strip())
+            if filename and prompt:
+                entries.append((name, OUT / filename, prompt, PORTRAIT_ASPECT_RATIO, refs))
     return entries
 
 
-def gen_one(key: str, prompt: str, timeout: int = 180) -> bytes:
-    body = json.dumps({
-        "model": MODEL, "prompt": prompt, "size": SIZE, "n": 1,
-    }).encode("utf-8")
-    # 中转网关会自动塞超长 X-Client-Request-Id（>512）导致 400；显式传短串覆盖之。
-    req_id = hashlib.md5(prompt.encode("utf-8")).hexdigest()
-    req = urllib.request.Request(
-        f"{BASE_URL}/images/generations", data=body, method="POST",
-        headers={
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-            "User-Agent": UA,
-            "X-Client-Request-Id": req_id,
-        },
+def gen_one(
+    prompt: str,
+    timeout: int = 180,
+    aspect_ratio: str = PORTRAIT_ASPECT_RATIO,
+    reference_images: tuple[str, ...] = (),
+) -> bytes:
+    raw = nano_banana_generate_png(
+        prompt,
+        timeout=timeout,
+        aspect_ratio=aspect_ratio,
+        reference_images=reference_images,
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-    b64 = data["data"][0]["b64_json"]
-    return base64.b64decode(b64)
+    if aspect_ratio == DNA_SHEET_ASPECT_RATIO:
+        return normalize_portrait_png(
+            raw,
+            target_width=768,
+            target_aspect_ratio=DNA_SHEET_ASPECT_RATIO,
+            cutout_background=False,
+        )
+    return normalize_portrait_png(
+        raw,
+        target_width=512,
+        target_aspect_ratio=PORTRAIT_ASPECT_RATIO,
+        cutout_background=True,
+    )
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--only", default="", help="只跑文件名含此子串的")
+    ap.add_argument("--kind", choices=["portrait", "dna", "both"], default="portrait")
+    ap.add_argument("--only", action="append", default=[], help="可重复；只跑姓名或文件名含任一子串的")
     ap.add_argument("--limit", type=int, default=0, help="最多跑 N 张")
     ap.add_argument("--timeout", type=int, default=180)
     ap.add_argument("--retries", type=int, default=2, help="单张失败重试次数")
     ap.add_argument("--workers", type=int, default=1, help="并发线程数")
+    ap.add_argument("--replace", action="store_true", help="覆盖已存在的静态立绘/DNA；用于发布前统一替换旧系统图")
     args = ap.parse_args()
 
-    key = os.environ.get("OPENAI_IMAGE_KEY", "").strip()
+    load_dotenv()
+    key = os.environ.get("NANO_BANANA_API_KEY", "").strip() or os.environ.get("OPENAI_IMAGE_KEY", "").strip()
     if not key:
-        raise SystemExit("缺 OPENAI_IMAGE_KEY 环境变量")
+        raise SystemExit("缺 NANO_BANANA_API_KEY 环境变量（可写入 .env）")
 
     OUT.mkdir(parents=True, exist_ok=True)
-    entries = parse_entries()
+    DNA_OUT.mkdir(parents=True, exist_ok=True)
+    entries = parse_entries(args.kind)
     if args.only:
-        entries = [e for e in entries if args.only in e[0]]
+        needles = [item for item in args.only if item]
+        entries = [
+            e for e in entries
+            if any(needle in e[0] or needle in e[1].name for needle in needles)
+        ]
 
-    todo = [(f, p) for f, p in entries if not (OUT / f).exists()]
-    print(f"解析 {len(entries)} 条，缺 {len(todo)} 张待生（已存在跳过）")
+    todo = entries if args.replace else [(name, out, prompt, aspect, refs) for name, out, prompt, aspect, refs in entries if not out.exists()]
+    action = "重绘覆盖" if args.replace else "缺图生成（已存在跳过）"
+    print(f"解析 {len(entries)} 条，{action}：待生 {len(todo)} 张")
     if args.limit:
         todo = todo[: args.limit]
         print(f"--limit {args.limit}：本次只跑 {len(todo)} 张")
@@ -117,27 +154,30 @@ def main() -> None:
     done_ct = [0]
     lock = threading.Lock()
 
-    def work(item: tuple[str, str]) -> bool:
-        fname, prompt = item
-        out = OUT / fname
+    def work(item: tuple[str, Path, str, str, tuple[str, ...]]) -> bool:
+        name, out, prompt, aspect, refs = item
+        out.parent.mkdir(parents=True, exist_ok=True)
         for attempt in range(1, args.retries + 2):
             t0 = time.time()
             try:
-                png = gen_one(key, prompt, args.timeout)
-                out.write_bytes(png)
+                png = gen_one(prompt, args.timeout, aspect, refs)
+                tmp = out.with_name(out.name + ".tmp")
+                tmp.write_bytes(png)
+                tmp.replace(out)
                 dt = time.time() - t0
                 with lock:
                     done_ct[0] += 1
-                    print(f"[{done_ct[0]}/{n}] {fname}  {len(png)//1024}KB  {dt:.0f}s  OK", flush=True)
+                    ref_note = f" refs={len(refs)}" if refs else ""
+                    print(f"[{done_ct[0]}/{n}] {name} -> {out.name}  {len(png)//1024}KB  {dt:.0f}s{ref_note}  OK", flush=True)
                 return True
             except Exception as e:
                 dt = time.time() - t0
                 msg = str(e)[:160]
                 with lock:
                     if attempt <= args.retries:
-                        print(f"[{fname}] {dt:.0f}s  FAIL({attempt}) {msg} — 重试", flush=True)
+                        print(f"[{out.name}] {dt:.0f}s  FAIL({attempt}) {msg} — 重试", flush=True)
                     else:
-                        print(f"[{fname}] {dt:.0f}s  FAIL final {msg}", flush=True)
+                        print(f"[{out.name}] {dt:.0f}s  FAIL final {msg}", flush=True)
                 if attempt <= args.retries:
                     time.sleep(3)
         return False

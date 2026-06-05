@@ -16,7 +16,7 @@ from ming_sim.constants import (
 )
 from ming_sim.content import GameContent
 from ming_sim.context import victory_status
-from ming_sim.db import GameDB, infer_office_type_from_office, normalize_office
+from ming_sim.db import GameDB, normalize_office
 from ming_sim.flows import (
     ISSUE_METRIC_KEYS,
     ISSUE_METRIC_LOCK_CAPS,
@@ -26,6 +26,14 @@ from ming_sim.flows import (
     _apply_metric_dict,
 )
 from ming_sim.models import Event, GameState
+from ming_sim.personnel_actions import convert_character_to_eunuch, convert_eunuch_to_commoner, is_eunuch_office
+from ming_sim.negotiation import HANDSHAKE_SEALED
+from ming_sim.political_reactions import (
+    apply_office_change_reaction,
+    apply_office_loss_reaction,
+    apply_status_change_reaction,
+    character_political_row,
+)
 
 _content: Optional[GameContent] = None
 
@@ -946,6 +954,30 @@ def _displace_duplicate_offices(
     return displaced
 
 
+def _castration_consent_recorded(db: GameDB, state: GameState, name: str) -> bool:
+    """Whether this turn's summons recorded consent to enter the inner court."""
+    if db.has_successful_agreement(name, "castration", max_age_turns=12, current_turn=state.turn) is not None:
+        return True
+    for row in db.list_minister_stances(turn=state.turn, minister_name=name, limit=12):
+        text = f"{row.get('topic', '')} {row.get('summary', '')} {row.get('conditions', '')}"
+        if not re.search(r"净身|入宫|内廷|司礼监|太监|宦官|宫禁", text):
+            continue
+        return row.get("handshake_status") == HANDSHAKE_SEALED
+    return False
+
+
+def _emancipation_consent_recorded(db: GameDB, state: GameState, name: str) -> bool:
+    """Whether this turn's summons recorded consent to leave inner-court slave registry."""
+    if db.has_successful_agreement(name, "emancipation", max_age_turns=12, current_turn=state.turn) is not None:
+        return True
+    for row in db.list_minister_stances(turn=state.turn, minister_name=name, limit=12):
+        text = f"{row.get('topic', '')} {row.get('summary', '')} {row.get('conditions', '')}"
+        if not re.search(r"奴籍|民籍|脱籍|还民|出宫为民|归为百姓|赐还为民", text):
+            continue
+        return row.get("handshake_status") == HANDSHAKE_SEALED
+    return False
+
+
 def apply_score_extraction(
     db: GameDB,
     state: GameState,
@@ -1132,6 +1164,7 @@ def apply_score_extraction(
 
     # 9) character_status_changes：LLM 判定的既有大臣去向（罢/狱/流/致仕/死）
     applied_status_changes: List[Dict[str, object]] = []
+    political_reactions: List[Dict[str, object]] = []
     valid_status = {"dismissed", "imprisoned", "exiled", "retired", "dead", "offstage"}
     for item in extracted.get("character_status_changes") or []:
         if not isinstance(item, dict):
@@ -1158,6 +1191,7 @@ def apply_score_extraction(
                 "reason": f"当前非 active（{cur_status}）",
             })
             continue
+        old_row = character_political_row(db, name)
         try:
             db.set_character_status(state, name, status, reason)
         except Exception as exc:
@@ -1174,13 +1208,30 @@ def apply_score_extraction(
         applied_status_changes.append({
             "name": name, "status": status, "reason": reason,
         })
+        political_reactions.extend(apply_status_change_reaction(
+            db,
+            state,
+            name,
+            old_row.get("office", ""),
+            old_row.get("office_type", ""),
+            old_row.get("faction", ""),
+            status,
+            reason,
+        ))
 
     # 9b) character_power_changes：人物易主（降将/叛臣/归正）
     applied_power_changes: List[Dict[str, object]] = []
     try:
         applied_power_changes = db.apply_character_power_changes(
-            extracted.get("character_power_changes") or []
+            extracted.get("character_power_changes") or [],
+            state,
         )
+        if content is not None:
+            for change in applied_power_changes:
+                name = str(change.get("name") or "")
+                character = content.characters.get(name)
+                if character is not None:
+                    character.power_id = str(change.get("new_power") or character.power_id or "ming")
     except Exception as exc:
         print(f"[WARN] character_power_changes 落库失败：{exc}")
 
@@ -1216,7 +1267,88 @@ def apply_score_extraction(
                 continue
             # ── 在册任命/调任：改回 active 并授官 ──
             new_type = str(item.get("new_office_type") or "").strip()
-            old_office = content.characters[name].office
+            old_row = character_political_row(db, name)
+            old_office = old_row.get("office", "") or content.characters[name].office
+            eunuch_transfer = (
+                is_eunuch_office(new_office, new_type)
+                and not is_eunuch_office(old_office, old_row.get("office_type", ""))
+            )
+            commoner_transfer = (
+                is_eunuch_office(old_office, old_row.get("office_type", ""))
+                and bool(re.search(r"民籍|百姓|布衣|还民|脱籍|出宫为民|归为百姓", f"{new_office} {new_type} {reason}"))
+            )
+            if eunuch_transfer:
+                force_castration = not _castration_consent_recorded(db, state, name)
+                try:
+                    if cur_status != "active":
+                        db.set_character_status(state, name, "active", reason[:200] or "诏书任命")
+                    converted, reactions = convert_character_to_eunuch(
+                        db,
+                        state,
+                        content,
+                        name,
+                        force=force_castration,
+                        source=reason[:60] or ("强旨净身入宫" if force_castration else "自愿净身入宫"),
+                        new_office=new_office,
+                    )
+                except Exception as exc:
+                    applied_office_changes.append({
+                        "name": name, "new_office": new_office, "rejected": True,
+                        "reason": f"净身入内廷落库失败：{exc}",
+                    })
+                    continue
+                if registry is not None:
+                    registry.register(converted)
+                political_reactions.extend(reactions)
+                applied_office_changes.append({
+                    "name": name,
+                    "old_status": cur_status,
+                    "old_office": old_office,
+                    "new_office": new_office,
+                    "kind": "castration",
+                    "forced": force_castration,
+                    "reason": reason or ("未见同意奏对，按强旨净身" if force_castration else "奏对同意后净身"),
+                })
+                continue
+            if commoner_transfer:
+                force_emancipation = not _emancipation_consent_recorded(db, state, name)
+                try:
+                    if cur_status != "active":
+                        db.set_character_status(state, name, "active", reason[:200] or "诏书放归民籍")
+                    converted, reactions = convert_eunuch_to_commoner(
+                        db,
+                        state,
+                        content,
+                        name,
+                        force=force_emancipation,
+                        source=reason[:60] or ("强旨奴籍转民籍" if force_emancipation else "自愿奴籍转民籍"),
+                        new_office=new_office or "民籍百姓（内廷转出）",
+                    )
+                except Exception as exc:
+                    applied_office_changes.append({
+                        "name": name, "new_office": new_office, "rejected": True,
+                        "reason": f"奴籍转民籍落库失败：{exc}",
+                    })
+                    continue
+                if registry is not None:
+                    registry.register(converted)
+                political_reactions.extend(reactions)
+                applied_office_changes.append({
+                    "name": name,
+                    "old_status": cur_status,
+                    "old_office": old_office,
+                    "new_office": new_office,
+                    "kind": "emancipation",
+                    "forced": force_emancipation,
+                    "reason": reason or ("未见同意奏对，按强旨脱籍" if force_emancipation else "奏对同意后脱籍还民"),
+                })
+                continue
+            before_office_rows = {
+                str(row["name"]): {key: str(row[key] or "") for key in row.keys()}
+                for row in db.conn.execute(
+                    "SELECT name, office, office_type, faction FROM characters WHERE status='active' AND power_id='ming'"
+                ).fetchall()
+            }
             try:
                 if cur_status != "active":
                     db.set_character_status(state, name, "active", reason[:200] or "诏书任命")
@@ -1232,10 +1364,41 @@ def apply_score_extraction(
             displaced_parts = _displace_duplicate_offices(db, content, name, new_office)
             ch = content.characters[name]
             ch.status = "active"
-            ch.office = normalize_office(new_office)
-            ch.office_type = infer_office_type_from_office(ch.office, new_type or ch.office_type)
+            current_office = db.conn.execute(
+                "SELECT office, office_type FROM characters WHERE name=?", (name,)
+            ).fetchone()
+            if current_office is not None:
+                ch.office = str(current_office["office"] or "")
+                ch.office_type = str(current_office["office_type"] or "")
+            else:
+                ch.office = normalize_office(new_office)
             if registry is not None:
                 registry.refresh(name)
+            new_row = character_political_row(db, name)
+            political_reactions.extend(apply_office_change_reaction(
+                db,
+                state,
+                name,
+                old_office,
+                old_row.get("office_type", ""),
+                old_row.get("faction", ""),
+                new_row.get("office", ""),
+                new_row.get("office_type", ""),
+                new_row.get("faction", ""),
+                reason,
+            ))
+            for displaced in displaced_parts:
+                holder, _, lost_office = displaced.partition(":")
+                holder_row = before_office_rows.get(holder.strip(), {})
+                political_reactions.extend(apply_office_loss_reaction(
+                    db,
+                    state,
+                    holder.strip(),
+                    lost_office.strip(),
+                    holder_row.get("office_type", ""),
+                    holder_row.get("faction", ""),
+                    source=f"{name}改授{lost_office.strip()}",
+                ))
             applied_office_changes.append({
                 "name": name, "old_status": cur_status, "old_office": old_office, "new_office": new_office,
                 "kind": "transfer", "reason": reason,
@@ -1249,9 +1412,35 @@ def apply_score_extraction(
             "name": name, "office": new_office,
             "faction": str(item.get("faction") or "中立"),
             "reason": reason, "approved": True,
+            "replaces": str(item.get("replaces") or "").strip(),
         }
+        replaced_row = character_political_row(db, str(appt.get("replaces") or ""))
         appointed, displaced = apply_appointment(db, state, content, registry, appt)
         if appointed:
+            new_row = character_political_row(db, appointed)
+            political_reactions.extend(apply_office_change_reaction(
+                db,
+                state,
+                appointed,
+                "",
+                "",
+                "",
+                new_row.get("office", ""),
+                new_row.get("office_type", ""),
+                new_row.get("faction", ""),
+                reason,
+            ))
+            if displaced:
+                political_reactions.extend(apply_status_change_reaction(
+                    db,
+                    state,
+                    displaced,
+                    replaced_row.get("office", ""),
+                    replaced_row.get("office_type", ""),
+                    replaced_row.get("faction", ""),
+                    "dismissed",
+                    f"{new_office}改授{appointed}",
+                ))
             applied_office_changes.append({
                 "name": appointed, "new_office": new_office,
                 "kind": "appoint", "displaced": displaced, "reason": reason,
@@ -1344,6 +1533,7 @@ def apply_score_extraction(
         "character_status_changes": applied_status_changes,
         "character_power_changes": applied_power_changes,
         "office_changes": applied_office_changes,
+        "political_reactions": political_reactions,
         "secret_order_updates": applied_secret_orders,
         "secret_order_closes": applied_secret_closes,
         "victory_status": _resolve_victory(db, state, extracted),

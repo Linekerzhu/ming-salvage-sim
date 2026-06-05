@@ -185,13 +185,13 @@
     "estimate_project": "估算工程、工匠、材料、工期和验收。",
     "run_technical_trial": "登记火器、农政、工艺等试办指令。",
     "inner_court_inquiry": "以内廷渠道查宫中、人情、内库和旧线。",
-    "transmit_edict": "传旨、催办、观察旨意是否被中途扭曲。",
-    "secret_investigation": "密查账册、人物或地方隐情，快但反噬重。",
-    "intimidate_obstruction": "威慑拖旨官员，短期有效但会抬高党争。",
+    "transmit_edict": "传旨、催办、校验旨意是否被中途扭曲；内廷奉旨执行力强，但受外朝名分约束。",
+    "secret_investigation": "密查账册、人物或地方隐情，快且隐蔽；若无名分会激起清议和外朝疑惧。",
+    "intimidate_obstruction": "奉旨威慑拖旨官员，短期有效但会抬高党争，需划清厂卫边界。",
     "audit_tax_arrears": "毕自严专长：清查积欠、实收实支、追缴亏空。",
     "front_line_plan": "袁崇焕专长：宁锦守势、军心、前线部署。",
     "strategic_review": "孙承宗专长：辽东大局复核、名分和将领评估。",
-    "factory_network_probe": "魏忠贤专长：厂卫旧线、把柄、威慑与截留风险。",
+    "factory_network_probe": "厂卫旧线专长：把柄、威慑、截留风险和外朝观望。",
     "cultivate_consort": "皇帝调教妃嫔：为其新增技能或改变性格，效果永久生效。"
   },
   "office_skills": {
@@ -466,7 +466,7 @@
       "tools": [
         "inner_court_inquiry"
       ],
-      "authority_scope": "传旨、内廷查访、内库建议，可影响旨意传达。",
+      "authority_scope": "皇帝家奴与内廷官僚，负责传旨、内廷查访、内库建议，可快速催办并影响旨意传达。",
       "power": 73,
       "responsibility": 58,
       "corruption_risk": 64
@@ -486,7 +486,7 @@
       "tools": [
         "secret_investigation"
       ],
-      "authority_scope": "以内廷旧线密查和威慑外朝，效率高但政治反噬重。",
+      "authority_scope": "以内廷旧线奉旨密查和威慑外朝，效率高，但必须有圣旨边界以免政治反噬。",
       "power": 76,
       "responsibility": 45,
       "corruption_risk": 86

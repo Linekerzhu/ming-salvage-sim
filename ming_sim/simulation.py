@@ -9,7 +9,17 @@ from typing import Callable, Dict, List, Optional
 from agno.agent import Agent
 
 from ming_sim.agents import parse_agent_json, run_agent_stream_text, run_agent_text
-from ming_sim.context import historical_anchor_for_month, victory_status
+from ming_sim.bureaucracy import (
+    compact_bureaucracy_brief,
+    directive_execution_assessments,
+    organization_diagnostics,
+)
+from ming_sim.context import (
+    historical_anchor_for_month,
+    npc_network_profile,
+    npc_tiangang_behavior_brief,
+    victory_status,
+)
 from ming_sim.db import GameDB
 from ming_sim.issues import gather_candidate_events, issue_to_payload
 from ming_sim.models import GameState
@@ -208,6 +218,88 @@ def _auto_table(rows: List[Dict[str, object]]) -> Dict[str, object]:
     return _table(rows, cols)
 
 
+def _row_value(row: sqlite3.Row, key: str, default: object = "") -> object:
+    try:
+        return row[key] if key in row.keys() else default
+    except Exception:
+        return default
+
+
+def _directive_context(
+    state: GameState,
+    db: GameDB,
+    directives: Optional[List[sqlite3.Row]],
+) -> List[Dict[str, object]]:
+    """每道旨意的承办画像，供月末推演判执行风险。"""
+    rows: List[Dict[str, object]] = []
+    for index, row in enumerate(directives or [], 1):
+        actor = str(_row_value(row, "actor", "") or "").strip()
+        item: Dict[str, object] = {
+            "index": index,
+            "id": int(_row_value(row, "id", 0) or 0),
+            "source": str(_row_value(row, "source", "") or ""),
+            "event_title": str(_row_value(row, "event_title", "") or ""),
+            "actor": actor,
+            "text": str(_row_value(row, "text", "") or "")[:260],
+        }
+        if not actor:
+            item["execution_note"] = "未指定拟旨/承办大臣；按诏书正文、职掌与名册推定承办人。"
+            rows.append(item)
+            continue
+        character = db.conn.execute(
+            """
+            SELECT name, office, office_type, faction, status, power_id, location
+            FROM characters WHERE name = ?
+            """,
+            (actor,),
+        ).fetchone()
+        if character is None:
+            item["execution_note"] = "拟旨人不在当前名册；不得强行按在朝现任办差。"
+            rows.append(item)
+            continue
+        network = npc_network_profile(actor, db=db, limit=4)
+        relations = []
+        if isinstance(network.get("relations"), list):
+            for rel in network["relations"][:4]:  # type: ignore[index]
+                if isinstance(rel, dict):
+                    relations.append({
+                        "target": str(rel.get("target") or ""),
+                        "type": str(rel.get("type") or ""),
+                        "confidence": str(rel.get("confidence") or ""),
+                    })
+        item.update({
+            "actor_profile": {
+                "name": character["name"],
+                "office": character["office"] or "",
+                "office_type": character["office_type"] or "",
+                "faction": character["faction"] or "",
+                "status": character["status"] or "",
+                "power_id": character["power_id"] or "ming",
+                "location": character["location"] or "",
+            },
+            "tiangang_behavior": npc_tiangang_behavior_brief(actor)[:700],
+            "network_brief": {
+                "biography": str(network.get("biography") or "")[:180],
+                "ability_logic": str(network.get("ability_logic") or "")[:220],
+                "growth_risk": str((network.get("growth_arc") or {}).get("risk") if isinstance(network.get("growth_arc"), dict) else "")[:180],
+                "relations": relations,
+            },
+            "stance_evidence": db.list_minister_stances(
+                turn=state.turn,
+                minister_name=actor,
+                limit=5,
+            ),
+            "agreements": db.negotiation_agreement_ledger(
+                state,
+                minister_name=actor,
+                limit=10,
+            ),
+            "xinpan": db.get_xinpan_profile(actor, state),
+        })
+        rows.append(item)
+    return rows
+
+
 
 
 def build_simulator_payload(
@@ -220,6 +312,7 @@ def build_simulator_payload(
     debuts_this_turn: Optional[List[Dict[str, str]]] = None,
     relevant_memories: Optional[List[Dict[str, object]]] = None,
     secret_orders: Optional[List[Dict[str, object]]] = None,
+    directives: Optional[List[sqlite3.Row]] = None,
 ) -> Dict[str, object]:
     active = db.list_active_issues()
     issues_payload = [
@@ -262,6 +355,17 @@ def build_simulator_payload(
             "WHERE status!='offstage' AND office_type!='后宫' ORDER BY rowid"
         ).fetchall()
     ])
+    minister_stances = db.list_minister_stances(turn=state.turn, limit=80)
+    agreement_ledger = db.negotiation_agreement_ledger(state, limit=80)
+    xinpan_board = db.xinpan_simulator_rows(state, limit=100)
+    bureaucracy = organization_diagnostics(db)
+    directive_context = _directive_context(state, db, directives)
+    execution_assessments = directive_execution_assessments(
+        state,
+        db,
+        directives,
+        organization=bureaucracy,
+    )
     return {
         "year": state.year,
         "period": state.period,
@@ -280,12 +384,27 @@ def build_simulator_payload(
         "armies": _auto_table(army_rows),
         "buildings": _auto_table(db.building_payload()),
         "court_roster": court_roster,
+        "bureaucracy_brief": compact_bureaucracy_brief(bureaucracy),
+        "execution_assessments": execution_assessments,
+        "court_bureaucracy_audit": {
+            "方案比选": [
+                "纯 LLM 推演：改动小但不可审计，玩家仍难看见班子强弱。",
+                "全公式硬结算：可预测但重写范围大，容易压扁晚明政治叙事。",
+                "确定性预评估 + LLM 叙事落地：以班子、承办人、心盘、派系形成可审计证据，再交推演官解释具体折损。本局采用此方案。",
+            ],
+            "采用方案": "确定性预评估 + LLM 叙事落地",
+            "口径": "execution_assessments 是每道旨意的执行预判；bureaucracy_brief 是整体官僚班子风险，不替代钱粮、地方、军队等硬盘面。",
+        },
+        "directive_context": directive_context,
+        "xinpan_board": xinpan_board,
+        "minister_stances": minister_stances,
+        "agreement_ledger": agreement_ledger,
         "fixed_flows": fixed_flows or [],
         "deaths_this_turn": deaths_this_turn or [],
         "debuts_this_turn": debuts_this_turn or [],
         "relevant_memories": relevant_memories or [],
         "secret_orders": secret_orders or [],
-        "data_note": "盘面表（buildings/court_roster/armies/regions）在本输入的开头以 TSV 文本块给出（首行列名、tab 分隔、每行一条记录），不在本 JSON 内；本 JSON 只含其余字段（含 powers_brief/factions_brief/classes_brief 叙述串、active_issues 等）。secret_orders 为皇帝密令列表，独立于 relevant_memories，每条含 id/minister_name/title/content/status/result 字段。",
+        "data_note": "盘面表（buildings/court_roster/armies/regions）在本输入的开头以 TSV 文本块给出（首行列名、tab 分隔、每行一条记录），不在本 JSON 内；本 JSON 只含其余字段（含 powers_brief/factions_brief/classes_brief 叙述串、active_issues 等）。bureaucracy_brief 是朝廷班子完整度与风险摘要；execution_assessments 是每道旨意的确定性执行预评估，综合官署班子、承办人适配、心盘、派系和召对背书，须作为诏书下落的证据之一。directive_context 为每道草案的拟旨/承办画像，含安全天罡行为摘要、人脉、本回合立场证据、协议账本与心盘象限，用于判断办事能力、执行风险和具体阻力；xinpan_board 是全体 NPC 对皇帝的动态心盘摘要：道合决定理念站位，势合决定利益站位，畏惧只压制公开反抗、不消除反抗动机；minister_stances 为本回合召对后落档的官员真实立场/承诺，含 evidence/risk_tags/execution_hint 时必须作为政治黑板影响执行阻力；agreement_ledger 是奏对承诺账本，condition_status 判条件是否满足，target_status 判标的是否达成；只有 target_status=achieved 才可作执行背书，pending_conditions/failed/blocked 不得当作自愿配合；secret_orders 为皇帝密令列表，独立于 relevant_memories，每条含 id/minister_name/title/content/status/result 字段。",
     }
 
 
@@ -457,6 +576,8 @@ def _extractor_context_payload(
         "buildings": _auto_table(db.building_payload()),
         "active_ministers": _auto_table(active_ministers),
         "offstage_ministers": _auto_table(offstage_ministers),
+        "minister_stances": db.list_minister_stances(turn=state.turn, limit=80),
+        "agreement_ledger": db.negotiation_agreement_ledger(state, limit=80),
         "region_ids": [r["id"] for r in db.conn.execute("SELECT id FROM regions").fetchall()],
         "army_ids": [r["id"] for r in db.conn.execute("SELECT id FROM armies").fetchall()],
         "class_names": [r["name"] for r in db.conn.execute("SELECT DISTINCT name FROM classes ORDER BY name").fetchall()],
@@ -484,6 +605,8 @@ def _extractor_compat_payload(base: Dict[str, object]) -> Dict[str, object]:
         "buildings": base["buildings"],
         "active_ministers": base["active_ministers"],
         "offstage_ministers": base["offstage_ministers"],
+        "minister_stances": base["minister_stances"],
+        "agreement_ledger": base["agreement_ledger"],
         "region_ids": base["region_ids"],
         "army_ids": base["army_ids"],
         "class_names": base["class_names"],

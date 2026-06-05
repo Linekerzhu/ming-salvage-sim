@@ -31,6 +31,7 @@ from ming_sim.models import (
     Region,
     SocialClass,
 )
+from ming_sim.ranks import official_rank_for
 
 
 # --- 单项加载器（保留原签名，便于复用与单测）---
@@ -52,6 +53,12 @@ def load_character_content() -> Tuple[Dict[str, Faction], Dict[str, Character]]:
     for idx, raw in enumerate(require_list(data.get("characters"), "characters.json.characters"), 1):
         item = require_dict(raw, f"characters.json.characters[{idx}]")
         name = str_field(item, "name", f"characters.json.characters[{idx}]")
+        inferred_rank = official_rank_for(
+            str_field(item, "office", f"characters.json.characters[{idx}]"),
+            str_field(item, "office_type", f"characters.json.characters[{idx}]"),
+            power_id=str_field(item, "power_id", f"characters.json.characters[{idx}]"),
+            faction=str_field(item, "faction", f"characters.json.characters[{idx}]"),
+        )
         characters[name] = Character(
             name=name,
             office=str_field(item, "office", f"characters.json.characters[{idx}]"),
@@ -74,11 +81,98 @@ def load_character_content() -> Tuple[Dict[str, Faction], Dict[str, Character]]:
             status=str(item.get("status") or "active"),
             summary=str(item.get("summary") or ""),
             portrait_id=str(item.get("portrait_id") or ""),
+            rank=str(item.get("rank") or ""),
+            rank_grade=int(item.get("rank_grade") or inferred_rank.grade),
+            rank_label=str(item.get("rank_label") or item.get("rank") or inferred_rank.label),
+            rank_category=str(item.get("rank_category") or inferred_rank.category),
+            # 人物校量（默认值兼容旧档）
+            force=int(item.get("force") or 50),
+            wisdom=int(item.get("wisdom") or 50),
+            charm=int(item.get("charm") or 50),
+            luck=int(item.get("luck") or 50),
+            cultivation=int(item.get("cultivation") or 0),
+            hp=int(item.get("hp") or 100),
+            max_hp=int(item.get("max_hp") or 100),
+            exp=int(item.get("exp") or 0),
+            level=int(item.get("level") or 1),
         )
 
     if not factions or not characters:
         raise SystemExit("characters.json 必须至少定义一个派系和一个人物。")
     return factions, characters
+
+
+def _obsidian_link_target(value: object) -> str:
+    """把 [[人物名]] 形式的双链还原成人物名，用于内容校验。"""
+    text = str(value or "").strip()
+    if text.startswith("[[") and text.endswith("]]"):
+        return text[2:-2].strip()
+    return text
+
+
+def load_npc_network(characters: Dict[str, Character]) -> Dict[str, Dict[str, object]]:
+    """加载人物小传/关系/叙事潜力网络。
+
+    npc_network.json 是供 AI 使用的静态知识层，不落 DB，不覆盖局内人物状态。
+    """
+    data = require_dict(load_json_asset("npc_network.json"), "npc_network.json")
+    npcs = require_dict(data.get("npcs"), "npc_network.json.npcs")
+    network: Dict[str, Dict[str, object]] = {}
+    missing: List[str] = []
+    for name in characters:
+        raw = npcs.get(name)
+        if raw is None:
+            missing.append(name)
+            continue
+        entry = require_dict(raw, f"npc_network.json.npcs.{name}")
+        if str(entry.get("name") or "").strip() != name:
+            raise SystemExit(f"npc_network.json.npcs.{name}.name 必须等于人物名。")
+        relations = require_list(entry.get("relations"), f"npc_network.json.npcs.{name}.relations")
+        for rel_idx, rel_raw in enumerate(relations, 1):
+            rel = require_dict(rel_raw, f"npc_network.json.npcs.{name}.relations[{rel_idx}]")
+            target = _obsidian_link_target(rel.get("target"))
+            if target and target not in characters:
+                raise SystemExit(f"npc_network.json.npcs.{name}.relations[{rel_idx}].target 指向不存在人物：{target}")
+        require_dict(entry.get("growth_arc"), f"npc_network.json.npcs.{name}.growth_arc")
+        network[name] = entry
+    if missing:
+        raise SystemExit("npc_network.json 缺人物卡：" + "、".join(missing[:20]))
+    return network
+
+
+def load_npc_tiangang(characters: Dict[str, Character]) -> Dict[str, Dict[str, object]]:
+    """加载隐藏的天罡三十六维 NPC 基础数值。"""
+    data = require_dict(load_json_asset("npc_tiangang.json"), "npc_tiangang.json")
+    meta = require_dict(data.get("meta"), "npc_tiangang.json.meta")
+    if not bool(meta.get("hidden_by_default")):
+        raise SystemExit("npc_tiangang.json.meta.hidden_by_default 必须为 true。")
+    if bool(meta.get("growth_enabled")):
+        raise SystemExit("当前版本不启用天罡成长变动：growth_enabled 必须为 false。")
+    dims = require_list(meta.get("dimensions"), "npc_tiangang.json.meta.dimensions")
+    dim_ids = [str(require_dict(dim, f"npc_tiangang.json.meta.dimensions[{idx}]").get("id") or "") for idx, dim in enumerate(dims, 1)]
+    if len(dim_ids) != 36 or len(set(dim_ids)) != 36:
+        raise SystemExit("npc_tiangang.json 必须定义 36 个唯一维度。")
+    npcs = require_dict(data.get("npcs"), "npc_tiangang.json.npcs")
+    missing: List[str] = []
+    network: Dict[str, Dict[str, object]] = {}
+    for name in characters:
+        raw = npcs.get(name)
+        if raw is None:
+            missing.append(name)
+            continue
+        entry = require_dict(raw, f"npc_tiangang.json.npcs.{name}")
+        values = require_dict(entry.get("values"), f"npc_tiangang.json.npcs.{name}.values")
+        for dim_id in dim_ids:
+            try:
+                value = int(values[dim_id])
+            except (KeyError, TypeError, ValueError) as error:
+                raise SystemExit(f"npc_tiangang.json.npcs.{name}.values.{dim_id} 必须是 1-5 整数。") from error
+            if not 1 <= value <= 5:
+                raise SystemExit(f"npc_tiangang.json.npcs.{name}.values.{dim_id} 超出 1-5。")
+        network[name] = entry
+    if missing:
+        raise SystemExit("npc_tiangang.json 缺人物：" + "、".join(missing[:20]))
+    return {"meta": meta, "npcs": network}
 
 
 def load_event_content(filename: str = "events.json") -> List[Event]:
@@ -456,6 +550,8 @@ class GameContent:
 
     factions: Dict[str, Faction] = field(default_factory=dict)
     characters: Dict[str, Character] = field(default_factory=dict)
+    npc_network: Dict[str, Dict[str, object]] = field(default_factory=dict)
+    npc_tiangang: Dict[str, Dict[str, object]] = field(default_factory=dict)
     events: List[Event] = field(default_factory=list)
     seed_events: List[Event] = field(default_factory=list)
     opening_legacies: List[OpeningLegacy] = field(default_factory=list)
@@ -494,9 +590,15 @@ class GameContent:
 
     fiscal_items: List[Dict[str, object]] = field(default_factory=list)
 
+    # 天命异闻新增内容
+    items: List[Dict[str, object]] = field(default_factory=list)
+    adventures: List[Dict[str, object]] = field(default_factory=list)
+
     @classmethod
     def load(cls) -> "GameContent":
         factions, characters = load_character_content()
+        npc_network = load_npc_network(characters)
+        npc_tiangang = load_npc_tiangang(characters)
         events = load_event_content("events.json")
         seed_events = load_event_content("seed_events.json")
         opening_legacies = load_opening_legacies()
@@ -517,9 +619,14 @@ class GameContent:
             directive_skill_ids,
             office_definitions,
         ) = load_skill_content()
+        # 加载物品与奇遇（可选，不存在则留空）
+        items_raw = load_json_asset("items.json") or {}
+        adventures_raw = load_json_asset("adventures.json") or {}
         return cls(
             factions=factions,
             characters=characters,
+            npc_network=npc_network,
+            npc_tiangang=npc_tiangang,
             events=events,
             seed_events=seed_events,
             opening_legacies=opening_legacies,
@@ -556,4 +663,6 @@ class GameContent:
             },
             chapter_memory_prompt=load_text_asset("prompts/chapter_memory.md"),
             ending_summary_prompt=load_text_asset("prompts/ending_summary.md"),
+            items=items_raw.get("items", []),
+            adventures=adventures_raw.get("adventures", []),
         )

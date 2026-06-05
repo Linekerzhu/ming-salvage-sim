@@ -13,15 +13,18 @@ from agno.db.sqlite import SqliteDb
 
 from ming_sim.agents import (
     _dump_llm_messages,
+    create_agreement_reviewer_agent,
     create_chapter_memory_agent,
     create_decree_writer_agent,
     create_ending_summary_agent,
     create_json_sanitizer_agent,
     create_score_extractor_module_agent,
     create_season_simulator_agent,
+    parse_agent_json,
     run_agent_text,
 )
-from ming_sim.constants import TURN_UNIT
+from ming_sim.constants import ECONOMY_ACCOUNTS, TURN_UNIT
+from ming_sim.causality import build_turn_causal_notes
 from ming_sim.context import ENDING_LABELS, ENDING_ONGOING, ENDING_TIMEOUT, victory_status
 from ming_sim.db import GameDB
 from ming_sim.exceptions import LLMContractError, LLMUnavailable
@@ -106,10 +109,61 @@ def write_decree_with_agno(
 def advance_without_edict(state: GameState, db: GameDB) -> None:
     apply_fixed_period_flows(db, state)
     message = f"本{TURN_UNIT}退朝未下正式圣旨，诸事仍待来{TURN_UNIT}处置。"
+    try:
+        db.auto_review_negotiation_agreements(
+            state,
+            narrative=message,
+            phase="postresolve",
+        )
+    except Exception as exc:
+        tlog(f"[agreement] 退朝履约审计失败，跳过：{exc}")
     db.record_log(state, message)
     print("\n" + message)
     state.next_period()
     db.save_state(state)
+
+
+def _review_agreements_with_llm(
+    *,
+    state: GameState,
+    db: GameDB,
+    agno_db: SqliteDb,
+    llm_config: LLMConfig,
+    phase: str,
+    decree_text: str = "",
+    narrative: str = "",
+    directives: Optional[List[sqlite3.Row]] = None,
+    applied: Optional[Dict[str, object]] = None,
+) -> Dict[str, object]:
+    agreements = [
+        item
+        for item in db.negotiation_agreement_ledger(state, limit=80)
+        if str(item.get("status") or "") in {"pending", "sealed"}
+    ]
+    if not agreements:
+        return {"reviews": []}
+    payload = {
+        "turn": {"year": state.year, "period": state.period, "turn": state.turn},
+        "phase": phase,
+        "agreements": agreements,
+        "evidence_context": db._agreement_review_context(
+            decree_text=decree_text,
+            narrative=narrative,
+            directives=directives,
+            applied=applied,
+        ),
+        "instruction": (
+            "逐条判断 tasks 条件是否满足；只有全部条件满足，target_text 标的才可达成。"
+            "若证据不足，保持 pending，不要替皇帝补事实。"
+        ),
+    }
+    agent = create_agreement_reviewer_agent(llm_config, agno_db)
+    raw = run_agent_text(agent, json.dumps(payload, ensure_ascii=False, sort_keys=False), tag=f"agreement-review/{phase}")
+    data = parse_agent_json(raw, f"奏对履约审计/{phase}")
+    reviews = data.get("reviews")
+    if not isinstance(reviews, list):
+        return {"reviews": []}
+    return {"reviews": [item for item in reviews if isinstance(item, dict)]}
 
 
 def resolve_directives(
@@ -204,6 +258,31 @@ def resolve_directives(
     tlog("结算 2/4 推演 agent（月末邸报）")
     _emit("stage", "推演月末邸报")
     previous_narrative = db.previous_turn_summary(state) or ""
+    llm_reviews: Dict[str, object] = {"reviews": []}
+    try:
+        llm_reviews = _review_agreements_with_llm(
+            state=state,
+            db=db,
+            agno_db=agno_db,
+            llm_config=llm_config,
+            phase="preresolve",
+            decree_text=decree_text,
+            directives=directives,
+        )
+    except Exception as exc:
+        tlog(f"[agreement] 颁诏前 LLM 审计失败，改用规则兜底：{exc}")
+    try:
+        reviewed = db.auto_review_negotiation_agreements(
+            state,
+            decree_text=decree_text,
+            directives=directives,
+            llm_reviews=llm_reviews,
+            phase="preresolve",
+        )
+        if reviewed:
+            tlog(f"[agreement] 颁诏前自动审计 {len(reviewed)} 条")
+    except Exception as exc:
+        tlog(f"[agreement] 颁诏前规则审计失败，跳过：{exc}")
     simulator_payload = build_simulator_payload(
         state, db, decree_text, previous_narrative,
         fixed_flows=fixed_flows,
@@ -211,6 +290,7 @@ def resolve_directives(
         debuts_this_turn=debuts_this_turn,
         relevant_memories=relevant_memories,
         secret_orders=secret_orders_for_sim,
+        directives=directives,
     )
     simulator = create_season_simulator_agent(
         llm_config, agno_db, state=state, db=db, simulator_payload=simulator_payload
@@ -241,6 +321,31 @@ def resolve_directives(
             state, decree_text=decree_text, narrative=narrative,
             extractor_output=f"[推演 agent 失败] {exc}；本回合跳过 extractor。",
         )
+        llm_reviews = {"reviews": []}
+        try:
+            llm_reviews = _review_agreements_with_llm(
+                state=state,
+                db=db,
+                agno_db=agno_db,
+                llm_config=llm_config,
+                phase="postresolve",
+                decree_text=decree_text,
+                narrative=narrative,
+                directives=directives,
+            )
+        except Exception as review_exc:
+            tlog(f"[agreement] 失败兜底 LLM 审计失败，改用规则兜底：{review_exc}")
+        try:
+            db.auto_review_negotiation_agreements(
+                state,
+                decree_text=decree_text,
+                narrative=narrative,
+                directives=directives,
+                llm_reviews=llm_reviews,
+                phase="postresolve",
+            )
+        except Exception as review_exc:
+            tlog(f"[agreement] 失败兜底规则审计失败，跳过：{review_exc}")
         apply_issue_inertia_and_ongoing(db, state, touched_ids=set())
         for name in clear_gated_legacies(db, state):
             db.record_log(state, f"帝国修正消除：{name}")
@@ -294,6 +399,41 @@ def resolve_directives(
     tlog("结算 4/4 落库 + inertia/ongoing")
     _emit("stage", "落库与事项推进")
     applied = apply_score_extraction(db, state, extracted, content=content, registry=registry)
+    llm_reviews = {"reviews": []}
+    try:
+        llm_reviews = _review_agreements_with_llm(
+            state=state,
+            db=db,
+            agno_db=agno_db,
+            llm_config=llm_config,
+            phase="postresolve",
+            decree_text=decree_text,
+            narrative=effective_narrative,
+            directives=directives,
+            applied=applied,
+        )
+    except Exception as exc:
+        tlog(f"[agreement] 月末 LLM 审计失败，改用规则兜底：{exc}")
+    try:
+        reviewed = db.auto_review_negotiation_agreements(
+            state,
+            decree_text=decree_text,
+            narrative=effective_narrative,
+            directives=directives,
+            applied=applied,
+            llm_reviews=llm_reviews,
+            phase="postresolve",
+        )
+        if reviewed:
+            applied["agreements"] = reviewed
+            tlog(f"[agreement] 月末自动审计 {len(reviewed)} 条")
+    except Exception as exc:
+        tlog(f"[agreement] 月末规则审计失败，跳过：{exc}")
+    try:
+        applied["xinpan"] = db.apply_turn_xinpan_update(state, decree_text, effective_narrative, applied)
+    except Exception as exc:
+        tlog(f"[xinpan] 月末更新失败，跳过：{exc}")
+    causal_notes = build_turn_causal_notes(db, state, decree_text, applied)
 
     # 4) 把 narrative 与诏书写入 turn_logs 作下月前文
     db.record_log(state, narrative[:1200])
@@ -305,6 +445,7 @@ def resolve_directives(
         narrative=effective_narrative,  # 留痕含作弊段，便于事后追「为何这么落库」
         extractor_input=extractor_input,
         extractor_output=extractor_output,
+        causal_notes=causal_notes,
     )
 
     # 5) 章节记忆：LLM 把本回合诏书+邸报+落库效果浓缩成一段叙事章节，落 event_memories
@@ -316,7 +457,93 @@ def resolve_directives(
     except Exception as exc:
         tlog(f"[chapter-memory] 跳过：{exc}")
 
-    # 6) 落 inertia + ongoing (未被本月 issue_advances 触动的)
+    # 6) 天命异闻：低频暗线事件，服务政略主循环。
+    _emit("stage", "异闻入档")
+    adventure_narrative = ""
+    try:
+        from ming_sim.adventure_engine import AdventureEngine, format_adventure_narrative
+        from ming_sim.dice import DiceRoller
+        from ming_sim.paths import bundled_path
+
+        adventure_records = getattr(content, "adventures", []) if content is not None else []
+        if adventure_records:
+            adv_engine = AdventureEngine.from_records(adventure_records)
+        else:
+            adv_path = bundled_path("content", "adventures.json")
+            adv_engine = AdventureEngine.from_json(str(adv_path))
+        seen_rows = db.conn.execute("SELECT DISTINCT adventure_id FROM adventure_log").fetchall()
+        adv_engine.remember_triggered([str(row[0]) for row in seen_rows])
+        roller = DiceRoller(seed=state.turn * 1000 + state.year * 12 + state.period)
+        emperor_profile = db.get_player_profile()
+
+        def _profile_int(key: str, fallback: int) -> int:
+            try:
+                return int(emperor_profile.get(key, fallback))
+            except (TypeError, ValueError):
+                return fallback
+
+        emperor_name = str(emperor_profile.get("name") or "崇祯")
+        char_abilities = {
+            "force": _profile_int("force", 45),
+            "wisdom": _profile_int("wisdom", 76),
+            "charm": _profile_int("charm", 62),
+            "luck": _profile_int("luck", 55),
+            "cultivation": _profile_int("cultivation", 0),
+        }
+        triggered = adv_engine.get_available_adventures(
+            turn=state.turn,
+            metrics=dict(state.metrics),
+            region_id="beizhili",
+            character_luck=char_abilities["luck"],
+            roller=roller,
+            limit=2,
+        )
+        if triggered:
+            adv = triggered[0]
+            choice_index = adv_engine.choose_choice_index(
+                adv.id,
+                char_abilities,
+                metrics=dict(state.metrics),
+            )
+            result = adv_engine.resolve_choice(adv.id, choice_index, char_abilities, roller=roller)
+            adventure_narrative = format_adventure_narrative(result, emperor_name)
+            db.conn.execute(
+                """
+                INSERT INTO adventure_log
+                (turn, year, period, adventure_id, title, chosen_index, choice_text, success, narrative, effects, item_reward)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    state.turn, state.year, state.period,
+                    result.adventure_id, result.title, result.chosen_index,
+                    result.choice_text,
+                    1 if result.success else 0, result.narrative,
+                    json.dumps(result.effects, ensure_ascii=False),
+                    result.item_reward,
+                ),
+            )
+            if result.item_reward:
+                db.grant_player_item(result.item_reward, state)
+            for eff_key, eff_val in (result.effects or {}).items():
+                if eff_key in char_abilities or eff_key in {"hp", "max_hp", "exp", "level"}:
+                    db.apply_player_profile_delta(state, eff_key, int(eff_val))
+                elif eff_key in ECONOMY_ACCOUNTS:
+                    db.record_issue_economy_move(
+                        state,
+                        eff_key,
+                        int(eff_val),
+                        "天命异闻",
+                        result.title,
+                    )
+                elif eff_key in state.metrics:
+                    state.metrics[eff_key] = max(0, state.metrics[eff_key] + int(eff_val))
+            state.clamp()
+            db.conn.commit()
+            tlog(f"[adventure] 触发异闻：{adv.title}，成功={result.success}")
+    except Exception as exc:
+        tlog(f"[adventure] 异闻触发失败，跳过：{exc}")
+
+    # 6.5) 落 inertia + ongoing (未被本月 issue_advances 触动的)
     touched_ids = set()
     for adv in applied.get("issue_summary", {}).get("advances", []) or []:
         touched_ids.add(int(adv.get("issue_id") or 0))
@@ -364,7 +591,8 @@ def resolve_directives(
         ending = f"\n\n【结局·{label}】{outcome.get('summary', '')}"
         if ending_text:
             ending += "\n\n" + ending_text
-    full_report = f"\n本{TURN_UNIT}颁布诏书：\n" + decree_text + "\n\n" + narrative + ending
+    adventure_section = f"\n\n{adventure_narrative}" if adventure_narrative else ""
+    full_report = f"\n本{TURN_UNIT}颁布诏书：\n" + decree_text + "\n\n" + narrative + adventure_section + ending
     return full_report
 
 
