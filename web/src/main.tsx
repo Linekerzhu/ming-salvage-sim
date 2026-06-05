@@ -2645,7 +2645,7 @@ function MinisterCardList({
   }, [listKey]);
 
   const onMouseDown = (e: React.MouseEvent, name: string) => {
-    if ((e.target as HTMLElement).closest(".portrait-upload-btn")) return;
+    if ((e.target as HTMLElement).closest(".portrait-upload-btn, .portrait-generate-btn")) return;
     e.preventDefault();
     const pos = positions[name] || { px: 0.5, py: 0.8 };
     dragging.current = { name, startMX: e.clientX, startMY: e.clientY, startPX: pos.px, startPY: pos.py };
@@ -2704,9 +2704,18 @@ function MinisterCardList({
           const { primary: dedicated, fallback: poolFallback } = portraitSources(minister, portraitPrefix);
           const ousted = minister.status !== "active";
           return (
-            <button key={minister.name}
+            <div key={minister.name}
+              role="button"
+              tabIndex={0}
               className={`minister-card ${selectedMinister === minister.name ? "selected" : ""} ${ousted ? "ousted" : ""}`}
-              onClick={() => onOpenChat(minister)}>
+              onClick={() => onOpenChat(minister)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onOpenChat(minister);
+                }
+              }}
+            >
               <div className="minister-card-portrait-wrap">
                 <MinisterPortrait primary={dedicated} fallback={poolFallback} name={minister.name} />
                 <PortraitMissingBadge minister={minister} />
@@ -2722,7 +2731,7 @@ function MinisterCardList({
                 <span className="minister-bio">{minister.summary}</span>
               </div>
               {minister.favorite && <Star className="favorite-mark" size={13} />}
-            </button>
+            </div>
           );
         })}
       </div>
@@ -2739,8 +2748,10 @@ function MinisterCardList({
         const perspScale = pct ? 0.38 + 0.62 * pct.py : 1;
         // 卡片宽用 vh 单位（CSS），这里只控制 scale
         return (
-          <button
+          <div
             key={minister.name}
+            role="button"
+            tabIndex={0}
             className={`minister-card ${selectedMinister === minister.name ? "selected" : ""} ${ousted ? "ousted" : ""}`}
             style={pct ? {
               position: "absolute",
@@ -2753,6 +2764,12 @@ function MinisterCardList({
             } : { visibility: "hidden" }}
             onMouseDown={(e) => onMouseDown(e, minister.name)}
             onClick={(e) => { if (didDrag.current) { e.preventDefault(); return; } onOpenChat(minister); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onOpenChat(minister);
+              }
+            }}
           >
             <div className="minister-card-portrait-wrap">
               <MinisterPortrait primary={dedicated} fallback={poolFallback} name={minister.name} />
@@ -2771,7 +2788,7 @@ function MinisterCardList({
               <span className="minister-bio">{minister.summary}</span>
             </div>
             {minister.favorite && <Star className="favorite-mark" size={13} />}
-          </button>
+          </div>
         );
       })}
     </div>
@@ -2832,6 +2849,8 @@ function PortraitUploadButton({
       <input
         ref={inputRef}
         type="file"
+        aria-label={`上传${ministerName}立绘文件`}
+        tabIndex={-1}
         accept="image/png,image/jpeg,image/webp"
         style={{ display: "none" }}
         onClick={(e) => e.stopPropagation()}
@@ -2868,6 +2887,7 @@ function PortraitGenerateButton({
     <button
       type="button"
       className="portrait-generate-btn"
+      aria-label={pending ? `${minister.name}立绘绘制中` : `为${minister.name}重绘立绘`}
       title={pending ? "画师绘制中" : "画师重绘"}
       disabled={busy || pending}
       onClick={async (e) => {
@@ -2963,7 +2983,11 @@ function RightDrawer({
   return (
     <>
       {open && <button className="drawer-scrim" aria-label="收起" onClick={onClose} />}
-      <aside className={`right-drawer ${extraClass || ""} ${open ? "open" : ""}`}>
+      <aside
+        className={`right-drawer ${extraClass || ""} ${open ? "open" : ""}`}
+        aria-hidden={!open}
+        inert={!open ? true : undefined}
+      >
         <div className="right-drawer-brand">
           <div className="panel-title">
             {icon}
@@ -3006,7 +3030,7 @@ function ArmyDrawer({
   return (
     <RightDrawer open={open} onClose={onClose} title="军队" icon={<Swords size={17} />} extraClass="right-drawer-army">
       <div className="right-drawer-search">
-        <input className="right-drawer-search-input" placeholder="搜索番号/驻地/统帅…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="right-drawer-search-input" aria-label="搜索番号、驻地或统帅" placeholder="搜索番号/驻地/统帅…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       <div className="right-drawer-list">
         {filtered.map((army) => (
@@ -3076,7 +3100,7 @@ function RegionDrawer({
   return (
     <RightDrawer open={open} onClose={onClose} title="省份" icon={<MapPinned size={17} />} extraClass="right-drawer-region">
       <div className="right-drawer-search">
-        <input className="right-drawer-search-input" placeholder="搜索省份名…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="right-drawer-search-input" aria-label="搜索省份名" placeholder="搜索省份名…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       <div className="right-drawer-list">
         {filtered.map((r) => (
@@ -3144,7 +3168,7 @@ function BuildingDrawer({
   return (
     <RightDrawer open={open} onClose={onClose} title="建筑" icon={<Landmark size={17} />} extraClass="right-drawer-building">
       <div className="right-drawer-search">
-        <input className="right-drawer-search-input" placeholder="搜索建筑名/类别…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="right-drawer-search-input" aria-label="搜索建筑名或类别" placeholder="搜索建筑名/类别…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       <div className="right-drawer-filter">
         <select
@@ -3194,7 +3218,7 @@ function EconomyDrawer({
         ))}
       </div>
       <div className="right-drawer-search">
-        <input className="right-drawer-search-input" placeholder="搜索收支项…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="right-drawer-search-input" aria-label="搜索收支项" placeholder="搜索收支项…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       <div className="right-drawer-economy-summary">
         <span>余额 <b>{formatMoney(budget.balance)}</b></span>
@@ -3506,7 +3530,7 @@ function AppointmentDrawer({
         <section className="bureau-main-grid">
           <div className="bureau-roster-panel">
             <div className="right-drawer-search">
-              <input className="right-drawer-search-input" placeholder="检索姓名/职位/派系/年龄…" value={q} onChange={(e) => setQ(e.target.value)} />
+              <input className="right-drawer-search-input" aria-label="检索姓名、职位、派系或年龄" placeholder="检索姓名/职位/派系/年龄…" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <div className="bureau-scope-tabs">
               {bureauScopes.map((item) => (
@@ -3867,7 +3891,7 @@ function OrganizationDrawer({
         </button>
       </div>
       <div className="org-toolbar">
-        <input className="right-drawer-search-input" placeholder="搜索机构、席位、人名或派系…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="right-drawer-search-input" aria-label="搜索机构、席位、人名或派系" placeholder="搜索机构、席位、人名或派系…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       {viewMode === "institutions" && (
         <div className="org-layout">
@@ -4074,7 +4098,11 @@ function CourtDrawer({
   return (
     <>
       {open && <button className="drawer-scrim" aria-label="收起" onClick={onClose} />}
-      <aside className={`court-drawer ${open ? "open" : ""}`}>
+      <aside
+        className={`court-drawer ${open ? "open" : ""}`}
+        aria-hidden={!open}
+        inert={!open ? true : undefined}
+      >
         <div className="drawer-brand">
           <div className="panel-title">
             <Landmark size={17} />
@@ -4099,7 +4127,7 @@ function CourtDrawer({
           {missingPortraits > 0 && <span className="warn">缺图 {missingPortraits}</span>}
         </div>
         <div className="right-drawer-search court-search">
-          <input className="right-drawer-search-input" placeholder="搜索姓名/职位/派系…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="right-drawer-search-input" aria-label="搜索姓名、职位或派系" placeholder="搜索姓名/职位/派系…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         {ministerGroup === "人物志" ? (
           <CharacterArchive
@@ -4355,7 +4383,11 @@ function HaremDrawer({
   return (
     <>
       {open && <button className="drawer-scrim" aria-label="收起" onClick={onClose} />}
-      <aside className={`court-drawer harem-drawer overlay-panel ${open ? "open" : ""}`}>
+      <aside
+        className={`court-drawer harem-drawer overlay-panel ${open ? "open" : ""}`}
+        aria-hidden={!open}
+        inert={!open ? true : undefined}
+      >
         <div className="drawer-brand">
           <div className="panel-title">
             <Crown size={17} />
@@ -4375,7 +4407,7 @@ function HaremDrawer({
           ))}
         </div>
         <div className="right-drawer-search court-search">
-          <input className="right-drawer-search-input" placeholder="搜索姓名…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className="right-drawer-search-input" aria-label="搜索后宫姓名" placeholder="搜索姓名…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <div className="drawer-action-panel harem-action-panel">
           <div className="drawer-action-head">
@@ -7894,19 +7926,19 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
                 onPointerUp={onTerrainPointerUp}
                 onPointerCancel={onTerrainPointerUp}
               />
-              {externalPathItems.map((group) => {
+              {externalPathItems.map((group, groupIndex) => {
                 const selected = selectedId === group.id;
                 const fill = EXTERNAL_MAP_COLOR;
                 return (
                   <g
-                    key={`${group.id}:external-paths`}
+                    key={`external:${group.id}:${groupIndex}:paths`}
                     className={`province-external power-${group.powerId} ${selected ? "selected" : ""}`}
                     data-external-id={group.id}
                     style={{ "--province-fill": fill } as React.CSSProperties}
                   >
                     {group.paths.map((path) => (
                       <path
-                        key={`${group.id}:${path.id}`}
+                        key={`external:${group.id}:${groupIndex}:${path.id}`}
                         data-map-path-id={path.id}
                         data-region-id={group.id}
                         fill={fill}
@@ -7932,19 +7964,19 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
                   </g>
                 );
               })}
-              {regionPathItems.map((region) => {
+              {regionPathItems.map((region, regionIndex) => {
                 const selected = selectedId === region.id;
                 const fill = getRegionMapColor(region);
                 return (
                   <g
-                    key={`${region.id}:paths`}
+                    key={`region:${region.id}:${regionIndex}:paths`}
                     data-region-id={region.id}
                     className={`province-region power-${region.controlledBy} ${selected ? "selected" : ""} ${region.controlledBy === "ming" && region.unrest > UNREST_DANGER_THRESHOLD ? "danger" : ""}`}
                     style={{ "--province-fill": fill } as React.CSSProperties}
                   >
                     {region.paths.map((path) => (
                       <path
-                        key={path.id}
+                        key={`region:${region.id}:${regionIndex}:${path.id}`}
                         data-map-path-id={path.id}
                         data-region-id={region.id}
                         fill={fill}
@@ -7977,11 +8009,11 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
                 />
               ) : null}
               <g className="map-label-layer" aria-hidden="true">
-                {externalPathItems.map((group) => {
+                {externalPathItems.map((group, groupIndex) => {
                   const pos = svgLabelPositions[group.id] || svgCoordFromPct(group.labelX, group.labelY);
                   return (
                     <text
-                      key={`${group.id}:label`}
+                      key={`external:${group.id}:${groupIndex}:label`}
                       className="map-region-label external"
                       x={pos.svgX}
                       y={pos.svgY}
@@ -7990,11 +8022,11 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
                     </text>
                   );
                 })}
-                {regionPathItems.map((region) => {
+                {regionPathItems.map((region, regionIndex) => {
                   const pos = svgLabelPositions[region.id] || svgCoordFromPct(region.labelX, region.labelY);
                   return (
                     <text
-                      key={`${region.id}:label`}
+                      key={`region:${region.id}:${regionIndex}:label`}
                       className="map-region-label"
                       x={pos.svgX}
                       y={pos.svgY}

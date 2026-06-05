@@ -365,10 +365,13 @@ select:focus-visible {
   display: inline-flex;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   transform: translate(-50%, -50%);
   margin: 0;
-  padding: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 8px;
   border: 0;
   background: none;
   box-shadow: none;
@@ -480,6 +483,7 @@ select:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 44px;
   padding: 3px 10px;
   border: 1px solid rgba(0, 0, 0, 0.18);
   border-radius: 13px;
@@ -558,6 +562,8 @@ select:focus-visible {
 }
 
 .legacy-modal-close {
+  min-width: 44px;
+  min-height: 44px;
   border: 0;
   background: transparent;
   font-size: 1.3rem;
@@ -623,8 +629,10 @@ select:focus-visible {
 .status-emblem {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  min-height: 28px;
+  min-width: 44px;
+  min-height: 44px;
   flex: 0 0 auto;
   padding: 3px 8px;
   border: 0;
@@ -673,8 +681,10 @@ select:focus-visible {
 .budget-trigger {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  min-height: 28px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 3px 7px;
 }
 
@@ -881,6 +891,8 @@ select:focus-visible {
   flex: 1;
   display: flex;
   justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .bottom-command-bar .command-icon,
@@ -988,6 +1000,8 @@ select:focus-visible {
   display: grid;
   justify-items: center;
   gap: 4px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -1193,8 +1207,10 @@ select:focus-visible {
   inset: 0;
   z-index: 18;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto auto auto auto 1fr;
   padding: 0 28px 0;
+  overflow-x: hidden;
   opacity: 0;
   pointer-events: none;
   transform: scale(0.98);
@@ -1238,6 +1254,7 @@ select:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  width: 100%;
   min-width: 0;
   padding: 12px 4px 6px;
   margin-bottom: 0;
@@ -1271,7 +1288,7 @@ select:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 38px;
+  min-height: 44px;
   border: 1px solid rgba(111, 83, 46, 0.24);
   border-radius: 6px;
   color: #573d1f;
@@ -1303,7 +1320,7 @@ select:focus-visible {
 }
 
 .segmented button {
-  min-height: 30px;
+  min-height: 44px;
   min-width: 56px;
   padding: 0 12px;
   border: 0;
@@ -1402,12 +1419,12 @@ select:focus-visible {
 .portrait-upload-btn,
 .portrait-generate-btn {
   position: absolute;
-  top: 7px;
+  top: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: none;
   border-radius: 6px;
@@ -1419,11 +1436,11 @@ select:focus-visible {
 }
 
 .portrait-upload-btn {
-  left: 7px;
+  left: 4px;
 }
 
 .portrait-generate-btn {
-  left: 39px;
+  left: 52px;
 }
 
 .minister-card:hover .portrait-upload-btn,
@@ -1614,7 +1631,7 @@ select:focus-visible {
 }
 
 .character-archive-tabs button {
-  min-height: 26px;
+  min-height: 44px;
   padding: 0 9px;
   border: 1px solid rgba(226, 180, 86, 0.2);
   border-radius: 5px;
@@ -1689,7 +1706,7 @@ select:focus-visible {
 
 .character-archive-detail header button {
   flex: 0 0 auto;
-  min-height: 28px;
+  min-height: 44px;
   padding: 0 12px;
   border: 1px solid rgba(122, 50, 31, 0.26);
   border-radius: 5px;
@@ -1767,7 +1784,7 @@ select:focus-visible {
 }
 
 .character-archive-row button {
-  min-height: 26px;
+  min-height: 44px;
   padding: 0 10px;
   border: 1px solid rgba(226, 180, 86, 0.28);
   border-radius: 5px;
@@ -3128,24 +3145,42 @@ select:focus-visible {
   bottom: clamp(10px, 2vw, 22px);
   z-index: 2;
   display: inline-flex;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 0;
+  padding: 2px 4px;
   border-radius: 999px;
   background: rgba(17, 10, 6, 0.48);
   transform: translateX(-50%);
 }
 
 .long-goal-dots button {
-  width: 10px;
-  height: 10px;
+  position: relative;
+  width: 44px;
+  height: 44px;
   padding: 0;
-  border: 1px solid rgba(255, 232, 170, 0.58);
+  border: 0;
   border-radius: 999px;
-  background: rgba(255, 232, 170, 0.28);
+  background: transparent;
   cursor: pointer;
 }
 
+.long-goal-dots button::before {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 10px;
+  height: 10px;
+  border: 1px solid rgba(255, 232, 170, 0.58);
+  border-radius: 999px;
+  background: rgba(255, 232, 170, 0.28);
+  transform: translate(-50%, -50%);
+}
+
 .long-goal-dots button.active {
+  width: 44px;
+  background: transparent;
+}
+
+.long-goal-dots button.active::before {
   width: 26px;
   background: #f4cf7a;
 }
@@ -4000,7 +4035,7 @@ select:focus-visible {
 }
 
 .hitl-bar button {
-  min-height: 30px;
+  min-height: 44px;
   padding: 5px 8px;
   border: 1px solid rgba(111, 83, 46, 0.22);
   border-radius: 4px;
@@ -4066,7 +4101,7 @@ textarea {
 }
 
 select {
-  min-height: 36px;
+  min-height: 44px;
   padding: 6px 8px;
 }
 
@@ -4077,7 +4112,7 @@ select {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 38px;
+  min-height: 44px;
   border: 1px solid rgba(226, 180, 86, 0.26);
   border-radius: 4px;
   color: #f9dfaa;
@@ -4359,7 +4394,7 @@ button:disabled {
 }
 
 .directive-tools button {
-  min-height: 28px;
+  min-height: 44px;
   padding: 3px 7px;
   font-size: 0.8rem;
   background: linear-gradient(180deg, #695642, #3a3329);
@@ -4505,8 +4540,8 @@ button:disabled {
 .icon-button {
   display: inline-grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   flex: 0 0 auto;
   border: 1px solid rgba(111, 83, 46, 0.2);
   border-radius: 6px;
@@ -5072,8 +5107,8 @@ button:disabled {
 }
 
 .situation-toggle {
-  width: 26px;
-  height: 26px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 4px;
@@ -5191,6 +5226,10 @@ button:disabled {
 
 .situation-row {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 44px;
 }
 
 .situation-tip {
@@ -5336,7 +5375,7 @@ button:disabled {
   }
 
   .status-emblem {
-    min-height: 30px;
+    min-height: 44px;
     padding: 4px 8px;
   }
 
@@ -5344,6 +5383,10 @@ button:disabled {
   .status-pill {
     min-height: 29px;
     padding: 4px 6px;
+  }
+
+  .budget-trigger {
+    min-height: 44px;
   }
 
   .budget-popover,
@@ -5873,6 +5916,7 @@ button:disabled {
 }
 
 .situation-closed-row {
+  min-height: 44px;
   padding: 6px 8px;
   border-radius: 4px;
   border: 1px solid transparent;
@@ -6143,8 +6187,10 @@ button:disabled {
 .status-menu {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  min-height: 28px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 4px 10px;
   margin-left: 6px;
   border: 1px solid rgba(120, 80, 30, 0.4);
@@ -6249,7 +6295,9 @@ button:disabled {
 .menu-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
+  min-height: 44px;
   padding: 6px 12px;
   border: 1px solid rgba(120, 80, 30, 0.4);
   background: rgba(255, 240, 200, 0.6);
@@ -6450,8 +6498,8 @@ button:disabled {
 }
 
 .coord-tool-button {
-  min-width: 32px;
-  height: 32px;
+  min-width: 44px;
+  height: 44px;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
@@ -7341,8 +7389,8 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border: none;
   background: transparent;
   color: rgba(226, 200, 150, 0.82);
@@ -7428,6 +7476,7 @@ button:disabled {
 
 .right-drawer-search-input {
   width: 100%;
+  min-height: 44px;
   padding: 5px 9px;
   border: 1px solid rgba(180, 140, 60, 0.3);
   border-radius: 4px;
@@ -7550,8 +7599,8 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 44px;
+  height: 44px;
   border: none;
   background: transparent;
   color: #7a5030;
@@ -7733,7 +7782,7 @@ button:disabled {
 
 .bureau-recruit-row button,
 .bureau-command-row button {
-  min-height: 30px;
+  min-height: 44px;
   border: 1px solid rgba(143, 47, 37, 0.28);
   border-radius: 4px;
   background: rgba(143, 47, 37, 0.11);
@@ -7785,6 +7834,7 @@ button:disabled {
 
 .bureau-scope-tabs button {
   flex: 0 0 auto;
+  min-height: 44px;
   border: 1px solid rgba(126, 86, 38, 0.18);
   border-radius: 4px;
   background: rgba(120, 75, 25, 0.06);
@@ -8137,7 +8187,7 @@ button:disabled {
 .drawer-action-grid button,
 .drawer-wide-action,
 .org-holder-list button {
-  min-height: 30px;
+  min-height: 44px;
   border: 1px solid rgba(143, 47, 37, 0.3);
   border-radius: 4px;
   background: rgba(143, 47, 37, 0.12);
@@ -8212,7 +8262,7 @@ button:disabled {
 }
 
 .castration-actions button {
-  min-height: 30px;
+  min-height: 44px;
   border: 1px solid rgba(143, 47, 37, 0.25);
   border-radius: 4px;
   background: rgba(143, 47, 37, 0.1);
@@ -8321,7 +8371,7 @@ button:disabled {
 }
 
 .agreement-mini button {
-  min-height: 24px;
+  min-height: 44px;
   padding: 0 7px;
   border: 1px solid rgba(126, 86, 38, 0.22);
   border-radius: 4px;
@@ -8407,7 +8457,7 @@ button:disabled {
 }
 
 .org-category-tabs button {
-  min-height: 42px;
+  min-height: 44px;
   border: 1px solid rgba(180, 140, 60, 0.22);
   border-radius: 5px;
   background: rgba(255, 250, 232, 0.74);
@@ -8445,7 +8495,7 @@ button:disabled {
 }
 
 .org-view-tabs button {
-  min-height: 38px;
+  min-height: 44px;
   border: 1px solid rgba(180, 140, 60, 0.22);
   border-radius: 5px;
   background: rgba(255, 252, 238, 0.78);
@@ -8741,7 +8791,7 @@ button:disabled {
 }
 
 .org-holder-list button {
-  min-height: 24px;
+  min-height: 44px;
   padding: 2px 7px;
   font-size: 0.74rem;
   display: flex;
@@ -8803,7 +8853,7 @@ button:disabled {
 }
 
 .org-vacancy-card-head button {
-  min-height: 26px;
+  min-height: 44px;
   border: 1px solid rgba(143, 47, 37, 0.3);
   border-radius: 4px;
   background: rgba(143, 47, 37, 0.1);
@@ -8848,7 +8898,7 @@ button:disabled {
 }
 
 .org-unassigned-row {
-  min-height: 42px;
+  min-height: 44px;
   border: 1px solid rgba(180, 140, 60, 0.22);
   border-radius: 5px;
   background: rgba(255, 250, 232, 0.78);
