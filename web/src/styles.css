@@ -7694,7 +7694,7 @@ button:disabled {
   position: fixed;
   top: 50%;
   right: 0;
-  z-index: 14;
+  z-index: 19;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
@@ -7763,6 +7763,7 @@ button:disabled {
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(8px);
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
   transform: translateX(20px);
   transition: none;
@@ -7770,12 +7771,14 @@ button:disabled {
 
 .right-drawer.open {
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
   transform: translateX(0);
 }
 
 .right-drawer[aria-hidden="false"] {
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
 }
 
@@ -9637,7 +9640,7 @@ button:disabled {
     left: 8px;
     right: 8px;
     bottom: 98px;
-    z-index: 16;
+    z-index: 19;
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     align-items: stretch;

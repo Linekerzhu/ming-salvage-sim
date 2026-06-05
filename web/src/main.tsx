@@ -589,6 +589,7 @@ type ChatMessage = { role: "user" | "minister"; content: string };
 type ChatDisplayMessage = ChatMessage & { pending?: boolean };
 type Suggestion = { label: string; text: string; prefix?: boolean };
 type ModalName = "none" | "state" | "chat" | "edict" | "report" | "extraction" | "history" | "menu" | "secret_orders" | "ending" | "long_goals" | "adventure";
+type DrawerName = "" | "court" | "harem" | "army" | "region" | "building" | "economy" | "appointment" | "organization";
 type SaveEntry = MenuSave & { current?: boolean };
 type LLMConfigInfo = {
   base_url: string;
@@ -1294,6 +1295,31 @@ function App() {
   const [cheatOpen, setCheatOpen] = React.useState(false);
   const [cheatDirective, setCheatDirective] = React.useState("");
 
+  const activeDrawer: DrawerName =
+    drawerOpen ? "court" :
+    haremDrawerOpen ? "harem" :
+    armyDrawerOpen ? "army" :
+    regionDrawerOpen ? "region" :
+    buildingDrawerOpen ? "building" :
+    economyDrawerOpen ? "economy" :
+    appointmentDrawerOpen ? "appointment" :
+    organizationDrawerOpen ? "organization" : "";
+
+  const setActiveDrawer = React.useCallback((drawer: DrawerName) => {
+    setDrawerOpen(drawer === "court");
+    setHaremDrawerOpen(drawer === "harem");
+    setArmyDrawerOpen(drawer === "army");
+    setRegionDrawerOpen(drawer === "region");
+    setBuildingDrawerOpen(drawer === "building");
+    setEconomyDrawerOpen(drawer === "economy");
+    setAppointmentDrawerOpen(drawer === "appointment");
+    setOrganizationDrawerOpen(drawer === "organization");
+  }, []);
+
+  const toggleDrawer = React.useCallback((drawer: Exclude<DrawerName, "">) => {
+    setActiveDrawer(activeDrawer === drawer ? "" : drawer);
+  }, [activeDrawer, setActiveDrawer]);
+
   const loadState = React.useCallback(async () => {
     const data = await api<GameState>("/api/game/state");
     refreshLabelMaps(data);
@@ -1478,22 +1504,8 @@ function App() {
       if (activeModal === "chat" || activeModal === "edict" || activeModal === "state" || activeModal === "history" || activeModal === "report" || activeModal === "secret_orders" || activeModal === "long_goals" || activeModal === "adventure") {
         // 召对/诏书等全屏弹窗最优先
         setActiveModal("none");
-      } else if (drawerOpen) {
-        setDrawerOpen(false);
-      } else if (haremDrawerOpen) {
-        setHaremDrawerOpen(false);
-      } else if (armyDrawerOpen) {
-        setArmyDrawerOpen(false);
-      } else if (regionDrawerOpen) {
-        setRegionDrawerOpen(false);
-      } else if (buildingDrawerOpen) {
-        setBuildingDrawerOpen(false);
-      } else if (economyDrawerOpen) {
-        setEconomyDrawerOpen(false);
-      } else if (appointmentDrawerOpen) {
-        setAppointmentDrawerOpen(false);
-      } else if (organizationDrawerOpen) {
-        setOrganizationDrawerOpen(false);
+      } else if (activeDrawer) {
+        setActiveDrawer("");
       } else if (mapIntelOpen) {
         setMapIntelOpen(false);
       }
@@ -1502,14 +1514,8 @@ function App() {
     return () => window.removeEventListener("keydown", handler);
   }, [
     activeModal,
-    drawerOpen,
-    haremDrawerOpen,
-    armyDrawerOpen,
-    regionDrawerOpen,
-    buildingDrawerOpen,
-    economyDrawerOpen,
-    appointmentDrawerOpen,
-    organizationDrawerOpen,
+    activeDrawer,
+    setActiveDrawer,
     mapIntelOpen,
   ]);
 
@@ -2031,25 +2037,16 @@ function App() {
         onOpenMenu={() => setActiveModal("menu")}
       />
       <RightNavBar
-        onToggleCourt={() => { setDrawerOpen((v) => !v); }}
-        onToggleHarem={() => { setHaremDrawerOpen((v) => !v); }}
-        onToggleArmy={() => { setArmyDrawerOpen((v) => !v); }}
-        onToggleRegion={() => { setRegionDrawerOpen((v) => !v); }}
-        onToggleBuilding={() => { setBuildingDrawerOpen((v) => !v); }}
-        onToggleEconomy={() => { setEconomyDrawerOpen((v) => !v); }}
-        onToggleAppointment={() => { setAppointmentDrawerOpen((v) => !v); }}
-        onToggleOrganization={() => { setOrganizationDrawerOpen((v) => !v); }}
+        onToggleCourt={() => toggleDrawer("court")}
+        onToggleHarem={() => toggleDrawer("harem")}
+        onToggleArmy={() => toggleDrawer("army")}
+        onToggleRegion={() => toggleDrawer("region")}
+        onToggleBuilding={() => toggleDrawer("building")}
+        onToggleEconomy={() => toggleDrawer("economy")}
+        onToggleAppointment={() => toggleDrawer("appointment")}
+        onToggleOrganization={() => toggleDrawer("organization")}
         onOpenLongGoals={() => setActiveModal("long_goals")}
-        activeDrawer={
-          drawerOpen ? "court" :
-          haremDrawerOpen ? "harem" :
-          armyDrawerOpen ? "army" :
-          regionDrawerOpen ? "region" :
-          buildingDrawerOpen ? "building" :
-          economyDrawerOpen ? "economy" :
-          appointmentDrawerOpen ? "appointment" :
-          organizationDrawerOpen ? "organization" : ""
-        }
+        activeDrawer={activeDrawer}
       />
       <BottomCommandBar
         eventsCount={state.events.length}
@@ -2071,7 +2068,7 @@ function App() {
         selectedMinister={selectedMinister}
         open={drawerOpen}
         onGroupChange={setMinisterGroup}
-        onClose={guardClose(() => setDrawerOpen(false))}
+        onClose={guardClose(() => setActiveDrawer(""))}
         onOpenChat={openChat}
         onUploadPortrait={uploadPortrait}
         onGeneratePortrait={generatePortrait}
@@ -2083,7 +2080,7 @@ function App() {
         selectedMinister={selectedMinister}
         open={haremDrawerOpen}
         onGroupChange={setHaremGroup}
-        onClose={guardClose(() => setHaremDrawerOpen(false))}
+        onClose={guardClose(() => setActiveDrawer(""))}
         onOpenChat={openChat}
         onUploadPortrait={uploadPortrait}
         onGeneratePortrait={generatePortrait}
@@ -2095,7 +2092,7 @@ function App() {
         open={armyDrawerOpen}
         selectedArmyId={selectedArmyId}
         onSelectArmy={setSelectedArmyId}
-        onClose={guardClose(() => setArmyDrawerOpen(false))}
+        onClose={guardClose(() => setActiveDrawer(""))}
       />
 
       <RegionDrawer
@@ -2103,20 +2100,20 @@ function App() {
         open={regionDrawerOpen}
         selectedRegionId={selectedRegionId}
         onSelectRegion={setSelectedRegionId}
-        onClose={guardClose(() => setRegionDrawerOpen(false))}
+        onClose={guardClose(() => setActiveDrawer(""))}
       />
 
       <BuildingDrawer
         regions={state.regions}
         mapNodes={mapNodes}
         open={buildingDrawerOpen}
-        onClose={guardClose(() => setBuildingDrawerOpen(false))}
+        onClose={guardClose(() => setActiveDrawer(""))}
       />
 
       <EconomyDrawer
         state={state}
         open={economyDrawerOpen}
-        onClose={guardClose(() => setEconomyDrawerOpen(false))}
+        onClose={guardClose(() => setActiveDrawer(""))}
       />
 
       <AppointmentDrawer
@@ -2128,7 +2125,7 @@ function App() {
         onRecruit={runRecruitment}
         onCastrate={castrateMinister}
         onEmancipate={emancipateMinister}
-        onClose={guardClose(() => setAppointmentDrawerOpen(false))}
+        onClose={guardClose(() => setActiveDrawer(""))}
       />
 
       <OrganizationDrawer
@@ -2136,7 +2133,7 @@ function App() {
         open={organizationDrawerOpen}
         onAddCustom={addCustomInstitution}
         onOpenChat={openChat}
-        onClose={guardClose(() => setOrganizationDrawerOpen(false))}
+        onClose={guardClose(() => setActiveDrawer(""))}
       />
 
       <SituationPanel
@@ -2928,7 +2925,7 @@ function RightNavBar({
   onToggleAppointment: () => void;
   onToggleOrganization: () => void;
   onOpenLongGoals: () => void;
-  activeDrawer: string;
+  activeDrawer: DrawerName;
 }) {
   const items = [
     { key: "court", label: "政", short: "朝堂", title: "朝堂·召见大臣", onClick: onToggleCourt },
@@ -2948,6 +2945,7 @@ function RightNavBar({
           className={`right-nav-btn${activeDrawer === item.key ? " active" : ""}`}
           title={item.title}
           aria-label={item.title}
+          aria-expanded={activeDrawer === item.key}
           onClick={item.onClick}
         >
           <span className="right-nav-glyph">{item.label}</span>
@@ -2967,6 +2965,75 @@ function RightNavBar({
   );
 }
 
+function useDrawerFocus(open: boolean) {
+  const drawerRef = React.useRef<HTMLElement | null>(null);
+  const closeRef = React.useRef<HTMLButtonElement | null>(null);
+  const previousFocusRef = React.useRef<HTMLElement | null>(null);
+
+  React.useEffect(() => {
+    const drawer = drawerRef.current;
+    if (!drawer) return;
+
+    if (!open) {
+      drawer.setAttribute("inert", "");
+      return;
+    }
+
+    drawer.removeAttribute("inert");
+    const activeElement = document.activeElement;
+    previousFocusRef.current = activeElement instanceof HTMLElement ? activeElement : null;
+
+    const focusTimer = window.setTimeout(() => {
+      const current = document.activeElement;
+      if (current instanceof HTMLElement && drawer.contains(current)) return;
+      closeRef.current?.focus();
+    }, 0);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(
+        drawer.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => (
+        element.getAttribute("aria-hidden") !== "true"
+        && (element.offsetWidth > 0 || element.offsetHeight > 0 || element.getClientRects().length > 0)
+      ));
+
+      if (!focusable.length) {
+        event.preventDefault();
+        closeRef.current?.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && (!(active instanceof HTMLElement) || active === first || !drawer.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", handleKeyDown);
+      const previousFocus = previousFocusRef.current;
+      if (previousFocus && document.contains(previousFocus)) {
+        window.setTimeout(() => previousFocus.focus(), 0);
+      }
+    };
+  }, [open]);
+
+  return { drawerRef, closeRef };
+}
+
 function RightDrawer({
   open,
   onClose,
@@ -2982,20 +3049,27 @@ function RightDrawer({
   children: React.ReactNode;
   extraClass?: string;
 }) {
+  const titleId = React.useId();
+  const { drawerRef, closeRef } = useDrawerFocus(open);
+
   return (
     <>
       {open && <button className="drawer-scrim" aria-label="收起" onClick={onClose} />}
       <aside
+        ref={drawerRef}
         className={`right-drawer ${extraClass || ""} ${open ? "open" : ""}`}
+        role="dialog"
+        aria-modal={open ? true : undefined}
+        aria-labelledby={titleId}
         aria-hidden={!open}
         inert={!open ? true : undefined}
       >
         <div className="right-drawer-brand">
           <div className="panel-title">
             {icon}
-            <span>{title}</span>
+            <span id={titleId}>{title}</span>
           </div>
-          <button className="icon-button" aria-label="收起" onClick={onClose}><X size={16} /></button>
+          <button ref={closeRef} className="icon-button" aria-label="收起" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="right-drawer-body">
           {children}
@@ -4085,6 +4159,8 @@ function CourtDrawer({
   onGeneratePortrait: (ministerName: string) => Promise<void>;
 }) {
   const [q, setQ] = React.useState("");
+  const titleId = React.useId();
+  const { drawerRef, closeRef } = useDrawerFocus(open);
   const filtered = q
     ? ministers.filter((m) => m.name.includes(q) || (m.office || "").includes(q) || (m.office_type || "").includes(q) || (m.faction || "").includes(q))
     : ministers;
@@ -4101,16 +4177,20 @@ function CourtDrawer({
     <>
       {open && <button className="drawer-scrim" aria-label="收起" onClick={onClose} />}
       <aside
+        ref={drawerRef}
         className={`court-drawer ${open ? "open" : ""}`}
+        role="dialog"
+        aria-modal={open ? true : undefined}
+        aria-labelledby={titleId}
         aria-hidden={!open}
         inert={!open ? true : undefined}
       >
         <div className="drawer-brand">
           <div className="panel-title">
             <Landmark size={17} />
-            <span>朝堂</span>
+            <span id={titleId}>朝堂</span>
           </div>
-          <button className="icon-button" aria-label="收起" onClick={onClose}><X size={16} /></button>
+          <button ref={closeRef} className="icon-button" aria-label="收起" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="segmented">
           {groups.map((group) => (
@@ -4363,6 +4443,8 @@ function HaremDrawer({
   const [actionName, setActionName] = React.useState("");
   const [notice, setNotice] = React.useState("");
   const [actionBusy, setActionBusy] = React.useState("");
+  const titleId = React.useId();
+  const { drawerRef, closeRef } = useDrawerFocus(open);
   const filtered = q ? consorts.filter((c) => c.name.includes(q)) : consorts;
   const activeConsorts = consorts.filter((c) => c.status === "active");
   React.useEffect(() => {
@@ -4386,16 +4468,20 @@ function HaremDrawer({
     <>
       {open && <button className="drawer-scrim" aria-label="收起" onClick={onClose} />}
       <aside
+        ref={drawerRef}
         className={`court-drawer harem-drawer overlay-panel ${open ? "open" : ""}`}
+        role="dialog"
+        aria-modal={open ? true : undefined}
+        aria-labelledby={titleId}
         aria-hidden={!open}
         inert={!open ? true : undefined}
       >
         <div className="drawer-brand">
           <div className="panel-title">
             <Crown size={17} />
-            <span>后宫</span>
+            <span id={titleId}>后宫</span>
           </div>
-          <button className="icon-button" aria-label="收起" onClick={onClose}><X size={16} /></button>
+          <button ref={closeRef} className="icon-button" aria-label="收起" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="segmented">
           {["全部", "收藏"].map((group) => (
