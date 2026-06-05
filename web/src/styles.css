@@ -236,6 +236,10 @@ select:focus-visible {
   -webkit-tap-highlight-color: transparent;
 }
 
+.province-map-layer [role="button"] {
+  outline: none;
+}
+
 .province-map-layer path:focus,
 .province-map-layer path:focus-visible {
   outline: none;
@@ -268,7 +272,9 @@ select:focus-visible {
 }
 
 .province-external:hover path,
-.province-region:hover path {
+.province-region:hover path,
+.province-external:focus-visible path,
+.province-region:focus-visible path {
   fill-opacity: 0.82;
   stroke: rgba(255, 236, 169, 0.95);
   stroke-width: 0.96;

@@ -1184,7 +1184,6 @@ const getMapIntelStyle = (node: MapNode): React.CSSProperties => {
   const style: React.CSSProperties = {
     left: `${left}%`,
     transform: `translateX(${horizontal})`,
-    maxHeight: "calc(100vh - 24px)",
   };
   if (node.y > 50) {
     style.bottom = "12px";
@@ -2143,12 +2142,7 @@ function App() {
       />
 
       {mapIntelOpen && selectedNode ? (
-        <section className="map-intel-panel overlay-panel" style={mapIntelStyle}>
-          <button className="icon-button panel-close" aria-label="关闭地区详情" onClick={() => setMapIntelOpen(false)}>
-            <X size={16} />
-          </button>
-          <NodeIntel node={selectedNode} />
-        </section>
+        <MapIntelPanel node={selectedNode} style={mapIntelStyle} onClose={() => setMapIntelOpen(false)} />
       ) : null}
 
       {activeModal === "state" ? (
@@ -8369,6 +8363,21 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
                     className={`province-external power-${group.powerId} ${selected ? "selected" : ""}`}
                     data-external-id={group.id}
                     style={{ "--province-fill": fill } as React.CSSProperties}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`查看${group.name}`}
+                    aria-pressed={selected}
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      ev.currentTarget.blur();
+                      onSelect(group.id);
+                    }}
+                    onKeyDown={(ev) => {
+                      if (ev.key === "Enter" || ev.key === " ") {
+                        ev.preventDefault();
+                        onSelect(group.id);
+                      }
+                    }}
                   >
                     {group.paths.map((path) => (
                       <path
@@ -8378,19 +8387,6 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
                         fill={fill}
                         fillOpacity={EXTERNAL_MAP_OPACITY}
                         d={path.d}
-                        onClick={(ev) => {
-                          ev.stopPropagation();
-                          ev.currentTarget.blur();
-                          onSelect(group.id);
-                        }}
-                        role="button"
-                        aria-label={`查看${group.name}`}
-                        onKeyDown={(ev) => {
-                          if (ev.key === "Enter" || ev.key === " ") {
-                            ev.preventDefault();
-                            onSelect(group.id);
-                          }
-                        }}
                       >
                         <title>{group.name}</title>
                       </path>
@@ -8407,6 +8403,21 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
                     data-region-id={region.id}
                     className={`province-region power-${region.controlledBy} ${selected ? "selected" : ""} ${region.controlledBy === "ming" && region.unrest > UNREST_DANGER_THRESHOLD ? "danger" : ""}`}
                     style={{ "--province-fill": fill } as React.CSSProperties}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`查看${region.name}`}
+                    aria-pressed={selected}
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      ev.currentTarget.blur();
+                      onSelect(region.id);
+                    }}
+                    onKeyDown={(ev) => {
+                      if (ev.key === "Enter" || ev.key === " ") {
+                        ev.preventDefault();
+                        onSelect(region.id);
+                      }
+                    }}
                   >
                     {region.paths.map((path) => (
                       <path
@@ -8416,19 +8427,6 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
                         fill={fill}
                         fillOpacity={getRegionMapOpacity(region)}
                         d={path.d}
-                        onClick={(ev) => {
-                          ev.stopPropagation();
-                          ev.currentTarget.blur();
-                          onSelect(region.id);
-                        }}
-                        role="button"
-                        aria-label={`查看${region.name}`}
-                        onKeyDown={(ev) => {
-                          if (ev.key === "Enter" || ev.key === " ") {
-                            ev.preventDefault();
-                            onSelect(region.id);
-                          }
-                        }}
                       >
                         <title>{region.name}</title>
                       </path>
@@ -8493,6 +8491,7 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
                     onSelect(node.id);
                   }}
                   aria-label={`查看${node.region?.name || node.label}`}
+                  aria-pressed={selected}
                   tabIndex={0}
                 >
                   {node.kind === "theater" ? <Shield size={16} /> : <MapPinned size={15} />}
@@ -8511,7 +8510,64 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
   );
 }
 
-function NodeIntel({ node }: { node: MapNode }) {
+function MapIntelPanel({ node, style, onClose }: { node: MapNode; style?: React.CSSProperties; onClose: () => void }) {
+  const titleId = React.useId();
+  const closeRef = React.useRef<HTMLButtonElement | null>(null);
+  const previousFocusRef = React.useRef<((HTMLElement | SVGElement) & { focus: () => void }) | null>(null);
+  const onCloseRef = React.useRef(onClose);
+
+  React.useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  const closePanel = React.useCallback(() => {
+    onCloseRef.current();
+  }, []);
+
+  React.useEffect(() => {
+    const activeElement = document.activeElement;
+    previousFocusRef.current = activeElement && typeof (activeElement as { focus?: unknown }).focus === "function"
+      ? activeElement as (HTMLElement | SVGElement) & { focus: () => void }
+      : null;
+
+    const focusTimer = window.setTimeout(() => {
+      closeRef.current?.focus();
+    }, 0);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closePanel();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", handleKeyDown);
+      const previousFocus = previousFocusRef.current;
+      if (previousFocus && document.contains(previousFocus)) {
+        window.setTimeout(() => previousFocus.focus(), 0);
+      }
+    };
+  }, [closePanel]);
+
+  return (
+    <section
+      className="map-intel-panel overlay-panel"
+      style={style}
+      role="dialog"
+      aria-labelledby={titleId}
+    >
+      <button ref={closeRef} className="icon-button panel-close" aria-label="关闭地区详情" onClick={closePanel}>
+        <X size={16} />
+      </button>
+      <NodeIntel node={node} titleId={titleId} />
+    </section>
+  );
+}
+
+function NodeIntel({ node, titleId }: { node: MapNode; titleId?: string }) {
   const region = node.region;
   const power = node.power;
   if (node.kind === "external") {
@@ -8519,7 +8575,7 @@ function NodeIntel({ node }: { node: MapNode }) {
       <>
         <div className="panel-title">
           <MapPinned size={14} />
-          <span>{region?.name || node.label}</span>
+          <span id={titleId}>{region?.name || node.label}</span>
         </div>
         <table className="intel-table">
           <tbody>
@@ -8534,7 +8590,7 @@ function NodeIntel({ node }: { node: MapNode }) {
     <>
       <div className="panel-title">
         {node.kind === "theater" ? <Shield size={14} /> : <MapPinned size={14} />}
-        <span>{region?.name || node.label}</span>
+        <span id={titleId}>{region?.name || node.label}</span>
       </div>
       {region ? (
         <table className="intel-table">
