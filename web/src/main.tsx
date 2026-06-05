@@ -2931,14 +2931,14 @@ function RightNavBar({
   activeDrawer: string;
 }) {
   const items = [
-    { key: "court", label: "政", title: "朝堂·召见大臣", onClick: onToggleCourt },
-    { key: "harem", label: "内", title: "后宫", onClick: onToggleHarem },
-    { key: "army", label: "兵", title: "军队列表", onClick: onToggleArmy },
-    { key: "region", label: "省", title: "省份列表", onClick: onToggleRegion },
-    { key: "building", label: "工", title: "建筑列表", onClick: onToggleBuilding },
-    { key: "economy", label: "户", title: "经济面板", onClick: onToggleEconomy },
-    { key: "appointment", label: "吏", title: "吏部考核", onClick: onToggleAppointment },
-    { key: "organization", label: "制", title: "组织架构", onClick: onToggleOrganization },
+    { key: "court", label: "政", short: "朝堂", title: "朝堂·召见大臣", onClick: onToggleCourt },
+    { key: "harem", label: "内", short: "后宫", title: "后宫", onClick: onToggleHarem },
+    { key: "army", label: "兵", short: "军队", title: "军队列表", onClick: onToggleArmy },
+    { key: "region", label: "省", short: "省份", title: "省份列表", onClick: onToggleRegion },
+    { key: "building", label: "工", short: "建筑", title: "建筑列表", onClick: onToggleBuilding },
+    { key: "economy", label: "户", short: "经济", title: "经济面板", onClick: onToggleEconomy },
+    { key: "appointment", label: "吏", short: "吏部", title: "吏部考核", onClick: onToggleAppointment },
+    { key: "organization", label: "制", short: "组织", title: "组织架构", onClick: onToggleOrganization },
   ];
   return (
     <nav className="right-nav-bar" aria-label="六部入口">
@@ -2950,7 +2950,8 @@ function RightNavBar({
           aria-label={item.title}
           onClick={item.onClick}
         >
-          {item.label}
+          <span className="right-nav-glyph">{item.label}</span>
+          <span className="right-nav-label">{item.short}</span>
         </button>
       ))}
       <button
@@ -2959,7 +2960,8 @@ function RightNavBar({
         aria-label="大明长期目标"
         onClick={onOpenLongGoals}
       >
-        目
+        <span className="right-nav-glyph">目</span>
+        <span className="right-nav-label">目标</span>
       </button>
     </nav>
   );
@@ -4463,11 +4465,11 @@ function TopStatusBar({
             {key} <b>{state.metrics[key]}</b>
           </span>
         ))}
-        <button className="status-menu" onClick={onOpenMenu} aria-label="游戏菜单">
-          <Menu size={16} />
-          <span>菜单</span>
-        </button>
       </div>
+      <button className="status-menu" onClick={onOpenMenu} aria-label="游戏菜单">
+        <Menu size={16} />
+        <span>菜单</span>
+      </button>
     </header>
     <LegacyBar legacies={state.legacies} />
     </>
@@ -4562,23 +4564,51 @@ function formatLegacyEffect(eff: LegacyEffect): string {
 
 function LegacyBar({ legacies }: { legacies: Legacy[] }) {
   const [open, setOpen] = React.useState(false);
+  const titleId = React.useId();
+  const dialogId = React.useId();
+  const triggerRef = React.useRef<HTMLButtonElement | null>(null);
+  const closeRef = React.useRef<HTMLButtonElement | null>(null);
+  const closeModal = React.useCallback(() => {
+    setOpen(false);
+    window.setTimeout(() => triggerRef.current?.focus(), 0);
+  }, []);
+  React.useEffect(() => {
+    if (!open) return;
+    window.setTimeout(() => closeRef.current?.focus(), 0);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeModal();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [closeModal, open]);
   if (!legacies || legacies.length === 0) return null;
   return (
     <>
       <button
+        ref={triggerRef}
         className="legacy-bar"
         aria-label="现行帝国修正"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-controls={open ? dialogId : undefined}
         onClick={() => setOpen(true)}
       >
         <span className="legacy-bar-label">帝国修正</span>
         <span className="legacy-bar-count">{legacies.length}</span>
       </button>
       {open && (
-        <div className="legacy-modal-backdrop" onClick={() => setOpen(false)}>
-          <div className="legacy-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="legacy-modal-backdrop">
+          <button type="button" className="legacy-modal-scrim" aria-label="关闭帝国修正" onClick={closeModal} />
+          <div
+            id={dialogId}
+            className="legacy-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+          >
             <div className="legacy-modal-head">
-              <h3>现行帝国修正</h3>
-              <button className="legacy-modal-close" onClick={() => setOpen(false)} aria-label="关闭">×</button>
+              <h3 id={titleId}>现行帝国修正</h3>
+              <button ref={closeRef} className="legacy-modal-close" onClick={closeModal} aria-label="关闭">×</button>
             </div>
             <ul className="legacy-list">
               {legacies.map((lg) => (
@@ -4604,8 +4634,33 @@ function LegacyBar({ legacies }: { legacies: Legacy[] }) {
 
 function BudgetHover({ accountName, budget }: { accountName: "国库" | "内库"; budget: BudgetAccount }) {
   const [open, setOpen] = React.useState(false);
+  const rootRef = React.useRef<HTMLSpanElement | null>(null);
+  const popoverId = React.useId();
+  React.useEffect(() => {
+    if (!open) return;
+    const handleOutsidePress = (event: Event) => {
+      if (!rootRef.current || !(event.target instanceof Node)) return;
+      if (!rootRef.current.contains(event.target)) setOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", handleOutsidePress, true);
+    document.addEventListener("mousedown", handleOutsidePress, true);
+    document.addEventListener("touchstart", handleOutsidePress, true);
+    document.addEventListener("click", handleOutsidePress, true);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handleOutsidePress, true);
+      document.removeEventListener("mousedown", handleOutsidePress, true);
+      document.removeEventListener("touchstart", handleOutsidePress, true);
+      document.removeEventListener("click", handleOutsidePress, true);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
   return (
     <span
+      ref={rootRef}
       className={`budget-hover ${open ? "open" : ""}`}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
@@ -4616,12 +4671,14 @@ function BudgetHover({ accountName, budget }: { accountName: "国库" | "内库"
         className="status-money budget-trigger"
         type="button"
         aria-label={`查看${accountName}固定收支`}
+        aria-expanded={open}
+        aria-controls={popoverId}
         onClick={() => setOpen((current) => !current)}
       >
         <span>{accountName} <b>{formatMoney(budget.balance)}</b></span>
         <small className={budget.net >= 0 ? "income" : "expense"}>月 {formatSignedMoney(budget.net)}</small>
       </button>
-      <span className="budget-popover" role="tooltip">
+      <span className="budget-popover" id={popoverId} role="tooltip">
         <span className="budget-popover-head">
           <b>{accountName}月度定额</b>
           <span className="budget-summary">
@@ -4770,20 +4827,96 @@ function FullscreenModal({
   children: React.ReactNode;
   headerExtra?: React.ReactNode;
 }) {
+  const titleId = React.useId();
+  const subtitleId = React.useId();
+  const modalRef = React.useRef<HTMLDivElement | null>(null);
+  const closeRef = React.useRef<HTMLButtonElement | null>(null);
+  const previousFocusRef = React.useRef<HTMLElement | null>(null);
+  const onCloseRef = React.useRef(onClose);
+
+  React.useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  const closeModal = React.useCallback(() => {
+    onCloseRef.current();
+  }, []);
+
+  React.useEffect(() => {
+    const activeElement = document.activeElement;
+    previousFocusRef.current = activeElement instanceof HTMLElement ? activeElement : null;
+
+    const focusTimer = window.setTimeout(() => {
+      const modal = modalRef.current;
+      const current = document.activeElement;
+      if (modal && current instanceof HTMLElement && modal.contains(current)) return;
+      closeRef.current?.focus();
+    }, 0);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeModal();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const modal = modalRef.current;
+      if (!modal) return;
+      const focusable = Array.from(
+        modal.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => (
+        element.getAttribute("aria-hidden") !== "true"
+        && (element.offsetWidth > 0 || element.offsetHeight > 0 || element.getClientRects().length > 0)
+      ));
+
+      if (!focusable.length) {
+        event.preventDefault();
+        closeRef.current?.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && (!(active instanceof HTMLElement) || active === first || !modal.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", handleKeyDown);
+      const previousFocus = previousFocusRef.current;
+      if (previousFocus && document.contains(previousFocus)) {
+        window.setTimeout(() => previousFocus.focus(), 0);
+      }
+    };
+  }, [closeModal]);
+
   return (
-    <section className="fullscreen-layer" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="fullscreen-scrim" onClick={onClose} />
-      <div className={`fullscreen-modal ${bgClass || ""}`}>
+    <section className="fullscreen-layer" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={subtitleId}>
+      <div className="fullscreen-scrim" aria-hidden="true" onClick={closeModal} />
+      <div className={`fullscreen-modal ${bgClass || ""}`} ref={modalRef}>
         <header className="modal-header">
           <div className="modal-title">
             <div>
-              <h1>{title}</h1>
-              <span>{subtitle}</span>
+              <h1 id={titleId}>{title}</h1>
+              <span id={subtitleId}>{subtitle}</span>
             </div>
           </div>
           <div className="modal-header-actions">
             {headerExtra}
-            <button className="icon-button" aria-label="关闭弹窗" onClick={onClose}>
+            <button ref={closeRef} className="icon-button" aria-label="关闭弹窗" onClick={closeModal}>
               <X size={18} />
             </button>
           </div>
@@ -4806,8 +4939,8 @@ type ExtractionData = {
 function ReportModal({ report, onClose }: { report: string; onClose: () => void }) {
   return (
     <FullscreenModal title="月末奏疏" subtitle="推演结果" bgClass="modal-bg-state" onClose={onClose}>
-      <article className="state-document modal-scroll">
-        <div className="document-section">
+      <article className="state-document report-document modal-scroll">
+        <div className="document-section report-section">
           <pre className="memorial-text">{report}</pre>
         </div>
       </article>
@@ -4932,11 +5065,9 @@ function SecretOrdersModal({
             const urgency = secretOrderUrgency(o, currentTurn);
             const risk = secretOrderRisk(o, currentTurn);
             return (
-              <button
+              <article
                 key={o.id}
-                type="button"
-                className={`secret-order-card secret-order-card-button ${statusCls[o.status] || ""} risk-${risk.tone}`}
-                onClick={() => setSelectedOrder(o)}
+                className={`secret-order-card ${statusCls[o.status] || ""} risk-${risk.tone}`}
               >
                 <div className="so-header">
                   <span className="so-title"><Lock size={13} />{o.title}</span>
@@ -4954,21 +5085,28 @@ function SecretOrdersModal({
                   </div>
                 ) : null}
                 {o.content ? <p className="so-card-preview">{o.content}</p> : null}
-                <div className="so-open-hint">点击查看密令详情</div>
-                {o.status === "active" && (
+                <div className="so-card-actions">
                   <button
-                    className="secondary-action so-goto"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onClose();
-                      onOpenMinister(o.minister_name);
-                    }}
+                    type="button"
+                    className="secondary-action so-detail-open"
+                    onClick={() => setSelectedOrder(o)}
                   >
-                    <MessageSquare size={13} />
-                    召见 {o.minister_name}
+                    查看详情
                   </button>
-                )}
-              </button>
+                  {o.status === "active" && (
+                    <button
+                      className="secondary-action so-goto"
+                      onClick={() => {
+                        onClose();
+                        onOpenMinister(o.minister_name);
+                      }}
+                    >
+                      <MessageSquare size={13} />
+                      召见 {o.minister_name}
+                    </button>
+                  )}
+                </div>
+              </article>
             );
           })}
         </div>
@@ -5271,6 +5409,26 @@ function HistoryModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+type GameMenuTab = "save" | "load" | "llm" | "reset" | "exit_menu" | "shutdown";
+
+const GAME_MENU_TABS: Array<{ id: GameMenuTab; label: string }> = [
+  { id: "save", label: "保存存档" },
+  { id: "load", label: "加载存档" },
+  { id: "llm", label: "LLM 配置" },
+  { id: "reset", label: "重开新局" },
+  { id: "exit_menu", label: "回到主菜单" },
+  { id: "shutdown", label: "退出游戏" },
+];
+
+function GameMenuTabIcon({ tab }: { tab: GameMenuTab }) {
+  if (tab === "save") return <Save size={14} />;
+  if (tab === "load") return <Upload size={14} />;
+  if (tab === "llm") return <Settings size={14} />;
+  if (tab === "reset") return <RotateCcw size={14} />;
+  if (tab === "exit_menu") return <LogOut size={14} />;
+  return <Power size={14} />;
+}
+
 function GameMenuModal({
   onClose,
   onAfterLoad,
@@ -5280,46 +5438,139 @@ function GameMenuModal({
   onAfterLoad: () => void;
   onExitToMenu: () => void;
 }) {
-  const [tab, setTab] = React.useState<"save" | "load" | "llm" | "reset" | "exit_menu" | "shutdown">("save");
+  const [tab, setTab] = React.useState<GameMenuTab>("save");
+  const titleId = React.useId();
+  const tabsId = React.useId();
+  const panelId = React.useId();
+  const modalRef = React.useRef<HTMLDivElement | null>(null);
+  const firstTabRef = React.useRef<HTMLButtonElement | null>(null);
+  const closeRef = React.useRef<HTMLButtonElement | null>(null);
+  const previousFocusRef = React.useRef<HTMLElement | null>(null);
+  const onCloseRef = React.useRef(onClose);
+
   React.useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    onCloseRef.current = onClose;
   }, [onClose]);
+
+  const closeModal = React.useCallback(() => {
+    onCloseRef.current();
+  }, []);
+
+  React.useEffect(() => {
+    const activeElement = document.activeElement;
+    previousFocusRef.current = activeElement instanceof HTMLElement ? activeElement : null;
+
+    const focusTimer = window.setTimeout(() => {
+      const modal = modalRef.current;
+      const current = document.activeElement;
+      if (modal && current instanceof HTMLElement && modal.contains(current)) return;
+      (firstTabRef.current || closeRef.current)?.focus();
+    }, 0);
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeModal();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const modal = modalRef.current;
+      if (!modal) return;
+      const focusable = Array.from(
+        modal.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => (
+        element.getAttribute("aria-hidden") !== "true"
+        && (element.offsetWidth > 0 || element.offsetHeight > 0 || element.getClientRects().length > 0)
+      ));
+
+      if (!focusable.length) {
+        event.preventDefault();
+        closeRef.current?.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && (!(active instanceof HTMLElement) || active === first || !modal.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKey);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", onKey);
+      const previousFocus = previousFocusRef.current;
+      if (previousFocus && document.contains(previousFocus)) {
+        window.setTimeout(() => previousFocus.focus(), 0);
+      }
+    };
+  }, [closeModal]);
+
+  const focusTab = React.useCallback((nextTab: GameMenuTab) => {
+    window.setTimeout(() => {
+      document.getElementById(`${tabsId}-${nextTab}`)?.focus();
+    }, 0);
+  }, [tabsId]);
+
+  const selectTab = React.useCallback((nextTab: GameMenuTab) => {
+    setTab(nextTab);
+    focusTab(nextTab);
+  }, [focusTab]);
+
+  const handleTabKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLButtonElement>, currentTab: GameMenuTab) => {
+    if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const currentIndex = GAME_MENU_TABS.findIndex((item) => item.id === currentTab);
+    const lastIndex = GAME_MENU_TABS.length - 1;
+    let nextIndex = currentIndex;
+    if (event.key === "ArrowUp" || event.key === "ArrowLeft") nextIndex = currentIndex <= 0 ? lastIndex : currentIndex - 1;
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") nextIndex = currentIndex >= lastIndex ? 0 : currentIndex + 1;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = lastIndex;
+    selectTab(GAME_MENU_TABS[nextIndex].id);
+  }, [selectTab]);
+
   return (
-    <section className="center-layer" role="dialog" aria-modal="true" aria-label="游戏菜单">
-      <div className="center-scrim" onClick={onClose} />
-      <div className="center-modal">
+    <section className="center-layer" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div className="center-scrim" aria-hidden="true" onClick={closeModal} />
+      <div className="center-modal" ref={modalRef}>
         <header className="center-modal-header">
-          <h1>游戏菜单</h1>
-          <button className="icon-button" aria-label="关闭弹窗" onClick={onClose}>
+          <h1 id={titleId}>游戏菜单</h1>
+          <button ref={closeRef} className="icon-button" aria-label="关闭弹窗" onClick={closeModal}>
             <X size={18} />
           </button>
         </header>
         <div className="game-menu">
-          <nav className="game-menu-tabs">
-            <button className={tab === "save" ? "active" : ""} onClick={() => setTab("save")}>
-              <Save size={14} /> 保存存档
-            </button>
-            <button className={tab === "load" ? "active" : ""} onClick={() => setTab("load")}>
-              <Upload size={14} /> 加载存档
-            </button>
-            <button className={tab === "llm" ? "active" : ""} onClick={() => setTab("llm")}>
-              <Settings size={14} /> LLM 配置
-            </button>
-            <button className={tab === "reset" ? "active" : ""} onClick={() => setTab("reset")}>
-              <RotateCcw size={14} /> 重开新局
-            </button>
-            <button className={tab === "exit_menu" ? "active" : ""} onClick={() => setTab("exit_menu")}>
-              <LogOut size={14} /> 回到主菜单
-            </button>
-            <button className={tab === "shutdown" ? "active" : ""} onClick={() => setTab("shutdown")}>
-              <Power size={14} /> 退出游戏
-            </button>
+          <nav className="game-menu-tabs" aria-label="游戏菜单分类">
+            {GAME_MENU_TABS.map((item, index) => {
+              const active = tab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  id={`${tabsId}-${item.id}`}
+                  ref={index === 0 ? firstTabRef : undefined}
+                  className={active ? "active" : ""}
+                  aria-current={active ? "page" : undefined}
+                  aria-controls={active ? panelId : undefined}
+                  onClick={() => selectTab(item.id)}
+                  onKeyDown={(event) => handleTabKeyDown(event, item.id)}
+                >
+                  <GameMenuTabIcon tab={item.id} /> {item.label}
+                </button>
+              );
+            })}
           </nav>
-          <div className="game-menu-body">
+          <div className="game-menu-body" id={panelId} aria-labelledby={`${tabsId}-${tab}`}>
             {tab === "save" ? <SaveTab /> : null}
             {tab === "load" ? <LoadTab onAfterLoad={onAfterLoad} /> : null}
             {tab === "llm" ? <LLMConfigTab /> : null}
@@ -6346,9 +6597,77 @@ function PreviousSummary({ summary }: { summary: string }) {
 
 function StateModal({ state }: { state: GameState }) {
   const report = state.last_report || state.previous_summary;
+  const emptyBudget: BudgetAccount = {
+    balance: 0,
+    income: [],
+    expense: [],
+    income_total: 0,
+    expense_total: 0,
+    net: 0,
+    movements: [],
+    movements_total: 0,
+  };
+  const treasuryBudget = state.budget?.["国库"] || emptyBudget;
+  const privateBudget = state.budget?.["内库"] || emptyBudget;
+  const peopleScore = state.metrics?.["民心"] ?? 0;
+  const authorityScore = state.metrics?.["皇威"] ?? 0;
+  const activeIssues = (state.issues || [])
+    .filter((issue) => issue.kind === "situation" || issue.kind === "initiative")
+    .sort((a, b) => a.bar_value - b.bar_value);
+  const urgentIssue = activeIssues[0] || null;
+  const draftCount = (state.directives || []).filter((directive) => directive.status !== "pending").length;
+  const pendingCount = (state.directives || []).filter((directive) => directive.status === "pending").length;
   return (
     <article className="state-document modal-scroll">
-      <section className="document-section">
+      <section className="document-section state-brief-section" aria-label="当前国势摘要">
+        <div className="state-brief-head">
+          <span>御前摘要</span>
+          <b>{state.turn.year} 年 {state.turn.period} 月</b>
+        </div>
+        <div className="state-brief-grid">
+          <div className={`state-brief-card ${treasuryBudget.net >= 0 ? "good" : "danger"}`}>
+            <span>国库</span>
+            <b>{formatMoney(treasuryBudget.balance)}</b>
+            <small>月净 {formatSignedMoney(treasuryBudget.net)}</small>
+          </div>
+          <div className={`state-brief-card ${privateBudget.net >= 0 ? "good" : "warn"}`}>
+            <span>内库</span>
+            <b>{formatMoney(privateBudget.balance)}</b>
+            <small>月净 {formatSignedMoney(privateBudget.net)}</small>
+          </div>
+          <div className={`state-brief-card ${scoreTone(peopleScore, false)}`}>
+            <span>民心</span>
+            <b>{peopleScore}</b>
+            <small>低则民变、抗粮加剧</small>
+          </div>
+          <div className={`state-brief-card ${scoreTone(authorityScore, false)}`}>
+            <span>皇威</span>
+            <b>{authorityScore}</b>
+            <small>低则诏令摩擦增大</small>
+          </div>
+        </div>
+        <div className="state-brief-ledger">
+          <span>待阅奏疏 <b>{state.events?.length ?? 0}</b></span>
+          <span>草案 <b>{draftCount}</b></span>
+          <span>待核指令 <b>{pendingCount}</b></span>
+          <span>本月结案 <b>{state.closed_this_turn?.length ?? 0}</b></span>
+        </div>
+        {urgentIssue ? (
+          <div className={`state-brief-issue ${issueTone(urgentIssue.bar_value)}`}>
+            <span>最紧局势</span>
+            <b>{urgentIssue.title} · {urgentIssue.bar_value}/100</b>
+            <small>{urgentIssue.stage_text || urgentIssue.ongoing_text || urgentIssue.fail_condition}</small>
+          </div>
+        ) : (
+          <div className="state-brief-issue good">
+            <span>局势</span>
+            <b>暂无进行中局势</b>
+            <small>本月没有需要持续推进的危机条。</small>
+          </div>
+        )}
+      </section>
+      <section className="document-section state-report-section">
+        <h2>上月奏报</h2>
         {report
           ? <pre className="memorial-text">{report}</pre>
           : <div className="empty-note">尚无上月奏报。</div>}
@@ -6445,7 +6764,17 @@ function SituationPanel({
   hasLegacies: boolean;
 }) {
   const active = issues.filter((issue) => issue.kind === "situation" || issue.kind === "initiative");
-  const [collapsed, setCollapsed] = React.useState(false);
+  const [collapsed, setCollapsed] = React.useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 820px)").matches
+  );
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(max-width: 820px)");
+    const syncCollapsedToViewport = () => setCollapsed(media.matches);
+    syncCollapsedToViewport();
+    media.addEventListener("change", syncCollapsedToViewport);
+    return () => media.removeEventListener("change", syncCollapsedToViewport);
+  }, []);
   if (!active.length && !closedIssues.length) return null;
   const bySeq = (a: Issue, b: Issue) => {
     if (a.kind !== b.kind) return a.kind === "initiative" ? -1 : 1;
@@ -6463,6 +6792,7 @@ function SituationPanel({
           type="button"
           className="situation-toggle"
           aria-label={collapsed ? "展开局势" : "收起局势"}
+          aria-expanded={!collapsed}
           onClick={() => setCollapsed((c) => !c)}
         >{collapsed ? "+" : "−"}</button>
       </div>
@@ -7099,10 +7429,15 @@ function ChatModal({
             </div>
             <p className="profile-copy">{minister.summary}</p>
           </div>
-          <NetworkProfileBlock profile={minister.network_profile} />
-          <StanceNotes notes={minister.stance_notes} />
-          <XinpanProfileBlock profile={minister.xinpan_profile} />
-          <TiangangSpectrum profile={minister.tiangang_profile} />
+          <details className="chat-intel-details" open>
+            <summary>人物情报</summary>
+            <div className="chat-intel-detail-body">
+              <NetworkProfileBlock profile={minister.network_profile} />
+              <StanceNotes notes={minister.stance_notes} />
+              <XinpanProfileBlock profile={minister.xinpan_profile} />
+              <TiangangSpectrum profile={minister.tiangang_profile} />
+            </div>
+          </details>
           <button className="secondary-action" onClick={onOpenEdict}>
             <ScrollText size={15} />
             转入诏书草案
@@ -7126,6 +7461,12 @@ function ChatModal({
 
       <section className="modal-pane chat-main">
         <div className="chat-log" ref={chatLogRef}>
+          {!displayMessages.length && !busy && !chatEffectNotices.length && !chatNotice && !error ? (
+            <div className="chat-empty-state">
+              <b>尚未开问</b>
+              <span>可先问钱粮、军情、地方阻力，或用下方「拟旨」「下密令」起草行动。</span>
+            </div>
+          ) : null}
           {displayMessages.map((message, index) => (
             <div className={`chat-message ${message.role} ${message.pending ? "pending" : ""}`} key={`${message.role}-${index}-${message.content}`}>
               <span>{message.role === "user" ? "朕" : minister.name}</span>
@@ -8390,48 +8731,50 @@ function ApiSettingsModal({
       <div className="menu-modal" onClick={(e) => e.stopPropagation()}>
         <h2>设置 API</h2>
         <p className="menu-hint">推荐 DeepSeek（中文好、价格便宜）。配置写入本地，不上传。</p>
-        <label>
-          Base URL
-          <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.deepseek.com" />
-        </label>
-        <label>
-          Model
-          <input value={model} onChange={(e) => setModel(e.target.value)} placeholder="deepseek-chat" />
-        </label>
-        <label>
-          Thinking Level <small className="menu-hint">（空=默认，请填写你的模型支持的值。）</small>
-          <input value={thinkingLevel} onChange={(e) => setThinkingLevel(e.target.value)} placeholder="默认" />
-        </label>
-        <label>
-          Advanced Model <small className="menu-hint">（推演 + 打分专用；留空 fallback）</small>
-          <input value={advancedModel} onChange={(e) => setAdvancedModel(e.target.value)} placeholder="deepseek-reasoner / gpt-5" />
-        </label>
-        <label>
-          Advanced Base URL <small className="menu-hint">（advanced 专用网关；留空复用主 Base URL）</small>
-          <input value={advancedBaseUrl} onChange={(e) => setAdvancedBaseUrl(e.target.value)} placeholder="https://other-gateway/v1" />
-        </label>
-        <label>
-          Advanced API Key{" "}
-          <small className="menu-hint">{initial?.has_advanced_api_key ? "(已配置；留空保留)" : "(留空=复用主 API Key)"}</small>
-          <input type="password" value={advancedApiKey} onChange={(e) => setAdvancedApiKey(e.target.value)} placeholder={initial?.has_advanced_api_key ? "(已配置；如需更换请重新填写)" : "留空=复用主 Key"} />
-        </label>
-        <label>
-          Advanced Thinking Level <small className="menu-hint">（空=默认，请填写你的模型支持的值。）</small>
-          <input value={advancedThinkingLevel} onChange={(e) => setAdvancedThinkingLevel(e.target.value)} placeholder="默认" />
-        </label>
-        <label>
-          Max Tokens
-          <input type="number" min={256} max={65536} value={maxTokens} onChange={(e) => setMaxTokens(e.target.value)} placeholder="8000" />
-        </label>
-        <label>
-          Timeout Seconds
-          <input type="number" min={10} max={900} value={timeoutSeconds} onChange={(e) => setTimeoutSeconds(e.target.value)} placeholder="180" />
-        </label>
-        <label>
-          API Key
-          <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder={initial?.has_api_key ? "(已配置；如需更换请重新填写)" : "sk-..."} />
-        </label>
-        {err && <div className="menu-error">{err}</div>}
+        <div className="menu-modal-fields">
+          <label>
+            Base URL
+            <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://api.deepseek.com" />
+          </label>
+          <label>
+            Model
+            <input value={model} onChange={(e) => setModel(e.target.value)} placeholder="deepseek-chat" />
+          </label>
+          <label>
+            Thinking Level <small className="menu-hint">（空=默认，请填写你的模型支持的值。）</small>
+            <input value={thinkingLevel} onChange={(e) => setThinkingLevel(e.target.value)} placeholder="默认" />
+          </label>
+          <label>
+            Advanced Model <small className="menu-hint">（推演 + 打分专用；留空 fallback）</small>
+            <input value={advancedModel} onChange={(e) => setAdvancedModel(e.target.value)} placeholder="deepseek-reasoner / gpt-5" />
+          </label>
+          <label>
+            Advanced Base URL <small className="menu-hint">（advanced 专用网关；留空复用主 Base URL）</small>
+            <input value={advancedBaseUrl} onChange={(e) => setAdvancedBaseUrl(e.target.value)} placeholder="https://other-gateway/v1" />
+          </label>
+          <label>
+            Advanced API Key{" "}
+            <small className="menu-hint">{initial?.has_advanced_api_key ? "(已配置；留空保留)" : "(留空=复用主 API Key)"}</small>
+            <input type="password" value={advancedApiKey} onChange={(e) => setAdvancedApiKey(e.target.value)} placeholder={initial?.has_advanced_api_key ? "(已配置；如需更换请重新填写)" : "留空=复用主 Key"} />
+          </label>
+          <label>
+            Advanced Thinking Level <small className="menu-hint">（空=默认，请填写你的模型支持的值。）</small>
+            <input value={advancedThinkingLevel} onChange={(e) => setAdvancedThinkingLevel(e.target.value)} placeholder="默认" />
+          </label>
+          <label>
+            Max Tokens
+            <input type="number" min={256} max={65536} value={maxTokens} onChange={(e) => setMaxTokens(e.target.value)} placeholder="8000" />
+          </label>
+          <label>
+            Timeout Seconds
+            <input type="number" min={10} max={900} value={timeoutSeconds} onChange={(e) => setTimeoutSeconds(e.target.value)} placeholder="180" />
+          </label>
+          <label>
+            API Key
+            <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder={initial?.has_api_key ? "(已配置；如需更换请重新填写)" : "sk-..."} />
+          </label>
+          {err && <div className="menu-error">{err}</div>}
+        </div>
         <div className="menu-modal-actions">
           <button onClick={onClose} disabled={busy}>取消</button>
           <button className="primary" onClick={onSave} disabled={busy || !baseUrl.trim() || !model.trim() || (!apiKey.trim() && !initial?.has_api_key)}>
@@ -8473,39 +8816,41 @@ function SaveListModal({
     <div className="menu-modal-bg" onClick={onClose}>
       <div className="menu-modal" onClick={(e) => e.stopPropagation()}>
         <h2>加载存档</h2>
-        {delErr ? <div className="menu-error">{delErr}</div> : null}
-        {hasAny ? (
-          <div className="menu-campaign-list">
-            {campaigns.map((c) => (
-              <div key={c.campaign_id || "__manual__"} className="menu-campaign">
-                <div className="menu-campaign-head">
-                  <span>{c.kind === "manual" ? "手动存档" : `战局 ${c.campaign_id.slice(0, 6)}`}</span>
-                  {c.current ? <span className="menu-campaign-badge">本局</span> : null}
+        <div className="menu-modal-scroll">
+          {delErr ? <div className="menu-error">{delErr}</div> : null}
+          {hasAny ? (
+            <div className="menu-campaign-list">
+              {campaigns.map((c) => (
+                <div key={c.campaign_id || "__manual__"} className="menu-campaign">
+                  <div className="menu-campaign-head">
+                    <span>{c.kind === "manual" ? "手动存档" : `战局 ${c.campaign_id.slice(0, 6)}`}</span>
+                    {c.current ? <span className="menu-campaign-badge">本局</span> : null}
+                  </div>
+                  <ul className="menu-save-list">
+                    {c.saves.map((s) => (
+                      <li key={s.name} className="menu-save-row">
+                        <button className="menu-save-load" onClick={() => onLoad(s.name)}>
+                          <span className="save-name">{s.label || s.name}</span>
+                          <span className="save-meta">{new Date(s.mtime * 1000).toLocaleString("zh-CN")}</span>
+                        </button>
+                        <button
+                          className="menu-save-del"
+                          title="删除存档"
+                          disabled={delBusy === s.name}
+                          onClick={() => handleDelete(s.name, s.label)}
+                        >
+                          {delBusy === s.name ? <Loader2 size={14} className="spin" /> : <Trash2 size={14} />}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="menu-save-list">
-                  {c.saves.map((s) => (
-                    <li key={s.name} className="menu-save-row">
-                      <button className="menu-save-load" onClick={() => onLoad(s.name)}>
-                        <span className="save-name">{s.label || s.name}</span>
-                        <span className="save-meta">{new Date(s.mtime * 1000).toLocaleString("zh-CN")}</span>
-                      </button>
-                      <button
-                        className="menu-save-del"
-                        title="删除存档"
-                        disabled={delBusy === s.name}
-                        onClick={() => handleDelete(s.name, s.label)}
-                      >
-                        {delBusy === s.name ? <Loader2 size={14} className="spin" /> : <Trash2 size={14} />}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="menu-empty">暂无存档。</p>
-        )}
+              ))}
+            </div>
+          ) : (
+            <p className="menu-empty">暂无存档。</p>
+          )}
+        </div>
         <div className="menu-modal-actions">
           <button onClick={onClose}>关闭</button>
         </div>
