@@ -134,6 +134,46 @@ def run_probe() -> None:
         )
         assert_true(abandoned.get("event") == "abandoned", "abandon phrase should abandon active/waiting goal")
 
+        rollback_actor = content.characters["温体仁"]
+        rollback_before = db.capture_chat_rollback_snapshot()
+        chat_turn_id = db.create_chat_turn(state, rollback_actor.name, "probe-rollback", 0)
+        rollback_text = "朕命你承办清丈新政，先替朕压住部院掣肘。"
+        prep = prepare_dialogue_context(db, state, rollback_actor, rollback_text, persistent=True)
+        record_dialogue_effects(
+            db,
+            state,
+            rollback_actor,
+            rollback_text,
+            "臣愿承办，但须先有明旨定章程，并给部院会同名分。",
+            prep,
+            source_chat_turn_id=chat_turn_id,
+        )
+        rollback_after = db.capture_chat_rollback_snapshot()
+        db.record_chat_turn_rollback_diffs(chat_turn_id, rollback_before, rollback_after)
+        assert_true(
+            len(rollback_after["conversation_goals"]) > len(rollback_before["conversation_goals"]),
+            "rollback setup should create a goal",
+        )
+        assert_true(
+            len(rollback_after["conversation_goal_events"]) > len(rollback_before["conversation_goal_events"]),
+            "rollback setup should create goal events",
+        )
+        db.undo_chat_turn(chat_turn_id)
+        rollback_restored = db.capture_chat_rollback_snapshot()
+        for table in (
+            "conversation_goals",
+            "conversation_goal_events",
+            "minister_stances",
+            "xinpan_states",
+            "xinpan_logs",
+            "negotiation_agreements",
+            "negotiation_tasks",
+        ):
+            assert_true(
+                rollback_restored[table] == rollback_before[table],
+                f"undo should restore {table}",
+            )
+
         print("[dialogue_goal_probe] ok")
 
 
