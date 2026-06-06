@@ -643,6 +643,7 @@ def apply_chat_xinpan_update(
     handshake_status: str = "none",
     psychological_score: int = 0,
     source_chat_turn_id: int = 0,
+    goal_context: Optional[Dict[str, object]] = None,
 ) -> Optional[Dict[str, object]]:
     row = ensure_xinpan_state(db, state, minister_name)
     if row is None:
@@ -682,6 +683,37 @@ def apply_chat_xinpan_update(
     if re.search(r"强旨|不许推辞|必须奉行|若不从", combined):
         item["fear"] = _clamp(float(item.get("fear") or 0) + 2.0, 0, 100)
         shi_delta -= 1.5
+
+    goal_context = goal_context if isinstance(goal_context, dict) else {}
+    goal_event = str(goal_context.get("event") or "")
+    goal_status = str(goal_context.get("status") or "")
+    action_kind = str(goal_context.get("action_kind") or "")
+    if goal_event == "sealed":
+        shi_delta += 2.0
+        item["trust_coeff"] = _clamp(float(item.get("trust_coeff") or 1.0) * 1.02, 0.25, 1.0)
+        if action_kind in {"castration", "emancipation"}:
+            item["hatred"] = _clamp(float(item.get("hatred") or 0) - 1.0, 0, 100)
+    elif goal_event == "conditions_satisfied":
+        shi_delta += 5.0
+        item["trust_coeff"] = _clamp(float(item.get("trust_coeff") or 1.0) * 1.05, 0.25, 1.0)
+        item["hatred"] = _clamp(float(item.get("hatred") or 0) - 2.0, 0, 100)
+    elif goal_event == "waiting_conditions":
+        shi_delta += 0.5
+    elif goal_event == "blocked":
+        shi_delta -= 3.0
+        item["trust_coeff"] = _clamp(float(item.get("trust_coeff") or 1.0) * 0.96, 0.25, 1.0)
+        if goal_context.get("pressure"):
+            item["fear"] = _clamp(float(item.get("fear") or 0) + 2.5, 0, 100)
+            item["hatred"] = _clamp(float(item.get("hatred") or 0) + 3.0, 0, 100)
+    elif goal_event == "abandoned":
+        shi_delta -= 1.0
+        item["trust_coeff"] = _clamp(float(item.get("trust_coeff") or 1.0) * 0.98, 0.25, 1.0)
+    elif goal_event == "switched":
+        shi_delta -= 2.0
+        item["trust_coeff"] = _clamp(float(item.get("trust_coeff") or 1.0) * 0.95, 0.25, 1.0)
+        item["hatred"] = _clamp(float(item.get("hatred") or 0) + 1.5, 0, 100)
+    elif goal_status == "waiting_conditions":
+        shi_delta += 0.5
 
     item["shi_he"] = round(_clamp(float(item.get("shi_he") or 0) + shi_delta, -100, 100), 1)
     _refresh_dao_and_quadrant(minister_name, item)

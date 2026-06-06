@@ -356,7 +356,7 @@ def directive_execution_assessments(
         actor_domain_bonus = _actor_domain_bonus(actor_row, domains)
         relationship_score, relationship_note = _relationship_score(db, state, actor)
         faction_score, faction_note = _faction_score(db, actor_row)
-        stance_score, stance_note = _stance_score(db, getattr(state, "turn", 0), actor)
+        stance_score, stance_note = _stance_score(db, getattr(state, "turn", 0), actor, text)
         score = _clamp_int(round(
             institution_score * 0.42
             + (actor_score + actor_domain_bonus) * 0.30
@@ -571,9 +571,32 @@ def _faction_score(db: Any, actor_row: Optional[Dict[str, Any]]) -> tuple[int, s
     return _clamp_int(score, 0, 100), f"{faction}满意{sat}/影响{lev}"
 
 
-def _stance_score(db: Any, turn: int, actor: str) -> tuple[int, str]:
+def _stance_score(db: Any, turn: int, actor: str, directive_text: str = "") -> tuple[int, str]:
     if not actor:
         return 45, "无召对背书"
+    try:
+        agreements = db.list_negotiation_agreements(minister_name=actor, limit=12)
+    except Exception:
+        agreements = []
+    for agreement in agreements:
+        try:
+            relevant = db._agreement_relevant_in_context(agreement, directive_text)
+        except Exception:
+            relevant = bool(
+                str(agreement.get("core_topic") or agreement.get("topic") or "") in directive_text
+                or str(agreement.get("target_text") or "") in directive_text
+            )
+        if not relevant:
+            continue
+        target_status = str(agreement.get("target_status") or "")
+        status = str(agreement.get("status") or "")
+        topic = str(agreement.get("core_topic") or agreement.get("topic") or "奏对协议")
+        if target_status == "achieved" or status == "fulfilled":
+            return 88, f"履约背书已达成：{topic}"
+        if target_status == "pending_conditions" or status == "pending":
+            return 42, f"履约条件待证：{topic}"
+        if target_status in {"blocked", "failed"} or status in {"blocked", "failed"}:
+            return 28, f"履约未成：{topic}"
     try:
         stances = db.list_minister_stances(turn=turn, minister_name=actor, limit=4)
     except Exception:
@@ -775,4 +798,3 @@ def _avg(values: Iterable[int], default: int = 50) -> int:
 
 def _clamp_int(value: int, low: int, high: int) -> int:
     return max(low, min(high, int(value)))
-

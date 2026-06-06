@@ -356,6 +356,7 @@ def build_simulator_payload(
         ).fetchall()
     ])
     minister_stances = db.list_minister_stances(turn=state.turn, limit=80)
+    conversation_goals = db.list_conversation_goals(limit=80)
     agreement_ledger = db.negotiation_agreement_ledger(state, limit=80)
     xinpan_board = db.xinpan_simulator_rows(state, limit=100)
     bureaucracy = organization_diagnostics(db)
@@ -398,13 +399,14 @@ def build_simulator_payload(
         "directive_context": directive_context,
         "xinpan_board": xinpan_board,
         "minister_stances": minister_stances,
+        "conversation_goals": conversation_goals,
         "agreement_ledger": agreement_ledger,
         "fixed_flows": fixed_flows or [],
         "deaths_this_turn": deaths_this_turn or [],
         "debuts_this_turn": debuts_this_turn or [],
         "relevant_memories": relevant_memories or [],
         "secret_orders": secret_orders or [],
-        "data_note": "盘面表（buildings/court_roster/armies/regions）在本输入的开头以 TSV 文本块给出（首行列名、tab 分隔、每行一条记录），不在本 JSON 内；本 JSON 只含其余字段（含 powers_brief/factions_brief/classes_brief 叙述串、active_issues 等）。bureaucracy_brief 是朝廷班子完整度与风险摘要；execution_assessments 是每道旨意的确定性执行预评估，综合官署班子、承办人适配、心盘、派系和召对背书，须作为诏书下落的证据之一。directive_context 为每道草案的拟旨/承办画像，含安全天罡行为摘要、人脉、本回合立场证据、协议账本与心盘象限，用于判断办事能力、执行风险和具体阻力；xinpan_board 是全体 NPC 对皇帝的动态心盘摘要：道合决定理念站位，势合决定利益站位，畏惧只压制公开反抗、不消除反抗动机；minister_stances 为本回合召对后落档的官员真实立场/承诺，含 evidence/risk_tags/execution_hint 时必须作为政治黑板影响执行阻力；agreement_ledger 是奏对承诺账本，condition_status 判条件是否满足，target_status 判标的是否达成；只有 target_status=achieved 才可作执行背书，pending_conditions/failed/blocked 不得当作自愿配合；secret_orders 为皇帝密令列表，独立于 relevant_memories，每条含 id/minister_name/title/content/status/result 字段。",
+        "data_note": "盘面表（buildings/court_roster/armies/regions）在本输入的开头以 TSV 文本块给出（首行列名、tab 分隔、每行一条记录），不在本 JSON 内；本 JSON 只含其余字段（含 powers_brief/factions_brief/classes_brief 叙述串、active_issues 等）。bureaucracy_brief 是朝廷班子完整度与风险摘要；execution_assessments 是每道旨意的确定性执行预评估，综合官署班子、承办人适配、心盘、派系和召对背书，须作为诏书下落的证据之一。directive_context 为每道草案的拟旨/承办画像，含安全天罡行为摘要、人脉、本回合立场证据、协议账本与心盘象限，用于判断办事能力、执行风险和具体阻力；xinpan_board 是全体 NPC 对皇帝的动态心盘摘要：道合决定理念站位，势合决定利益站位，畏惧只压制公开反抗、不消除反抗动机；conversation_goals 是奏对目的/心理握手状态，active/waiting_conditions 只能说明正在谈或条件待证，不得当作执行背书；minister_stances 为本回合召对后落档的官员真实立场/承诺，含 evidence/risk_tags/execution_hint 时必须作为政治黑板影响执行阻力；agreement_ledger 是奏对承诺账本，condition_status 判条件是否满足，target_status 判标的是否达成；只有 target_status=achieved 才可作执行背书，pending_conditions/failed/blocked 不得当作自愿配合；secret_orders 为皇帝密令列表，独立于 relevant_memories，每条含 id/minister_name/title/content/status/result 字段。",
     }
 
 
@@ -577,6 +579,7 @@ def _extractor_context_payload(
         "active_ministers": _auto_table(active_ministers),
         "offstage_ministers": _auto_table(offstage_ministers),
         "minister_stances": db.list_minister_stances(turn=state.turn, limit=80),
+        "conversation_goals": db.list_conversation_goals(limit=80),
         "agreement_ledger": db.negotiation_agreement_ledger(state, limit=80),
         "region_ids": [r["id"] for r in db.conn.execute("SELECT id FROM regions").fetchall()],
         "army_ids": [r["id"] for r in db.conn.execute("SELECT id FROM armies").fetchall()],
@@ -606,6 +609,7 @@ def _extractor_compat_payload(base: Dict[str, object]) -> Dict[str, object]:
         "active_ministers": base["active_ministers"],
         "offstage_ministers": base["offstage_ministers"],
         "minister_stances": base["minister_stances"],
+        "conversation_goals": base["conversation_goals"],
         "agreement_ledger": base["agreement_ledger"],
         "region_ids": base["region_ids"],
         "army_ids": base["army_ids"],

@@ -291,6 +291,34 @@ type StanceNote = {
     action_kind?: string;
   };
   agreement_id?: number;
+  goal_id?: number;
+};
+
+type ConversationGoalCondition = {
+  description: string;
+  status: "pending" | "done" | "failed";
+  evidence?: string;
+};
+
+type ConversationGoal = {
+  id: number;
+  minister_name: string;
+  action_kind: string;
+  title: string;
+  target_text?: string;
+  status: "active" | "waiting_conditions" | "sealed" | "blocked" | "abandoned" | "expired";
+  score: number;
+  threshold: number;
+  condition_status?: "none" | "pending" | "satisfied" | "failed";
+  conditions?: ConversationGoalCondition[];
+  pending_conditions?: ConversationGoalCondition[];
+  blockers?: string[];
+  related_issue_id?: number;
+  agreement_id?: number;
+  created_turn?: number;
+  expires_turn?: number;
+  abandoned_reason?: string;
+  progress_label?: string;
 };
 
 type AgreementTask = {
@@ -329,6 +357,7 @@ type Agreement = {
   political_effect?: Record<string, unknown>;
   conditions?: string;
   summary?: string;
+  goal_id?: number;
   tasks?: AgreementTask[];
 };
 
@@ -406,6 +435,7 @@ type Minister = {
   xinpan_profile?: XinpanProfile;
   tiangang_profile?: TiangangProfile;
   stance_notes?: StanceNote[];
+  conversation_goals?: ConversationGoal[];
   skills: Array<{ id: string; name: string; sources: string[]; description: string }>;
 };
 
@@ -570,6 +600,7 @@ type GameState = {
   consorts: Minister[];
   directives: Directive[];
   agreements?: Agreement[];
+  conversation_goals?: ConversationGoal[];
   pending_count: number;
   last_decree: string;
   last_report: string;
@@ -1607,7 +1638,7 @@ function App() {
     setActiveModal("chat");
     setError("");
     setInput(prefill);
-    setComposerHint(prefill ? "已为净身劝说预置奏对，请斟酌后发送" : "");
+    setComposerHint(prefill ? "已预置一项奏对目的，请斟酌后发送" : "");
     setChatNotice("");
     setChatEffectNotices([]);
     setCanUndoLastChat(false);
@@ -1753,6 +1784,31 @@ function App() {
       await loadState();
       await loadMinisterChat(activeMinister.name);
       setChatNotice("已撤回最近一轮召对。");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const abandonConversationGoal = async (goal: ConversationGoal) => {
+    if (busy) return;
+    const ok = window.confirm(`放弃奏对目的「${goal.title || goal.target_text || "本次目的"}」？`);
+    if (!ok) return;
+    setBusy("放弃目的");
+    setError("");
+    setChatNotice("");
+    try {
+      const data = await api<{ goal: ConversationGoal; state: GameState }>(`/api/conversation_goals/${goal.id}/abandon`, {
+        method: "POST",
+        body: JSON.stringify({ reason: "玩家主动放弃" }),
+      });
+      setState(data.state);
+      await loadState();
+      if (activeMinister) {
+        await loadMinisterChat(activeMinister.name);
+      }
+      setChatNotice(`已放弃奏对目的：${data.goal.title || data.goal.target_text || "本次目的"}。`);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -2144,6 +2200,7 @@ function App() {
         onRecruit={runRecruitment}
         onCastrate={castrateMinister}
         onEmancipate={emancipateMinister}
+        onAbandonGoal={abandonConversationGoal}
         onClose={guardClose(() => setActiveDrawer(""))}
       />
 
@@ -2198,6 +2255,7 @@ function App() {
             onHint={setComposerHint}
             onFavorite={() => toggleFavorite(activeMinister)}
             onOpenEdict={() => setActiveModal("edict")}
+            onAbandonGoal={abandonConversationGoal}
             onClose={guardClose(() => setActiveModal("none"))}
           />
         </FullscreenModal>
@@ -3356,6 +3414,7 @@ function AppointmentDrawer({
   onRecruit,
   onCastrate,
   onEmancipate,
+  onAbandonGoal,
   onClose,
 }: {
   ministers: Minister[];
@@ -3366,6 +3425,7 @@ function AppointmentDrawer({
   onRecruit: (action: "exam" | "eunuch" | "recommend") => Promise<string>;
   onCastrate: (name: string, force?: boolean) => Promise<string>;
   onEmancipate: (name: string, force?: boolean) => Promise<string>;
+  onAbandonGoal: (goal: ConversationGoal) => Promise<void>;
   onClose: () => void;
 }) {
   const [q, setQ] = React.useState("");
@@ -3465,38 +3525,36 @@ function AppointmentDrawer({
   const canEmancipateSelected = canUseIdentityAction && isEunuchIdentity(selectedOfficer);
   const selectedCastrate = canCastrateSelected ? (selectedDetail || selectedOfficer) : null;
   const selectedEmancipate = canEmancipateSelected ? (selectedDetail || selectedOfficer) : null;
-  const castrationNote = selectedCastrate?.stance_notes?.find((note) => (
-    /净身|入宫|内廷|司礼监|太监|宦官/.test(`${note.topic}${note.summary}${note.conditions}`)
-  ));
+  const selectedGoals = selectedOfficer?.conversation_goals || selectedDetail?.conversation_goals || [];
+  const visibleGoals = selectedGoals.filter((goal) => ["active", "waiting_conditions", "sealed", "blocked", "expired"].includes(goal.status)).slice(0, 5);
+  const castrationGoal = selectedGoals.find((goal) => goal.action_kind === "castration" && ["active", "waiting_conditions", "sealed", "blocked", "expired"].includes(goal.status));
   const castrationAgreement = agreements.find((agreement) => (
     agreement.minister_name === (selectedCastrate?.name || "")
     && agreement.action_kind === "castration"
     && ["sealed", "fulfilled", "pending", "blocked", "failed"].includes(agreement.status)
   ));
   const hasCastrationConsent = (
-    castrationNote?.handshake_status === "sealed"
+    castrationGoal?.status === "sealed"
     || castrationAgreement?.target_status === "achieved"
     || (!castrationAgreement?.target_status && ["sealed", "fulfilled"].includes(castrationAgreement?.status || ""))
   );
-  const castrationBlocked = castrationNote?.handshake_status === "blocked" || ["blocked", "failed"].includes(castrationAgreement?.target_status || castrationAgreement?.status || "");
-  const castrationConditional = castrationNote?.handshake_status === "conditional" || castrationAgreement?.target_status === "pending_conditions" || castrationAgreement?.status === "pending";
-  const castrationTasks = castrationAgreement?.tasks?.filter((task) => task.status !== "done") || [];
-  const emancipationNote = selectedEmancipate?.stance_notes?.find((note) => (
-    /奴籍|民籍|脱籍|还民|转为民|转民籍|出宫为民|归为百姓|赐还为民/.test(`${note.topic}${note.summary}${note.conditions}`)
-  ));
+  const castrationBlocked = castrationGoal?.status === "blocked" || ["blocked", "failed"].includes(castrationAgreement?.target_status || castrationAgreement?.status || "");
+  const castrationConditional = castrationGoal?.status === "waiting_conditions" || castrationAgreement?.target_status === "pending_conditions" || castrationAgreement?.status === "pending";
+  const castrationTasks = castrationAgreement?.tasks?.filter((task) => task.status !== "done") || castrationGoal?.pending_conditions || [];
+  const emancipationGoal = selectedGoals.find((goal) => goal.action_kind === "emancipation" && ["active", "waiting_conditions", "sealed", "blocked", "expired"].includes(goal.status));
   const emancipationAgreement = agreements.find((agreement) => (
     agreement.minister_name === (selectedEmancipate?.name || "")
     && agreement.action_kind === "emancipation"
     && ["sealed", "fulfilled", "pending", "blocked", "failed"].includes(agreement.status)
   ));
   const hasEmancipationConsent = (
-    emancipationNote?.handshake_status === "sealed"
+    emancipationGoal?.status === "sealed"
     || emancipationAgreement?.target_status === "achieved"
     || (!emancipationAgreement?.target_status && ["sealed", "fulfilled"].includes(emancipationAgreement?.status || ""))
   );
-  const emancipationBlocked = emancipationNote?.handshake_status === "blocked" || ["blocked", "failed"].includes(emancipationAgreement?.target_status || emancipationAgreement?.status || "");
-  const emancipationConditional = emancipationNote?.handshake_status === "conditional" || emancipationAgreement?.target_status === "pending_conditions" || emancipationAgreement?.status === "pending";
-  const emancipationTasks = emancipationAgreement?.tasks?.filter((task) => task.status !== "done") || [];
+  const emancipationBlocked = emancipationGoal?.status === "blocked" || ["blocked", "failed"].includes(emancipationAgreement?.target_status || emancipationAgreement?.status || "");
+  const emancipationConditional = emancipationGoal?.status === "waiting_conditions" || emancipationAgreement?.target_status === "pending_conditions" || emancipationAgreement?.status === "pending";
+  const emancipationTasks = emancipationAgreement?.tasks?.filter((task) => task.status !== "done") || emancipationGoal?.pending_conditions || [];
   const selectedAgreements = agreements.filter((agreement) => (
     agreement.minister_name === (selectedOfficer?.name || "")
     && ["pending", "sealed", "fulfilled", "blocked", "failed"].includes(agreement.status)
@@ -3564,6 +3622,7 @@ function AppointmentDrawer({
   const ageText = (item?: Pick<Minister, "age_label" | "start_age"> | null) => item?.age_label || (item?.start_age ? `开局${item.start_age}岁` : "开局年龄未详");
   const detailCharacter = selectedDetail || selectedOfficer;
   const recentStanceCount = detailCharacter?.stance_notes?.length || 0;
+  const activeGoalCount = visibleGoals.filter((goal) => goal.status === "active" || goal.status === "waiting_conditions").length;
   const pendingAgreementCount = selectedAgreements.filter((agreement) => agreement.target_status === "pending_conditions" || agreement.status === "pending").length;
   const readyAgreementCount = selectedAgreements.filter((agreement) => agreement.target_status === "achieved" || (!agreement.target_status && ["sealed", "fulfilled"].includes(agreement.status))).length;
   const agreementStatusLabel: Record<Agreement["status"], string> = {
@@ -3678,6 +3737,11 @@ function AppointmentDrawer({
                     <span>{recentStanceCount ? "本回合已有立场证据" : "尚未形成考核证据"}</span>
                   </div>
                   <div>
+                    <small>奏对目的</small>
+                    <b>{activeGoalCount}/{visibleGoals.length}</b>
+                    <span>{activeGoalCount ? "仍在心理握手中" : "无推进中目的"}</span>
+                  </div>
+                  <div>
                     <small>履约协议</small>
                     <b>{readyAgreementCount}/{selectedAgreements.length}</b>
                     <span>{pendingAgreementCount ? `${pendingAgreementCount} 项待履约` : "无待办条件"}</span>
@@ -3694,6 +3758,8 @@ function AppointmentDrawer({
                   <button onClick={() => setScope("缺图")}>查缺图</button>
                   <button onClick={() => setScope("待铨外缘")}>查待铨</button>
                 </div>
+
+                <ConversationGoalList goals={visibleGoals} onAbandonGoal={onAbandonGoal} compact />
 
                 {selectedAgreements.length ? (
                   <div className="agreement-mini-list">
@@ -3755,7 +3821,7 @@ function AppointmentDrawer({
                               {hasCastrationConsent
                                 ? "可按自愿入内廷办理。"
                                 : castrationConditional
-                                  ? `需先履约：${castrationTasks.map((task) => task.description).join("；") || castrationNote?.conditions || "条件未明"}`
+                                  ? `需先履约：${castrationTasks.map((task) => task.description).join("；") || castrationAgreement?.conditions || "条件未明"}`
                                   : "先劝说，心理量表握手成功后才可自愿转换；否则只能强旨。"}
                             </span>
                           </div>
@@ -3788,7 +3854,7 @@ function AppointmentDrawer({
                               {hasEmancipationConsent
                                 ? "可按自愿脱籍还民办理。"
                                 : emancipationConditional
-                                  ? `需先履约：${emancipationTasks.map((task) => task.description).join("；") || emancipationNote?.conditions || "条件未明"}`
+                                  ? `需先履约：${emancipationTasks.map((task) => task.description).join("；") || emancipationAgreement?.conditions || "条件未明"}`
                                   : "先劝导，心理量表握手成功后才可自愿转民籍；否则只能下旨。"}
                             </span>
                           </div>
@@ -7466,6 +7532,68 @@ function ChatEffectLedger({ notices }: { notices: ChatEffectNotice[] }) {
   );
 }
 
+const goalStatusLabel: Record<ConversationGoal["status"], string> = {
+  active: "推进中",
+  waiting_conditions: "条件待证",
+  sealed: "握手达成",
+  blocked: "未说服",
+  abandoned: "已放弃",
+  expired: "已过期",
+};
+
+const goalActionLabel: Record<string, string> = {
+  personnel: "人事",
+  secret_order: "密办",
+  policy: "政策",
+  court_commitment: "协力",
+  castration: "净身",
+  emancipation: "脱籍",
+  general: "奏对",
+};
+
+function ConversationGoalList({
+  goals,
+  onAbandonGoal,
+  compact = false,
+}: {
+  goals?: ConversationGoal[];
+  onAbandonGoal?: (goal: ConversationGoal) => Promise<void> | void;
+  compact?: boolean;
+}) {
+  const visible = (goals || []).filter((goal) => goal.status !== "abandoned").slice(0, compact ? 5 : 8);
+  if (!visible.length) return null;
+  return (
+    <div className={`conversation-goals ${compact ? "compact" : ""}`}>
+      <b><Target size={14} />奏对目的</b>
+      {visible.map((goal) => {
+        const pending = (goal.pending_conditions || goal.conditions || []).filter((item) => item.status !== "done");
+        const canAbandon = ["active", "waiting_conditions", "blocked", "expired"].includes(goal.status) && !goal.agreement_id && goal.status !== "sealed";
+        return (
+          <article key={goal.id} className={`conversation-goal status-${goal.status}`}>
+            <div className="goal-head">
+              <span>{goalActionLabel[goal.action_kind] || "奏对"}</span>
+              <strong>{goal.title || goal.target_text || "本次奏对目的"}</strong>
+              <em>{goalStatusLabel[goal.status]}</em>
+            </div>
+            <div className="goal-meter" aria-label={`奏对目的进度 ${goal.score}%`}>
+              <i style={{ width: `${Math.max(0, Math.min(100, Number(goal.score || 0)))}%` }} />
+            </div>
+            <small>
+              进度 {goal.score || 0}% · 阈值 {goal.threshold || 0}
+              {goal.condition_status && goal.condition_status !== "none" ? ` · ${goal.condition_status === "pending" ? "条件待证" : goal.condition_status === "satisfied" ? "条件已足" : "条件失败"}` : ""}
+            </small>
+            {pending.length ? <p>条件待证：{pending.map((item) => item.description).join("；")}</p> : null}
+            {goal.target_text ? <p>标的：{goal.target_text}</p> : null}
+            {canAbandon && onAbandonGoal ? (
+              <button type="button" onClick={() => onAbandonGoal(goal)}>放弃目的</button>
+            ) : null}
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
 function ChatModal({
   minister,
   portraitPrefix,
@@ -7487,6 +7615,7 @@ function ChatModal({
   onHint,
   onFavorite,
   onOpenEdict,
+  onAbandonGoal,
   onClose,
 }: {
   minister: Minister;
@@ -7509,6 +7638,7 @@ function ChatModal({
   onHint: (value: string) => void;
   onFavorite: () => void;
   onOpenEdict: () => void;
+  onAbandonGoal: (goal: ConversationGoal) => Promise<void>;
   onClose: () => void;
 }) {
   const { primary: portraitPrimary, fallback: portraitFallback } = portraitSources(minister, portraitPrefix);
@@ -7580,6 +7710,7 @@ function ChatModal({
             </div>
             <p className="profile-copy">{minister.summary}</p>
           </div>
+          <ConversationGoalList goals={minister.conversation_goals} onAbandonGoal={onAbandonGoal} />
           <details className="chat-intel-details chat-intel-dossier" open>
             <summary>人物情报</summary>
             <div className="chat-intel-detail-body">

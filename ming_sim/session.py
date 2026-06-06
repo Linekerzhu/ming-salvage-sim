@@ -26,6 +26,7 @@ from ming_sim.context import (
 )
 from ming_sim.db import GameDB, effective_stored_office_type, infer_assignment_office_type, normalize_office
 from ming_sim.decree import advance_without_edict, resolve_directives, write_decree_with_agno
+from ming_sim.dialogue_goals import PreparedDialogue, prepare_dialogue_context, record_dialogue_effects
 from ming_sim.issues import bind_content as _bind_issues
 from ming_sim.issues import sync_opening_legacies
 from ming_sim.llm_model import create_agno_db, extract_agent_text, verify_llm_available
@@ -117,6 +118,7 @@ class ChatTurnResult:
     secret_order_id: int = 0       # 本轮新建密令 id（0=未下密令）
     secret_order_assignee: str = ""  # 真实承办人，可能不是当前奏对者
     secret_order_effect: Dict[str, object] = field(default_factory=dict)
+    dialogue_goal: Dict[str, object] = field(default_factory=dict)
 
 
 def _parse_registered_secret_order_result(text: str) -> Tuple[int, str]:
@@ -645,7 +647,72 @@ class GameSession:
         }.get(status, status)
         return (False, f"{character.name}{label}，无法召见。" + (reason or ""))
 
-    def chat(self, minister_name: str, message: str) -> ChatTurnResult:
+    def _persistent_dialogue_character(self, character: Character) -> bool:
+        return character.name not in self.temporary_characters and character.office_type != "后宫"
+
+    def prepare_chat_run(
+        self,
+        character: Character,
+        message: str,
+        *,
+        source_chat_turn_id: int = 0,
+    ) -> Tuple[str, PreparedDialogue]:
+        augmented = self._retrieve_memories_for_message(message)
+        persistent = self._persistent_dialogue_character(character)
+        dialogue_prep = prepare_dialogue_context(
+            self.db,
+            self.state,
+            character,
+            message,
+            llm_config=self.llm_config,
+            agno_db=self.agno_db,
+            persistent=persistent,
+        )
+        try:
+            xinpan_profile = self.db.get_xinpan_profile(character.name, self.state)
+        except Exception:
+            xinpan_profile = {}
+        goal_text = ""
+        preview_goal = dialogue_prep.preview_goal or {}
+        if isinstance(preview_goal, dict):
+            goal_text = f"{preview_goal.get('title') or ''}\n{preview_goal.get('target_text') or ''}".strip()
+        behavior_brief = npc_dialogue_behavior_brief(
+            character.name,
+            xinpan_profile=xinpan_profile if isinstance(xinpan_profile, dict) else {},
+            text=f"{goal_text}\n{message}" if goal_text else message,
+        )
+        if dialogue_prep.prefix:
+            augmented = f"{dialogue_prep.prefix}\n\n{augmented}"
+        if behavior_brief:
+            augmented = f"{behavior_brief}\n\n{augmented}"
+        # 本回合已核定草案随大臣议事滚动累加，agent system 在月初冻结拿不到——
+        # 每次 chat 前置实时 draft_line 到 user message 头，确保大臣看得到兄弟大臣最新动作。
+        draft_line = self.registry.build_draft_line() if self.registry is not None else ""
+        if draft_line and draft_line != "无":
+            augmented = f"【本{TURN_UNIT}已核定草案】{draft_line}\n\n{augmented}"
+        return augmented, dialogue_prep
+
+    def record_dialogue_after_chat(
+        self,
+        character: Character,
+        user_text: str,
+        answer: str,
+        prepared: Optional[PreparedDialogue] = None,
+        *,
+        source_chat_turn_id: int = 0,
+    ) -> Dict[str, object]:
+        return record_dialogue_effects(
+            self.db,
+            self.state,
+            character,
+            user_text,
+            answer,
+            prepared,
+            source_chat_turn_id=source_chat_turn_id,
+            persistent=self._persistent_dialogue_character(character),
+        )
+
+    def chat(self, minister_name: str, message: str, *, source_chat_turn_id: int = 0) -> ChatTurnResult:
         """与大臣对话一轮，统一处理 court tool 截获。
         大臣 propose_directive 产生的草案以 status='pending' 入库，
         作为 proposed_directive 返回，确认/驳回由调用方下达。"""
@@ -655,23 +722,11 @@ class GameSession:
         # 控制指令（退下/换人/技能）由 CLI 层 parse_court_command 处理；
         # GameSession.chat 只负责与 agent 对话与 tool 截获。
         agent = self.registry.get(character)
-        augmented = self._retrieve_memories_for_message(message)
-        try:
-            xinpan_profile = self.db.get_xinpan_profile(character.name, self.state)
-        except Exception:
-            xinpan_profile = {}
-        behavior_brief = npc_dialogue_behavior_brief(
-            character.name,
-            xinpan_profile=xinpan_profile if isinstance(xinpan_profile, dict) else {},
-            text=message,
+        augmented, dialogue_prep = self.prepare_chat_run(
+            character,
+            message,
+            source_chat_turn_id=source_chat_turn_id,
         )
-        if behavior_brief:
-            augmented = f"{behavior_brief}\n\n{augmented}"
-        # 本回合已核定草案随大臣议事滚动累加，agent system 在月初冻结拿不到——
-        # 每次 chat 前置实时 draft_line 到 user message 头，确保大臣看得到兄弟大臣最新动作。
-        draft_line = self.registry.build_draft_line()
-        if draft_line and draft_line != "无":
-            augmented = f"【本{TURN_UNIT}已核定草案】{draft_line}\n\n{augmented}"
         run_output = agent.run(augmented)
         _dump_llm_messages(run_output, f"大臣对话/{minister_name}")
         answer = extract_agent_text(run_output)
@@ -757,6 +812,13 @@ class GameSession:
                     result.secret_order_effect = self.record_secret_order_effect(order_id, result.secret_order_assignee)
             # report_secret_order_progress / submit_secret_order_for_review 工具内部直接落库，session 无需拦截
             # 密令结案 done/failed 由月末推演 + extractor 写入，不再走大臣工具
+        result.dialogue_goal = self.record_dialogue_after_chat(
+            character,
+            message,
+            answer,
+            dialogue_prep,
+            source_chat_turn_id=source_chat_turn_id,
+        )
         return result
 
     def _apply_appointment(self, payload: str, appointer: Character) -> Tuple[str, str, Dict[str, object]]:

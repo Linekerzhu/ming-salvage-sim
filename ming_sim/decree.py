@@ -27,6 +27,7 @@ from ming_sim.constants import ECONOMY_ACCOUNTS, TURN_UNIT
 from ming_sim.causality import build_turn_causal_notes
 from ming_sim.context import ENDING_LABELS, ENDING_ONGOING, ENDING_TIMEOUT, victory_status
 from ming_sim.db import GameDB
+from ming_sim.dialogue_goals import review_conversation_goals
 from ming_sim.exceptions import LLMContractError, LLMUnavailable
 from ming_sim.flows import apply_fixed_period_flows
 from ming_sim.issues import apply_issue_inertia_and_ongoing, apply_score_extraction, auto_trigger_seed_issues, clear_gated_legacies
@@ -109,6 +110,15 @@ def write_decree_with_agno(
 def advance_without_edict(state: GameState, db: GameDB) -> None:
     apply_fixed_period_flows(db, state)
     message = f"本{TURN_UNIT}退朝未下正式圣旨，诸事仍待来{TURN_UNIT}处置。"
+    try:
+        review_conversation_goals(
+            db,
+            state,
+            narrative=message,
+            phase="postresolve",
+        )
+    except Exception as exc:
+        tlog(f"[dialogue_goal] 退朝目的审计失败，跳过：{exc}")
     try:
         db.auto_review_negotiation_agreements(
             state,
@@ -258,6 +268,18 @@ def resolve_directives(
     tlog("结算 2/4 推演 agent（月末邸报）")
     _emit("stage", "推演月末邸报")
     previous_narrative = db.previous_turn_summary(state) or ""
+    try:
+        reviewed_goals = review_conversation_goals(
+            db,
+            state,
+            decree_text=decree_text,
+            directives=directives,
+            phase="preresolve",
+        )
+        if reviewed_goals:
+            tlog(f"[dialogue_goal] 颁诏前目的审计 {len(reviewed_goals)} 条")
+    except Exception as exc:
+        tlog(f"[dialogue_goal] 颁诏前目的审计失败，跳过：{exc}")
     llm_reviews: Dict[str, object] = {"reviews": []}
     try:
         llm_reviews = _review_agreements_with_llm(
@@ -399,6 +421,21 @@ def resolve_directives(
     tlog("结算 4/4 落库 + inertia/ongoing")
     _emit("stage", "落库与事项推进")
     applied = apply_score_extraction(db, state, extracted, content=content, registry=registry)
+    try:
+        reviewed_goals = review_conversation_goals(
+            db,
+            state,
+            decree_text=decree_text,
+            narrative=effective_narrative,
+            directives=directives,
+            applied=applied,
+            phase="postresolve",
+        )
+        if reviewed_goals:
+            applied["conversation_goals"] = reviewed_goals
+            tlog(f"[dialogue_goal] 月末目的审计 {len(reviewed_goals)} 条")
+    except Exception as exc:
+        tlog(f"[dialogue_goal] 月末目的审计失败，跳过：{exc}")
     llm_reviews = {"reviews": []}
     try:
         llm_reviews = _review_agreements_with_llm(

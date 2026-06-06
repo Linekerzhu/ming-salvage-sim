@@ -5419,6 +5419,7 @@ button:disabled {
 .modal-bg-chat .chat-intel-stack > .chat-intel-dossier,
 .modal-bg-chat .chat-intel-stack > .tiangang-spectrum,
 .modal-bg-chat .chat-intel-stack > .stance-notes,
+.modal-bg-chat .chat-intel-stack > .conversation-goals,
 .modal-bg-chat .chat-intel-stack > .xinpan-profile,
 .modal-bg-chat .chat-intel-stack > .network-profile,
 .modal-bg-chat .chat-intel-stack > .chat-secret-orders {
@@ -8902,6 +8903,117 @@ button:disabled {
   opacity: 0.52;
 }
 
+.conversation-goals {
+  display: grid;
+  gap: 7px;
+  margin-top: 8px;
+  padding: 9px;
+  border: 1px solid rgba(49, 93, 71, 0.28);
+  border-radius: 4px;
+  background: rgba(238, 247, 235, 0.56);
+  color: #24422f;
+}
+
+.conversation-goals > b {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #315d47;
+  font-size: 0.76rem;
+}
+
+.conversation-goal {
+  display: grid;
+  gap: 5px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(49, 93, 71, 0.15);
+  font-size: 0.72rem;
+}
+
+.conversation-goal:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.goal-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.goal-head span,
+.goal-head em {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(49, 93, 71, 0.1);
+  color: #315d47;
+  font-size: 0.64rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.goal-head strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.conversation-goal.status-waiting_conditions .goal-head em {
+  background: rgba(185, 134, 47, 0.14);
+  color: #8a5b1d;
+}
+
+.conversation-goal.status-sealed .goal-head em {
+  background: rgba(72, 125, 72, 0.16);
+  color: #2f672f;
+}
+
+.conversation-goal.status-blocked .goal-head em,
+.conversation-goal.status-expired .goal-head em {
+  background: rgba(143, 47, 37, 0.12);
+  color: #8b2b23;
+}
+
+.goal-meter {
+  position: relative;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgba(49, 93, 71, 0.14);
+}
+
+.goal-meter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #315d47, #b9862f);
+}
+
+.conversation-goal small,
+.conversation-goal p {
+  margin: 0;
+  color: #5c6a48;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.conversation-goal button {
+  justify-self: start;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid rgba(49, 93, 71, 0.26);
+  border-radius: 4px;
+  background: rgba(255, 252, 238, 0.72);
+  color: #315d47;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.conversation-goal button:hover {
+  border-color: rgba(143, 47, 37, 0.36);
+  color: #8f2f25;
+}
+
 .agreement-mini-list {
   display: grid;
   gap: 6px;
@@ -10496,6 +10608,7 @@ button:disabled {
   .right-drawer-appointment .xinpan-profile,
   .right-drawer-appointment .tiangang-spectrum,
   .right-drawer-appointment .identity-action-card,
+  .right-drawer-appointment .conversation-goals,
   .right-drawer-appointment .agreement-mini-list {
     min-width: 0;
     overflow-wrap: anywhere;

@@ -545,6 +545,53 @@ class GameDB:
             CREATE INDEX IF NOT EXISTS idx_minister_stances_issue
                 ON minister_stances(related_issue_id, turn);
 
+            CREATE TABLE IF NOT EXISTS conversation_goals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                minister_name TEXT NOT NULL,
+                action_kind TEXT NOT NULL DEFAULT 'general',
+                title TEXT NOT NULL DEFAULT '',
+                target_text TEXT NOT NULL DEFAULT '',
+                status TEXT NOT NULL DEFAULT 'active',
+                score INTEGER NOT NULL DEFAULT 0,
+                threshold INTEGER NOT NULL DEFAULT 0,
+                condition_status TEXT NOT NULL DEFAULT 'none',
+                conditions_json TEXT NOT NULL DEFAULT '[]',
+                blockers_json TEXT NOT NULL DEFAULT '[]',
+                related_issue_id INTEGER NOT NULL DEFAULT 0,
+                agreement_id INTEGER NOT NULL DEFAULT 0,
+                source_chat_turn_id INTEGER NOT NULL DEFAULT 0,
+                last_delta_json TEXT NOT NULL DEFAULT '{}',
+                created_turn INTEGER NOT NULL DEFAULT 0,
+                expires_turn INTEGER NOT NULL DEFAULT 0,
+                abandoned_reason TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_conversation_goals_minister_status
+                ON conversation_goals(minister_name, status, id);
+            CREATE INDEX IF NOT EXISTS idx_conversation_goals_agreement
+                ON conversation_goals(agreement_id);
+
+            CREATE TABLE IF NOT EXISTS conversation_goal_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                goal_id INTEGER NOT NULL,
+                turn INTEGER NOT NULL,
+                year INTEGER NOT NULL,
+                period INTEGER NOT NULL,
+                minister_name TEXT NOT NULL DEFAULT '',
+                event_kind TEXT NOT NULL DEFAULT '',
+                status TEXT NOT NULL DEFAULT '',
+                score_delta INTEGER NOT NULL DEFAULT 0,
+                score_after INTEGER NOT NULL DEFAULT 0,
+                summary TEXT NOT NULL DEFAULT '',
+                payload_json TEXT NOT NULL DEFAULT '{}',
+                source_chat_turn_id INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(goal_id) REFERENCES conversation_goals(id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_conversation_goal_events_goal
+                ON conversation_goal_events(goal_id, id);
+
             CREATE TABLE IF NOT EXISTS xinpan_states (
                 character_name TEXT PRIMARY KEY,
                 dao_he REAL NOT NULL DEFAULT 0,
@@ -601,6 +648,7 @@ class GameDB:
                 condition_status TEXT NOT NULL DEFAULT 'pending',
                 target_status TEXT NOT NULL DEFAULT 'pending_conditions',
                 stance_id INTEGER NOT NULL DEFAULT 0,
+                goal_id INTEGER NOT NULL DEFAULT 0,
                 handshake_status TEXT NOT NULL DEFAULT 'none',
                 psychological_score INTEGER NOT NULL DEFAULT 0,
                 threshold INTEGER NOT NULL DEFAULT 0,
@@ -925,6 +973,7 @@ class GameDB:
         self.ensure_column("minister_stances", "psychological_score", "INTEGER NOT NULL DEFAULT 0")
         self.ensure_column("minister_stances", "psychological_json", "TEXT NOT NULL DEFAULT '{}'")
         self.ensure_column("minister_stances", "agreement_id", "INTEGER NOT NULL DEFAULT 0")
+        self.ensure_column("minister_stances", "goal_id", "INTEGER NOT NULL DEFAULT 0")
         self.ensure_column("negotiation_agreements", "core_topic", "TEXT NOT NULL DEFAULT ''")
         self.ensure_column("negotiation_agreements", "target_text", "TEXT NOT NULL DEFAULT ''")
         self.ensure_column("negotiation_agreements", "promise_type", "TEXT NOT NULL DEFAULT ''")
@@ -940,6 +989,7 @@ class GameDB:
         self.ensure_column("negotiation_agreements", "political_effect_json", "TEXT NOT NULL DEFAULT '{}'")
         self.ensure_column("negotiation_agreements", "auto_review_json", "TEXT NOT NULL DEFAULT '{}'")
         self.ensure_column("negotiation_agreements", "llm_review_json", "TEXT NOT NULL DEFAULT '{}'")
+        self.ensure_column("negotiation_agreements", "goal_id", "INTEGER NOT NULL DEFAULT 0")
         self.ensure_column("negotiation_tasks", "task_kind", "TEXT NOT NULL DEFAULT 'general'")
         self.ensure_column("negotiation_tasks", "last_checked_turn", "INTEGER NOT NULL DEFAULT 0")
         self.ensure_column("xinpan_states", "flags_json", "TEXT NOT NULL DEFAULT '{}'")
@@ -3871,6 +3921,8 @@ class GameDB:
         "characters": "name",
         "character_offices": "character_name",
         "consort_traits": "name",
+        "conversation_goals": "id",
+        "conversation_goal_events": "id",
         "minister_stances": "id",
         "xinpan_states": "character_name",
         "xinpan_logs": "id",
@@ -4148,6 +4200,347 @@ class GameDB:
             return False
         return self.is_global_last_active_chat_turn(int(row["id"]))
 
+    # ----- conversation goals（奏对目的 / 心理握手状态机）-----
+
+    _GOAL_STATUSES = {"active", "waiting_conditions", "sealed", "blocked", "abandoned", "expired"}
+
+    def _goal_json_list(self, raw: object) -> List[Dict[str, object]]:
+        data: object
+        if isinstance(raw, list):
+            data = raw
+        else:
+            try:
+                data = json.loads(str(raw or "[]"))
+            except (TypeError, ValueError):
+                data = []
+        out: List[Dict[str, object]] = []
+        if isinstance(data, list):
+            for item in data:
+                if isinstance(item, dict):
+                    out.append(dict(item))
+                elif str(item or "").strip():
+                    out.append({"description": str(item).strip(), "status": "pending", "evidence": ""})
+        return out
+
+    def _goal_json_dict(self, raw: object) -> Dict[str, object]:
+        if isinstance(raw, dict):
+            return dict(raw)
+        try:
+            data = json.loads(str(raw or "{}"))
+        except (TypeError, ValueError):
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    def _serialize_goal_conditions(self, conditions: List[object] | None) -> str:
+        clean: List[Dict[str, object]] = []
+        for item in conditions or []:
+            if isinstance(item, dict):
+                desc = str(item.get("description") or item.get("text") or "").strip()
+                status = str(item.get("status") or "pending").strip()
+                evidence = str(item.get("evidence") or "").strip()
+            else:
+                desc = str(item or "").strip()
+                status = "pending"
+                evidence = ""
+            if not desc:
+                continue
+            if status not in {"pending", "done", "failed"}:
+                status = "pending"
+            clean.append({"description": desc[:180], "status": status, "evidence": evidence[:240]})
+        return json.dumps(clean[:8], ensure_ascii=False)
+
+    def _serialize_goal_blockers(self, blockers: List[object] | None) -> str:
+        clean = [str(item or "").strip()[:160] for item in blockers or [] if str(item or "").strip()]
+        return json.dumps(clean[:8], ensure_ascii=False)
+
+    def create_conversation_goal(
+        self,
+        state: GameState,
+        *,
+        minister_name: str,
+        action_kind: str,
+        title: str,
+        target_text: str,
+        threshold: int,
+        score: int = 0,
+        status: str = "active",
+        condition_status: str = "none",
+        conditions: List[object] | None = None,
+        blockers: List[object] | None = None,
+        related_issue_id: int = 0,
+        source_chat_turn_id: int = 0,
+        expires_turn: int = 0,
+        last_delta: Dict[str, object] | None = None,
+    ) -> int:
+        clean_name = str(minister_name or "").strip()
+        if not clean_name:
+            return 0
+        status = str(status or "active").strip()
+        if status not in self._GOAL_STATUSES:
+            status = "active"
+        cur = self.conn.execute(
+            """
+            INSERT INTO conversation_goals
+                (minister_name, action_kind, title, target_text, status, score, threshold,
+                 condition_status, conditions_json, blockers_json, related_issue_id,
+                 source_chat_turn_id, last_delta_json, created_turn, expires_turn)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                clean_name,
+                str(action_kind or "general").strip()[:40],
+                str(title or "").strip()[:120],
+                str(target_text or title or "").strip()[:240],
+                status,
+                max(0, min(100, int(score or 0))),
+                max(0, min(100, int(threshold or 0))),
+                str(condition_status or "none").strip()[:40],
+                self._serialize_goal_conditions(conditions),
+                self._serialize_goal_blockers(blockers),
+                max(0, int(related_issue_id or 0)),
+                max(0, int(source_chat_turn_id or 0)),
+                json.dumps(last_delta or {}, ensure_ascii=False),
+                int(state.turn),
+                max(0, int(expires_turn or 0)),
+            ),
+        )
+        goal_id = int(cur.lastrowid)
+        self.add_conversation_goal_event(
+            state,
+            goal_id,
+            "created",
+            status=status,
+            score_delta=max(0, min(100, int(score or 0))),
+            score_after=max(0, min(100, int(score or 0))),
+            summary=str(title or target_text or "新建奏对目的")[:180],
+            payload=last_delta or {},
+            source_chat_turn_id=source_chat_turn_id,
+            commit=False,
+        )
+        self.conn.commit()
+        return goal_id
+
+    def add_conversation_goal_event(
+        self,
+        state: GameState,
+        goal_id: int,
+        event_kind: str,
+        *,
+        status: str = "",
+        score_delta: int = 0,
+        score_after: int = 0,
+        summary: str = "",
+        payload: Dict[str, object] | None = None,
+        source_chat_turn_id: int = 0,
+        commit: bool = True,
+    ) -> int:
+        goal_id = int(goal_id or 0)
+        if goal_id <= 0:
+            return 0
+        row = self.conn.execute(
+            "SELECT minister_name, status, score FROM conversation_goals WHERE id=?",
+            (goal_id,),
+        ).fetchone()
+        minister = str(row["minister_name"] or "") if row else ""
+        event_status = str(status or (row["status"] if row else "") or "")
+        score_after = int(score_after if score_after is not None else (row["score"] if row else 0))
+        cur = self.conn.execute(
+            """
+            INSERT INTO conversation_goal_events
+                (goal_id, turn, year, period, minister_name, event_kind, status,
+                 score_delta, score_after, summary, payload_json, source_chat_turn_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                goal_id,
+                int(state.turn), int(state.year), int(state.period),
+                minister,
+                str(event_kind or "note").strip()[:40],
+                event_status[:40],
+                int(score_delta or 0),
+                max(0, min(100, int(score_after or 0))),
+                str(summary or "").strip()[:240],
+                json.dumps(payload or {}, ensure_ascii=False),
+                max(0, int(source_chat_turn_id or 0)),
+            ),
+        )
+        if commit:
+            self.conn.commit()
+        return int(cur.lastrowid)
+
+    def update_conversation_goal(
+        self,
+        goal_id: int,
+        *,
+        state: Optional[GameState] = None,
+        event_kind: str = "",
+        event_summary: str = "",
+        source_chat_turn_id: int = 0,
+        **fields: object,
+    ) -> None:
+        goal_id = int(goal_id or 0)
+        if goal_id <= 0:
+            return
+        assignments: List[str] = []
+        params: List[Any] = []
+        allowed = {
+            "action_kind", "title", "target_text", "status", "score", "threshold",
+            "condition_status", "conditions_json", "blockers_json", "related_issue_id",
+            "agreement_id", "source_chat_turn_id", "last_delta_json", "expires_turn",
+            "abandoned_reason",
+        }
+        old = self.conn.execute("SELECT score, status FROM conversation_goals WHERE id=?", (goal_id,)).fetchone()
+        old_score = int(old["score"] or 0) if old else 0
+        for key, value in fields.items():
+            if key not in allowed:
+                continue
+            if key == "status":
+                value = str(value or "active").strip()
+                if value not in self._GOAL_STATUSES:
+                    value = "active"
+            elif key in {"score", "threshold"}:
+                value = max(0, min(100, int(value or 0)))
+            elif key in {"related_issue_id", "agreement_id", "source_chat_turn_id", "expires_turn"}:
+                value = max(0, int(value or 0))
+            elif key in {"conditions_json", "blockers_json", "last_delta_json"} and not isinstance(value, str):
+                value = json.dumps(value or ([] if key != "last_delta_json" else {}), ensure_ascii=False)
+            else:
+                value = str(value or "")
+            assignments.append(f"{key}=?")
+            params.append(value)
+        if not assignments:
+            return
+        assignments.append("updated_at=CURRENT_TIMESTAMP")
+        params.append(goal_id)
+        self.conn.execute(
+            f"UPDATE conversation_goals SET {', '.join(assignments)} WHERE id=?",
+            params,
+        )
+        if state is not None and event_kind:
+            new_score = int(fields.get("score", old_score) or 0)
+            self.add_conversation_goal_event(
+                state,
+                goal_id,
+                event_kind,
+                status=str(fields.get("status") or (old["status"] if old else "") or ""),
+                score_delta=new_score - old_score,
+                score_after=new_score,
+                summary=event_summary,
+                payload=self._goal_json_dict(fields.get("last_delta_json", {})),
+                source_chat_turn_id=source_chat_turn_id,
+                commit=False,
+            )
+        self.conn.commit()
+
+    def get_conversation_goal(self, goal_id: int) -> Optional[Dict[str, object]]:
+        row = self.conn.execute("SELECT * FROM conversation_goals WHERE id=?", (int(goal_id),)).fetchone()
+        return self._parse_conversation_goal(row) if row is not None else None
+
+    def _parse_conversation_goal(self, row: sqlite3.Row | Dict[str, object]) -> Dict[str, object]:
+        item = dict(row)
+        item["conditions"] = self._goal_json_list(item.get("conditions_json"))
+        try:
+            raw_blockers = json.loads(str(item.get("blockers_json") or "[]"))
+        except (TypeError, ValueError):
+            raw_blockers = []
+        if isinstance(raw_blockers, list):
+            item["blockers"] = [str(x) for x in raw_blockers if str(x).strip()]
+        else:
+            item["blockers"] = []
+        item["last_delta"] = self._goal_json_dict(item.get("last_delta_json"))
+        return item
+
+    def get_active_conversation_goal(self, minister_name: str) -> Optional[Dict[str, object]]:
+        row = self.conn.execute(
+            """
+            SELECT * FROM conversation_goals
+            WHERE minister_name=? AND status IN ('active', 'waiting_conditions')
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (str(minister_name or "").strip(),),
+        ).fetchone()
+        return self._parse_conversation_goal(row) if row is not None else None
+
+    def list_conversation_goals(
+        self,
+        minister_name: str = "",
+        *,
+        statuses: Optional[List[str]] = None,
+        limit: int = 80,
+    ) -> List[Dict[str, object]]:
+        clauses: List[str] = []
+        params: List[Any] = []
+        if minister_name:
+            clauses.append("minister_name=?")
+            params.append(str(minister_name).strip())
+        if statuses:
+            clean_statuses = [str(status).strip() for status in statuses if str(status).strip()]
+            if clean_statuses:
+                clauses.append("status IN (" + ",".join("?" for _ in clean_statuses) + ")")
+                params.extend(clean_statuses)
+        where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+        params.append(max(1, min(200, int(limit or 80))))
+        rows = self.conn.execute(
+            f"""
+            SELECT * FROM conversation_goals
+            {where}
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+        return [self._parse_conversation_goal(row) for row in rows]
+
+    def abandon_conversation_goal(
+        self,
+        state: GameState,
+        goal_id: int,
+        *,
+        reason: str = "",
+        source_chat_turn_id: int = 0,
+    ) -> Dict[str, object]:
+        goal = self.get_conversation_goal(goal_id)
+        if not goal:
+            raise ValueError("奏对目的不存在。")
+        if str(goal.get("status") or "") == "sealed" or int(goal.get("agreement_id") or 0):
+            raise ValueError("已握手入账的奏对目的不可放弃，只能由履约账本裁断。")
+        if str(goal.get("status") or "") not in {"active", "waiting_conditions", "blocked", "expired"}:
+            raise ValueError("该奏对目的当前不可放弃。")
+        self.update_conversation_goal(
+            int(goal_id),
+            state=state,
+            event_kind="abandoned",
+            event_summary=str(reason or "玩家主动放弃奏对目的。")[:180],
+            source_chat_turn_id=source_chat_turn_id,
+            status="abandoned",
+            abandoned_reason=str(reason or "玩家主动放弃")[:180],
+            last_delta_json={"reason": str(reason or "玩家主动放弃")[:180]},
+        )
+        updated = self.get_conversation_goal(goal_id)
+        return updated or goal
+
+    def bind_conversation_goal_agreement(self, goal_id: int, agreement_id: int) -> None:
+        if not goal_id or not agreement_id:
+            return
+        self.conn.execute(
+            """
+            UPDATE conversation_goals
+            SET agreement_id=?, updated_at=CURRENT_TIMESTAMP
+            WHERE id=?
+            """,
+            (max(0, int(agreement_id or 0)), int(goal_id)),
+        )
+        self.conn.execute(
+            """
+            UPDATE negotiation_agreements
+            SET goal_id=?, updated_at=CURRENT_TIMESTAMP
+            WHERE id=?
+            """,
+            (int(goal_id), int(agreement_id)),
+        )
+        self.conn.commit()
+
     def record_minister_stance(
         self,
         state: GameState,
@@ -4168,6 +4561,7 @@ class GameDB:
         psychological_score: int = 0,
         psychological: Dict[str, object] | None = None,
         agreement_id: int = 0,
+        goal_id: int = 0,
     ) -> int:
         """记录本回合召对后，某官对某事的真实立场/承诺，供月末推演读取。"""
         minister_name = str(minister_name or "").strip()
@@ -4186,8 +4580,8 @@ class GameDB:
                 (turn, year, period, minister_name, topic, stance, confidence, summary,
                  conditions, related_issue_id, source_chat_turn_id, user_message, minister_answer,
                  evidence_json, risk_tags, execution_hint, handshake_status,
-                 psychological_score, psychological_json, agreement_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 psychological_score, psychological_json, agreement_id, goal_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 int(state.turn), int(state.year), int(state.period),
@@ -4205,6 +4599,7 @@ class GameDB:
                 max(0, min(100, int(psychological_score or 0))),
                 json.dumps(psychological or {}, ensure_ascii=False),
                 max(0, int(agreement_id or 0)),
+                max(0, int(goal_id or 0)),
             ),
         )
         self.conn.commit()
@@ -4244,7 +4639,7 @@ class GameDB:
             SELECT id, turn, year, period, minister_name, topic, stance, confidence,
                    summary, conditions, related_issue_id, source_chat_turn_id,
                    evidence_json, risk_tags, execution_hint, handshake_status,
-                   psychological_score, psychological_json, agreement_id
+                   psychological_score, psychological_json, agreement_id, goal_id
             FROM minister_stances
             {sql_where}
             ORDER BY id DESC
@@ -4303,6 +4698,7 @@ class GameDB:
         handshake_status: str = "none",
         psychological_score: int = 0,
         source_chat_turn_id: int = 0,
+        goal_context: Optional[Dict[str, object]] = None,
     ) -> Optional[Dict[str, object]]:
         from ming_sim.xinpan import apply_chat_xinpan_update
 
@@ -4316,6 +4712,7 @@ class GameDB:
             handshake_status=handshake_status,
             psychological_score=psychological_score,
             source_chat_turn_id=source_chat_turn_id,
+            goal_context=goal_context,
         )
 
     def apply_turn_xinpan_update(
@@ -4380,6 +4777,7 @@ class GameDB:
         conditions: str = "",
         summary: str = "",
         tasks: List[str] | None = None,
+        goal_id: int = 0,
     ) -> int:
         clean_name = str(minister_name or "").strip()
         if not clean_name:
@@ -4413,10 +4811,10 @@ class GameDB:
             INSERT INTO negotiation_agreements
                 (turn_created, year_created, period_created, minister_name, topic,
                  core_topic, target_text, action_kind, promise_type, stakes, status,
-                 condition_status, target_status, stance_id, handshake_status,
+                 condition_status, target_status, stance_id, goal_id, handshake_status,
                  psychological_score, threshold, verbal_only, due_turn,
                  fulfillment_score, fulfillment_evidence, target_evidence, conditions, summary)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 int(state.turn), int(state.year), int(state.period),
@@ -4427,7 +4825,9 @@ class GameDB:
                 str(promise_type or "").strip()[:40],
                 str(stakes or "").strip()[:120],
                 status, condition_status, target_status,
-                max(0, int(stance_id or 0)), str(handshake_status or "none").strip(),
+                max(0, int(stance_id or 0)),
+                max(0, int(goal_id or 0)),
+                str(handshake_status or "none").strip(),
                 max(0, min(100, int(psychological_score or 0))),
                 max(0, min(100, int(threshold or 0))),
                 1 if verbal_only else 0,
@@ -5116,6 +5516,7 @@ class GameDB:
                 "topic": row.get("topic"),
                 "target_text": row.get("target_text") or row.get("core_topic") or row.get("topic"),
                 "action_kind": row.get("action_kind"),
+                "goal_id": row.get("goal_id") or 0,
                 "promise_type": row.get("promise_type") or "",
                 "stakes": row.get("stakes") or "",
                 "status": status,

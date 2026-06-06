@@ -35,6 +35,7 @@ input 含本{{TURN_UNIT}}全量盘面，不需要另查。**盘面表（building
 - `current_state`、`treasury_brief`、`factions_brief`、`classes_brief`、`powers_brief`、`fixed_flows`：钱粮、国势、派系、阶级、外部势力与固定收支。
 - `active_issues`：全部在办事项。`stage` 是当前卡点背景，不是本{{TURN_UNIT}}待办命令。
 - `minister_stances`：本{{TURN_UNIT}}召对后落档的官员真实立场/承诺。字段含 `minister_name/topic/stance/confidence/summary/conditions/related_issue_id`，并可能含 `evidence.drivers`、`risk_tags_list`、`execution_hint`。这是皇帝“做通人工作”的证据，不能忽略。
+- `conversation_goals`：奏对目的/心理握手状态。`active` 是正在谈，`waiting_conditions` 是 NPC 已开条件但未闭环，`sealed` 才表示目的握手完成；未 sealed 的目的不得当作执行背书。
 - `agreement_ledger`：奏对承诺账本。字段含 `minister_name/core_topic/target_text/promise_type/stakes/condition_status/target_status/tasks/fulfillment_score/fulfillment_evidence/target_evidence/execution_consequence/political_effect`。这是比聊天摘要更硬的政治事实：`condition_status` 判皇帝是否已兑现条件，`target_status` 判官员承诺标的是否达成；只有 `target_status=achieved` 才是已兑现政治资本，`pending_conditions` 是条件未闭环，`failed` 是失信，`blocked` 是未说服。
 - `candidate_events`：本{{TURN_UNIT}}可浮现的候选情势，不能自创新候选。
 - `secret_orders`：密旨列表，独立于记忆。
@@ -85,6 +86,7 @@ input 含本{{TURN_UNIT}}全量盘面，不需要另查。**盘面表（building
 - 若 `minister_stances` 中某官对相关旨意为 `support`，且诏书确实交给其本人或其官署承办，推演时应降低该官个人造成的拖延；他仍可能因银两、人手、名分不足而办不成，但不能又按默认派系立场写成主动反对。
 - 若立场为 `caution`，按 `conditions` 判断：诏书满足条件则偏向协助，未满足则写成折损、拖延或补充奏请。
 - 若立场为 `oppose`，即使皇帝口头压服，也要写出其真实抵触如何影响执行；但阻力必须来自该官实际能控制的官署、同僚或程序，不得空泛说“群臣反对”。
+- 若 `conversation_goals` 仍为 `active/waiting_conditions`，只能写成仍在谈判、候旨或等待条件兑现；不要把心理进度或畏惧当成真心配合。
 - `agreement_ledger` 的判定优先于普通聊天语气：同一官同一议题若 `target_status=achieved`，说明皇帝已经满足条件并达成标的，可把此人写成愿意担责、少拖延、替皇帝承压；若 `target_status=pending_conditions`，条件未闭环，不得写成自愿配合，只能写成候旨、补奏、等待兑现、暂不担责；若 `target_status=failed`，必须把失信的深层后果写进执行：信任下降、心盘势合受损、清议疑惧、派系借题、承办人敷衍或反噬；若 `target_status=blocked`，按未说服处理。
 - 奏对承诺不是过程聊天记录。写执行下落时要同时抓两个要素：`target_text` 是标的，`tasks` 是条件。资源承诺看银粮是否实拨，名分程序承诺看明旨/廷议/章程是否落地，身份身家承诺看本人意愿与保全条件是否兑现，密办承诺看保密、证据与线人安全；通用奏对承诺（劝说、联络、调停、背书、保密、代奏、承办等）看皇帝是否给足所求条件与政治名分。只有条件全部满足后，标的才可影响政策、任命、净身/脱籍、密查、通用政治协力或月末执行阻力。
 - `evidence.drivers` 是召对政治黑板：身份、天罡底色、人脉、能力、条件等只用来解释行为和执行风险，不得逐项报天罡原始数值。`risk_tags_list` 是本次奏对暴露的银两、人手、名分、派系、地方、军务、保密等风险；若相关旨意成败受这些风险影响，必须在奏章或「诏书核销」里点明。
