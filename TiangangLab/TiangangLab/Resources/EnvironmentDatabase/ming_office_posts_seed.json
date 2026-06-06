@@ -1,0 +1,1798 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T21:47:48.404688Z",
+  "records": [
+    {
+      "office_post_id": "post_cabinet_grand_secretary",
+      "canonical_title": "内阁大学士",
+      "title_variants": [
+        "内阁大学士",
+        "东阁大学士",
+        "文馆大学士"
+      ],
+      "institution_id": "cabinet",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "office_family": "cabinet",
+      "jurisdiction_scope": "central",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_cabinet_senior_role",
+      "canonical_title": "内阁首辅/次辅",
+      "title_variants": [
+        "内阁首辅",
+        "内阁次辅"
+      ],
+      "institution_id": "cabinet",
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "office_family": "cabinet_power_role",
+      "jurisdiction_scope": "central",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_censorate_fuduyushi",
+      "canonical_title": "副都御史",
+      "title_variants": [
+        "巡抚延绥副都御史"
+      ],
+      "institution_id": "censorate",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "office_family": "censorate",
+      "jurisdiction_scope": "regional",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_censorate_qianduyushi",
+      "canonical_title": "佥都御史",
+      "title_variants": [
+        "佥都御史",
+        "僉都御史"
+      ],
+      "institution_id": "censorate",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "office_family": "censorate",
+      "jurisdiction_scope": "regional_dispatch_or_censorial",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_censorate_yushi",
+      "canonical_title": "御史",
+      "title_variants": [
+        "监察御史",
+        "巡按御史"
+      ],
+      "institution_id": "censorate",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "office_family": "censorate",
+      "jurisdiction_scope": "central_or_circuit",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_censorate_zuoduyushi",
+      "canonical_title": "左都御史",
+      "title_variants": [
+        "左都御史"
+      ],
+      "institution_id": "censorate",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "office_family": "censorate",
+      "jurisdiction_scope": "central",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_civil_service_jinshi_candidate",
+      "canonical_title": "进士候选",
+      "title_variants": [
+        "进士及第",
+        "进士候选",
+        "新科进士"
+      ],
+      "institution_id": "civil_service_pool",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "civilian_unranked",
+      "office_family": "civil_service_pool",
+      "jurisdiction_scope": "personnel_candidate_pool",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_county_zhixian",
+      "canonical_title": "知县",
+      "title_variants": [
+        "永城知县"
+      ],
+      "institution_id": "local_government",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "office_family": "county",
+      "jurisdiction_scope": "local_county",
+      "title_order": null,
+      "capacity_policy": "singleton"
+    },
+    {
+      "office_post_id": "post_dispatch_shilang",
+      "canonical_title": "侍郎差遣",
+      "title_variants": [
+        "总督陕西三边军务侍郎",
+        "督理山东军务侍郎"
+      ],
+      "institution_id": "regional_dispatch",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "office_family": "regional_dispatch",
+      "jurisdiction_scope": "regional",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_dongchang_tiduu",
+      "canonical_title": "东厂提督",
+      "title_variants": [
+        "东厂提督"
+      ],
+      "institution_id": "eastern_depot",
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "office_family": "secret_police",
+      "jurisdiction_scope": "capital_security",
+      "title_order": null,
+      "capacity_policy": "singleton"
+    },
+    {
+      "office_post_id": "post_dudu_qianshi",
+      "canonical_title": "都督佥事",
+      "title_variants": [
+        "都督佥事",
+        "都督僉事"
+      ],
+      "institution_id": "military_frontier",
+      "rank_context": "outer_military",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "office_family": "high_military_title",
+      "jurisdiction_scope": "military_title_or_additional_rank",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_dushi_dushi",
+      "canonical_title": "督师",
+      "title_variants": [
+        "蓟辽督师"
+      ],
+      "institution_id": "regional_dispatch",
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "office_family": "regional_dispatch",
+      "jurisdiction_scope": "frontier_or_campaign",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_dushi_xunfu",
+      "canonical_title": "巡抚",
+      "title_variants": [
+        "登莱巡抚",
+        "辽东巡抚"
+      ],
+      "institution_id": "regional_dispatch",
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "office_family": "regional_dispatch",
+      "jurisdiction_scope": "regional",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_dushi_zongdu",
+      "canonical_title": "总督",
+      "title_variants": [
+        "蓟辽总督"
+      ],
+      "institution_id": "regional_dispatch",
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "office_family": "regional_dispatch",
+      "jurisdiction_scope": "regional",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_external_mongol_taiji",
+      "canonical_title": "蒙古台吉",
+      "title_variants": [
+        "台吉",
+        "察哈尔台吉",
+        "蒙古台吉"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "office_family": "external_mongol_title",
+      "jurisdiction_scope": "external_power_title",
+      "capacity_policy": "external_plural"
+    },
+    {
+      "office_post_id": "post_frontier_fuzongbing",
+      "canonical_title": "副总兵",
+      "title_variants": [
+        "锦州副总兵"
+      ],
+      "institution_id": "military_frontier",
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "office_family": "frontier_command",
+      "jurisdiction_scope": "frontier_or_provincial_military",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_frontier_youji",
+      "canonical_title": "游击将军",
+      "title_variants": [
+        "辽东游击将军"
+      ],
+      "institution_id": "military_frontier",
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "office_family": "frontier_command",
+      "jurisdiction_scope": "frontier_or_provincial_military",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_frontier_zongbing",
+      "canonical_title": "总兵",
+      "title_variants": [
+        "大同总兵",
+        "山东总兵",
+        "山西总兵",
+        "山海关总兵",
+        "东江镇总兵",
+        "福建总兵"
+      ],
+      "institution_id": "military_frontier",
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "office_family": "frontier_command",
+      "jurisdiction_scope": "frontier_or_provincial_military",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_guard_zhihui",
+      "canonical_title": "卫所指挥",
+      "title_variants": [
+        "指挥",
+        "指挥使",
+        "卫指挥"
+      ],
+      "institution_id": "embroidered_uniform_guard",
+      "rank_context": "outer_military",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "office_family": "imperial_guard_or_guard_command",
+      "jurisdiction_scope": "guard_command",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_hanlin_bianxiu",
+      "canonical_title": "翰林院编修",
+      "title_variants": [
+        "翰林院编修"
+      ],
+      "institution_id": "hanlin_academy",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "office_family": "hanlin",
+      "jurisdiction_scope": "central",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_harem_empress",
+      "canonical_title": "皇后",
+      "title_variants": [
+        "中宫皇后"
+      ],
+      "institution_id": "inner_palace",
+      "rank_context": "harem_title",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "title_order": 1,
+      "office_family": "harem_order",
+      "jurisdiction_scope": "inner_palace",
+      "capacity_policy": "title_order_only"
+    },
+    {
+      "office_post_id": "post_harem_fei",
+      "canonical_title": "妃",
+      "title_variants": [
+        "妃",
+        "礼妃",
+        "淑妃",
+        "慧妃"
+      ],
+      "institution_id": "inner_palace",
+      "rank_context": "harem_title",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "title_order": 3,
+      "office_family": "harem_order",
+      "jurisdiction_scope": "inner_palace",
+      "capacity_policy": "title_order_only"
+    },
+    {
+      "office_post_id": "post_harem_guifei",
+      "canonical_title": "贵妃",
+      "title_variants": [
+        "贵妃"
+      ],
+      "institution_id": "inner_palace",
+      "rank_context": "harem_title",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "title_order": 2,
+      "office_family": "harem_order",
+      "jurisdiction_scope": "inner_palace",
+      "capacity_policy": "title_order_only"
+    },
+    {
+      "office_post_id": "post_harem_guiren",
+      "canonical_title": "贵人",
+      "title_variants": [
+        "贵人"
+      ],
+      "institution_id": "inner_palace",
+      "rank_context": "harem_title",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "title_order": 4,
+      "office_family": "harem_order",
+      "jurisdiction_scope": "inner_palace",
+      "capacity_policy": "title_order_only"
+    },
+    {
+      "office_post_id": "post_inner_eunuch_changsui",
+      "canonical_title": "长随",
+      "title_variants": [
+        "内廷长随",
+        "都知监长随"
+      ],
+      "institution_id": "inner_court_twenty_four_yamen",
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_6",
+      "rank_applicability": "ranked",
+      "office_family": "eunuch_rank_title",
+      "jurisdiction_scope": "inner_court",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_inner_eunuch_dianbu",
+      "canonical_title": "典簿",
+      "title_variants": [
+        "内廷典簿",
+        "各监典簿"
+      ],
+      "institution_id": "inner_court_twenty_four_yamen",
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_6",
+      "rank_applicability": "ranked",
+      "office_family": "eunuch_rank_title",
+      "jurisdiction_scope": "inner_court",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_inner_eunuch_fengyu",
+      "canonical_title": "奉御",
+      "title_variants": [
+        "内廷奉御"
+      ],
+      "institution_id": "inner_court_twenty_four_yamen",
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_6",
+      "rank_applicability": "ranked",
+      "office_family": "eunuch_rank_title",
+      "jurisdiction_scope": "inner_court",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_inner_eunuch_jiancheng",
+      "canonical_title": "左/右监丞",
+      "title_variants": [
+        "左监丞",
+        "右监丞",
+        "监丞"
+      ],
+      "institution_id": "inner_court_twenty_four_yamen",
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "office_family": "eunuch_rank_title",
+      "jurisdiction_scope": "inner_court",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_inner_eunuch_neiguan",
+      "canonical_title": "内官",
+      "title_variants": [
+        "内官",
+        "司礼监内官",
+        "内廷内官"
+      ],
+      "institution_id": "directorate_ceremonial",
+      "rank_context": "inner_eunuch",
+      "default_rank_code": null,
+      "rank_applicability": "inner_eunuch_order",
+      "office_family": "eunuch_identity_title",
+      "jurisdiction_scope": "inner_court",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_inner_eunuch_neishi_xiaohuo",
+      "canonical_title": "内使/小火者",
+      "title_variants": [
+        "内使",
+        "小火者",
+        "内吏"
+      ],
+      "institution_id": "inner_court_twenty_four_yamen",
+      "rank_context": "inner_eunuch",
+      "default_rank_code": null,
+      "rank_applicability": "inner_eunuch_order",
+      "office_family": "eunuch_service_identity",
+      "jurisdiction_scope": "inner_court",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_inner_eunuch_shaojian",
+      "canonical_title": "左/右少监",
+      "title_variants": [
+        "左少监",
+        "右少监",
+        "少监"
+      ],
+      "institution_id": "inner_court_twenty_four_yamen",
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "cong_4",
+      "rank_applicability": "ranked",
+      "office_family": "eunuch_rank_title",
+      "jurisdiction_scope": "inner_court",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_inner_eunuch_taijian",
+      "canonical_title": "太监",
+      "title_variants": [
+        "各监掌印太监",
+        "提督太监",
+        "掌印太监"
+      ],
+      "institution_id": "inner_court_twenty_four_yamen",
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "office_family": "eunuch_rank_title",
+      "jurisdiction_scope": "inner_court",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_inner_palace_madame_fengsheng",
+      "canonical_title": "奉圣夫人",
+      "title_variants": [
+        "奉圣夫人（先帝乳母）"
+      ],
+      "institution_id": "inner_palace",
+      "rank_context": "harem_title",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "title_order": null,
+      "office_family": "inner_palace_honorific",
+      "jurisdiction_scope": "inner_palace",
+      "capacity_policy": "title_order_only"
+    },
+    {
+      "office_post_id": "post_inner_palace_musician",
+      "canonical_title": "宫廷乐师",
+      "title_variants": [
+        "宫廷乐师"
+      ],
+      "institution_id": "inner_palace",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "civilian_unranked",
+      "office_family": "inner_palace_skill_service",
+      "jurisdiction_scope": "inner_palace",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_jinyiwei_beizhenfusi_lixing",
+      "canonical_title": "锦衣卫北镇抚司理刑",
+      "title_variants": [
+        "锦衣卫北镇抚司理刑"
+      ],
+      "institution_id": "embroidered_uniform_guard",
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "office_family": "imperial_guard",
+      "jurisdiction_scope": "capital_security",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_jinyiwei_duzhihuishi",
+      "canonical_title": "锦衣卫都指挥使",
+      "title_variants": [
+        "锦衣卫都指挥使"
+      ],
+      "institution_id": "embroidered_uniform_guard",
+      "rank_context": "outer_military",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "office_family": "imperial_guard",
+      "jurisdiction_scope": "capital_security",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_jinyiwei_qianhu",
+      "canonical_title": "锦衣卫千户",
+      "title_variants": [
+        "锦衣卫千户"
+      ],
+      "institution_id": "embroidered_uniform_guard",
+      "rank_context": "outer_military",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "office_family": "imperial_guard",
+      "jurisdiction_scope": "capital_security",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_ministry_langzhong",
+      "canonical_title": "郎中",
+      "title_variants": [
+        "户部郎中"
+      ],
+      "institution_id": "central_six_ministries",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "office_family": "six_ministries",
+      "jurisdiction_scope": "central",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_ministry_zhushi",
+      "canonical_title": "主事",
+      "title_variants": [
+        "吏部考功司主事"
+      ],
+      "institution_id": "ministry_personnel",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_6",
+      "rank_applicability": "ranked",
+      "office_family": "six_ministries",
+      "jurisdiction_scope": "central",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_mission_investiture_korea",
+      "canonical_title": "册封朝鲜使",
+      "title_variants": [
+        "册封朝鲜使"
+      ],
+      "institution_id": "ministry_rites",
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "office_family": "diplomatic_mission",
+      "jurisdiction_scope": "foreign_mission",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_mission_manage_nanjing_hanlin",
+      "canonical_title": "掌南京翰林院",
+      "title_variants": [
+        "掌南京翰林院"
+      ],
+      "institution_id": "hanlin_academy",
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "office_family": "hanlin_mission",
+      "jurisdiction_scope": "nanjing",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_neiting_jiantian",
+      "canonical_title": "监军太监",
+      "title_variants": [
+        "监军太监"
+      ],
+      "institution_id": "inner_military_supervision",
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "office_family": "eunuch_military_mission",
+      "jurisdiction_scope": "frontier_or_campaign",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_nobility_bo",
+      "canonical_title": "伯",
+      "title_variants": [
+        "兴平伯",
+        "靖南伯"
+      ],
+      "institution_id": "nobility_system",
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "title_order": 4,
+      "office_family": "ming_nobility",
+      "jurisdiction_scope": "nobility",
+      "capacity_policy": "title_order_only"
+    },
+    {
+      "office_post_id": "post_nobility_guogong",
+      "canonical_title": "国公",
+      "title_variants": [
+        "国公",
+        "成国公"
+      ],
+      "institution_id": "nobility_system",
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "title_order": 1,
+      "office_family": "ming_nobility",
+      "jurisdiction_scope": "nobility",
+      "capacity_policy": "title_order_only"
+    },
+    {
+      "office_post_id": "post_nobility_wangjue",
+      "canonical_title": "宗室王爵",
+      "title_variants": [
+        "亲王",
+        "郡王",
+        "藩王",
+        "福王",
+        "唐王",
+        "唐藩宗室",
+        "唐藩宗亲",
+        "德王",
+        "周王",
+        "襄王",
+        "万安王",
+        "贵阳王"
+      ],
+      "institution_id": "nobility_system",
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "title_order": 2,
+      "office_family": "ming_princely_title",
+      "jurisdiction_scope": "nobility",
+      "capacity_policy": "title_order_only"
+    },
+    {
+      "office_post_id": "post_old_0a1311a597",
+      "canonical_title": "制将军",
+      "title_variants": [
+        "制将军"
+      ],
+      "institution_id": "rebel_bands",
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_0de29960eb",
+      "canonical_title": "武当山掌教",
+      "title_variants": [
+        "武当山掌教"
+      ],
+      "institution_id": "religious_world",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_0e3e4e3db3",
+      "canonical_title": "和硕贝勒",
+      "title_variants": [
+        "和硕贝勒"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_0f7b4a32ec",
+      "canonical_title": "海商",
+      "title_variants": [
+        "海商"
+      ],
+      "institution_id": "commercial_maritime",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_12dfeac49d",
+      "canonical_title": "曹操",
+      "title_variants": [
+        "曹操"
+      ],
+      "institution_id": "rebel_bands",
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_168d1a71ad",
+      "canonical_title": "驿卒",
+      "title_variants": [
+        "驿卒"
+      ],
+      "institution_id": "rebel_bands",
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_195f1c86ee",
+      "canonical_title": "江湖游侠",
+      "title_variants": [
+        "江湖游侠"
+      ],
+      "institution_id": "unappointed_people",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_2702d62b96",
+      "canonical_title": "后金汉军将领",
+      "title_variants": [
+        "后金汉军将领"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_27d2b24311",
+      "canonical_title": "文馆大学士",
+      "title_variants": [
+        "文馆大学士"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_2c933f4bd4",
+      "canonical_title": "恭顺王",
+      "title_variants": [
+        "恭顺王"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_3fe566457e",
+      "canonical_title": "平贼将军",
+      "title_variants": [
+        "平贼将军"
+      ],
+      "institution_id": "military_frontier",
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_606df9c42f",
+      "canonical_title": "江湖武师",
+      "title_variants": [
+        "江湖武师"
+      ],
+      "institution_id": "unappointed_people",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_64bb875551",
+      "canonical_title": "朝鲜国王",
+      "title_variants": [
+        "朝鲜国王"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_6789e23487",
+      "canonical_title": "正黄旗固山额真",
+      "title_variants": [
+        "正黄旗固山额真"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_688c058e8a",
+      "canonical_title": "南京官场旧人",
+      "title_variants": [
+        "南京官场旧人"
+      ],
+      "institution_id": "civil_service_pool",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "civilian_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_6cd94fd34d",
+      "canonical_title": "察哈尔汗",
+      "title_variants": [
+        "察哈尔汗"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_7d5c18b37b",
+      "canonical_title": "镶黄旗护军统领",
+      "title_variants": [
+        "镶黄旗护军统领"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_81e0d86f2d",
+      "canonical_title": "辽东副将",
+      "title_variants": [
+        "辽东副将"
+      ],
+      "institution_id": "military_frontier",
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_843a04d942",
+      "canonical_title": "郑亲王",
+      "title_variants": [
+        "郑亲王"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_849a7dd777",
+      "canonical_title": "一等侍卫",
+      "title_variants": [
+        "一等侍卫"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_85a6f537b2",
+      "canonical_title": "睿亲王",
+      "title_variants": [
+        "睿亲王"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_85d39095f3",
+      "canonical_title": "西域商人",
+      "title_variants": [
+        "西域商人"
+      ],
+      "institution_id": "commercial_maritime",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_877185cb69",
+      "canonical_title": "洞庭湖隐士",
+      "title_variants": [
+        "洞庭湖隐士"
+      ],
+      "institution_id": "unappointed_people",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_8a0c54758c",
+      "canonical_title": "少年部将",
+      "title_variants": [
+        "少年部将"
+      ],
+      "institution_id": "unappointed_people",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_8e068026f9",
+      "canonical_title": "丞相",
+      "title_variants": [
+        "丞相"
+      ],
+      "institution_id": "rebel_bands",
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_8f49e6ef0b",
+      "canonical_title": "军师",
+      "title_variants": [
+        "军师"
+      ],
+      "institution_id": "rebel_bands",
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_9a967edc1f",
+      "canonical_title": "诸生（应天府学）",
+      "title_variants": [
+        "诸生（应天府学）"
+      ],
+      "institution_id": "unappointed_people",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "civilian_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_9b0b66bf26",
+      "canonical_title": "智顺王",
+      "title_variants": [
+        "智顺王"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_9e3a7f5787",
+      "canonical_title": "闻香教首",
+      "title_variants": [
+        "闻香教首"
+      ],
+      "institution_id": "religious_world",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_aa5abbe73a",
+      "canonical_title": "后金汗",
+      "title_variants": [
+        "后金汗"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_aaf0a39062",
+      "canonical_title": "英亲王",
+      "title_variants": [
+        "英亲王"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_acead805cc",
+      "canonical_title": "东海倭寇大头目",
+      "title_variants": [
+        "东海倭寇大头目"
+      ],
+      "institution_id": "commercial_maritime",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_ae8986cf1e",
+      "canonical_title": "后金文馆谋臣",
+      "title_variants": [
+        "后金文馆谋臣"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_b3ae53c1e9",
+      "canonical_title": "耶稣会传教士",
+      "title_variants": [
+        "耶稣会传教士"
+      ],
+      "institution_id": "religious_world",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_b925897e1c",
+      "canonical_title": "喀尔喀汗",
+      "title_variants": [
+        "喀尔喀汗"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_c0a6d29e2a",
+      "canonical_title": "漠南蒙古首领",
+      "title_variants": [
+        "漠南蒙古首领"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_c46a944c02",
+      "canonical_title": "关外游侠",
+      "title_variants": [
+        "关外游侠"
+      ],
+      "institution_id": "unappointed_people",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_c4a17f74fe",
+      "canonical_title": "朝鲜朝臣",
+      "title_variants": [
+        "朝鲜朝臣"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_c8f7a5ebf1",
+      "canonical_title": "女将",
+      "title_variants": [
+        "女将"
+      ],
+      "institution_id": "rebel_bands",
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_cadd9ef974",
+      "canonical_title": "江湖侠女",
+      "title_variants": [
+        "江湖侠女"
+      ],
+      "institution_id": "unappointed_people",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_ccfc6570fb",
+      "canonical_title": "龙虎山天师府法师",
+      "title_variants": [
+        "龙虎山天师府法师"
+      ],
+      "institution_id": "religious_world",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_cedb0fe429",
+      "canonical_title": "贝勒",
+      "title_variants": [
+        "贝勒"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_d04cf3299b",
+      "canonical_title": "谋士",
+      "title_variants": [
+        "谋士"
+      ],
+      "institution_id": "rebel_bands",
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_d15ae45923",
+      "canonical_title": "豫亲王",
+      "title_variants": [
+        "豫亲王"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_d323a81552",
+      "canonical_title": "怀顺王",
+      "title_variants": [
+        "怀顺王"
+      ],
+      "institution_id": "external_powers",
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_df7dde9f8d",
+      "canonical_title": "边兵",
+      "title_variants": [
+        "边兵"
+      ],
+      "institution_id": "rebel_bands",
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "title_order": null,
+      "capacity_policy": "external_plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_e35e26764b",
+      "canonical_title": "苗疆大巫师",
+      "title_variants": [
+        "苗疆大巫师"
+      ],
+      "institution_id": "unappointed_people",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_e65b2065ee",
+      "canonical_title": "隐剑山庄庄主",
+      "title_variants": [
+        "隐剑山庄庄主"
+      ],
+      "institution_id": "unappointed_people",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_f0cc7a5713",
+      "canonical_title": "马尼拉华商领袖",
+      "title_variants": [
+        "马尼拉华商领袖"
+      ],
+      "institution_id": "commercial_maritime",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_f95f926727",
+      "canonical_title": "少林寺达摩院长老",
+      "title_variants": [
+        "少林寺达摩院长老"
+      ],
+      "institution_id": "religious_world",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_fa6d63cc28",
+      "canonical_title": "白莲教教主",
+      "title_variants": [
+        "白莲教教主"
+      ],
+      "institution_id": "religious_world",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_old_fc2f085d5e",
+      "canonical_title": "江湖神医",
+      "title_variants": [
+        "江湖神医"
+      ],
+      "institution_id": "unappointed_people",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "title_order": null,
+      "capacity_policy": "plural",
+      "office_family": "old_office_text_unresolved",
+      "jurisdiction_scope": "unknown"
+    },
+    {
+      "office_post_id": "post_prefecture_tuiguan",
+      "canonical_title": "推官",
+      "title_variants": [
+        "凤阳府推官"
+      ],
+      "institution_id": "local_government",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "office_family": "prefecture",
+      "jurisdiction_scope": "local_prefecture",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_prefecture_zhifu",
+      "canonical_title": "知府",
+      "title_variants": [
+        "大名府知府"
+      ],
+      "institution_id": "local_government",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "office_family": "prefecture",
+      "jurisdiction_scope": "local_prefecture",
+      "title_order": null,
+      "capacity_policy": "singleton"
+    },
+    {
+      "office_post_id": "post_provincial_canyi",
+      "canonical_title": "参议",
+      "title_variants": [
+        "参议"
+      ],
+      "institution_id": "provincial_administration",
+      "rank_context": "outer_civil",
+      "default_rank_code": "cong_4",
+      "rank_applicability": "ranked",
+      "office_family": "provincial_administration",
+      "jurisdiction_scope": "provincial_or_regional",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_provincial_fushi",
+      "canonical_title": "副使",
+      "title_variants": [
+        "副使",
+        "兵备副使"
+      ],
+      "institution_id": "provincial_administration",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "office_family": "provincial_administration",
+      "jurisdiction_scope": "provincial_or_regional",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_provincial_zhaomo",
+      "canonical_title": "按察司照磨",
+      "title_variants": [
+        "按察司照磨",
+        "照磨"
+      ],
+      "institution_id": "provincial_administration",
+      "rank_context": "outer_civil",
+      "default_rank_code": "cong_8",
+      "rank_applicability": "ranked",
+      "office_family": "provincial_administration",
+      "jurisdiction_scope": "provincial_yamen_low_official",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_rebel_leader_title",
+      "canonical_title": "民变首领",
+      "title_variants": [
+        "贼首",
+        "海寇",
+        "流寇首领",
+        "陕北流寇首领",
+        "闯王",
+        "革左五营盟主"
+      ],
+      "institution_id": "rebel_bands",
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "office_family": "rebel_title",
+      "jurisdiction_scope": "rebel_or_bandit_power",
+      "title_order": null,
+      "capacity_policy": "external_plural"
+    },
+    {
+      "office_post_id": "post_rebel_military_title",
+      "canonical_title": "叛军军职",
+      "title_variants": [
+        "山东副将",
+        "叛军副将"
+      ],
+      "institution_id": "rebel_bands",
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "office_family": "rebel_title",
+      "jurisdiction_scope": "rebel_or_defector_command",
+      "title_order": null,
+      "capacity_policy": "external_plural"
+    },
+    {
+      "office_post_id": "post_rites_you_shaoqing",
+      "canonical_title": "礼部右少卿",
+      "title_variants": [
+        "礼部右少卿"
+      ],
+      "institution_id": "ministry_rites",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "office_family": "rites_subministerial",
+      "jurisdiction_scope": "central",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_shanxi_duliang_canzheng",
+      "canonical_title": "督粮参政",
+      "title_variants": [
+        "陕西督粮参政"
+      ],
+      "institution_id": "provincial_administration",
+      "rank_context": "outer_civil",
+      "default_rank_code": "cong_3",
+      "rank_applicability": "ranked",
+      "office_family": "provincial_administration",
+      "jurisdiction_scope": "provincial",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_sili_jian_bingbi",
+      "canonical_title": "司礼监秉笔太监",
+      "title_variants": [
+        "司礼监秉笔太监"
+      ],
+      "institution_id": "directorate_ceremonial",
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "office_family": "eunuch_agency",
+      "jurisdiction_scope": "inner_court",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_sili_jian_zhangyin",
+      "canonical_title": "司礼监掌印太监",
+      "title_variants": [
+        "司礼监掌印太监"
+      ],
+      "institution_id": "directorate_ceremonial",
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "office_family": "eunuch_agency",
+      "jurisdiction_scope": "inner_court",
+      "title_order": null,
+      "capacity_policy": "singleton"
+    },
+    {
+      "office_post_id": "post_six_ministries_shangshu",
+      "canonical_title": "六部尚书",
+      "title_variants": [
+        "吏部尚书",
+        "户部尚书",
+        "礼部尚书",
+        "兵部尚书",
+        "工部尚书",
+        "南京户部尚书",
+        "南京兵部尚书"
+      ],
+      "institution_id": "central_six_ministries",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "capacity_policy": "fixed_capacity",
+      "office_family": "six_ministries",
+      "jurisdiction_scope": "central",
+      "title_order": null
+    },
+    {
+      "office_post_id": "post_six_ministries_shilang",
+      "canonical_title": "六部侍郎",
+      "title_variants": [
+        "兵部侍郎",
+        "礼部右侍郎"
+      ],
+      "institution_id": "central_six_ministries",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "office_family": "six_ministries",
+      "jurisdiction_scope": "central",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_six_offices_geishizhong",
+      "canonical_title": "给事中",
+      "title_variants": [
+        "兵科给事中"
+      ],
+      "institution_id": "six_offices",
+      "rank_context": "outer_civil",
+      "default_rank_code": "cong_7",
+      "rank_applicability": "ranked",
+      "office_family": "censorial_remonstrance",
+      "jurisdiction_scope": "central",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_tusi_xuanfushi",
+      "canonical_title": "宣抚使",
+      "title_variants": [
+        "土司宣抚使",
+        "宣抚使",
+        "宣撫使",
+        "石砫宣抚使"
+      ],
+      "institution_id": "native_chieftain_administration",
+      "rank_context": "outer_military",
+      "default_rank_code": "cong_4",
+      "rank_applicability": "ranked",
+      "office_family": "native_chieftain_office",
+      "jurisdiction_scope": "frontier_native_chieftain_administration",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_tusi_xuanweishi",
+      "canonical_title": "宣慰使",
+      "title_variants": [
+        "土司宣慰使",
+        "宣慰使"
+      ],
+      "institution_id": "native_chieftain_administration",
+      "rank_context": "outer_military",
+      "default_rank_code": "cong_3",
+      "rank_applicability": "ranked",
+      "office_family": "native_chieftain_office",
+      "jurisdiction_scope": "frontier_native_chieftain_administration",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_unappointed_underage_offstage",
+      "canonical_title": "幼年未登场",
+      "title_variants": [
+        "幼年未登场",
+        "未成年未登场"
+      ],
+      "institution_id": "unappointed_people",
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "civilian_unranked",
+      "office_family": "unavailable_identity",
+      "jurisdiction_scope": "offstage_until_age_or_debut",
+      "title_order": null,
+      "capacity_policy": "plural"
+    },
+    {
+      "office_post_id": "post_zhanshifu_shaozhanshi",
+      "canonical_title": "少詹事",
+      "title_variants": [
+        "少詹事"
+      ],
+      "institution_id": "ministry_rites",
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "office_family": "zhanshifu",
+      "jurisdiction_scope": "central",
+      "title_order": null,
+      "capacity_policy": "plural"
+    }
+  ]
+}

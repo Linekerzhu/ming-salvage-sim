@@ -1,0 +1,6318 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T22:01:01+00:00",
+  "records": [
+    {
+      "npc_id": "npc_ming_韩爌",
+      "game_start_year": 1628,
+      "start_status": "idle_home",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1637,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "蒲州",
+        "kind": "residence"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张瑞图",
+      "game_start_year": 1628,
+      "start_status": "idle_home",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_来宗道",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1632,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_施凤来",
+      "game_start_year": 1628,
+      "start_status": "idle_home",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1642,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_黄立极",
+      "game_start_year": 1628,
+      "start_status": "idle_home",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1637,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王绍徽",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_毕自严",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1638,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨嗣昌",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_温体仁",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1638,
+        "month": 7,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_钱龙锡",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1645,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘鸿训",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1634,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_钱谦益",
+      "game_start_year": 1628,
+      "start_status": "idle_home",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1664,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "常熟",
+        "kind": "residence"
+      }
+    },
+    {
+      "npc_id": "npc_ming_李标",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1642,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孙承宗",
+      "game_start_year": 1628,
+      "start_status": "idle_home",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1638,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "高阳",
+        "kind": "residence"
+      }
+    },
+    {
+      "npc_id": "npc_ming_崔呈秀",
+      "game_start_year": 1628,
+      "start_status": "dismissed",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王在晋",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1643,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_徐光启",
+      "game_start_year": 1628,
+      "start_status": "idle_home",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1633,
+        "month": 10,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "上海",
+        "kind": "residence"
+      }
+    },
+    {
+      "npc_id": "npc_ming_袁可立",
+      "game_start_year": 1628,
+      "start_status": "idle_home",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1633,
+        "month": 10,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "睢州",
+        "kind": "residence"
+      }
+    },
+    {
+      "npc_id": "npc_ming_周延儒",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_倪元璐",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_黄道周",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_曹化淳",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1659,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王体乾",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王承恩",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_魏忠贤",
+      "game_start_year": 1628,
+      "start_status": "dead",
+      "availability": "dead_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1627,
+        "month": 11,
+        "policy": "not_available_dead_before_start"
+      },
+      "historical_exit": {
+        "year": 1627,
+        "month": 11,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_田尔耕",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_许显纯",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_李若琏",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1644,
+        "month": 3,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_客氏",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "紫禁城",
+        "kind": "palace"
+      }
+    },
+    {
+      "npc_id": "npc_ming_袁崇焕",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_曹文诏",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_祖大寿",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1656,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_满桂",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_赵率教",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王之臣",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1631,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_毛文龙",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_阎鸣泰",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_洪承畴",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1665,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孙传庭",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_卢象升",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1638,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_史可法",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_周皇后",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "紫禁城",
+        "kind": "palace"
+      }
+    },
+    {
+      "npc_id": "npc_ming_周贵人",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "紫禁城",
+        "kind": "palace"
+      }
+    },
+    {
+      "npc_id": "npc_ming_田贵妃",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "紫禁城",
+        "kind": "palace"
+      }
+    },
+    {
+      "npc_id": "npc_ming_袁贵妃",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "紫禁城",
+        "kind": "palace"
+      }
+    },
+    {
+      "npc_id": "npc_ming_慧妃",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "紫禁城",
+        "kind": "palace"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_皇太极",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1643,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "jianzhou",
+        "kind": "opening_location"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_代善",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1648,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "jianzhou",
+        "kind": "opening_location"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_莽古尔泰",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1633,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "jianzhou",
+        "kind": "opening_location"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_阿敏",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1640,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "jianzhou",
+        "kind": "opening_location"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_范文程",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1666,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "shenyang_liaoyang",
+        "kind": "opening_location"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_佟养性",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1632,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "shenyang_liaoyang",
+        "kind": "opening_location"
+      }
+    },
+    {
+      "npc_id": "npc_mongol_林丹汗",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1634,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "mongol_chahar",
+        "kind": "opening_location"
+      }
+    },
+    {
+      "npc_id": "npc_korea_仁祖",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1649,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "korea",
+        "kind": "opening_location"
+      }
+    },
+    {
+      "npc_id": "npc_korea_张维",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1638,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "korea",
+        "kind": "opening_location"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_王嘉胤",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1631,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "shaanxi",
+        "kind": "opening_location"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_李自成",
+      "game_start_year": 1628,
+      "start_status": "offstage",
+      "availability": "offstage_no_debut_window",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1645,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "shaanxi",
+        "kind": "opening_location"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_张献忠",
+      "game_start_year": 1628,
+      "start_status": "offstage",
+      "availability": "offstage_no_debut_window",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1647,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "shaanxi",
+        "kind": "opening_location"
+      }
+    },
+    {
+      "npc_id": "npc_ming_武当张真人",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_铁臂周侗",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_青莲剑客",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_玄机道长",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_毒手药王",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_红衣女侠",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_盲眼琴师",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_鬼面商人",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_隐剑山庄主",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_白眉老僧",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_曹变蛟",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1642,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_左良玉",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1645,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_黄得功",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1645,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘泽清",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1649,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_高杰",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1645,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_周遇吉",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1644,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_熊文灿",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1640,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_郑芝龙",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1661,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_郑成功",
+      "game_start_year": 1628,
+      "start_status": "offstage",
+      "availability": "future_debut",
+      "debut": {
+        "year": 1642,
+        "month": null
+      },
+      "available_from": {
+        "year": 1642,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1662,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘宗周",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1645,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_范景文",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1644,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_李邦华",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1644,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_马士英",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1646,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_阮大铖",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1646,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_姜曰广",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1649,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈子龙",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1647,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_夏允彝",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1645,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_高起潜",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1645,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杜勋",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1644,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_多尔衮",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1650,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_多铎",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1649,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_阿济格",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1651,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_济尔哈朗",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1655,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_索尼",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1667,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_宁完我",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1665,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_鳌拜",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1669,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_图赖",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1646,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_孔有德",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1652,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_耿仲明",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1649,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_尚可喜",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1676,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_mongol_额哲",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_mongol_土谢图汗",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_mongol_顺义王",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_高迎祥",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1636,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_罗汝才",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1643,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_革左五营",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1646,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_刘宗敏",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1645,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_宋献策",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_牛金星",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1652,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_李岩",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1644,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_红娘子",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_白莲教主",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_闻香教主",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_老渔夫",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_塞外刀客",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_苗疆蛊师",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_倭寇首领",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_西洋传教士",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1666,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_南洋华侨",
+      "game_start_year": 1628,
+      "start_status": "active_unassigned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": null,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨景辰",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": 1628,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_周道登",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": 1628,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_成基命",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1629,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王洽",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1629,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_何如宠",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1629,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_钱象坤",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1629,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王元雅",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1629,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1629,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_何天球",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1629,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1629,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_马世龙",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1629,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孙祖寿",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1629,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1629,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_毕自肃",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": 1628,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": 1628,
+        "month": 7,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘若宰",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": 1628,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_卓铭",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": 1628,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_侯良柱",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1629,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1637,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘可训",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1629,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_郑国昌",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1630,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1630,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张凤奇",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1630,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1630,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘策",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1630,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘之纶",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1630,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1630,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_吴自勉",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1630,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_吴宗达",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1630,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杜文焕",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1630,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王国梁",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1630,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨鹤",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1631,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张应昌",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1631,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1634,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈于泰",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1631,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_吴甡",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1631,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张允登",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1631,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1631,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘若愚",
+      "game_start_year": 1628,
+      "start_status": "imprisoned",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": 1627,
+        "month": null
+      },
+      "available_from": {
+        "year": 1627,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孙暹",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": 1627,
+        "month": null
+      },
+      "available_from": {
+        "year": 1627,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘吉祥",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": 1627,
+        "month": null
+      },
+      "available_from": {
+        "year": 1627,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_李永贞",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": 1627,
+        "month": null
+      },
+      "available_from": {
+        "year": 1627,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_梁栋",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": 1627,
+        "month": null
+      },
+      "available_from": {
+        "year": 1627,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_石元雅",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": 1627,
+        "month": null
+      },
+      "available_from": {
+        "year": 1627,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_涂文辅",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "available_or_known_at_start",
+      "debut": {
+        "year": 1627,
+        "month": null
+      },
+      "available_from": {
+        "year": 1627,
+        "month": null,
+        "policy": "debut_year_if_recorded_else_game_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈良谟",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1632,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_李九成",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1632,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张可大",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1632,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孙元化",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1632,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_宋光兰",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1632,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_徐从治",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1632,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘宇烈",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_余大成",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨嘉谟",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱大典",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_郑以伟",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_谢琏",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱万年",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1632,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨麒",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1632,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_杨正芳",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_祖宽",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1632,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1639,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_刘香",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1633,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1635,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王志道",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1633,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈洪范",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1633,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_邓玘",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1633,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1635,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈大金",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1633,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1633,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_李卑",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1633,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1633,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_黄龙",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1633,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1633,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_钱士升",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1633,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王应熊",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1633,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_何吾驺",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1633,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_许鼎臣",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1633,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1633,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张彝宪",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1633,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘若金",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1633,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈奇瑜",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1634,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘理顺",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1634,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨世恩",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1634,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_贺人龙",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1634,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_丁魁楚",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1634,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_尤世威",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1634,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张宗衡",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1634,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陆梦龙",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1634,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1634,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱国相",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1635,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1635,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张国维",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1635,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨一鹏",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1635,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1635,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_艾万年",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1635,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1635,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_柳国镇",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1635,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1635,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_文震孟",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1635,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张至发",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1635,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张全昌",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1635,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_侯恂",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1635,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_林釬",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1636,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_汤九州",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1636,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王楫",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1636,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_丁启睿",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈起新",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_祖大乐",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_俞冲霄",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1636,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孔贞运",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_贺逢圣",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_黄士俊",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_解进忠",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1636,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_李国辅",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱纯臣",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王肇坤",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1636,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张凤翼",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱聿键",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1636,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘同升",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1637,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_金日观",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1637,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1637,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_沈冬魁",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1637,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘宇亮",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1637,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_傅冠",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1637,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_薛国观",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1637,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张任学",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1638,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_程国祥",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1638,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_方逢年",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1638,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_蔡国用",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1638,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1640,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_范复粹",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1638,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_吴阿衡",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1638,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1638,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱由枢",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1639,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张秉文",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1639,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1639,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_姚明恭",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1639,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张四知",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1639,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_魏照乘",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1639,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_李万庆",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1639,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_罗岱",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1639,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1639,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_颜继祖",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1639,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1639,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_倪宠",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1639,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1639,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_邓希诏",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1639,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1639,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孙茂霖",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1639,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1639,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_郑崇俭",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1640,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_魏藻德",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1640,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_解学龙",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1640,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_谢陞",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1640,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈演",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1640,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_秦良玉",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1640,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1648,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孙应元",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1640,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张令",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1640,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1640,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱采鑋",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1640,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1640,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_猛如虎",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘士杰",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱常洵",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_吕维祺",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱翊铭",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱常法",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张克俭",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_傅宗龙",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨文岳",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_虎大威",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨国柱",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_吴三桂",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王朴",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘国能",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱聿镆",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": 1641,
+        "month": null,
+        "kind": "death"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱恭枵",
+      "game_start_year": 1628,
+      "start_status": "active_in_office",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    },
+    {
+      "npc_id": "npc_ming_高名衡",
+      "game_start_year": 1628,
+      "start_status": "candidate",
+      "availability": "game_filled_available_at_start",
+      "debut": {
+        "year": 1641,
+        "month": null
+      },
+      "available_from": {
+        "year": 1628,
+        "month": null,
+        "policy": "game_filled_available_at_start"
+      },
+      "historical_exit": {
+        "year": null,
+        "month": null,
+        "kind": "unknown"
+      },
+      "start_location": {
+        "place": "",
+        "kind": "unknown"
+      }
+    }
+  ]
+}

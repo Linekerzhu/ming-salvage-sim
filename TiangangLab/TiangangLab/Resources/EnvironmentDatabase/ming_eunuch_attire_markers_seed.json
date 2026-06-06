@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T21:47:48.404688Z",
+  "records": [
+    {
+      "marker_id": "attire_zhangyin_bingbi",
+      "display_tier": 1,
+      "rank_label": "掌印/秉笔",
+      "rank_code": "zheng_4",
+      "role_scope": "司礼监掌印、秉笔及极贵近内臣",
+      "robe": "红贴里，缀坐蟒补；特赐可用蟒服、玉带",
+      "hat": "官帽",
+      "belt": "玉带",
+      "badge_or_token": "牙牌、牌穗；特许抹布、刀儿等近臣佩物",
+      "allowed_context": "御前与司礼监高阶日常"
+    },
+    {
+      "marker_id": "attire_suitang_guanshi",
+      "display_tier": 2,
+      "rank_label": "随堂/管事牌子",
+      "rank_code": null,
+      "role_scope": "司礼监随堂、乾清宫管事牌子、暖阁近侍",
+      "robe": "红贴里，可缀本等补；常见斗牛或麒麟补",
+      "hat": "官帽",
+      "belt": "金镶玳瑁带或犀带",
+      "badge_or_token": "牌穗，赐过者可佩抹布、刀儿",
+      "allowed_context": "近御执事"
+    },
+    {
+      "marker_id": "attire_tidu_xiezi",
+      "display_tier": 3,
+      "rank_label": "写字/提督/总理管理",
+      "rank_code": null,
+      "role_scope": "司礼监写字至提督、各衙门总理管理",
+      "robe": "𧙟𧝠，道袍类；红者缀本等补，青者否",
+      "hat": "官帽",
+      "belt": "犀带或本等带",
+      "badge_or_token": "牙牌或牌穗",
+      "allowed_context": "衙门管理层"
+    },
+    {
+      "marker_id": "attire_taijian_shaojian_jiancheng",
+      "display_tier": 4,
+      "rank_label": "太监/少监/监丞",
+      "rank_code": "zheng_4",
+      "role_scope": "太监正四品、左右少监从四品、左右监丞正五品",
+      "robe": "青贴里或圆领，得穿斗牛补；再加升可及飞鱼、斗牛、蟒服",
+      "hat": "官帽",
+      "belt": "金镶玳瑁带、犀带；特升受赏方赐玉带",
+      "badge_or_token": "牙牌",
+      "allowed_context": "二十四衙门高阶官"
+    },
+    {
+      "marker_id": "attire_fengyu",
+      "display_tier": 5,
+      "rank_label": "奉御",
+      "rank_code": "zheng_6",
+      "role_scope": "升有牙牌官帽者",
+      "robe": "青贴里，得服麟补",
+      "hat": "官帽",
+      "belt": "金镶玳瑁或犀带",
+      "badge_or_token": "牙牌",
+      "allowed_context": "内廷初授或中低阶官"
+    },
+    {
+      "marker_id": "attire_changsui",
+      "display_tier": 6,
+      "rank_label": "长随",
+      "rank_code": "zheng_6",
+      "role_scope": "长随、都知监长随",
+      "robe": "青贴里，狮子、鹦哥等杂禽补",
+      "hat": "平巾或官帽",
+      "belt": "角带",
+      "badge_or_token": "牌穗或牙牌",
+      "allowed_context": "随侍行走与清道"
+    },
+    {
+      "marker_id": "attire_neishi_xiaohuo",
+      "display_tier": 7,
+      "rank_label": "内使/小火者",
+      "rank_code": null,
+      "role_scope": "内使、小火者、乌木牌平巾者",
+      "robe": "青贴里，无补",
+      "hat": "平巾",
+      "belt": "无穿圆领束带之理",
+      "badge_or_token": "乌木牌",
+      "allowed_context": "低阶内廷杂役与初入宫者"
+    },
+    {
+      "marker_id": "attire_wei_usurpation",
+      "display_tier": 99,
+      "rank_label": "魏忠贤僭越服饰",
+      "rank_code": null,
+      "role_scope": "魏忠贤擅政时期的僭制与滥赏",
+      "robe": "三襕贴里、满身金虎金兔金葫芦灯笼寿字喜字等僭制花样",
+      "hat": "束发冠、九梁朝冠等僭越用例",
+      "belt": "珍珠牌穗、大样提系、僭越玉带",
+      "badge_or_token": "珍珠牌穗、白玉或碧玉玲珑牌",
+      "allowed_context": "制度败坏或特殊事件视觉"
+    }
+  ]
+}

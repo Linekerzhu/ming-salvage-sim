@@ -1,0 +1,5447 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T22:01:01+00:00",
+  "records": [
+    {
+      "npc_id": "npc_ming_韩爌",
+      "canonical_name": "韩爌",
+      "aliases": [
+        "韩爌",
+        "韩阁老",
+        "前首辅",
+        "韩虞臣"
+      ],
+      "sex_category": "male",
+      "birth_year": 1559,
+      "historical_death": {
+        "year": 1637,
+        "month": null
+      },
+      "native_place": {
+        "province": "山西",
+        "prefecture": "平阳府",
+        "county": "蒲州"
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_张瑞图",
+      "canonical_name": "张瑞图",
+      "aliases": [
+        "张瑞图",
+        "张阁老",
+        "张大学士",
+        "张长公"
+      ],
+      "sex_category": "male",
+      "birth_year": 1570,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_来宗道",
+      "canonical_name": "来宗道",
+      "aliases": [
+        "来宗道",
+        "来尚书",
+        "来阁老"
+      ],
+      "sex_category": "male",
+      "birth_year": 1560,
+      "historical_death": {
+        "year": 1632,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_施凤来",
+      "canonical_name": "施凤来",
+      "aliases": [
+        "施凤来",
+        "施阁老",
+        "施次辅",
+        "次辅"
+      ],
+      "sex_category": "male",
+      "birth_year": 1563,
+      "historical_death": {
+        "year": 1642,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_黄立极",
+      "canonical_name": "黄立极",
+      "aliases": [
+        "黄立极",
+        "黄阁老",
+        "黄首辅",
+        "首辅"
+      ],
+      "sex_category": "male",
+      "birth_year": 1568,
+      "historical_death": {
+        "year": 1637,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_王绍徽",
+      "canonical_name": "王绍徽",
+      "aliases": [
+        "王绍徽",
+        "王吏部",
+        "王尚书",
+        "王雠"
+      ],
+      "sex_category": "male",
+      "birth_year": 1564,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_毕自严",
+      "canonical_name": "毕自严",
+      "aliases": [
+        "毕自严",
+        "毕尚书",
+        "南户部",
+        "毕户部"
+      ],
+      "sex_category": "male",
+      "birth_year": 1569,
+      "historical_death": {
+        "year": 1638,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_杨嗣昌",
+      "canonical_name": "杨嗣昌",
+      "aliases": [
+        "杨嗣昌",
+        "杨郎中",
+        "杨文弱"
+      ],
+      "sex_category": "male",
+      "birth_year": 1588,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_温体仁",
+      "canonical_name": "温体仁",
+      "aliases": [
+        "温体仁",
+        "温尚书",
+        "温阁老",
+        "温长卿"
+      ],
+      "sex_category": "male",
+      "birth_year": 1573,
+      "historical_death": {
+        "year": 1638,
+        "month": 7
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_钱龙锡",
+      "canonical_name": "钱龙锡",
+      "aliases": [
+        "钱龙锡",
+        "钱阁老",
+        "钱机山"
+      ],
+      "sex_category": "male",
+      "birth_year": 1579,
+      "historical_death": {
+        "year": 1645,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_刘鸿训",
+      "canonical_name": "刘鸿训",
+      "aliases": [
+        "刘鸿训",
+        "刘阁老",
+        "刘默承"
+      ],
+      "sex_category": "male",
+      "birth_year": 1565,
+      "historical_death": {
+        "year": 1634,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_钱谦益",
+      "canonical_name": "钱谦益",
+      "aliases": [
+        "钱谦益",
+        "钱牧斋",
+        "牧斋"
+      ],
+      "sex_category": "male",
+      "birth_year": 1582,
+      "historical_death": {
+        "year": 1664,
+        "month": null
+      },
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "county": "常熟"
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_李标",
+      "canonical_name": "李标",
+      "aliases": [
+        "李标",
+        "李侍郎",
+        "李建霞"
+      ],
+      "sex_category": "male",
+      "birth_year": 1571,
+      "historical_death": {
+        "year": 1642,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_孙承宗",
+      "canonical_name": "孙承宗",
+      "aliases": [
+        "孙承宗",
+        "孙阁老",
+        "孙督师",
+        "前督师"
+      ],
+      "sex_category": "male",
+      "birth_year": 1563,
+      "historical_death": {
+        "year": 1638,
+        "month": null
+      },
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "保定府",
+        "county": "高阳"
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_崔呈秀",
+      "canonical_name": "崔呈秀",
+      "aliases": [
+        "崔呈秀",
+        "崔尚书",
+        "崔少司马",
+        "崔本兵"
+      ],
+      "sex_category": "male",
+      "birth_year": 1584,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_王在晋",
+      "canonical_name": "王在晋",
+      "aliases": [
+        "王在晋",
+        "王兵部",
+        "王岵云"
+      ],
+      "sex_category": "male",
+      "birth_year": 1567,
+      "historical_death": {
+        "year": 1643,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_徐光启",
+      "canonical_name": "徐光启",
+      "aliases": [
+        "徐光启",
+        "徐先生",
+        "徐农政",
+        "西学重臣"
+      ],
+      "sex_category": "male",
+      "birth_year": 1562,
+      "historical_death": {
+        "year": 1633,
+        "month": 10
+      },
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "松江府",
+        "county": "上海"
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_袁可立",
+      "canonical_name": "袁可立",
+      "aliases": [
+        "袁可立",
+        "袁巡抚",
+        "袁节寰"
+      ],
+      "sex_category": "male",
+      "birth_year": 1562,
+      "historical_death": {
+        "year": 1633,
+        "month": 10
+      },
+      "native_place": {
+        "province": "河南",
+        "prefecture": "归德府",
+        "county": "睢州"
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_周延儒",
+      "canonical_name": "周延儒",
+      "aliases": [
+        "周延儒",
+        "周少詹",
+        "周玉绳"
+      ],
+      "sex_category": "male",
+      "birth_year": 1593,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_倪元璐",
+      "canonical_name": "倪元璐",
+      "aliases": [
+        "倪元璐",
+        "倪编修",
+        "倪鸿宝"
+      ],
+      "sex_category": "male",
+      "birth_year": 1593,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_黄道周",
+      "canonical_name": "黄道周",
+      "aliases": [
+        "黄道周",
+        "黄编修",
+        "黄石斋",
+        "石斋"
+      ],
+      "sex_category": "male",
+      "birth_year": 1585,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_曹化淳",
+      "canonical_name": "曹化淳",
+      "aliases": [
+        "曹公公",
+        "老曹",
+        "曹太监",
+        "曹化淳"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": 1589,
+      "historical_death": {
+        "year": 1659,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_王体乾",
+      "canonical_name": "王体乾",
+      "aliases": [
+        "王体乾",
+        "王掌印",
+        "司礼监掌印"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": 1571,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_王承恩",
+      "canonical_name": "王承恩",
+      "aliases": [
+        "王伴伴",
+        "老王",
+        "王公公",
+        "司礼监"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": 1610,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_魏忠贤",
+      "canonical_name": "魏忠贤",
+      "aliases": [
+        "九千岁",
+        "老魏",
+        "魏阉",
+        "魏厂臣",
+        "东厂"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": 1568,
+      "historical_death": {
+        "year": 1627,
+        "month": 11
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_田尔耕",
+      "canonical_name": "田尔耕",
+      "aliases": [
+        "田都督",
+        "田指挥",
+        "田尔耕",
+        "锦衣卫",
+        "都指挥使"
+      ],
+      "sex_category": "male",
+      "birth_year": 1565,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_许显纯",
+      "canonical_name": "许显纯",
+      "aliases": [
+        "许显纯",
+        "许镇抚",
+        "北镇抚"
+      ],
+      "sex_category": "male",
+      "birth_year": 1572,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_李若琏",
+      "canonical_name": "李若琏",
+      "aliases": [
+        "李若琏",
+        "李千户",
+        "李锦衣"
+      ],
+      "sex_category": "male",
+      "birth_year": 1598,
+      "historical_death": {
+        "year": 1644,
+        "month": 3
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_客氏",
+      "canonical_name": "客氏",
+      "aliases": [
+        "客印月",
+        "奉圣夫人",
+        "客氏"
+      ],
+      "sex_category": "female",
+      "birth_year": 1588,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "harem_actor"
+    },
+    {
+      "npc_id": "npc_ming_袁崇焕",
+      "canonical_name": "袁崇焕",
+      "aliases": [
+        "袁崇焕",
+        "袁巡抚",
+        "前辽东"
+      ],
+      "sex_category": "male",
+      "birth_year": 1584,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "广东",
+        "prefecture": "广州府",
+        "county": "东莞"
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_曹文诏",
+      "canonical_name": "曹文诏",
+      "aliases": [
+        "曹文诏",
+        "曹游击",
+        "曹将军"
+      ],
+      "sex_category": "male",
+      "birth_year": 1590,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_祖大寿",
+      "canonical_name": "祖大寿",
+      "aliases": [
+        "祖大寿",
+        "祖总兵",
+        "祖副将",
+        "祖复宇"
+      ],
+      "sex_category": "male",
+      "birth_year": 1579,
+      "historical_death": {
+        "year": 1656,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_满桂",
+      "canonical_name": "满桂",
+      "aliases": [
+        "满桂",
+        "满总兵",
+        "大同总兵"
+      ],
+      "sex_category": "male",
+      "birth_year": 1594,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_赵率教",
+      "canonical_name": "赵率教",
+      "aliases": [
+        "赵率教",
+        "赵总兵",
+        "山海关总兵"
+      ],
+      "sex_category": "male",
+      "birth_year": 1569,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_王之臣",
+      "canonical_name": "王之臣",
+      "aliases": [
+        "王之臣",
+        "王督师",
+        "蓟辽督师"
+      ],
+      "sex_category": "male",
+      "birth_year": 1570,
+      "historical_death": {
+        "year": 1631,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_毛文龙",
+      "canonical_name": "毛文龙",
+      "aliases": [
+        "毛文龙",
+        "毛总兵",
+        "东江总兵",
+        "毛帅"
+      ],
+      "sex_category": "male",
+      "birth_year": 1576,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_阎鸣泰",
+      "canonical_name": "阎鸣泰",
+      "aliases": [
+        "阎鸣泰",
+        "阎总督",
+        "蓟辽总督"
+      ],
+      "sex_category": "male",
+      "birth_year": 1568,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_洪承畴",
+      "canonical_name": "洪承畴",
+      "aliases": [
+        "洪承畴",
+        "洪参政",
+        "洪亨九"
+      ],
+      "sex_category": "male",
+      "birth_year": 1593,
+      "historical_death": {
+        "year": 1665,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_孙传庭",
+      "canonical_name": "孙传庭",
+      "aliases": [
+        "孙传庭",
+        "孙知县",
+        "孙白谷"
+      ],
+      "sex_category": "male",
+      "birth_year": 1593,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_卢象升",
+      "canonical_name": "卢象升",
+      "aliases": [
+        "卢象升",
+        "卢知府",
+        "卢九台"
+      ],
+      "sex_category": "male",
+      "birth_year": 1600,
+      "historical_death": {
+        "year": 1638,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_史可法",
+      "canonical_name": "史可法",
+      "aliases": [
+        "史可法",
+        "史宪之"
+      ],
+      "sex_category": "male",
+      "birth_year": 1601,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_周皇后",
+      "canonical_name": "周皇后",
+      "aliases": [
+        "皇后",
+        "中宫",
+        "梓童"
+      ],
+      "sex_category": "female",
+      "birth_year": 1611,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "harem_actor"
+    },
+    {
+      "npc_id": "npc_ming_周贵人",
+      "canonical_name": "周贵人",
+      "aliases": [
+        "周贵人"
+      ],
+      "sex_category": "female",
+      "birth_year": 1613,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "harem_actor"
+    },
+    {
+      "npc_id": "npc_ming_田贵妃",
+      "canonical_name": "田贵妃",
+      "aliases": [
+        "田妃",
+        "田贵人"
+      ],
+      "sex_category": "female",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "harem_actor"
+    },
+    {
+      "npc_id": "npc_ming_袁贵妃",
+      "canonical_name": "袁贵妃",
+      "aliases": [
+        "袁妃"
+      ],
+      "sex_category": "female",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "harem_actor"
+    },
+    {
+      "npc_id": "npc_ming_慧妃",
+      "canonical_name": "慧妃",
+      "aliases": [
+        "慧娘"
+      ],
+      "sex_category": "female",
+      "birth_year": 1615,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "harem_actor"
+    },
+    {
+      "npc_id": "npc_houjin_皇太极",
+      "canonical_name": "皇太极",
+      "aliases": [
+        "皇太极",
+        "天聪汗",
+        "黄台吉"
+      ],
+      "sex_category": "male",
+      "birth_year": 1592,
+      "historical_death": {
+        "year": 1643,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_houjin_代善",
+      "canonical_name": "代善",
+      "aliases": [
+        "代善",
+        "大贝勒"
+      ],
+      "sex_category": "male",
+      "birth_year": 1583,
+      "historical_death": {
+        "year": 1648,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_houjin_莽古尔泰",
+      "canonical_name": "莽古尔泰",
+      "aliases": [
+        "莽古尔泰",
+        "三贝勒"
+      ],
+      "sex_category": "male",
+      "birth_year": 1587,
+      "historical_death": {
+        "year": 1633,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_houjin_阿敏",
+      "canonical_name": "阿敏",
+      "aliases": [
+        "阿敏"
+      ],
+      "sex_category": "male",
+      "birth_year": 1586,
+      "historical_death": {
+        "year": 1640,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_houjin_范文程",
+      "canonical_name": "范文程",
+      "aliases": [
+        "范文程",
+        "范章京"
+      ],
+      "sex_category": "male",
+      "birth_year": 1597,
+      "historical_death": {
+        "year": 1666,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_houjin_佟养性",
+      "canonical_name": "佟养性",
+      "aliases": [
+        "佟养性"
+      ],
+      "sex_category": "male",
+      "birth_year": 1577,
+      "historical_death": {
+        "year": 1632,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_mongol_林丹汗",
+      "canonical_name": "林丹汗",
+      "aliases": [
+        "林丹汗",
+        "林丹巴图尔"
+      ],
+      "sex_category": "male",
+      "birth_year": 1592,
+      "historical_death": {
+        "year": 1634,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "mongol",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_korea_仁祖",
+      "canonical_name": "仁祖",
+      "aliases": [
+        "仁祖",
+        "李倧",
+        "朝鲜王"
+      ],
+      "sex_category": "male",
+      "birth_year": 1595,
+      "historical_death": {
+        "year": 1649,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "korea",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_korea_张维",
+      "canonical_name": "张维",
+      "aliases": [
+        "张维",
+        "朝鲜张维"
+      ],
+      "sex_category": "male",
+      "birth_year": 1587,
+      "historical_death": {
+        "year": 1638,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "korea",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_bandits_王嘉胤",
+      "canonical_name": "王嘉胤",
+      "aliases": [
+        "王嘉胤"
+      ],
+      "sex_category": "male",
+      "birth_year": 1593,
+      "historical_death": {
+        "year": 1631,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "bandits",
+      "identity_type": "rebel_actor"
+    },
+    {
+      "npc_id": "npc_bandits_李自成",
+      "canonical_name": "李自成",
+      "aliases": [
+        "李自成",
+        "闯将"
+      ],
+      "sex_category": "male",
+      "birth_year": 1606,
+      "historical_death": {
+        "year": 1645,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "bandits",
+      "identity_type": "rebel_actor"
+    },
+    {
+      "npc_id": "npc_bandits_张献忠",
+      "canonical_name": "张献忠",
+      "aliases": [
+        "张献忠",
+        "八大王"
+      ],
+      "sex_category": "male",
+      "birth_year": 1606,
+      "historical_death": {
+        "year": 1647,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "bandits",
+      "identity_type": "rebel_actor"
+    },
+    {
+      "npc_id": "npc_ming_武当张真人",
+      "canonical_name": "武当张真人",
+      "aliases": [
+        "张真人",
+        "武当掌门"
+      ],
+      "sex_category": "male",
+      "birth_year": 1550,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_铁臂周侗",
+      "canonical_name": "铁臂周侗",
+      "aliases": [
+        "周师傅",
+        "铁臂翁"
+      ],
+      "sex_category": "male",
+      "birth_year": 1565,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_青莲剑客",
+      "canonical_name": "青莲剑客",
+      "aliases": [
+        "青莲",
+        "李剑客"
+      ],
+      "sex_category": "male",
+      "birth_year": 1580,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_玄机道长",
+      "canonical_name": "玄机道长",
+      "aliases": [
+        "玄机",
+        "张法师"
+      ],
+      "sex_category": "male",
+      "birth_year": 1575,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_毒手药王",
+      "canonical_name": "毒手药王",
+      "aliases": [
+        "药王",
+        "孙神医"
+      ],
+      "sex_category": "male",
+      "birth_year": 1560,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_红衣女侠",
+      "canonical_name": "红衣女侠",
+      "aliases": [
+        "红衣",
+        "红娘子"
+      ],
+      "sex_category": "female",
+      "birth_year": 1600,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_盲眼琴师",
+      "canonical_name": "盲眼琴师",
+      "aliases": [
+        "琴师",
+        "瞎子阿炳"
+      ],
+      "sex_category": "male",
+      "birth_year": 1585,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_鬼面商人",
+      "canonical_name": "鬼面商人",
+      "aliases": [
+        "鬼面",
+        "胡商"
+      ],
+      "sex_category": "male",
+      "birth_year": 1580,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_隐剑山庄主",
+      "canonical_name": "隐剑山庄主",
+      "aliases": [
+        "庄主",
+        "叶庄主"
+      ],
+      "sex_category": "male",
+      "birth_year": 1568,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_白眉老僧",
+      "canonical_name": "白眉老僧",
+      "aliases": [
+        "白眉",
+        "空见大师"
+      ],
+      "sex_category": "male",
+      "birth_year": 1545,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_曹变蛟",
+      "canonical_name": "曹变蛟",
+      "aliases": [
+        "曹副将",
+        "变蛟"
+      ],
+      "sex_category": "male",
+      "birth_year": 1590,
+      "historical_death": {
+        "year": 1642,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_左良玉",
+      "canonical_name": "左良玉",
+      "aliases": [
+        "左帅",
+        "左将军"
+      ],
+      "sex_category": "male",
+      "birth_year": 1599,
+      "historical_death": {
+        "year": 1645,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_黄得功",
+      "canonical_name": "黄得功",
+      "aliases": [
+        "黄伯爷",
+        "得功"
+      ],
+      "sex_category": "male",
+      "birth_year": 1590,
+      "historical_death": {
+        "year": 1645,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_刘泽清",
+      "canonical_name": "刘泽清",
+      "aliases": [
+        "刘总兵"
+      ],
+      "sex_category": "male",
+      "birth_year": 1590,
+      "historical_death": {
+        "year": 1649,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_高杰",
+      "canonical_name": "高杰",
+      "aliases": [
+        "高伯爷",
+        "翻山鹞"
+      ],
+      "sex_category": "male",
+      "birth_year": 1585,
+      "historical_death": {
+        "year": 1645,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_周遇吉",
+      "canonical_name": "周遇吉",
+      "aliases": [
+        "周总兵"
+      ],
+      "sex_category": "male",
+      "birth_year": 1590,
+      "historical_death": {
+        "year": 1644,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_熊文灿",
+      "canonical_name": "熊文灿",
+      "aliases": [
+        "熊尚书"
+      ],
+      "sex_category": "male",
+      "birth_year": 1575,
+      "historical_death": {
+        "year": 1640,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_郑芝龙",
+      "canonical_name": "郑芝龙",
+      "aliases": [
+        "郑总兵",
+        "一官"
+      ],
+      "sex_category": "male",
+      "birth_year": 1604,
+      "historical_death": {
+        "year": 1661,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_郑成功",
+      "canonical_name": "郑成功",
+      "aliases": [
+        "郑森",
+        "国姓爷"
+      ],
+      "sex_category": "male",
+      "birth_year": 1624,
+      "historical_death": {
+        "year": 1662,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_刘宗周",
+      "canonical_name": "刘宗周",
+      "aliases": [
+        "刘御史",
+        "念台先生"
+      ],
+      "sex_category": "male",
+      "birth_year": 1578,
+      "historical_death": {
+        "year": 1645,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_范景文",
+      "canonical_name": "范景文",
+      "aliases": [
+        "范尚书",
+        "质公"
+      ],
+      "sex_category": "male",
+      "birth_year": 1578,
+      "historical_death": {
+        "year": 1644,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_李邦华",
+      "canonical_name": "李邦华",
+      "aliases": [
+        "李侍郎"
+      ],
+      "sex_category": "male",
+      "birth_year": 1575,
+      "historical_death": {
+        "year": 1644,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_马士英",
+      "canonical_name": "马士英",
+      "aliases": [
+        "马推官",
+        "马瑶草"
+      ],
+      "sex_category": "male",
+      "birth_year": 1591,
+      "historical_death": {
+        "year": 1646,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_阮大铖",
+      "canonical_name": "阮大铖",
+      "aliases": [
+        "阮圆海",
+        "阮大铖"
+      ],
+      "sex_category": "male",
+      "birth_year": 1587,
+      "historical_death": {
+        "year": 1646,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_姜曰广",
+      "canonical_name": "姜曰广",
+      "aliases": [
+        "姜尚书"
+      ],
+      "sex_category": "male",
+      "birth_year": 1580,
+      "historical_death": {
+        "year": 1649,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_陈子龙",
+      "canonical_name": "陈子龙",
+      "aliases": [
+        "陈给事",
+        "卧子"
+      ],
+      "sex_category": "male",
+      "birth_year": 1608,
+      "historical_death": {
+        "year": 1647,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_夏允彝",
+      "canonical_name": "夏允彝",
+      "aliases": [
+        "夏主事",
+        "彝仲"
+      ],
+      "sex_category": "male",
+      "birth_year": 1596,
+      "historical_death": {
+        "year": 1645,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_高起潜",
+      "canonical_name": "高起潜",
+      "aliases": [
+        "高太监",
+        "高监军"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": 1580,
+      "historical_death": {
+        "year": 1645,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_杜勋",
+      "canonical_name": "杜勋",
+      "aliases": [
+        "杜太监"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": 1590,
+      "historical_death": {
+        "year": 1644,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_houjin_多尔衮",
+      "canonical_name": "多尔衮",
+      "aliases": [
+        "多尔衮",
+        "睿亲王",
+        "九王爷"
+      ],
+      "sex_category": "male",
+      "birth_year": 1612,
+      "historical_death": {
+        "year": 1650,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_houjin_多铎",
+      "canonical_name": "多铎",
+      "aliases": [
+        "多铎",
+        "豫亲王",
+        "十王爷"
+      ],
+      "sex_category": "male",
+      "birth_year": 1614,
+      "historical_death": {
+        "year": 1649,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_houjin_阿济格",
+      "canonical_name": "阿济格",
+      "aliases": [
+        "阿济格",
+        "英亲王"
+      ],
+      "sex_category": "male",
+      "birth_year": 1605,
+      "historical_death": {
+        "year": 1651,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_houjin_济尔哈朗",
+      "canonical_name": "济尔哈朗",
+      "aliases": [
+        "济尔哈朗",
+        "郑亲王"
+      ],
+      "sex_category": "male",
+      "birth_year": 1599,
+      "historical_death": {
+        "year": 1655,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_houjin_索尼",
+      "canonical_name": "索尼",
+      "aliases": [
+        "索尼",
+        "索大人"
+      ],
+      "sex_category": "male",
+      "birth_year": 1601,
+      "historical_death": {
+        "year": 1667,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_houjin_宁完我",
+      "canonical_name": "宁完我",
+      "aliases": [
+        "宁先生"
+      ],
+      "sex_category": "male",
+      "birth_year": 1593,
+      "historical_death": {
+        "year": 1665,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_houjin_鳌拜",
+      "canonical_name": "鳌拜",
+      "aliases": [
+        "鳌拜",
+        "鳌少保"
+      ],
+      "sex_category": "male",
+      "birth_year": 1610,
+      "historical_death": {
+        "year": 1669,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_houjin_图赖",
+      "canonical_name": "图赖",
+      "aliases": [
+        "图赖"
+      ],
+      "sex_category": "male",
+      "birth_year": 1600,
+      "historical_death": {
+        "year": 1646,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_houjin_孔有德",
+      "canonical_name": "孔有德",
+      "aliases": [
+        "孔有德",
+        "恭顺王"
+      ],
+      "sex_category": "male",
+      "birth_year": 1602,
+      "historical_death": {
+        "year": 1652,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_houjin_耿仲明",
+      "canonical_name": "耿仲明",
+      "aliases": [
+        "耿仲明",
+        "怀顺王"
+      ],
+      "sex_category": "male",
+      "birth_year": 1604,
+      "historical_death": {
+        "year": 1649,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_houjin_尚可喜",
+      "canonical_name": "尚可喜",
+      "aliases": [
+        "尚可喜",
+        "智顺王",
+        "平南王"
+      ],
+      "sex_category": "male",
+      "birth_year": 1604,
+      "historical_death": {
+        "year": 1676,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "houjin",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_mongol_额哲",
+      "canonical_name": "额哲",
+      "aliases": [
+        "额哲",
+        "察哈尔新汗"
+      ],
+      "sex_category": "male",
+      "birth_year": 1616,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "mongol",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_mongol_土谢图汗",
+      "canonical_name": "土谢图汗",
+      "aliases": [
+        "土谢图汗"
+      ],
+      "sex_category": "male",
+      "birth_year": 1590,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "mongol",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_mongol_顺义王",
+      "canonical_name": "顺义王",
+      "aliases": [
+        "顺义王"
+      ],
+      "sex_category": "male",
+      "birth_year": 1595,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "mongol",
+      "identity_type": "foreign_actor"
+    },
+    {
+      "npc_id": "npc_bandits_高迎祥",
+      "canonical_name": "高迎祥",
+      "aliases": [
+        "高闯王",
+        "闯王"
+      ],
+      "sex_category": "male",
+      "birth_year": 1590,
+      "historical_death": {
+        "year": 1636,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "bandits",
+      "identity_type": "rebel_actor"
+    },
+    {
+      "npc_id": "npc_bandits_罗汝才",
+      "canonical_name": "罗汝才",
+      "aliases": [
+        "罗曹操",
+        "曹营"
+      ],
+      "sex_category": "male",
+      "birth_year": 1590,
+      "historical_death": {
+        "year": 1643,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "bandits",
+      "identity_type": "rebel_actor"
+    },
+    {
+      "npc_id": "npc_bandits_革左五营",
+      "canonical_name": "革左五营",
+      "aliases": [
+        "革左",
+        "老回回"
+      ],
+      "sex_category": "male",
+      "birth_year": 1585,
+      "historical_death": {
+        "year": 1646,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "bandits",
+      "identity_type": "rebel_actor"
+    },
+    {
+      "npc_id": "npc_bandits_刘宗敏",
+      "canonical_name": "刘宗敏",
+      "aliases": [
+        "刘制将军",
+        "宗敏"
+      ],
+      "sex_category": "male",
+      "birth_year": 1600,
+      "historical_death": {
+        "year": 1645,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "bandits",
+      "identity_type": "rebel_actor"
+    },
+    {
+      "npc_id": "npc_bandits_宋献策",
+      "canonical_name": "宋献策",
+      "aliases": [
+        "宋军师",
+        "献策"
+      ],
+      "sex_category": "male",
+      "birth_year": 1585,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "bandits",
+      "identity_type": "rebel_actor"
+    },
+    {
+      "npc_id": "npc_bandits_牛金星",
+      "canonical_name": "牛金星",
+      "aliases": [
+        "牛丞相"
+      ],
+      "sex_category": "male",
+      "birth_year": 1590,
+      "historical_death": {
+        "year": 1652,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "bandits",
+      "identity_type": "rebel_actor"
+    },
+    {
+      "npc_id": "npc_bandits_李岩",
+      "canonical_name": "李岩",
+      "aliases": [
+        "李公子",
+        "李岩"
+      ],
+      "sex_category": "male",
+      "birth_year": 1600,
+      "historical_death": {
+        "year": 1644,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "bandits",
+      "identity_type": "rebel_actor"
+    },
+    {
+      "npc_id": "npc_bandits_红娘子",
+      "canonical_name": "红娘子",
+      "aliases": [
+        "红娘子"
+      ],
+      "sex_category": "female",
+      "birth_year": 1605,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "bandits",
+      "identity_type": "rebel_actor"
+    },
+    {
+      "npc_id": "npc_ming_白莲教主",
+      "canonical_name": "白莲教主",
+      "aliases": [
+        "教主",
+        "无生老母使者"
+      ],
+      "sex_category": "male",
+      "birth_year": 1580,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_闻香教主",
+      "canonical_name": "闻香教主",
+      "aliases": [
+        "王教主"
+      ],
+      "sex_category": "male",
+      "birth_year": 1590,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_老渔夫",
+      "canonical_name": "老渔夫",
+      "aliases": [
+        "老渔夫",
+        "湖上仙"
+      ],
+      "sex_category": "male",
+      "birth_year": 1550,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_塞外刀客",
+      "canonical_name": "塞外刀客",
+      "aliases": [
+        "刀客",
+        "关外一刀"
+      ],
+      "sex_category": "male",
+      "birth_year": 1595,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_苗疆蛊师",
+      "canonical_name": "苗疆蛊师",
+      "aliases": [
+        "蛊师",
+        "苗巫"
+      ],
+      "sex_category": "male",
+      "birth_year": 1580,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_倭寇首领",
+      "canonical_name": "倭寇首领",
+      "aliases": [
+        "倭首",
+        "汪直后人"
+      ],
+      "sex_category": "male",
+      "birth_year": 1595,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_西洋传教士",
+      "canonical_name": "西洋传教士",
+      "aliases": [
+        "汤若望",
+        "神父"
+      ],
+      "sex_category": "male",
+      "birth_year": 1591,
+      "historical_death": {
+        "year": 1666,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_南洋华侨",
+      "canonical_name": "南洋华侨",
+      "aliases": [
+        "华商",
+        "李掌柜"
+      ],
+      "sex_category": "male",
+      "birth_year": 1585,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_杨景辰",
+      "canonical_name": "杨景辰",
+      "aliases": [
+        "楊景辰"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_周道登",
+      "canonical_name": "周道登",
+      "aliases": [
+        "周道登"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_成基命",
+      "canonical_name": "成基命",
+      "aliases": [
+        "成基命"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_王洽",
+      "canonical_name": "王洽",
+      "aliases": [
+        "王洽"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_何如宠",
+      "canonical_name": "何如宠",
+      "aliases": [
+        "何如寵"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_钱象坤",
+      "canonical_name": "钱象坤",
+      "aliases": [
+        "錢象坤"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_王元雅",
+      "canonical_name": "王元雅",
+      "aliases": [
+        "王元雅"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1629,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_何天球",
+      "canonical_name": "何天球",
+      "aliases": [
+        "何天球"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1629,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_马世龙",
+      "canonical_name": "马世龙",
+      "aliases": [
+        "馬世龍"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_孙祖寿",
+      "canonical_name": "孙祖寿",
+      "aliases": [
+        "孫祖壽"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1629,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_毕自肃",
+      "canonical_name": "毕自肃",
+      "aliases": [
+        "畢自肅"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1628,
+        "month": 7
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_刘若宰",
+      "canonical_name": "刘若宰",
+      "aliases": [
+        "劉若宰"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_卓铭",
+      "canonical_name": "卓铭",
+      "aliases": [
+        "卓銘"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_侯良柱",
+      "canonical_name": "侯良柱",
+      "aliases": [
+        "侯良柱"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1637,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_刘可训",
+      "canonical_name": "刘可训",
+      "aliases": [
+        "劉可訓"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_郑国昌",
+      "canonical_name": "郑国昌",
+      "aliases": [
+        "鄭國昌"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1630,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_张凤奇",
+      "canonical_name": "张凤奇",
+      "aliases": [
+        "張鳳奇"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1630,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_刘策",
+      "canonical_name": "刘策",
+      "aliases": [
+        "劉策"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_刘之纶",
+      "canonical_name": "刘之纶",
+      "aliases": [
+        "劉之綸"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1630,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_吴自勉",
+      "canonical_name": "吴自勉",
+      "aliases": [
+        "吳自勉"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_吴宗达",
+      "canonical_name": "吴宗达",
+      "aliases": [
+        "吳宗達"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_杜文焕",
+      "canonical_name": "杜文焕",
+      "aliases": [
+        "杜文煥"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_王国梁",
+      "canonical_name": "王国梁",
+      "aliases": [
+        "王國樑"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_杨鹤",
+      "canonical_name": "杨鹤",
+      "aliases": [
+        "楊鶴"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_张应昌",
+      "canonical_name": "张应昌",
+      "aliases": [
+        "張應昌"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1634,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_陈于泰",
+      "canonical_name": "陈于泰",
+      "aliases": [
+        "陳于泰"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_吴甡",
+      "canonical_name": "吴甡",
+      "aliases": [
+        "吳甡"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_张允登",
+      "canonical_name": "张允登",
+      "aliases": [
+        "張允登"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1631,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_刘若愚",
+      "canonical_name": "刘若愚",
+      "aliases": [
+        "劉若愚"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": 1584,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_孙暹",
+      "canonical_name": "孙暹",
+      "aliases": [
+        "孫暹"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_刘吉祥",
+      "canonical_name": "刘吉祥",
+      "aliases": [
+        "劉吉祥"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_李永贞",
+      "canonical_name": "李永贞",
+      "aliases": [
+        "李永貞"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_梁栋",
+      "canonical_name": "梁栋",
+      "aliases": [
+        "梁棟"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_石元雅",
+      "canonical_name": "石元雅",
+      "aliases": [
+        "石元雅"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_涂文辅",
+      "canonical_name": "涂文辅",
+      "aliases": [
+        "涂文輔"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_陈良谟",
+      "canonical_name": "陈良谟",
+      "aliases": [
+        "陳良謨"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1632,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_bandits_李九成",
+      "canonical_name": "李九成",
+      "aliases": [
+        "李九成"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1632,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "bandits",
+      "identity_type": "rebel_actor"
+    },
+    {
+      "npc_id": "npc_ming_张可大",
+      "canonical_name": "张可大",
+      "aliases": [
+        "張可大"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1632,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_孙元化",
+      "canonical_name": "孙元化",
+      "aliases": [
+        "孫元化"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1632,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_宋光兰",
+      "canonical_name": "宋光兰",
+      "aliases": [
+        "宋光蘭"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1632,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_徐从治",
+      "canonical_name": "徐从治",
+      "aliases": [
+        "徐從治"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1632,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_刘宇烈",
+      "canonical_name": "刘宇烈",
+      "aliases": [
+        "劉宇烈"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_余大成",
+      "canonical_name": "余大成",
+      "aliases": [
+        "余大成"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_杨嘉谟",
+      "canonical_name": "杨嘉谟",
+      "aliases": [
+        "楊嘉謨"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_朱大典",
+      "canonical_name": "朱大典",
+      "aliases": [
+        "朱大典"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_郑以伟",
+      "canonical_name": "郑以伟",
+      "aliases": [
+        "鄭以偉"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_谢琏",
+      "canonical_name": "谢琏",
+      "aliases": [
+        "謝璉"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_朱万年",
+      "canonical_name": "朱万年",
+      "aliases": [
+        "朱萬年"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1632,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_杨麒",
+      "canonical_name": "杨麒",
+      "aliases": [
+        "楊麒"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1632,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_bandits_杨正芳",
+      "canonical_name": "杨正芳",
+      "aliases": [
+        "楊正芳"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "bandits",
+      "identity_type": "rebel_actor"
+    },
+    {
+      "npc_id": "npc_ming_祖宽",
+      "canonical_name": "祖宽",
+      "aliases": [
+        "祖寬"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1639,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_bandits_刘香",
+      "canonical_name": "刘香",
+      "aliases": [
+        "劉香"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1635,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "bandits",
+      "identity_type": "rebel_actor"
+    },
+    {
+      "npc_id": "npc_ming_王志道",
+      "canonical_name": "王志道",
+      "aliases": [
+        "王志道"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_陈洪范",
+      "canonical_name": "陈洪范",
+      "aliases": [
+        "陳洪範"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_邓玘",
+      "canonical_name": "邓玘",
+      "aliases": [
+        "鄧玘"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1635,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_陈大金",
+      "canonical_name": "陈大金",
+      "aliases": [
+        "陳大金"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1633,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_李卑",
+      "canonical_name": "李卑",
+      "aliases": [
+        "李卑"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1633,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_黄龙",
+      "canonical_name": "黄龙",
+      "aliases": [
+        "黃龍"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1633,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_钱士升",
+      "canonical_name": "钱士升",
+      "aliases": [
+        "錢士升"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_王应熊",
+      "canonical_name": "王应熊",
+      "aliases": [
+        "王應熊"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_何吾驺",
+      "canonical_name": "何吾驺",
+      "aliases": [
+        "何吾騶"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_许鼎臣",
+      "canonical_name": "许鼎臣",
+      "aliases": [
+        "許鼎臣"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1633,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_张彝宪",
+      "canonical_name": "张彝宪",
+      "aliases": [
+        "張彝憲"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_刘若金",
+      "canonical_name": "刘若金",
+      "aliases": [
+        "劉若金"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_陈奇瑜",
+      "canonical_name": "陈奇瑜",
+      "aliases": [
+        "陳奇瑜"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_刘理顺",
+      "canonical_name": "刘理顺",
+      "aliases": [
+        "劉理順"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_杨世恩",
+      "canonical_name": "杨世恩",
+      "aliases": [
+        "楊世恩"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_贺人龙",
+      "canonical_name": "贺人龙",
+      "aliases": [
+        "賀人龍"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_丁魁楚",
+      "canonical_name": "丁魁楚",
+      "aliases": [
+        "丁魁楚"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_尤世威",
+      "canonical_name": "尤世威",
+      "aliases": [
+        "尤世威"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_张宗衡",
+      "canonical_name": "张宗衡",
+      "aliases": [
+        "張宗衡"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_陆梦龙",
+      "canonical_name": "陆梦龙",
+      "aliases": [
+        "陸夢龍"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1634,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_朱国相",
+      "canonical_name": "朱国相",
+      "aliases": [
+        "朱國相"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1635,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_张国维",
+      "canonical_name": "张国维",
+      "aliases": [
+        "張國維"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_杨一鹏",
+      "canonical_name": "杨一鹏",
+      "aliases": [
+        "楊一鵬"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1635,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_艾万年",
+      "canonical_name": "艾万年",
+      "aliases": [
+        "艾萬年"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1635,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_柳国镇",
+      "canonical_name": "柳国镇",
+      "aliases": [
+        "柳國鎮"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1635,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_文震孟",
+      "canonical_name": "文震孟",
+      "aliases": [
+        "文震孟"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_张至发",
+      "canonical_name": "张至发",
+      "aliases": [
+        "張至發"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_张全昌",
+      "canonical_name": "张全昌",
+      "aliases": [
+        "張全昌"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_侯恂",
+      "canonical_name": "侯恂",
+      "aliases": [
+        "侯恂"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_林釬",
+      "canonical_name": "林釬",
+      "aliases": [
+        "林釬",
+        "林钎"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1636,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_汤九州",
+      "canonical_name": "汤九州",
+      "aliases": [
+        "湯九州"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1636,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_王楫",
+      "canonical_name": "王楫",
+      "aliases": [
+        "王楫"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1636,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_丁启睿",
+      "canonical_name": "丁启睿",
+      "aliases": [
+        "丁啟睿"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_陈起新",
+      "canonical_name": "陈起新",
+      "aliases": [
+        "陳起新",
+        "陈启新",
+        "陳啟新"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_祖大乐",
+      "canonical_name": "祖大乐",
+      "aliases": [
+        "祖大樂"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_俞冲霄",
+      "canonical_name": "俞冲霄",
+      "aliases": [
+        "俞冲霄"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1636,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_孔贞运",
+      "canonical_name": "孔贞运",
+      "aliases": [
+        "孔貞運"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_贺逢圣",
+      "canonical_name": "贺逢圣",
+      "aliases": [
+        "賀逢聖"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_黄士俊",
+      "canonical_name": "黄士俊",
+      "aliases": [
+        "黃士俊"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_解进忠",
+      "canonical_name": "解进忠",
+      "aliases": [
+        "解進忠"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1636,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_李国辅",
+      "canonical_name": "李国辅",
+      "aliases": [
+        "李國輔"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_朱纯臣",
+      "canonical_name": "朱纯臣",
+      "aliases": [
+        "朱純臣"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "nobility_actor"
+    },
+    {
+      "npc_id": "npc_ming_王肇坤",
+      "canonical_name": "王肇坤",
+      "aliases": [
+        "王肇坤"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1636,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_张凤翼",
+      "canonical_name": "张凤翼",
+      "aliases": [
+        "張鳳翼"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_朱聿键",
+      "canonical_name": "朱聿键",
+      "aliases": [
+        "唐王聿键",
+        "朱聿鍵"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "nobility_actor"
+    },
+    {
+      "npc_id": "npc_ming_刘同升",
+      "canonical_name": "刘同升",
+      "aliases": [
+        "劉同升"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_金日观",
+      "canonical_name": "金日观",
+      "aliases": [
+        "金日觀"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1637,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_沈冬魁",
+      "canonical_name": "沈冬魁",
+      "aliases": [
+        "沈冬魁"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_刘宇亮",
+      "canonical_name": "刘宇亮",
+      "aliases": [
+        "劉宇亮"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_傅冠",
+      "canonical_name": "傅冠",
+      "aliases": [
+        "傅冠"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_薛国观",
+      "canonical_name": "薛国观",
+      "aliases": [
+        "薛國觀"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_张任学",
+      "canonical_name": "张任学",
+      "aliases": [
+        "張任學"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_程国祥",
+      "canonical_name": "程国祥",
+      "aliases": [
+        "程國祥"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_方逢年",
+      "canonical_name": "方逢年",
+      "aliases": [
+        "方逢年"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_蔡国用",
+      "canonical_name": "蔡国用",
+      "aliases": [
+        "蔡國用"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1640,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_范复粹",
+      "canonical_name": "范复粹",
+      "aliases": [
+        "范復粹"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_吴阿衡",
+      "canonical_name": "吴阿衡",
+      "aliases": [
+        "吳阿衡"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1638,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_朱由枢",
+      "canonical_name": "朱由枢",
+      "aliases": [
+        "德王由枢",
+        "德王朱由枢",
+        "朱由樞"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "nobility_actor"
+    },
+    {
+      "npc_id": "npc_ming_张秉文",
+      "canonical_name": "张秉文",
+      "aliases": [
+        "張秉文"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1639,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_姚明恭",
+      "canonical_name": "姚明恭",
+      "aliases": [
+        "姚明恭"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_张四知",
+      "canonical_name": "张四知",
+      "aliases": [
+        "張四知"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_魏照乘",
+      "canonical_name": "魏照乘",
+      "aliases": [
+        "魏照乘"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_bandits_李万庆",
+      "canonical_name": "李万庆",
+      "aliases": [
+        "李萬慶"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "bandits",
+      "identity_type": "rebel_actor"
+    },
+    {
+      "npc_id": "npc_ming_罗岱",
+      "canonical_name": "罗岱",
+      "aliases": [
+        "羅岱"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1639,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_颜继祖",
+      "canonical_name": "颜继祖",
+      "aliases": [
+        "顏繼祖"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1639,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_倪宠",
+      "canonical_name": "倪宠",
+      "aliases": [
+        "倪寵"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1639,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_邓希诏",
+      "canonical_name": "邓希诏",
+      "aliases": [
+        "鄧希詔"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1639,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_孙茂霖",
+      "canonical_name": "孙茂霖",
+      "aliases": [
+        "孫茂霖"
+      ],
+      "sex_category": "eunuch",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1639,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "inner_eunuch"
+    },
+    {
+      "npc_id": "npc_ming_郑崇俭",
+      "canonical_name": "郑崇俭",
+      "aliases": [
+        "鄭崇儉"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_魏藻德",
+      "canonical_name": "魏藻德",
+      "aliases": [
+        "魏藻德"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "unassigned_specialist"
+    },
+    {
+      "npc_id": "npc_ming_解学龙",
+      "canonical_name": "解学龙",
+      "aliases": [
+        "解學龍"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_谢陞",
+      "canonical_name": "谢陞",
+      "aliases": [
+        "谢升",
+        "謝升"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_陈演",
+      "canonical_name": "陈演",
+      "aliases": [
+        "陳演"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_秦良玉",
+      "canonical_name": "秦良玉",
+      "aliases": [
+        "秦良玉",
+        "秦女官",
+        "忠贞侯秦良玉"
+      ],
+      "sex_category": "female",
+      "birth_year": 1574,
+      "historical_death": {
+        "year": 1648,
+        "month": null
+      },
+      "native_place": {
+        "province": "四川",
+        "prefecture": "忠州",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_孙应元",
+      "canonical_name": "孙应元",
+      "aliases": [
+        "孫應元"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_张令",
+      "canonical_name": "张令",
+      "aliases": [
+        "張令"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1640,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_朱采鑋",
+      "canonical_name": "朱采鑋",
+      "aliases": [
+        "万安王采鑋",
+        "萬安王采鑋"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1640,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "nobility_actor"
+    },
+    {
+      "npc_id": "npc_ming_猛如虎",
+      "canonical_name": "猛如虎",
+      "aliases": [
+        "猛如虎"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_刘士杰",
+      "canonical_name": "刘士杰",
+      "aliases": [
+        "劉士傑"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_朱常洵",
+      "canonical_name": "朱常洵",
+      "aliases": [
+        "福王常洵",
+        "福王朱常洵"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "nobility_actor"
+    },
+    {
+      "npc_id": "npc_ming_吕维祺",
+      "canonical_name": "吕维祺",
+      "aliases": [
+        "呂維祺"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_朱翊铭",
+      "canonical_name": "朱翊铭",
+      "aliases": [
+        "襄王翊铭",
+        "襄王朱翊铭",
+        "朱翊銘"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "nobility_actor"
+    },
+    {
+      "npc_id": "npc_ming_朱常法",
+      "canonical_name": "朱常法",
+      "aliases": [
+        "贵阳王常法",
+        "貴陽王常法",
+        "贵阳王朱常法"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "nobility_actor"
+    },
+    {
+      "npc_id": "npc_ming_张克俭",
+      "canonical_name": "张克俭",
+      "aliases": [
+        "張克儉"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_傅宗龙",
+      "canonical_name": "傅宗龙",
+      "aliases": [
+        "傅宗龍"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_杨文岳",
+      "canonical_name": "杨文岳",
+      "aliases": [
+        "楊文岳"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    },
+    {
+      "npc_id": "npc_ming_虎大威",
+      "canonical_name": "虎大威",
+      "aliases": [
+        "虎大威"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_杨国柱",
+      "canonical_name": "杨国柱",
+      "aliases": [
+        "楊國柱"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_吴三桂",
+      "canonical_name": "吴三桂",
+      "aliases": [
+        "吳三桂"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_王朴",
+      "canonical_name": "王朴",
+      "aliases": [
+        "王樸"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_刘国能",
+      "canonical_name": "刘国能",
+      "aliases": [
+        "劉國能"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "military_actor"
+    },
+    {
+      "npc_id": "npc_ming_朱聿镆",
+      "canonical_name": "朱聿镆",
+      "aliases": [
+        "唐王聿镆",
+        "唐王朱聿镆",
+        "朱聿鏌"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": 1641,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "nobility_actor"
+    },
+    {
+      "npc_id": "npc_ming_朱恭枵",
+      "canonical_name": "朱恭枵",
+      "aliases": [
+        "周王恭枵",
+        "周王朱恭枵"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "nobility_actor"
+    },
+    {
+      "npc_id": "npc_ming_高名衡",
+      "canonical_name": "高名衡",
+      "aliases": [
+        "高名衡"
+      ],
+      "sex_category": "male",
+      "birth_year": null,
+      "historical_death": {
+        "year": null,
+        "month": null
+      },
+      "native_place": {
+        "province": "",
+        "prefecture": "",
+        "county": ""
+      },
+      "power_id": "ming",
+      "identity_type": "outer_court_actor"
+    }
+  ]
+}

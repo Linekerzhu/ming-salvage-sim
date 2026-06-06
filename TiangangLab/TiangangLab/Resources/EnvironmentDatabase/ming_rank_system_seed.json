@@ -1,0 +1,291 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T21:47:48.404688Z",
+  "records": [
+    {
+      "rank_code": "zheng_1",
+      "label": "正一品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 1,
+      "polarity": "zheng",
+      "sort_order": 1,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "cong_1",
+      "label": "从一品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 1,
+      "polarity": "cong",
+      "sort_order": 2,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "zheng_2",
+      "label": "正二品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 2,
+      "polarity": "zheng",
+      "sort_order": 3,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "cong_2",
+      "label": "从二品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 2,
+      "polarity": "cong",
+      "sort_order": 4,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "zheng_3",
+      "label": "正三品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 3,
+      "polarity": "zheng",
+      "sort_order": 5,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "cong_3",
+      "label": "从三品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 3,
+      "polarity": "cong",
+      "sort_order": 6,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "zheng_4",
+      "label": "正四品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 4,
+      "polarity": "zheng",
+      "sort_order": 7,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "cong_4",
+      "label": "从四品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 4,
+      "polarity": "cong",
+      "sort_order": 8,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "zheng_5",
+      "label": "正五品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 5,
+      "polarity": "zheng",
+      "sort_order": 9,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "cong_5",
+      "label": "从五品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 5,
+      "polarity": "cong",
+      "sort_order": 10,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "zheng_6",
+      "label": "正六品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 6,
+      "polarity": "zheng",
+      "sort_order": 11,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "cong_6",
+      "label": "从六品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 6,
+      "polarity": "cong",
+      "sort_order": 12,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "zheng_7",
+      "label": "正七品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 7,
+      "polarity": "zheng",
+      "sort_order": 13,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "cong_7",
+      "label": "从七品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 7,
+      "polarity": "cong",
+      "sort_order": 14,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "zheng_8",
+      "label": "正八品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 8,
+      "polarity": "zheng",
+      "sort_order": 15,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "cong_8",
+      "label": "从八品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 8,
+      "polarity": "cong",
+      "sort_order": 16,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "zheng_9",
+      "label": "正九品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 9,
+      "polarity": "zheng",
+      "sort_order": 17,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "cong_9",
+      "label": "从九品",
+      "rank_system": "ming_outer_official_nine_ranks",
+      "grade": 9,
+      "polarity": "cong",
+      "sort_order": 18,
+      "applies_to_contexts": [
+        "outer_civil",
+        "outer_military",
+        "inner_eunuch",
+        "female_official"
+      ]
+    },
+    {
+      "rank_code": "harem_title_order",
+      "label": "后妃位分序",
+      "rank_system": "ming_harem_title_order",
+      "grade": null,
+      "polarity": null,
+      "sort_order": 101,
+      "applies_to_contexts": [
+        "harem_title"
+      ]
+    },
+    {
+      "rank_code": "inner_eunuch_order",
+      "label": "内廷宦官职衔序待审",
+      "rank_system": "ming_inner_eunuch_order",
+      "grade": null,
+      "polarity": null,
+      "sort_order": 102,
+      "applies_to_contexts": [
+        "inner_eunuch"
+      ]
+    },
+    {
+      "rank_code": "nobility_title_order",
+      "label": "爵位序",
+      "rank_system": "ming_nobility_title_order",
+      "grade": null,
+      "polarity": null,
+      "sort_order": 103,
+      "applies_to_contexts": [
+        "nobility"
+      ]
+    }
+  ]
+}

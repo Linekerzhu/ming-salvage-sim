@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T21:47:48.404688Z",
+  "records": [
+    {
+      "alias_id": "loc_alias_048f12f7ab",
+      "alias": "登莱",
+      "alias_type": "office_text_place",
+      "region_id": "region_denglai"
+    },
+    {
+      "alias_id": "loc_alias_0c650cd16f",
+      "alias": "mongol_chahar",
+      "alias_type": "old_location_code",
+      "region_id": "region_chahar"
+    },
+    {
+      "alias_id": "loc_alias_0c99255d72",
+      "alias": "南京",
+      "alias_type": "office_text_place",
+      "region_id": "region_nanjing"
+    },
+    {
+      "alias_id": "loc_alias_0fbb05e471",
+      "alias": "jianzhou",
+      "alias_type": "old_location_code",
+      "region_id": "region_jianzhou"
+    },
+    {
+      "alias_id": "loc_alias_16354f276f",
+      "alias": "大同",
+      "alias_type": "office_text_place",
+      "region_id": "region_datong"
+    },
+    {
+      "alias_id": "loc_alias_3948482fdc",
+      "alias": "蒲州",
+      "alias_type": "office_text_place",
+      "region_id": "region_puzhou"
+    },
+    {
+      "alias_id": "loc_alias_3f9ffb4db9",
+      "alias": "shaanxi",
+      "alias_type": "old_location_code",
+      "region_id": "region_shaanxi"
+    },
+    {
+      "alias_id": "loc_alias_44bfb08555",
+      "alias": "察哈尔",
+      "alias_type": "office_text_place",
+      "region_id": "region_chahar"
+    },
+    {
+      "alias_id": "loc_alias_48b6ac1cc7",
+      "alias": "常熟",
+      "alias_type": "office_text_place",
+      "region_id": "region_changshu"
+    },
+    {
+      "alias_id": "loc_alias_4bfbc63212",
+      "alias": "福建",
+      "alias_type": "office_text_place",
+      "region_id": "region_fujian"
+    },
+    {
+      "alias_id": "loc_alias_60c27da3ff",
+      "alias": "锦州",
+      "alias_type": "office_text_place",
+      "region_id": "region_jinzhou"
+    },
+    {
+      "alias_id": "loc_alias_6fb8937c1e",
+      "alias": "永城",
+      "alias_type": "office_text_place",
+      "region_id": "region_yongcheng"
+    },
+    {
+      "alias_id": "loc_alias_71d2ff704b",
+      "alias": "陕西",
+      "alias_type": "office_text_place",
+      "region_id": "region_shaanxi"
+    },
+    {
+      "alias_id": "loc_alias_73a94f4a4d",
+      "alias": "辽东",
+      "alias_type": "office_text_place",
+      "region_id": "region_liaodong"
+    },
+    {
+      "alias_id": "loc_alias_78f571b124",
+      "alias": "凤阳府",
+      "alias_type": "office_text_place",
+      "region_id": "region_fengyang"
+    },
+    {
+      "alias_id": "loc_alias_7a20478c03",
+      "alias": "朝鲜",
+      "alias_type": "office_text_place",
+      "region_id": "region_korea"
+    },
+    {
+      "alias_id": "loc_alias_97c23ee500",
+      "alias": "东莞",
+      "alias_type": "office_text_place",
+      "region_id": "region_dongguan"
+    },
+    {
+      "alias_id": "loc_alias_99f1e46974",
+      "alias": "上海",
+      "alias_type": "office_text_place",
+      "region_id": "region_shanghai"
+    },
+    {
+      "alias_id": "loc_alias_aec3b8b7c0",
+      "alias": "松江",
+      "alias_type": "office_text_place",
+      "region_id": "region_songjiang"
+    },
+    {
+      "alias_id": "loc_alias_aff7a6a790",
+      "alias": "应天府",
+      "alias_type": "office_text_place",
+      "region_id": "region_yingtian"
+    },
+    {
+      "alias_id": "loc_alias_b01f742144",
+      "alias": "山海关",
+      "alias_type": "office_text_place",
+      "region_id": "region_shanhai_pass"
+    },
+    {
+      "alias_id": "loc_alias_b80292db4e",
+      "alias": "大名府",
+      "alias_type": "office_text_place",
+      "region_id": "region_daming"
+    },
+    {
+      "alias_id": "loc_alias_becbb7ead1",
+      "alias": "睢州",
+      "alias_type": "office_text_place",
+      "region_id": "region_suizhou"
+    },
+    {
+      "alias_id": "loc_alias_c0e439e258",
+      "alias": "蓟辽",
+      "alias_type": "office_text_place",
+      "region_id": "region_jiliao"
+    },
+    {
+      "alias_id": "loc_alias_d7bc5eca91",
+      "alias": "shenyang_liaoyang",
+      "alias_type": "old_location_code",
+      "region_id": "region_shenyang_liaoyang"
+    },
+    {
+      "alias_id": "loc_alias_e014a50adf",
+      "alias": "山东",
+      "alias_type": "office_text_place",
+      "region_id": "region_shandong"
+    },
+    {
+      "alias_id": "loc_alias_e8b279e832",
+      "alias": "马尼拉",
+      "alias_type": "office_text_place",
+      "region_id": "region_manila"
+    },
+    {
+      "alias_id": "loc_alias_eed5f3b9bf",
+      "alias": "korea",
+      "alias_type": "old_location_code",
+      "region_id": "region_korea"
+    },
+    {
+      "alias_id": "loc_alias_f065ea7b9d",
+      "alias": "山西",
+      "alias_type": "office_text_place",
+      "region_id": "region_shanxi"
+    },
+    {
+      "alias_id": "loc_alias_f21683138f",
+      "alias": "洞庭湖",
+      "alias_type": "office_text_place",
+      "region_id": "region_dongting_lake"
+    },
+    {
+      "alias_id": "loc_alias_fb62685c58",
+      "alias": "高阳",
+      "alias_type": "office_text_place",
+      "region_id": "region_gaoyang"
+    }
+  ]
+}

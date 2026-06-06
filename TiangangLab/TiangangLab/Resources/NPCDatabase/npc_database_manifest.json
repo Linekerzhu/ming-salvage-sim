@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T22:01:01+00:00",
+  "modules": [
+    {
+      "module": "rank_system_catalog_seed",
+      "filename": "rank_system_catalog_seed.json",
+      "record_count": 27
+    },
+    {
+      "module": "status_catalog_seed",
+      "filename": "status_catalog_seed.json",
+      "record_count": 11
+    },
+    {
+      "module": "institution_catalog_seed",
+      "filename": "institution_catalog_seed.json",
+      "record_count": 25
+    },
+    {
+      "module": "office_catalog_seed",
+      "filename": "office_catalog_seed.json",
+      "record_count": 305
+    },
+    {
+      "module": "appearance_axis_catalog_seed",
+      "filename": "appearance_axis_catalog_seed.json",
+      "record_count": 28
+    },
+    {
+      "module": "cultural_literacy_catalog_seed",
+      "filename": "cultural_literacy_catalog_seed.json",
+      "record_count": 5
+    },
+    {
+      "module": "skill_anchor_catalog_seed",
+      "filename": "skill_anchor_catalog_seed.json",
+      "record_count": 17
+    },
+    {
+      "module": "npc_core_seed",
+      "filename": "npc_core_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_education_origin_seed",
+      "filename": "npc_education_origin_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_cultural_literacy_seed",
+      "filename": "npc_cultural_literacy_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_rank_titles_seed",
+      "filename": "npc_rank_titles_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_appointments_seed",
+      "filename": "npc_appointments_seed.json",
+      "record_count": 460
+    },
+    {
+      "module": "npc_status_timeline_seed",
+      "filename": "npc_status_timeline_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_affiliations_seed",
+      "filename": "npc_affiliations_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_relationship_edges_seed",
+      "filename": "npc_relationship_edges_seed.json",
+      "record_count": 1555
+    },
+    {
+      "module": "npc_social_capital_seed",
+      "filename": "npc_social_capital_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_tiangang_profiles_seed",
+      "filename": "npc_tiangang_profiles_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_xinpan_seed",
+      "filename": "npc_xinpan_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_mingshu_profiles_seed",
+      "filename": "npc_mingshu_profiles_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_appearance_profiles_seed",
+      "filename": "npc_appearance_profiles_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_capability_facts_seed",
+      "filename": "npc_capability_facts_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_lifecycle_windows_seed",
+      "filename": "npc_lifecycle_windows_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_biography_arcs_seed",
+      "filename": "npc_biography_arcs_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_historical_biographies_seed",
+      "filename": "npc_historical_biographies_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_start_1628_positions_seed",
+      "filename": "npc_start_1628_positions_seed.json",
+      "record_count": 263
+    },
+    {
+      "module": "npc_assets_seed",
+      "filename": "npc_assets_seed.json",
+      "record_count": 263
+    }
+  ]
+}

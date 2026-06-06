@@ -1,0 +1,6231 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T22:01:01+00:00",
+  "records": [
+    {
+      "npc_id": "npc_ming_韩爌",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "东林",
+          "label": "东林"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": [
+        "#NPC/韩爌",
+        "#派系/东林",
+        "#官署/内阁",
+        "#势力/ming",
+        "#原型/清流名分"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张瑞图",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": [
+        "#NPC/张瑞图",
+        "#派系/阉党",
+        "#官署/内阁",
+        "#势力/ming",
+        "#原型/近权网络"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_来宗道",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": [
+        "#NPC/来宗道",
+        "#派系/阉党",
+        "#官署/内阁",
+        "#势力/ming",
+        "#原型/近权网络"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_施凤来",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": [
+        "#NPC/施凤来",
+        "#派系/阉党",
+        "#官署/内阁",
+        "#势力/ming",
+        "#原型/近权网络"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_黄立极",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": [
+        "#NPC/黄立极",
+        "#派系/阉党",
+        "#官署/内阁",
+        "#势力/ming",
+        "#原型/近权网络"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王绍徽",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "吏部",
+          "label": "吏部"
+        }
+      ],
+      "tags": [
+        "#NPC/王绍徽",
+        "#派系/阉党",
+        "#官署/吏部",
+        "#势力/ming",
+        "#原型/近权网络"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_毕自严",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "皇党",
+          "label": "皇党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "户部",
+          "label": "户部"
+        }
+      ],
+      "tags": [
+        "#NPC/毕自严",
+        "#派系/皇党",
+        "#官署/户部",
+        "#势力/ming",
+        "#原型/部院实务"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨嗣昌",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "皇党",
+          "label": "皇党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": [
+        "#NPC/杨嗣昌",
+        "#派系/皇党",
+        "#官署/户部",
+        "#势力/ming",
+        "#原型/部院实务"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_温体仁",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "皇党",
+          "label": "皇党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "礼部",
+          "label": "礼部"
+        }
+      ],
+      "tags": [
+        "#NPC/温体仁",
+        "#派系/皇党",
+        "#官署/礼部",
+        "#势力/ming",
+        "#原型/部院实务"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_钱龙锡",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "东林",
+          "label": "东林"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": [
+        "#NPC/钱龙锡",
+        "#派系/东林",
+        "#官署/礼部",
+        "#势力/ming",
+        "#原型/清流名分"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘鸿训",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "东林",
+          "label": "东林"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": [
+        "#NPC/刘鸿训",
+        "#派系/东林",
+        "#官署/礼部",
+        "#势力/ming",
+        "#原型/清流名分"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_钱谦益",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "东林",
+          "label": "东林"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "礼部",
+          "label": "礼部"
+        }
+      ],
+      "tags": [
+        "#NPC/钱谦益",
+        "#派系/东林",
+        "#官署/礼部",
+        "#势力/ming",
+        "#原型/清流名分"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_李标",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "东林",
+          "label": "东林"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": [
+        "#NPC/李标",
+        "#派系/东林",
+        "#官署/礼部",
+        "#势力/ming",
+        "#原型/清流名分"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙承宗",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "东林",
+          "label": "东林"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": [
+        "#NPC/孙承宗",
+        "#派系/东林",
+        "#官署/兵部",
+        "#势力/ming",
+        "#原型/清流名分"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_崔呈秀",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": [
+        "#NPC/崔呈秀",
+        "#派系/阉党",
+        "#官署/兵部",
+        "#势力/ming",
+        "#原型/近权网络"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王在晋",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": [
+        "#NPC/王在晋",
+        "#派系/中立",
+        "#官署/兵部",
+        "#势力/ming",
+        "#原型/部院实务"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_徐光启",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "西学",
+          "label": "西学"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "工部",
+          "label": "工部"
+        }
+      ],
+      "tags": [
+        "#NPC/徐光启",
+        "#派系/西学",
+        "#官署/工部",
+        "#势力/ming",
+        "#原型/西学技艺"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_袁可立",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "东林",
+          "label": "东林"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "都察院",
+          "label": "都察院"
+        }
+      ],
+      "tags": [
+        "#NPC/袁可立",
+        "#派系/东林",
+        "#官署/都察院",
+        "#势力/ming",
+        "#原型/清流名分"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_周延儒",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "皇党",
+          "label": "皇党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": [
+        "#NPC/周延儒",
+        "#派系/皇党",
+        "#官署/翰林院",
+        "#势力/ming",
+        "#原型/部院实务"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_倪元璐",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "东林",
+          "label": "东林"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "翰林院",
+          "label": "翰林院"
+        }
+      ],
+      "tags": [
+        "#NPC/倪元璐",
+        "#派系/东林",
+        "#官署/翰林院",
+        "#势力/ming",
+        "#原型/清流名分"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_黄道周",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "东林",
+          "label": "东林"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": [
+        "#NPC/黄道周",
+        "#派系/东林",
+        "#官署/翰林院",
+        "#势力/ming",
+        "#原型/清流名分"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_曹化淳",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "皇党",
+          "label": "皇党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "司礼监",
+          "label": "司礼监"
+        }
+      ],
+      "tags": [
+        "#NPC/曹化淳",
+        "#派系/皇党",
+        "#官署/司礼监",
+        "#势力/ming",
+        "#原型/内廷厂卫"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王体乾",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "司礼监",
+          "label": "司礼监"
+        }
+      ],
+      "tags": [
+        "#NPC/王体乾",
+        "#派系/阉党",
+        "#官署/司礼监",
+        "#势力/ming",
+        "#原型/内廷厂卫"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王承恩",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "皇党",
+          "label": "皇党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "司礼监",
+          "label": "司礼监"
+        }
+      ],
+      "tags": [
+        "#NPC/王承恩",
+        "#派系/皇党",
+        "#官署/司礼监",
+        "#势力/ming",
+        "#原型/内廷厂卫"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_魏忠贤",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "东厂",
+          "label": "东厂"
+        }
+      ],
+      "tags": [
+        "#NPC/魏忠贤",
+        "#派系/阉党",
+        "#官署/东厂",
+        "#势力/ming",
+        "#原型/内廷厂卫"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_田尔耕",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "锦衣卫",
+          "label": "锦衣卫"
+        }
+      ],
+      "tags": [
+        "#NPC/田尔耕",
+        "#派系/阉党",
+        "#官署/锦衣卫",
+        "#势力/ming",
+        "#原型/内廷厂卫"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_许显纯",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "锦衣卫",
+          "label": "锦衣卫"
+        }
+      ],
+      "tags": [
+        "#NPC/许显纯",
+        "#派系/阉党",
+        "#官署/锦衣卫",
+        "#势力/ming",
+        "#原型/内廷厂卫"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_李若琏",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "皇党",
+          "label": "皇党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "锦衣卫",
+          "label": "锦衣卫"
+        }
+      ],
+      "tags": [
+        "#NPC/李若琏",
+        "#派系/皇党",
+        "#官署/锦衣卫",
+        "#势力/ming",
+        "#原型/内廷厂卫"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_客氏",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "后宫",
+          "label": "后宫"
+        }
+      ],
+      "tags": [
+        "#NPC/客氏",
+        "#派系/阉党",
+        "#官署/后宫",
+        "#势力/ming",
+        "#原型/后宫人心"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_袁崇焕",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "军队",
+          "label": "军队"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": [
+        "#NPC/袁崇焕",
+        "#派系/军队",
+        "#官署/边镇",
+        "#势力/ming",
+        "#原型/军镇武人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_曹文诏",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "军队",
+          "label": "军队"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": [
+        "#NPC/曹文诏",
+        "#派系/军队",
+        "#官署/边镇",
+        "#势力/ming",
+        "#原型/军镇武人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_祖大寿",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "军队",
+          "label": "军队"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": [
+        "#NPC/祖大寿",
+        "#派系/军队",
+        "#官署/边镇",
+        "#势力/ming",
+        "#原型/军镇武人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_满桂",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "军队",
+          "label": "军队"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": [
+        "#NPC/满桂",
+        "#派系/军队",
+        "#官署/边镇",
+        "#势力/ming",
+        "#原型/军镇武人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_赵率教",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "军队",
+          "label": "军队"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": [
+        "#NPC/赵率教",
+        "#派系/军队",
+        "#官署/边镇",
+        "#势力/ming",
+        "#原型/军镇武人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王之臣",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "军队",
+          "label": "军队"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": [
+        "#NPC/王之臣",
+        "#派系/军队",
+        "#官署/边镇",
+        "#势力/ming",
+        "#原型/军镇武人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_毛文龙",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "军队",
+          "label": "军队"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": [
+        "#NPC/毛文龙",
+        "#派系/军队",
+        "#官署/边镇",
+        "#势力/ming",
+        "#原型/军镇武人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_阎鸣泰",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": [
+        "#NPC/阎鸣泰",
+        "#派系/阉党",
+        "#官署/边镇",
+        "#势力/ming",
+        "#原型/军镇武人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_洪承畴",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": [
+        "#NPC/洪承畴",
+        "#派系/中立",
+        "#官署/地方",
+        "#势力/ming",
+        "#原型/部院实务"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙传庭",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "都察院",
+          "label": "都察院"
+        }
+      ],
+      "tags": [
+        "#NPC/孙传庭",
+        "#派系/中立",
+        "#官署/地方",
+        "#势力/ming",
+        "#原型/部院实务"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_卢象升",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "东林",
+          "label": "东林"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": [
+        "#NPC/卢象升",
+        "#派系/东林",
+        "#官署/地方",
+        "#势力/ming",
+        "#原型/清流名分"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_史可法",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "东林",
+          "label": "东林"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": [
+        "#NPC/史可法",
+        "#派系/东林",
+        "#官署/未仕",
+        "#势力/ming",
+        "#原型/清流名分"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_周皇后",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中宫",
+          "label": "中宫"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "后宫",
+          "label": "后宫"
+        }
+      ],
+      "tags": [
+        "#NPC/周皇后",
+        "#派系/中宫",
+        "#官署/后宫",
+        "#势力/ming",
+        "#原型/后宫人心"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_周贵人",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "嫔妃",
+          "label": "嫔妃"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "后宫",
+          "label": "后宫"
+        }
+      ],
+      "tags": [
+        "#NPC/周贵人",
+        "#派系/嫔妃",
+        "#官署/后宫",
+        "#势力/ming",
+        "#原型/后宫人心"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_田贵妃",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "宠妃",
+          "label": "宠妃"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "后宫",
+          "label": "后宫"
+        }
+      ],
+      "tags": [
+        "#NPC/田贵妃",
+        "#派系/宠妃",
+        "#官署/后宫",
+        "#势力/ming",
+        "#原型/后宫人心"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_袁贵妃",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "宠妃",
+          "label": "宠妃"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "后宫",
+          "label": "后宫"
+        }
+      ],
+      "tags": [
+        "#NPC/袁贵妃",
+        "#派系/宠妃",
+        "#官署/后宫",
+        "#势力/ming",
+        "#原型/后宫人心"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_慧妃",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "嫔妃",
+          "label": "嫔妃"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "后宫",
+          "label": "后宫"
+        }
+      ],
+      "tags": [
+        "#NPC/慧妃",
+        "#派系/嫔妃",
+        "#官署/后宫",
+        "#势力/ming",
+        "#原型/后宫人心"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_皇太极",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/皇太极",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_代善",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/代善",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_莽古尔泰",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/莽古尔泰",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_阿敏",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/阿敏",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_范文程",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/范文程",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_佟养性",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/佟养性",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_mongol_林丹汗",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "mongol",
+          "label": "mongol"
+        },
+        {
+          "kind": "faction",
+          "id": "蒙古",
+          "label": "蒙古"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/林丹汗",
+        "#派系/蒙古",
+        "#官署/外臣",
+        "#势力/mongol",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_korea_仁祖",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "korea",
+          "label": "korea"
+        },
+        {
+          "kind": "faction",
+          "id": "朝鲜",
+          "label": "朝鲜"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/仁祖",
+        "#派系/朝鲜",
+        "#官署/外臣",
+        "#势力/korea",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_korea_张维",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "korea",
+          "label": "korea"
+        },
+        {
+          "kind": "faction",
+          "id": "朝鲜",
+          "label": "朝鲜"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/张维",
+        "#派系/朝鲜",
+        "#官署/外臣",
+        "#势力/korea",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_王嘉胤",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "bandits",
+          "label": "bandits"
+        },
+        {
+          "kind": "faction",
+          "id": "流寇",
+          "label": "流寇"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/王嘉胤",
+        "#派系/流寇",
+        "#官署/外臣",
+        "#势力/bandits",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_李自成",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "bandits",
+          "label": "bandits"
+        },
+        {
+          "kind": "faction",
+          "id": "流寇",
+          "label": "流寇"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/李自成",
+        "#派系/流寇",
+        "#官署/外臣",
+        "#势力/bandits",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_张献忠",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "bandits",
+          "label": "bandits"
+        },
+        {
+          "kind": "faction",
+          "id": "流寇",
+          "label": "流寇"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/张献忠",
+        "#派系/流寇",
+        "#官署/外臣",
+        "#势力/bandits",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_武当张真人",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/武当张真人",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_铁臂周侗",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/铁臂周侗",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_青莲剑客",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/青莲剑客",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_玄机道长",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/玄机道长",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_毒手药王",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/毒手药王",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_红衣女侠",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/红衣女侠",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_盲眼琴师",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "翰林院",
+          "label": "翰林院"
+        }
+      ],
+      "tags": [
+        "#NPC/盲眼琴师",
+        "#派系/中立",
+        "#官署/翰林院",
+        "#势力/ming",
+        "#原型/部院实务"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_鬼面商人",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/鬼面商人",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_隐剑山庄主",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/隐剑山庄主",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_白眉老僧",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/白眉老僧",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_曹变蛟",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "军队",
+          "label": "军队"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": [
+        "#NPC/曹变蛟",
+        "#派系/军队",
+        "#官署/边镇",
+        "#势力/ming",
+        "#原型/军镇武人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_左良玉",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "军队",
+          "label": "军队"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": [
+        "#NPC/左良玉",
+        "#派系/军队",
+        "#官署/边镇",
+        "#势力/ming",
+        "#原型/军镇武人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_黄得功",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "军队",
+          "label": "军队"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": [
+        "#NPC/黄得功",
+        "#派系/军队",
+        "#官署/边镇",
+        "#势力/ming",
+        "#原型/军镇武人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘泽清",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "军队",
+          "label": "军队"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": [
+        "#NPC/刘泽清",
+        "#派系/军队",
+        "#官署/边镇",
+        "#势力/ming",
+        "#原型/军镇武人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_高杰",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "军队",
+          "label": "军队"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": [
+        "#NPC/高杰",
+        "#派系/军队",
+        "#官署/边镇",
+        "#势力/ming",
+        "#原型/军镇武人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_周遇吉",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "军队",
+          "label": "军队"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": [
+        "#NPC/周遇吉",
+        "#派系/军队",
+        "#官署/边镇",
+        "#势力/ming",
+        "#原型/军镇武人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_熊文灿",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": [
+        "#NPC/熊文灿",
+        "#派系/中立",
+        "#官署/兵部",
+        "#势力/ming",
+        "#原型/部院实务"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_郑芝龙",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": [
+        "#NPC/郑芝龙",
+        "#派系/中立",
+        "#官署/地方",
+        "#势力/ming",
+        "#原型/部院实务"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_郑成功",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/郑成功",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘宗周",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "东林",
+          "label": "东林"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "工部",
+          "label": "工部"
+        }
+      ],
+      "tags": [
+        "#NPC/刘宗周",
+        "#派系/东林",
+        "#官署/都察院",
+        "#势力/ming",
+        "#原型/清流名分"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_范景文",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "工部",
+          "label": "工部"
+        }
+      ],
+      "tags": [
+        "#NPC/范景文",
+        "#派系/中立",
+        "#官署/工部",
+        "#势力/ming",
+        "#原型/部院实务"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_李邦华",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "皇党",
+          "label": "皇党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": [
+        "#NPC/李邦华",
+        "#派系/皇党",
+        "#官署/兵部",
+        "#势力/ming",
+        "#原型/部院实务"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_马士英",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": [
+        "#NPC/马士英",
+        "#派系/阉党",
+        "#官署/内阁",
+        "#势力/ming",
+        "#原型/近权网络"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_阮大铖",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/阮大铖",
+        "#派系/阉党",
+        "#官署/兵部",
+        "#势力/ming",
+        "#原型/近权网络"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_姜曰广",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "东林",
+          "label": "东林"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "礼部",
+          "label": "礼部"
+        }
+      ],
+      "tags": [
+        "#NPC/姜曰广",
+        "#派系/东林",
+        "#官署/礼部",
+        "#势力/ming",
+        "#原型/清流名分"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈子龙",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "东林",
+          "label": "东林"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "都察院",
+          "label": "都察院"
+        }
+      ],
+      "tags": [
+        "#NPC/陈子龙",
+        "#派系/东林",
+        "#官署/都察院",
+        "#势力/ming",
+        "#原型/清流名分"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_夏允彝",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "东林",
+          "label": "东林"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "吏部",
+          "label": "吏部"
+        }
+      ],
+      "tags": [
+        "#NPC/夏允彝",
+        "#派系/东林",
+        "#官署/吏部",
+        "#势力/ming",
+        "#原型/清流名分"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_高起潜",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "司礼监",
+          "label": "司礼监"
+        }
+      ],
+      "tags": [
+        "#NPC/高起潜",
+        "#派系/阉党",
+        "#官署/司礼监",
+        "#势力/ming",
+        "#原型/内廷厂卫"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杜勋",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "司礼监",
+          "label": "司礼监"
+        }
+      ],
+      "tags": [
+        "#NPC/杜勋",
+        "#派系/阉党",
+        "#官署/司礼监",
+        "#势力/ming",
+        "#原型/内廷厂卫"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_多尔衮",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/多尔衮",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_多铎",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/多铎",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_阿济格",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/阿济格",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_济尔哈朗",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/济尔哈朗",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_索尼",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/索尼",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_宁完我",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/宁完我",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_鳌拜",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/鳌拜",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_图赖",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/图赖",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_孔有德",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/孔有德",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_耿仲明",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/耿仲明",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_尚可喜",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "houjin",
+          "label": "houjin"
+        },
+        {
+          "kind": "faction",
+          "id": "后金",
+          "label": "后金"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/尚可喜",
+        "#派系/后金",
+        "#官署/外臣",
+        "#势力/houjin",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_mongol_额哲",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "mongol",
+          "label": "mongol"
+        },
+        {
+          "kind": "faction",
+          "id": "蒙古",
+          "label": "蒙古"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/额哲",
+        "#派系/蒙古",
+        "#官署/外臣",
+        "#势力/mongol",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_mongol_土谢图汗",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "mongol",
+          "label": "mongol"
+        },
+        {
+          "kind": "faction",
+          "id": "蒙古",
+          "label": "蒙古"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/土谢图汗",
+        "#派系/蒙古",
+        "#官署/外臣",
+        "#势力/mongol",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_mongol_顺义王",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "mongol",
+          "label": "mongol"
+        },
+        {
+          "kind": "faction",
+          "id": "蒙古",
+          "label": "蒙古"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/顺义王",
+        "#派系/蒙古",
+        "#官署/外臣",
+        "#势力/mongol",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_高迎祥",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "bandits",
+          "label": "bandits"
+        },
+        {
+          "kind": "faction",
+          "id": "流寇",
+          "label": "流寇"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/高迎祥",
+        "#派系/流寇",
+        "#官署/外臣",
+        "#势力/bandits",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_罗汝才",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "bandits",
+          "label": "bandits"
+        },
+        {
+          "kind": "faction",
+          "id": "流寇",
+          "label": "流寇"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/罗汝才",
+        "#派系/流寇",
+        "#官署/外臣",
+        "#势力/bandits",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_革左五营",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "bandits",
+          "label": "bandits"
+        },
+        {
+          "kind": "faction",
+          "id": "流寇",
+          "label": "流寇"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/革左五营",
+        "#派系/流寇",
+        "#官署/外臣",
+        "#势力/bandits",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_刘宗敏",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "bandits",
+          "label": "bandits"
+        },
+        {
+          "kind": "faction",
+          "id": "流寇",
+          "label": "流寇"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/刘宗敏",
+        "#派系/流寇",
+        "#官署/外臣",
+        "#势力/bandits",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_宋献策",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "bandits",
+          "label": "bandits"
+        },
+        {
+          "kind": "faction",
+          "id": "流寇",
+          "label": "流寇"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/宋献策",
+        "#派系/流寇",
+        "#官署/外臣",
+        "#势力/bandits",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_牛金星",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "bandits",
+          "label": "bandits"
+        },
+        {
+          "kind": "faction",
+          "id": "流寇",
+          "label": "流寇"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/牛金星",
+        "#派系/流寇",
+        "#官署/外臣",
+        "#势力/bandits",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_李岩",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "bandits",
+          "label": "bandits"
+        },
+        {
+          "kind": "faction",
+          "id": "流寇",
+          "label": "流寇"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/李岩",
+        "#派系/流寇",
+        "#官署/外臣",
+        "#势力/bandits",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_红娘子",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "bandits",
+          "label": "bandits"
+        },
+        {
+          "kind": "faction",
+          "id": "流寇",
+          "label": "流寇"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": [
+        "#NPC/红娘子",
+        "#派系/流寇",
+        "#官署/外臣",
+        "#势力/bandits",
+        "#原型/外部势力"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_白莲教主",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/白莲教主",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_闻香教主",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/闻香教主",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_老渔夫",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/老渔夫",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_塞外刀客",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/塞外刀客",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_苗疆蛊师",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/苗疆蛊师",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_倭寇首领",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/倭寇首领",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_西洋传教士",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "西学",
+          "label": "西学"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/西洋传教士",
+        "#派系/西学",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/西学技艺"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_南洋华侨",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": [
+        "#NPC/南洋华侨",
+        "#派系/中立",
+        "#官署/待铨",
+        "#势力/ming",
+        "#原型/异闻奇人"
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨景辰",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_周道登",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_成基命",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_王洽",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_何如宠",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_钱象坤",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_王元雅",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "都察院",
+          "label": "都察院"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_何天球",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_马世龙",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_孙祖寿",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_毕自肃",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "都察院",
+          "label": "都察院"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_刘若宰",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_卓铭",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "锦衣卫",
+          "label": "锦衣卫"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_侯良柱",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_刘可训",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_郑国昌",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_张凤奇",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_刘策",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "都察院",
+          "label": "都察院"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_刘之纶",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_吴自勉",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_吴宗达",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_杜文焕",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_王国梁",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_杨鹤",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_张应昌",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_陈于泰",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_吴甡",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "都察院",
+          "label": "都察院"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_张允登",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_刘若愚",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "司礼监",
+          "label": "司礼监"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_孙暹",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "东厂",
+          "label": "东厂"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_刘吉祥",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "司礼监",
+          "label": "司礼监"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_李永贞",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "司礼监",
+          "label": "司礼监"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_梁栋",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "司礼监",
+          "label": "司礼监"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_石元雅",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "司礼监",
+          "label": "司礼监"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_涂文辅",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "阉党",
+          "label": "阉党"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "司礼监",
+          "label": "司礼监"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_陈良谟",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_bandits_李九成",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "bandits",
+          "label": "bandits"
+        },
+        {
+          "kind": "faction",
+          "id": "叛军",
+          "label": "叛军"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_张可大",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_孙元化",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "都察院",
+          "label": "都察院"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_宋光兰",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_徐从治",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_刘宇烈",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_余大成",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_杨嘉谟",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_朱大典",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_郑以伟",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_谢琏",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_朱万年",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_杨麒",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_bandits_杨正芳",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "bandits",
+          "label": "bandits"
+        },
+        {
+          "kind": "faction",
+          "id": "叛军",
+          "label": "叛军"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_祖宽",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_bandits_刘香",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "bandits",
+          "label": "bandits"
+        },
+        {
+          "kind": "faction",
+          "id": "海寇",
+          "label": "海寇"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_王志道",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_陈洪范",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_邓玘",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_陈大金",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_李卑",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_黄龙",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_钱士升",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_王应熊",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_何吾驺",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_许鼎臣",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_张彝宪",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "内廷",
+          "label": "内廷"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "司礼监",
+          "label": "司礼监"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_刘若金",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "户部",
+          "label": "户部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_陈奇瑜",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_刘理顺",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_杨世恩",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_贺人龙",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_丁魁楚",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "都察院",
+          "label": "都察院"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_尤世威",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_张宗衡",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_陆梦龙",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_朱国相",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "宗室",
+          "label": "宗室"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_张国维",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "都察院",
+          "label": "都察院"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_杨一鹏",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "户部",
+          "label": "户部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_艾万年",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_柳国镇",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_文震孟",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_张至发",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_张全昌",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_侯恂",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "户部",
+          "label": "户部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_林釬",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_汤九州",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_王楫",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "都察院",
+          "label": "都察院"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_丁启睿",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_陈起新",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "六科",
+          "label": "六科"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_祖大乐",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_俞冲霄",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_孔贞运",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_贺逢圣",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_黄士俊",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_解进忠",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_李国辅",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "内廷",
+          "label": "内廷"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "司礼监",
+          "label": "司礼监"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_朱纯臣",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "勋戚",
+          "label": "勋戚"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "勋戚",
+          "label": "勋戚"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_王肇坤",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "都察院",
+          "label": "都察院"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_张凤翼",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_朱聿键",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "宗室",
+          "label": "宗室"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "宗室",
+          "label": "宗室"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_刘同升",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_金日观",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_沈冬魁",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_刘宇亮",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_傅冠",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_薛国观",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_张任学",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_程国祥",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_方逢年",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_蔡国用",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_范复粹",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_吴阿衡",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_朱由枢",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "宗室",
+          "label": "宗室"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "宗室",
+          "label": "宗室"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_张秉文",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_姚明恭",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_张四知",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_魏照乘",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_bandits_李万庆",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "bandits",
+          "label": "bandits"
+        },
+        {
+          "kind": "faction",
+          "id": "流寇",
+          "label": "流寇"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "外臣",
+          "label": "外臣"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_罗岱",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_颜继祖",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "都察院",
+          "label": "都察院"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_倪宠",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_邓希诏",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "内廷",
+          "label": "内廷"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "司礼监",
+          "label": "司礼监"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_孙茂霖",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "内廷",
+          "label": "内廷"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "司礼监",
+          "label": "司礼监"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_郑崇俭",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_魏藻德",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "待铨",
+          "label": "待铨"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_解学龙",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "都察院",
+          "label": "都察院"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_谢陞",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_陈演",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "内阁",
+          "label": "内阁"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_秦良玉",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "女官",
+          "label": "女官"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_孙应元",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_张令",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_朱采鑋",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "宗室",
+          "label": "宗室"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "宗室",
+          "label": "宗室"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_猛如虎",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_刘士杰",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_朱常洵",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "宗室",
+          "label": "宗室"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "宗室",
+          "label": "宗室"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_吕维祺",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_朱翊铭",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "宗室",
+          "label": "宗室"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "宗室",
+          "label": "宗室"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_朱常法",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "宗室",
+          "label": "宗室"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "宗室",
+          "label": "宗室"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_张克俭",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "地方",
+          "label": "地方"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_傅宗龙",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_杨文岳",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "兵部",
+          "label": "兵部"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_虎大威",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_杨国柱",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_吴三桂",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_王朴",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_刘国能",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "边镇",
+          "label": "边镇"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_朱聿镆",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "宗室",
+          "label": "宗室"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "宗室",
+          "label": "宗室"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_朱恭枵",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "宗室",
+          "label": "宗室"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "宗室",
+          "label": "宗室"
+        }
+      ],
+      "tags": []
+    },
+    {
+      "npc_id": "npc_ming_高名衡",
+      "affiliations": [
+        {
+          "kind": "power",
+          "id": "ming",
+          "label": "ming"
+        },
+        {
+          "kind": "faction",
+          "id": "中立",
+          "label": "中立"
+        },
+        {
+          "kind": "office_sphere",
+          "id": "都察院",
+          "label": "都察院"
+        }
+      ],
+      "tags": []
+    }
+  ]
+}

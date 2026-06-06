@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T22:01:01+00:00",
+  "records": [
+    {
+      "institution_id": "cabinet",
+      "label": "内阁"
+    },
+    {
+      "institution_id": "censorate",
+      "label": "都察院"
+    },
+    {
+      "institution_id": "civil_service_pool",
+      "label": "待铨池"
+    },
+    {
+      "institution_id": "commercial_maritime",
+      "label": "商贸/海上势力"
+    },
+    {
+      "institution_id": "directorate_ceremonial",
+      "label": "司礼监"
+    },
+    {
+      "institution_id": "eastern_depot",
+      "label": "东厂"
+    },
+    {
+      "institution_id": "embroidered_uniform_guard",
+      "label": "锦衣卫"
+    },
+    {
+      "institution_id": "external_powers",
+      "label": "外臣"
+    },
+    {
+      "institution_id": "hanlin_academy",
+      "label": "翰林院"
+    },
+    {
+      "institution_id": "inner_palace",
+      "label": "后宫"
+    },
+    {
+      "institution_id": "local_government",
+      "label": "地方"
+    },
+    {
+      "institution_id": "military_frontier",
+      "label": "边镇"
+    },
+    {
+      "institution_id": "ministry_personnel",
+      "label": "吏部"
+    },
+    {
+      "institution_id": "ministry_revenue",
+      "label": "户部"
+    },
+    {
+      "institution_id": "ministry_rites",
+      "label": "礼部"
+    },
+    {
+      "institution_id": "ministry_war",
+      "label": "兵部"
+    },
+    {
+      "institution_id": "ministry_works",
+      "label": "工部"
+    },
+    {
+      "institution_id": "native_chieftain_administration",
+      "label": "土司/女官世职"
+    },
+    {
+      "institution_id": "nobility_system",
+      "label": "宗室/勋戚爵位体系"
+    },
+    {
+      "institution_id": "provincial_administration",
+      "label": "布政/按察司"
+    },
+    {
+      "institution_id": "rebel_bands",
+      "label": "民变/流寇势力"
+    },
+    {
+      "institution_id": "regional_dispatch",
+      "label": "巡抚总督督师差遣体系"
+    },
+    {
+      "institution_id": "religious_world",
+      "label": "宗教/江湖教门"
+    },
+    {
+      "institution_id": "unappointed_people",
+      "label": "未仕"
+    },
+    {
+      "institution_id": "unknown_institution",
+      "label": "未知机构"
+    }
+  ]
+}

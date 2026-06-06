@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct TiangangRootView: View {
     @StateObject private var store = TiangangStore()
@@ -11,16 +12,18 @@ struct TiangangRootView: View {
                     ContentUnavailableView("天罡数据未载入", systemImage: "exclamationmark.triangle", description: Text(error))
                 } else {
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 18) {
+                        VStack(alignment: .leading, spacing: 0) {
                             HeaderView()
-                            OfficialPicker(store: store)
-                            if let npc = store.selectedNPC {
-                                OfficialSummaryCard(npc: npc)
+                                .padding(.horizontal, 16)
+                                .padding(.top, 12)
+                                .padding(.bottom, 8)
+                            CharacterPager(store: store)
+                                .padding(.bottom, 18)
+                            if store.selectedNPC != nil {
                                 TiangangGroupList(groups: store.groups)
+                                    .padding(.horizontal, 16)
                             }
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 12)
                         .padding(.bottom, 32)
                     }
                 }
@@ -45,15 +48,10 @@ private enum LabPalette {
 private struct HeaderView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Ming iOS Tiangang Lab")
-                .font(.system(.caption, design: .rounded).weight(.semibold))
-                .foregroundStyle(LabPalette.cinnabar)
-                .textCase(.uppercase)
-                .tracking(1.2)
-            Text("竖版天罡数值展示")
-                .font(.system(size: 32, weight: .black, design: .serif))
+            Text("明廷官员册")
+                .font(.system(size: 30, weight: .black, design: .serif))
                 .foregroundStyle(LabPalette.ink)
-            Text("开发测试版直接显示 36 维原值。此页只校验棋子底层数值，不做派生、不判强弱。")
+            Text("内廷、外朝、边镇之人，各有立场与本事。")
                 .font(.system(size: 14, weight: .regular))
                 .foregroundStyle(LabPalette.muted)
                 .fixedSize(horizontal: false, vertical: true)
@@ -61,50 +59,173 @@ private struct HeaderView: View {
     }
 }
 
-private struct OfficialPicker: View {
+private struct CharacterPager: View {
     @ObservedObject var store: TiangangStore
+    @State private var isShowingFullPortrait = false
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
+        ZStack(alignment: .topTrailing) {
+            TabView(selection: $store.selectedName) {
                 ForEach(store.selectedNames, id: \.self) { name in
-                    Button {
-                        store.selectedName = name
-                    } label: {
-                        Text(name)
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(store.selectedName == name ? Color.white : LabPalette.ink)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .background(
-                                Capsule()
-                                    .fill(store.selectedName == name ? LabPalette.indigo : LabPalette.panel)
-                            )
-                            .overlay(
-                                Capsule()
-                                    .stroke(store.selectedName == name ? LabPalette.indigo : LabPalette.line, lineWidth: 1)
-                            )
+                    if let npc = store.catalog?.npcs[name] {
+                        CharacterStage(
+                            npc: npc,
+                            isShowingFullPortrait: isShowingFullPortrait,
+                            showFullPortrait: {
+                                withAnimation(.easeOut(duration: 0.22)) {
+                                    isShowingFullPortrait = true
+                                }
+                            },
+                            restorePortrait: {
+                                withAnimation(.easeOut(duration: 0.22)) {
+                                    isShowingFullPortrait = false
+                                }
+                            }
+                        )
+                            .tag(name)
                     }
-                    .buttonStyle(.plain)
                 }
             }
-            .padding(.vertical, 2)
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(height: isShowingFullPortrait ? 560 : 432)
+            .clipped()
+            .animation(.easeOut(duration: 0.22), value: store.selectedName)
+            .animation(.easeOut(duration: 0.22), value: isShowingFullPortrait)
+            .onChange(of: store.selectedName) { _, _ in
+                isShowingFullPortrait = false
+            }
+
+            Text(pageText)
+                .font(.system(size: 12, weight: .heavy, design: .rounded))
+                .foregroundStyle(LabPalette.muted)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .background(LabPalette.panel.opacity(0.78), in: Capsule())
+                .padding(.top, 8)
+                .padding(.trailing, 16)
+        }
+    }
+
+    private var pageText: String {
+        let index = store.selectedNames.firstIndex(of: store.selectedName).map { $0 + 1 } ?? 1
+        return "\(index)/\(max(store.selectedNames.count, 1))"
+    }
+}
+
+private struct CharacterStage: View {
+    let npc: TiangangNPC
+    let isShowingFullPortrait: Bool
+    let showFullPortrait: () -> Void
+    let restorePortrait: () -> Void
+
+    var body: some View {
+        Group {
+            if isShowingFullPortrait {
+                FullPortraitStage(npc: npc, restorePortrait: restorePortrait)
+            } else {
+                VStack(spacing: 0) {
+                    PortraitFocusWindow(npc: npc, showFullPortrait: showFullPortrait)
+                    CharacterCaption(npc: npc)
+                        .frame(height: 156, alignment: .top)
+                        .clipped()
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct PortraitFocusWindow: View {
+    let npc: TiangangNPC
+    let showFullPortrait: () -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                StageBackground(asset: npc.portraitAsset)
+
+                let portraitWidth = min(proxy.size.width * 1.36, 620)
+                let portraitHeight = portraitWidth * 1.5
+                PortraitImage(asset: npc.portraitAsset, contentMode: .fill)
+                    .frame(width: portraitWidth, height: portraitHeight)
+                    .position(x: proxy.size.width / 2, y: portraitHeight * 0.45)
+                    .shadow(color: Color.black.opacity(0.18), radius: 14, x: 0, y: 10)
+
+                LinearGradient(
+                    colors: [
+                        LabPalette.background.opacity(0),
+                        LabPalette.background.opacity(0.18)
+                    ],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+                .allowsHitTesting(false)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
+            .contentShape(Rectangle())
+            .onTapGesture(count: 2, perform: showFullPortrait)
+        }
+        .frame(height: 276)
+    }
+}
+
+private struct FullPortraitStage: View {
+    let npc: TiangangNPC
+    let restorePortrait: () -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                StageBackground(asset: npc.portraitAsset)
+
+                PortraitImage(asset: npc.portraitAsset, contentMode: .fit)
+                    .frame(width: min(proxy.size.width * 0.95, 410), height: proxy.size.height - 22)
+                    .shadow(color: Color.black.opacity(0.24), radius: 18, x: 0, y: 14)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
+            .contentShape(Rectangle())
+            .onTapGesture(perform: restorePortrait)
         }
     }
 }
 
-private struct OfficialSummaryCard: View {
+private struct StageBackground: View {
+    let asset: String
+
+    var body: some View {
+        LinearGradient(
+            colors: [
+                Color(red: 0.910, green: 0.888, blue: 0.815),
+                LabPalette.background,
+                Color(red: 0.835, green: 0.802, blue: 0.704)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .overlay {
+            PortraitImage(asset: asset, contentMode: .fill)
+                .scaleEffect(1.9)
+                .offset(y: 54)
+                .blur(radius: 22)
+                .opacity(0.10)
+        }
+    }
+}
+
+private struct CharacterCaption: View {
     let npc: TiangangNPC
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(npc.name)
-                        .font(.system(size: 28, weight: .black, design: .serif))
+                        .font(.system(size: 34, weight: .black, design: .serif))
                         .foregroundStyle(LabPalette.ink)
                     Text(npc.archetype)
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 14, weight: .heavy))
                         .foregroundStyle(LabPalette.cinnabar)
                 }
                 Spacer()
@@ -113,42 +234,67 @@ private struct OfficialSummaryCard: View {
                     .foregroundStyle(LabPalette.indigo)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(LabPalette.background, in: Capsule())
+                    .background(LabPalette.background.opacity(0.74), in: Capsule())
             }
 
-            Divider().overlay(LabPalette.line)
-
-            SummaryLine(title: "政治底色", bodyText: npc.politicalSummary)
-            SummaryLine(title: "专业强项", bodyText: npc.professionalSummary)
-            SummaryLine(title: "行为规则", bodyText: npc.behaviorRule)
+            Text(npc.portraitText.isEmpty ? npc.politicalSummary : npc.portraitText)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(LabPalette.ink)
+                .lineSpacing(4)
+                .lineLimit(3)
         }
-        .padding(16)
+        .padding(.horizontal, 18)
+        .padding(.top, 14)
+        .padding(.bottom, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(LabPalette.panel)
+            Rectangle()
+                .fill(LabPalette.panel.opacity(0.82))
+                .background(.ultraThinMaterial)
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(LabPalette.line, lineWidth: 1)
-        )
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(LabPalette.line.opacity(0.65))
+                .frame(height: 1)
+        }
     }
 }
 
-private struct SummaryLine: View {
-    let title: String
-    let bodyText: String
+private struct PortraitImage: View {
+    let asset: String
+    let contentMode: ContentMode
+
+    init(asset: String, contentMode: ContentMode = .fill) {
+        self.asset = asset
+        self.contentMode = contentMode
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.system(size: 12, weight: .heavy))
-                .foregroundStyle(LabPalette.indigo)
-            Text(bodyText)
-                .font(.system(size: 14))
-                .foregroundStyle(LabPalette.ink)
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
+        if let image = UIImage.tiangangPortrait(named: asset) {
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(contentMode: contentMode)
+        } else {
+            ZStack {
+                LabPalette.indigo.opacity(0.88)
+                Image(systemName: "person.fill")
+                    .font(.system(size: 42, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.82))
+            }
         }
+    }
+}
+
+private extension UIImage {
+    static func tiangangPortrait(named asset: String) -> UIImage? {
+        let filename = URL(fileURLWithPath: asset).lastPathComponent
+        let parts = filename.split(separator: ".", maxSplits: 1).map(String.init)
+        let name = parts.first ?? filename
+        let fileExtension = parts.count > 1 ? parts[1] : "png"
+        let url = Bundle.main.url(forResource: name, withExtension: fileExtension)
+            ?? Bundle.main.url(forResource: name, withExtension: fileExtension, subdirectory: "Portraits")
+        guard let url else { return nil }
+        return UIImage(contentsOfFile: url.path)
     }
 }
 
@@ -197,37 +343,121 @@ private struct TiangangGroupSection: View {
     }
 }
 
+private enum TiangangGlyphs {
+    static let map: [String: String] = [
+        "d01": "鼎",
+        "d02": "冕",
+        "d03": "宫",
+        "d04": "眼",
+        "d05": "磨",
+        "d06": "心",
+        "d07": "结",
+        "d08": "碑",
+        "d09": "戟",
+        "d10": "门",
+        "d11": "义",
+        "d12": "刃",
+        "d13": "谏",
+        "d14": "刑",
+        "d15": "炉",
+        "d16": "舆",
+        "d17": "关",
+        "d18": "星",
+        "d19": "钱",
+        "d20": "民",
+        "d21": "简",
+        "d22": "贯",
+        "d23": "律",
+        "d24": "笔",
+        "d25": "旗",
+        "d26": "鼓",
+        "d27": "剑",
+        "d28": "仓",
+        "d29": "影",
+        "d30": "谋",
+        "d31": "狱",
+        "d32": "印",
+        "d33": "舌",
+        "d34": "盘",
+        "d35": "旌",
+        "d36": "器",
+    ]
+
+    static func glyph(for id: String) -> String {
+        map[id] ?? "印"
+    }
+}
+
+private struct TiangangGlyphBadge: View {
+    let glyph: String
+    let isProfessional: Bool
+
+    var body: some View {
+        Text(glyph)
+            .font(.system(size: 14, weight: .black, design: .serif))
+            .foregroundStyle(isProfessional ? LabPalette.indigo : LabPalette.cinnabar)
+            .frame(width: 28, height: 28)
+            .background(
+                Circle()
+                    .fill(isProfessional ? LabPalette.indigo.opacity(0.08) : LabPalette.cinnabar.opacity(0.08))
+            )
+            .overlay(
+                Circle()
+                    .stroke(isProfessional ? LabPalette.indigo.opacity(0.38) : LabPalette.cinnabar.opacity(0.42), lineWidth: 1)
+            )
+    }
+}
+
 private struct TiangangValueRowView: View {
     let row: TiangangValueRow
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(row.dimension.symbol)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(LabPalette.cinnabar)
-                    .frame(width: 28, alignment: .leading)
+            HStack(alignment: .top, spacing: 10) {
+                TiangangGlyphBadge(
+                    glyph: TiangangGlyphs.glyph(for: row.dimension.id),
+                    isProfessional: row.dimension.type == "professional"
+                )
+                .accessibilityHidden(true)
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text(row.dimension.name)
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(LabPalette.ink)
-                    Text(row.currentLabel)
-                        .font(.system(size: 13))
+                    Text(row.currentExplanation)
+                        .font(.system(size: 12))
                         .foregroundStyle(LabPalette.muted)
+                        .lineSpacing(2)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 10)
-                Text("\(row.value) / 5")
+                Text(valueText)
                     .font(.system(size: 14, weight: .black, design: .rounded))
-                    .foregroundStyle(valueColor(row.value))
-                    .monospacedDigit()
+                    .foregroundStyle(valueColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+                    .multilineTextAlignment(.trailing)
             }
-            FiveStepMeter(value: row.value, type: row.dimension.type)
+            if row.dimension.type == "professional" {
+                SkillMeter(value: row.value)
+            } else {
+                StanceScale(value: row.value, labels: row.dimension.labels, selectedLabel: row.currentLabel)
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
     }
 
-    private func valueColor(_ value: Int) -> Color {
+    private var valueText: String {
+        row.dimension.type == "professional" ? "\(row.value) / 5" : row.currentLabel
+    }
+
+    private var valueColor: Color {
+        row.dimension.type == "professional" ? skillColor(row.value) : LabPalette.indigo
+    }
+
+    private func skillColor(_ value: Int) -> Color {
         switch value {
         case 1: return LabPalette.cinnabar
         case 2: return LabPalette.bronze
@@ -238,15 +468,14 @@ private struct TiangangValueRowView: View {
     }
 }
 
-private struct FiveStepMeter: View {
+private struct SkillMeter: View {
     let value: Int
-    let type: String
 
     var body: some View {
         HStack(spacing: 5) {
             ForEach(1...5, id: \.self) { index in
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(index <= value ? fillColor : LabPalette.background)
+                    .fill(index <= value ? LabPalette.indigo : LabPalette.background)
                     .overlay(
                         RoundedRectangle(cornerRadius: 3, style: .continuous)
                             .stroke(LabPalette.line.opacity(0.8), lineWidth: 0.6)
@@ -254,11 +483,56 @@ private struct FiveStepMeter: View {
                     .frame(height: 7)
             }
         }
-        .accessibilityLabel("天罡数值 \(value) / 5")
+        .accessibilityLabel("专业技能 \(value) / 5")
     }
+}
 
-    private var fillColor: Color {
-        type == "professional" ? LabPalette.indigo : LabPalette.cinnabar
+private struct StanceScale: View {
+    let value: Int
+    let labels: [String: String]
+    let selectedLabel: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            GeometryReader { geometry in
+                let markerSize: CGFloat = 14
+                let trackStart = markerSize / 2
+                let trackEnd = geometry.size.width - markerSize / 2
+                let step = (trackEnd - trackStart) / 4
+                let midY = geometry.size.height / 2
+
+                ZStack(alignment: .leading) {
+                    Path { path in
+                        path.move(to: CGPoint(x: trackStart, y: midY))
+                        path.addLine(to: CGPoint(x: trackEnd, y: midY))
+                    }
+                    .stroke(LabPalette.line.opacity(0.72), lineWidth: 1)
+
+                    ForEach(1...5, id: \.self) { index in
+                        let isActive = index == value
+                        Circle()
+                            .fill(isActive ? LabPalette.cinnabar : LabPalette.panel)
+                            .frame(width: isActive ? markerSize : 9, height: isActive ? markerSize : 9)
+                            .overlay(
+                                Circle()
+                                    .stroke(isActive ? LabPalette.cinnabar : LabPalette.line, lineWidth: 1)
+                            )
+                            .position(x: trackStart + CGFloat(index - 1) * step, y: midY)
+                    }
+                }
+            }
+            .frame(height: 18)
+
+            HStack(alignment: .top) {
+                Text(labels["1"] ?? "一端")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text(labels["5"] ?? "另一端")
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(LabPalette.muted)
+        }
+        .accessibilityLabel("价值立场 \(selectedLabel)")
     }
 }
 

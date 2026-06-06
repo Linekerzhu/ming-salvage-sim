@@ -1,0 +1,746 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T21:47:48.404688Z",
+  "records": [
+    {
+      "agency_id": "inner_sili_jian",
+      "name": "司礼监",
+      "agency_group": "十二监",
+      "institution_id": "inner_sili_jian",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "eunuch_ceremonial_secretariat",
+      "duties": [
+        "批红",
+        "掌印",
+        "提督内书堂",
+        "经厂书籍印板",
+        "机密文书流转"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "秉笔随堂太监八九员或四五员",
+        "监官、典簿十余员",
+        "六科廊掌司六员或八员"
+      ],
+      "political_weight": "apex",
+      "is_twenty_four_yamen": true,
+      "sort_order": 1
+    },
+    {
+      "agency_id": "inner_yuyong_jian",
+      "name": "御用监",
+      "agency_group": "十二监",
+      "institution_id": "inner_yuyong_jian",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "imperial_objects",
+      "duties": [
+        "御前围屏摆设",
+        "硬木床桌柜器",
+        "象牙花梨紫檀乌木器物",
+        "武英殿书画扇"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "里外监把总二员",
+        "典簿、掌司、写字、监工若干"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": true,
+      "sort_order": 2
+    },
+    {
+      "agency_id": "inner_neiguan_jian",
+      "name": "内官监",
+      "agency_group": "十二监",
+      "institution_id": "inner_neiguan_jian",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "construction_and_manufacture",
+      "duties": [
+        "营建修造",
+        "铜锡木铁器",
+        "陵寝坟茔",
+        "府第修理",
+        "十作工匠"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "总理、管理、佥书、典簿、掌司、人数、写字、监工"
+      ],
+      "political_weight": "high",
+      "is_twenty_four_yamen": true,
+      "sort_order": 3
+    },
+    {
+      "agency_id": "inner_yuma_jian",
+      "name": "御马监",
+      "agency_group": "十二监",
+      "institution_id": "inner_yuma_jian",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "imperial_stables_military",
+      "duties": [
+        "御马与马房",
+        "草场",
+        "象只",
+        "金鞍作",
+        "四卫营勇士"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "监督、提督、四卫营勇士、小厮"
+      ],
+      "political_weight": "high",
+      "is_twenty_four_yamen": true,
+      "sort_order": 4
+    },
+    {
+      "agency_id": "inner_sishe_jian",
+      "name": "司设监",
+      "agency_group": "十二监",
+      "institution_id": "inner_sishe_jian",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "ritual_furnishing",
+      "duties": [
+        "卤簿仪仗",
+        "围幕褥垫",
+        "帘席帐幔",
+        "雨具大伞"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "总理、佥书等官"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": true,
+      "sort_order": 5
+    },
+    {
+      "agency_id": "inner_shangbao_jian",
+      "name": "尚宝监",
+      "agency_group": "十二监",
+      "institution_id": "inner_shangbao_jian",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "imperial_seals",
+      "duties": [
+        "御用宝玺",
+        "敕符",
+        "将军印信",
+        "用宝请旨"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "佥书等官数十员"
+      ],
+      "political_weight": "high",
+      "is_twenty_four_yamen": true,
+      "sort_order": 6
+    },
+    {
+      "agency_id": "inner_shengong_jian",
+      "name": "神宫监",
+      "agency_group": "十二监",
+      "institution_id": "inner_shengong_jian",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "temple_ritual",
+      "duties": [
+        "九庙祀事",
+        "四孟亲享",
+        "朔望与日食祀礼"
+      ],
+      "staff_structure": [
+        "掌印太监一员"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": true,
+      "sort_order": 7
+    },
+    {
+      "agency_id": "inner_shangshan_jian",
+      "name": "尚膳监",
+      "agency_group": "十二监",
+      "institution_id": "inner_shangshan_jian",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "imperial_kitchen_supply",
+      "duties": [
+        "奉先殿供膳",
+        "宫眷厨料",
+        "御膳供应",
+        "外牛房羊房"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "光禄寺西门提督太监一员",
+        "里总理太监一员",
+        "管理、佥书、掌司数十员"
+      ],
+      "political_weight": "high",
+      "is_twenty_four_yamen": true,
+      "sort_order": 8
+    },
+    {
+      "agency_id": "inner_shangyi_jian",
+      "name": "尚衣监",
+      "agency_group": "十二监",
+      "institution_id": "inner_shangyi_jian",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "imperial_wardrobe",
+      "duties": [
+        "冠冕袍服",
+        "履舄靴袜",
+        "袍房裁缝"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "管理、佥书、掌司等数十员"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": true,
+      "sort_order": 9
+    },
+    {
+      "agency_id": "inner_yinshou_jian",
+      "name": "印绶监",
+      "agency_group": "十二监",
+      "institution_id": "inner_yinshou_jian",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "documents_and_tokens",
+      "duties": [
+        "古今通集库",
+        "铁券诰敕",
+        "贴黄印信",
+        "图书勘合符验"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "佥书、掌司数十员"
+      ],
+      "political_weight": "high",
+      "is_twenty_four_yamen": true,
+      "sort_order": 10
+    },
+    {
+      "agency_id": "inner_zhidian_jian",
+      "name": "直殿监",
+      "agency_group": "十二监",
+      "institution_id": "inner_zhidian_jian",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "palace_maintenance",
+      "duties": [
+        "皇极、建极、中极、武英、文华诸殿洒扫"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "佥书等官数十员"
+      ],
+      "political_weight": "low",
+      "is_twenty_four_yamen": true,
+      "sort_order": 11
+    },
+    {
+      "agency_id": "inner_duzhi_jian",
+      "name": "都知监",
+      "agency_group": "十二监",
+      "institution_id": "inner_duzhi_jian",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "imperial_procession_security",
+      "duties": [
+        "出朝谒庙警跸清道",
+        "执骨朵导驾"
+      ],
+      "staff_structure": [
+        "掌印太监一员"
+      ],
+      "political_weight": "low",
+      "is_twenty_four_yamen": true,
+      "sort_order": 12
+    },
+    {
+      "agency_id": "inner_xixin_si",
+      "name": "惜薪司",
+      "agency_group": "四司",
+      "institution_id": "inner_xixin_si",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "fuel_and_cleaning",
+      "duties": [
+        "柴炭供应",
+        "二十四衙门柴炭",
+        "宫中沟渠淘浚",
+        "正旦彩妆"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "总理数十员",
+        "佥书、掌道、写字、监工数十员"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": true,
+      "sort_order": 13
+    },
+    {
+      "agency_id": "inner_baochao_si",
+      "name": "宝钞司",
+      "agency_group": "四司",
+      "institution_id": "inner_baochao_si",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "paper_manufacture",
+      "duties": [
+        "抄造草纸",
+        "宫中用纸"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "管理佥书十余员",
+        "掌司、监工数十员"
+      ],
+      "political_weight": "low",
+      "is_twenty_four_yamen": true,
+      "sort_order": 14
+    },
+    {
+      "agency_id": "inner_zhonggu_si",
+      "name": "钟鼓司",
+      "agency_group": "四司",
+      "institution_id": "inner_zhonggu_si",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "music_and_performance",
+      "duties": [
+        "出朝钟鼓",
+        "节令作乐",
+        "杂剧故事",
+        "木傀儡戏",
+        "日食月蚀救护打鼓"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "佥书数十员",
+        "司房、学艺官二百余员"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": true,
+      "sort_order": 15
+    },
+    {
+      "agency_id": "inner_huntang_si",
+      "name": "混堂司",
+      "agency_group": "四司",
+      "institution_id": "inner_huntang_si",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "bathhouse",
+      "duties": [
+        "沐浴堂子",
+        "内官沐浴杂务"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "佥书、监工数员"
+      ],
+      "political_weight": "low",
+      "is_twenty_four_yamen": true,
+      "sort_order": 16
+    },
+    {
+      "agency_id": "inner_bingzhang_ju",
+      "name": "兵仗局",
+      "agency_group": "八局",
+      "institution_id": "inner_bingzhang_ju",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "weapons_manufacture",
+      "duties": [
+        "刀枪刺戟",
+        "盔甲弓矢",
+        "神器火药局"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "管理、佥书十余员",
+        "军器库提督一员",
+        "掌关防司一员"
+      ],
+      "political_weight": "high",
+      "is_twenty_four_yamen": true,
+      "sort_order": 17
+    },
+    {
+      "agency_id": "inner_jinmao_ju",
+      "name": "巾帽局",
+      "agency_group": "八局",
+      "institution_id": "inner_jinmao_ju",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "headwear_and_boots",
+      "duties": [
+        "平巾官帽",
+        "靴料分散",
+        "新升秉笔朝衣冠笏带鞋"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "管理、佥书等数十员"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": true,
+      "sort_order": 18
+    },
+    {
+      "agency_id": "inner_zhengong_ju",
+      "name": "针工局",
+      "agency_group": "八局",
+      "institution_id": "inner_zhengong_ju",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "clothing_workshop",
+      "duties": [
+        "内官冬衣",
+        "内官夏衣",
+        "辰戌年铺盖银"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "余与巾帽局同"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": true,
+      "sort_order": 19
+    },
+    {
+      "agency_id": "inner_neizhirang_ju",
+      "name": "内织染局",
+      "agency_group": "八局",
+      "institution_id": "inner_neizhirang_ju",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "textile_dyeing",
+      "duties": [
+        "御用缎匹绢帛",
+        "宫内缎匹",
+        "朝阳门外外厂",
+        "蓝靛厂"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "总理、佥书等数十员"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": true,
+      "sort_order": 20
+    },
+    {
+      "agency_id": "inner_jiucumian_ju",
+      "name": "酒醋面局",
+      "agency_group": "八局",
+      "institution_id": "inner_jiucumian_ju",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "food_staples",
+      "duties": [
+        "内官宫人酒面",
+        "糯米小麦黄豆供纳"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "管理等官与别局相若"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": true,
+      "sort_order": 21
+    },
+    {
+      "agency_id": "inner_siyuan_ju",
+      "name": "司苑局",
+      "agency_group": "八局",
+      "institution_id": "inner_siyuan_ju",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "gardens_and_produce",
+      "duties": [
+        "宫中蔬果",
+        "种艺之事",
+        "黑豆谷草岁供"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "管理等官同前"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": true,
+      "sort_order": 22
+    },
+    {
+      "agency_id": "inner_huanyi_ju",
+      "name": "浣衣局",
+      "agency_group": "八局",
+      "institution_id": "inner_huanyi_ju",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "laundry_and_confinement",
+      "duties": [
+        "洗濯衣物",
+        "年老有罪内官退废居住",
+        "防泄漏大内之事"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "佥书等数十员"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": true,
+      "sort_order": 23
+    },
+    {
+      "agency_id": "inner_yinzuo_ju",
+      "name": "银作局",
+      "agency_group": "八局",
+      "institution_id": "inner_yinzuo_ju",
+      "parent_institution_id": "inner_court_twenty_four_yamen",
+      "institution_family": "silverwork_rewards",
+      "duties": [
+        "金银铎针枝个桃杖",
+        "金银钱豆叶",
+        "钦赏用物",
+        "造花银"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "管理、佥书数员",
+        "写字、监工数十员"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": true,
+      "sort_order": 24
+    },
+    {
+      "agency_id": "eastern_depot",
+      "name": "东厂",
+      "agency_group": "附属机构",
+      "institution_id": "eastern_depot",
+      "parent_institution_id": "directorate_ceremonial",
+      "institution_family": "secret_police",
+      "duties": [
+        "侦缉臣民",
+        "访看兵部塘报",
+        "关防京城皇城诸门",
+        "每月奏报物价"
+      ],
+      "staff_structure": [
+        "提督太监一员",
+        "掌贴刑千百户二员",
+        "掌贴领班司房四十余名",
+        "番役千余名"
+      ],
+      "political_weight": "apex",
+      "is_twenty_four_yamen": false,
+      "sort_order": 25
+    },
+    {
+      "agency_id": "inner_neishutang",
+      "name": "内书堂",
+      "agency_group": "教育机构",
+      "institution_id": "inner_neishutang",
+      "parent_institution_id": "directorate_ceremonial",
+      "institution_family": "eunuch_education",
+      "duties": [
+        "小内官读书",
+        "内令与经书教育",
+        "背书号书判仿",
+        "内廷文化训练"
+      ],
+      "staff_structure": [
+        "提督掌司礼监提督",
+        "词臣老师",
+        "学生二三百人",
+        "学长六员或八员"
+      ],
+      "political_weight": "high",
+      "is_twenty_four_yamen": false,
+      "sort_order": 26
+    },
+    {
+      "agency_id": "inner_yuyaofang",
+      "name": "御药房",
+      "agency_group": "近侍房",
+      "institution_id": "inner_yuyaofang",
+      "parent_institution_id": "directorate_ceremonial",
+      "institution_family": "medicine",
+      "duties": [
+        "上用药饵",
+        "与太医院相表里",
+        "教习医书"
+      ],
+      "staff_structure": [
+        "提督太监正副二员",
+        "近侍二三十员",
+        "习医官人三四十员"
+      ],
+      "political_weight": "high",
+      "is_twenty_four_yamen": false,
+      "sort_order": 27
+    },
+    {
+      "agency_id": "inner_yuchafang",
+      "name": "御茶房",
+      "agency_group": "近侍房",
+      "institution_id": "inner_yuchafang",
+      "parent_institution_id": "directorate_ceremonial",
+      "institution_family": "tea_and_fruit",
+      "duties": [
+        "茶酒瓜果",
+        "出朝经筵讲筵御用茶",
+        "宫中三时进膳"
+      ],
+      "staff_structure": [
+        "秩视御药房",
+        "牌子四员",
+        "常行近侍三四十员"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": false,
+      "sort_order": 28
+    },
+    {
+      "agency_id": "inner_liyi_fang",
+      "name": "礼仪房",
+      "agency_group": "近侍房",
+      "institution_id": "inner_liyi_fang",
+      "parent_institution_id": "directorate_ceremonial",
+      "institution_family": "marriage_and_ritual",
+      "duties": [
+        "选婚吉礼",
+        "选乳媪",
+        "册立册封",
+        "选妃选驸马"
+      ],
+      "staff_structure": [
+        "礼仪房内臣"
+      ],
+      "political_weight": "high",
+      "is_twenty_four_yamen": false,
+      "sort_order": 29
+    },
+    {
+      "agency_id": "inner_neifugongyong_ku",
+      "name": "内府供用库",
+      "agency_group": "库藏",
+      "institution_id": "inner_neifugongyong_ku",
+      "parent_institution_id": "directorate_ceremonial",
+      "institution_family": "food_and_wax_storehouse",
+      "duties": [
+        "二十四衙门内官食米",
+        "御前白蜡黄蜡沉香等香"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "总理、佥书、写字、监工百余员"
+      ],
+      "political_weight": "high",
+      "is_twenty_four_yamen": false,
+      "sort_order": 30
+    },
+    {
+      "agency_id": "inner_siyue_ku",
+      "name": "司钥库",
+      "agency_group": "库藏",
+      "institution_id": "inner_siyue_ku",
+      "parent_institution_id": "directorate_ceremonial",
+      "institution_family": "keys_and_coin_storehouse",
+      "duties": [
+        "宝源局制钱入库",
+        "御前赏赐钱",
+        "乾清宫等门锁钥启闭"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "管理、佥书等官数十员"
+      ],
+      "political_weight": "high",
+      "is_twenty_four_yamen": false,
+      "sort_order": 31
+    },
+    {
+      "agency_id": "inner_neichengyun_ku",
+      "name": "内承运库",
+      "agency_group": "库藏",
+      "institution_id": "inner_neichengyun_ku",
+      "parent_institution_id": "directorate_ceremonial",
+      "institution_family": "treasury_and_jewels",
+      "duties": [
+        "金银纱罗纻丝",
+        "玉带象牙玛瑙珠宝",
+        "金花银折纳"
+      ],
+      "staff_structure": [
+        "掌印太监一员",
+        "近侍、佥书十余员",
+        "掌司等官数十员"
+      ],
+      "political_weight": "apex",
+      "is_twenty_four_yamen": false,
+      "sort_order": 32
+    },
+    {
+      "agency_id": "inner_ten_warehouses",
+      "name": "十库",
+      "agency_group": "库藏",
+      "institution_id": "inner_ten_warehouses",
+      "parent_institution_id": "directorate_ceremonial",
+      "institution_family": "classified_warehouses",
+      "duties": [
+        "甲乙丙丁戊等库",
+        "纸绢生漆铜麻盔甲火药",
+        "赃罚没官衣物"
+      ],
+      "staff_structure": [
+        "各库掌库内臣"
+      ],
+      "political_weight": "high",
+      "is_twenty_four_yamen": false,
+      "sort_order": 33
+    },
+    {
+      "agency_id": "inner_genggu_fang",
+      "name": "更鼓房",
+      "agency_group": "惩戒机构",
+      "institution_id": "inner_genggu_fang",
+      "parent_institution_id": "directorate_ceremonial",
+      "institution_family": "punishment_labor",
+      "duties": [
+        "有罪内臣打更",
+        "元武门楼夜间轮值"
+      ],
+      "staff_structure": [
+        "每夜五名轮流"
+      ],
+      "political_weight": "low",
+      "is_twenty_four_yamen": false,
+      "sort_order": 34
+    },
+    {
+      "agency_id": "inner_anle_tang",
+      "name": "安乐堂",
+      "agency_group": "医疗善后",
+      "institution_id": "inner_anle_tang",
+      "parent_institution_id": "directorate_ceremonial",
+      "institution_family": "sickroom",
+      "duties": [
+        "内官小火者病中医治",
+        "病故善后"
+      ],
+      "staff_structure": [
+        "房主与送终内官"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": false,
+      "sort_order": 35
+    },
+    {
+      "agency_id": "inner_jingle_tang",
+      "name": "净乐堂",
+      "agency_group": "医疗善后",
+      "institution_id": "inner_jingle_tang",
+      "parent_institution_id": "directorate_ceremonial",
+      "institution_family": "cremation",
+      "duties": [
+        "宫女内官死后焚化",
+        "骨灰塔井"
+      ],
+      "staff_structure": [
+        "堂役与送终内官"
+      ],
+      "political_weight": "medium",
+      "is_twenty_four_yamen": false,
+      "sort_order": 36
+    }
+  ]
+}

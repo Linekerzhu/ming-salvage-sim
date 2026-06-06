@@ -1,0 +1,1847 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T22:01:01+00:00",
+  "records": [
+    {
+      "npc_id": "npc_ming_韩爌",
+      "portrait_asset": "minister_韩爌.png",
+      "dna_asset_id": "7f33a1171149222be7668788",
+      "dna_seed": "fd53e0b4e6da59d0",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_张瑞图",
+      "portrait_asset": "minister_张瑞图.png",
+      "dna_asset_id": "b54b7a051aa034b502e1e8ea",
+      "dna_seed": "275f83af846bb417",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_来宗道",
+      "portrait_asset": "minister_来宗道.png",
+      "dna_asset_id": "360f803b761315076c169dd2",
+      "dna_seed": "1b48f9a0dd80216f",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_施凤来",
+      "portrait_asset": "minister_施凤来.png",
+      "dna_asset_id": "e26aefcecd70362bac08c8b0",
+      "dna_seed": "d0b3d48be00a2396",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_黄立极",
+      "portrait_asset": "minister_黄立极.png",
+      "dna_asset_id": "7e18f18c6e758a7a74ce0460",
+      "dna_seed": "337a9fcd0287d703",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_王绍徽",
+      "portrait_asset": "minister_王绍徽.png",
+      "dna_asset_id": "29b9d1820bb38c78f54c35e5",
+      "dna_seed": "8986f45853d4f878",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_毕自严",
+      "portrait_asset": "minister_毕自严.png",
+      "dna_asset_id": "30a19f7d120beb0555aacf29",
+      "dna_seed": "b3b901a6c02c25ca",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_杨嗣昌",
+      "portrait_asset": "minister_杨嗣昌.png",
+      "dna_asset_id": "3656b450ea18fbcf2fab5a0f",
+      "dna_seed": "5d61b9c619d90026",
+      "wardrobe_key": "civil_mid"
+    },
+    {
+      "npc_id": "npc_ming_温体仁",
+      "portrait_asset": "minister_温体仁.png",
+      "dna_asset_id": "cf7ae33e5ae73fe920e45f7a",
+      "dna_seed": "79184bac36e9c145",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_钱龙锡",
+      "portrait_asset": "minister_钱龙锡.png",
+      "dna_asset_id": "6bbce7cd80479a255765655b",
+      "dna_seed": "1d8e0eef1e931a96",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_刘鸿训",
+      "portrait_asset": "minister_刘鸿训.png",
+      "dna_asset_id": "4edf5bd26d698f38ff147b82",
+      "dna_seed": "29f4cd2a8e16c46e",
+      "wardrobe_key": "civil_low"
+    },
+    {
+      "npc_id": "npc_ming_钱谦益",
+      "portrait_asset": "minister_钱谦益.png",
+      "dna_asset_id": "1407cc4a062b3d89f4495ef6",
+      "dna_seed": "b2d8c3f45dcb2f82",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_李标",
+      "portrait_asset": "minister_李标.png",
+      "dna_asset_id": "169eb0f604f22199c2cff4f4",
+      "dna_seed": "cc15642281a7b984",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_孙承宗",
+      "portrait_asset": "minister_孙承宗.png",
+      "dna_asset_id": "0acc7f4dca8384852be0d48c",
+      "dna_seed": "ef6e757324769c76",
+      "wardrobe_key": "military_high"
+    },
+    {
+      "npc_id": "npc_ming_崔呈秀",
+      "portrait_asset": "minister_崔呈秀.png",
+      "dna_asset_id": "d1e9b084ba95484a9be1d54d",
+      "dna_seed": "7d321b1732e33af8",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_王在晋",
+      "portrait_asset": "minister_王在晋.png",
+      "dna_asset_id": "ec75990437d5637353a149e9",
+      "dna_seed": "e1f17d16f32b2dc4",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_徐光启",
+      "portrait_asset": "minister_徐光启.png",
+      "dna_asset_id": "dcae6411d3751e5c9094e64d",
+      "dna_seed": "bb70ffdb64452315",
+      "wardrobe_key": "civil_mid"
+    },
+    {
+      "npc_id": "npc_ming_袁可立",
+      "portrait_asset": "minister_袁可立.png",
+      "dna_asset_id": "f86562d8d849d68a45b016c1",
+      "dna_seed": "e435989511a8fe14",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_周延儒",
+      "portrait_asset": "minister_周延儒.png",
+      "dna_asset_id": "545cfad0c929fe72cc032e90",
+      "dna_seed": "50194a5913a95279",
+      "wardrobe_key": "civil_mid"
+    },
+    {
+      "npc_id": "npc_ming_倪元璐",
+      "portrait_asset": "minister_倪元璐.png",
+      "dna_asset_id": "9a3bf3524396a933bf3432ca",
+      "dna_seed": "d74c963de7714a22",
+      "wardrobe_key": "civil_low"
+    },
+    {
+      "npc_id": "npc_ming_黄道周",
+      "portrait_asset": "minister_黄道周.png",
+      "dna_asset_id": "a47ba701ddc02f580ff308e4",
+      "dna_seed": "bb7321ee366583b5",
+      "wardrobe_key": "civil_low"
+    },
+    {
+      "npc_id": "npc_ming_曹化淳",
+      "portrait_asset": "minister_曹化淳.png",
+      "dna_asset_id": "381c413e98bda67664dd8ac5",
+      "dna_seed": "f5cce64f8edbbbe0",
+      "wardrobe_key": "eunuch_servant"
+    },
+    {
+      "npc_id": "npc_ming_王体乾",
+      "portrait_asset": "minister_王体乾.png",
+      "dna_asset_id": "e100392798dc1e6cd060360a",
+      "dna_seed": "c27932c9bfbe3fc9",
+      "wardrobe_key": "eunuch_high"
+    },
+    {
+      "npc_id": "npc_ming_王承恩",
+      "portrait_asset": "minister_王承恩.png",
+      "dna_asset_id": "47654bfed2179d283070c36d",
+      "dna_seed": "d6e471644470f512",
+      "wardrobe_key": "eunuch_servant"
+    },
+    {
+      "npc_id": "npc_ming_魏忠贤",
+      "portrait_asset": "minister_魏忠贤.png",
+      "dna_asset_id": "d554b9ed12005f0e9acf70fc",
+      "dna_seed": "05d61051dc707cfc",
+      "wardrobe_key": "eunuch_mid"
+    },
+    {
+      "npc_id": "npc_ming_田尔耕",
+      "portrait_asset": "minister_田尔耕.png",
+      "dna_asset_id": "ce8f5a579072efb8d492a788",
+      "dna_seed": "c0a12a21d32d76de",
+      "wardrobe_key": "jinyiwei_high"
+    },
+    {
+      "npc_id": "npc_ming_许显纯",
+      "portrait_asset": "minister_许显纯.png",
+      "dna_asset_id": "73859b1d2def658488a66d39",
+      "dna_seed": "9c7223b36c556c8b",
+      "wardrobe_key": "jinyiwei_mid"
+    },
+    {
+      "npc_id": "npc_ming_李若琏",
+      "portrait_asset": "minister_李若琏.png",
+      "dna_asset_id": "1fc3104b331c813f05515fff",
+      "dna_seed": "6a4768dc530ad1a3",
+      "wardrobe_key": "jinyiwei_mid"
+    },
+    {
+      "npc_id": "npc_ming_客氏",
+      "portrait_asset": "consort_客氏.png",
+      "dna_asset_id": "e304416d6ebc3fbe27d4bf1f",
+      "dna_seed": "f378706d7effdb33",
+      "wardrobe_key": "consort_noble"
+    },
+    {
+      "npc_id": "npc_ming_袁崇焕",
+      "portrait_asset": "minister_袁崇焕.png",
+      "dna_asset_id": "ac671e4f230fea5b9178562e",
+      "dna_seed": "d550c9fa596127a3",
+      "wardrobe_key": "military_mid"
+    },
+    {
+      "npc_id": "npc_ming_曹文诏",
+      "portrait_asset": "minister_曹文诏.png",
+      "dna_asset_id": "12f3db47a1cc350515af40c9",
+      "dna_seed": "d5f47fe50cc5ae78",
+      "wardrobe_key": "military_high"
+    },
+    {
+      "npc_id": "npc_ming_祖大寿",
+      "portrait_asset": "minister_祖大寿.png",
+      "dna_asset_id": "69104dbc93826c76ab9fde4a",
+      "dna_seed": "ade0e65e767a32af",
+      "wardrobe_key": "military_high"
+    },
+    {
+      "npc_id": "npc_ming_满桂",
+      "portrait_asset": "minister_满桂.png",
+      "dna_asset_id": "36b930cb11e4c8d9e3790d7b",
+      "dna_seed": "09063c704dcb66fb",
+      "wardrobe_key": "military_high"
+    },
+    {
+      "npc_id": "npc_ming_赵率教",
+      "portrait_asset": "minister_赵率教.png",
+      "dna_asset_id": "5d6f4e4d11d1a32bfcc1b9c9",
+      "dna_seed": "587d05cf30e757e7",
+      "wardrobe_key": "military_high"
+    },
+    {
+      "npc_id": "npc_ming_王之臣",
+      "portrait_asset": "minister_王之臣.png",
+      "dna_asset_id": "087718c3cff9d8a1170cd4ed",
+      "dna_seed": "990538fd6eb8076a",
+      "wardrobe_key": "military_high"
+    },
+    {
+      "npc_id": "npc_ming_毛文龙",
+      "portrait_asset": "minister_毛文龙.png",
+      "dna_asset_id": "c6cadfe57b9b7109ce47e670",
+      "dna_seed": "59e9d4b291e50942",
+      "wardrobe_key": "military_high"
+    },
+    {
+      "npc_id": "npc_ming_阎鸣泰",
+      "portrait_asset": "minister_阎鸣泰.png",
+      "dna_asset_id": "1eea8dbe89e14ec6ebe43f4c",
+      "dna_seed": "992c40ef1d593f4d",
+      "wardrobe_key": "military_high"
+    },
+    {
+      "npc_id": "npc_ming_洪承畴",
+      "portrait_asset": "minister_洪承畴.png",
+      "dna_asset_id": "6ad561b2e7971ad1b186bbbc",
+      "dna_seed": "a5ef958c52a4b8ba",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_孙传庭",
+      "portrait_asset": "minister_孙传庭.png",
+      "dna_asset_id": "73034588af6b7371f4988b5d",
+      "dna_seed": "5d2bb4a05f778448",
+      "wardrobe_key": "civil_low"
+    },
+    {
+      "npc_id": "npc_ming_卢象升",
+      "portrait_asset": "minister_卢象升.png",
+      "dna_asset_id": "104cd281c0340636a724f7e8",
+      "dna_seed": "0857484b9cfd5d03",
+      "wardrobe_key": "civil_mid"
+    },
+    {
+      "npc_id": "npc_ming_史可法",
+      "portrait_asset": "minister_史可法.png",
+      "dna_asset_id": "8eb283983fadccd662c46ff0",
+      "dna_seed": "f2de2046216b9a54",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_ming_周皇后",
+      "portrait_asset": "consort_周皇后.png",
+      "dna_asset_id": "b7ba951ca9a425a40c73b8c1",
+      "dna_seed": "2ccf56d7c2b86af0",
+      "wardrobe_key": "consort_empress"
+    },
+    {
+      "npc_id": "npc_ming_周贵人",
+      "portrait_asset": "consort_周贵人.png",
+      "dna_asset_id": "71cd07bb33176fa6d3d2534a",
+      "dna_seed": "ddc9215f9f84d35b",
+      "wardrobe_key": "consort_noble"
+    },
+    {
+      "npc_id": "npc_ming_田贵妃",
+      "portrait_asset": "consort_田贵妃.png",
+      "dna_asset_id": "63f650dcadd1e37b413e5613",
+      "dna_seed": "f06bbef54671411b",
+      "wardrobe_key": "consort_noble"
+    },
+    {
+      "npc_id": "npc_ming_袁贵妃",
+      "portrait_asset": "consort_袁贵妃.png",
+      "dna_asset_id": "ac206fd3fc27e6edc60ec6c8",
+      "dna_seed": "4722ad3f9e1bb7d7",
+      "wardrobe_key": "consort_noble"
+    },
+    {
+      "npc_id": "npc_ming_慧妃",
+      "portrait_asset": "consort_慧妃.png",
+      "dna_asset_id": "992dc060c3ab7e4aed47311a",
+      "dna_seed": "b4541f834df50fe4",
+      "wardrobe_key": "consort_noble"
+    },
+    {
+      "npc_id": "npc_houjin_皇太极",
+      "portrait_asset": "minister_皇太极.png",
+      "dna_asset_id": "c742f58abd5d18e7ef733d3a",
+      "dna_seed": "b64cd552674581c6",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_houjin_代善",
+      "portrait_asset": "minister_代善.png",
+      "dna_asset_id": "7452cd27391650f23889ade3",
+      "dna_seed": "4da25d727d175be5",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_houjin_莽古尔泰",
+      "portrait_asset": "minister_莽古尔泰.png",
+      "dna_asset_id": "ef32129a4e3c9087d9d4b4d2",
+      "dna_seed": "eeeae5fda866d59f",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_houjin_阿敏",
+      "portrait_asset": "minister_阿敏.png",
+      "dna_asset_id": "6a5be82a3585af87200cc4ec",
+      "dna_seed": "afef0548457b1c42",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_houjin_范文程",
+      "portrait_asset": "minister_范文程.png",
+      "dna_asset_id": "928defa398dd2146cf7a49a9",
+      "dna_seed": "6320759a70a3c465",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_houjin_佟养性",
+      "portrait_asset": "minister_佟养性.png",
+      "dna_asset_id": "4899dfd7e8d4b629edf3fc7e",
+      "dna_seed": "431b61c0a68fda3d",
+      "wardrobe_key": "military_common"
+    },
+    {
+      "npc_id": "npc_mongol_林丹汗",
+      "portrait_asset": "minister_林丹汗.png",
+      "dna_asset_id": "da081cfd50a0aa1498e24b4c",
+      "dna_seed": "d28f6e6d96906e6d",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_korea_仁祖",
+      "portrait_asset": "minister_仁祖.png",
+      "dna_asset_id": "4b8717efb4ddf20a6bdd2ad5",
+      "dna_seed": "028b9f321ff5e1a4",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_korea_张维",
+      "portrait_asset": "minister_张维.png",
+      "dna_asset_id": "53f48fe6912e819bc8fc3a31",
+      "dna_seed": "d44bab26ede7fa24",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_bandits_王嘉胤",
+      "portrait_asset": "minister_王嘉胤.png",
+      "dna_asset_id": "2014786b4e8c5bc511759747",
+      "dna_seed": "a25cb2b5b4f92847",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_bandits_李自成",
+      "portrait_asset": "minister_李自成.png",
+      "dna_asset_id": "e8041d07d912671274585ef0",
+      "dna_seed": "3ee06f549bb5ea1a",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_bandits_张献忠",
+      "portrait_asset": "minister_张献忠.png",
+      "dna_asset_id": "7799cf3d64c560385473071b",
+      "dna_seed": "d1533523798fe0c9",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_ming_武当张真人",
+      "portrait_asset": "minister_武当张真人.png",
+      "dna_asset_id": "593b47c55814c65c49ad74e4",
+      "dna_seed": "1c346dd2b402be46",
+      "wardrobe_key": "society_custom"
+    },
+    {
+      "npc_id": "npc_ming_铁臂周侗",
+      "portrait_asset": "minister_铁臂周侗.png",
+      "dna_asset_id": "b0b7815caa1ac4863e29b511",
+      "dna_seed": "c99cf2ace77954c4",
+      "wardrobe_key": "society_custom"
+    },
+    {
+      "npc_id": "npc_ming_青莲剑客",
+      "portrait_asset": "minister_青莲剑客.png",
+      "dna_asset_id": "dbd7cfe8b4a2635b85cf793f",
+      "dna_seed": "0408809cb05819b3",
+      "wardrobe_key": "society_custom"
+    },
+    {
+      "npc_id": "npc_ming_玄机道长",
+      "portrait_asset": "minister_玄机道长.png",
+      "dna_asset_id": "71d941a56224f99ac07143d3",
+      "dna_seed": "f250d46da6176ef6",
+      "wardrobe_key": "society_custom"
+    },
+    {
+      "npc_id": "npc_ming_毒手药王",
+      "portrait_asset": "minister_毒手药王.png",
+      "dna_asset_id": "b0fd5d346a1406f807bb2a31",
+      "dna_seed": "2e1f0ab1c1614238",
+      "wardrobe_key": "society_custom"
+    },
+    {
+      "npc_id": "npc_ming_红衣女侠",
+      "portrait_asset": "minister_红衣女侠.png",
+      "dna_asset_id": "10408db703fd474ef21b85b3",
+      "dna_seed": "2851c79117a25ab3",
+      "wardrobe_key": "society_custom"
+    },
+    {
+      "npc_id": "npc_ming_盲眼琴师",
+      "portrait_asset": "minister_盲眼琴师.png",
+      "dna_asset_id": "adf72a9aa78b40da25bd65f4",
+      "dna_seed": "1803fde38993d7e5",
+      "wardrobe_key": "civil_low"
+    },
+    {
+      "npc_id": "npc_ming_鬼面商人",
+      "portrait_asset": "minister_鬼面商人.png",
+      "dna_asset_id": "25638ead6b8f1015f6d85a57",
+      "dna_seed": "3d37c225919f6a30",
+      "wardrobe_key": "society_custom"
+    },
+    {
+      "npc_id": "npc_ming_隐剑山庄主",
+      "portrait_asset": "minister_隐剑山庄主.png",
+      "dna_asset_id": "d71ce22593cd67613ac249a8",
+      "dna_seed": "959f5ac357939d60",
+      "wardrobe_key": "society_custom"
+    },
+    {
+      "npc_id": "npc_ming_白眉老僧",
+      "portrait_asset": "minister_白眉老僧.png",
+      "dna_asset_id": "e00f64a648d96ead53d01799",
+      "dna_seed": "dfecb1e707533b13",
+      "wardrobe_key": "society_custom"
+    },
+    {
+      "npc_id": "npc_ming_曹变蛟",
+      "portrait_asset": "minister_曹变蛟.png",
+      "dna_asset_id": "01316b4c0bba9b43d45de116",
+      "dna_seed": "2acbb1684a1eac21",
+      "wardrobe_key": "military_high"
+    },
+    {
+      "npc_id": "npc_ming_左良玉",
+      "portrait_asset": "minister_左良玉.png",
+      "dna_asset_id": "174c4c1177edf73612b4a2c6",
+      "dna_seed": "994669f74ecf0833",
+      "wardrobe_key": "military_high"
+    },
+    {
+      "npc_id": "npc_ming_黄得功",
+      "portrait_asset": "minister_黄得功.png",
+      "dna_asset_id": "88b93658731fc2ae5ad29a0f",
+      "dna_seed": "e999d7429439c663",
+      "wardrobe_key": "military_high"
+    },
+    {
+      "npc_id": "npc_ming_刘泽清",
+      "portrait_asset": "minister_刘泽清.png",
+      "dna_asset_id": "36e18026a79d5b1bf8d799ce",
+      "dna_seed": "11559cfdb70ec4ba",
+      "wardrobe_key": "military_high"
+    },
+    {
+      "npc_id": "npc_ming_高杰",
+      "portrait_asset": "minister_高杰.png",
+      "dna_asset_id": "f54c58a63a56cdd15a890953",
+      "dna_seed": "ddd2ef2566d247a4",
+      "wardrobe_key": "military_high"
+    },
+    {
+      "npc_id": "npc_ming_周遇吉",
+      "portrait_asset": "minister_周遇吉.png",
+      "dna_asset_id": "8ad4c138eda39bfdcb5a91cf",
+      "dna_seed": "1bf210ac9795c126",
+      "wardrobe_key": "military_high"
+    },
+    {
+      "npc_id": "npc_ming_熊文灿",
+      "portrait_asset": "minister_熊文灿.png",
+      "dna_asset_id": "006d0068a270a9a91664c36e",
+      "dna_seed": "e5c6723650a7dcbd",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_郑芝龙",
+      "portrait_asset": "minister_郑芝龙.png",
+      "dna_asset_id": "13d935887786edd63b69b3dc",
+      "dna_seed": "1b699892a1741a37",
+      "wardrobe_key": "military_high"
+    },
+    {
+      "npc_id": "npc_ming_郑成功",
+      "portrait_asset": "minister_郑成功.png",
+      "dna_asset_id": "2b469aed04a92ca34d438cb6",
+      "dna_seed": "006e26f556837524",
+      "wardrobe_key": "military_common"
+    },
+    {
+      "npc_id": "npc_ming_刘宗周",
+      "portrait_asset": "minister_刘宗周.png",
+      "dna_asset_id": "3430c936a8fc5203108973a0",
+      "dna_seed": "64f7ddd0433736cb",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_范景文",
+      "portrait_asset": "minister_范景文.png",
+      "dna_asset_id": "55da506870128af1b990a587",
+      "dna_seed": "72ce8e917a3bec57",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_李邦华",
+      "portrait_asset": "minister_李邦华.png",
+      "dna_asset_id": "ec5d4f573d47e2c68b7d99f8",
+      "dna_seed": "0a30dd4f827ed930",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_马士英",
+      "portrait_asset": "minister_马士英.png",
+      "dna_asset_id": "a085bd91ac50fd8cdb4f79f7",
+      "dna_seed": "0805dc777f6cc7d7",
+      "wardrobe_key": "civil_low"
+    },
+    {
+      "npc_id": "npc_ming_阮大铖",
+      "portrait_asset": "minister_阮大铖.png",
+      "dna_asset_id": "dd149cb413806f3c2edf470f",
+      "dna_seed": "eb2e24bffd9c8e3d",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_ming_姜曰广",
+      "portrait_asset": "minister_姜曰广.png",
+      "dna_asset_id": "50d8bb08eb123b30af7e9e7e",
+      "dna_seed": "96fcb41e6eca1909",
+      "wardrobe_key": "civil_high"
+    },
+    {
+      "npc_id": "npc_ming_陈子龙",
+      "portrait_asset": "minister_陈子龙.png",
+      "dna_asset_id": "688005c3d3191cb6da4e814e",
+      "dna_seed": "249d6c3dc8610969",
+      "wardrobe_key": "civil_low"
+    },
+    {
+      "npc_id": "npc_ming_夏允彝",
+      "portrait_asset": "minister_夏允彝.png",
+      "dna_asset_id": "f85d51b29c2d7f7c8efa1082",
+      "dna_seed": "d88082223a2a156b",
+      "wardrobe_key": "civil_mid"
+    },
+    {
+      "npc_id": "npc_ming_高起潜",
+      "portrait_asset": "minister_高起潜.png",
+      "dna_asset_id": "4dad4da2de8a3d5d89e4dda1",
+      "dna_seed": "8b668845edebe236",
+      "wardrobe_key": "military_mid"
+    },
+    {
+      "npc_id": "npc_ming_杜勋",
+      "portrait_asset": "minister_杜勋.png",
+      "dna_asset_id": "4af9c5691ddd2611af57374a",
+      "dna_seed": "a4635ad5fc1a4958",
+      "wardrobe_key": "military_mid"
+    },
+    {
+      "npc_id": "npc_houjin_多尔衮",
+      "portrait_asset": "minister_多尔衮.png",
+      "dna_asset_id": "4a72163cad5a76f832f4ca46",
+      "dna_seed": "9055f2fba03ca4bb",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_houjin_多铎",
+      "portrait_asset": "minister_多铎.png",
+      "dna_asset_id": "0d6944df801ab84b18966ee6",
+      "dna_seed": "98b0ecfa9975b687",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_houjin_阿济格",
+      "portrait_asset": "minister_阿济格.png",
+      "dna_asset_id": "3947547fae4ab79223078478",
+      "dna_seed": "aa4e96f68fadcc81",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_houjin_济尔哈朗",
+      "portrait_asset": "minister_济尔哈朗.png",
+      "dna_asset_id": "fea36d3e8fe01918823a5d8d",
+      "dna_seed": "2bfe8247f761994b",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_houjin_索尼",
+      "portrait_asset": "minister_索尼.png",
+      "dna_asset_id": "e9eb1f544a9173dfe2dee052",
+      "dna_seed": "79143b318c405285",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_houjin_宁完我",
+      "portrait_asset": "minister_宁完我.png",
+      "dna_asset_id": "51a02054c9a1f0927aad9f0f",
+      "dna_seed": "e5f39a07464cbef5",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_houjin_鳌拜",
+      "portrait_asset": "minister_鳌拜.png",
+      "dna_asset_id": "eefbdcb0d003af76a9f64261",
+      "dna_seed": "24afe2ca8952de8a",
+      "wardrobe_key": "military_common"
+    },
+    {
+      "npc_id": "npc_houjin_图赖",
+      "portrait_asset": "minister_图赖.png",
+      "dna_asset_id": "1f4b93abad8f37265e018fbb",
+      "dna_seed": "682d53b14cfaef2b",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_houjin_孔有德",
+      "portrait_asset": "minister_孔有德.png",
+      "dna_asset_id": "b1bfb1f07820ccbd84e7b21d",
+      "dna_seed": "77ff185585e8f33c",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_houjin_耿仲明",
+      "portrait_asset": "minister_耿仲明.png",
+      "dna_asset_id": "f23ad9e3b114eed46b9dab22",
+      "dna_seed": "6fe4261cd9afa412",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_houjin_尚可喜",
+      "portrait_asset": "minister_尚可喜.png",
+      "dna_asset_id": "455db0f28e1e5c5dab073443",
+      "dna_seed": "e36d65ab3e85614e",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_mongol_额哲",
+      "portrait_asset": "minister_额哲.png",
+      "dna_asset_id": "f87cf0fe13bd8f3f350de19f",
+      "dna_seed": "d958959b852799eb",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_mongol_土谢图汗",
+      "portrait_asset": "minister_土谢图汗.png",
+      "dna_asset_id": "5d825722828747833c6bda40",
+      "dna_seed": "b36f4db83aeb5b3e",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_mongol_顺义王",
+      "portrait_asset": "minister_顺义王.png",
+      "dna_asset_id": "636fea00ae6511d7ab8787e6",
+      "dna_seed": "843c783c29be3f43",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_bandits_高迎祥",
+      "portrait_asset": "minister_高迎祥.png",
+      "dna_asset_id": "fa8449f25ebe557fe80dbaf9",
+      "dna_seed": "219806be8043c642",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_bandits_罗汝才",
+      "portrait_asset": "minister_罗汝才.png",
+      "dna_asset_id": "13d30d2a0bd28c72cf48af2f",
+      "dna_seed": "89114b518af7c80b",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_bandits_革左五营",
+      "portrait_asset": "minister_革左五营.png",
+      "dna_asset_id": "744cf18c743c4eaa2a3d5ce8",
+      "dna_seed": "98ea2b89718997b1",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_bandits_刘宗敏",
+      "portrait_asset": "minister_刘宗敏.png",
+      "dna_asset_id": "f623cb9901032f1c412a4470",
+      "dna_seed": "bd9ffacc344d9694",
+      "wardrobe_key": "military_common"
+    },
+    {
+      "npc_id": "npc_bandits_宋献策",
+      "portrait_asset": "minister_宋献策.png",
+      "dna_asset_id": "524b87a23f6733d942a1c921",
+      "dna_seed": "70dc1ae5c42e7e86",
+      "wardrobe_key": "military_common"
+    },
+    {
+      "npc_id": "npc_bandits_牛金星",
+      "portrait_asset": "minister_牛金星.png",
+      "dna_asset_id": "d014a747b636c4f31c54b96f",
+      "dna_seed": "0c26ed9991db37e0",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_bandits_李岩",
+      "portrait_asset": "minister_李岩.png",
+      "dna_asset_id": "db3a84b2800b293f6584c053",
+      "dna_seed": "b8a7703219d4d88a",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_bandits_红娘子",
+      "portrait_asset": "minister_红娘子.png",
+      "dna_asset_id": "0cef24e8287dadf14464ee50",
+      "dna_seed": "951c4820258145e8",
+      "wardrobe_key": "military_common"
+    },
+    {
+      "npc_id": "npc_ming_白莲教主",
+      "portrait_asset": "minister_白莲教主.png",
+      "dna_asset_id": "d35475255260df63e49c11ea",
+      "dna_seed": "d0c562d09eee872d",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_ming_闻香教主",
+      "portrait_asset": "minister_闻香教主.png",
+      "dna_asset_id": "90066940e2dc02973fe9c9cf",
+      "dna_seed": "5c1b162c9cd5e12c",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_ming_老渔夫",
+      "portrait_asset": "minister_老渔夫.png",
+      "dna_asset_id": "3bdb12cae10aa34d2d025049",
+      "dna_seed": "716beb41ec26fb1f",
+      "wardrobe_key": "society_custom"
+    },
+    {
+      "npc_id": "npc_ming_塞外刀客",
+      "portrait_asset": "minister_塞外刀客.png",
+      "dna_asset_id": "d7a1197abc73c2dde6f560b1",
+      "dna_seed": "f8019c83a1fd6013",
+      "wardrobe_key": "society_custom"
+    },
+    {
+      "npc_id": "npc_ming_苗疆蛊师",
+      "portrait_asset": "minister_苗疆蛊师.png",
+      "dna_asset_id": "13cb3ebba8d5b67ffa35293c",
+      "dna_seed": "29c0b077a3bc3997",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_ming_倭寇首领",
+      "portrait_asset": "minister_倭寇首领.png",
+      "dna_asset_id": "8f9d1cb57a10a6260b56a4d3",
+      "dna_seed": "14fd718d79363f57",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_ming_西洋传教士",
+      "portrait_asset": "minister_西洋传教士.png",
+      "dna_asset_id": "68da0aec407ecc4e62ba6912",
+      "dna_seed": "87dd56a48124c60f",
+      "wardrobe_key": "society_custom"
+    },
+    {
+      "npc_id": "npc_ming_南洋华侨",
+      "portrait_asset": "minister_南洋华侨.png",
+      "dna_asset_id": "7fd46bfab331099774e75ff2",
+      "dna_seed": "b4f4304147873ddc",
+      "wardrobe_key": "auto_custom"
+    },
+    {
+      "npc_id": "npc_ming_杨景辰",
+      "portrait_asset": "minister_杨景辰.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_周道登",
+      "portrait_asset": "minister_周道登.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_成基命",
+      "portrait_asset": "minister_成基命.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_王洽",
+      "portrait_asset": "minister_王洽.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_何如宠",
+      "portrait_asset": "minister_何如宠.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_钱象坤",
+      "portrait_asset": "minister_钱象坤.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_王元雅",
+      "portrait_asset": "minister_王元雅.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_何天球",
+      "portrait_asset": "minister_何天球.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_马世龙",
+      "portrait_asset": "minister_马世龙.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_孙祖寿",
+      "portrait_asset": "minister_孙祖寿.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_毕自肃",
+      "portrait_asset": "minister_毕自肃.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_刘若宰",
+      "portrait_asset": "minister_刘若宰.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_卓铭",
+      "portrait_asset": "minister_卓铭.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_侯良柱",
+      "portrait_asset": "minister_侯良柱.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_刘可训",
+      "portrait_asset": "minister_刘可训.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_郑国昌",
+      "portrait_asset": "minister_郑国昌.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_张凤奇",
+      "portrait_asset": "minister_张凤奇.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_刘策",
+      "portrait_asset": "minister_刘策.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_刘之纶",
+      "portrait_asset": "minister_刘之纶.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_吴自勉",
+      "portrait_asset": "minister_吴自勉.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_吴宗达",
+      "portrait_asset": "minister_吴宗达.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_杜文焕",
+      "portrait_asset": "minister_杜文焕.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_王国梁",
+      "portrait_asset": "minister_王国梁.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_杨鹤",
+      "portrait_asset": "minister_杨鹤.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_张应昌",
+      "portrait_asset": "minister_张应昌.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_陈于泰",
+      "portrait_asset": "minister_陈于泰.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_吴甡",
+      "portrait_asset": "minister_吴甡.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_张允登",
+      "portrait_asset": "minister_张允登.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_刘若愚",
+      "portrait_asset": "minister_刘若愚.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_孙暹",
+      "portrait_asset": "minister_孙暹.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_刘吉祥",
+      "portrait_asset": "minister_刘吉祥.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_李永贞",
+      "portrait_asset": "minister_李永贞.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_梁栋",
+      "portrait_asset": "minister_梁栋.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_石元雅",
+      "portrait_asset": "minister_石元雅.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_涂文辅",
+      "portrait_asset": "minister_涂文辅.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_陈良谟",
+      "portrait_asset": "minister_陈良谟.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_bandits_李九成",
+      "portrait_asset": "minister_李九成.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_张可大",
+      "portrait_asset": "minister_张可大.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_孙元化",
+      "portrait_asset": "minister_孙元化.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_宋光兰",
+      "portrait_asset": "minister_宋光兰.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_徐从治",
+      "portrait_asset": "minister_徐从治.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_刘宇烈",
+      "portrait_asset": "minister_刘宇烈.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_余大成",
+      "portrait_asset": "minister_余大成.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_杨嘉谟",
+      "portrait_asset": "minister_杨嘉谟.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_朱大典",
+      "portrait_asset": "minister_朱大典.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_郑以伟",
+      "portrait_asset": "minister_郑以伟.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_谢琏",
+      "portrait_asset": "minister_谢琏.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_朱万年",
+      "portrait_asset": "minister_朱万年.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_杨麒",
+      "portrait_asset": "minister_杨麒.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_bandits_杨正芳",
+      "portrait_asset": "minister_杨正芳.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_祖宽",
+      "portrait_asset": "minister_祖宽.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_bandits_刘香",
+      "portrait_asset": "minister_刘香.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_王志道",
+      "portrait_asset": "minister_王志道.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_陈洪范",
+      "portrait_asset": "minister_陈洪范.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_邓玘",
+      "portrait_asset": "minister_邓玘.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_陈大金",
+      "portrait_asset": "minister_陈大金.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_李卑",
+      "portrait_asset": "minister_李卑.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_黄龙",
+      "portrait_asset": "minister_黄龙.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_钱士升",
+      "portrait_asset": "minister_钱士升.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_王应熊",
+      "portrait_asset": "minister_王应熊.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_何吾驺",
+      "portrait_asset": "minister_何吾驺.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_许鼎臣",
+      "portrait_asset": "minister_许鼎臣.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_张彝宪",
+      "portrait_asset": "minister_张彝宪.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_刘若金",
+      "portrait_asset": "minister_刘若金.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_陈奇瑜",
+      "portrait_asset": "minister_陈奇瑜.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_刘理顺",
+      "portrait_asset": "minister_刘理顺.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_杨世恩",
+      "portrait_asset": "minister_杨世恩.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_贺人龙",
+      "portrait_asset": "minister_贺人龙.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_丁魁楚",
+      "portrait_asset": "minister_丁魁楚.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_尤世威",
+      "portrait_asset": "minister_尤世威.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_张宗衡",
+      "portrait_asset": "minister_张宗衡.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_陆梦龙",
+      "portrait_asset": "minister_陆梦龙.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_朱国相",
+      "portrait_asset": "minister_朱国相.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_张国维",
+      "portrait_asset": "minister_张国维.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_杨一鹏",
+      "portrait_asset": "minister_杨一鹏.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_艾万年",
+      "portrait_asset": "minister_艾万年.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_柳国镇",
+      "portrait_asset": "minister_柳国镇.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_文震孟",
+      "portrait_asset": "minister_文震孟.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_张至发",
+      "portrait_asset": "minister_张至发.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_张全昌",
+      "portrait_asset": "minister_张全昌.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_侯恂",
+      "portrait_asset": "minister_侯恂.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_林釬",
+      "portrait_asset": "minister_林釬.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_汤九州",
+      "portrait_asset": "minister_汤九州.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_王楫",
+      "portrait_asset": "minister_王楫.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_丁启睿",
+      "portrait_asset": "minister_丁启睿.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_陈起新",
+      "portrait_asset": "minister_陈起新.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_祖大乐",
+      "portrait_asset": "minister_祖大乐.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_俞冲霄",
+      "portrait_asset": "minister_俞冲霄.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_孔贞运",
+      "portrait_asset": "minister_孔贞运.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_贺逢圣",
+      "portrait_asset": "minister_贺逢圣.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_黄士俊",
+      "portrait_asset": "minister_黄士俊.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_解进忠",
+      "portrait_asset": "minister_解进忠.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_李国辅",
+      "portrait_asset": "minister_李国辅.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_朱纯臣",
+      "portrait_asset": "minister_朱纯臣.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_王肇坤",
+      "portrait_asset": "minister_王肇坤.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_张凤翼",
+      "portrait_asset": "minister_张凤翼.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_朱聿键",
+      "portrait_asset": "minister_朱聿键.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_刘同升",
+      "portrait_asset": "minister_刘同升.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_金日观",
+      "portrait_asset": "minister_金日观.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_沈冬魁",
+      "portrait_asset": "minister_沈冬魁.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_刘宇亮",
+      "portrait_asset": "minister_刘宇亮.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_傅冠",
+      "portrait_asset": "minister_傅冠.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_薛国观",
+      "portrait_asset": "minister_薛国观.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_张任学",
+      "portrait_asset": "minister_张任学.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_程国祥",
+      "portrait_asset": "minister_程国祥.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_方逢年",
+      "portrait_asset": "minister_方逢年.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_蔡国用",
+      "portrait_asset": "minister_蔡国用.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_范复粹",
+      "portrait_asset": "minister_范复粹.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_吴阿衡",
+      "portrait_asset": "minister_吴阿衡.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_朱由枢",
+      "portrait_asset": "minister_朱由枢.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_张秉文",
+      "portrait_asset": "minister_张秉文.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_姚明恭",
+      "portrait_asset": "minister_姚明恭.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_张四知",
+      "portrait_asset": "minister_张四知.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_魏照乘",
+      "portrait_asset": "minister_魏照乘.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_bandits_李万庆",
+      "portrait_asset": "minister_李万庆.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_罗岱",
+      "portrait_asset": "minister_罗岱.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_颜继祖",
+      "portrait_asset": "minister_颜继祖.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_倪宠",
+      "portrait_asset": "minister_倪宠.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_邓希诏",
+      "portrait_asset": "minister_邓希诏.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_孙茂霖",
+      "portrait_asset": "minister_孙茂霖.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_郑崇俭",
+      "portrait_asset": "minister_郑崇俭.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_魏藻德",
+      "portrait_asset": "minister_魏藻德.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_解学龙",
+      "portrait_asset": "minister_解学龙.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_谢陞",
+      "portrait_asset": "minister_谢陞.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_陈演",
+      "portrait_asset": "minister_陈演.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_秦良玉",
+      "portrait_asset": "minister_秦良玉.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_孙应元",
+      "portrait_asset": "minister_孙应元.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_张令",
+      "portrait_asset": "minister_张令.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_朱采鑋",
+      "portrait_asset": "minister_朱采鑋.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_猛如虎",
+      "portrait_asset": "minister_猛如虎.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_刘士杰",
+      "portrait_asset": "minister_刘士杰.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_朱常洵",
+      "portrait_asset": "minister_朱常洵.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_吕维祺",
+      "portrait_asset": "minister_吕维祺.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_朱翊铭",
+      "portrait_asset": "minister_朱翊铭.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_朱常法",
+      "portrait_asset": "minister_朱常法.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_张克俭",
+      "portrait_asset": "minister_张克俭.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_傅宗龙",
+      "portrait_asset": "minister_傅宗龙.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_杨文岳",
+      "portrait_asset": "minister_杨文岳.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_虎大威",
+      "portrait_asset": "minister_虎大威.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_杨国柱",
+      "portrait_asset": "minister_杨国柱.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_吴三桂",
+      "portrait_asset": "minister_吴三桂.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_王朴",
+      "portrait_asset": "minister_王朴.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_刘国能",
+      "portrait_asset": "minister_刘国能.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_朱聿镆",
+      "portrait_asset": "minister_朱聿镆.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_朱恭枵",
+      "portrait_asset": "minister_朱恭枵.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    },
+    {
+      "npc_id": "npc_ming_高名衡",
+      "portrait_asset": "minister_高名衡.png",
+      "dna_asset_id": "",
+      "dna_seed": "",
+      "wardrobe_key": ""
+    }
+  ]
+}

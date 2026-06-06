@@ -1,0 +1,5251 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T22:01:01+00:00",
+  "records": [
+    {
+      "npc_id": "npc_ming_韩爌",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_韩爌_01",
+          "label": "制度名分",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_韩爌_02",
+          "label": "清流舆论",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_ming_韩爌_03",
+          "label": "持重调和",
+          "category": "temperament_reputation"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张瑞图",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张瑞图_01",
+          "label": "书法名家",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_张瑞图_02",
+          "label": "票拟近内廷",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_张瑞图_03",
+          "label": "内廷外朝沟通",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_张瑞图_04",
+          "label": "权势风向",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_来宗道",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_来宗道_01",
+          "label": "典礼仪制",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_来宗道_02",
+          "label": "票拟调和",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_来宗道_03",
+          "label": "内廷外朝沟通",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_来宗道_04",
+          "label": "守成避祸",
+          "category": "temperament_reputation"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_施凤来",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_施凤来_01",
+          "label": "票拟调和",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_施凤来_02",
+          "label": "阁中调停",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_施凤来_03",
+          "label": "近权自保",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_施凤来_04",
+          "label": "承旨办事",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_黄立极",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_黄立极_01",
+          "label": "票拟守成",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_黄立极_02",
+          "label": "首辅名位",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_黄立极_03",
+          "label": "内廷沟通",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_黄立极_04",
+          "label": "避祸自保",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王绍徽",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_王绍徽_01",
+          "label": "铨选党同",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_王绍徽_02",
+          "label": "东林点将录",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_ming_王绍徽_03",
+          "label": "排挤异己",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_王绍徽_04",
+          "label": "制衡清流",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_毕自严",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_毕自严_01",
+          "label": "财政核算",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_毕自严_02",
+          "label": "清查亏空",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_毕自严_03",
+          "label": "军饷调度",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_毕自严_04",
+          "label": "务实算账",
+          "category": "fiscal_economic"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨嗣昌",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_杨嗣昌_01",
+          "label": "钱粮筹划",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨嗣昌_02",
+          "label": "条议边务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨嗣昌_03",
+          "label": "筹谋深远",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_温体仁",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_温体仁_01",
+          "label": "迎合上意",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_温体仁_02",
+          "label": "排挤异己",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_温体仁_03",
+          "label": "察言观色",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_钱龙锡",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_钱龙锡_01",
+          "label": "定逆案",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_钱龙锡_02",
+          "label": "枢机谋断",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_钱龙锡_03",
+          "label": "清流人脉",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘鸿训",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘鸿训_01",
+          "label": "票拟决断",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘鸿训_02",
+          "label": "边饷筹划",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘鸿训_03",
+          "label": "敢言直谏",
+          "category": "culture_rhetoric"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_钱谦益",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_钱谦益_01",
+          "label": "东林领袖",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_ming_钱谦益_02",
+          "label": "清议文望",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_ming_钱谦益_03",
+          "label": "结党经营",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_李标",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_李标_01",
+          "label": "持正用人",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_李标_02",
+          "label": "票拟稳健",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_李标_03",
+          "label": "调和阁务",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙承宗",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_孙承宗_01",
+          "label": "辽东战略",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_孙承宗_02",
+          "label": "将领评估",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_孙承宗_03",
+          "label": "老成持重",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_ming_孙承宗_04",
+          "label": "清议名分",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_崔呈秀",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_崔呈秀_01",
+          "label": "魏党首谋",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_崔呈秀_02",
+          "label": "兵部权柄",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_崔呈秀_03",
+          "label": "陷构异己",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_崔呈秀_04",
+          "label": "制衡清流",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_ming_崔呈秀_05",
+          "label": "催办军务",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王在晋",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_王在晋_01",
+          "label": "边镇方略",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_王在晋_02",
+          "label": "钱粮综核",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_王在晋_03",
+          "label": "重关守议",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_徐光启",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_徐光启_01",
+          "label": "西学",
+          "category": "technical_specialist"
+        },
+        {
+          "capability_id": "cap_npc_ming_徐光启_02",
+          "label": "农政",
+          "category": "technical_specialist"
+        },
+        {
+          "capability_id": "cap_npc_ming_徐光启_03",
+          "label": "火器试办",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_袁可立",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_袁可立_01",
+          "label": "登莱海防",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_袁可立_02",
+          "label": "节制东江",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_袁可立_03",
+          "label": "刚正持法",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_周延儒",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_周延儒_01",
+          "label": "迎合上意",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_周延儒_02",
+          "label": "敏给应对",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_周延儒_03",
+          "label": "结纳逢迎",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_倪元璐",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_倪元璐_01",
+          "label": "论劾阉党",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_倪元璐_02",
+          "label": "财赋条议",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_倪元璐_03",
+          "label": "书画文章",
+          "category": "culture_rhetoric"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_黄道周",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_黄道周_01",
+          "label": "经术学问",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_黄道周_02",
+          "label": "刚直敢谏",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_ming_黄道周_03",
+          "label": "清议风节",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_曹化淳",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_曹化淳_01",
+          "label": "内廷传旨",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_曹化淳_02",
+          "label": "宫中调和",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_曹化淳_03",
+          "label": "内库与宫禁事务",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_曹化淳_04",
+          "label": "通晓书画",
+          "category": "culture_rhetoric"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王体乾",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_王体乾_01",
+          "label": "披红盖印",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_王体乾_02",
+          "label": "司礼监旧线",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_王体乾_03",
+          "label": "内廷传旨",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_王体乾_04",
+          "label": "圆滑自保",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王承恩",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_王承恩_01",
+          "label": "谨慎传旨",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_王承恩_02",
+          "label": "宫中人情",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_王承恩_03",
+          "label": "贴身侍奉",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_王承恩_04",
+          "label": "危局护驾",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_魏忠贤",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_魏忠贤_01",
+          "label": "厂卫旧线",
+          "category": "security_intelligence"
+        },
+        {
+          "capability_id": "cap_npc_ming_魏忠贤_02",
+          "label": "内廷权术",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_魏忠贤_03",
+          "label": "压制外朝",
+          "category": "security_intelligence"
+        },
+        {
+          "capability_id": "cap_npc_ming_魏忠贤_04",
+          "label": "密查账册",
+          "category": "security_intelligence"
+        },
+        {
+          "capability_id": "cap_npc_ming_魏忠贤_05",
+          "label": "传旨督办",
+          "category": "inner_court"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_田尔耕",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_田尔耕_01",
+          "label": "缇骑密查",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_田尔耕_02",
+          "label": "诏狱审讯",
+          "category": "security_intelligence"
+        },
+        {
+          "capability_id": "cap_npc_ming_田尔耕_03",
+          "label": "奉旨缉访",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_田尔耕_04",
+          "label": "压制朝臣",
+          "category": "security_intelligence"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_许显纯",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_许显纯_01",
+          "label": "诏狱审讯",
+          "category": "security_intelligence"
+        },
+        {
+          "capability_id": "cap_npc_ming_许显纯_02",
+          "label": "罗织罪名",
+          "category": "security_intelligence"
+        },
+        {
+          "capability_id": "cap_npc_ming_许显纯_03",
+          "label": "奉旨办案",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_许显纯_04",
+          "label": "追赃逼供",
+          "category": "security_intelligence"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_李若琏",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_李若琏_01",
+          "label": "缉拿侦缉",
+          "category": "security_intelligence"
+        },
+        {
+          "capability_id": "cap_npc_ming_李若琏_02",
+          "label": "忠勇守城",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_李若琏_03",
+          "label": "死节报国",
+          "category": "personal_combat"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_客氏",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_客氏_01",
+          "label": "内廷人脉",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_客氏_02",
+          "label": "结纳宫人",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_客氏_03",
+          "label": "护持旧恩",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_客氏_04",
+          "label": "宫闱施压",
+          "category": "inner_court"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_袁崇焕",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_袁崇焕_01",
+          "label": "辽东军务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_袁崇焕_02",
+          "label": "守城筑防",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_袁崇焕_03",
+          "label": "前线谈判",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_袁崇焕_04",
+          "label": "敢任事",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_曹文诏",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_曹文诏_01",
+          "label": "马队突击",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_曹文诏_02",
+          "label": "身先士卒",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_ming_曹文诏_03",
+          "label": "辽东征战",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_祖大寿",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_祖大寿_01",
+          "label": "辽兵将门",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_祖大寿_02",
+          "label": "守城用炮",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_祖大寿_03",
+          "label": "保存实力",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_满桂",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_满桂_01",
+          "label": "骑战冲阵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_满桂_02",
+          "label": "宣大边务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_满桂_03",
+          "label": "悍勇敢战",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_赵率教",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_赵率教_01",
+          "label": "守关御虏",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_赵率教_02",
+          "label": "练兵实战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_赵率教_03",
+          "label": "临阵忘身",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王之臣",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_王之臣_01",
+          "label": "辽东军务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_王之臣_02",
+          "label": "经略边防",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_王之臣_03",
+          "label": "持重守议",
+          "category": "temperament_reputation"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_毛文龙",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_毛文龙_01",
+          "label": "敌后牵制",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_毛文龙_02",
+          "label": "海岛屯结",
+          "category": "maritime_trade"
+        },
+        {
+          "capability_id": "cap_npc_ming_毛文龙_03",
+          "label": "虚报骄横",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_阎鸣泰",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_阎鸣泰_01",
+          "label": "蓟辽防务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_阎鸣泰_02",
+          "label": "内廷旧线",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_阎鸣泰_03",
+          "label": "边镇钱粮",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_阎鸣泰_04",
+          "label": "保守守边",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_洪承畴",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_洪承畴_01",
+          "label": "西北粮饷",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_洪承畴_02",
+          "label": "知兵识势",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_洪承畴_03",
+          "label": "权谋深沉",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙传庭",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_孙传庭_01",
+          "label": "牧民理讼",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_孙传庭_02",
+          "label": "刚愎知兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_孙传庭_03",
+          "label": "经世自负",
+          "category": "temperament_reputation"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_卢象升",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_卢象升_01",
+          "label": "练兵亲征",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_卢象升_02",
+          "label": "守土爱民",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_ming_卢象升_03",
+          "label": "清正勇决",
+          "category": "temperament_reputation"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_史可法",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_史可法_01",
+          "label": "清正勤勉",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_ming_史可法_02",
+          "label": "孝义动人",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_ming_史可法_03",
+          "label": "矢志砥砺",
+          "category": "temperament_reputation"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_周皇后",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_周皇后_01",
+          "label": "母仪天下",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_周皇后_02",
+          "label": "协理六宫",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_周皇后_03",
+          "label": "规谏皇帝",
+          "category": "inner_court"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_周贵人",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_周贵人_01",
+          "label": "精明理事",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_周贵人_02",
+          "label": "宫廷消息",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_周贵人_03",
+          "label": "联络外戚",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_田贵妃",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_田贵妃_01",
+          "label": "专宠御前",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_田贵妃_02",
+          "label": "歌舞娱圣",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_田贵妃_03",
+          "label": "枕边进言",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_袁贵妃",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_袁贵妃_01",
+          "label": "沉静自守",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_ming_袁贵妃_02",
+          "label": "侍奉圣驾",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_袁贵妃_03",
+          "label": "宫闱消息",
+          "category": "inner_court"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_慧妃",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_慧妃_01",
+          "label": "天真烂漫",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_ming_慧妃_02",
+          "label": "侍寝奉茶",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_慧妃_03",
+          "label": "宫中消息",
+          "category": "inner_court"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_皇太极",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_皇太极_01",
+          "label": "统合八旗",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_皇太极_02",
+          "label": "战略离间",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_皇太极_03",
+          "label": "辽东经营",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_皇太极_04",
+          "label": "外交压迫",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_代善",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_代善_01",
+          "label": "八旗贵族",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_代善_02",
+          "label": "骑兵统率",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_代善_03",
+          "label": "汗廷共议",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_莽古尔泰",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_莽古尔泰_01",
+          "label": "勇悍骑战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_莽古尔泰_02",
+          "label": "八旗贵族",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_莽古尔泰_03",
+          "label": "汗廷掣肘",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_阿敏",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_阿敏_01",
+          "label": "边外征掠",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_阿敏_02",
+          "label": "贵族自专",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_houjin_阿敏_03",
+          "label": "骑兵统率",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_范文程",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_范文程_01",
+          "label": "文书谋划",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_houjin_范文程_02",
+          "label": "招降辽人",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_houjin_范文程_03",
+          "label": "明制情报",
+          "category": "security_intelligence"
+        },
+        {
+          "capability_id": "cap_npc_houjin_范文程_04",
+          "label": "外交辞令",
+          "category": "culture_rhetoric"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_佟养性",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_佟养性_01",
+          "label": "铸炮火器",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_佟养性_02",
+          "label": "辽人降军",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_佟养性_03",
+          "label": "工匠组织",
+          "category": "technical_specialist"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_mongol_林丹汗",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_mongol_林丹汗_01",
+          "label": "草原统合",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_mongol_林丹汗_02",
+          "label": "骑兵机动",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_mongol_林丹汗_03",
+          "label": "汗权名分",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_korea_仁祖",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_korea_仁祖_01",
+          "label": "藩属权衡",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_korea_仁祖_02",
+          "label": "朝贡礼制",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_korea_仁祖_03",
+          "label": "避战自保",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_korea_张维",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_korea_张维_01",
+          "label": "亲明士论",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_korea_张维_02",
+          "label": "文书外交",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_korea_张维_03",
+          "label": "朝鲜朝议",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_王嘉胤",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_bandits_王嘉胤_01",
+          "label": "啸聚饥民",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_bandits_王嘉胤_02",
+          "label": "山地流窜",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_bandits_王嘉胤_03",
+          "label": "裹挟逃卒",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_李自成",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_bandits_李自成_01",
+          "label": "坚忍聚众",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_bandits_李自成_02",
+          "label": "骑兵机动",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_bandits_李自成_03",
+          "label": "流民号召",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_张献忠",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_bandits_张献忠_01",
+          "label": "凶悍流窜",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_bandits_张献忠_02",
+          "label": "奇袭破城",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_bandits_张献忠_03",
+          "label": "裹挟胁从",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_武当张真人",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_武当张真人_01",
+          "label": "太极拳剑",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_ming_武当张真人_02",
+          "label": "内家心法",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_ming_武当张真人_03",
+          "label": "奇门遁甲",
+          "category": "religious_mystic"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_铁臂周侗",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_铁臂周侗_01",
+          "label": "枪棒无双",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_ming_铁臂周侗_02",
+          "label": "调教弟子",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_铁臂周侗_03",
+          "label": "江湖人脉",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_青莲剑客",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_青莲剑客_01",
+          "label": "剑术通神",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_ming_青莲剑客_02",
+          "label": "诗酒风流",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_青莲剑客_03",
+          "label": "易容术",
+          "category": "security_intelligence"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_玄机道长",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_玄机道长_01",
+          "label": "符咒道法",
+          "category": "religious_mystic"
+        },
+        {
+          "capability_id": "cap_npc_ming_玄机道长_02",
+          "label": "观星测运",
+          "category": "religious_mystic"
+        },
+        {
+          "capability_id": "cap_npc_ming_玄机道长_03",
+          "label": "炼丹制药",
+          "category": "technical_specialist"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_毒手药王",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_毒手药王_01",
+          "label": "医毒双绝",
+          "category": "technical_specialist"
+        },
+        {
+          "capability_id": "cap_npc_ming_毒手药王_02",
+          "label": "炼丹秘术",
+          "category": "technical_specialist"
+        },
+        {
+          "capability_id": "cap_npc_ming_毒手药王_03",
+          "label": "起死回生",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_红衣女侠",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_红衣女侠_01",
+          "label": "轻功卓绝",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_ming_红衣女侠_02",
+          "label": "暗器百步",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_ming_红衣女侠_03",
+          "label": "侠义心肠",
+          "category": "temperament_reputation"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_盲眼琴师",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_盲眼琴师_01",
+          "label": "琴音摄魂",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_盲眼琴师_02",
+          "label": "听风辨位",
+          "category": "security_intelligence"
+        },
+        {
+          "capability_id": "cap_npc_ming_盲眼琴师_03",
+          "label": "占卜吉凶",
+          "category": "religious_mystic"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_鬼面商人",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_鬼面商人_01",
+          "label": "奇货可居",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_鬼面商人_02",
+          "label": "丝路情报",
+          "category": "security_intelligence"
+        },
+        {
+          "capability_id": "cap_npc_ming_鬼面商人_03",
+          "label": "机关暗器",
+          "category": "personal_combat"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_隐剑山庄主",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_隐剑山庄主_01",
+          "label": "铸剑秘术",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_ming_隐剑山庄主_02",
+          "label": "剑阵合击",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_隐剑山庄主_03",
+          "label": "藏兵于民",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_白眉老僧",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_白眉老僧_01",
+          "label": "金刚不坏",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_ming_白眉老僧_02",
+          "label": "禅宗心法",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_ming_白眉老僧_03",
+          "label": "伏魔杖法",
+          "category": "personal_combat"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_曹变蛟",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_曹变蛟_01",
+          "label": "冲锋陷阵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_曹变蛟_02",
+          "label": "夜袭奇兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_曹变蛟_03",
+          "label": "死战不退",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_左良玉",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_左良玉_01",
+          "label": "拥兵自重",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_左良玉_02",
+          "label": "纵横中原",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_左良玉_03",
+          "label": "察言观色",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_黄得功",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_黄得功_01",
+          "label": "忠勇无双",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_ming_黄得功_02",
+          "label": "箭术神准",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_ming_黄得功_03",
+          "label": "护主心切",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘泽清",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘泽清_01",
+          "label": "保存实力",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘泽清_02",
+          "label": "见风使舵",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘泽清_03",
+          "label": "割据自保",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_高杰",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_高杰_01",
+          "label": "流寇出身",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_高杰_02",
+          "label": "骑兵游击",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_高杰_03",
+          "label": "悍勇难制",
+          "category": "personal_combat"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_周遇吉",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_周遇吉_01",
+          "label": "死守孤城",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_周遇吉_02",
+          "label": "步战精湛",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_周遇吉_03",
+          "label": "宁死不屈",
+          "category": "temperament_reputation"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_熊文灿",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_熊文灿_01",
+          "label": "招抚流寇",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_ming_熊文灿_02",
+          "label": "沿海防务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_熊文灿_03",
+          "label": "纵横捭阖",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_郑芝龙",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_郑芝龙_01",
+          "label": "海上帝国",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_郑芝龙_02",
+          "label": "贸易网络",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_郑芝龙_03",
+          "label": "舰队指挥",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_郑成功",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_郑成功_01",
+          "label": "海战天才",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_郑成功_02",
+          "label": "忠孝两难",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_郑成功_03",
+          "label": "复国大志",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘宗周",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘宗周_01",
+          "label": "理学宗师",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘宗周_02",
+          "label": "弹劾权贵",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘宗周_03",
+          "label": "气节凛然",
+          "category": "temperament_reputation"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_范景文",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_范景文_01",
+          "label": "工程营造",
+          "category": "technical_specialist"
+        },
+        {
+          "capability_id": "cap_npc_ming_范景文_02",
+          "label": "廉洁自守",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_ming_范景文_03",
+          "label": "临难不苟",
+          "category": "temperament_reputation"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_李邦华",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_李邦华_01",
+          "label": "整顿京营",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_李邦华_02",
+          "label": "忠言直谏",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_李邦华_03",
+          "label": "军事筹划",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_马士英",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_马士英_01",
+          "label": "权谋机变",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_马士英_02",
+          "label": "排挤异己",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_马士英_03",
+          "label": "筹局用人",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_马士英_04",
+          "label": "门户自保",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_阮大铖",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_阮大铖_01",
+          "label": "戏曲才华",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_阮大铖_02",
+          "label": "报复心重",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_阮大铖_03",
+          "label": "文辞机锋",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_阮大铖_04",
+          "label": "党争构陷",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_姜曰广",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_姜曰广_01",
+          "label": "外交谈判",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_姜曰广_02",
+          "label": "持重守正",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_ming_姜曰广_03",
+          "label": "江南清流",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈子龙",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_陈子龙_01",
+          "label": "诗词大家",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_陈子龙_02",
+          "label": "江南士林",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_ming_陈子龙_03",
+          "label": "联络义士",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_夏允彝",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_夏允彝_01",
+          "label": "文章经济",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_夏允彝_02",
+          "label": "江南义声",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_ming_夏允彝_03",
+          "label": "交友广泛",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_高起潜",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_高起潜_01",
+          "label": "监军奏报",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_高起潜_02",
+          "label": "奉旨护权",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_高起潜_03",
+          "label": "保守避战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_高起潜_04",
+          "label": "内廷催办",
+          "category": "inner_court"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杜勋",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_杜勋_01",
+          "label": "监军传报",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_杜勋_02",
+          "label": "趋避求生",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_ming_杜勋_03",
+          "label": "内廷旧识",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_杜勋_04",
+          "label": "风向观望",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_多尔衮",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_多尔衮_01",
+          "label": "军事天才",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_多尔衮_02",
+          "label": "政治手腕",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_houjin_多尔衮_03",
+          "label": "摄政独断",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_多铎",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_多铎_01",
+          "label": "嗜杀残暴",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_houjin_多铎_02",
+          "label": "骑兵突击",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_多铎_03",
+          "label": "攻城略地",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_阿济格",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_阿济格_01",
+          "label": "勇猛鲁莽",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_houjin_阿济格_02",
+          "label": "冲锋陷阵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_阿济格_03",
+          "label": "头脑简单",
+          "category": "temperament_reputation"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_济尔哈朗",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_济尔哈朗_01",
+          "label": "稳重持成",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_houjin_济尔哈朗_02",
+          "label": "平衡派系",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_houjin_济尔哈朗_03",
+          "label": "守成之将",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_索尼",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_索尼_01",
+          "label": "忠诚可靠",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_houjin_索尼_02",
+          "label": "政治嗅觉",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_houjin_索尼_03",
+          "label": "辅佐幼主",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_宁完我",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_宁完我_01",
+          "label": "汉制改革",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_houjin_宁完我_02",
+          "label": "经世之才",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_houjin_宁完我_03",
+          "label": "宦海沉浮",
+          "category": "temperament_reputation"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_鳌拜",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_鳌拜_01",
+          "label": "万人敌",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_鳌拜_02",
+          "label": "军功赫赫",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_鳌拜_03",
+          "label": "跋扈专权",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_图赖",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_图赖_01",
+          "label": "陷阵先锋",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_图赖_02",
+          "label": "八旗猛将",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_图赖_03",
+          "label": "忠心不二",
+          "category": "temperament_reputation"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_孔有德",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_孔有德_01",
+          "label": "火炮专家",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_孔有德_02",
+          "label": "水军统领",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_孔有德_03",
+          "label": "叛将身份",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_耿仲明",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_耿仲明_01",
+          "label": "水军作战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_耿仲明_02",
+          "label": "辽东旧部",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_耿仲明_03",
+          "label": "叛将",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_尚可喜",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_houjin_尚可喜_01",
+          "label": "海战专家",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_houjin_尚可喜_02",
+          "label": "割据广东",
+          "category": "maritime_trade"
+        },
+        {
+          "capability_id": "cap_npc_houjin_尚可喜_03",
+          "label": "长寿叛将",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_mongol_额哲",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_mongol_额哲_01",
+          "label": "汗位继承",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_mongol_额哲_02",
+          "label": "依附后金",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_mongol_额哲_03",
+          "label": "政治联姻",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_mongol_土谢图汗",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_mongol_土谢图汗_01",
+          "label": "草原外交",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_mongol_土谢图汗_02",
+          "label": "周旋明清",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_mongol_土谢图汗_03",
+          "label": "部落平衡",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_mongol_顺义王",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_mongol_顺义王_01",
+          "label": "蒙古铁骑",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_mongol_顺义王_02",
+          "label": "明蒙贸易",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_mongol_顺义王_03",
+          "label": "藩属外交",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_高迎祥",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_bandits_高迎祥_01",
+          "label": "流寇盟主",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_bandits_高迎祥_02",
+          "label": "骑兵游击",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_bandits_高迎祥_03",
+          "label": "号召饥民",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_罗汝才",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_bandits_罗汝才_01",
+          "label": "多谋善变",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_bandits_罗汝才_02",
+          "label": "联合各方",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_bandits_罗汝才_03",
+          "label": "见风使舵",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_革左五营",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_bandits_革左五营_01",
+          "label": "山地游击",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_bandits_革左五营_02",
+          "label": "五营合纵",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_bandits_革左五营_03",
+          "label": "劫富济贫",
+          "category": "temperament_reputation"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_刘宗敏",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_bandits_刘宗敏_01",
+          "label": "铁匠出身",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_bandits_刘宗敏_02",
+          "label": "冲锋陷阵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_bandits_刘宗敏_03",
+          "label": "拷掠百官",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_宋献策",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_bandits_宋献策_01",
+          "label": "奇门遁甲",
+          "category": "religious_mystic"
+        },
+        {
+          "capability_id": "cap_npc_bandits_宋献策_02",
+          "label": "占卜算命",
+          "category": "religious_mystic"
+        },
+        {
+          "capability_id": "cap_npc_bandits_宋献策_03",
+          "label": "谋略策划",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_牛金星",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_bandits_牛金星_01",
+          "label": "科举落第",
+          "category": "temperament_reputation"
+        },
+        {
+          "capability_id": "cap_npc_bandits_牛金星_02",
+          "label": "政治谋略",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_bandits_牛金星_03",
+          "label": "权力斗争",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_李岩",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_bandits_李岩_01",
+          "label": "仁政主张",
+          "category": "political_tactics"
+        },
+        {
+          "capability_id": "cap_npc_bandits_李岩_02",
+          "label": "诗词才华",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_bandits_李岩_03",
+          "label": "劝赈安民",
+          "category": "political_tactics"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_红娘子",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_bandits_红娘子_01",
+          "label": "武艺高强",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_bandits_红娘子_02",
+          "label": "女中豪杰",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_bandits_红娘子_03",
+          "label": "江湖义士",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_白莲教主",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_白莲教主_01",
+          "label": "民间宗教",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_ming_白莲教主_02",
+          "label": "秘密结社",
+          "category": "network_mobilization"
+        },
+        {
+          "capability_id": "cap_npc_ming_白莲教主_03",
+          "label": "号召反明",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_闻香教主",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_闻香教主_01",
+          "label": "香道秘术",
+          "category": "religious_mystic"
+        },
+        {
+          "capability_id": "cap_npc_ming_闻香教主_02",
+          "label": "迷惑人心",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_闻香教主_03",
+          "label": "组织密谋",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_老渔夫",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_老渔夫_01",
+          "label": "水性无双",
+          "category": "maritime_trade"
+        },
+        {
+          "capability_id": "cap_npc_ming_老渔夫_02",
+          "label": "湖底秘宝",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_老渔夫_03",
+          "label": "预知风雨",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_塞外刀客",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_塞外刀客_01",
+          "label": "刀法凌厉",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_ming_塞外刀客_02",
+          "label": "马背生存",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_塞外刀客_03",
+          "label": "独来独往",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_苗疆蛊师",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_苗疆蛊师_01",
+          "label": "蛊毒秘术",
+          "category": "technical_specialist"
+        },
+        {
+          "capability_id": "cap_npc_ming_苗疆蛊师_02",
+          "label": "草药通灵",
+          "category": "technical_specialist"
+        },
+        {
+          "capability_id": "cap_npc_ming_苗疆蛊师_03",
+          "label": "驱蛇役虫",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_倭寇首领",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_倭寇首领_01",
+          "label": "海战劫掠",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_倭寇首领_02",
+          "label": "中日通译",
+          "category": "maritime_trade"
+        },
+        {
+          "capability_id": "cap_npc_ming_倭寇首领_03",
+          "label": "走私网络",
+          "category": "maritime_trade"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_西洋传教士",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_西洋传教士_01",
+          "label": "天文历法",
+          "category": "technical_specialist"
+        },
+        {
+          "capability_id": "cap_npc_ming_西洋传教士_02",
+          "label": "火炮铸造",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_西洋传教士_03",
+          "label": "西方医术",
+          "category": "technical_specialist"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_南洋华侨",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_南洋华侨_01",
+          "label": "海外贸易",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_南洋华侨_02",
+          "label": "情报网络",
+          "category": "security_intelligence"
+        },
+        {
+          "capability_id": "cap_npc_ming_南洋华侨_03",
+          "label": "白银渠道",
+          "category": "fiscal_economic"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨景辰",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_杨景辰_01",
+          "label": "部院履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨景辰_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨景辰_03",
+          "label": "礼制政务",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_周道登",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_周道登_01",
+          "label": "部院履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_周道登_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_周道登_03",
+          "label": "礼制政务",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_成基命",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_成基命_01",
+          "label": "吏部履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_成基命_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_成基命_03",
+          "label": "礼制政务",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王洽",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_王洽_01",
+          "label": "兵部政务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_王洽_02",
+          "label": "边事调度",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_何如宠",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_何如宠_01",
+          "label": "部院履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_何如宠_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_何如宠_03",
+          "label": "礼制政务",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_钱象坤",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_钱象坤_01",
+          "label": "部院履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_钱象坤_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_钱象坤_03",
+          "label": "礼制政务",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王元雅",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_王元雅_01",
+          "label": "地方巡抚",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_王元雅_02",
+          "label": "城守死事",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_何天球",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_何天球_01",
+          "label": "地方司法",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_何天球_02",
+          "label": "城守死事",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_马世龙",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_马世龙_01",
+          "label": "援军统理",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_马世龙_02",
+          "label": "边镇军事",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙祖寿",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_孙祖寿_01",
+          "label": "边镇军事",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_孙祖寿_02",
+          "label": "勤王死战",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_毕自肃",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_毕自肃_01",
+          "label": "辽事巡抚",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_毕自肃_02",
+          "label": "军变处置",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘若宰",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘若宰_01",
+          "label": "科举新贵",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘若宰_02",
+          "label": "文章经术",
+          "category": "culture_rhetoric"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_卓铭",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_卓铭_01",
+          "label": "矿务奏请",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_卓铭_02",
+          "label": "卫所履历",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_侯良柱",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_侯良柱_01",
+          "label": "西南平乱",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_侯良柱_02",
+          "label": "统兵作战",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘可训",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘可训_01",
+          "label": "兵备事务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘可训_02",
+          "label": "西南平乱",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_郑国昌",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_郑国昌_01",
+          "label": "地方兵备",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_郑国昌_02",
+          "label": "城守死事",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张凤奇",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张凤奇_01",
+          "label": "府县治理",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_张凤奇_02",
+          "label": "城守死事",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘策",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘策_01",
+          "label": "蓟辽督抚",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘策_02",
+          "label": "边事责任",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘之纶",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘之纶_01",
+          "label": "兵部政务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘之纶_02",
+          "label": "勤王作战",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_吴自勉",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_吴自勉_01",
+          "label": "陕西诸路统兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_吴自勉_02",
+          "label": "入卫调度",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_吴宗达",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_吴宗达_01",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_吴宗达_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杜文焕",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_杜文焕_01",
+          "label": "剿寇作战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_杜文焕_02",
+          "label": "边镇统兵",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王国梁",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_王国梁_01",
+          "label": "山西防务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_王国梁_02",
+          "label": "追剿流贼",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨鹤",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_杨鹤_01",
+          "label": "三边军务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨鹤_02",
+          "label": "招抚流贼",
+          "category": "network_mobilization"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张应昌",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张应昌_01",
+          "label": "副将统兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_张应昌_02",
+          "label": "追剿流贼",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈于泰",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_陈于泰_01",
+          "label": "科举新贵",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_陈于泰_02",
+          "label": "文章经术",
+          "category": "culture_rhetoric"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_吴甡",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_吴甡_01",
+          "label": "御史言事",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_吴甡_02",
+          "label": "赈济饥民",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张允登",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张允登_01",
+          "label": "省级政务",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_张允登_02",
+          "label": "守土死事",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘若愚",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘若愚_01",
+          "label": "司礼监文书",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘若愚_02",
+          "label": "内廷制度观察",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘若愚_03",
+          "label": "狱中著述",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘若愚_04",
+          "label": "内书堂教育线索",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙暹",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_孙暹_01",
+          "label": "司礼监批红",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_孙暹_02",
+          "label": "东厂侦缉",
+          "category": "security_intelligence"
+        },
+        {
+          "capability_id": "cap_npc_ming_孙暹_03",
+          "label": "内廷庇护网络",
+          "category": "inner_court"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘吉祥",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘吉祥_01",
+          "label": "御马监事务",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘吉祥_02",
+          "label": "内廷照管关系",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘吉祥_03",
+          "label": "宫禁马政",
+          "category": "inner_court"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_李永贞",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_李永贞_01",
+          "label": "司礼监文书",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_李永贞_02",
+          "label": "内廷党附",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_李永贞_03",
+          "label": "权力投附",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_梁栋",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_梁栋_01",
+          "label": "司礼监题本署名",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_梁栋_02",
+          "label": "内廷党附",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_梁栋_03",
+          "label": "文书体制",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_石元雅",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_石元雅_01",
+          "label": "司礼监题本署名",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_石元雅_02",
+          "label": "内廷党附",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_石元雅_03",
+          "label": "权势逢迎",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_涂文辅",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_涂文辅_01",
+          "label": "司礼监题本署名",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_涂文辅_02",
+          "label": "内廷党附",
+          "category": "inner_court"
+        },
+        {
+          "capability_id": "cap_npc_ming_涂文辅_03",
+          "label": "权势逢迎",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈良谟",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_陈良谟_01",
+          "label": "边镇游击",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_陈良谟_02",
+          "label": "登莱兵变死事",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_李九成",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_bandits_李九成_01",
+          "label": "山东副将",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_bandits_李九成_02",
+          "label": "兵变首领",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_bandits_李九成_03",
+          "label": "登莱叛乱",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张可大",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张可大_01",
+          "label": "登州防务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_张可大_02",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_张可大_03",
+          "label": "守城死事",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙元化",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_孙元化_01",
+          "label": "山东巡抚",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_孙元化_02",
+          "label": "火器西学",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_孙元化_03",
+          "label": "登莱防务",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_宋光兰",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_宋光兰_01",
+          "label": "参将统兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_宋光兰_02",
+          "label": "莱州死事",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_徐从治",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_徐从治_01",
+          "label": "山东巡抚",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_徐从治_02",
+          "label": "地方军政",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_徐从治_03",
+          "label": "兵变死事",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘宇烈",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘宇烈_01",
+          "label": "浙江水陆军务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘宇烈_02",
+          "label": "海上追捕",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘宇烈_03",
+          "label": "登莱叛军家属擒获",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_余大成",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_余大成_01",
+          "label": "山东巡抚",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_余大成_02",
+          "label": "登莱兵变责任链",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨嘉谟",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_杨嘉谟_01",
+          "label": "兵部军政",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨嘉谟_02",
+          "label": "宣大山西总督",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨嘉谟_03",
+          "label": "边镇调度",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱大典",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_朱大典_01",
+          "label": "兵部军政",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱大典_02",
+          "label": "山东军务总督",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱大典_03",
+          "label": "登莱平叛",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_郑以伟",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_郑以伟_01",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_郑以伟_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_谢琏",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_谢琏_01",
+          "label": "户部政务",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_谢琏_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_谢琏_03",
+          "label": "钱粮调度",
+          "category": "fiscal_economic"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱万年",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_朱万年_01",
+          "label": "山东副总兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱万年_02",
+          "label": "登莱平叛",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱万年_03",
+          "label": "军中死事",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨麒",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_杨麒_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨麒_02",
+          "label": "固原军务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨麒_03",
+          "label": "兵变死事",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_杨正芳",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_bandits_杨正芳_01",
+          "label": "副将统兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_bandits_杨正芳_02",
+          "label": "军中兵变",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_bandits_杨正芳_03",
+          "label": "固原军乱",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_祖宽",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_祖宽_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_祖宽_02",
+          "label": "登莱平叛",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_祖宽_03",
+          "label": "剿寇作战",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_刘香",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_bandits_刘香_01",
+          "label": "海上劫掠",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_bandits_刘香_02",
+          "label": "南澳海战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_bandits_刘香_03",
+          "label": "海寇组织",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王志道",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_王志道_01",
+          "label": "河南巡抚",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_王志道_02",
+          "label": "流贼防务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_王志道_03",
+          "label": "地方军政",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈洪范",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_陈洪范_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_陈洪范_02",
+          "label": "流贼围困",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_陈洪范_03",
+          "label": "剿寇作战",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_邓玘",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_邓玘_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_邓玘_02",
+          "label": "剿寇作战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_邓玘_03",
+          "label": "军法问罪",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈大金",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_陈大金_01",
+          "label": "地方巡抚",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_陈大金_02",
+          "label": "守土死事",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_陈大金_03",
+          "label": "流贼防务",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_李卑",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_李卑_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_李卑_02",
+          "label": "辽东水城防务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_李卑_03",
+          "label": "死事",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_黄龙",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_黄龙_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_黄龙_02",
+          "label": "旅顺防务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_黄龙_03",
+          "label": "后金作战",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_钱士升",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_钱士升_01",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_钱士升_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王应熊",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_王应熊_01",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_王应熊_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_何吾驺",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_何吾驺_01",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_何吾驺_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_许鼎臣",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_许鼎臣_01",
+          "label": "地方巡抚",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_许鼎臣_02",
+          "label": "守土死事",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_许鼎臣_03",
+          "label": "流贼防务",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张彝宪",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张彝宪_01",
+          "label": "内臣钱粮总理",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_张彝宪_02",
+          "label": "户工二部钱粮",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_张彝宪_03",
+          "label": "内廷财政监督",
+          "category": "fiscal_economic"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘若金",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘若金_01",
+          "label": "户部钱粮",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘若金_02",
+          "label": "工部钱粮协调",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘若金_03",
+          "label": "财政总理",
+          "category": "fiscal_economic"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈奇瑜",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_陈奇瑜_01",
+          "label": "兵部侍郎",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_陈奇瑜_02",
+          "label": "五省军务总督",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_陈奇瑜_03",
+          "label": "剿寇调度",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘理顺",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘理顺_01",
+          "label": "科举出身",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘理顺_02",
+          "label": "制科文章",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘理顺_03",
+          "label": "待铨候用",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨世恩",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_杨世恩_01",
+          "label": "副将统兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨世恩_02",
+          "label": "石河口作战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨世恩_03",
+          "label": "剿寇战阵",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_贺人龙",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_贺人龙_01",
+          "label": "副将统兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_贺人龙_02",
+          "label": "蓝田作战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_贺人龙_03",
+          "label": "陇州被围",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_丁魁楚",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_丁魁楚_01",
+          "label": "巡抚军政",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_丁魁楚_02",
+          "label": "京畿关隘防务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_丁魁楚_03",
+          "label": "保定地方治理",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_尤世威",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_尤世威_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_尤世威_02",
+          "label": "援边调度",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_尤世威_03",
+          "label": "剿寇作战",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张宗衡",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张宗衡_01",
+          "label": "宣大总督",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_张宗衡_02",
+          "label": "援兵节制",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_张宗衡_03",
+          "label": "边镇协调",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陆梦龙",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_陆梦龙_01",
+          "label": "参议",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_陆梦龙_02",
+          "label": "固原赴援",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_陆梦龙_03",
+          "label": "守土死事",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱国相",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_朱国相_01",
+          "label": "凤阳留守",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱国相_02",
+          "label": "皇陵守御",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱国相_03",
+          "label": "死事",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张国维",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张国维_01",
+          "label": "应天巡抚",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_张国维_02",
+          "label": "江南防务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_张国维_03",
+          "label": "流贼御却",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨一鹏",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_杨一鹏_01",
+          "label": "漕运总督",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨一鹏_02",
+          "label": "钱粮转输",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨一鹏_03",
+          "label": "军法问罪",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_艾万年",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_艾万年_01",
+          "label": "副将统兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_艾万年_02",
+          "label": "宁州襄乐作战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_艾万年_03",
+          "label": "战没",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_柳国镇",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_柳国镇_01",
+          "label": "副将统兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_柳国镇_02",
+          "label": "宁州襄乐作战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_柳国镇_03",
+          "label": "战没",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_文震孟",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_文震孟_01",
+          "label": "少詹事履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_文震孟_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_文震孟_03",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张至发",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张至发_01",
+          "label": "刑部侍郎履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_张至发_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_张至发_03",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张全昌",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张全昌_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_张全昌_02",
+          "label": "剿寇作战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_张全昌_03",
+          "label": "被执风险",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_侯恂",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_侯恂_01",
+          "label": "户部钱粮",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_侯恂_02",
+          "label": "逋赋催征",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_侯恂_03",
+          "label": "财政奏议",
+          "category": "fiscal_economic"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_林釬",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_林釬_01",
+          "label": "礼部侍郎",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_林釬_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_林釬_03",
+          "label": "短期任事",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_汤九州",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_汤九州_01",
+          "label": "副将统兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_汤九州_02",
+          "label": "嵩县作战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_汤九州_03",
+          "label": "战没",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王楫",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_王楫_01",
+          "label": "宁夏巡抚",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_王楫_02",
+          "label": "边镇饥荒处置",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_王楫_03",
+          "label": "兵变死事",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_丁启睿",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_丁启睿_01",
+          "label": "兵备副使",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_丁启睿_02",
+          "label": "宁夏兵变抚定",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_丁启睿_03",
+          "label": "地方军政",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈起新",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_陈起新_01",
+          "label": "武举出身",
+          "category": "personal_combat"
+        },
+        {
+          "capability_id": "cap_npc_ming_陈起新_02",
+          "label": "给事中言事",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_陈起新_03",
+          "label": "科道监察",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_祖大乐",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_祖大乐_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_祖大乐_02",
+          "label": "河南剿寇",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_祖大乐_03",
+          "label": "辽镇将门",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_俞冲霄",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_俞冲霄_01",
+          "label": "延绥总兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_俞冲霄_02",
+          "label": "安定作战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_俞冲霄_03",
+          "label": "战死",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孔贞运",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_孔贞运_01",
+          "label": "吏部侍郎履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_孔贞运_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_孔贞运_03",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_贺逢圣",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_贺逢圣_01",
+          "label": "礼部尚书",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_贺逢圣_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_贺逢圣_03",
+          "label": "礼制政务",
+          "category": "court_administration"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_黄士俊",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_黄士俊_01",
+          "label": "礼部尚书",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_黄士俊_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_黄士俊_03",
+          "label": "致仕退出",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_解进忠",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_解进忠_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_解进忠_02",
+          "label": "淅川抚贼",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_解进忠_03",
+          "label": "遇害",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_李国辅",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_李国辅_01",
+          "label": "内臣守关",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_李国辅_02",
+          "label": "关隘监督",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_李国辅_03",
+          "label": "奉旨分守",
+          "category": "inner_court"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱纯臣",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_朱纯臣_01",
+          "label": "成国公爵位",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱纯臣_02",
+          "label": "巡视边关",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱纯臣_03",
+          "label": "勋戚军政",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王肇坤",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_王肇坤_01",
+          "label": "巡关御史",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_王肇坤_02",
+          "label": "关防监察",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_王肇坤_03",
+          "label": "死事",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张凤翼",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张凤翼_01",
+          "label": "兵部尚书",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_张凤翼_02",
+          "label": "援军督办",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_张凤翼_03",
+          "label": "京畿防务",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱聿键",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_朱聿键_01",
+          "label": "宗室亲王",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱聿键_02",
+          "label": "起兵勤王",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱聿键_03",
+          "label": "废为庶人",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘同升",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘同升_01",
+          "label": "科举出身",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘同升_02",
+          "label": "制科文章",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘同升_03",
+          "label": "待铨候用",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_金日观",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_金日观_01",
+          "label": "副总兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_金日观_02",
+          "label": "皮岛守御",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_金日观_03",
+          "label": "力战死事",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_沈冬魁",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_沈冬魁_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_沈冬魁_02",
+          "label": "皮岛防务",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_沈冬魁_03",
+          "label": "石城岛撤走",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘宇亮",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘宇亮_01",
+          "label": "吏部侍郎履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘宇亮_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘宇亮_03",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_傅冠",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_傅冠_01",
+          "label": "礼部侍郎履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_傅冠_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_傅冠_03",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_薛国观",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_薛国观_01",
+          "label": "佥都御史履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_薛国观_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_薛国观_03",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张任学",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张任学_01",
+          "label": "河南巡按御史履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_张任学_02",
+          "label": "转任总兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_张任学_03",
+          "label": "军政跨界",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_程国祥",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_程国祥_01",
+          "label": "户部尚书履历",
+          "category": "fiscal_economic"
+        },
+        {
+          "capability_id": "cap_npc_ming_程国祥_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_程国祥_03",
+          "label": "致仕退出",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_方逢年",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_方逢年_01",
+          "label": "礼部侍郎履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_方逢年_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_方逢年_03",
+          "label": "被罢退出",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_蔡国用",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_蔡国用_01",
+          "label": "工部侍郎履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_蔡国用_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_蔡国用_03",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_范复粹",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_范复粹_01",
+          "label": "大理少卿履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_范复粹_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_范复粹_03",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_吴阿衡",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_吴阿衡_01",
+          "label": "蓟辽总督",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_吴阿衡_02",
+          "label": "兵部侍郎",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_吴阿衡_03",
+          "label": "墙子岭死事",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱由枢",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_朱由枢_01",
+          "label": "宗室亲王",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱由枢_02",
+          "label": "济南陷落",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱由枢_03",
+          "label": "被执",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张秉文",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张秉文_01",
+          "label": "布政使",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_张秉文_02",
+          "label": "济南城守",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_张秉文_03",
+          "label": "死事",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_姚明恭",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_姚明恭_01",
+          "label": "礼部侍郎履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_姚明恭_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_姚明恭_03",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张四知",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张四知_01",
+          "label": "礼部侍郎履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_张四知_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_张四知_03",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_魏照乘",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_魏照乘_01",
+          "label": "兵部侍郎履历",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_魏照乘_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_魏照乘_03",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_李万庆",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_bandits_李万庆_01",
+          "label": "流寇首领",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_bandits_李万庆_02",
+          "label": "被击降",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_bandits_李万庆_03",
+          "label": "地方叛乱",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_罗岱",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_罗岱_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_罗岱_02",
+          "label": "罗猴山作战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_罗岱_03",
+          "label": "被执死事",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_颜继祖",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_颜继祖_01",
+          "label": "巡抚都御史",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_颜继祖_02",
+          "label": "封疆问责",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_颜继祖_03",
+          "label": "弃市",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_倪宠",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_倪宠_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_倪宠_02",
+          "label": "封疆问责",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_倪宠_03",
+          "label": "弃市",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_邓希诏",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_邓希诏_01",
+          "label": "内臣监临",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_邓希诏_02",
+          "label": "封疆问责",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_邓希诏_03",
+          "label": "弃市",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙茂霖",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_孙茂霖_01",
+          "label": "内臣监临",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_孙茂霖_02",
+          "label": "封疆问责",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_孙茂霖_03",
+          "label": "弃市",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_郑崇俭",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_郑崇俭_01",
+          "label": "陕西三边总督",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_郑崇俭_02",
+          "label": "玛瑙山大捷",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_郑崇俭_03",
+          "label": "封疆问罪",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_魏藻德",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_魏藻德_01",
+          "label": "科举出身",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_魏藻德_02",
+          "label": "制科文章",
+          "category": "culture_rhetoric"
+        },
+        {
+          "capability_id": "cap_npc_ming_魏藻德_03",
+          "label": "待铨候用",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_解学龙",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_解学龙_01",
+          "label": "江西巡抚",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_解学龙_02",
+          "label": "举荐黄道周",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_解学龙_03",
+          "label": "下狱戍边",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_谢陞",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_谢陞_01",
+          "label": "吏部尚书履历",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_谢陞_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_谢陞_03",
+          "label": "礼部政务",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈演",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_陈演_01",
+          "label": "礼部侍郎",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_陈演_02",
+          "label": "入阁参预机务",
+          "category": "court_administration"
+        },
+        {
+          "capability_id": "cap_npc_ming_陈演_03",
+          "label": "政务承转",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_秦良玉",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_秦良玉_01",
+          "label": "石砫土司兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_秦良玉_02",
+          "label": "白杆兵统率",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_秦良玉_03",
+          "label": "山地剿寇",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_秦良玉_04",
+          "label": "边地军政承袭",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙应元",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_孙应元_01",
+          "label": "京营总兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_孙应元_02",
+          "label": "兴山作战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_孙应元_03",
+          "label": "剿寇作战",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张令",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张令_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_张令_02",
+          "label": "大昌战事",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_张令_03",
+          "label": "战死",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱采鑋",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_朱采鑋_01",
+          "label": "宗室郡王",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱采鑋_02",
+          "label": "河南陷落",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱采鑋_03",
+          "label": "遇害",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_猛如虎",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_猛如虎_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_猛如虎_02",
+          "label": "追击张献忠",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_猛如虎_03",
+          "label": "南阳死事",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘士杰",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘士杰_01",
+          "label": "参将",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘士杰_02",
+          "label": "黄陵城战事",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘士杰_03",
+          "label": "战死",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱常洵",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_朱常洵_01",
+          "label": "宗室亲王",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱常洵_02",
+          "label": "河南陷落",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱常洵_03",
+          "label": "遇害",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_吕维祺",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_吕维祺_01",
+          "label": "兵部尚书履历",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_吕维祺_02",
+          "label": "河南死事",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_吕维祺_03",
+          "label": "守节",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱翊铭",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_朱翊铭_01",
+          "label": "宗室亲王",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱翊铭_02",
+          "label": "襄阳陷落",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱翊铭_03",
+          "label": "遇害",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱常法",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_朱常法_01",
+          "label": "宗室郡王",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱常法_02",
+          "label": "襄阳陷落",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱常法_03",
+          "label": "遇害",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张克俭",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_张克俭_01",
+          "label": "副使",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_张克俭_02",
+          "label": "襄阳死事",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_张克俭_03",
+          "label": "地方军政",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_傅宗龙",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_傅宗龙_01",
+          "label": "兵部侍郎",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_傅宗龙_02",
+          "label": "三边总督",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_傅宗龙_03",
+          "label": "项城死事",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨文岳",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_杨文岳_01",
+          "label": "保定总督",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨文岳_02",
+          "label": "新蔡会师",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨文岳_03",
+          "label": "剿寇调度",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_虎大威",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_虎大威_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_虎大威_02",
+          "label": "邓州作战",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_虎大威_03",
+          "label": "剿寇战阵",
+          "category": "military_warfare"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨国柱",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_杨国柱_01",
+          "label": "阳和总兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨国柱_02",
+          "label": "松山援兵",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_杨国柱_03",
+          "label": "败没",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_吴三桂",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_吴三桂_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_吴三桂_02",
+          "label": "松山战线",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_吴三桂_03",
+          "label": "辽西将门",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王朴",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_王朴_01",
+          "label": "总兵官",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_王朴_02",
+          "label": "松山战线",
+          "category": "military_warfare"
+        },
+        {
+          "capability_id": "cap_npc_ming_王朴_03",
+          "label": "撤遁问责",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘国能",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_刘国能_01",
+          "label": "叶县守将",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘国能_02",
+          "label": "城守死事",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_刘国能_03",
+          "label": "剿寇防御",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱聿镆",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_朱聿镆_01",
+          "label": "宗室亲王",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱聿镆_02",
+          "label": "南阳陷落",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱聿镆_03",
+          "label": "遇害",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱恭枵",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_朱恭枵_01",
+          "label": "宗室亲王",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱恭枵_02",
+          "label": "开封守御",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_朱恭枵_03",
+          "label": "拒守",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_高名衡",
+      "capabilities": [
+        {
+          "capability_id": "cap_npc_ming_高名衡_01",
+          "label": "巡抚都御史",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_高名衡_02",
+          "label": "开封守御",
+          "category": "uncategorized_specialty"
+        },
+        {
+          "capability_id": "cap_npc_ming_高名衡_03",
+          "label": "拒守",
+          "category": "uncategorized_specialty"
+        }
+      ]
+    }
+  ]
+}

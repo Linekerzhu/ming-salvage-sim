@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T21:47:48.404688Z",
+  "database": "EnvironmentDatabase",
+  "display_name": "环境数字基建",
+  "boundary": "行政区、机构、官职、秩品与地点别名索引；不存 NPC 临场态度、奏对文本或运行时事件账本。",
+  "modules": [
+    {
+      "module": "ming_rank_system_seed",
+      "filename": "ming_rank_system_seed.json",
+      "record_count": 21
+    },
+    {
+      "module": "ming_institutions_seed",
+      "filename": "ming_institutions_seed.json",
+      "record_count": 63
+    },
+    {
+      "module": "ming_office_posts_seed",
+      "filename": "ming_office_posts_seed.json",
+      "record_count": 115
+    },
+    {
+      "module": "administrative_regions_seed",
+      "filename": "administrative_regions_seed.json",
+      "record_count": 41
+    },
+    {
+      "module": "location_aliases_seed",
+      "filename": "location_aliases_seed.json",
+      "record_count": 31
+    },
+    {
+      "module": "ming_eunuch_agencies_seed",
+      "filename": "ming_eunuch_agencies_seed.json",
+      "record_count": 36
+    },
+    {
+      "module": "ming_eunuch_attire_markers_seed",
+      "filename": "ming_eunuch_attire_markers_seed.json",
+      "record_count": 8
+    }
+  ]
+}

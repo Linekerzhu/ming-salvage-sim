@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T21:47:48.404688Z",
+  "records": [
+    {
+      "region_id": "region_beijing",
+      "name": "京师",
+      "region_type": "capital",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_chahar",
+      "name": "察哈尔",
+      "region_type": "steppe_polity_region",
+      "parent_region_id": null,
+      "power_id": "mongol_chahar"
+    },
+    {
+      "region_id": "region_changshu",
+      "name": "常熟",
+      "region_type": "county",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_daming",
+      "name": "大名府",
+      "region_type": "prefecture",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_datong",
+      "name": "大同",
+      "region_type": "frontier_town",
+      "parent_region_id": "region_shanxi",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_denglai",
+      "name": "登莱",
+      "region_type": "military_theater",
+      "parent_region_id": "region_shandong",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_dongguan",
+      "name": "东莞",
+      "region_type": "county",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_dongting_lake",
+      "name": "洞庭湖",
+      "region_type": "water_region",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_fengyang",
+      "name": "凤阳府",
+      "region_type": "prefecture",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_fugu",
+      "name": "府谷",
+      "region_type": "county",
+      "parent_region_id": "region_shaanxi",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_fujian",
+      "name": "福建",
+      "region_type": "province",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_gansu",
+      "name": "甘肃",
+      "region_type": "frontier_region",
+      "parent_region_id": "region_shaanxi",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_gaoyang",
+      "name": "高阳",
+      "region_type": "county",
+      "parent_region_id": "region_jiliao",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_hequ",
+      "name": "河曲",
+      "region_type": "county_or_frontier_place",
+      "parent_region_id": "region_shanxi",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_jianzhou",
+      "name": "建州",
+      "region_type": "external_region",
+      "parent_region_id": null,
+      "power_id": "later_jin"
+    },
+    {
+      "region_id": "region_jiliao",
+      "name": "蓟辽",
+      "region_type": "military_theater",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_jinzhou",
+      "name": "锦州",
+      "region_type": "frontier_city",
+      "parent_region_id": "region_liaodong",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_korea",
+      "name": "朝鲜",
+      "region_type": "tributary_or_foreign_realm",
+      "parent_region_id": null,
+      "power_id": "korea"
+    },
+    {
+      "region_id": "region_liaodong",
+      "name": "辽东",
+      "region_type": "frontier_region",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_luanzhou",
+      "name": "滦州",
+      "region_type": "frontier_city",
+      "parent_region_id": "region_jiliao",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_manila",
+      "name": "马尼拉",
+      "region_type": "overseas_trade_node",
+      "parent_region_id": null,
+      "power_id": "spanish_manila"
+    },
+    {
+      "region_id": "region_ming_empire",
+      "name": "大明",
+      "region_type": "realm",
+      "parent_region_id": null,
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_mizhi",
+      "name": "米脂",
+      "region_type": "county",
+      "parent_region_id": "region_shaanxi",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_nanjing",
+      "name": "南京",
+      "region_type": "secondary_capital",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_puxian",
+      "name": "蒲县",
+      "region_type": "county",
+      "parent_region_id": "region_shanxi",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_puzhou",
+      "name": "蒲州",
+      "region_type": "county_or_prefecture_place",
+      "parent_region_id": "region_shanxi",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_qianan",
+      "name": "迁安",
+      "region_type": "frontier_city",
+      "parent_region_id": "region_jiliao",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_qingjian",
+      "name": "清涧",
+      "region_type": "county",
+      "parent_region_id": "region_shaanxi",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_shaanxi",
+      "name": "陕西",
+      "region_type": "province",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_shandong",
+      "name": "山东",
+      "region_type": "province",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_shanghai",
+      "name": "上海",
+      "region_type": "county",
+      "parent_region_id": "region_songjiang",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_shanhai_pass",
+      "name": "山海关",
+      "region_type": "frontier_pass",
+      "parent_region_id": "region_jiliao",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_shanxi",
+      "name": "山西",
+      "region_type": "province",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_shenyang_liaoyang",
+      "name": "沈阳辽阳",
+      "region_type": "external_frontier_region",
+      "parent_region_id": null,
+      "power_id": "later_jin"
+    },
+    {
+      "region_id": "region_songjiang",
+      "name": "松江",
+      "region_type": "prefecture",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_suizhou",
+      "name": "睢州",
+      "region_type": "local_place",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_yansui",
+      "name": "延绥",
+      "region_type": "frontier_command_region",
+      "parent_region_id": "region_shaanxi",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_yingtian",
+      "name": "应天府",
+      "region_type": "prefecture",
+      "parent_region_id": "region_nanjing",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_yongcheng",
+      "name": "永城",
+      "region_type": "county",
+      "parent_region_id": "region_ming_empire",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_yongping",
+      "name": "永平",
+      "region_type": "prefecture_or_frontier_city",
+      "parent_region_id": "region_jiliao",
+      "power_id": "ming"
+    },
+    {
+      "region_id": "region_zunhua",
+      "name": "遵化",
+      "region_type": "frontier_city",
+      "parent_region_id": "region_jiliao",
+      "power_id": "ming"
+    }
+  ]
+}

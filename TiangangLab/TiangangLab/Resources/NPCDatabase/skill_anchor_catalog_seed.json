@@ -1,0 +1,618 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T22:01:01+00:00",
+  "records": [
+    {
+      "skill_id": "tiangang_d21",
+      "skill_name": "经世行政",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d21",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "不懂官署运转，交办政务容易失序。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "能照章处理单项差事，遇到跨部门事务就吃力。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "能稳定主持一地一司常规政务，文移、考成、协调基本可靠。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "能整顿积弊、调度多官署资源，复杂政务仍能推进。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "可设计制度、重塑官僚流程，是一代经世名臣水准。"
+        }
+      ]
+    },
+    {
+      "skill_id": "tiangang_d22",
+      "skill_name": "理财通商",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d22",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "不懂账目、税粮、盐课、商路，容易被胥吏商人牵着走。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "能看懂基础账册和收支缺口，但只能做局部补救。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "能管理常规钱粮、军饷、税课或贸易事项，少出大错。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "能查弊、开源、调度大额财政，懂市场与官法之间的转换。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "可重构财赋体系或打通国家级财源，是顶级财政/通商人才。"
+        }
+      ]
+    },
+    {
+      "skill_id": "tiangang_d23",
+      "skill_name": "律法刑名",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d23",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "不懂律例案牍，审案容易错断或被书吏操弄。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "能依常例判断轻重，复杂案情需要他人辅佐。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "能处理常规刑名、诉讼、弹劾与法条适用。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "能抓住疑案关节，兼顾律例、证据、政治影响。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "精通律例刑名，可主持大案、修例或以法术制衡群臣。"
+        }
+      ]
+    },
+    {
+      "skill_id": "tiangang_d24",
+      "skill_name": "文章辞令",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d24",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "难以组织成文或当众说明，奏对常失焦。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "能写读基本公文，表达尚可但缺少说服力。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "能清楚写奏、答问、陈述利害，满足官场常规沟通。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "文字锋利、奏对得体，可借辞令改变议题走向。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "文章、奏疏、辩论皆可压服士林与朝堂，是文辞顶尖人物。"
+        }
+      ]
+    },
+    {
+      "skill_id": "tiangang_d25",
+      "skill_name": "战略统帅",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d25",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "看不懂全局兵势，只能听从他人规划。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "能理解一路战场目标，但难以统筹多线。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "能制定一镇一役的战略目标，知道取舍进退。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "能统合多路兵马、财政、外交与民心，形成战区战略。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "可改变国运级战争格局，是跨战区战略统帅。"
+        }
+      ]
+    },
+    {
+      "skill_id": "tiangang_d26",
+      "skill_name": "战术指挥",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d26",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "临阵不知队形、火候、地形与士气，易乱军。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "能按成法布阵守备，变局中反应慢。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "能指挥常规攻守、行军、伏击或城防。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "能因地制宜，抓住战机，以少胜多或转危为安。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "临阵判断近乎本能，能创造战术奇迹。"
+        }
+      ]
+    },
+    {
+      "skill_id": "tiangang_d27",
+      "skill_name": "个人武勇",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d27",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "基本无战斗能力，近身遇险只能逃避。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "可自保，懂简单兵器或骑射。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "普通军官/护卫水平，能上阵搏杀并保持胆气。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "勇悍出众，可冲阵、护驾、夺险要。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "万人敌级武勇，个人战力足以改变局部战局。"
+        }
+      ]
+    },
+    {
+      "skill_id": "tiangang_d28",
+      "skill_name": "军务后勤",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d28",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "不懂粮道、军械、营制，军队很快失序。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "能管小规模粮草器械，遇长期战事即吃紧。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "能维持常规营伍、粮饷、军械、驿递。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "能支撑大军远征或多镇联动，处理损耗与补给危机。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "可建立国家级军事后勤体系，兵马未动而胜负已定。"
+        }
+      ]
+    },
+    {
+      "skill_id": "tiangang_d29",
+      "skill_name": "情报刺探",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d29",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "不会藏踪、探问、辨伪，容易泄露目标。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "能收集公开消息和浅层流言。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "能组织常规耳目，分辨基本真伪。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "能渗透、反侦察、串联线人，取得关键隐情。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "可铺设跨地区情报网，洞察敌我朝野暗线。"
+        }
+      ]
+    },
+    {
+      "skill_id": "tiangang_d30",
+      "skill_name": "密谋策划",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d30",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "不懂保密、布局与风险隔离，谋事易败露。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "能做简单遮掩和串联，但破绽较多。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "能策划常规政治操作、离间、设局或秘密行动。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "能多层布局，预置替罪、后手和舆论转向。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "谋局深远，能让多人按其预设路线行动而不自知。"
+        }
+      ]
+    },
+    {
+      "skill_id": "tiangang_d31",
+      "skill_name": "审讯逼供",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d31",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "不会问案，容易问乱、逼假或激化局势。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "能按流程讯问普通案件。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "能稳定取得口供、证词和基础线索。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "擅长攻心、拆谎、追赃与牵连线索。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "可在大案中精准突破关键人物，重塑案情全貌。"
+        }
+      ]
+    },
+    {
+      "skill_id": "tiangang_d32",
+      "skill_name": "内廷运作",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d32",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "不懂宫禁规矩和内廷传递路径，容易犯忌。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "知道基础礼节，可完成简单入奏或传话。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "能在司礼、内库、后宫、近侍之间正常办事。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "熟悉内廷权力回路，可借宫中流程推动外朝目标。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "深通宫禁与票拟传旨机制，能左右内外权力流向。"
+        }
+      ]
+    },
+    {
+      "skill_id": "tiangang_d33",
+      "skill_name": "纵横说服",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d33",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "不会谈判，常把对方推向敌对。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "能陈述己方条件，但难以换取让步。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "能完成常规劝说、调停、招抚、谈判。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "能抓住对方欲惧，促成复杂交易或联盟。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "可在敌对阵营间捭阖纵横，凭口舌改变态势。"
+        }
+      ]
+    },
+    {
+      "skill_id": "tiangang_d34",
+      "skill_name": "审时度势",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d34",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "看不清风向，常在错误时机下注。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "能察觉明显强弱，但反应滞后。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "能判断常规局势、利害和时机。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "能提前看到局势拐点，懂得进退取舍。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "几乎能预判大势流向，在未成形前布置后手。"
+        }
+      ]
+    },
+    {
+      "skill_id": "tiangang_d35",
+      "skill_name": "领袖魅力",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d35",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "难以服众，部属离散或只畏不服。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "能维持小圈子服从，号召力有限。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "能带领常规团队，稳定士气和追随。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "能凝聚派系、军心或民望，让人主动效命。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "具备时代级号召力，可令群体为其承担巨大风险。"
+        }
+      ]
+    },
+    {
+      "skill_id": "tiangang_d36",
+      "skill_name": "格物技艺",
+      "skill_type": "tiangang_professional_dimension",
+      "linked_dimension_id": "d36",
+      "linked_capability_category": null,
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "不懂技术、器物、工程、医药或西学原理。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "能照方使用器物或技术，但难以改造。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "能理解并应用一门实用技艺。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "能改良器物、工程、历法、医术或制造流程。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "可开创或系统化技术路线，是顶级格物/工程/学术人才。"
+        }
+      ]
+    },
+    {
+      "skill_id": "skill_watercraft_swimming",
+      "skill_name": "水性",
+      "skill_type": "capability_example",
+      "linked_dimension_id": null,
+      "linked_capability_category": "maritime_trade",
+      "scale_min": 1,
+      "scale_max": 5,
+      "anchors": [
+        {
+          "level": 1,
+          "label": "外行",
+          "description": "下水即慌，短时漂浮都困难。"
+        },
+        {
+          "level": 2,
+          "label": "粗通",
+          "description": "能在浅水自保，不能负重、不能渡河。"
+        },
+        {
+          "level": 3,
+          "label": "称职",
+          "description": "普通人游泳水平，可短距离渡水。"
+        },
+        {
+          "level": 4,
+          "label": "优秀",
+          "description": "熟练水手/水军水平，可负重、救人、夜渡。"
+        },
+        {
+          "level": 5,
+          "label": "当世一流",
+          "description": "跨海泅渡级水性，能在风浪、暗流、战场中行动。"
+        }
+      ]
+    }
+  ]
+}

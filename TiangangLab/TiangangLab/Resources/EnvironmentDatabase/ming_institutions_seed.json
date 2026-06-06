@@ -1,0 +1,447 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T21:47:48.404688Z",
+  "records": [
+    {
+      "institution_id": "cabinet",
+      "name": "内阁",
+      "layer": "central",
+      "institution_family": "advisory_governance",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "censorate",
+      "name": "都察院",
+      "layer": "central",
+      "institution_family": "censorial",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "central_six_ministries",
+      "name": "六部",
+      "layer": "central",
+      "institution_family": "six_ministries",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "civil_service_pool",
+      "name": "待铨候选",
+      "layer": "personnel_pool",
+      "institution_family": "candidate_pool",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "commercial_maritime",
+      "name": "商贸海路",
+      "layer": "civil_society",
+      "institution_family": "merchant_network",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "directorate_ceremonial",
+      "name": "司礼监",
+      "layer": "inner_court",
+      "institution_family": "eunuch_agency",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "eastern_depot",
+      "name": "东厂",
+      "layer": "inner_court",
+      "institution_family": "secret_police",
+      "parent_institution_id": "directorate_ceremonial"
+    },
+    {
+      "institution_id": "embroidered_uniform_guard",
+      "name": "锦衣卫",
+      "layer": "imperial_guard",
+      "institution_family": "security_police",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "external_powers",
+      "name": "外部势力",
+      "layer": "external",
+      "institution_family": "foreign_or_non_ming_power",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "hanlin_academy",
+      "name": "翰林院",
+      "layer": "central",
+      "institution_family": "literary_bureaucracy",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "inner_anle_tang",
+      "name": "安乐堂",
+      "layer": "inner_court",
+      "institution_family": "sickroom",
+      "parent_institution_id": "directorate_ceremonial"
+    },
+    {
+      "institution_id": "inner_baochao_si",
+      "name": "宝钞司",
+      "layer": "inner_court",
+      "institution_family": "paper_manufacture",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_bingzhang_ju",
+      "name": "兵仗局",
+      "layer": "inner_court",
+      "institution_family": "weapons_manufacture",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_court_twenty_four_yamen",
+      "name": "内府二十四衙门",
+      "layer": "inner_court",
+      "institution_family": "eunuch_yamen_system",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "inner_duzhi_jian",
+      "name": "都知监",
+      "layer": "inner_court",
+      "institution_family": "imperial_procession_security",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_genggu_fang",
+      "name": "更鼓房",
+      "layer": "inner_court",
+      "institution_family": "punishment_labor",
+      "parent_institution_id": "directorate_ceremonial"
+    },
+    {
+      "institution_id": "inner_huanyi_ju",
+      "name": "浣衣局",
+      "layer": "inner_court",
+      "institution_family": "laundry_and_confinement",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_huntang_si",
+      "name": "混堂司",
+      "layer": "inner_court",
+      "institution_family": "bathhouse",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_jingle_tang",
+      "name": "净乐堂",
+      "layer": "inner_court",
+      "institution_family": "cremation",
+      "parent_institution_id": "directorate_ceremonial"
+    },
+    {
+      "institution_id": "inner_jinmao_ju",
+      "name": "巾帽局",
+      "layer": "inner_court",
+      "institution_family": "headwear_and_boots",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_jiucumian_ju",
+      "name": "酒醋面局",
+      "layer": "inner_court",
+      "institution_family": "food_staples",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_liyi_fang",
+      "name": "礼仪房",
+      "layer": "inner_court",
+      "institution_family": "marriage_and_ritual",
+      "parent_institution_id": "directorate_ceremonial"
+    },
+    {
+      "institution_id": "inner_military_supervision",
+      "name": "内廷监军体系",
+      "layer": "inner_court",
+      "institution_family": "eunuch_military_mission",
+      "parent_institution_id": "directorate_ceremonial"
+    },
+    {
+      "institution_id": "inner_neichengyun_ku",
+      "name": "内承运库",
+      "layer": "inner_court",
+      "institution_family": "treasury_and_jewels",
+      "parent_institution_id": "directorate_ceremonial"
+    },
+    {
+      "institution_id": "inner_neifugongyong_ku",
+      "name": "内府供用库",
+      "layer": "inner_court",
+      "institution_family": "food_and_wax_storehouse",
+      "parent_institution_id": "directorate_ceremonial"
+    },
+    {
+      "institution_id": "inner_neiguan_jian",
+      "name": "内官监",
+      "layer": "inner_court",
+      "institution_family": "construction_and_manufacture",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_neishutang",
+      "name": "内书堂",
+      "layer": "inner_court",
+      "institution_family": "eunuch_education",
+      "parent_institution_id": "directorate_ceremonial"
+    },
+    {
+      "institution_id": "inner_neizhirang_ju",
+      "name": "内织染局",
+      "layer": "inner_court",
+      "institution_family": "textile_dyeing",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_palace",
+      "name": "后宫",
+      "layer": "inner_court",
+      "institution_family": "harem_order",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "inner_shangbao_jian",
+      "name": "尚宝监",
+      "layer": "inner_court",
+      "institution_family": "imperial_seals",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_shangshan_jian",
+      "name": "尚膳监",
+      "layer": "inner_court",
+      "institution_family": "imperial_kitchen_supply",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_shangyi_jian",
+      "name": "尚衣监",
+      "layer": "inner_court",
+      "institution_family": "imperial_wardrobe",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_shengong_jian",
+      "name": "神宫监",
+      "layer": "inner_court",
+      "institution_family": "temple_ritual",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_sili_jian",
+      "name": "司礼监",
+      "layer": "inner_court",
+      "institution_family": "eunuch_ceremonial_secretariat",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_sishe_jian",
+      "name": "司设监",
+      "layer": "inner_court",
+      "institution_family": "ritual_furnishing",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_siyuan_ju",
+      "name": "司苑局",
+      "layer": "inner_court",
+      "institution_family": "gardens_and_produce",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_siyue_ku",
+      "name": "司钥库",
+      "layer": "inner_court",
+      "institution_family": "keys_and_coin_storehouse",
+      "parent_institution_id": "directorate_ceremonial"
+    },
+    {
+      "institution_id": "inner_ten_warehouses",
+      "name": "十库",
+      "layer": "inner_court",
+      "institution_family": "classified_warehouses",
+      "parent_institution_id": "directorate_ceremonial"
+    },
+    {
+      "institution_id": "inner_xixin_si",
+      "name": "惜薪司",
+      "layer": "inner_court",
+      "institution_family": "fuel_and_cleaning",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_yinshou_jian",
+      "name": "印绶监",
+      "layer": "inner_court",
+      "institution_family": "documents_and_tokens",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_yinzuo_ju",
+      "name": "银作局",
+      "layer": "inner_court",
+      "institution_family": "silverwork_rewards",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_yuchafang",
+      "name": "御茶房",
+      "layer": "inner_court",
+      "institution_family": "tea_and_fruit",
+      "parent_institution_id": "directorate_ceremonial"
+    },
+    {
+      "institution_id": "inner_yuma_jian",
+      "name": "御马监",
+      "layer": "inner_court",
+      "institution_family": "imperial_stables_military",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_yuyaofang",
+      "name": "御药房",
+      "layer": "inner_court",
+      "institution_family": "medicine",
+      "parent_institution_id": "directorate_ceremonial"
+    },
+    {
+      "institution_id": "inner_yuyong_jian",
+      "name": "御用监",
+      "layer": "inner_court",
+      "institution_family": "imperial_objects",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_zhengong_ju",
+      "name": "针工局",
+      "layer": "inner_court",
+      "institution_family": "clothing_workshop",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_zhidian_jian",
+      "name": "直殿监",
+      "layer": "inner_court",
+      "institution_family": "palace_maintenance",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "inner_zhonggu_si",
+      "name": "钟鼓司",
+      "layer": "inner_court",
+      "institution_family": "music_and_performance",
+      "parent_institution_id": "inner_court_twenty_four_yamen"
+    },
+    {
+      "institution_id": "local_government",
+      "name": "地方官署",
+      "layer": "local",
+      "institution_family": "civil_local",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "military_frontier",
+      "name": "边镇军府",
+      "layer": "frontier",
+      "institution_family": "military_command",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "ministry_personnel",
+      "name": "吏部",
+      "layer": "central",
+      "institution_family": "six_ministries",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "ministry_revenue",
+      "name": "户部",
+      "layer": "central",
+      "institution_family": "six_ministries",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "ministry_rites",
+      "name": "礼部",
+      "layer": "central",
+      "institution_family": "six_ministries",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "ministry_war",
+      "name": "兵部",
+      "layer": "central",
+      "institution_family": "six_ministries",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "ministry_works",
+      "name": "工部",
+      "layer": "central",
+      "institution_family": "six_ministries",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "native_chieftain_administration",
+      "name": "土司/宣慰宣抚体系",
+      "layer": "frontier",
+      "institution_family": "native_chieftain_military_administration",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "nobility_system",
+      "name": "爵位体系",
+      "layer": "title_system",
+      "institution_family": "nobility",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "provincial_administration",
+      "name": "承宣布政使司体系",
+      "layer": "provincial",
+      "institution_family": "provincial_civil_administration",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "rebel_bands",
+      "name": "流寇/民变集团",
+      "layer": "external",
+      "institution_family": "rebellion",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "regional_dispatch",
+      "name": "巡抚总督督师差遣体系",
+      "layer": "regional",
+      "institution_family": "temporary_or_dispatch_office",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "religious_world",
+      "name": "宗教山门",
+      "layer": "civil_society",
+      "institution_family": "religious_order",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "six_offices",
+      "name": "六科",
+      "layer": "central",
+      "institution_family": "censorial_remonstrance",
+      "parent_institution_id": null
+    },
+    {
+      "institution_id": "unappointed_people",
+      "name": "未仕/民间",
+      "layer": "civil_society",
+      "institution_family": "unappointed",
+      "parent_institution_id": null
+    }
+  ]
+}

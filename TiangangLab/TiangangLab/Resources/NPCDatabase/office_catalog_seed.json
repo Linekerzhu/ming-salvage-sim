@@ -1,0 +1,5529 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T22:01:01+00:00",
+  "records": [
+    {
+      "office_catalog_id": "slot_cabinet_4c13c530",
+      "institution_id": "cabinet",
+      "office_slot_id": "slot_cabinet_4c13c530",
+      "environment_office_post_id": "post_cabinet_grand_secretary",
+      "environment_office_canonical_title": "内阁大学士",
+      "office_capacity_policy": "plural",
+      "canonical_title": "东阁大学士",
+      "title_variants": [
+        "礼部尚书,东阁大学士",
+        "兵部尚书,礼部尚书,东阁大学士,督师",
+        "户部尚书,东阁大学士",
+        "礼部侍郎,东阁大学士",
+        "礼部尚书,东阁大学士,视师"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_cabinet_3c90a020",
+      "institution_id": "cabinet",
+      "office_slot_id": "slot_cabinet_3c90a020",
+      "environment_office_post_id": "post_cabinet_grand_secretary",
+      "environment_office_canonical_title": "内阁大学士",
+      "office_capacity_policy": "plural",
+      "canonical_title": "内阁大学士",
+      "title_variants": [
+        "内阁大学士"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_cabinet_a2e9f0ec",
+      "institution_id": "cabinet",
+      "office_slot_id": "slot_cabinet_a2e9f0ec",
+      "environment_office_post_id": "post_cabinet_senior_role",
+      "environment_office_canonical_title": "内阁首辅/次辅",
+      "office_capacity_policy": "plural",
+      "canonical_title": "内阁次辅",
+      "title_variants": [
+        "内阁次辅"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_cabinet_b31312fd",
+      "institution_id": "cabinet",
+      "office_slot_id": "slot_cabinet_b31312fd",
+      "environment_office_post_id": "post_cabinet_senior_role",
+      "environment_office_canonical_title": "内阁首辅/次辅",
+      "office_capacity_policy": "plural",
+      "canonical_title": "内阁首辅",
+      "title_variants": [
+        "前内阁首辅，罢居蒲州",
+        "内阁首辅"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "former",
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_cabinet_571eddbe",
+      "institution_id": "cabinet",
+      "office_slot_id": "slot_cabinet_571eddbe",
+      "environment_office_post_id": "post_cabinet_grand_secretary",
+      "environment_office_canonical_title": "内阁大学士",
+      "office_capacity_policy": "plural",
+      "canonical_title": "前内阁大学士",
+      "title_variants": [
+        "前内阁大学士"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "former"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_cabinet_3af4f9f8",
+      "institution_id": "cabinet",
+      "office_slot_id": "slot_cabinet_3af4f9f8",
+      "environment_office_post_id": "post_cabinet_senior_role",
+      "environment_office_canonical_title": "内阁首辅/次辅",
+      "office_capacity_policy": "plural",
+      "canonical_title": "前内阁次辅",
+      "title_variants": [
+        "前内阁次辅"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "former"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_cabinet_a867f9ae",
+      "institution_id": "cabinet",
+      "office_slot_id": "slot_cabinet_a867f9ae",
+      "environment_office_post_id": "post_cabinet_senior_role",
+      "environment_office_canonical_title": "内阁首辅/次辅",
+      "office_capacity_policy": "plural",
+      "canonical_title": "前内阁首辅",
+      "title_variants": [
+        "前内阁首辅"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "former"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_cabinet_08b417dc",
+      "institution_id": "cabinet",
+      "office_slot_id": "slot_cabinet_08b417dc",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "视师",
+      "title_variants": [
+        "礼部尚书,东阁大学士,视师"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_3a84bc49",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_3a84bc49",
+      "environment_office_post_id": "post_six_offices_geishizhong",
+      "environment_office_canonical_title": "给事中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵科给事中",
+      "title_variants": [
+        "兵科给事中"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "cong_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_7c274c59",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_7c274c59",
+      "environment_office_post_id": "post_censorate_yushi",
+      "environment_office_canonical_title": "御史",
+      "office_capacity_policy": "plural",
+      "canonical_title": "四川道监察御史",
+      "title_variants": [
+        "四川道监察御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_18b8ab4f",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_18b8ab4f",
+      "environment_office_post_id": "post_censorate_yushi",
+      "environment_office_canonical_title": "御史",
+      "office_capacity_policy": "plural",
+      "canonical_title": "山东道监察御史",
+      "title_variants": [
+        "山东道监察御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_15f95704",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_15f95704",
+      "environment_office_post_id": "post_censorate_yushi",
+      "environment_office_canonical_title": "御史",
+      "office_capacity_policy": "plural",
+      "canonical_title": "山西道监察御史",
+      "title_variants": [
+        "山西道监察御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_1e12c0de",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_1e12c0de",
+      "environment_office_post_id": "post_censorate_yushi",
+      "environment_office_canonical_title": "御史",
+      "office_capacity_policy": "plural",
+      "canonical_title": "巡关御史",
+      "title_variants": [
+        "巡关御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_897de44b",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_897de44b",
+      "environment_office_post_id": "post_censorate_zuoduyushi",
+      "environment_office_canonical_title": "左都御史",
+      "office_capacity_policy": "plural",
+      "canonical_title": "左都御史",
+      "title_variants": [
+        "兵部尚书,左都御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_7fb6cb50",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_7fb6cb50",
+      "environment_office_post_id": "post_censorate_yushi",
+      "environment_office_canonical_title": "御史",
+      "office_capacity_policy": "plural",
+      "canonical_title": "广东道监察御史",
+      "title_variants": [
+        "广东道监察御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_ae5f57bf",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_ae5f57bf",
+      "environment_office_post_id": "post_censorate_yushi",
+      "environment_office_canonical_title": "御史",
+      "office_capacity_policy": "plural",
+      "canonical_title": "广西道监察御史",
+      "title_variants": [
+        "广西道监察御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_1d92101b",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_1d92101b",
+      "environment_office_post_id": "post_censorate_yushi",
+      "environment_office_canonical_title": "御史",
+      "office_capacity_policy": "plural",
+      "canonical_title": "御史",
+      "title_variants": [
+        "御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_d5ed6377",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_d5ed6377",
+      "environment_office_post_id": "post_censorate_yushi",
+      "environment_office_canonical_title": "御史",
+      "office_capacity_policy": "plural",
+      "canonical_title": "江西道监察御史",
+      "title_variants": [
+        "江西道监察御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_e3ab7f83",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_e3ab7f83",
+      "environment_office_post_id": "post_censorate_yushi",
+      "environment_office_canonical_title": "御史",
+      "office_capacity_policy": "plural",
+      "canonical_title": "河南道监察御史",
+      "title_variants": [
+        "河南道监察御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_b14af47b",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_b14af47b",
+      "environment_office_post_id": "post_censorate_yushi",
+      "environment_office_canonical_title": "御史",
+      "office_capacity_policy": "plural",
+      "canonical_title": "浙江道监察御史",
+      "title_variants": [
+        "浙江道监察御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_dd7b3d15",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_dd7b3d15",
+      "environment_office_post_id": "post_censorate_yushi",
+      "environment_office_canonical_title": "御史",
+      "office_capacity_policy": "plural",
+      "canonical_title": "湖广道监察御史",
+      "title_variants": [
+        "湖广道监察御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_52a620d3",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_52a620d3",
+      "environment_office_post_id": "post_censorate_yushi",
+      "environment_office_canonical_title": "御史",
+      "office_capacity_policy": "plural",
+      "canonical_title": "福建道监察御史",
+      "title_variants": [
+        "福建道监察御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_86389c41",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_86389c41",
+      "environment_office_post_id": "post_six_offices_geishizhong",
+      "environment_office_canonical_title": "给事中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "给事中",
+      "title_variants": [
+        "给事中"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "cong_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_censorate_371dfd51",
+      "institution_id": "censorate",
+      "office_slot_id": "slot_censorate_371dfd51",
+      "environment_office_post_id": "post_censorate_yushi",
+      "environment_office_canonical_title": "御史",
+      "office_capacity_policy": "plural",
+      "canonical_title": "陕西道监察御史",
+      "title_variants": [
+        "陕西道监察御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_civil_service_pool_688c058e",
+      "institution_id": "civil_service_pool",
+      "office_slot_id": "slot_civil_service_pool_688c058e",
+      "environment_office_post_id": "post_old_688c058e8a",
+      "environment_office_canonical_title": "南京官场旧人",
+      "office_capacity_policy": "plural",
+      "canonical_title": "南京官场旧人",
+      "title_variants": [
+        "南京官场旧人"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "civilian_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_civil_service_pool_4eedfb6b",
+      "institution_id": "civil_service_pool",
+      "office_slot_id": "slot_civil_service_pool_4eedfb6b",
+      "environment_office_post_id": "post_prefecture_zhifu",
+      "environment_office_canonical_title": "知府",
+      "office_capacity_policy": "singleton",
+      "canonical_title": "知府候选",
+      "title_variants": [
+        "知府候选"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_civil_service_pool_1fc17651",
+      "institution_id": "civil_service_pool",
+      "office_slot_id": "slot_civil_service_pool_1fc17651",
+      "environment_office_post_id": "post_civil_service_jinshi_candidate",
+      "environment_office_canonical_title": "进士候选",
+      "office_capacity_policy": "plural",
+      "canonical_title": "进士及第",
+      "title_variants": [
+        "进士及第"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "civilian_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_commercial_maritime_acead805",
+      "institution_id": "commercial_maritime",
+      "office_slot_id": "slot_commercial_maritime_acead805",
+      "environment_office_post_id": "post_old_acead805cc",
+      "environment_office_canonical_title": "东海倭寇大头目",
+      "office_capacity_policy": "plural",
+      "canonical_title": "东海倭寇大头目",
+      "title_variants": [
+        "东海倭寇大头目"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_commercial_maritime_0f7b4a32",
+      "institution_id": "commercial_maritime",
+      "office_slot_id": "slot_commercial_maritime_0f7b4a32",
+      "environment_office_post_id": "post_old_0f7b4a32ec",
+      "environment_office_canonical_title": "海商",
+      "office_capacity_policy": "plural",
+      "canonical_title": "海商",
+      "title_variants": [
+        "福建总兵，海商"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_commercial_maritime_85d39095",
+      "institution_id": "commercial_maritime",
+      "office_slot_id": "slot_commercial_maritime_85d39095",
+      "environment_office_post_id": "post_old_85d39095f3",
+      "environment_office_canonical_title": "西域商人",
+      "office_capacity_policy": "plural",
+      "canonical_title": "西域商人",
+      "title_variants": [
+        "西域商人"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_commercial_maritime_f0cc7a57",
+      "institution_id": "commercial_maritime",
+      "office_slot_id": "slot_commercial_maritime_f0cc7a57",
+      "environment_office_post_id": "post_old_f0cc7a5713",
+      "environment_office_canonical_title": "马尼拉华商领袖",
+      "office_capacity_policy": "plural",
+      "canonical_title": "马尼拉华商领袖",
+      "title_variants": [
+        "马尼拉华商领袖"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_2750848c",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_2750848c",
+      "environment_office_post_id": "post_inner_eunuch_neiguan",
+      "environment_office_canonical_title": "内官",
+      "office_capacity_policy": "plural",
+      "canonical_title": "信邸内官",
+      "title_variants": [
+        "信邸内官（候补司礼监）"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": null,
+      "rank_applicability": "inner_eunuch_order",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_4bdb4697",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_4bdb4697",
+      "environment_office_post_id": "post_inner_eunuch_neiguan",
+      "environment_office_canonical_title": "内官",
+      "office_capacity_policy": "plural",
+      "canonical_title": "信邸内官随驾",
+      "title_variants": [
+        "信邸内官随驾"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": null,
+      "rank_applicability": "inner_eunuch_order",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_0b037b1d",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_0b037b1d",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "内臣",
+      "title_variants": [
+        "内臣"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": null,
+      "rank_applicability": "inner_eunuch_order",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_66cda796",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_66cda796",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "分守紫荆倒马诸关内臣",
+      "title_variants": [
+        "分守紫荆倒马诸关内臣"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": null,
+      "rank_applicability": "inner_eunuch_order",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_d7649a75",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_d7649a75",
+      "environment_office_post_id": "post_inner_eunuch_neiguan",
+      "environment_office_canonical_title": "内官",
+      "office_capacity_policy": "plural",
+      "canonical_title": "司礼监内官",
+      "title_variants": [
+        "司礼监内官"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": null,
+      "rank_applicability": "inner_eunuch_order",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_d38acdf1",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_d38acdf1",
+      "environment_office_post_id": "post_inner_eunuch_taijian",
+      "environment_office_canonical_title": "太监",
+      "office_capacity_policy": "plural",
+      "canonical_title": "司礼监内直房太监",
+      "title_variants": [
+        "司礼监内直房太监"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_b33adad1",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_b33adad1",
+      "environment_office_post_id": "post_inner_eunuch_fengyu",
+      "environment_office_canonical_title": "奉御",
+      "office_capacity_policy": "plural",
+      "canonical_title": "司礼监内直房奉御",
+      "title_variants": [
+        "司礼监内直房奉御"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_6",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_4d764dad",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_4d764dad",
+      "environment_office_post_id": "post_inner_eunuch_taijian",
+      "environment_office_canonical_title": "太监",
+      "office_capacity_policy": "plural",
+      "canonical_title": "司礼监太监",
+      "title_variants": [
+        "司礼监太监"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_846e77e6",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_846e77e6",
+      "environment_office_post_id": "post_sili_jian_zhangyin",
+      "environment_office_canonical_title": "司礼监掌印太监",
+      "office_capacity_policy": "singleton",
+      "canonical_title": "司礼监掌印太监",
+      "title_variants": [
+        "司礼监掌印太监"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_fd5171ff",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_fd5171ff",
+      "environment_office_post_id": "post_inner_eunuch_taijian",
+      "environment_office_canonical_title": "太监",
+      "office_capacity_policy": "plural",
+      "canonical_title": "司礼监文书房太监",
+      "title_variants": [
+        "司礼监文书房太监"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_198f96e5",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_198f96e5",
+      "environment_office_post_id": "post_inner_eunuch_fengyu",
+      "environment_office_canonical_title": "奉御",
+      "office_capacity_policy": "plural",
+      "canonical_title": "司礼监文书房奉御",
+      "title_variants": [
+        "司礼监文书房奉御"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_6",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_5ed4f672",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_5ed4f672",
+      "environment_office_post_id": "post_sili_jian_bingbi",
+      "environment_office_canonical_title": "司礼监秉笔太监",
+      "office_capacity_policy": "plural",
+      "canonical_title": "司礼监秉笔太监",
+      "title_variants": [
+        "司礼监秉笔太监,东厂提督"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_dd397251",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_dd397251",
+      "environment_office_post_id": "post_inner_eunuch_taijian",
+      "environment_office_canonical_title": "太监",
+      "office_capacity_policy": "plural",
+      "canonical_title": "司礼监随堂太监",
+      "title_variants": [
+        "司礼监随堂太监"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_5145dff8",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_5145dff8",
+      "environment_office_post_id": "post_inner_eunuch_fengyu",
+      "environment_office_canonical_title": "奉御",
+      "office_capacity_policy": "plural",
+      "canonical_title": "司礼监随堂奉御",
+      "title_variants": [
+        "司礼监随堂奉御"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_6",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_c8e74cac",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_c8e74cac",
+      "environment_office_post_id": "post_inner_eunuch_taijian",
+      "environment_office_canonical_title": "太监",
+      "office_capacity_policy": "plural",
+      "canonical_title": "司礼监题本房太监",
+      "title_variants": [
+        "司礼监题本房太监"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_05ce2622",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_05ce2622",
+      "environment_office_post_id": "post_inner_eunuch_fengyu",
+      "environment_office_canonical_title": "奉御",
+      "office_capacity_policy": "plural",
+      "canonical_title": "司礼监题本房奉御",
+      "title_variants": [
+        "司礼监题本房奉御"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_6",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_f662f0d4",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_f662f0d4",
+      "environment_office_post_id": "post_neiting_jiantian",
+      "environment_office_canonical_title": "监军太监",
+      "office_capacity_policy": "plural",
+      "canonical_title": "宣府监军太监",
+      "title_variants": [
+        "宣府监军太监"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_4648dbff",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_4648dbff",
+      "environment_office_post_id": "post_inner_eunuch_taijian",
+      "environment_office_canonical_title": "太监",
+      "office_capacity_policy": "plural",
+      "canonical_title": "御马监太监",
+      "title_variants": [
+        "御马监太监"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_7a8aa66d",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_7a8aa66d",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "总理户工二部钱粮内臣",
+      "title_variants": [
+        "总理户工二部钱粮内臣"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": null,
+      "rank_applicability": "inner_eunuch_order",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_79c0e8ed",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_79c0e8ed",
+      "environment_office_post_id": "post_neiting_jiantian",
+      "environment_office_canonical_title": "监军太监",
+      "office_capacity_policy": "plural",
+      "canonical_title": "监军太监",
+      "title_variants": [
+        "监军太监"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_directorate_ceremonial_b749ce06",
+      "institution_id": "directorate_ceremonial",
+      "office_slot_id": "slot_directorate_ceremonial_b749ce06",
+      "environment_office_post_id": "post_neiting_jiantian",
+      "environment_office_canonical_title": "监军太监",
+      "office_capacity_policy": "plural",
+      "canonical_title": "蓟辽监军太监",
+      "title_variants": [
+        "蓟辽监军太监"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_eastern_depot_82d7b274",
+      "institution_id": "eastern_depot",
+      "office_slot_id": "slot_eastern_depot_82d7b274",
+      "environment_office_post_id": "post_dongchang_tiduu",
+      "environment_office_canonical_title": "东厂提督",
+      "office_capacity_policy": "singleton",
+      "canonical_title": "东厂提督",
+      "title_variants": [
+        "司礼监秉笔太监,东厂提督"
+      ],
+      "rank_context": "inner_eunuch",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_embroidered_uniform_guard_46bb7a60",
+      "institution_id": "embroidered_uniform_guard",
+      "office_slot_id": "slot_embroidered_uniform_guard_46bb7a60",
+      "environment_office_post_id": "post_guard_zhihui",
+      "environment_office_canonical_title": "卫所指挥",
+      "office_capacity_policy": "plural",
+      "canonical_title": "指挥",
+      "title_variants": [
+        "指挥"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_embroidered_uniform_guard_a208a416",
+      "institution_id": "embroidered_uniform_guard",
+      "office_slot_id": "slot_embroidered_uniform_guard_a208a416",
+      "environment_office_post_id": "post_jinyiwei_beizhenfusi_lixing",
+      "environment_office_canonical_title": "锦衣卫北镇抚司理刑",
+      "office_capacity_policy": "plural",
+      "canonical_title": "锦衣卫北镇抚司理刑",
+      "title_variants": [
+        "锦衣卫北镇抚司理刑"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_embroidered_uniform_guard_9f62889e",
+      "institution_id": "embroidered_uniform_guard",
+      "office_slot_id": "slot_embroidered_uniform_guard_9f62889e",
+      "environment_office_post_id": "post_jinyiwei_qianhu",
+      "environment_office_canonical_title": "锦衣卫千户",
+      "office_capacity_policy": "plural",
+      "canonical_title": "锦衣卫千户",
+      "title_variants": [
+        "锦衣卫千户"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_embroidered_uniform_guard_f2a5763a",
+      "institution_id": "embroidered_uniform_guard",
+      "office_slot_id": "slot_embroidered_uniform_guard_f2a5763a",
+      "environment_office_post_id": "post_jinyiwei_duzhihuishi",
+      "environment_office_canonical_title": "锦衣卫都指挥使",
+      "office_capacity_policy": "plural",
+      "canonical_title": "锦衣卫都指挥使",
+      "title_variants": [
+        "锦衣卫都指挥使"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_849a7dd7",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_849a7dd7",
+      "environment_office_post_id": "post_old_849a7dd777",
+      "environment_office_canonical_title": "一等侍卫",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "一等侍卫",
+      "title_variants": [
+        "一等侍卫"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_ae8986cf",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_ae8986cf",
+      "environment_office_post_id": "post_old_ae8986cf1e",
+      "environment_office_canonical_title": "后金文馆谋臣",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "后金文馆谋臣",
+      "title_variants": [
+        "后金文馆谋臣"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_2702d62b",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_2702d62b",
+      "environment_office_post_id": "post_old_2702d62b96",
+      "environment_office_canonical_title": "后金汉军将领",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "后金汉军将领",
+      "title_variants": [
+        "后金汉军将领"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_aa5abbe7",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_aa5abbe7",
+      "environment_office_post_id": "post_old_aa5abbe73a",
+      "environment_office_canonical_title": "后金汗",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "后金汗",
+      "title_variants": [
+        "后金汗"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_0e3e4e3d",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_0e3e4e3d",
+      "environment_office_post_id": "post_old_0e3e4e3db3",
+      "environment_office_canonical_title": "和硕贝勒",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "和硕贝勒",
+      "title_variants": [
+        "和硕贝勒"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_b925897e",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_b925897e",
+      "environment_office_post_id": "post_old_b925897e1c",
+      "environment_office_canonical_title": "喀尔喀汗",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "喀尔喀汗",
+      "title_variants": [
+        "喀尔喀汗"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_467ab068",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_467ab068",
+      "environment_office_post_id": "post_external_mongol_taiji",
+      "environment_office_canonical_title": "蒙古台吉",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "察哈尔台吉",
+      "title_variants": [
+        "察哈尔台吉"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_6cd94fd3",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_6cd94fd3",
+      "environment_office_post_id": "post_old_6cd94fd34d",
+      "environment_office_canonical_title": "察哈尔汗",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "察哈尔汗",
+      "title_variants": [
+        "察哈尔汗"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_d323a815",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_d323a815",
+      "environment_office_post_id": "post_old_d323a81552",
+      "environment_office_canonical_title": "怀顺王",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "怀顺王",
+      "title_variants": [
+        "怀顺王"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_2c933f4b",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_2c933f4b",
+      "environment_office_post_id": "post_old_2c933f4bd4",
+      "environment_office_canonical_title": "恭顺王",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "恭顺王",
+      "title_variants": [
+        "恭顺王"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_27d2b243",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_27d2b243",
+      "environment_office_post_id": "post_old_27d2b24311",
+      "environment_office_canonical_title": "文馆大学士",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "文馆大学士",
+      "title_variants": [
+        "文馆大学士"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_9b0b66bf",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_9b0b66bf",
+      "environment_office_post_id": "post_old_9b0b66bf26",
+      "environment_office_canonical_title": "智顺王",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "智顺王",
+      "title_variants": [
+        "智顺王"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_64bb8755",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_64bb8755",
+      "environment_office_post_id": "post_old_64bb875551",
+      "environment_office_canonical_title": "朝鲜国王",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "朝鲜国王",
+      "title_variants": [
+        "朝鲜国王"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_c4a17f74",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_c4a17f74",
+      "environment_office_post_id": "post_old_c4a17f74fe",
+      "environment_office_canonical_title": "朝鲜朝臣",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "朝鲜朝臣",
+      "title_variants": [
+        "朝鲜朝臣"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_6789e234",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_6789e234",
+      "environment_office_post_id": "post_old_6789e23487",
+      "environment_office_canonical_title": "正黄旗固山额真",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "正黄旗固山额真",
+      "title_variants": [
+        "正黄旗固山额真"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_c0a6d29e",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_c0a6d29e",
+      "environment_office_post_id": "post_old_c0a6d29e2a",
+      "environment_office_canonical_title": "漠南蒙古首领",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "漠南蒙古首领",
+      "title_variants": [
+        "漠南蒙古首领"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_85a6f537",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_85a6f537",
+      "environment_office_post_id": "post_old_85a6f537b2",
+      "environment_office_canonical_title": "睿亲王",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "睿亲王",
+      "title_variants": [
+        "睿亲王"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_aaf0a390",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_aaf0a390",
+      "environment_office_post_id": "post_old_aaf0a39062",
+      "environment_office_canonical_title": "英亲王",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "英亲王",
+      "title_variants": [
+        "英亲王"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_d15ae459",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_d15ae459",
+      "environment_office_post_id": "post_old_d15ae45923",
+      "environment_office_canonical_title": "豫亲王",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "豫亲王",
+      "title_variants": [
+        "豫亲王"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_cedb0fe4",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_cedb0fe4",
+      "environment_office_post_id": "post_old_cedb0fe429",
+      "environment_office_canonical_title": "贝勒",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "贝勒",
+      "title_variants": [
+        "贝勒"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_843a04d9",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_843a04d9",
+      "environment_office_post_id": "post_old_843a04d942",
+      "environment_office_canonical_title": "郑亲王",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "郑亲王",
+      "title_variants": [
+        "郑亲王"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_external_powers_7d5c18b3",
+      "institution_id": "external_powers",
+      "office_slot_id": "slot_external_powers_7d5c18b3",
+      "environment_office_post_id": "post_old_7d5c18b37b",
+      "environment_office_canonical_title": "镶黄旗护军统领",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "镶黄旗护军统领",
+      "title_variants": [
+        "镶黄旗护军统领"
+      ],
+      "rank_context": "foreign_title",
+      "default_rank_code": null,
+      "rank_applicability": "foreign_not_ming",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_hanlin_academy_5b64e0a1",
+      "institution_id": "hanlin_academy",
+      "office_slot_id": "slot_hanlin_academy_5b64e0a1",
+      "environment_office_post_id": "post_hanlin_bianxiu",
+      "environment_office_canonical_title": "翰林院编修",
+      "office_capacity_policy": "plural",
+      "canonical_title": "翰林院编修",
+      "title_variants": [
+        "翰林院编修"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_inner_palace_ecfed91a",
+      "institution_id": "inner_palace",
+      "office_slot_id": "slot_inner_palace_ecfed91a",
+      "environment_office_post_id": "post_harem_empress",
+      "environment_office_canonical_title": "皇后",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "中宫皇后",
+      "title_variants": [
+        "中宫皇后"
+      ],
+      "rank_context": "harem_title",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "honorary"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_inner_palace_8f4d57d3",
+      "institution_id": "inner_palace",
+      "office_slot_id": "slot_inner_palace_8f4d57d3",
+      "environment_office_post_id": "post_inner_palace_madame_fengsheng",
+      "environment_office_canonical_title": "奉圣夫人",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "奉圣夫人",
+      "title_variants": [
+        "奉圣夫人（先帝乳母）"
+      ],
+      "rank_context": "harem_title",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "honorary"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_inner_palace_77e4323b",
+      "institution_id": "inner_palace",
+      "office_slot_id": "slot_inner_palace_77e4323b",
+      "environment_office_post_id": "post_harem_fei",
+      "environment_office_canonical_title": "妃",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "妃",
+      "title_variants": [
+        "妃"
+      ],
+      "rank_context": "harem_title",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "honorary"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_inner_palace_7927898d",
+      "institution_id": "inner_palace",
+      "office_slot_id": "slot_inner_palace_7927898d",
+      "environment_office_post_id": "post_inner_palace_musician",
+      "environment_office_canonical_title": "宫廷乐师",
+      "office_capacity_policy": "plural",
+      "canonical_title": "宫廷乐师",
+      "title_variants": [
+        "宫廷乐师"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "civilian_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_inner_palace_041349be",
+      "institution_id": "inner_palace",
+      "office_slot_id": "slot_inner_palace_041349be",
+      "environment_office_post_id": "post_harem_fei",
+      "environment_office_canonical_title": "妃",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "淑妃",
+      "title_variants": [
+        "淑妃"
+      ],
+      "rank_context": "harem_title",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "honorary"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_inner_palace_7304a30b",
+      "institution_id": "inner_palace",
+      "office_slot_id": "slot_inner_palace_7304a30b",
+      "environment_office_post_id": "post_harem_guiren",
+      "environment_office_canonical_title": "贵人",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "贵人",
+      "title_variants": [
+        "贵人"
+      ],
+      "rank_context": "harem_title",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "honorary"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_inner_palace_09061887",
+      "institution_id": "inner_palace",
+      "office_slot_id": "slot_inner_palace_09061887",
+      "environment_office_post_id": "post_harem_guifei",
+      "environment_office_canonical_title": "贵妃",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "贵妃",
+      "title_variants": [
+        "贵妃"
+      ],
+      "rank_context": "harem_title",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "honorary"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_local_government_269093bc",
+      "institution_id": "local_government",
+      "office_slot_id": "slot_local_government_269093bc",
+      "environment_office_post_id": "post_prefecture_tuiguan",
+      "environment_office_canonical_title": "推官",
+      "office_capacity_policy": "plural",
+      "canonical_title": "凤阳府推官",
+      "title_variants": [
+        "凤阳府推官"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_local_government_18187eb4",
+      "institution_id": "local_government",
+      "office_slot_id": "slot_local_government_18187eb4",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "凤阳留守",
+      "title_variants": [
+        "凤阳留守"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_local_government_9cf0c7c8",
+      "institution_id": "local_government",
+      "office_slot_id": "slot_local_government_9cf0c7c8",
+      "environment_office_post_id": "post_provincial_canyi",
+      "environment_office_canonical_title": "参议",
+      "office_capacity_policy": "plural",
+      "canonical_title": "参议",
+      "title_variants": [
+        "参议"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "cong_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_local_government_ec3da63a",
+      "institution_id": "local_government",
+      "office_slot_id": "slot_local_government_ec3da63a",
+      "environment_office_post_id": "post_prefecture_zhifu",
+      "environment_office_canonical_title": "知府",
+      "office_capacity_policy": "singleton",
+      "canonical_title": "大名府知府",
+      "title_variants": [
+        "大名府知府"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_local_government_90f65fef",
+      "institution_id": "local_government",
+      "office_slot_id": "slot_local_government_90f65fef",
+      "environment_office_post_id": "post_prefecture_zhifu",
+      "environment_office_canonical_title": "知府",
+      "office_capacity_policy": "singleton",
+      "canonical_title": "永平知府",
+      "title_variants": [
+        "永平知府"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_local_government_0f112ddb",
+      "institution_id": "local_government",
+      "office_slot_id": "slot_local_government_0f112ddb",
+      "environment_office_post_id": "post_prefecture_tuiguan",
+      "environment_office_canonical_title": "推官",
+      "office_capacity_policy": "plural",
+      "canonical_title": "遵化推官",
+      "title_variants": [
+        "遵化推官"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_7",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_48216645",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_48216645",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "东江水营游击",
+      "title_variants": [
+        "东江水营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_c1a2a6cd",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_c1a2a6cd",
+      "environment_office_post_id": "post_frontier_zongbing",
+      "environment_office_canonical_title": "总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "东江镇总兵",
+      "title_variants": [
+        "东江镇总兵"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_20b05168",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_20b05168",
+      "environment_office_post_id": "post_frontier_zongbing",
+      "environment_office_canonical_title": "总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "京营总兵官",
+      "title_variants": [
+        "京营总兵官"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_3c3d6934",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_3c3d6934",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "保定标营游击",
+      "title_variants": [
+        "保定标营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_0d3d7450",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_0d3d7450",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "副将",
+      "title_variants": [
+        "副将"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_a04cade5",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_a04cade5",
+      "environment_office_post_id": "post_frontier_fuzongbing",
+      "environment_office_canonical_title": "副总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "副总兵",
+      "title_variants": [
+        "副总兵"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_9376d991",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_9376d991",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "参将",
+      "title_variants": [
+        "参将"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_b7cb1e80",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_b7cb1e80",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "固镇中营游击",
+      "title_variants": [
+        "固镇中营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_b1219074",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_b1219074",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "大同先遣营游击",
+      "title_variants": [
+        "大同先遣营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_f21f57ce",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_f21f57ce",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "大同右营游击",
+      "title_variants": [
+        "大同右营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_9745f33f",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_9745f33f",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "大同后哨营游击",
+      "title_variants": [
+        "大同后哨营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_4e7efaae",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_4e7efaae",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "大同屯守营游击",
+      "title_variants": [
+        "大同屯守营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_75e885b0",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_75e885b0",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "大同左营游击",
+      "title_variants": [
+        "大同左营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_e0970fd6",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_e0970fd6",
+      "environment_office_post_id": "post_frontier_zongbing",
+      "environment_office_canonical_title": "总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "大同总兵",
+      "title_variants": [
+        "大同总兵"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_501b6646",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_501b6646",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "宁夏先遣营游击",
+      "title_variants": [
+        "宁夏先遣营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_82e7f042",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_82e7f042",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "宁夏右翼游击",
+      "title_variants": [
+        "宁夏右翼游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_2b49c706",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_2b49c706",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "宁夏左翼游击",
+      "title_variants": [
+        "宁夏左翼游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_009e2c48",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_009e2c48",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "守将",
+      "title_variants": [
+        "守将"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_7f845156",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_7f845156",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "宣府先遣营游击",
+      "title_variants": [
+        "宣府先遣营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_458e1ecb",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_458e1ecb",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "宣府右营游击",
+      "title_variants": [
+        "宣府右营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_f6ec3ee9",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_f6ec3ee9",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "宣府后哨营游击",
+      "title_variants": [
+        "宣府后哨营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_60c0391a",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_60c0391a",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "宣府左营游击",
+      "title_variants": [
+        "宣府左营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_20a2a7cf",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_20a2a7cf",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "宣府烽堠营游击",
+      "title_variants": [
+        "宣府烽堠营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_15b8a06a",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_15b8a06a",
+      "environment_office_post_id": "post_frontier_fuzongbing",
+      "environment_office_canonical_title": "副总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "山东副总兵",
+      "title_variants": [
+        "山东副总兵"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_cd7102fb",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_cd7102fb",
+      "environment_office_post_id": "post_frontier_zongbing",
+      "environment_office_canonical_title": "总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "山东总兵",
+      "title_variants": [
+        "山东总兵"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_eef50c73",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_eef50c73",
+      "environment_office_post_id": "post_frontier_zongbing",
+      "environment_office_canonical_title": "总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "山海关总兵",
+      "title_variants": [
+        "山海关总兵"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_1f732042",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_1f732042",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "山海关标营游击",
+      "title_variants": [
+        "山海关标营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_d6df00ca",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_d6df00ca",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "山西先遣营游击",
+      "title_variants": [
+        "山西先遣营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_f971a951",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_f971a951",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "山西右营游击",
+      "title_variants": [
+        "山西右营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_2f650d25",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_2f650d25",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "山西后哨营游击",
+      "title_variants": [
+        "山西后哨营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_3c182939",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_3c182939",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "山西左营游击",
+      "title_variants": [
+        "山西左营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_0b7e93f0",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_0b7e93f0",
+      "environment_office_post_id": "post_frontier_zongbing",
+      "environment_office_canonical_title": "总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "山西总兵",
+      "title_variants": [
+        "山西总兵"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_ae8b15e4",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_ae8b15e4",
+      "environment_office_post_id": "post_frontier_zongbing",
+      "environment_office_canonical_title": "总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "山西总兵官",
+      "title_variants": [
+        "山西总兵官"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_ffc71b9f",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_ffc71b9f",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "山西援剿营游击",
+      "title_variants": [
+        "山西援剿营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_3fe56645",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_3fe56645",
+      "environment_office_post_id": "post_old_3fe566457e",
+      "environment_office_canonical_title": "平贼将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "平贼将军",
+      "title_variants": [
+        "平贼将军"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_c2c303a4",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_c2c303a4",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "延绥先遣营游击",
+      "title_variants": [
+        "延绥先遣营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_518dd0da",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_518dd0da",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "延绥右营游击",
+      "title_variants": [
+        "延绥右营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_8146b34d",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_8146b34d",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "延绥后哨营游击",
+      "title_variants": [
+        "延绥后哨营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_c9482437",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_c9482437",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "延绥左营游击",
+      "title_variants": [
+        "延绥左营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_2752f67d",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_2752f67d",
+      "environment_office_post_id": "post_frontier_zongbing",
+      "environment_office_canonical_title": "总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "延绥总兵官",
+      "title_variants": [
+        "延绥总兵官"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_574cfd74",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_574cfd74",
+      "environment_office_post_id": "post_frontier_zongbing",
+      "environment_office_canonical_title": "总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "总兵官",
+      "title_variants": [
+        "总兵官,总理援军",
+        "前总兵官",
+        "总兵官",
+        "石砫宣抚使,都督佥事,总兵官"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive",
+        "former",
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_8bba5de4",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_8bba5de4",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "总理援军",
+      "title_variants": [
+        "总兵官,总理援军"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_cffbc933",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_cffbc933",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "榆林标营游击",
+      "title_variants": [
+        "榆林标营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_d4c7ed45",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_d4c7ed45",
+      "environment_office_post_id": "post_frontier_zongbing",
+      "environment_office_canonical_title": "总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "浙江总兵官",
+      "title_variants": [
+        "浙江总兵官"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_08cccac1",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_08cccac1",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "游击",
+      "title_variants": [
+        "游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_a79c61f4",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_a79c61f4",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "甘肃右翼游击",
+      "title_variants": [
+        "甘肃右翼游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_c779b296",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_c779b296",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "甘肃左翼游击",
+      "title_variants": [
+        "甘肃左翼游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_4489d056",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_4489d056",
+      "environment_office_post_id": "post_frontier_zongbing",
+      "environment_office_canonical_title": "总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "登州总兵官",
+      "title_variants": [
+        "登州总兵官"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_4cb18896",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_4cb18896",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "登莱水师游击",
+      "title_variants": [
+        "登莱水师游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_73a4950a",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_73a4950a",
+      "environment_office_post_id": "post_frontier_zongbing",
+      "environment_office_canonical_title": "总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "福建总兵",
+      "title_variants": [
+        "福建总兵，海商"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_e3f80ee2",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_e3f80ee2",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "蓟镇先遣营游击",
+      "title_variants": [
+        "蓟镇先遣营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_79f9daae",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_79f9daae",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "蓟镇右营游击",
+      "title_variants": [
+        "蓟镇右营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_fa15de25",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_fa15de25",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "蓟镇后哨营游击",
+      "title_variants": [
+        "蓟镇后哨营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_f1c59f47",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_f1c59f47",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "蓟镇左营游击",
+      "title_variants": [
+        "蓟镇左营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_936d5205",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_936d5205",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "蓟镇护粮营游击",
+      "title_variants": [
+        "蓟镇护粮营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_af1f69d0",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_af1f69d0",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "辽东中营游击",
+      "title_variants": [
+        "辽东中营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_c9bf289f",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_c9bf289f",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "辽东先遣营游击",
+      "title_variants": [
+        "辽东先遣营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_81e0d86f",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_81e0d86f",
+      "environment_office_post_id": "post_old_81e0d86f2d",
+      "environment_office_canonical_title": "辽东副将",
+      "office_capacity_policy": "plural",
+      "canonical_title": "辽东副将",
+      "title_variants": [
+        "辽东副将"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_2a23d950",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_2a23d950",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "辽东右营游击",
+      "title_variants": [
+        "辽东右营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_d7b8a13d",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_d7b8a13d",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "辽东后哨营游击",
+      "title_variants": [
+        "辽东后哨营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_40feaaa5",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_40feaaa5",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "辽东左营游击",
+      "title_variants": [
+        "辽东左营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_2ecd3394",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_2ecd3394",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "辽东游击将军",
+      "title_variants": [
+        "辽东游击将军"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_6bee6b25",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_6bee6b25",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "辽东策应营游击",
+      "title_variants": [
+        "辽东策应营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_08c24dfc",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_08c24dfc",
+      "environment_office_post_id": "post_frontier_zongbing",
+      "environment_office_canonical_title": "总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "锦州副总兵",
+      "title_variants": [
+        "锦州副总兵"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_203ef6a3",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_203ef6a3",
+      "environment_office_post_id": "post_frontier_zongbing",
+      "environment_office_canonical_title": "总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "阳和总兵官",
+      "title_variants": [
+        "阳和总兵官"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_4189524f",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_4189524f",
+      "environment_office_post_id": "post_frontier_youji",
+      "environment_office_canonical_title": "游击将军",
+      "office_capacity_policy": "plural",
+      "canonical_title": "陕西标营游击",
+      "title_variants": [
+        "陕西标营游击"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_military_frontier_7867cda1",
+      "institution_id": "military_frontier",
+      "office_slot_id": "slot_military_frontier_7867cda1",
+      "environment_office_post_id": "post_frontier_zongbing",
+      "environment_office_canonical_title": "总兵",
+      "office_capacity_policy": "plural",
+      "canonical_title": "陕西诸路总兵官",
+      "title_variants": [
+        "陕西诸路总兵官"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": null,
+      "rank_applicability": "military_command_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_personnel_03e767dd",
+      "institution_id": "ministry_personnel",
+      "office_slot_id": "slot_ministry_personnel_03e767dd",
+      "environment_office_post_id": "post_six_ministries_shilang",
+      "environment_office_canonical_title": "六部侍郎",
+      "office_capacity_policy": "plural",
+      "canonical_title": "吏部侍郎",
+      "title_variants": [
+        "吏部侍郎"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_personnel_47fcf503",
+      "institution_id": "ministry_personnel",
+      "office_slot_id": "slot_ministry_personnel_47fcf503",
+      "environment_office_post_id": "post_six_ministries_shangshu",
+      "environment_office_canonical_title": "六部尚书",
+      "office_capacity_policy": "fixed_capacity",
+      "canonical_title": "吏部尚书",
+      "title_variants": [
+        "吏部尚书"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_personnel_f3afc9e8",
+      "institution_id": "ministry_personnel",
+      "office_slot_id": "slot_ministry_personnel_f3afc9e8",
+      "environment_office_post_id": "post_ministry_zhushi",
+      "environment_office_canonical_title": "主事",
+      "office_capacity_policy": "plural",
+      "canonical_title": "吏部考功司主事",
+      "title_variants": [
+        "吏部考功司主事"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_6",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_revenue_350374a2",
+      "institution_id": "ministry_revenue",
+      "office_slot_id": "slot_ministry_revenue_350374a2",
+      "environment_office_post_id": "post_six_ministries_shangshu",
+      "environment_office_canonical_title": "六部尚书",
+      "office_capacity_policy": "fixed_capacity",
+      "canonical_title": "南京户部尚书",
+      "title_variants": [
+        "南京户部尚书"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_revenue_cd80b890",
+      "institution_id": "ministry_revenue",
+      "office_slot_id": "slot_ministry_revenue_cd80b890",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "总理户工二部钱粮",
+      "title_variants": [
+        "户部侍郎,总理户工二部钱粮"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_revenue_0e0526da",
+      "institution_id": "ministry_revenue",
+      "office_slot_id": "slot_ministry_revenue_0e0526da",
+      "environment_office_post_id": "post_six_ministries_shilang",
+      "environment_office_canonical_title": "六部侍郎",
+      "office_capacity_policy": "plural",
+      "canonical_title": "户部侍郎",
+      "title_variants": [
+        "户部侍郎,总理户工二部钱粮"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_revenue_e9c82268",
+      "institution_id": "ministry_revenue",
+      "office_slot_id": "slot_ministry_revenue_e9c82268",
+      "environment_office_post_id": "post_six_ministries_shangshu",
+      "environment_office_canonical_title": "六部尚书",
+      "office_capacity_policy": "fixed_capacity",
+      "canonical_title": "户部尚书",
+      "title_variants": [
+        "户部尚书",
+        "户部尚书,东阁大学士"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_revenue_1a52f523",
+      "institution_id": "ministry_revenue",
+      "office_slot_id": "slot_ministry_revenue_1a52f523",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "户部山东清吏司郎中",
+      "title_variants": [
+        "户部山东清吏司郎中"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_revenue_1de6354f",
+      "institution_id": "ministry_revenue",
+      "office_slot_id": "slot_ministry_revenue_1de6354f",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "户部江西清吏司郎中",
+      "title_variants": [
+        "户部江西清吏司郎中"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_revenue_5974c93e",
+      "institution_id": "ministry_revenue",
+      "office_slot_id": "slot_ministry_revenue_5974c93e",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "户部浙江清吏司郎中",
+      "title_variants": [
+        "户部浙江清吏司郎中"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_revenue_0f14c438",
+      "institution_id": "ministry_revenue",
+      "office_slot_id": "slot_ministry_revenue_0f14c438",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "户部湖广清吏司郎中",
+      "title_variants": [
+        "户部湖广清吏司郎中"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_8ffe994c",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_8ffe994c",
+      "environment_office_post_id": "post_zhanshifu_shaozhanshi",
+      "environment_office_canonical_title": "少詹事",
+      "office_capacity_policy": "plural",
+      "canonical_title": "少詹事",
+      "title_variants": [
+        "少詹事"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_7c9207d0",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_7c9207d0",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部主客司郎中",
+      "title_variants": [
+        "礼部主客司郎中"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_38b71d45",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_38b71d45",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部仪制司郎中",
+      "title_variants": [
+        "礼部仪制司郎中"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_6e5126e3",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_6e5126e3",
+      "environment_office_post_id": "post_six_ministries_shilang",
+      "environment_office_canonical_title": "六部侍郎",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部侍郎",
+      "title_variants": [
+        "礼部侍郎",
+        "礼部侍郎,东阁大学士"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_502ee611",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_502ee611",
+      "environment_office_post_id": "post_six_ministries_shilang",
+      "environment_office_canonical_title": "六部侍郎",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部右侍郎",
+      "title_variants": [
+        "前礼部右侍郎，罢居常熟"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "former"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_75dd0579",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_75dd0579",
+      "environment_office_post_id": "post_rites_you_shaoqing",
+      "environment_office_canonical_title": "礼部右少卿",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部右少卿",
+      "title_variants": [
+        "前礼部右少卿，罢居上海"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "former"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_51fb6ff1",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_51fb6ff1",
+      "environment_office_post_id": "post_six_ministries_shangshu",
+      "environment_office_canonical_title": "六部尚书",
+      "office_capacity_policy": "fixed_capacity",
+      "canonical_title": "礼部尚书",
+      "title_variants": [
+        "礼部尚书,东阁大学士",
+        "兵部尚书,礼部尚书,东阁大学士,督师",
+        "礼部尚书",
+        "礼部尚书,东阁大学士,视师"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive",
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_0b530cfc",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_0b530cfc",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部祠祭司郎中",
+      "title_variants": [
+        "礼部祠祭司郎中"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_797c4645",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_797c4645",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部精膳司郎中",
+      "title_variants": [
+        "礼部精膳司郎中"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_0a7558df",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_0a7558df",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第10席",
+      "title_variants": [
+        "礼部郎中第10席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_247f0cea",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_247f0cea",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第11席",
+      "title_variants": [
+        "礼部郎中第11席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_fb5104f3",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_fb5104f3",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第12席",
+      "title_variants": [
+        "礼部郎中第12席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_38568f94",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_38568f94",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第13席",
+      "title_variants": [
+        "礼部郎中第13席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_42fa3f4f",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_42fa3f4f",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第14席",
+      "title_variants": [
+        "礼部郎中第14席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_7c7357f9",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_7c7357f9",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第15席",
+      "title_variants": [
+        "礼部郎中第15席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_06a9f2ef",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_06a9f2ef",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第16席",
+      "title_variants": [
+        "礼部郎中第16席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_a826e1d2",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_a826e1d2",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第17席",
+      "title_variants": [
+        "礼部郎中第17席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_d4c240f6",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_d4c240f6",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第1席",
+      "title_variants": [
+        "礼部郎中第1席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_7ca0e503",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_7ca0e503",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第2席",
+      "title_variants": [
+        "礼部郎中第2席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_2e17927f",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_2e17927f",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第3席",
+      "title_variants": [
+        "礼部郎中第3席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_a240d4fb",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_a240d4fb",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第4席",
+      "title_variants": [
+        "礼部郎中第4席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_3f004947",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_3f004947",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第5席",
+      "title_variants": [
+        "礼部郎中第5席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_3748713b",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_3748713b",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第6席",
+      "title_variants": [
+        "礼部郎中第6席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_1eafabe1",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_1eafabe1",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第7席",
+      "title_variants": [
+        "礼部郎中第7席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_61e919e8",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_61e919e8",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第8席",
+      "title_variants": [
+        "礼部郎中第8席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_rites_42e7f5d7",
+      "institution_id": "ministry_rites",
+      "office_slot_id": "slot_ministry_rites_42e7f5d7",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "礼部郎中第9席",
+      "title_variants": [
+        "礼部郎中第9席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_6c38a6c0",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_6c38a6c0",
+      "environment_office_post_id": "post_six_ministries_shilang",
+      "environment_office_canonical_title": "六部侍郎",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部侍郎",
+      "title_variants": [
+        "兵部侍郎",
+        "兵部侍郎,五省总督",
+        "兵部侍郎,陕西三边总督"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_3f614fc1",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_3f614fc1",
+      "environment_office_post_id": "post_six_ministries_shilang",
+      "environment_office_canonical_title": "六部侍郎",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部右侍郎",
+      "title_variants": [
+        "兵部右侍郎",
+        "兵部右侍郎,总督宣大山西军务",
+        "兵部右侍郎,总督山东军务"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_f27ec1b3",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_f27ec1b3",
+      "environment_office_post_id": "post_six_ministries_shangshu",
+      "environment_office_canonical_title": "六部尚书",
+      "office_capacity_policy": "fixed_capacity",
+      "canonical_title": "兵部尚书",
+      "title_variants": [
+        "兵部尚书,礼部尚书,东阁大学士,督师",
+        "兵部尚书,左都御史",
+        "兵部尚书,蓟辽督师",
+        "兵部尚书,总理南京河南山陕川湖军务",
+        "兵部尚书",
+        "兵部尚书,督师讨贼",
+        "兵部尚书,督援军",
+        "前兵部尚书"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive",
+        "former"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_c4958f6b",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_c4958f6b",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部武库司郎中",
+      "title_variants": [
+        "兵部武库司郎中"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_0cce6294",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_0cce6294",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部武选司郎中",
+      "title_variants": [
+        "兵部武选司郎中"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_6188c8d6",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_6188c8d6",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部职方司郎中",
+      "title_variants": [
+        "兵部职方司郎中"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_25e3d31a",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_25e3d31a",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部车驾司郎中",
+      "title_variants": [
+        "兵部车驾司郎中"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_c22de178",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_c22de178",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部郎中第10席",
+      "title_variants": [
+        "兵部郎中第10席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_9ad19dea",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_9ad19dea",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部郎中第11席",
+      "title_variants": [
+        "兵部郎中第11席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_a41ff632",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_a41ff632",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部郎中第12席",
+      "title_variants": [
+        "兵部郎中第12席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_935e1de9",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_935e1de9",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部郎中第1席",
+      "title_variants": [
+        "兵部郎中第1席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_5ce194bc",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_5ce194bc",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部郎中第2席",
+      "title_variants": [
+        "兵部郎中第2席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_7b34a13e",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_7b34a13e",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部郎中第3席",
+      "title_variants": [
+        "兵部郎中第3席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_e9f4b733",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_e9f4b733",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部郎中第4席",
+      "title_variants": [
+        "兵部郎中第4席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_6fe066a5",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_6fe066a5",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部郎中第5席",
+      "title_variants": [
+        "兵部郎中第5席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_c8d9a9ed",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_c8d9a9ed",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部郎中第6席",
+      "title_variants": [
+        "兵部郎中第6席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_382d0d6c",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_382d0d6c",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部郎中第7席",
+      "title_variants": [
+        "兵部郎中第7席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_8c0715d1",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_8c0715d1",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部郎中第8席",
+      "title_variants": [
+        "兵部郎中第8席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_2d6b644e",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_2d6b644e",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵部郎中第9席",
+      "title_variants": [
+        "兵部郎中第9席"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_97e638a5",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_97e638a5",
+      "environment_office_post_id": "post_six_ministries_shangshu",
+      "environment_office_canonical_title": "六部尚书",
+      "office_capacity_policy": "fixed_capacity",
+      "canonical_title": "前兵部尚书",
+      "title_variants": [
+        "前兵部尚书"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "former"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_430324cd",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_430324cd",
+      "environment_office_post_id": "post_six_ministries_shangshu",
+      "environment_office_canonical_title": "六部尚书",
+      "office_capacity_policy": "fixed_capacity",
+      "canonical_title": "南京兵部尚书",
+      "title_variants": [
+        "南京兵部尚书"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_e849ee6c",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_e849ee6c",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "总理南京河南山陕川湖军务",
+      "title_variants": [
+        "兵部尚书,总理南京河南山陕川湖军务"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_war_6380f39c",
+      "institution_id": "ministry_war",
+      "office_slot_id": "slot_ministry_war_6380f39c",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "督援军",
+      "title_variants": [
+        "兵部尚书,督援军"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_works_44c5ccfb",
+      "institution_id": "ministry_works",
+      "office_slot_id": "slot_ministry_works_44c5ccfb",
+      "environment_office_post_id": "post_six_ministries_shilang",
+      "environment_office_canonical_title": "六部侍郎",
+      "office_capacity_policy": "plural",
+      "canonical_title": "工部侍郎",
+      "title_variants": [
+        "工部侍郎"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_works_0469e19e",
+      "institution_id": "ministry_works",
+      "office_slot_id": "slot_ministry_works_0469e19e",
+      "environment_office_post_id": "post_six_ministries_shangshu",
+      "environment_office_canonical_title": "六部尚书",
+      "office_capacity_policy": "fixed_capacity",
+      "canonical_title": "工部尚书",
+      "title_variants": [
+        "工部尚书"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_ministry_works_bc1bb6b2",
+      "institution_id": "ministry_works",
+      "office_slot_id": "slot_ministry_works_bc1bb6b2",
+      "environment_office_post_id": "post_ministry_langzhong",
+      "environment_office_canonical_title": "郎中",
+      "office_capacity_policy": "plural",
+      "canonical_title": "工部郎中",
+      "title_variants": [
+        "工部郎中"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_5",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_native_chieftain_administration_1d6d18e2",
+      "institution_id": "native_chieftain_administration",
+      "office_slot_id": "slot_native_chieftain_administration_1d6d18e2",
+      "environment_office_post_id": "post_tusi_xuanfushi",
+      "environment_office_canonical_title": "宣抚使",
+      "office_capacity_policy": "plural",
+      "canonical_title": "石砫宣抚使",
+      "title_variants": [
+        "石砫宣抚使,都督佥事,总兵官"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": "cong_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_native_chieftain_administration_26550f11",
+      "institution_id": "native_chieftain_administration",
+      "office_slot_id": "slot_native_chieftain_administration_26550f11",
+      "environment_office_post_id": "post_dudu_qianshi",
+      "environment_office_canonical_title": "都督佥事",
+      "office_capacity_policy": "plural",
+      "canonical_title": "都督佥事",
+      "title_variants": [
+        "石砫宣抚使,都督佥事,总兵官"
+      ],
+      "rank_context": "outer_military",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_nobility_system_7ffeea19",
+      "institution_id": "nobility_system",
+      "office_slot_id": "slot_nobility_system_7ffeea19",
+      "environment_office_post_id": "post_nobility_wangjue",
+      "environment_office_canonical_title": "宗室王爵",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "万安王",
+      "title_variants": [
+        "万安王"
+      ],
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_nobility_system_95a83c30",
+      "institution_id": "nobility_system",
+      "office_slot_id": "slot_nobility_system_95a83c30",
+      "environment_office_post_id": "post_nobility_bo",
+      "environment_office_canonical_title": "伯",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "兴平伯",
+      "title_variants": [
+        "兴平伯"
+      ],
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_nobility_system_00531f29",
+      "institution_id": "nobility_system",
+      "office_slot_id": "slot_nobility_system_00531f29",
+      "environment_office_post_id": "post_nobility_wangjue",
+      "environment_office_canonical_title": "宗室王爵",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "周王",
+      "title_variants": [
+        "周王"
+      ],
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_nobility_system_d6b41918",
+      "institution_id": "nobility_system",
+      "office_slot_id": "slot_nobility_system_d6b41918",
+      "environment_office_post_id": "post_nobility_wangjue",
+      "environment_office_canonical_title": "宗室王爵",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "唐王",
+      "title_variants": [
+        "唐王"
+      ],
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_nobility_system_0cf04ea0",
+      "institution_id": "nobility_system",
+      "office_slot_id": "slot_nobility_system_0cf04ea0",
+      "environment_office_post_id": "post_nobility_wangjue",
+      "environment_office_canonical_title": "宗室王爵",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "唐藩宗亲",
+      "title_variants": [
+        "唐藩宗亲"
+      ],
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "honorary"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_nobility_system_bb08987d",
+      "institution_id": "nobility_system",
+      "office_slot_id": "slot_nobility_system_bb08987d",
+      "environment_office_post_id": "post_nobility_wangjue",
+      "environment_office_canonical_title": "宗室王爵",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "唐藩宗室",
+      "title_variants": [
+        "唐藩宗室"
+      ],
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "honorary"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_nobility_system_a25f2f40",
+      "institution_id": "nobility_system",
+      "office_slot_id": "slot_nobility_system_a25f2f40",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "巡视边关",
+      "title_variants": [
+        "成国公,巡视边关"
+      ],
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_nobility_system_48470ea3",
+      "institution_id": "nobility_system",
+      "office_slot_id": "slot_nobility_system_48470ea3",
+      "environment_office_post_id": "post_nobility_wangjue",
+      "environment_office_canonical_title": "宗室王爵",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "德王",
+      "title_variants": [
+        "德王"
+      ],
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_nobility_system_45cc76e1",
+      "institution_id": "nobility_system",
+      "office_slot_id": "slot_nobility_system_45cc76e1",
+      "environment_office_post_id": "post_nobility_guogong",
+      "environment_office_canonical_title": "国公",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "成国公",
+      "title_variants": [
+        "成国公,巡视边关"
+      ],
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_nobility_system_84e2b407",
+      "institution_id": "nobility_system",
+      "office_slot_id": "slot_nobility_system_84e2b407",
+      "environment_office_post_id": "post_nobility_wangjue",
+      "environment_office_canonical_title": "宗室王爵",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "福王",
+      "title_variants": [
+        "福王"
+      ],
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_nobility_system_26e58131",
+      "institution_id": "nobility_system",
+      "office_slot_id": "slot_nobility_system_26e58131",
+      "environment_office_post_id": "post_nobility_wangjue",
+      "environment_office_canonical_title": "宗室王爵",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "襄王",
+      "title_variants": [
+        "襄王"
+      ],
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_nobility_system_e3b3a50c",
+      "institution_id": "nobility_system",
+      "office_slot_id": "slot_nobility_system_e3b3a50c",
+      "environment_office_post_id": "post_nobility_wangjue",
+      "environment_office_canonical_title": "宗室王爵",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "贵阳王",
+      "title_variants": [
+        "贵阳王"
+      ],
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_nobility_system_dcb033b4",
+      "institution_id": "nobility_system",
+      "office_slot_id": "slot_nobility_system_dcb033b4",
+      "environment_office_post_id": "post_nobility_bo",
+      "environment_office_canonical_title": "伯",
+      "office_capacity_policy": "title_order_only",
+      "canonical_title": "靖南伯",
+      "title_variants": [
+        "靖南伯"
+      ],
+      "rank_context": "nobility",
+      "default_rank_code": null,
+      "rank_applicability": "title_order_only",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_provincial_administration_cb19e554",
+      "institution_id": "provincial_administration",
+      "office_slot_id": "slot_provincial_administration_cb19e554",
+      "environment_office_post_id": "post_provincial_fushi",
+      "environment_office_canonical_title": "副使",
+      "office_capacity_policy": "plural",
+      "canonical_title": "兵备副使",
+      "title_variants": [
+        "兵备副使"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_provincial_administration_98944d95",
+      "institution_id": "provincial_administration",
+      "office_slot_id": "slot_provincial_administration_98944d95",
+      "environment_office_post_id": "post_provincial_fushi",
+      "environment_office_canonical_title": "副使",
+      "office_capacity_policy": "plural",
+      "canonical_title": "副使",
+      "title_variants": [
+        "副使"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_provincial_administration_d952398b",
+      "institution_id": "provincial_administration",
+      "office_slot_id": "slot_provincial_administration_d952398b",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "参政",
+      "title_variants": [
+        "参政"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "cong_3",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_provincial_administration_07853671",
+      "institution_id": "provincial_administration",
+      "office_slot_id": "slot_provincial_administration_07853671",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "布政使",
+      "title_variants": [
+        "布政使"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "cong_2",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_provincial_administration_1161d7a3",
+      "institution_id": "provincial_administration",
+      "office_slot_id": "slot_provincial_administration_1161d7a3",
+      "environment_office_post_id": "post_provincial_zhaomo",
+      "environment_office_canonical_title": "按察司照磨",
+      "office_capacity_policy": "plural",
+      "canonical_title": "按察司照磨",
+      "title_variants": [
+        "按察司照磨"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "cong_8",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_provincial_administration_f23a0da5",
+      "institution_id": "provincial_administration",
+      "office_slot_id": "slot_provincial_administration_f23a0da5",
+      "environment_office_post_id": "post_shanxi_duliang_canzheng",
+      "environment_office_canonical_title": "督粮参政",
+      "office_capacity_policy": "plural",
+      "canonical_title": "陕西督粮参政",
+      "title_variants": [
+        "陕西督粮参政"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "cong_3",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_8e068026",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_8e068026",
+      "environment_office_post_id": "post_old_8e068026f9",
+      "environment_office_canonical_title": "丞相",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "丞相",
+      "title_variants": [
+        "丞相"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_8f49e6ef",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_8f49e6ef",
+      "environment_office_post_id": "post_old_8f49e6ef0b",
+      "environment_office_canonical_title": "军师",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "军师",
+      "title_variants": [
+        "军师"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_0a1311a5",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_0a1311a5",
+      "environment_office_post_id": "post_old_0a1311a597",
+      "environment_office_canonical_title": "制将军",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "制将军",
+      "title_variants": [
+        "制将军"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_0d3d7450",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_0d3d7450",
+      "environment_office_post_id": "post_rebel_military_title",
+      "environment_office_canonical_title": "叛军军职",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "副将",
+      "title_variants": [
+        "副将,固原兵变主"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_aaf9c9b6",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_aaf9c9b6",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "叛将",
+      "title_variants": [
+        "山东副将,叛将"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_cd2f7e77",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_cd2f7e77",
+      "environment_office_post_id": null,
+      "environment_office_canonical_title": null,
+      "office_capacity_policy": "unresolved",
+      "canonical_title": "固原兵变主",
+      "title_variants": [
+        "副将,固原兵变主"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_c8f7a5eb",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_c8f7a5eb",
+      "environment_office_post_id": "post_old_c8f7a5ebf1",
+      "environment_office_canonical_title": "女将",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "女将",
+      "title_variants": [
+        "女将"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_5b75db40",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_5b75db40",
+      "environment_office_post_id": "post_rebel_military_title",
+      "environment_office_canonical_title": "叛军军职",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "山东副将",
+      "title_variants": [
+        "山东副将,叛将"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_12dfeac4",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_12dfeac4",
+      "environment_office_post_id": "post_old_12dfeac49d",
+      "environment_office_canonical_title": "曹操",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "曹操",
+      "title_variants": [
+        "曹操"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_35ad17ce",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_35ad17ce",
+      "environment_office_post_id": "post_rebel_leader_title",
+      "environment_office_canonical_title": "民变首领",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "海寇",
+      "title_variants": [
+        "海寇"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_d04cf329",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_d04cf329",
+      "environment_office_post_id": "post_old_d04cf3299b",
+      "environment_office_canonical_title": "谋士",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "谋士",
+      "title_variants": [
+        "谋士"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_08a1a322",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_08a1a322",
+      "environment_office_post_id": "post_rebel_leader_title",
+      "environment_office_canonical_title": "民变首领",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "贼首",
+      "title_variants": [
+        "贼首"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_df7dde9f",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_df7dde9f",
+      "environment_office_post_id": "post_old_df7dde9f8d",
+      "environment_office_canonical_title": "边兵",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "边兵",
+      "title_variants": [
+        "边兵，潜在流寇首领"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_e8d56057",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_e8d56057",
+      "environment_office_post_id": "post_rebel_leader_title",
+      "environment_office_canonical_title": "民变首领",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "闯王",
+      "title_variants": [
+        "闯王"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_d85a1912",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_d85a1912",
+      "environment_office_post_id": "post_rebel_leader_title",
+      "environment_office_canonical_title": "民变首领",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "陕北流寇首领",
+      "title_variants": [
+        "陕北流寇首领"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_5dcd724c",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_5dcd724c",
+      "environment_office_post_id": "post_rebel_leader_title",
+      "environment_office_canonical_title": "民变首领",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "革左五营盟主",
+      "title_variants": [
+        "革左五营盟主"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_rebel_bands_168d1a71",
+      "institution_id": "rebel_bands",
+      "office_slot_id": "slot_rebel_bands_168d1a71",
+      "environment_office_post_id": "post_old_168d1a71ad",
+      "environment_office_canonical_title": "驿卒",
+      "office_capacity_policy": "external_plural",
+      "canonical_title": "驿卒",
+      "title_variants": [
+        "驿卒，潜在流寇首领"
+      ],
+      "rank_context": "rebel_title",
+      "default_rank_code": null,
+      "rank_applicability": "rebel_or_unrecognized_title",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_89f43946",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_89f43946",
+      "environment_office_post_id": "post_dushi_zongdu",
+      "environment_office_canonical_title": "总督",
+      "office_capacity_policy": "plural",
+      "canonical_title": "五省总督",
+      "title_variants": [
+        "兵部侍郎,五省总督"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_58a221c4",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_58a221c4",
+      "environment_office_post_id": "post_dushi_zongdu",
+      "environment_office_canonical_title": "总督",
+      "office_capacity_policy": "plural",
+      "canonical_title": "保定山东河北总督",
+      "title_variants": [
+        "保定山东河北总督"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_ff50b494",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_ff50b494",
+      "environment_office_post_id": "post_dushi_xunfu",
+      "environment_office_canonical_title": "巡抚",
+      "office_capacity_policy": "plural",
+      "canonical_title": "保定巡抚都御史",
+      "title_variants": [
+        "保定巡抚都御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_4a24eae6",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_4a24eae6",
+      "environment_office_post_id": "post_dushi_xunfu",
+      "environment_office_canonical_title": "巡抚",
+      "office_capacity_policy": "plural",
+      "canonical_title": "宁夏巡抚都御史",
+      "title_variants": [
+        "宁夏巡抚都御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_b62cef94",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_b62cef94",
+      "environment_office_post_id": "post_dushi_zongdu",
+      "environment_office_canonical_title": "总督",
+      "office_capacity_policy": "plural",
+      "canonical_title": "宣大总督侍郎",
+      "title_variants": [
+        "宣大总督侍郎"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_38394e2f",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_38394e2f",
+      "environment_office_post_id": "post_dushi_xunfu",
+      "environment_office_canonical_title": "巡抚",
+      "office_capacity_policy": "plural",
+      "canonical_title": "山东巡抚",
+      "title_variants": [
+        "山东巡抚"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_3d233aa6",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_3d233aa6",
+      "environment_office_post_id": "post_dushi_xunfu",
+      "environment_office_canonical_title": "巡抚",
+      "office_capacity_policy": "plural",
+      "canonical_title": "山东巡抚都御史",
+      "title_variants": [
+        "山东巡抚都御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_4aca8bf2",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_4aca8bf2",
+      "environment_office_post_id": "post_dushi_xunfu",
+      "environment_office_canonical_title": "巡抚",
+      "office_capacity_policy": "plural",
+      "canonical_title": "巡抚都御史",
+      "title_variants": [
+        "巡抚都御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_e29abbfa",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_e29abbfa",
+      "environment_office_post_id": "post_dushi_xunfu",
+      "environment_office_canonical_title": "巡抚",
+      "office_capacity_policy": "plural",
+      "canonical_title": "应天巡抚都御史",
+      "title_variants": [
+        "应天巡抚都御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_18d0b8eb",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_18d0b8eb",
+      "environment_office_post_id": "post_dushi_zongdu",
+      "environment_office_canonical_title": "总督",
+      "office_capacity_policy": "plural",
+      "canonical_title": "总督保定侍郎",
+      "title_variants": [
+        "总督保定侍郎"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_5160d917",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_5160d917",
+      "environment_office_post_id": "post_dushi_zongdu",
+      "environment_office_canonical_title": "总督",
+      "office_capacity_policy": "plural",
+      "canonical_title": "总督宣大山西军务",
+      "title_variants": [
+        "兵部右侍郎,总督宣大山西军务"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_e84ea771",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_e84ea771",
+      "environment_office_post_id": "post_dushi_zongdu",
+      "environment_office_canonical_title": "总督",
+      "office_capacity_policy": "plural",
+      "canonical_title": "总督山东军务",
+      "title_variants": [
+        "兵部右侍郎,总督山东军务"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_28e750b6",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_28e750b6",
+      "environment_office_post_id": "post_dushi_zongdu",
+      "environment_office_canonical_title": "总督",
+      "office_capacity_policy": "plural",
+      "canonical_title": "总督漕运尚书",
+      "title_variants": [
+        "总督漕运尚书"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_2",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_5374a7e6",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_5374a7e6",
+      "environment_office_post_id": "post_dushi_zongdu",
+      "environment_office_canonical_title": "总督",
+      "office_capacity_policy": "plural",
+      "canonical_title": "总督蓟辽兵部侍郎",
+      "title_variants": [
+        "总督蓟辽兵部侍郎"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_cac27602",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_cac27602",
+      "environment_office_post_id": "post_dushi_zongdu",
+      "environment_office_canonical_title": "总督",
+      "office_capacity_policy": "plural",
+      "canonical_title": "总督蓟辽都御史",
+      "title_variants": [
+        "总督蓟辽都御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_e99b17c7",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_e99b17c7",
+      "environment_office_post_id": "post_dushi_zongdu",
+      "environment_office_canonical_title": "总督",
+      "office_capacity_policy": "plural",
+      "canonical_title": "总督陕西三边侍郎",
+      "title_variants": [
+        "总督陕西三边侍郎"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_61bf1e06",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_61bf1e06",
+      "environment_office_post_id": "post_dushi_zongdu",
+      "environment_office_canonical_title": "总督",
+      "office_capacity_policy": "plural",
+      "canonical_title": "总督陕西三边军务侍郎",
+      "title_variants": [
+        "总督陕西三边军务侍郎"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_3",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_c48e3d7f",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_c48e3d7f",
+      "environment_office_post_id": "post_dushi_xunfu",
+      "environment_office_canonical_title": "巡抚",
+      "office_capacity_policy": "plural",
+      "canonical_title": "江西巡抚佥都御史",
+      "title_variants": [
+        "江西巡抚佥都御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": "zheng_4",
+      "rank_applicability": "ranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_f4c3f7ba",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_f4c3f7ba",
+      "environment_office_post_id": "post_dushi_xunfu",
+      "environment_office_canonical_title": "巡抚",
+      "office_capacity_policy": "plural",
+      "canonical_title": "河南巡抚",
+      "title_variants": [
+        "河南巡抚"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_3635a57e",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_3635a57e",
+      "environment_office_post_id": "post_dushi_xunfu",
+      "environment_office_canonical_title": "巡抚",
+      "office_capacity_policy": "plural",
+      "canonical_title": "湖广巡抚",
+      "title_variants": [
+        "湖广巡抚"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_1f47c338",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_1f47c338",
+      "environment_office_post_id": "post_dushi_xunfu",
+      "environment_office_canonical_title": "巡抚",
+      "office_capacity_policy": "plural",
+      "canonical_title": "畿南巡抚",
+      "title_variants": [
+        "畿南巡抚"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_57a9a4be",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_57a9a4be",
+      "environment_office_post_id": "post_dushi_xunfu",
+      "environment_office_canonical_title": "巡抚",
+      "office_capacity_policy": "plural",
+      "canonical_title": "登莱巡抚",
+      "title_variants": [
+        "前登莱巡抚，罢居睢州"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "former"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_27a4e9dc",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_27a4e9dc",
+      "environment_office_post_id": "post_dushi_dushi",
+      "environment_office_canonical_title": "督师",
+      "office_capacity_policy": "plural",
+      "canonical_title": "督师",
+      "title_variants": [
+        "兵部尚书,礼部尚书,东阁大学士,督师"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_84740f45",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_84740f45",
+      "environment_office_post_id": "post_dushi_dushi",
+      "environment_office_canonical_title": "督师",
+      "office_capacity_policy": "plural",
+      "canonical_title": "督师讨贼",
+      "title_variants": [
+        "兵部尚书,督师讨贼"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_c487106b",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_c487106b",
+      "environment_office_post_id": "post_dushi_zongdu",
+      "environment_office_canonical_title": "总督",
+      "office_capacity_policy": "plural",
+      "canonical_title": "蓟辽总督",
+      "title_variants": [
+        "蓟辽总督"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_c62c7819",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_c62c7819",
+      "environment_office_post_id": "post_dushi_dushi",
+      "environment_office_canonical_title": "督师",
+      "office_capacity_policy": "plural",
+      "canonical_title": "蓟辽督师",
+      "title_variants": [
+        "前蓟辽督师，罢居高阳",
+        "兵部尚书,蓟辽督师",
+        "蓟辽督师"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "former",
+        "concurrent",
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_3e29c1a9",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_3e29c1a9",
+      "environment_office_post_id": "post_dushi_xunfu",
+      "environment_office_canonical_title": "巡抚",
+      "office_capacity_policy": "plural",
+      "canonical_title": "辽东巡抚都御史",
+      "title_variants": [
+        "辽东巡抚都御史"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_regional_dispatch_f454f68f",
+      "institution_id": "regional_dispatch",
+      "office_slot_id": "slot_regional_dispatch_f454f68f",
+      "environment_office_post_id": "post_dushi_zongdu",
+      "environment_office_canonical_title": "总督",
+      "office_capacity_policy": "plural",
+      "canonical_title": "陕西三边总督",
+      "title_variants": [
+        "兵部侍郎,陕西三边总督"
+      ],
+      "rank_context": "outer_civil",
+      "default_rank_code": null,
+      "rank_applicability": "mission_or_dispatch_variable",
+      "default_appointment_kinds": [
+        "concurrent"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_religious_world_f95f9267",
+      "institution_id": "religious_world",
+      "office_slot_id": "slot_religious_world_f95f9267",
+      "environment_office_post_id": "post_old_f95f926727",
+      "environment_office_canonical_title": "少林寺达摩院长老",
+      "office_capacity_policy": "plural",
+      "canonical_title": "少林寺达摩院长老",
+      "title_variants": [
+        "少林寺达摩院长老"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_religious_world_0de29960",
+      "institution_id": "religious_world",
+      "office_slot_id": "slot_religious_world_0de29960",
+      "environment_office_post_id": "post_old_0de29960eb",
+      "environment_office_canonical_title": "武当山掌教",
+      "office_capacity_policy": "plural",
+      "canonical_title": "武当山掌教",
+      "title_variants": [
+        "武当山掌教"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_religious_world_fa6d63cc",
+      "institution_id": "religious_world",
+      "office_slot_id": "slot_religious_world_fa6d63cc",
+      "environment_office_post_id": "post_old_fa6d63cc28",
+      "environment_office_canonical_title": "白莲教教主",
+      "office_capacity_policy": "plural",
+      "canonical_title": "白莲教教主",
+      "title_variants": [
+        "白莲教教主"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_religious_world_b3ae53c1",
+      "institution_id": "religious_world",
+      "office_slot_id": "slot_religious_world_b3ae53c1",
+      "environment_office_post_id": "post_old_b3ae53c1e9",
+      "environment_office_canonical_title": "耶稣会传教士",
+      "office_capacity_policy": "plural",
+      "canonical_title": "耶稣会传教士",
+      "title_variants": [
+        "耶稣会传教士"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_religious_world_9e3a7f57",
+      "institution_id": "religious_world",
+      "office_slot_id": "slot_religious_world_9e3a7f57",
+      "environment_office_post_id": "post_old_9e3a7f5787",
+      "environment_office_canonical_title": "闻香教首",
+      "office_capacity_policy": "plural",
+      "canonical_title": "闻香教首",
+      "title_variants": [
+        "闻香教首"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_religious_world_ccfc6570",
+      "institution_id": "religious_world",
+      "office_slot_id": "slot_religious_world_ccfc6570",
+      "environment_office_post_id": "post_old_ccfc6570fb",
+      "environment_office_canonical_title": "龙虎山天师府法师",
+      "office_capacity_policy": "plural",
+      "canonical_title": "龙虎山天师府法师",
+      "title_variants": [
+        "龙虎山天师府法师"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_unappointed_people_c46a944c",
+      "institution_id": "unappointed_people",
+      "office_slot_id": "slot_unappointed_people_c46a944c",
+      "environment_office_post_id": "post_old_c46a944c02",
+      "environment_office_canonical_title": "关外游侠",
+      "office_capacity_policy": "plural",
+      "canonical_title": "关外游侠",
+      "title_variants": [
+        "关外游侠"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_unappointed_people_8a0c5475",
+      "institution_id": "unappointed_people",
+      "office_slot_id": "slot_unappointed_people_8a0c5475",
+      "environment_office_post_id": "post_old_8a0c54758c",
+      "environment_office_canonical_title": "少年部将",
+      "office_capacity_policy": "plural",
+      "canonical_title": "少年部将",
+      "title_variants": [
+        "少年部将"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_unappointed_people_3073cd92",
+      "institution_id": "unappointed_people",
+      "office_slot_id": "slot_unappointed_people_3073cd92",
+      "environment_office_post_id": "post_unappointed_underage_offstage",
+      "environment_office_canonical_title": "幼年未登场",
+      "office_capacity_policy": "plural",
+      "canonical_title": "幼年未登场",
+      "title_variants": [
+        "幼年未登场"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "civilian_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_unappointed_people_cadd9ef9",
+      "institution_id": "unappointed_people",
+      "office_slot_id": "slot_unappointed_people_cadd9ef9",
+      "environment_office_post_id": "post_old_cadd9ef974",
+      "environment_office_canonical_title": "江湖侠女",
+      "office_capacity_policy": "plural",
+      "canonical_title": "江湖侠女",
+      "title_variants": [
+        "江湖侠女"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_unappointed_people_606df9c4",
+      "institution_id": "unappointed_people",
+      "office_slot_id": "slot_unappointed_people_606df9c4",
+      "environment_office_post_id": "post_old_606df9c42f",
+      "environment_office_canonical_title": "江湖武师",
+      "office_capacity_policy": "plural",
+      "canonical_title": "江湖武师",
+      "title_variants": [
+        "江湖武师"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_unappointed_people_195f1c86",
+      "institution_id": "unappointed_people",
+      "office_slot_id": "slot_unappointed_people_195f1c86",
+      "environment_office_post_id": "post_old_195f1c86ee",
+      "environment_office_canonical_title": "江湖游侠",
+      "office_capacity_policy": "plural",
+      "canonical_title": "江湖游侠",
+      "title_variants": [
+        "江湖游侠"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_unappointed_people_fc2f085d",
+      "institution_id": "unappointed_people",
+      "office_slot_id": "slot_unappointed_people_fc2f085d",
+      "environment_office_post_id": "post_old_fc2f085d5e",
+      "environment_office_canonical_title": "江湖神医",
+      "office_capacity_policy": "plural",
+      "canonical_title": "江湖神医",
+      "title_variants": [
+        "江湖神医"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_unappointed_people_877185cb",
+      "institution_id": "unappointed_people",
+      "office_slot_id": "slot_unappointed_people_877185cb",
+      "environment_office_post_id": "post_old_877185cb69",
+      "environment_office_canonical_title": "洞庭湖隐士",
+      "office_capacity_policy": "plural",
+      "canonical_title": "洞庭湖隐士",
+      "title_variants": [
+        "洞庭湖隐士"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_unappointed_people_e35e2676",
+      "institution_id": "unappointed_people",
+      "office_slot_id": "slot_unappointed_people_e35e2676",
+      "environment_office_post_id": "post_old_e35e26764b",
+      "environment_office_canonical_title": "苗疆大巫师",
+      "office_capacity_policy": "plural",
+      "canonical_title": "苗疆大巫师",
+      "title_variants": [
+        "苗疆大巫师"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    },
+    {
+      "office_catalog_id": "slot_unappointed_people_e65b2065",
+      "institution_id": "unappointed_people",
+      "office_slot_id": "slot_unappointed_people_e65b2065",
+      "environment_office_post_id": "post_old_e65b2065ee",
+      "environment_office_canonical_title": "隐剑山庄庄主",
+      "office_capacity_policy": "plural",
+      "canonical_title": "隐剑山庄庄主",
+      "title_variants": [
+        "隐剑山庄庄主"
+      ],
+      "rank_context": "civilian",
+      "default_rank_code": null,
+      "rank_applicability": "unofficial_unranked",
+      "default_appointment_kinds": [
+        "substantive"
+      ]
+    }
+  ]
+}

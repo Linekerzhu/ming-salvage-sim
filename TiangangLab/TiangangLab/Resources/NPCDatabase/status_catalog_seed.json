@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T22:01:01+00:00",
+  "records": [
+    {
+      "status_code": "active_in_office",
+      "label": "在任",
+      "summonable_by_default": true,
+      "appointable_by_default": true,
+      "description": "有实任、兼任、差遣或可执行职务。"
+    },
+    {
+      "status_code": "active_unassigned",
+      "label": "待用/未实任",
+      "summonable_by_default": true,
+      "appointable_by_default": false,
+      "description": "人物可互动或被事件招募，但当前不持可执行职务，不能直接任官。"
+    },
+    {
+      "status_code": "idle_home",
+      "label": "赋闲/罢居",
+      "summonable_by_default": true,
+      "appointable_by_default": true,
+      "description": "品秩或履历不消失，但当前不在任。"
+    },
+    {
+      "status_code": "candidate",
+      "label": "候选",
+      "summonable_by_default": true,
+      "appointable_by_default": true,
+      "description": "已进入任用候选池，仍需任命事件确认。"
+    },
+    {
+      "status_code": "offstage",
+      "label": "未登场",
+      "summonable_by_default": false,
+      "appointable_by_default": false,
+      "description": "历史窗口尚未打开或暂不可召见。"
+    },
+    {
+      "status_code": "suspended",
+      "label": "停职",
+      "summonable_by_default": true,
+      "appointable_by_default": false,
+      "description": "暂不执行职务，需事件恢复。"
+    },
+    {
+      "status_code": "dismissed",
+      "label": "罢黜",
+      "summonable_by_default": true,
+      "appointable_by_default": false,
+      "description": "被罢免或政治失势，需事件重新启用。"
+    },
+    {
+      "status_code": "retired",
+      "label": "致仕",
+      "summonable_by_default": true,
+      "appointable_by_default": false,
+      "description": "退出常规任用，但可能被特召。"
+    },
+    {
+      "status_code": "imprisoned",
+      "label": "下狱",
+      "summonable_by_default": false,
+      "appointable_by_default": false,
+      "description": "失去常规行动自由。"
+    },
+    {
+      "status_code": "exiled",
+      "label": "流放",
+      "summonable_by_default": false,
+      "appointable_by_default": false,
+      "description": "远离朝局，召见与任命需特殊事件。"
+    },
+    {
+      "status_code": "dead",
+      "label": "已故",
+      "summonable_by_default": false,
+      "appointable_by_default": false,
+      "description": "不可召见、不可任命。"
+    }
+  ]
+}

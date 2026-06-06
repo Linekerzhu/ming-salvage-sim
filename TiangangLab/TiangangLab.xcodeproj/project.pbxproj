@@ -7,18 +7,38 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		01A00001 /* TiangangLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00011 /* TiangangLabApp.swift */; };
-		01A00002 /* TiangangModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00012 /* TiangangModels.swift */; };
-		01A00003 /* TiangangRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00013 /* TiangangRootView.swift */; };
-		01A00004 /* tiangang_seed.json in Resources */ = {isa = PBXBuildFile; fileRef = 01A00014 /* tiangang_seed.json */; };
+		01A00001 /* App/TiangangLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00011 /* App/TiangangLabApp.swift */; };
+		01A00002 /* Models/TiangangModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00012 /* Models/TiangangModels.swift */; };
+		01A00003 /* Views/TiangangRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00013 /* Views/TiangangRootView.swift */; };
+		01A00004 /* Resources/tiangang_seed.json in Resources */ = {isa = PBXBuildFile; fileRef = 01A00014 /* Resources/tiangang_seed.json */; };
+		01A00005 /* Models/NPCDatabaseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00015 /* Models/NPCDatabaseModels.swift */; };
+		01A00006 /* Resources/NPCDatabase in Resources */ = {isa = PBXBuildFile; fileRef = 01A00016 /* Resources/NPCDatabase */; };
+		01A00007 /* Models/EnvironmentDatabaseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00017 /* Models/EnvironmentDatabaseModels.swift */; };
+		01A00008 /* Resources/EnvironmentDatabase in Resources */ = {isa = PBXBuildFile; fileRef = 01A00018 /* Resources/EnvironmentDatabase */; };
+		01A00101 /* Resources/Portraits/韩爌.png in Resources */ = {isa = PBXBuildFile; fileRef = 01A00111 /* Resources/Portraits/韩爌.png */; };
+		01A00102 /* Resources/Portraits/毕自严.png in Resources */ = {isa = PBXBuildFile; fileRef = 01A00112 /* Resources/Portraits/毕自严.png */; };
+		01A00103 /* Resources/Portraits/崔呈秀.png in Resources */ = {isa = PBXBuildFile; fileRef = 01A00113 /* Resources/Portraits/崔呈秀.png */; };
+		01A00104 /* Resources/Portraits/曹化淳.png in Resources */ = {isa = PBXBuildFile; fileRef = 01A00114 /* Resources/Portraits/曹化淳.png */; };
+		01A00105 /* Resources/Portraits/袁崇焕.png in Resources */ = {isa = PBXBuildFile; fileRef = 01A00115 /* Resources/Portraits/袁崇焕.png */; };
+		01A00106 /* Resources/Portraits/祖大寿.png in Resources */ = {isa = PBXBuildFile; fileRef = 01A00116 /* Resources/Portraits/祖大寿.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		01A00010 /* TiangangLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TiangangLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		01A00011 /* TiangangLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/TiangangLabApp.swift; sourceTree = "<group>"; };
-		01A00012 /* TiangangModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/TiangangModels.swift; sourceTree = "<group>"; };
-		01A00013 /* TiangangRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/TiangangRootView.swift; sourceTree = "<group>"; };
-		01A00014 /* tiangang_seed.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = Resources/tiangang_seed.json; sourceTree = "<group>"; };
+		01A00011 /* App/TiangangLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/TiangangLabApp.swift; sourceTree = "<group>"; };
+		01A00012 /* Models/TiangangModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/TiangangModels.swift; sourceTree = "<group>"; };
+		01A00013 /* Views/TiangangRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/TiangangRootView.swift; sourceTree = "<group>"; };
+		01A00014 /* Resources/tiangang_seed.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = Resources/tiangang_seed.json; sourceTree = "<group>"; };
+		01A00015 /* Models/NPCDatabaseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/NPCDatabaseModels.swift; sourceTree = "<group>"; };
+		01A00016 /* Resources/NPCDatabase */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/NPCDatabase; sourceTree = "<group>"; };
+		01A00017 /* Models/EnvironmentDatabaseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/EnvironmentDatabaseModels.swift; sourceTree = "<group>"; };
+		01A00018 /* Resources/EnvironmentDatabase */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/EnvironmentDatabase; sourceTree = "<group>"; };
+		01A00111 /* Resources/Portraits/韩爌.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/Portraits/韩爌.png"; sourceTree = "<group>"; };
+		01A00112 /* Resources/Portraits/毕自严.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/Portraits/毕自严.png"; sourceTree = "<group>"; };
+		01A00113 /* Resources/Portraits/崔呈秀.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/Portraits/崔呈秀.png"; sourceTree = "<group>"; };
+		01A00114 /* Resources/Portraits/曹化淳.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/Portraits/曹化淳.png"; sourceTree = "<group>"; };
+		01A00115 /* Resources/Portraits/袁崇焕.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/Portraits/袁崇焕.png"; sourceTree = "<group>"; };
+		01A00116 /* Resources/Portraits/祖大寿.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/Portraits/祖大寿.png"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -43,10 +63,20 @@
 		01A00031 /* TiangangLab */ = {
 			isa = PBXGroup;
 			children = (
-				01A00011 /* TiangangLabApp.swift */,
-				01A00012 /* TiangangModels.swift */,
-				01A00013 /* TiangangRootView.swift */,
-				01A00014 /* tiangang_seed.json */,
+				01A00011 /* App/TiangangLabApp.swift */,
+				01A00012 /* Models/TiangangModels.swift */,
+				01A00015 /* Models/NPCDatabaseModels.swift */,
+				01A00017 /* Models/EnvironmentDatabaseModels.swift */,
+				01A00013 /* Views/TiangangRootView.swift */,
+				01A00014 /* Resources/tiangang_seed.json */,
+				01A00016 /* Resources/NPCDatabase */,
+				01A00018 /* Resources/EnvironmentDatabase */,
+				01A00111 /* Resources/Portraits/韩爌.png */,
+				01A00112 /* Resources/Portraits/毕自严.png */,
+				01A00113 /* Resources/Portraits/崔呈秀.png */,
+				01A00114 /* Resources/Portraits/曹化淳.png */,
+				01A00115 /* Resources/Portraits/袁崇焕.png */,
+				01A00116 /* Resources/Portraits/祖大寿.png */,
 			);
 			path = TiangangLab;
 			sourceTree = "<group>";
@@ -101,7 +131,7 @@
 			knownRegions = (
 				en,
 				Base,
-				zh-Hans,
+				"zh-Hans",
 			);
 			mainGroup = 01A00030;
 			productRefGroup = 01A00032 /* Products */;
@@ -118,7 +148,15 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				01A00004 /* tiangang_seed.json in Resources */,
+				01A00004 /* Resources/tiangang_seed.json in Resources */,
+				01A00006 /* Resources/NPCDatabase in Resources */,
+				01A00008 /* Resources/EnvironmentDatabase in Resources */,
+				01A00101 /* Resources/Portraits/韩爌.png in Resources */,
+				01A00102 /* Resources/Portraits/毕自严.png in Resources */,
+				01A00103 /* Resources/Portraits/崔呈秀.png in Resources */,
+				01A00104 /* Resources/Portraits/曹化淳.png in Resources */,
+				01A00105 /* Resources/Portraits/袁崇焕.png in Resources */,
+				01A00106 /* Resources/Portraits/祖大寿.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -129,9 +167,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				01A00001 /* TiangangLabApp.swift in Sources */,
-				01A00002 /* TiangangModels.swift in Sources */,
-				01A00003 /* TiangangRootView.swift in Sources */,
+				01A00001 /* App/TiangangLabApp.swift in Sources */,
+				01A00002 /* Models/TiangangModels.swift in Sources */,
+				01A00005 /* Models/NPCDatabaseModels.swift in Sources */,
+				01A00007 /* Models/EnvironmentDatabaseModels.swift in Sources */,
+				01A00003 /* Views/TiangangRootView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -184,7 +224,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = NX92ABPR9H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Tiangang Lab";
@@ -199,7 +239,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.ming.tianganglab";
+				PRODUCT_BUNDLE_IDENTIFIER = com.ming.tianganglab;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -214,7 +254,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = NX92ABPR9H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Tiangang Lab";
@@ -229,7 +269,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.ming.tianganglab";
+				PRODUCT_BUNDLE_IDENTIFIER = com.ming.tianganglab;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;

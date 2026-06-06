@@ -1,7 +1,7 @@
 import Foundation
 
 struct TiangangCatalog: Decodable {
-    let source: String
+    let source: String?
     let selectedNPCs: [String]
     let meta: TiangangMeta
     let npcs: [String: TiangangNPC]
@@ -16,7 +16,7 @@ struct TiangangCatalog: Decodable {
 
 struct TiangangMeta: Decodable {
     let version: String
-    let source: String
+    let source: String?
     let hiddenByDefault: Bool
     let growthEnabled: Bool
     let dimensions: [TiangangDimension]
@@ -52,12 +52,36 @@ struct TiangangDimension: Decodable, Identifiable, Hashable {
     let group: String
     let type: String
     let labels: [String: String]
+    let labelExplanations: [String: String]
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case symbol
+        case name
+        case group
+        case type
+        case labels
+        case labelExplanations = "label_explanations"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        symbol = try container.decodeIfPresent(String.self, forKey: .symbol) ?? ""
+        name = try container.decode(String.self, forKey: .name)
+        group = try container.decode(String.self, forKey: .group)
+        type = try container.decode(String.self, forKey: .type)
+        labels = try container.decode([String: String].self, forKey: .labels)
+        labelExplanations = try container.decodeIfPresent([String: String].self, forKey: .labelExplanations) ?? [:]
+    }
 }
 
 struct TiangangNPC: Decodable {
     let name: String
     let hidden: Bool
     let archetype: String
+    let portraitText: String
+    let portraitAsset: String
     let values: [String: Int]
     let politicalSummary: String
     let professionalSummary: String
@@ -68,11 +92,27 @@ struct TiangangNPC: Decodable {
         case name
         case hidden
         case archetype
+        case portraitText = "portrait_text"
+        case portraitAsset = "portrait_asset"
         case values
         case politicalSummary = "political_summary"
         case professionalSummary = "professional_summary"
         case behaviorRule = "behavior_rule"
         case aiUse = "ai_use"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        hidden = try container.decodeIfPresent(Bool.self, forKey: .hidden) ?? true
+        archetype = try container.decodeIfPresent(String.self, forKey: .archetype) ?? ""
+        portraitText = try container.decodeIfPresent(String.self, forKey: .portraitText) ?? ""
+        portraitAsset = try container.decodeIfPresent(String.self, forKey: .portraitAsset) ?? "\(name).png"
+        values = try container.decode([String: Int].self, forKey: .values)
+        politicalSummary = try container.decodeIfPresent(String.self, forKey: .politicalSummary) ?? ""
+        professionalSummary = try container.decodeIfPresent(String.self, forKey: .professionalSummary) ?? ""
+        behaviorRule = try container.decodeIfPresent(String.self, forKey: .behaviorRule) ?? ""
+        aiUse = try container.decodeIfPresent(String.self, forKey: .aiUse) ?? ""
     }
 }
 
@@ -84,6 +124,10 @@ struct TiangangValueRow: Identifiable, Hashable {
 
     var currentLabel: String {
         dimension.labels[String(value)] ?? "未标注"
+    }
+
+    var currentExplanation: String {
+        dimension.labelExplanations[String(value)] ?? currentLabel
     }
 }
 

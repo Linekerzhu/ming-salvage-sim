@@ -1,0 +1,5792 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T22:01:01+00:00",
+  "records": [
+    {
+      "npc_id": "npc_ming_韩爌",
+      "current_status": "idle_home",
+      "current_presence_state": "inactive_reference",
+      "current_runtime_scope": "ming_inactive_reference",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "蒲州",
+        "kind": "residence"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "idle_home",
+          "presence_state": "inactive_reference",
+          "runtime_scope": "ming_inactive_reference",
+          "reason": "史实罢居蒲州，崇祯初年可召而非在任。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张瑞图",
+      "current_status": "idle_home",
+      "current_presence_state": "inactive_reference",
+      "current_runtime_scope": "ming_inactive_reference",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "idle_home",
+          "presence_state": "inactive_reference",
+          "runtime_scope": "ming_inactive_reference",
+          "reason": "天启旧臣，开局不再占内阁现任名额。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_来宗道",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_施凤来",
+      "current_status": "idle_home",
+      "current_presence_state": "inactive_reference",
+      "current_runtime_scope": "ming_inactive_reference",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "idle_home",
+          "presence_state": "inactive_reference",
+          "runtime_scope": "ming_inactive_reference",
+          "reason": "天启旧辅，开局降为赋闲旧臣。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_黄立极",
+      "current_status": "idle_home",
+      "current_presence_state": "inactive_reference",
+      "current_runtime_scope": "ming_inactive_reference",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "idle_home",
+          "presence_state": "inactive_reference",
+          "runtime_scope": "ming_inactive_reference",
+          "reason": "天启旧辅，崇祯初年退居不用。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王绍徽",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_毕自严",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "崇祯初理户部事，开局校准为户部尚书，不再沿用旧库南京户部尚书。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨嗣昌",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "兵部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“兵部郎中”细分为“兵部武选司郎中”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_温体仁",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部仪制司郎中”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_钱龙锡",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "崇祯元年十二月入阁，开局作礼部侍郎候用。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘鸿训",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "崇祯元年十二月入阁，开局作詹事府系统候用。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_钱谦益",
+      "current_status": "idle_home",
+      "current_presence_state": "inactive_reference",
+      "current_runtime_scope": "ming_inactive_reference",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "常熟",
+        "kind": "residence"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "idle_home",
+          "presence_state": "inactive_reference",
+          "runtime_scope": "ming_inactive_reference",
+          "reason": "旧库作前礼部右侍郎罢居常熟，开局称谓显式标为前任，避免误读为现任侍郎。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_李标",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "崇祯元年十二月入阁，开局作詹事府系统候用。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙承宗",
+      "current_status": "idle_home",
+      "current_presence_state": "inactive_reference",
+      "current_runtime_scope": "ming_inactive_reference",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "高阳",
+        "kind": "residence"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "idle_home",
+          "presence_state": "inactive_reference",
+          "runtime_scope": "ming_inactive_reference",
+          "reason": "旧库作前蓟辽督师罢居高阳，开局称谓显式标为前任，避免占用督师棋盘格。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_崔呈秀",
+      "current_status": "dismissed",
+      "current_presence_state": "inactive_reference",
+      "current_runtime_scope": "ming_inactive_reference",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "dismissed",
+          "presence_state": "inactive_reference",
+          "runtime_scope": "ming_inactive_reference",
+          "reason": "魏党旧臣，开局不占兵部尚书。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王在晋",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_徐光启",
+      "current_status": "idle_home",
+      "current_presence_state": "inactive_reference",
+      "current_runtime_scope": "ming_inactive_reference",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "上海",
+        "kind": "residence"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "idle_home",
+          "presence_state": "inactive_reference",
+          "runtime_scope": "ming_inactive_reference",
+          "reason": "旧库作前礼部右少卿罢居上海，开局称谓显式标为前任，避免误读为礼部现任。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_袁可立",
+      "current_status": "idle_home",
+      "current_presence_state": "inactive_reference",
+      "current_runtime_scope": "ming_inactive_reference",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "睢州",
+        "kind": "residence"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "idle_home",
+          "presence_state": "inactive_reference",
+          "runtime_scope": "ming_inactive_reference",
+          "reason": "旧库作前登莱巡抚罢居睢州，开局称谓显式标为前任，避免占用巡抚棋盘格。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_周延儒",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "未来阁臣，开局置翰林清望。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_倪元璐",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_黄道周",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_曹化淳",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王体乾",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "旧库掌印太监占唯一岗，首版保留为崇祯初内廷高位。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王承恩",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_魏忠贤",
+      "current_status": "dead",
+      "current_presence_state": "dead_reference",
+      "current_runtime_scope": "dead_reference",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "dead",
+          "presence_state": "dead_reference",
+          "runtime_scope": "dead_reference",
+          "reason": "天启七年已死，崇祯元年不可在任。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_田尔耕",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_许显纯",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_李若琏",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_客氏",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "紫禁城",
+        "kind": "palace"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_袁崇焕",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_曹文诏",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_祖大寿",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_满桂",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_赵率教",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王之臣",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_毛文龙",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_阎鸣泰",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_洪承畴",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙传庭",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_卢象升",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_史可法",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_周皇后",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "紫禁城",
+        "kind": "palace"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_周贵人",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "紫禁城",
+        "kind": "palace"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_田贵妃",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "紫禁城",
+        "kind": "palace"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "据《崇祯实录》系崇祯元年内封贵妃；旧库1618生年未采信，开局年龄暂用后宫身份估计。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_袁贵妃",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "紫禁城",
+        "kind": "palace"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "据袁贵妃条目引《崇祯实录》卷一，崇祯元年封淑妃；贵妃为崇祯十四年进封，不提前占用开局位分。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_慧妃",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "紫禁城",
+        "kind": "palace"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_皇太极",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "jianzhou",
+        "kind": "opening_location"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_代善",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "jianzhou",
+        "kind": "opening_location"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_莽古尔泰",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "jianzhou",
+        "kind": "opening_location"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_阿敏",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "jianzhou",
+        "kind": "opening_location"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_范文程",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "shenyang_liaoyang",
+        "kind": "opening_location"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_佟养性",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "shenyang_liaoyang",
+        "kind": "opening_location"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_mongol_林丹汗",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "mongol_chahar",
+        "kind": "opening_location"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_korea_仁祖",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "korea",
+        "kind": "opening_location"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_korea_张维",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "korea",
+        "kind": "opening_location"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_王嘉胤",
+      "current_status": "active_in_office",
+      "current_presence_state": "rebel_power_active",
+      "current_runtime_scope": "rebel_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "shaanxi",
+        "kind": "opening_location"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "rebel_power_active",
+          "runtime_scope": "rebel_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_李自成",
+      "current_status": "offstage",
+      "current_presence_state": "unavailable_reference",
+      "current_runtime_scope": "unavailable_reference",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "shaanxi",
+        "kind": "opening_location"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "offstage",
+          "presence_state": "unavailable_reference",
+          "runtime_scope": "unavailable_reference",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_张献忠",
+      "current_status": "offstage",
+      "current_presence_state": "unavailable_reference",
+      "current_runtime_scope": "unavailable_reference",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "shaanxi",
+        "kind": "opening_location"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "offstage",
+          "presence_state": "unavailable_reference",
+          "runtime_scope": "unavailable_reference",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_武当张真人",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_铁臂周侗",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_青莲剑客",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_玄机道长",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_毒手药王",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_红衣女侠",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_盲眼琴师",
+      "current_status": "active_in_office",
+      "current_presence_state": "identity_active",
+      "current_runtime_scope": "ming_identity_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "identity_active",
+          "runtime_scope": "ming_identity_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_鬼面商人",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_隐剑山庄主",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_白眉老僧",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_曹变蛟",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_左良玉",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_黄得功",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘泽清",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_高杰",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_周遇吉",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_熊文灿",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "兵部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“兵部郎中”细分为“兵部职方司郎中”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_郑芝龙",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_郑成功",
+      "current_status": "offstage",
+      "current_presence_state": "unavailable_reference",
+      "current_runtime_scope": "unavailable_reference",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "offstage",
+          "presence_state": "unavailable_reference",
+          "runtime_scope": "unavailable_reference",
+          "reason": "崇祯元年未满16岁，不进入普通任官或候选流。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘宗周",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_范景文",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "工部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_李邦华",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_马士英",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_阮大铖",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_姜曰广",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部祠祭司郎中”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈子龙",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_夏允彝",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_高起潜",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "旧库作监军太监，开局细分为蓟辽监军太监，避免监军泛称重复占位。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杜勋",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "旧库作监军太监，开局细分为宣府监军太监，避免监军泛称重复占位。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_多尔衮",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_多铎",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_阿济格",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_济尔哈朗",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_索尼",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_宁完我",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_鳌拜",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_图赖",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_孔有德",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_耿仲明",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_houjin_尚可喜",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_mongol_额哲",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "崇祯元年林丹汗仍为察哈尔汗，额哲按汗子/台吉处理，避免一汗二主。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_mongol_土谢图汗",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_mongol_顺义王",
+      "current_status": "active_in_office",
+      "current_presence_state": "foreign_power_active",
+      "current_runtime_scope": "external_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "foreign_power_active",
+          "runtime_scope": "external_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_高迎祥",
+      "current_status": "active_in_office",
+      "current_presence_state": "rebel_power_active",
+      "current_runtime_scope": "rebel_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "rebel_power_active",
+          "runtime_scope": "rebel_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_罗汝才",
+      "current_status": "active_in_office",
+      "current_presence_state": "rebel_power_active",
+      "current_runtime_scope": "rebel_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "rebel_power_active",
+          "runtime_scope": "rebel_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_革左五营",
+      "current_status": "active_in_office",
+      "current_presence_state": "rebel_power_active",
+      "current_runtime_scope": "rebel_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "rebel_power_active",
+          "runtime_scope": "rebel_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_刘宗敏",
+      "current_status": "active_in_office",
+      "current_presence_state": "rebel_power_active",
+      "current_runtime_scope": "rebel_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "rebel_power_active",
+          "runtime_scope": "rebel_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_宋献策",
+      "current_status": "active_in_office",
+      "current_presence_state": "rebel_power_active",
+      "current_runtime_scope": "rebel_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "rebel_power_active",
+          "runtime_scope": "rebel_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_牛金星",
+      "current_status": "active_in_office",
+      "current_presence_state": "rebel_power_active",
+      "current_runtime_scope": "rebel_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "rebel_power_active",
+          "runtime_scope": "rebel_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_李岩",
+      "current_status": "active_in_office",
+      "current_presence_state": "rebel_power_active",
+      "current_runtime_scope": "rebel_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "rebel_power_active",
+          "runtime_scope": "rebel_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_红娘子",
+      "current_status": "active_in_office",
+      "current_presence_state": "rebel_power_active",
+      "current_runtime_scope": "rebel_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "rebel_power_active",
+          "runtime_scope": "rebel_power_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_白莲教主",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_闻香教主",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_老渔夫",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_塞外刀客",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_苗疆蛊师",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_倭寇首领",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_西洋传教士",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_南洋华侨",
+      "current_status": "active_unassigned",
+      "current_presence_state": "contact_available",
+      "current_runtime_scope": "ming_contact_pool",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_unassigned",
+          "presence_state": "contact_available",
+          "runtime_scope": "ming_contact_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨景辰",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "崇祯元年十二月入阁，开局作吏部侍郎候用。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_周道登",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "崇祯元年十二月入阁，开局作礼部侍郎候用。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_成基命",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部主客司郎中”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王洽",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1629年，开局按中阶候用原则安置。 开局占位岗由“兵部郎中”细分为“兵部车驾司郎中”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_何如宠",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部精膳司郎中”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_钱象坤",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第1席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王元雅",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1629年，开局按中阶候用原则安置。 开局占位岗由“监察御史”细分为“浙江道监察御史”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_何天球",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1629年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_马世龙",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1629年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“辽东左营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙祖寿",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1629年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“辽东右营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_毕自肃",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "《明史/卷23》载崇祯元年七月宁远兵变自杀，开局按辽东巡抚都御史在任处理，保留同年死事窗口。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘若宰",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_卓铭",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_侯良柱",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1629年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“辽东中营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘可训",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1629年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_郑国昌",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1630年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张凤奇",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1630年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘策",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1630年，开局按中阶候用原则安置。 开局占位岗由“监察御史”细分为“江西道监察御史”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘之纶",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1630年，开局按中阶候用原则安置。 开局占位岗由“兵部郎中”细分为“兵部武库司郎中”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_吴自勉",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1630年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“蓟镇左营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_吴宗达",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第2席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杜文焕",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1630年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“蓟镇右营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王国梁",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1630年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“宣府左营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨鹤",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1631年，开局按中阶候用原则安置。 开局占位岗由“兵部郎中”细分为“兵部郎中第1席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张应昌",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1631年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“宣府右营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈于泰",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1631年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_吴甡",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1631年，开局按中阶候用原则安置。 开局占位岗由“监察御史”细分为“河南道监察御史”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张允登",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1631年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘若愚",
+      "current_status": "imprisoned",
+      "current_presence_state": "unavailable_reference",
+      "current_runtime_scope": "unavailable_reference",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "imprisoned",
+          "presence_state": "unavailable_reference",
+          "runtime_scope": "unavailable_reference",
+          "reason": "旧库或史料补充层显示开局不在常规实任。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙暹",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "用户《专题二十》列其司礼监秉笔兼东厂提督，开局以东厂提督占唯一岗。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘吉祥",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "按旧库现职与崇祯元年开局规则保留。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_李永贞",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "司礼监旧线人物，开局细分为文书房太监，避免多个司礼监太监复用同一棋盘格。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_梁栋",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "司礼监旧线人物，开局细分为题本房太监，避免多个司礼监太监复用同一棋盘格。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_石元雅",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "司礼监旧线人物，开局细分为随堂太监，避免多个司礼监太监复用同一棋盘格。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_涂文辅",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "司礼监旧线人物，开局细分为内直房太监，避免多个司礼监太监复用同一棋盘格。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈良谟",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1632年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“大同左营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_李九成",
+      "current_status": "active_in_office",
+      "current_presence_state": "rebel_power_active",
+      "current_runtime_scope": "rebel_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "rebel_power_active",
+          "runtime_scope": "rebel_power_actor",
+          "reason": "史实登场约在1632年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张可大",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1632年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“大同右营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙元化",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1632年，开局按中阶候用原则安置。 开局占位岗由“监察御史”细分为“山东道监察御史”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_宋光兰",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1632年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“山西左营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_徐从治",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1632年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘宇烈",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1632年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“山西右营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_余大成",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1632年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨嘉谟",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1632年，开局按中阶候用原则安置。 开局占位岗由“兵部郎中”细分为“兵部郎中第2席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱大典",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1632年，开局按中阶候用原则安置。 开局占位岗由“兵部郎中”细分为“兵部郎中第3席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_郑以伟",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第3席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_谢琏",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "户部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“户部郎中”细分为“户部浙江清吏司郎中”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱万年",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1632年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“延绥左营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨麒",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1632年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“延绥右营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_杨正芳",
+      "current_status": "active_in_office",
+      "current_presence_state": "rebel_power_active",
+      "current_runtime_scope": "rebel_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "rebel_power_active",
+          "runtime_scope": "rebel_power_actor",
+          "reason": "史实登场约在1632年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_祖宽",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1632年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“宁夏左翼游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_刘香",
+      "current_status": "active_in_office",
+      "current_presence_state": "rebel_power_active",
+      "current_runtime_scope": "rebel_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "rebel_power_active",
+          "runtime_scope": "rebel_power_actor",
+          "reason": "史实登场约在1633年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王志道",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1633年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈洪范",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1633年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“宁夏右翼游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_邓玘",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1633年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“甘肃左翼游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈大金",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1633年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_李卑",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1633年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“甘肃右翼游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_黄龙",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1633年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“固镇中营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_钱士升",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第4席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王应熊",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第5席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_何吾驺",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第6席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_许鼎臣",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1633年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张彝宪",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1633年，开局按中阶候用原则安置。 开局占位岗由“司礼监奉御”细分为“司礼监文书房奉御”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘若金",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1633年，开局按中阶候用原则安置。 开局占位岗由“户部郎中”细分为“户部江西清吏司郎中”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈奇瑜",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1634年，开局按中阶候用原则安置。 开局占位岗由“兵部郎中”细分为“兵部郎中第4席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘理顺",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1634年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨世恩",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1634年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“东江水营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_贺人龙",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1634年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“登莱水师游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_丁魁楚",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1634年，开局按中阶候用原则安置。 开局占位岗由“监察御史”细分为“陕西道监察御史”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_尤世威",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1634年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“山海关标营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张宗衡",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1634年，开局按中阶候用原则安置。 开局占位岗由“兵部郎中”细分为“兵部郎中第5席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陆梦龙",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1634年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱国相",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1635年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张国维",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1635年，开局按中阶候用原则安置。 开局占位岗由“监察御史”细分为“山西道监察御史”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨一鹏",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1635年，开局按中阶候用原则安置。 开局占位岗由“户部郎中”细分为“户部湖广清吏司郎中”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_艾万年",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1635年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“保定标营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_柳国镇",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1635年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“榆林标营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_文震孟",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1635年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张至发",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1635年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张全昌",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1635年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“陕西标营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_侯恂",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1635年，开局按中阶候用原则安置。 开局占位岗由“户部郎中”细分为“户部山东清吏司郎中”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_林釬",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1636年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_汤九州",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1636年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“辽东先遣营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王楫",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1636年，开局按中阶候用原则安置。 开局占位岗由“监察御史”细分为“湖广道监察御史”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_丁启睿",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "未来兵部尚书，开局置兵部中层。 开局占位岗由“兵部郎中”细分为“兵部郎中第6席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈起新",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1636年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_祖大乐",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1636年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“辽东后哨营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_俞冲霄",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1636年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“辽东策应营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孔贞运",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第7席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_贺逢圣",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "后期复入阁人物，开局置为礼部侍郎候用。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_黄士俊",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第8席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_解进忠",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1636年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“蓟镇先遣营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_李国辅",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1636年，开局按中阶候用原则安置。 开局占位岗由“司礼监奉御”细分为“司礼监题本房奉御”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱纯臣",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "史实登场约在1636年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王肇坤",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1636年，开局按中阶候用原则安置。 开局占位岗由“监察御史”细分为“福建道监察御史”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张凤翼",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1636年，开局按中阶候用原则安置。 开局占位岗由“兵部郎中”细分为“兵部郎中第7席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱聿键",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "崇祯元年不重复占唐王王号，开局按唐藩宗室处理，保留未来勤王与废黜窗口。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘同升",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1637年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_金日观",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1637年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“蓟镇后哨营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_沈冬魁",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1637年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“蓟镇护粮营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘宇亮",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第9席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_傅冠",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第10席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_薛国观",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1637年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张任学",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1638年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“宣府先遣营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_程国祥",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第11席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_方逢年",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第12席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_蔡国用",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第13席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_范复粹",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1638年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_吴阿衡",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1638年，开局按中阶候用原则安置。 开局占位岗由“兵部郎中”细分为“兵部郎中第8席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱由枢",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "史实登场约在1639年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张秉文",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1639年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_姚明恭",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第14席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张四知",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第15席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_魏照乘",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第16席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_bandits_李万庆",
+      "current_status": "active_in_office",
+      "current_presence_state": "rebel_power_active",
+      "current_runtime_scope": "rebel_power_actor",
+      "summonable": false,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "rebel_power_active",
+          "runtime_scope": "rebel_power_actor",
+          "reason": "史实登场约在1639年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_罗岱",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1639年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“宣府后哨营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_颜继祖",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1639年，开局按中阶候用原则安置。 开局占位岗由“监察御史”细分为“四川道监察御史”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_倪宠",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1639年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“宣府烽堠营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_邓希诏",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1639年，开局按中阶候用原则安置。 开局占位岗由“司礼监奉御”细分为“司礼监随堂奉御”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙茂霖",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1639年，开局按中阶候用原则安置。 开局占位岗由“司礼监奉御”细分为“司礼监内直房奉御”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_郑崇俭",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1640年，开局按中阶候用原则安置。 开局占位岗由“兵部郎中”细分为“兵部郎中第9席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_魏藻德",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1640年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_解学龙",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1640年，开局按中阶候用原则安置。 开局占位岗由“监察御史”细分为“广东道监察御史”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_谢陞",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "礼部尚书为唯一或强约束岗位，非正任人物按游戏填坑原则降入中阶位置。 开局占位岗由“礼部郎中”细分为“礼部郎中第17席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_陈演",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1640年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_秦良玉",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "崇祯元年以石砫宣抚使身份在地方土司体系中存在，1640年前后抗寇事迹另由事件层推进。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_孙应元",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1640年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“大同先遣营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张令",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1640年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“大同后哨营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱采鑋",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "史实登场约在1640年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_猛如虎",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“大同屯守营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘士杰",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“山西先遣营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱常洵",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_吕维祺",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。 开局占位岗由“兵部郎中”细分为“兵部郎中第10席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱翊铭",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱常法",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_张克俭",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_傅宗龙",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。 开局占位岗由“兵部郎中”细分为“兵部郎中第11席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨文岳",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。 开局占位岗由“兵部郎中”细分为“兵部郎中第12席”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_虎大威",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“山西后哨营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_杨国柱",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“山西援剿营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_吴三桂",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“延绥先遣营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_王朴",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“延绥后哨营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_刘国能",
+      "current_status": "active_in_office",
+      "current_presence_state": "ming_office_active",
+      "current_runtime_scope": "ming_court_actor",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "ming_office_active",
+          "runtime_scope": "ming_court_actor",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。 开局占位岗由“边镇游击”细分为“宁夏先遣营游击”。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱聿镆",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "崇祯元年不重复占唐王王号，开局按唐藩宗亲处理，避免一藩二王。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_朱恭枵",
+      "current_status": "active_in_office",
+      "current_presence_state": "title_active",
+      "current_runtime_scope": "ming_title_actor",
+      "summonable": true,
+      "appointable": false,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "active_in_office",
+          "presence_state": "title_active",
+          "runtime_scope": "ming_title_actor",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。"
+        }
+      ]
+    },
+    {
+      "npc_id": "npc_ming_高名衡",
+      "current_status": "candidate",
+      "current_presence_state": "candidate_available",
+      "current_runtime_scope": "ming_candidate_pool",
+      "summonable": true,
+      "appointable": true,
+      "location": {
+        "place": "",
+        "kind": "unknown"
+      },
+      "timeline": [
+        {
+          "year": 1628,
+          "month": null,
+          "status": "candidate",
+          "presence_state": "candidate_available",
+          "runtime_scope": "ming_candidate_pool",
+          "reason": "史实登场约在1641年，开局按中阶候用原则安置。 开局占位岗由“监察御史”细分为“广西道监察御史”。"
+        }
+      ]
+    }
+  ]
+}
