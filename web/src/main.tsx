@@ -1621,19 +1621,16 @@ function App() {
       const data = await streamChat(activeMinister.name, message, (delta) => {
         setStreamingMinisterMessage((current) => current + delta);
       });
-      setPendingUserMessage("");
-      setStreamingMinisterMessage("");
       if (data.minister_profile) {
         setTemporaryActiveMinister(data.minister_profile);
       }
       setChat(data.history);
+      setPendingUserMessage("");
+      setStreamingMinisterMessage("");
       setSuggestions(data.suggestions);
       setCanUndoLastChat(!!data.can_undo_last_chat);
       setState((current) => (current ? { ...current, directives: data.directives, pending_count: data.pending_count ?? current.pending_count } : current));
       await loadState();
-      if (!data.next_minister) {
-        await loadMinisterChat(activeMinister.name);
-      }
       // 刷新密令列表（含历史，大臣可能调了 issue_secret_order tool）
       api<{ orders: SecretOrder[] }>("/api/secret_orders")
         .then(({ orders }) => setSecretOrders(orders))
@@ -2155,7 +2152,7 @@ function App() {
       ) : null}
 
       {activeModal === "chat" && activeMinister ? (
-        <FullscreenModal title={`召对：${activeMinister.name}`} subtitle={activeMinister.office} bgClass="modal-bg-chat" onClose={guardClose(() => setActiveModal("none"))}>
+        <FullscreenModal title="召对" bgClass="modal-bg-chat" onClose={guardClose(() => setActiveModal("none"))} hideHeading>
           <ChatModal
             minister={activeMinister}
             portraitPrefix={(state.consorts || []).some((c) => c.name === activeMinister.name) ? "consort_" : "minister_"}
@@ -4923,13 +4920,15 @@ function FullscreenModal({
   onClose,
   children,
   headerExtra,
+  hideHeading = false,
 }: {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   bgClass?: string;
   onClose: () => void;
   children: React.ReactNode;
   headerExtra?: React.ReactNode;
+  hideHeading?: boolean;
 }) {
   const titleId = React.useId();
   const subtitleId = React.useId();
@@ -5008,16 +5007,27 @@ function FullscreenModal({
   }, [closeModal]);
 
   return (
-    <section className="fullscreen-layer" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={subtitleId}>
+    <section
+      className="fullscreen-layer"
+      role="dialog"
+      aria-modal="true"
+      aria-label={hideHeading ? title : undefined}
+      aria-labelledby={hideHeading ? undefined : titleId}
+      aria-describedby={!hideHeading && subtitle ? subtitleId : undefined}
+    >
       <div className="fullscreen-scrim" aria-hidden="true" onClick={closeModal} />
-      <div className={`fullscreen-modal ${bgClass || ""}`} ref={modalRef}>
+      <div className={`fullscreen-modal ${hideHeading ? "fullscreen-modal-titleless" : ""} ${bgClass || ""}`} ref={modalRef}>
         <header className="modal-header">
-          <div className="modal-title">
-            <div>
-              <h1 id={titleId}>{title}</h1>
-              <span id={subtitleId}>{subtitle}</span>
+          {hideHeading ? (
+            <div className="modal-title modal-title-hidden" aria-hidden="true" />
+          ) : (
+            <div className="modal-title">
+              <div>
+                <h1 id={titleId}>{title}</h1>
+                <span id={subtitleId}>{subtitle}</span>
+              </div>
             </div>
-          </div>
+          )}
           <div className="modal-header-actions">
             {headerExtra}
             <button ref={closeRef} className="icon-button" aria-label="关闭弹窗" onClick={closeModal}>
@@ -7537,6 +7547,15 @@ function ChatModal({
             </div>
             <p className="profile-copy">{minister.summary}</p>
           </div>
+          <details className="chat-intel-details chat-intel-dossier" open>
+            <summary>人物情报</summary>
+            <div className="chat-intel-detail-body">
+              <NetworkProfileBlock profile={minister.network_profile} />
+              <StanceNotes notes={minister.stance_notes} />
+              <XinpanProfileBlock profile={minister.xinpan_profile} />
+              <TiangangSpectrum profile={minister.tiangang_profile} />
+            </div>
+          </details>
           <button className="secondary-action" onClick={onOpenEdict}>
             <ScrollText size={15} />
             转入诏书草案
@@ -7559,15 +7578,6 @@ function ChatModal({
       </aside>
 
       <section className="modal-pane chat-main">
-        <details className="chat-intel-details chat-intel-dossier" open>
-          <summary>人物情报</summary>
-          <div className="chat-intel-detail-body">
-            <NetworkProfileBlock profile={minister.network_profile} />
-            <StanceNotes notes={minister.stance_notes} />
-            <XinpanProfileBlock profile={minister.xinpan_profile} />
-            <TiangangSpectrum profile={minister.tiangang_profile} />
-          </div>
-        </details>
         <div className="chat-log" ref={chatLogRef}>
           {!displayMessages.length && !busy && !chatEffectNotices.length && !chatNotice && !error ? (
             <div className="chat-empty-state">
@@ -7576,7 +7586,7 @@ function ChatModal({
             </div>
           ) : null}
           {displayMessages.map((message, index) => (
-            <div className={`chat-message ${message.role} ${message.pending ? "pending" : ""}`} key={`${message.role}-${index}-${message.content}`}>
+            <div className={`chat-message ${message.role} ${message.pending ? "pending" : ""}`} key={`${message.role}-${index}`}>
               <span>{message.role === "user" ? "朕" : minister.name}</span>
               <p>{message.content}</p>
             </div>
