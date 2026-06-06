@@ -463,18 +463,18 @@ select:focus-visible {
 
 .status-bar {
   position: fixed;
-  top: 8px;
-  left: 8px;
+  top: 12px;
+  left: 16px;
   z-index: 12;
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 4px;
-  width: max-content;
-  max-width: calc(100vw - 16px);
-  padding: 7px 10px;
+  gap: 9px;
+  width: min(760px, calc(100vw - var(--right-drawer-safe-right) - 32px));
+  max-width: calc(100vw - var(--right-drawer-safe-right) - 32px);
+  padding: 7px 9px;
   border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
+  border-radius: 9px;
   background: rgba(234, 226, 207, 0.95);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(6px);
@@ -487,16 +487,16 @@ select:focus-visible {
 
 .legacy-bar {
   position: fixed;
-  top: 70px;
-  left: 8px;
+  top: 82px;
+  left: 16px;
   z-index: 11;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 44px;
-  padding: 3px 10px;
+  min-height: 36px;
+  padding: 2px 12px;
   border: 1px solid rgba(0, 0, 0, 0.18);
-  border-radius: 13px;
+  border-radius: 999px;
   background: rgba(232, 224, 205, 0.95);
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
   backdrop-filter: blur(5px);
@@ -504,7 +504,7 @@ select:focus-visible {
 }
 
 .situation-panel.with-legacies {
-  top: 106px;
+  top: 130px;
 }
 
 .long-goal-bar {
@@ -650,17 +650,16 @@ select:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  min-width: 44px;
-  min-height: 44px;
-  flex: 0 0 auto;
-  padding: 3px 8px;
+  gap: 7px;
+  min-width: 0;
+  min-height: 38px;
+  padding: 3px 7px;
   border: 0;
   border-radius: 3px;
   color: #1a1410;
   background: transparent;
   font-weight: 700;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
 }
 
 .status-emblem svg {
@@ -669,8 +668,8 @@ select:focus-visible {
 }
 
 .emblem-art {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
@@ -679,7 +678,7 @@ select:focus-visible {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -688,14 +687,14 @@ select:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-height: 28px;
-  padding: 3px 7px;
+  min-height: 34px;
+  padding: 3px 6px;
   border: 0;
   border-radius: 3px;
   color: #1a1410;
   background: transparent;
   white-space: nowrap;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
 }
 
 .budget-trigger {
@@ -704,8 +703,8 @@ select:focus-visible {
   justify-content: center;
   gap: 4px;
   min-width: 44px;
-  min-height: 44px;
-  padding: 3px 7px;
+  min-height: 38px;
+  padding: 3px 6px;
 }
 
 .budget-trigger > span {
@@ -1645,7 +1644,7 @@ select:focus-visible {
 
 .character-archive {
   display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
   min-height: 0;
   margin-top: 10px;
@@ -1704,21 +1703,51 @@ select:focus-visible {
   background: rgba(143, 47, 37, 0.68);
 }
 
+.character-archive-main {
+  display: grid;
+  grid-template-columns: minmax(270px, 0.72fr) minmax(460px, 1.32fr);
+  gap: 10px;
+  min-height: 0;
+}
+
+.character-archive-roster {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(226, 180, 86, 0.2);
+  border-radius: 7px;
+  background:
+    linear-gradient(180deg, rgba(38, 18, 7, 0.32), rgba(20, 10, 0, 0.26)),
+    rgba(20, 10, 0, 0.22);
+  backdrop-filter: blur(4px);
+}
+
+.character-archive-roster .character-archive-tabs {
+  flex: 0 0 auto;
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid rgba(226, 180, 86, 0.14);
+}
+
 .character-archive-list {
+  flex: 1 1 auto;
   display: grid;
   gap: 7px;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 4px 8px 0;
+  padding: 8px;
   align-content: start;
 }
 
 .character-archive-detail {
   display: grid;
-  gap: 8px;
-  max-height: 38vh;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
   overflow-y: auto;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid rgba(226, 180, 86, 0.22);
   border-radius: 7px;
   background:
@@ -1730,8 +1759,10 @@ select:focus-visible {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 16px;
   min-width: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(126, 86, 38, 0.14);
 }
 
 .character-archive-detail header div {
@@ -1743,13 +1774,16 @@ select:focus-visible {
 .character-archive-detail h3 {
   margin: 0;
   color: #2b1b0e;
-  font-size: 1rem;
+  font-size: 1.22rem;
+  line-height: 1.18;
 }
 
 .character-archive-detail header span {
+  max-width: 64ch;
   color: #7b5b22;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 800;
+  line-height: 1.5;
 }
 
 .character-archive-detail header b {
@@ -1763,7 +1797,7 @@ select:focus-visible {
 
 .character-archive-detail header button {
   flex: 0 0 auto;
-  min-height: 44px;
+  min-height: 38px;
   padding: 0 12px;
   border: 1px solid rgba(122, 50, 31, 0.26);
   border-radius: 5px;
@@ -1777,13 +1811,78 @@ select:focus-visible {
   font-size: 0.76rem;
 }
 
+.character-archive-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.character-archive-identity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.character-archive-identity span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border: 1px solid rgba(126, 86, 38, 0.14);
+  border-radius: 999px;
+  color: #5b4124;
+  background: rgba(255, 250, 232, 0.58);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.character-archive-dossier-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.08fr) minmax(300px, 0.92fr);
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+}
+
+.character-archive-primary,
+.character-archive-secondary {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  align-content: start;
+}
+
+.character-archive-skeleton {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px dashed rgba(126, 86, 38, 0.22);
+  border-radius: 6px;
+  color: #5a4126;
+  background: rgba(255, 250, 232, 0.58);
+}
+
+.character-archive-skeleton b {
+  color: #3a1d11;
+  font-size: 1rem;
+}
+
+.character-archive-skeleton span,
+.character-archive-skeleton small {
+  line-height: 1.45;
+}
+
 .character-archive-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1.1fr) minmax(110px, 1fr) auto auto;
-  gap: 8px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
+  align-items: start;
   min-width: 0;
-  padding: 8px 9px;
+  min-height: 78px;
+  padding: 9px;
   border: 1px solid rgba(226, 180, 86, 0.18);
   border-radius: 6px;
   background: rgba(20, 10, 0, 0.38);
@@ -1807,6 +1906,8 @@ select:focus-visible {
 
 .character-archive-row div {
   display: grid;
+  grid-column: 1;
+  grid-row: 1;
   gap: 2px;
   min-width: 0;
 }
@@ -1829,10 +1930,16 @@ select:focus-visible {
 }
 
 .character-archive-row small {
+  grid-column: 1;
+  grid-row: 2;
   color: rgba(255, 220, 140, 0.86);
+  white-space: normal;
+  line-height: 1.32;
 }
 
 .character-archive-row em {
+  grid-column: 2;
+  grid-row: 1;
   justify-self: end;
   padding: 2px 7px;
   border-radius: 999px;
@@ -1841,7 +1948,10 @@ select:focus-visible {
 }
 
 .character-archive-row button {
-  min-height: 44px;
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+  min-height: 36px;
   padding: 0 10px;
   border: 1px solid rgba(226, 180, 86, 0.28);
   border-radius: 5px;
@@ -5485,14 +5595,14 @@ button:disabled {
 /* 主页局势进度面板（右上角浮层） */
 .situation-panel {
   position: fixed;
-  top: 72px;
-  left: 8px;
+  top: 82px;
+  left: 16px;
   right: auto;
   z-index: 10;
-  width: 232px;
-  padding: 8px 10px 10px;
+  width: 292px;
+  padding: 10px 12px 12px;
   border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 5px;
+  border-radius: 9px;
   background: rgba(234, 226, 207, 0.95);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(6px);
@@ -5512,14 +5622,17 @@ button:disabled {
 }
 
 .situation-toggle {
-  width: 44px;
-  height: 44px;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
   padding: 0;
   border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  border-radius: 6px;
   background: rgba(255, 255, 255, 0.6);
   color: #3a2410;
-  font-size: 1rem;
+  font-size: 0.92rem;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -5751,6 +5864,18 @@ button:disabled {
 }
 
 @media (max-width: 1100px) {
+  .character-archive-main {
+    grid-template-columns: 1fr;
+  }
+
+  .character-archive-roster {
+    max-height: 34vh;
+  }
+
+  .character-archive-dossier-grid {
+    grid-template-columns: 1fr;
+  }
+
   .edict-full-grid {
     grid-template-columns: 1fr;
     overflow-y: auto;
@@ -6620,6 +6745,20 @@ button:disabled {
   font-size: 0.88rem;
   cursor: pointer;
 }
+
+.status-bar .status-menu {
+  min-height: 38px;
+  margin-left: 0;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+}
+
+.status-bar .status-menu svg {
+  width: 15px;
+  height: 15px;
+}
+
 .status-menu:hover {
   background: rgba(255, 240, 200, 0.85);
 }
@@ -9733,15 +9872,15 @@ button:disabled {
   }
 
   .legacy-bar {
-    top: 116px;
+    top: 120px;
     left: 6px;
-    min-height: 44px;
-    padding: 4px 10px;
-    border-radius: 6px;
+    min-height: 34px;
+    padding: 3px 10px;
+    border-radius: 999px;
   }
 
   .situation-panel {
-    top: 116px;
+    top: 120px;
     left: 6px;
     width: min(252px, calc(100vw - 18px));
     max-height: min(34vh, 286px);
@@ -9751,7 +9890,14 @@ button:disabled {
   }
 
   .situation-panel.with-legacies {
-    top: 166px;
+    top: 164px;
+  }
+
+  .situation-toggle {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
   }
 
   .situation-tip {

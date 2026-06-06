@@ -4306,6 +4306,7 @@ function CharacterArchive({
   const offstage = rows.filter((row) => row.status === "offstage").length;
   const external = rows.filter((row) => (row.power_id || "ming") !== "ming").length;
   const missing = rows.filter((row) => row.portrait_available === false).length;
+  const detailMeta = detail || selectedRow;
   const openArchiveChat = (row: CharacterIndexEntry, known?: Minister) => {
     if (!row.can_summon) return;
     if (known) {
@@ -4339,71 +4340,95 @@ function CharacterArchive({
         <span>外部 <b>{external}</b></span>
         <span className={missing ? "warn" : ""}>缺图 <b>{missing}</b></span>
       </div>
-      <div className="character-archive-tabs">
-        {scopes.map((item) => (
-          <button key={item} className={scope === item ? "active" : ""} onClick={() => setScope(item)}>
-            {item}
-          </button>
-        ))}
-      </div>
-      <div className="character-archive-detail">
-        {detail ? (
-          <>
-            <header>
-              <div>
-                <span>{detail.summary}</span>
-                <h3>{detail.name}</h3>
+      <div className="character-archive-main">
+        <aside className="character-archive-roster" aria-label="人物志名册">
+          <div className="character-archive-tabs">
+            {scopes.map((item) => (
+              <button key={item} className={scope === item ? "active" : ""} onClick={() => setScope(item)}>
+                {item}
+              </button>
+            ))}
+          </div>
+          <div className="character-archive-list">
+            {filtered.map((row) => {
+              const minister = characterByName.get(row.name);
+              const callable = !!row.can_summon;
+              return (
+                <article
+                  className={`character-archive-row status-${row.status} ${callable ? "callable" : ""} ${selectedName === row.name ? "selected" : ""}`}
+                  key={row.name}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedName(row.name)}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    setSelectedName(row.name);
+                  }}
+                >
+                  <div>
+                    <b>{row.name}</b>
+                    <span>{row.power_name} · {row.faction} · {row.office_type}</span>
+                  </div>
+                  <small>{row.office || row.status_label}</small>
+                  <em>{row.status_label}{row.portrait_available === false ? " · 缺立绘" : ""}</em>
+                  {callable ? (
+                    <button onClick={(event) => { event.stopPropagation(); openArchiveChat(row, minister); }}>
+                      召见
+                    </button>
+                  ) : null}
+                </article>
+              );
+            })}
+            {!filtered.length ? <div className="empty-note">人物志无匹配记录。</div> : null}
+          </div>
+        </aside>
+        <div className="character-archive-detail">
+          {detail ? (
+            <>
+              <header>
+                <div>
+                  <span>{detail.summary}</span>
+                  <h3>{detail.name}</h3>
+                </div>
+                <div className="character-archive-actions">
+                  {detail.status !== "active" ? <b>{detail.status_label}</b> : null}
+                  {detail.status === "active" && detail.power_id === "ming" ? (
+                    <button onClick={() => onOpenChat(detail)}>召见</button>
+                  ) : null}
+                </div>
+              </header>
+              <div className="character-archive-identity">
+                <span>{selectedRow?.power_name || ((detail.power_id || "ming") === "ming" ? "大明" : detail.power_id || "外部")} · {detail.faction} · {detail.office_type}</span>
+                {detail.office ? <span>{detail.office}</span> : null}
+                <span>{detail.age_label || (detail.start_age ? `开局${detail.start_age}岁` : "年龄未详")}</span>
+                {detail.xinpan_profile?.quadrant ? <span>{detail.xinpan_profile.quadrant}</span> : null}
               </div>
-              {detail.status !== "active" ? <b>{detail.status_label}</b> : null}
-              {detail.status === "active" && detail.power_id === "ming" ? (
-                <button onClick={() => onOpenChat(detail)}>召见</button>
-              ) : null}
-            </header>
-            {detail.office ? <p>{detail.office}</p> : null}
-            <NetworkProfileBlock profile={detail.network_profile} />
-            <XinpanProfileBlock profile={detail.xinpan_profile} />
-            <TiangangSpectrum profile={detail.tiangang_profile} />
-          </>
-        ) : loadingName ? (
-          <div className="empty-note">正在调阅{loadingName}档案...</div>
-        ) : detailError ? (
-          <div className="empty-note">{detailError}</div>
-        ) : (
-          <div className="empty-note">选择一名人物查看小传、人脉与天罡谱尺。</div>
-        )}
-      </div>
-      <div className="character-archive-list">
-        {filtered.map((row) => {
-          const minister = characterByName.get(row.name);
-          const callable = !!row.can_summon;
-          return (
-            <article
-              className={`character-archive-row status-${row.status} ${callable ? "callable" : ""} ${selectedName === row.name ? "selected" : ""}`}
-              key={row.name}
-              role="button"
-              tabIndex={0}
-              onClick={() => setSelectedName(row.name)}
-              onKeyDown={(event) => {
-                if (event.key !== "Enter" && event.key !== " ") return;
-                event.preventDefault();
-                setSelectedName(row.name);
-              }}
-            >
-              <div>
-                <b>{row.name}</b>
-                <span>{row.power_name} · {row.faction} · {row.office_type}</span>
+              <div className="character-archive-dossier-grid">
+                <div className="character-archive-primary">
+                  <NetworkProfileBlock profile={detail.network_profile} />
+                  <StanceNotes notes={detail.stance_notes} />
+                </div>
+                <div className="character-archive-secondary">
+                  <XinpanProfileBlock profile={detail.xinpan_profile} />
+                  <TiangangSpectrum profile={detail.tiangang_profile} />
+                </div>
               </div>
-              <small>{row.office || row.status_label}</small>
-              <em>{row.status_label}{row.portrait_available === false ? " · 缺立绘" : ""}</em>
-              {callable ? (
-                <button onClick={(event) => { event.stopPropagation(); openArchiveChat(row, minister); }}>
-                  召见
-                </button>
-              ) : null}
-            </article>
-          );
-        })}
-        {!filtered.length ? <div className="empty-note">人物志无匹配记录。</div> : null}
+            </>
+          ) : loadingName ? (
+            <div className="empty-note">正在调阅{loadingName}档案...</div>
+          ) : detailError ? (
+            <div className="empty-note">{detailError}</div>
+          ) : detailMeta ? (
+            <div className="character-archive-skeleton">
+              <b>{detailMeta.name}</b>
+              <span>{detailMeta.summary || detailMeta.office || "档案尚未载入。"}</span>
+              <small>正在展开人物网络、心盘与天纲谱尺。</small>
+            </div>
+          ) : (
+            <div className="empty-note">选择一名人物查看小传、人脉与天罡谱尺。</div>
+          )}
+        </div>
       </div>
     </section>
   );
