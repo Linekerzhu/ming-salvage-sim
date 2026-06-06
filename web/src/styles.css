@@ -1987,8 +1987,8 @@ select:focus-visible {
 
 .legend-dot {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.35);
 }
@@ -2196,9 +2196,11 @@ select:focus-visible {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-height: 22px;
   color: #6f2b1f;
   font-size: 0.78rem;
   font-weight: 800;
+  line-height: 1.25;
 }
 
 .tiangang-spectrum-head b,
@@ -2267,8 +2269,8 @@ select:focus-visible {
   border: 1px solid rgba(111, 77, 36, 0.24);
   border-radius: 6px;
   background:
-    linear-gradient(90deg, rgba(57, 94, 128, 0.08) 0 var(--xinpan-cutoff-x, 57.5%), rgba(74, 120, 66, 0.08) var(--xinpan-cutoff-x, 57.5%) 100%),
-    linear-gradient(180deg, rgba(74, 120, 66, 0.06) 0 var(--xinpan-cutoff-y, 42.5%), rgba(137, 39, 30, 0.06) var(--xinpan-cutoff-y, 42.5%) 100%),
+    linear-gradient(90deg, rgba(57, 94, 128, 0.055) 0 var(--xinpan-axis-x, 50%), rgba(74, 120, 66, 0.06) var(--xinpan-axis-x, 50%) 100%),
+    linear-gradient(180deg, rgba(74, 120, 66, 0.045) 0 var(--xinpan-axis-y, 50%), rgba(137, 39, 30, 0.052) var(--xinpan-axis-y, 50%) 100%),
     rgba(255, 252, 239, 0.78);
   overflow: hidden;
 }
@@ -2285,19 +2287,20 @@ select:focus-visible {
 .xinpan-plane .threshold-x {
   left: 0;
   right: 0;
+  top: var(--xinpan-axis-y, 50%);
   height: 0;
-  border-top: 1px dashed rgba(122, 46, 36, 0.48);
+  border-top: 1px dashed rgba(122, 46, 36, 0.34);
 }
 
 .xinpan-plane .threshold-y {
   top: 0;
   bottom: 0;
+  left: var(--xinpan-axis-x, 50%);
   width: 0;
-  border-left: 1px dashed rgba(122, 46, 36, 0.48);
+  border-left: 1px dashed rgba(122, 46, 36, 0.34);
 }
 
-.xinpan-plane .axis-label,
-.xinpan-plane .threshold-label {
+.xinpan-plane .axis-label {
   position: absolute;
   z-index: 3;
   padding: 2px 4px;
@@ -2312,23 +2315,15 @@ select:focus-visible {
 }
 
 .xinpan-plane .axis-label-dao {
-  left: var(--xinpan-cutoff-x, 57.5%);
+  left: var(--xinpan-axis-x, 50%);
   top: 5px;
   transform: translateX(-50%);
 }
 
 .xinpan-plane .axis-label-shi {
   right: 5px;
-  top: var(--xinpan-cutoff-y, 42.5%);
+  top: var(--xinpan-axis-y, 50%);
   transform: translateY(-50%);
-}
-
-.xinpan-plane .threshold-label {
-  left: calc(var(--xinpan-cutoff-x, 57.5%) + 4px);
-  top: calc(var(--xinpan-cutoff-y, 42.5%) + 4px);
-  border-color: rgba(122, 46, 36, 0.2);
-  color: rgba(122, 46, 36, 0.72);
-  background: rgba(255, 248, 226, 0.74);
 }
 
 .xinpan-plane .quad {
@@ -2342,23 +2337,23 @@ select:focus-visible {
 }
 
 .xinpan-plane .q1 {
-  left: var(--xinpan-right-center-x, 78.75%);
-  top: var(--xinpan-top-center-y, 21.25%);
+  left: 75%;
+  top: 25%;
 }
 
 .xinpan-plane .q2 {
-  left: var(--xinpan-left-center-x, 28.75%);
-  top: var(--xinpan-top-center-y, 21.25%);
+  left: 25%;
+  top: 25%;
 }
 
 .xinpan-plane .q3 {
-  left: var(--xinpan-left-center-x, 28.75%);
-  top: var(--xinpan-bottom-center-y, 71.25%);
+  left: 25%;
+  top: 75%;
 }
 
 .xinpan-plane .q4 {
-  left: var(--xinpan-right-center-x, 78.75%);
-  top: var(--xinpan-bottom-center-y, 71.25%);
+  left: 75%;
+  top: 75%;
 }
 
 .xinpan-trail {
@@ -2370,84 +2365,32 @@ select:focus-visible {
   pointer-events: none;
 }
 
-.xinpan-trail polyline {
+.xinpan-trail path {
   fill: none;
-  stroke: rgba(122, 46, 36, 0.62);
-  stroke-width: 2.4;
+  stroke: rgba(176, 32, 27, 0.62);
+  stroke-width: 1.35;
   stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
 
-.xinpan-trail circle {
-  fill: rgba(255, 248, 226, 0.96);
-  stroke: rgba(122, 46, 36, 0.72);
-  stroke-width: 1.6;
-  vector-effect: non-scaling-stroke;
-}
-
 .xinpan-point {
   position: absolute;
-  width: 16px;
-  height: 16px;
-  border: 2px solid #fff0cf;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid #fff0cf;
   border-radius: 999px;
-  background: #b4201b;
+  background: #c32620;
   box-shadow:
-    0 0 0 3px rgba(180, 32, 27, 0.24),
-    0 0 16px rgba(180, 32, 27, 0.48),
-    0 4px 12px rgba(41, 24, 13, 0.32);
+    0 0 0 2px rgba(180, 32, 27, 0.22),
+    0 3px 9px rgba(41, 24, 13, 0.3);
   transform: translate(-50%, -50%);
   z-index: 5;
-  animation: xinpanCurrentBlink 1.35s ease-in-out infinite;
 }
 
-.xinpan-point::before {
-  content: "";
-  position: absolute;
-  inset: -8px;
-  border: 2px solid rgba(180, 32, 27, 0.46);
-  border-radius: inherit;
-  animation: xinpanCurrentPulse 1.35s ease-out infinite;
-  pointer-events: none;
-}
-
+.xinpan-point::before,
 .xinpan-point::after {
-  content: "";
-  position: absolute;
-  inset: 4px;
-  border-radius: inherit;
-  background: #ffe5b0;
-  box-shadow: 0 0 0 1px rgba(94, 27, 20, 0.16);
-}
-
-@keyframes xinpanCurrentBlink {
-  0%,
-  100% {
-    filter: saturate(1);
-    box-shadow:
-      0 0 0 3px rgba(180, 32, 27, 0.22),
-      0 0 12px rgba(180, 32, 27, 0.38),
-      0 4px 12px rgba(41, 24, 13, 0.3);
-  }
-  50% {
-    filter: saturate(1.22);
-    box-shadow:
-      0 0 0 5px rgba(180, 32, 27, 0.28),
-      0 0 22px rgba(180, 32, 27, 0.68),
-      0 4px 14px rgba(41, 24, 13, 0.36);
-  }
-}
-
-@keyframes xinpanCurrentPulse {
-  0% {
-    opacity: 0.78;
-    transform: scale(0.68);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.55);
-  }
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2455,25 +2398,6 @@ select:focus-visible {
   .xinpan-point::before {
     animation: none;
   }
-}
-
-.xinpan-plane-note {
-  position: absolute;
-  left: 50%;
-  bottom: 6px;
-  z-index: 5;
-  max-width: calc(100% - 12px);
-  padding: 2px 5px;
-  border: 1px solid rgba(126, 86, 38, 0.16);
-  border-radius: 4px;
-  color: rgba(82, 57, 34, 0.72);
-  background: rgba(255, 248, 226, 0.72);
-  font-size: 0.58rem;
-  font-weight: 800;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transform: translateX(-50%);
 }
 
 .xinpan-metrics {
@@ -4256,8 +4180,8 @@ select:focus-visible {
 
 .chat-character-stage {
   position: relative;
-  flex: 0 0 clamp(220px, 31vh, 310px);
-  min-height: clamp(220px, 31vh, 310px);
+  flex: 0 0 clamp(238px, 34vh, 342px);
+  min-height: clamp(238px, 34vh, 342px);
   overflow: hidden;
   border-radius: 8px 8px 0 0;
   isolation: isolate;
@@ -4278,7 +4202,7 @@ select:focus-visible {
 
 .chat-character-stage .chat-portrait-wrap {
   position: absolute;
-  inset: clamp(8px, 2vh, 18px) -42px -112px;
+  inset: clamp(-8px, -1vh, 6px) -72px -136px;
   z-index: 1;
   min-height: 0;
   margin: 0;
@@ -4287,8 +4211,8 @@ select:focus-visible {
 }
 
 .chat-character-stage .minister-card-portrait {
-  width: min(138%, 500px);
-  height: 116%;
+  width: min(154%, 590px);
+  height: 128%;
   max-width: none;
   flex: 0 0 auto;
   object-fit: contain;
@@ -4296,7 +4220,7 @@ select:focus-visible {
   border-radius: 0;
   background: transparent;
   filter: drop-shadow(0 22px 28px rgba(20, 10, 4, 0.42));
-  transform: translateY(-4%) scale(1.04);
+  transform: translateY(-7%) scale(1.1);
   transform-origin: top center;
 }
 
@@ -4349,8 +4273,7 @@ select:focus-visible {
 }
 
 .chat-intel-details {
-  display: grid;
-  gap: 8px;
+  display: block;
   min-width: 0;
   max-height: min(28vh, 260px);
   overflow-y: auto;
@@ -4360,6 +4283,8 @@ select:focus-visible {
 }
 
 .chat-intel-details summary {
+  display: flex;
+  align-items: center;
   min-height: 34px;
   padding: 7px 10px;
   border: 1px solid rgba(111, 83, 46, 0.18);
@@ -4368,6 +4293,8 @@ select:focus-visible {
   background: rgba(255, 248, 226, 0.58);
   font-size: 0.78rem;
   font-weight: 900;
+  line-height: 1.2;
+  overflow: hidden;
   cursor: pointer;
 }
 
@@ -4393,14 +4320,15 @@ select:focus-visible {
   top: 0;
   z-index: 8;
   border-radius: 6px 6px 0 0;
-  background: rgba(255, 248, 226, 0.92);
+  background: #fff8e2;
   backdrop-filter: blur(8px);
 }
 
 .chat-intel-dossier .chat-intel-detail-body {
   grid-template-columns: 1fr;
   align-items: start;
-  padding: 10px;
+  gap: 12px;
+  padding: 12px 10px 12px;
 }
 
 .chat-intel-dossier .xinpan-profile {
@@ -5415,9 +5343,14 @@ button:disabled {
 .modal-bg-chat .tiangang-spectrum,
 .modal-bg-chat .tiangang-brief,
 .modal-bg-chat .stance-notes,
-.modal-bg-chat .network-profile {
+.modal-bg-chat .network-profile,
+.modal-bg-chat .xinpan-profile {
   background: rgba(255, 248, 226, 0.72) !important;
   border-color: rgba(74, 45, 20, 0.18) !important;
+}
+
+.modal-bg-chat .chat-intel-dossier summary {
+  background: #fff8e2 !important;
 }
 
 .modal-bg-chat .stance-note,
@@ -6141,18 +6074,18 @@ button:disabled {
   }
 
   .chat-character-stage {
-    flex-basis: clamp(240px, 36vh, 340px);
-    min-height: clamp(240px, 36vh, 340px);
+    flex-basis: clamp(250px, 38vh, 360px);
+    min-height: clamp(250px, 38vh, 360px);
   }
 
   .chat-character-stage .chat-portrait-wrap {
-    inset: 6px -28px -78px;
+    inset: -8px -58px -104px;
   }
 
   .chat-character-stage .minister-card-portrait {
-    width: min(136%, 480px);
-    height: 114%;
-    transform: translateY(-3%) scale(1.02);
+    width: min(150%, 560px);
+    height: 124%;
+    transform: translateY(-6%) scale(1.08);
   }
 
   .chat-character-stage .minister-card-portrait-placeholder {
@@ -11434,15 +11367,15 @@ button:disabled {
   }
 
   .chat-character-stage .chat-portrait-wrap {
-    inset: -20px -28px -88px 64px;
+    inset: -24px -38px -96px 52px;
     justify-content: flex-end;
     opacity: 0.9;
   }
 
   .chat-character-stage .minister-card-portrait {
-    width: min(98%, 260px);
-    height: 178%;
-    transform: translateY(-10%) scale(1);
+    width: min(116%, 310px);
+    height: 192%;
+    transform: translateY(-13%) scale(1.06);
     object-position: top right;
   }
 

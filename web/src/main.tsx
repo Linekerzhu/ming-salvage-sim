@@ -7051,6 +7051,29 @@ const xinpanPlanePoint = (daoRaw: number, shiRaw: number) => {
   };
 };
 
+type XinpanPlanePoint = ReturnType<typeof xinpanPlanePoint>;
+
+const xinpanSmoothTrailPath = (points: XinpanPlanePoint[]) => {
+  if (!points.length) return "";
+  const fmt = (value: number) => value.toFixed(2);
+  if (points.length === 1) return `M ${fmt(points[0].x)} ${fmt(points[0].y)}`;
+  if (points.length === 2) return `M ${fmt(points[0].x)} ${fmt(points[0].y)} L ${fmt(points[1].x)} ${fmt(points[1].y)}`;
+
+  let path = `M ${fmt(points[0].x)} ${fmt(points[0].y)}`;
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const previous = points[index - 1] || points[index];
+    const current = points[index];
+    const next = points[index + 1];
+    const afterNext = points[index + 2] || next;
+    const cp1x = current.x + (next.x - previous.x) / 6;
+    const cp1y = current.y + (next.y - previous.y) / 6;
+    const cp2x = next.x - (afterNext.x - current.x) / 6;
+    const cp2y = next.y - (afterNext.y - current.y) / 6;
+    path += ` C ${fmt(cp1x)} ${fmt(cp1y)}, ${fmt(cp2x)} ${fmt(cp2y)}, ${fmt(next.x)} ${fmt(next.y)}`;
+  }
+  return path;
+};
+
 const xinpanQuadrantReading: Record<string, { title: string; summary: string }> = {
   股肱: { title: "同道同利", summary: "价值与利益都站在皇权一侧，适合托付重任与预警。" },
   权附: { title: "逐势依附", summary: "利益暂附，忠诚多半来自局势和赏罚，需持续给出可兑现好处。" },
@@ -7085,23 +7108,14 @@ function XinpanProfileBlock({ profile }: { profile?: XinpanProfile }) {
   const hatred = Math.round(Number(profile.hatred || 0));
   const trust = Number(profile.trust_coeff || 0);
   const currentPoint = xinpanPlanePoint(dao, shi);
-  const daoCutoff = Math.max(-100, Math.min(100, Number(profile.dao_cutoff ?? 15)));
-  const shiCutoff = Math.max(-100, Math.min(100, Number(profile.shi_cutoff ?? 15)));
-  const thresholdPoint = xinpanPlanePoint(daoCutoff, shiCutoff);
   const planeStyle = {
-    "--xinpan-cutoff-x": `${thresholdPoint.x}%`,
-    "--xinpan-cutoff-y": `${thresholdPoint.y}%`,
-    "--xinpan-left-center-x": `${thresholdPoint.x / 2}%`,
-    "--xinpan-right-center-x": `${thresholdPoint.x + (100 - thresholdPoint.x) / 2}%`,
-    "--xinpan-top-center-y": `${thresholdPoint.y / 2}%`,
-    "--xinpan-bottom-center-y": `${thresholdPoint.y + (100 - thresholdPoint.y) / 2}%`,
+    "--xinpan-axis-x": "50%",
+    "--xinpan-axis-y": "50%",
   } as React.CSSProperties;
   const pointStyle = {
     left: `${currentPoint.x}%`,
     top: `${currentPoint.y}%`,
   };
-  const thresholdXStyle = { top: `${thresholdPoint.y}%` };
-  const thresholdYStyle = { left: `${thresholdPoint.x}%` };
   const quadrantClass = String(profile.quadrant || "").replace(/[^\w\u4e00-\u9fff-]/g, "");
   const concerns = profile.core_concerns || [];
   const abilities = profile.top_abilities || [];
@@ -7114,7 +7128,7 @@ function XinpanProfileBlock({ profile }: { profile?: XinpanProfile }) {
     }))
     .filter((point) => Number.isFinite(point.dao_he) && Number.isFinite(point.shi_he));
   const trailPoints = trajectory.map((point) => xinpanPlanePoint(point.dao_he, point.shi_he));
-  const trailPath = trailPoints.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" ");
+  const trailPath = xinpanSmoothTrailPath(trailPoints);
   const hasTrail = trailPoints.length > 1;
   const reading = xinpanQuadrantReading[String(profile.quadrant)] || { title: "心迹未定", summary: "需继续观察奏对、履约与人事处置后的变化。" };
   const recentEvents = trajectory
@@ -7147,24 +7161,19 @@ function XinpanProfileBlock({ profile }: { profile?: XinpanProfile }) {
         <span>{reading.summary}</span>
       </div>
       <div className="xinpan-grid">
-        <div className="xinpan-plane" style={planeStyle} aria-label={`心盘：红点为真实位置，道合${dao}，势合${shi}；虚线为象限分界，道合${daoCutoff}，势合${shiCutoff}`}>
-          <i className="threshold-x" style={thresholdXStyle} />
-          <i className="threshold-y" style={thresholdYStyle} />
+        <div className="xinpan-plane" style={planeStyle} aria-label={`心盘：道合${dao}，势合${shi}`}>
+          <i className="threshold-x" />
+          <i className="threshold-y" />
           <span className="axis-label axis-label-dao">道合↑</span>
           <span className="axis-label axis-label-shi">势合→</span>
-          <span className="threshold-label">象限分界</span>
           <span className="quad q1">股肱</span>
           <span className="quad q2">道隐</span>
           <span className="quad q3">离心</span>
           <span className="quad q4">权附</span>
           <svg className="xinpan-trail" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            {hasTrail ? <polyline points={trailPath} /> : null}
-            {trailPoints.slice(0, -1).map((point, index) => (
-              <circle key={`${index}-${point.x}-${point.y}`} cx={point.x} cy={point.y} r={2.3} />
-            ))}
+            {hasTrail ? <path d={trailPath} /> : null}
           </svg>
           <b className="xinpan-point" style={pointStyle} title={`真实位置：道合${dao}，势合${shi}`} />
-          <span className="xinpan-plane-note">{hasTrail ? `${trailPoints.length}点轨迹 · 红点为真实位置` : "红点为真实位置"}</span>
         </div>
         <div className="xinpan-metrics">
           <span className={positiveTone(dao)}><b>道合</b>{dao > 0 ? "+" : ""}{dao}</span>
