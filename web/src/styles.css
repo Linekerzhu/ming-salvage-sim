@@ -4541,6 +4541,11 @@ select:focus-visible {
   white-space: pre-wrap;
 }
 
+.chat-message p strong {
+  color: #5f2b1d;
+  font-weight: 900;
+}
+
 .chat-composer {
   flex: 0 0 auto;
   display: grid;

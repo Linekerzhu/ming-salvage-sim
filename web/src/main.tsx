@@ -587,6 +587,30 @@ type EndingPayload = {
 type ChatMessage = { role: "user" | "minister"; content: string };
 type ChatDisplayMessage = ChatMessage & { pending?: boolean };
 type Suggestion = { label: string; text: string; prefix?: boolean };
+
+function renderChatMarkdownText(content: string): React.ReactNode[] {
+  const normalized = content.replace(/^\s{0,3}#{1,6}\s+/gm, "");
+  const pieces: React.ReactNode[] = [];
+  const emphasisPattern = /(\*\*|__)([\s\S]+?)\1/g;
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+
+  const pushText = (text: string) => {
+    const cleaned = text.replace(/\*\*|__/g, "");
+    if (cleaned) pieces.push(cleaned);
+  };
+
+  while ((match = emphasisPattern.exec(normalized))) {
+    pushText(normalized.slice(cursor, match.index));
+    pieces.push(<strong key={`strong-${key++}`}>{match[2]}</strong>);
+    cursor = match.index + match[0].length;
+  }
+  pushText(normalized.slice(cursor));
+
+  return pieces;
+}
+
 type ModalName = "none" | "state" | "chat" | "edict" | "report" | "extraction" | "history" | "menu" | "secret_orders" | "ending" | "long_goals" | "adventure";
 type DrawerName = "" | "court" | "harem" | "army" | "region" | "building" | "economy" | "appointment" | "organization";
 type SaveEntry = MenuSave & { current?: boolean };
@@ -7588,7 +7612,7 @@ function ChatModal({
           {displayMessages.map((message, index) => (
             <div className={`chat-message ${message.role} ${message.pending ? "pending" : ""}`} key={`${message.role}-${index}`}>
               <span>{message.role === "user" ? "朕" : minister.name}</span>
-              <p>{message.content}</p>
+              <p>{renderChatMarkdownText(message.content)}</p>
             </div>
           ))}
           {busy && !streamingMinisterMessage && (
