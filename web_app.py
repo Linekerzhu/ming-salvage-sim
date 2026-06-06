@@ -42,11 +42,8 @@ from ming_sim.session import AUTO_SAVE_PREFIX, _parse_registered_secret_order_re
 from ming_sim.skills import available_skill_ids, skill_display_name, skill_source_labels
 from ming_sim.context import (
     match_minister_from_text,
-    npc_dialogue_behavior_brief,
-    npc_dialogue_behavior_profile,
     npc_network_profile,
     npc_network_recommendations,
-    npc_tiangang_behavior_brief,
     npc_tiangang_profile,
 )
 from ming_sim.db import effective_stored_office_type, infer_office_type_from_office, normalize_office
@@ -60,7 +57,6 @@ from ming_sim.negotiation import (
     HANDSHAKE_BLOCKED,
     HANDSHAKE_CONDITIONAL,
     HANDSHAKE_SEALED,
-    evaluate_negotiation,
     handshake_label,
 )
 from ming_sim.portraits import (
