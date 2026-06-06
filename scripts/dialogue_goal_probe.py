@@ -109,6 +109,19 @@ def run_probe() -> None:
         assert_true(goal["action_kind"] == "castration", "explicit castration goal should be castration")
         assert_true(goal["status"] == GOAL_SEALED, "explicit castration should seal")
 
+        abandon_seed_text = "朕还要你密查一桩钱粮旧案，先不要走漏风声。"
+        prep = prepare_dialogue_context(db, state, yang, abandon_seed_text, persistent=True)
+        record_dialogue_effects(
+            db,
+            state,
+            yang,
+            abandon_seed_text,
+            "臣可密查，但须明旨授权，另添两名可靠书吏。",
+            prep,
+        )
+        goal = latest_goal(db, yang.name)
+        assert_true(goal["status"] == GOAL_WAITING, "abandon setup should leave a waiting goal")
+
         abandon_text = "此事先作罢，不谈密查了。"
         prep = prepare_dialogue_context(db, state, yang, abandon_text, persistent=True)
         abandoned = record_dialogue_effects(
