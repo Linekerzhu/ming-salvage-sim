@@ -435,6 +435,10 @@ class ChatRequest(BaseModel):
     message: str
 
 
+class ConversationGoalAbandonRequest(BaseModel):
+    reason: str = ""
+
+
 class DirectiveRequest(BaseModel):
     text: str
     notes: str = ""
@@ -509,6 +513,7 @@ class WebGame:
         if not api_key:
             raise LLMUnavailable("未配 API key，请先到设置页填写。")
         random.seed(int(os.environ.get("MING_SIM_SEED", "7")))
+        self.character_rng = random.SystemRandom()
         os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
         self.db_path = db_path
         if fresh:
@@ -972,6 +977,7 @@ class WebGame:
             **age_payload,
             "power_id": power_id,
             "stance_notes": self._public_stance_notes(character.name, limit=3),
+            "conversation_goals": self.conversation_goal_payload(minister_name=character.name, limit=8),
             "xinpan_profile": self.db.get_xinpan_profile(character.name, self.state),
             "skills": [],
             "favorite": character.name in self.favorites,
@@ -1506,16 +1512,38 @@ class WebGame:
         }
 
     def _generated_name(self, source: str) -> str:
-        surnames = ["沈", "陆", "顾", "钱", "严", "许", "方", "周", "赵", "韩", "曹", "董", "袁", "程", "夏", "魏"]
-        exam_given = ["承谟", "允中", "廷璧", "士衡", "景明", "伯修", "文炳", "维桢"]
-        eunuch_given = ["承恩", "守忠", "怀谨", "进忠", "奉节", "谨言", "守义", "承旨"]
-        wild_given = ["有恒", "元亮", "道衡", "伯言", "子实", "闻道", "衡石", "汝霖"]
+        rng = self.character_rng
+        surnames = [
+            "沈", "陆", "顾", "钱", "严", "许", "方", "周", "赵", "韩", "曹", "董", "袁", "程", "夏", "魏",
+            "陶", "邹", "邵", "潘", "吕", "姜", "秦", "汤", "俞", "贺", "戴", "毛", "姚", "范", "葛", "卢",
+            "乔", "傅", "薛", "万", "龚", "孟", "庞", "牟", "骆", "施", "盛", "郁", "鲍", "祝", "裴", "闻",
+        ]
+        exam_given = [
+            "承谟", "允中", "廷璧", "士衡", "景明", "伯修", "文炳", "维桢", "若愚", "子衡", "介夫", "鸣谦",
+            "汝楫", "怀玉", "敬修", "季同", "履常", "慎言", "梦麟", "启泰", "元鼎", "观澜", "宗周", "思问",
+            "以宁", "士奇", "文炜", "拱辰", "时行", "含章", "念祖", "式谷",
+        ]
+        eunuch_given = [
+            "承恩", "守忠", "怀谨", "进忠", "奉节", "谨言", "守义", "承旨", "谨安", "福海", "德顺", "双喜",
+            "怀灯", "添禄", "宝成", "小春", "砚秋", "守拙", "进宝", "长顺", "小满", "奉先", "怀璧", "听雨",
+            "守灯", "玉成", "来喜", "小砚", "存谨", "承庆", "瑞安", "德昌",
+        ]
+        wild_given = [
+            "有恒", "元亮", "道衡", "伯言", "子实", "闻道", "衡石", "汝霖", "石樵", "云路", "维岳", "野航",
+            "希孟", "抱朴", "观海", "济川", "鸣岐", "松年", "斗南", "怀远", "时敏", "砺庵", "鹤洲", "慎微",
+            "东野", "南金", "雨农", "季鹰", "履霜", "守冲", "望舒", "青简",
+        ]
         givens = eunuch_given if source == "eunuch" else exam_given if source == "exam" else wild_given
-        for _ in range(80):
-            name = random.choice(surnames) + random.choice(givens)
+        for _ in range(240):
+            name = rng.choice(surnames) + rng.choice(givens)
             if name not in self.content.characters:
                 return name
-        return f"{random.choice(surnames)}{source}{self.state.turn}{random.randint(10, 99)}"
+        for _ in range(80):
+            fallback_given = rng.choice(givens) + rng.choice(["之", "仲", "季", "小", "元"]) + rng.choice(["衡", "谨", "舟", "石", "安"])
+            name = f"{rng.choice(surnames)}{fallback_given}"
+            if name not in self.content.characters:
+                return name
+        return f"{rng.choice(surnames)}{rng.choice(givens)}{self.state.turn}{rng.randint(10, 99)}"
 
     def _add_runtime_character(self, character: Character, source: str) -> Character:
         self.db.add_character(self.state, character, source=source)
@@ -1535,65 +1563,141 @@ class WebGame:
         return character
 
     def recruit_exam_official(self) -> Dict[str, Any]:
-        office = random.choice(["翰林院庶吉士", "吏部主事", "户部主事", "兵部主事", "六科给事中"])
-        faction = random.choice(["清流", "东林党", "中立", "实务派"])
-        ability = random.randint(58, 78)
-        wisdom = min(90, ability + random.randint(4, 14))
-        integrity = random.randint(55, 84) if faction in {"清流", "东林党"} else random.randint(48, 76)
+        rng = self.character_rng
+        office = rng.choice([
+            "翰林院庶吉士", "吏部主事", "户部主事", "兵部主事", "礼部主事", "工部营缮司主事",
+            "六科给事中", "都察院试御史", "翰林院检讨", "南京户部主事",
+        ])
+        faction = rng.choice(["清流", "东林党", "中立", "实务派", "乡党"])
+        origin = rng.choice([
+            ("京师", "北直隶寒门出身，见过京畿饥荒与勋贵气焰"),
+            ("南京", "江南士林出身，文章漂亮但也懂商税水路"),
+            ("山西", "山西边地士子，熟悉军饷、驿路与边民疾苦"),
+            ("陕西", "陕西灾年里考出的新进士，脸上有饥荒年代的硬气"),
+            ("福建", "福建海路乡绅子弟，懂盐税、海商和地方械斗"),
+            ("山东", "山东乡塾清贫出身，讲礼法也敢争一口硬气"),
+        ])
+        archetype = rng.choice([
+            {
+                "style": "新科锐气，重名分与章程，说话快，袖子也压不住锋芒",
+                "summary": "殿试后仍带考场火气，急着在朝堂上证明自己。",
+                "skills": ["科举", "奏对", "文书", "廷议", "条陈"],
+            },
+            {
+                "style": "书生气未退，肯办事但怕背锅，遇事先把账册翻到最细",
+                "summary": "擅长把杂乱钱粮拆成条目，但还不懂老官场的暗门。",
+                "skills": ["科举", "文书", "钱粮核算", "案牍"],
+            },
+            {
+                "style": "清峻寡言，年轻却有弹劾胆色，眼神像刚磨过的刀背",
+                "summary": "在同年中以敢言出名，未必圆滑，但很难被轻易收买。",
+                "skills": ["科举", "奏对", "弹章", "廷议"],
+            },
+            {
+                "style": "温吞外表下藏着急智，惯用乡里见闻破题",
+                "summary": "不像标准翰林，更像从地方泥水里捞出来的读书人。",
+                "skills": ["科举", "地方见闻", "文书", "说服"],
+            },
+            {
+                "style": "少年得志而自知根基浅，行礼过分端正，心里算盘很响",
+                "summary": "懂得先观察派系风向，再把锋芒藏进漂亮文章里。",
+                "skills": ["科举", "奏对", "观风", "辞令"],
+            },
+        ])
+        ability = rng.randint(58, 80)
+        wisdom = min(92, ability + rng.randint(4, 16))
+        integrity = rng.randint(56, 88) if faction in {"清流", "东林党"} else rng.randint(46, 78)
         character = Character(
             name=self._generated_name("exam"),
             office=office,
             office_type=infer_office_type_from_office(office, "待铨"),
             faction=faction,
             aliases=[],
-            personal_skills=["科举", "奏对", "文书", "廷议"],
-            loyalty=random.randint(52, 78),
+            personal_skills=list(dict.fromkeys(archetype["skills"])),
+            loyalty=rng.randint(52, 80),
             ability=ability,
             integrity=integrity,
-            courage=random.randint(45, 72),
-            style=random.choice(["新科锐气，重名分与章程", "书生气未退，肯办事但怕背锅", "文理清楚，急于求一件实绩"]),
-            birth_year=self.state.year - random.randint(22, 38),
+            courage=rng.randint(45, 76),
+            style=archetype["style"],
+            birth_year=self.state.year - rng.randint(22, 40),
             power_id="ming",
-            location="京师",
+            location=origin[0],
             status="active",
-            summary=f"{self.state.year}年科举新进士，初入朝局，尚未卷入深派系。",
-            force=random.randint(35, 55),
+            summary=f"{self.state.year}年科举新进士，{origin[1]}；{archetype['summary']}",
+            force=rng.randint(35, 58),
             wisdom=wisdom,
-            charm=random.randint(48, 72),
-            luck=random.randint(45, 80),
+            charm=rng.randint(48, 74),
+            luck=rng.randint(42, 84),
         )
         added = self._add_runtime_character(character, "科举取士")
         return {"message": f"新科取士：{added.name}补入{added.office}。", "minister": self.public_character(added)}
 
     def recruit_eunuch(self) -> Dict[str, Any]:
-        office = random.choice(["司礼监小火者", "司礼监随堂太监", "司礼监书办太监"])
-        loyalty = random.randint(80, 96)
+        rng = self.character_rng
+        office = rng.choice([
+            "司礼监小火者", "司礼监随堂太监", "司礼监书办太监", "司礼监文书房小内官",
+            "御马监小内使", "乾清宫门下随侍", "内书堂识字小火者",
+        ])
+        archetype = rng.choice([
+            {
+                "style": "谨密奉旨，先复命后议理，眼睛总像在数门闩",
+                "summary": "识字早，记性细，适合传旨、抄录和暗中核对口供。",
+                "skills": ["内廷传旨", "宫禁熟习", "保密复命", "文书抄录"],
+                "location": "司礼监值房",
+            },
+            {
+                "style": "出身寒微，视入宫为正途，笑得快，跪得也快",
+                "summary": "从苦日子里钻出来，愿意拼命换一条内廷上升路。",
+                "skills": ["内廷传旨", "宫禁熟习", "跑腿探听", "执行"],
+                "location": "紫禁城",
+            },
+            {
+                "style": "言少手快，重皇命轻清议，袖中常攥着一枚小木牌",
+                "summary": "不擅高谈，却极会按时把人、信、物送到该到之处。",
+                "skills": ["保密复命", "宫禁熟习", "门禁调度", "执行"],
+                "location": "乾清宫门外",
+            },
+            {
+                "style": "机灵浮躁，爱抢话，怕挨打，但脑子转得像檐下急雨",
+                "summary": "宫里新来的小内官，胆子还嫩，胜在反应快、耳朵尖。",
+                "skills": ["内廷传旨", "察言观色", "跑腿探听", "宫禁熟习"],
+                "location": "内书堂",
+            },
+            {
+                "style": "沉默阴柔，行走贴墙，听见一句能记三天",
+                "summary": "不显山露水，却很适合在内廷缝隙里替皇帝收细消息。",
+                "skills": ["保密复命", "宫禁熟习", "暗访", "察言观色"],
+                "location": "司礼监廊下",
+            },
+        ])
+        loyalty = rng.randint(80, 97)
         character = Character(
             name=self._generated_name("eunuch"),
             office=office,
             office_type="司礼监",
-            faction=random.choice(["内廷", "阉党"]),
+            faction=rng.choice(["内廷", "阉党", "皇党"]),
             aliases=[],
-            personal_skills=["内廷传旨", "宫禁熟习", "保密复命", "执行"],
+            personal_skills=list(dict.fromkeys(archetype["skills"])),
             loyalty=loyalty,
-            ability=random.randint(46, 70),
-            integrity=random.randint(45, 72),
-            courage=random.randint(56, 82),
-            style=random.choice(["谨密奉旨，先复命后议理", "出身寒微，视入宫为正途", "言少手快，重皇命轻清议"]),
-            birth_year=self.state.year - random.randint(15, 30),
+            ability=rng.randint(44, 74),
+            integrity=rng.randint(38, 76),
+            courage=rng.randint(52, 84),
+            style=archetype["style"],
+            birth_year=self.state.year - rng.randint(15, 32),
             power_id="ming",
-            location="紫禁城",
+            location=archetype["location"],
             status="active",
-            summary="净身入宫的内廷新人。太监是皇帝家奴，入仕路径正常；其能力未必压倒外朝，但忠诚与执行链清晰。",
-            force=random.randint(38, 62),
-            wisdom=random.randint(46, 70),
-            charm=random.randint(42, 66),
-            luck=random.randint(48, 80),
+            summary=f"净身入宫的内廷新人。{archetype['summary']}太监是皇帝家奴，入仕路径正常；其能力未必压倒外朝，但忠诚与执行链清晰。",
+            force=rng.randint(36, 64),
+            wisdom=rng.randint(44, 74),
+            charm=rng.randint(38, 70),
+            luck=rng.randint(46, 84),
         )
         added = self._add_runtime_character(character, "招募太监")
         return {"message": f"内廷募入：{added.name}补入{added.office}。", "minister": self.public_character(added)}
 
     def recommend_hidden_official(self) -> Dict[str, Any]:
+        rng = self.character_rng
         active_recommenders = [
             c for c in self.content.characters.values()
             if c.office_type != "后宫"
@@ -1613,7 +1717,9 @@ class WebGame:
                 network_hits.append({**row, "recommender": recommender.name})
         network_hits.sort(key=lambda item: int(item.get("score") or 0), reverse=True)
         if network_hits:
-            hit = network_hits[0]
+            top_score = int(network_hits[0].get("score") or 0)
+            top_band = [item for item in network_hits[:10] if int(item.get("score") or 0) >= top_score - 8]
+            hit = rng.choice(top_band or network_hits[:1])
             chosen = self.content.characters[str(hit["name"])]
             office = chosen.office or "待铨（举贤入京）"
             office_type = infer_office_type_from_office(office, chosen.office_type or "待铨")
@@ -1635,27 +1741,67 @@ class WebGame:
             }
 
         name = self._generated_name("recommend")
+        origin = rng.choice([
+            ("山西", "曾在边镇粮台做幕，懂军饷的黑洞，也懂小吏的手脚"),
+            ("南直隶", "江南乡绅圈里有名，能说服士绅，也知道他们怕什么"),
+            ("福建", "熟海商、盐税与械斗，手上有几条不写在公文里的门路"),
+            ("陕西", "灾荒县里熬出来的塾师，见过流民、催科和逃亡册籍"),
+            ("山东", "乡里公议推出来的人，硬气、倔，爱拿实情顶空话"),
+            ("湖广", "跑过漕路和山路，知道地方官文牍之外的另一套秩序"),
+        ])
+        archetype = rng.choice([
+            {
+                "faction": "中立",
+                "style": "在野有名，初入京师，先观望各派风向，袖里藏着地方账本",
+                "summary": "不是标准官样人物，说话带泥土气，但看事很准。",
+                "skills": ["地方阅历", "文书", "举贤", "民情"],
+            },
+            {
+                "faction": "清流",
+                "style": "清瘦倔强，被乡里称作硬骨头，进京后仍不肯学圆滑",
+                "summary": "有清名也有锋芒，适合查弊，却容易得罪人。",
+                "skills": ["地方阅历", "弹章", "清查", "举贤"],
+            },
+            {
+                "faction": "实务派",
+                "style": "眼神像账房先生，算盘打得响，话却说得粗直",
+                "summary": "能把亏空、徭役和漕运拆成能办的步骤。",
+                "skills": ["地方阅历", "钱粮核算", "文书", "调停"],
+            },
+            {
+                "faction": "乡党",
+                "style": "人情老辣，见官不怯，懂得先递台阶再递刀子",
+                "summary": "靠地方声望入京，善结人脉，也可能被人脉牵住。",
+                "skills": ["地方阅历", "举贤", "说合", "情报"],
+            },
+            {
+                "faction": "中立",
+                "style": "落拓幕客气，衣摆旧，眼睛亮，像随时要讲一段奇策",
+                "summary": "半在官场、半在江湖，能办非常规的小事。",
+                "skills": ["幕府阅历", "文书", "情报", "机变"],
+            },
+        ])
         character = Character(
             name=name,
             office="待铨（举贤入京）",
             office_type="待铨",
-            faction=random.choice(["中立", "清流", "实务派"]),
+            faction=archetype["faction"],
             aliases=[],
-            personal_skills=["地方阅历", "文书", "举贤"],
-            loyalty=random.randint(48, 74),
-            ability=random.randint(52, 76),
-            integrity=random.randint(50, 82),
-            courage=random.randint(44, 75),
-            style="在野有名，初入京师，先观望各派风向",
-            birth_year=self.state.year - random.randint(28, 55),
+            personal_skills=list(dict.fromkeys(archetype["skills"])),
+            loyalty=rng.randint(46, 76),
+            ability=rng.randint(52, 80),
+            integrity=rng.randint(48, 86),
+            courage=rng.randint(44, 78),
+            style=archetype["style"],
+            birth_year=self.state.year - rng.randint(28, 58),
             power_id="ming",
-            location="京师",
+            location=origin[0],
             status="active",
-            summary="由地方举荐入京的在野人物，尚无稳固靠山。",
-            force=random.randint(35, 58),
-            wisdom=random.randint(52, 78),
-            charm=random.randint(46, 74),
-            luck=random.randint(40, 82),
+            summary=f"由地方举荐入京的在野人物，{origin[1]}；{archetype['summary']}尚无稳固靠山。",
+            force=rng.randint(34, 60),
+            wisdom=rng.randint(52, 82),
+            charm=rng.randint(46, 78),
+            luck=rng.randint(38, 86),
         )
         added = self._add_runtime_character(character, "举贤入京")
         return {"message": f"举贤入京：{added.name}列入待铨。", "minister": self.public_character(added)}
@@ -1674,6 +1820,34 @@ class WebGame:
                 "summary": str(agreement.get("summary") or "已有净身入内廷的握手协议。"),
                 "conditions": str(agreement.get("conditions") or ""),
                 "agreement": agreement,
+            }
+        for goal in self.db.list_conversation_goals(
+            minister_name=name,
+            statuses=["active", "waiting_conditions", "sealed", "blocked", "expired"],
+            limit=12,
+        ):
+            if str(goal.get("action_kind") or "") != "castration":
+                continue
+            status = str(goal.get("status") or "")
+            if status == "sealed":
+                handshake_status = HANDSHAKE_SEALED
+            elif status == "waiting_conditions":
+                handshake_status = HANDSHAKE_CONDITIONAL
+            elif status == "blocked":
+                handshake_status = HANDSHAKE_BLOCKED
+            else:
+                handshake_status = "none"
+            conditions = "；".join(
+                str(item.get("description") or "")
+                for item in (goal.get("conditions") or [])
+                if isinstance(item, dict) and str(item.get("status") or "pending") != "done"
+            )
+            return {
+                "stance": "support" if handshake_status == HANDSHAKE_SEALED else "caution",
+                "handshake_status": handshake_status,
+                "summary": str(goal.get("title") or goal.get("target_text") or "净身入内廷奏对目的"),
+                "conditions": conditions,
+                "goal": goal,
             }
         latest_relevant: Optional[Dict[str, Any]] = None
         for row in self.db.list_minister_stances(turn=self.state.turn, minister_name=name, limit=12):
@@ -1700,6 +1874,34 @@ class WebGame:
                 "summary": str(agreement.get("summary") or "已有奴籍转民籍的握手协议。"),
                 "conditions": str(agreement.get("conditions") or ""),
                 "agreement": agreement,
+            }
+        for goal in self.db.list_conversation_goals(
+            minister_name=name,
+            statuses=["active", "waiting_conditions", "sealed", "blocked", "expired"],
+            limit=12,
+        ):
+            if str(goal.get("action_kind") or "") != "emancipation":
+                continue
+            status = str(goal.get("status") or "")
+            if status == "sealed":
+                handshake_status = HANDSHAKE_SEALED
+            elif status == "waiting_conditions":
+                handshake_status = HANDSHAKE_CONDITIONAL
+            elif status == "blocked":
+                handshake_status = HANDSHAKE_BLOCKED
+            else:
+                handshake_status = "none"
+            conditions = "；".join(
+                str(item.get("description") or "")
+                for item in (goal.get("conditions") or [])
+                if isinstance(item, dict) and str(item.get("status") or "pending") != "done"
+            )
+            return {
+                "stance": "support" if handshake_status == HANDSHAKE_SEALED else "caution",
+                "handshake_status": handshake_status,
+                "summary": str(goal.get("title") or goal.get("target_text") or "奴籍转民籍奏对目的"),
+                "conditions": conditions,
+                "goal": goal,
             }
         latest_relevant: Optional[Dict[str, Any]] = None
         for row in self.db.list_minister_stances(turn=self.state.turn, minister_name=name, limit=12):
@@ -1956,24 +2158,31 @@ class WebGame:
             "appease": ("安抚内廷", "内廷调停", "能缓和宫禁怨气", "皇威", 1),
         }
         if action == "recommend":
+            rng = self.character_rng
+            archetype = rng.choice([
+                ("由宫中举荐，入册待选，礼数端正但眼神很会看人", "熟宫礼，善察言观色，像是已经学会在廊下少说半句。", ["宫礼", "察言观色"]),
+                ("小心机灵，笑意轻快，走路总比旁人快半步", "由内廷女眷举荐入册，胜在反应快、记性好。", ["宫礼", "记诵", "察言观色"]),
+                ("清冷少言，身段端稳，像在热闹处也能独自站住", "由宫中举荐入册，性子不热络，但很守规矩。", ["宫礼", "女红", "自持"]),
+                ("活泼胆大，初入待选名册仍藏不住好奇心", "由宫中举荐入册，未必最端庄，却很有鲜活气。", ["宫礼", "歌舞", "察言观色"]),
+            ])
             candidate = Character(
                 name=self._generated_name("recommend"),
                 office="采女（待选）",
                 office_type="后宫",
                 faction="后宫",
                 aliases=[],
-                personal_skills=["宫礼", "察言观色"],
-                loyalty=random.randint(52, 78),
-                ability=random.randint(42, 66),
-                integrity=random.randint(45, 78),
-                courage=random.randint(35, 62),
-                style="由宫中举荐，入册待选",
+                personal_skills=list(dict.fromkeys(archetype[2])),
+                loyalty=rng.randint(52, 78),
+                ability=rng.randint(42, 68),
+                integrity=rng.randint(45, 80),
+                courage=rng.randint(35, 64),
+                style=archetype[0],
                 power_id="ming",
                 location="紫禁城",
                 status="candidate",
-                summary=f"由{consort.name}举荐入册的宫人，待皇帝拣选。",
-                charm=random.randint(52, 82),
-                luck=random.randint(45, 82),
+                summary=f"由{consort.name}举荐入册的宫人，{archetype[1]}待皇帝拣选。",
+                charm=rng.randint(52, 84),
+                luck=rng.randint(45, 84),
             )
             self._add_runtime_character(candidate, f"{consort.name}举荐宫人")
             return {"message": f"{consort.name}举荐{candidate.name}入待选名册。", "candidate": self.public_character(candidate)}
@@ -2019,6 +2228,26 @@ class WebGame:
             out.append(item)
         return out
 
+    def conversation_goal_payload(self, minister_name: str = "", limit: int = 80) -> List[Dict[str, Any]]:
+        if minister_name:
+            rows = self.db.list_conversation_goals(minister_name=minister_name, limit=limit)
+        else:
+            rows = self.db.list_conversation_goals(limit=limit)
+        out: List[Dict[str, Any]] = []
+        for row in rows:
+            item = dict(row)
+            item.pop("conditions_json", None)
+            item.pop("blockers_json", None)
+            item.pop("last_delta_json", None)
+            item["progress_label"] = f"{int(item.get('score') or 0)}%"
+            pending = [
+                cond for cond in (item.get("conditions") or [])
+                if isinstance(cond, dict) and str(cond.get("status") or "pending") != "done"
+            ]
+            item["pending_conditions"] = pending
+            out.append(item)
+        return out
+
     def state_payload(self) -> Dict[str, Any]:
         directives = [self.directive_payload(row) for row in self.directive_rows()]
         return {
@@ -2057,6 +2286,7 @@ class WebGame:
             ],
             "directives": directives,
             "agreements": self.agreement_payload(),
+            "conversation_goals": self.conversation_goal_payload(),
             "pending_count": self.session.pending_count(),
             "last_decree": self.last_decree,
             "last_report": self.last_report,
@@ -2584,8 +2814,7 @@ class WebGame:
             if chat_turn_id:
                 self.db.update_chat_turn_messages(chat_turn_id, user_message_id=message_id)
         try:
-            result = self.session.chat(minister_name, text)
-            self._record_stance_from_chat(minister_name, text, result.answer, chat_turn_id)
+            result = self.session.chat(minister_name, text, source_chat_turn_id=chat_turn_id)
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
         except Exception:
             if chat_turn_id:
@@ -2646,21 +2875,11 @@ class WebGame:
             if self.session.registry is None:
                 raise RuntimeError("GameSession.begin_turn() 未调用。")
             agent = self.session.registry.get(character)
-            augmented = self.session._retrieve_memories_for_message(text)
-            try:
-                xinpan_profile = self.db.get_xinpan_profile(character.name, self.state)
-            except Exception:
-                xinpan_profile = {}
-            behavior_brief = npc_dialogue_behavior_brief(
-                character.name,
-                xinpan_profile=xinpan_profile if isinstance(xinpan_profile, dict) else {},
-                text=text,
+            augmented, dialogue_prep = self.session.prepare_chat_run(
+                character,
+                text,
+                source_chat_turn_id=chat_turn_id,
             )
-            if behavior_brief:
-                augmented = f"{behavior_brief}\n\n{augmented}"
-            draft_line = self.session.registry.build_draft_line()
-            if draft_line and draft_line != "无":
-                augmented = f"【本月已核定草案】{draft_line}\n\n{augmented}"
             run_output = None
             stream = agent.run(augmented, stream=True, stream_events=True, yield_run_output=True)
             for event in stream:
@@ -2757,7 +2976,13 @@ class WebGame:
                                 secret_order_assignee or minister_name,
                             )
                     # 密令结案不再走大臣工具，由月末推演 + extractor 写入
-            self._record_stance_from_chat(minister_name, text, answer, chat_turn_id)
+            self.session.record_dialogue_after_chat(
+                character,
+                text,
+                answer,
+                dialogue_prep,
+                source_chat_turn_id=chat_turn_id,
+            )
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
             for portrait_name, reason in (
                 (appointed, "吏部铨选"),
@@ -3209,6 +3434,22 @@ async def api_secret_orders(status: str = "") -> Dict[str, Any]:
 async def api_agreements(minister_name: str = "") -> Dict[str, Any]:
     """列出奏对协议与履约 todo。"""
     return {"agreements": get_game().agreement_payload(minister_name=minister_name)}
+
+
+@app.get("/api/conversation_goals")
+async def api_conversation_goals(minister_name: str = "") -> Dict[str, Any]:
+    """列出奏对目的与心理握手进度。"""
+    return {"conversation_goals": get_game().conversation_goal_payload(minister_name=minister_name)}
+
+
+@app.post("/api/conversation_goals/{goal_id}/abandon")
+async def api_abandon_conversation_goal(goal_id: int, body: ConversationGoalAbandonRequest) -> Dict[str, Any]:
+    game = get_game()
+    try:
+        goal = game.db.abandon_conversation_goal(game.state, goal_id, reason=body.reason or "玩家主动放弃")
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from None
+    return {"goal": goal, "state": game.state_payload()}
 
 
 @app.patch("/api/agreements/tasks/{task_id}")
@@ -3733,9 +3974,26 @@ async def api_generated_portrait(asset_id: str) -> Response:
     row = get_game().db.get_portrait_asset(clean)
     if row is None or str(row["status"] or "") != "ready" or row["image_blob"] is None:
         raise HTTPException(status_code=404, detail="立绘尚未绘成")
+    blob = bytes(row["image_blob"])
+    mime_type = str(row["mime_type"] or "image/png")
+    if str(row["kind"] or "") == "portrait":
+        repaired = normalize_portrait_png(
+            blob,
+            target_width=512,
+            target_aspect_ratio=PORTRAIT_ASPECT_RATIO,
+            cutout_background=True,
+            use_rembg=False,
+        )
+        if repaired != blob:
+            blob = repaired
+            mime_type = detect_image_mime(blob)
+            try:
+                get_game().db.mark_portrait_asset_ready(clean, blob, mime_type=mime_type)
+            except Exception as exc:  # noqa: BLE001 - serving the repaired image is more important than writeback
+                print(f"[WARN] 旧立绘透明化回写失败 {clean}: {exc}")
     return Response(
-        content=bytes(row["image_blob"]),
-        media_type=str(row["mime_type"] or "image/png"),
+        content=blob,
+        media_type=mime_type,
         headers={"Cache-Control": "private, max-age=3600"},
     )
 

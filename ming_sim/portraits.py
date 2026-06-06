@@ -21,7 +21,7 @@ from collections import deque
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterator, Optional
 
 from ming_sim.models import Character, GameState
 from ming_sim.ranks import official_rank_for, rank_prompt_fragment
@@ -214,10 +214,16 @@ def _pose_for(character: Character) -> str:
             "standing close and narrow, one sleeve lifted as if receiving an order, fingers visible",
             "three-quarter stance with a sealed document held low",
             "one hand at the belt, the other hand visible beside the sleeve, alert palace posture",
+            "quick half-step forward, one hand clutching a palace tally and the other sleeve swept back",
+            "head slightly tilted as if listening for an order, both hands visible outside the sleeves",
+            "low deferential bow with robe hem flaring asymmetrically around both boots",
+            "one hand presenting a folded yellow decree cloth while the other steadies the belt",
+            "nervous alert stance, shoulders narrow, one foot pulled back as if ready to withdraw",
         ))
         expression = _seed_pick(seed, "portrait_expression", (
             "obedient but watchful expression", "quick and deferential gaze", "smooth guarded smile",
-            "silent calculating calm", "dutiful inner-court focus",
+            "silent calculating calm", "dutiful inner-court focus", "bright anxious eyes",
+            "a sly palace-trained glance", "strained eagerness under formal obedience",
         ))
     elif re.search(r"女将|女侠|红娘子|刀|武艺", text):
         pose = _seed_pick(seed, "portrait_pose", (
@@ -267,6 +273,32 @@ def _pose_for(character: Character) -> str:
             "austere moral severity", "clear-eyed remonstrance", "stern loyal grief",
             "unbending scholar calm", "quiet righteous anger",
         ))
+    elif re.search(r"新科|科举|进士|庶吉士|主事|给事中|翰林|奏对|文书", text):
+        pose = _seed_pick(seed, "portrait_pose", (
+            "one hand raising a fresh examination scroll while the other shows ink-stained fingers",
+            "half-step court entrance posture, sleeve lifted too eagerly, both boots visible",
+            "one hand clutching a folded memorial to the chest, the other open in nervous argument",
+            "slight over-formal bow with the robe hem pulled unevenly around both feet",
+            "young official stance, one foot forward and one sleeve flaring as if answering a question",
+            "hands visible around a thin book bundle, shoulders tense with new ambition",
+        ))
+        expression = _seed_pick(seed, "portrait_expression", (
+            "eager scholarly intensity", "nervous new-official brightness", "earnest but untested gaze",
+            "ambition held behind ritual restraint", "quick-thinking exam-hall alertness",
+        ))
+    elif re.search(r"待铨|举贤|在野|地方|游历|乡绅|塾师|幕客|入京", text):
+        pose = _seed_pick(seed, "portrait_pose", (
+            "one hand holding a recommendation letter, the other gripping a travel bundle",
+            "road-worn arrival stance with one boot forward and sleeves uneven from travel",
+            "three-quarter wary stance, one hand near a plain cloth pouch and the other fully visible",
+            "standing as if just summoned from the road, shoulders turned and robe hem dusty",
+            "one hand presenting a local account book while the other steadies a belt tassel",
+            "measured outsider posture, head inclined but feet planted apart",
+        ))
+        expression = _seed_pick(seed, "portrait_expression", (
+            "wary outsider focus", "practical local confidence", "humble but sharp-eyed composure",
+            "watching the capital before committing", "weathered intelligence under restraint",
+        ))
     else:
         pose = _seed_pick(seed, "portrait_pose", (
             "formal standing pose with subtle asymmetry, one sleeve lifted as if about to speak",
@@ -274,10 +306,14 @@ def _pose_for(character: Character) -> str:
             "three-quarter stance with robe hem visible around both boots",
             "hands loosely folded before the waist, one foot slightly forward",
             "standing in a measured court pose, sleeves balanced and both hands visible",
+            "one hand cutting outward in restrained debate, the other visible beside a hanging sleeve",
+            "slightly theatrical court stance with shoulders angled and robe folds sweeping sideways",
+            "leaning forward a little as if about to answer, both hands clear of the sleeves",
         ))
         expression = _seed_pick(seed, "portrait_expression", (
             "reserved official gaze", "thoughtful restrained expression", "calm practical focus",
-            "mildly worried eyes", "quiet confidence",
+            "mildly worried eyes", "quiet confidence", "restless political curiosity",
+            "dry skeptical half-smile", "sudden alertness",
         ))
     return f"{pose}; expression: {expression}; keep both complete hands with fingers visible and both feet visible and unobscured"
 
@@ -624,7 +660,7 @@ def build_portrait_spec(character: Character, state: Optional[GameState], campai
     prompt = (
         "Late Ming dynasty political strategy game character portrait, dark Romance of the Three Kingdoms style oil painting, "
         "STRICT 2:3 vertical full-body standing cutout, head-to-toe entire figure visible including hat, sleeves, hands, robe hem and boots, "
-        "transparent alpha background if the image model supports it; otherwise render on a perfectly flat pure-white background for local transparent cutout, no backdrop, no frame, no text, no watermark, "
+        "transparent alpha background if the image model supports it; if alpha is unsupported, render on a perfectly flat solid chroma-key magenta (#ff00ff) background for local transparent cutout, no white or paper background, no backdrop, no frame, no text, no watermark, "
         "do not crop at head, hands, waist, knees or feet. "
         "Both complete hands with fingers and both complete feet/boots must be fully visible, not hidden by sleeves, robe hem, cloak or frame. "
         "Never draw a checkerboard transparency pattern, floor plane, cast shadow, contact shadow, gradient, texture or scenery. "
@@ -640,7 +676,7 @@ def build_portrait_spec(character: Character, state: Optional[GameState], campai
         "painterly realism, sharp silhouette, centered full figure with safe transparent margins around crown, sleeves and feet, minimum width 512 pixels."
     )
     signature = "|".join([
-        "portrait-v3-diverse-cutout",
+        "portrait-v4-diverse-chroma-cutout",
         campaign_id,
         character.name,
         dna_seed,
@@ -894,12 +930,198 @@ def _opaque_bbox_with_margin(image: Any, *, threshold: int = 18, margin_ratio: f
         return None
 
 
+def _opaque_bbox(image: Any, *, threshold: int = 18) -> Optional[tuple[int, int, int, int]]:
+    try:
+        alpha = image.getchannel("A")
+        mask = alpha.point(lambda value: 255 if int(value) > threshold else 0)
+        return mask.getbbox()
+    except Exception:
+        return None
+
+
+def _rgb_distance(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
+    return sum((int(a[i]) - int(b[i])) ** 2 for i in range(3)) ** 0.5
+
+
+def _median_rgb(samples: list[tuple[int, int, int, int]]) -> tuple[int, int, int]:
+    if not samples:
+        return (0, 0, 0)
+    channels = []
+    for idx in range(3):
+        values = sorted(int(px[idx]) for px in samples)
+        channels.append(values[len(values) // 2])
+    return (channels[0], channels[1], channels[2])
+
+
+def _perimeter_samples(image: Any, bbox: Optional[tuple[int, int, int, int]] = None) -> list[tuple[int, int, int, int]]:
+    pixels = image.load()
+    width, height = image.size
+    if bbox is None:
+        left, top, right, bottom = 0, 0, width, height
+    else:
+        left, top, right, bottom = bbox
+        left = max(0, min(width - 1, left))
+        top = max(0, min(height - 1, top))
+        right = max(left + 1, min(width, right))
+        bottom = max(top + 1, min(height, bottom))
+    step = max(1, min(right - left, bottom - top) // 80)
+    coords: list[tuple[int, int]] = []
+    for x in range(left, right, step):
+        coords.append((x, top))
+        coords.append((x, bottom - 1))
+    for y in range(top, bottom, step):
+        coords.append((left, y))
+        coords.append((right - 1, y))
+    seen: set[tuple[int, int]] = set()
+    samples: list[tuple[int, int, int, int]] = []
+    for x, y in coords:
+        if (x, y) in seen:
+            continue
+        seen.add((x, y))
+        px = pixels[x, y]
+        if px[3] >= 8:
+            samples.append(px)
+    return samples
+
+
+def _background_profile(samples: list[tuple[int, int, int, int]]) -> tuple[tuple[int, int, int], bool, bool, bool, int, float]:
+    bg = _median_rgb(samples)
+    spread = max(bg) - min(bg)
+    luminance = (bg[0] + bg[1] + bg[2]) / 3
+    bg_is_white = min(bg) > 218 and spread < 45
+    bg_is_light_neutral = luminance > 184 and min(bg) > 155 and spread < 82
+    bg_is_chroma = bg[0] > 150 and bg[2] > 150 and bg[1] < 145 and abs(bg[0] - bg[2]) < 120
+    threshold = 96 if bg_is_chroma else 88 if bg_is_light_neutral else 52
+    if os.environ.get("PORTRAIT_BG_FLOOD_THRESHOLD"):
+        try:
+            threshold = max(8, int(os.environ["PORTRAIT_BG_FLOOD_THRESHOLD"]))
+        except ValueError:
+            pass
+    close_count = 0
+    for r, g, b, _a in samples:
+        if _is_background_rgb((r, g, b), bg, bg_is_white, bg_is_light_neutral, bg_is_chroma, threshold):
+            close_count += 1
+    consistency = close_count / max(1, len(samples))
+    return bg, bg_is_white, bg_is_light_neutral, bg_is_chroma, threshold, consistency
+
+
+def _is_background_rgb(
+    rgb: tuple[int, int, int],
+    bg: tuple[int, int, int],
+    bg_is_white: bool,
+    bg_is_light_neutral: bool,
+    bg_is_chroma: bool,
+    threshold: int,
+) -> bool:
+    if _rgb_distance(rgb, bg) < threshold:
+        return True
+    spread = max(rgb) - min(rgb)
+    if bg_is_white and min(rgb) > 216 and spread < 62:
+        return True
+    if bg_is_light_neutral and (sum(rgb) / 3) > 184 and min(rgb) > 150 and spread < 92:
+        return True
+    if bg_is_chroma and rgb[0] > 120 and rgb[2] > 120 and min(rgb[0], rgb[2]) - rgb[1] > 42:
+        return True
+    return False
+
+
+def _flood_background_from_seeds(
+    image: Any,
+    seeds: Iterator[tuple[int, int]],
+    bg: tuple[int, int, int],
+    bg_is_white: bool,
+    bg_is_light_neutral: bool,
+    bg_is_chroma: bool,
+    threshold: int,
+) -> int:
+    pixels = image.load()
+    width, height = image.size
+    removed = 0
+    seen: set[tuple[int, int]] = set()
+    queue: deque[tuple[int, int]] = deque(seeds)
+    while queue:
+        x, y = queue.popleft()
+        if (x, y) in seen or x < 0 or y < 0 or x >= width or y >= height:
+            continue
+        seen.add((x, y))
+        r, g, b, a = pixels[x, y]
+        if a < 8 or _is_background_rgb((r, g, b), bg, bg_is_white, bg_is_light_neutral, bg_is_chroma, threshold):
+            if a >= 8:
+                removed += 1
+            pixels[x, y] = (r, g, b, 0)
+            queue.append((x + 1, y))
+            queue.append((x - 1, y))
+            queue.append((x, y + 1))
+            queue.append((x, y - 1))
+    return removed
+
+
+def _edge_seeds(width: int, height: int) -> Iterator[tuple[int, int]]:
+    for x in range(width):
+        yield (x, 0)
+        yield (x, height - 1)
+    for y in range(height):
+        yield (0, y)
+        yield (width - 1, y)
+
+
+def _bbox_perimeter_seeds(bbox: tuple[int, int, int, int]) -> Iterator[tuple[int, int]]:
+    left, top, right, bottom = bbox
+    for x in range(left, right):
+        yield (x, top)
+        yield (x, bottom - 1)
+    for y in range(top, bottom):
+        yield (left, y)
+        yield (right - 1, y)
+
+
+def _cutout_connected_background(image: Any) -> tuple[tuple[int, int, int], bool, bool, int]:
+    width, height = image.size
+    samples = _perimeter_samples(image)
+    if samples:
+        bg, bg_is_white, bg_is_light_neutral, bg_is_chroma, threshold, _consistency = _background_profile(samples)
+    else:
+        bg, bg_is_white, bg_is_light_neutral, bg_is_chroma, threshold = (0, 0, 0), False, False, False, 52
+    removed = _flood_background_from_seeds(
+        image,
+        _edge_seeds(width, height),
+        bg,
+        bg_is_white,
+        bg_is_light_neutral,
+        bg_is_chroma,
+        threshold,
+    )
+
+    # If the provider returns a white/paper/chroma mat inside an already
+    # transparent canvas, the outer edge has no opaque background to sample.
+    # Sample the current opaque bbox perimeter and flood that inset mat too.
+    bbox = _opaque_bbox(image)
+    if bbox is not None:
+        inset_samples = _perimeter_samples(image, bbox)
+        if inset_samples:
+            inset_bg, inset_white, inset_light, inset_chroma, inset_threshold, consistency = _background_profile(inset_samples)
+            blank_like = inset_white or inset_light or inset_chroma
+            if blank_like and consistency > 0.36:
+                removed += _flood_background_from_seeds(
+                    image,
+                    _bbox_perimeter_seeds(bbox),
+                    inset_bg,
+                    inset_white,
+                    inset_light,
+                    inset_chroma,
+                    inset_threshold,
+                )
+                bg, bg_is_white, bg_is_chroma = inset_bg, inset_white, inset_chroma
+    return bg, bg_is_chroma, bg_is_white, removed
+
+
 def normalize_portrait_png(
     data: bytes,
     *,
     target_width: int = 512,
     target_aspect_ratio: Optional[str] = None,
     cutout_background: bool = True,
+    use_rembg: bool = True,
 ) -> bytes:
     """Convert provider output to compact PNG, optional cutout, and fixed canvas.
 
@@ -913,7 +1135,7 @@ def normalize_portrait_png(
     except Exception:
         return data
     try:
-        if cutout_background and os.environ.get("PORTRAIT_DISABLE_REMBG", "").strip() not in {"1", "true", "TRUE"}:
+        if cutout_background and use_rembg and os.environ.get("PORTRAIT_DISABLE_REMBG", "").strip() not in {"1", "true", "TRUE"}:
             try:
                 from rembg import remove  # type: ignore
 
@@ -925,55 +1147,9 @@ def normalize_portrait_png(
             ratio = target_width / max(1, image.width)
             image = image.resize((target_width, max(1, int(image.height * ratio))), Image.Resampling.LANCZOS)
         if cutout_background:
+            bg, bg_is_chroma, bg_is_white, removed_chroma_spill = _cutout_connected_background(image)
             pixels = image.load()
             width, height = image.size
-            corners_rgba = [
-                pixels[0, 0],
-                pixels[width - 1, 0],
-                pixels[0, height - 1],
-                pixels[width - 1, height - 1],
-            ]
-            # Some model outputs mix real transparency at the top with an
-            # opaque pure-color floor under the feet. In that case, using all
-            # corners averages transparent black with the floor color and fails
-            # to remove the floor. Prefer the opaque corners when present.
-            corners = [px[:3] for px in corners_rgba if px[3] >= 8] or [px[:3] for px in corners_rgba]
-            bg = tuple(sum(c[i] for c in corners) // max(1, len(corners)) for i in range(3))
-
-            bg_is_white = min(bg) > 218 and (max(bg) - min(bg)) < 35
-            bg_threshold = 78 if bg_is_white else 44
-
-            def close_to_bg(rgb: tuple[int, int, int]) -> bool:
-                dist = sum((int(rgb[i]) - int(bg[i])) ** 2 for i in range(3)) ** 0.5
-                if dist < bg_threshold:
-                    return True
-                if bg_is_white and min(rgb) > 230 and (max(rgb) - min(rgb)) < 42:
-                    return True
-                return False
-
-            bg_is_chroma = bg[0] > 170 and bg[2] > 170 and bg[1] < 120 and abs(bg[0] - bg[2]) < 90
-
-            seen = set()
-            queue: deque[tuple[int, int]] = deque()
-            for x in range(width):
-                queue.append((x, 0))
-                queue.append((x, height - 1))
-            for y in range(height):
-                queue.append((0, y))
-                queue.append((width - 1, y))
-            while queue:
-                x, y = queue.popleft()
-                if (x, y) in seen or x < 0 or y < 0 or x >= width or y >= height:
-                    continue
-                seen.add((x, y))
-                r, g, b, a = pixels[x, y]
-                if a < 8 or close_to_bg((r, g, b)):
-                    pixels[x, y] = (r, g, b, 0)
-                    queue.append((x + 1, y))
-                    queue.append((x - 1, y))
-                    queue.append((x, y + 1))
-                    queue.append((x, y - 1))
-            removed_chroma_spill = 0
             if bg_is_chroma:
                 alpha_snapshot = image.getchannel("A")
 
