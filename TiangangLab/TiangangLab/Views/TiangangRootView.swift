@@ -77,12 +77,14 @@ struct TiangangRootView: View {
 @MainActor
 private final class StarCatalogStore: ObservableObject {
     @Published private(set) var profiles: [StarProfile] = []
+    @Published private(set) var filteredProfiles: [StarProfile] = []
+    @Published private(set) var filterOptions = StarCatalogFilterOptions(profiles: [])
     @Published private(set) var loadError: String?
     @Published private(set) var tiangangDimensionsByID: [String: TiangangDimension] = [:]
     @Published private(set) var tiangangGroups: [String] = []
     @Published private(set) var skillAnchorsByDimensionID: [String: NPCSkillAnchorCatalogRecord] = [:]
     @Published var filter = StarCatalogFilterState() {
-        didSet { normalizeSelectionForCurrentFilter() }
+        didSet { applyFilter() }
     }
     @Published var selectedNPCID: String = ""
 
@@ -100,16 +102,8 @@ private final class StarCatalogStore: ObservableObject {
         filteredProfiles.firstIndex { $0.id == selectedNPCID } ?? 0
     }
 
-    var filteredProfiles: [StarProfile] {
-        profiles.filter { filter.allows($0) }
-    }
-
     var activeFilterCount: Int {
         filter.activeCount
-    }
-
-    var filterOptions: StarCatalogFilterOptions {
-        StarCatalogFilterOptions(profiles: profiles)
     }
 
     func name(for npcID: String) -> String {
@@ -118,6 +112,13 @@ private final class StarCatalogStore: ObservableObject {
 
     func resetFilters() {
         filter = StarCatalogFilterState()
+    }
+
+    func selectRelativeProfile(_ offset: Int) {
+        guard !filteredProfiles.isEmpty else { return }
+        let nextIndex = min(max(selectedIndex + offset, 0), filteredProfiles.count - 1)
+        guard nextIndex != selectedIndex else { return }
+        selectedNPCID = filteredProfiles[nextIndex].id
     }
 
     private func load() {
@@ -163,6 +164,7 @@ private final class StarCatalogStore: ObservableObject {
 
             profiles = database.core.map { core in
                 let start = startByID[core.npcID]
+                let asset = assetByID[core.npcID]
                 let literacy = literacyByID[core.npcID]
                 let institutionID = start?.institutionID
                 let environmentOfficePostID = start?.environmentOfficePostID
@@ -177,7 +179,7 @@ private final class StarCatalogStore: ObservableObject {
                     mingshu: mingshuByID[core.npcID],
                     xinpan: xinpanByID[core.npcID],
                     social: socialByID[core.npcID],
-                    asset: assetByID[core.npcID],
+                    asset: asset,
                     education: educationByID[core.npcID],
                     literacy: literacy,
                     literacyCatalog: literacy.flatMap { literacyCatalogByLevel[$0.level] },
@@ -193,17 +195,22 @@ private final class StarCatalogStore: ObservableObject {
                 )
             }
 
-            selectedNPCID = profiles.first?.id ?? ""
+            filterOptions = StarCatalogFilterOptions(profiles: profiles)
+            applyFilter()
         } catch {
             loadError = error.localizedDescription
         }
     }
 
+    private func applyFilter() {
+        filteredProfiles = profiles.filter { filter.allows($0) }
+        normalizeSelectionForCurrentFilter()
+    }
+
     private func normalizeSelectionForCurrentFilter() {
-        let visible = filteredProfiles
-        guard !visible.isEmpty else { return }
-        if !visible.contains(where: { $0.id == selectedNPCID }) {
-            selectedNPCID = visible[0].id
+        guard !filteredProfiles.isEmpty else { return }
+        if !filteredProfiles.contains(where: { $0.id == selectedNPCID }) {
+            selectedNPCID = filteredProfiles[0].id
         }
     }
 
@@ -372,10 +379,10 @@ private struct StarOfficeContext {
     ) {
         institutionName = firstKnown(environmentInstitution?.name, npcInstitution?.label, start?.institutionID) ?? "未详"
         officeTitle = firstKnown(
-            environmentOfficePost?.canonicalTitle,
-            start?.environmentOfficeCanonicalTitle,
             start?.startOfficeTitle,
-            rank?.titleName
+            rank?.titleName,
+            start?.environmentOfficeCanonicalTitle,
+            environmentOfficePost?.canonicalTitle
         ) ?? "未详"
         capacityPolicy = start?.officeCapacityPolicy ?? environmentOfficePost?.capacityPolicy ?? ""
     }
@@ -414,8 +421,12 @@ private struct StarProfile: Identifiable {
     }
 
     var portraitCandidates: [String] {
+        Self.portraitCandidates(name: name, portraitAsset: asset?.portraitAsset)
+    }
+
+    static func portraitCandidates(name: String, portraitAsset: String?) -> [String] {
         var candidates: [String] = []
-        if let portraitAsset = asset?.portraitAsset, !portraitAsset.isEmpty {
+        if let portraitAsset, !portraitAsset.isEmpty {
             candidates.append(portraitAsset)
             candidates.append((portraitAsset as NSString).lastPathComponent)
             candidates.append(portraitAsset.replacingOccurrences(of: "minister_", with: ""))
@@ -433,14 +444,23 @@ private struct StarProfile: Identifiable {
     }
 
     var titleLine: String {
-        registerOfficeTitle
+        officeLine
     }
 
     var captionLine: String {
-        if isActiveOfficeHolder {
-            return titleLine == "名位未详" ? statusText : "\(titleLine) · \(statusText)"
+        officeLine
+    }
+
+    var officeLine: String {
+        let institution = registerInstitutionText
+        let officeTitle = registerOfficeTitle
+        if institution == "未详" || institution == officeTitle {
+            return officeTitle
         }
-        return registerOfficeTitle
+        if officeTitle == "名位未详" {
+            return institution
+        }
+        return "\(institution) · \(officeTitle)"
     }
 
     var statusText: String {
@@ -452,14 +472,14 @@ private struct StarProfile: Identifiable {
     }
 
     var registerInstitutionText: String {
-        isActiveOfficeHolder ? officeContext.institutionName : "无现任官署"
+        let institution = officeContext.institutionName
+        guard institution == "未详" else { return institution }
+        return isActiveOfficeHolder ? "未详" : "无现任官署"
     }
 
     var registerOfficeTitle: String {
-        guard isActiveOfficeHolder else {
-            return (start?.startStatus ?? .activeUnassigned).situationText
-        }
-        return firstKnown(officeContext.officeTitle, start?.startOfficeTitle, rank?.titleName, start?.environmentOfficeCanonicalTitle) ?? "名位未详"
+        firstKnown(officeContext.officeTitle, start?.startOfficeTitle, rank?.titleName, start?.environmentOfficeCanonicalTitle)
+            ?? (isActiveOfficeHolder ? "名位未详" : (start?.startStatus ?? .activeUnassigned).situationText)
     }
 
     var ageText: String {
@@ -1194,11 +1214,14 @@ private struct FilteredStarEmptyState: View {
 private struct StarPortraitPager: View {
     @ObservedObject var store: StarCatalogStore
     @State private var isShowingFullPortrait = false
+    @GestureState private var dragOffset: CGFloat = 0
 
     var body: some View {
+        let filteredCount = store.filteredProfiles.count
+
         ZStack(alignment: .topTrailing) {
-            TabView(selection: $store.selectedNPCID) {
-                ForEach(store.filteredProfiles) { profile in
+            Group {
+                if let profile = store.selectedProfile {
                     StarCharacterStage(
                         profile: profile,
                         isShowingFullPortrait: isShowingFullPortrait,
@@ -1213,19 +1236,21 @@ private struct StarPortraitPager: View {
                             }
                         }
                     )
-                    .tag(profile.id)
+                    .id(profile.id)
+                    .offset(x: dragOffset * 0.18)
+                    .transition(.opacity)
                 }
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
             .frame(height: isShowingFullPortrait ? 570 : 364)
             .clipped()
             .animation(.easeOut(duration: 0.22), value: store.selectedNPCID)
             .animation(.easeOut(duration: 0.22), value: isShowingFullPortrait)
+            .simultaneousGesture(swipeGesture)
             .onChange(of: store.selectedNPCID) { _, _ in
                 isShowingFullPortrait = false
             }
 
-            Text("\(store.selectedIndex + 1)/\(max(store.filteredProfiles.count, 1))")
+            Text("\(store.selectedIndex + 1)/\(max(filteredCount, 1))")
                 .font(MingTypography.label(12, weight: .heavy))
                 .foregroundStyle(StarPalette.muted)
                 .padding(.horizontal, 9)
@@ -1246,6 +1271,27 @@ private struct StarPortraitPager: View {
                 .padding(.trailing, 16)
         }
     }
+
+    private var swipeGesture: some Gesture {
+        DragGesture(minimumDistance: 24)
+            .updating($dragOffset) { value, state, _ in
+                guard !isShowingFullPortrait,
+                      abs(value.translation.width) > abs(value.translation.height) else {
+                    return
+                }
+                state = value.translation.width
+            }
+            .onEnded { value in
+                guard !isShowingFullPortrait,
+                      abs(value.translation.width) > 54,
+                      abs(value.translation.width) > abs(value.translation.height) * 1.15 else {
+                    return
+                }
+                withAnimation(.easeOut(duration: 0.18)) {
+                    store.selectRelativeProfile(value.translation.width < 0 ? 1 : -1)
+                }
+            }
+    }
 }
 
 private struct StarCharacterStage: View {
@@ -1259,11 +1305,10 @@ private struct StarCharacterStage: View {
             if isShowingFullPortrait {
                 FullPortraitStage(profile: profile, restorePortrait: restorePortrait)
             } else {
-                VStack(spacing: 0) {
+                ZStack(alignment: .bottom) {
                     PortraitFocusWindow(profile: profile, showFullPortrait: showFullPortrait)
                     StarCharacterCaption(profile: profile)
-                        .frame(height: 88, alignment: .top)
-                        .clipped()
+                        .allowsHitTesting(false)
                 }
             }
         }
@@ -1290,13 +1335,13 @@ private struct PortraitFocusWindow: View {
                 LinearGradient(
                     colors: [
                         StarPalette.background.opacity(0),
-                        StarPalette.paper.opacity(0.46),
-                        StarPalette.background.opacity(0.86)
+                        StarPalette.paper.opacity(0.48),
+                        StarPalette.background.opacity(0.88)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .frame(height: 82)
+                .frame(height: 126)
                 .frame(maxHeight: .infinity, alignment: .bottom)
                 .allowsHitTesting(false)
             }
@@ -1305,7 +1350,7 @@ private struct PortraitFocusWindow: View {
             .contentShape(Rectangle())
             .onTapGesture(count: 2, perform: showFullPortrait)
         }
-        .frame(height: 276)
+        .frame(height: 364)
     }
 }
 
@@ -1356,13 +1401,6 @@ private struct StageBackground: View {
         }
         .overlay {
             IdentityBackdropTexture(identity: profile.identityKind)
-        }
-        .overlay {
-            PortraitImage(profile: profile, contentMode: .fill)
-                .scaleEffect(1.9)
-                .offset(y: 54)
-                .blur(radius: 22)
-                .opacity(UIImage.starPortrait(named: profile.portraitCandidates) == nil ? 0 : 0.09)
         }
     }
 }
@@ -1490,45 +1528,33 @@ private struct StarCharacterCaption: View {
     let profile: StarProfile
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(alignment: .top, spacing: 10) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(profile.name)
-                        .font(MingTypography.display(31))
-                        .foregroundStyle(StarPalette.ink)
-                        .minimumScaleFactor(0.72)
-                        .lineLimit(1)
-                    Text(profile.captionLine)
-                        .font(MingTypography.label(13, weight: .bold))
-                        .foregroundStyle(profile.identityKind.tint)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                }
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(profile.name)
+                    .font(MingTypography.display(32))
+                    .foregroundStyle(StarPalette.ink)
+                    .minimumScaleFactor(0.72)
+                    .lineLimit(1)
+                    .shadow(color: StarPalette.paper.opacity(0.75), radius: 2, x: 0, y: 1)
+                    .layoutPriority(1)
+
                 Spacer(minLength: 8)
+
                 ProfileTagStrip(tags: profile.profileTags)
-                    .frame(width: 176, alignment: .trailing)
+                    .layoutPriority(2)
             }
+
+            Text(profile.captionLine)
+                .font(MingTypography.label(14, weight: .bold))
+                .foregroundStyle(profile.identityKind.tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.70)
+                .shadow(color: StarPalette.paper.opacity(0.72), radius: 2, x: 0, y: 1)
         }
         .padding(.horizontal, 16)
-        .padding(.top, 10)
-        .padding(.bottom, 10)
+        .padding(.top, 20)
+        .padding(.bottom, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            StarPalette.paper.opacity(0.94)
-                .overlay {
-                    PaperTexture(tint: StarPalette.line, intensity: 0.64)
-                }
-        }
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(StarPalette.line.opacity(0.70))
-                .frame(height: 1)
-        }
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(StarPalette.line.opacity(0.28))
-                .frame(height: 1)
-        }
     }
 }
 
@@ -2839,24 +2865,19 @@ private struct ProfileTagStrip: View {
     let tags: [StarProfileTag]
 
     var body: some View {
-        LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 50), spacing: 5)],
-            alignment: .trailing,
-            spacing: 5
-        ) {
+        HStack(spacing: 7) {
             ForEach(tags) { tag in
                 Text(tag.text)
-                    .font(MingTypography.label(11, weight: .black))
+                    .font(MingTypography.label(13, weight: .black))
                     .foregroundStyle(tag.color)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
-                    .frame(maxWidth: .infinity)
+                    .minimumScaleFactor(0.78)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 6)
                     .background {
-                        StarPalette.palePaper.opacity(0.76)
+                        StarPalette.paper.opacity(0.86)
                             .overlay {
-                                PaperTexture(tint: tag.color, intensity: 0.22)
+                                PaperTexture(tint: tag.color, intensity: 0.28)
                             }
                     }
                     .overlay(
