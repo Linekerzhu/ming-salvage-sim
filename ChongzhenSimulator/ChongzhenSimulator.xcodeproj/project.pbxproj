@@ -18,6 +18,7 @@
 		01A00009 /* Services/LLMAPIConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00019 /* Services/LLMAPIConfiguration.swift */; };
 		01A0000A /* Services/LLMHTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A0001A /* Services/LLMHTTPClient.swift */; };
 		01A0000B /* Services/LLMServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A0001B /* Services/LLMServices.swift */; };
+		01A0000C /* Resources/Fonts/WangHanZongCuKaiTiJian-1.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 01A0001C /* Resources/Fonts/WangHanZongCuKaiTiJian-1.ttf */; };
 		01A00101 /* Resources/Portraits/韩爌.png in Resources */ = {isa = PBXBuildFile; fileRef = 01A00111 /* Resources/Portraits/韩爌.png */; };
 		01A00102 /* Resources/Portraits/毕自严.png in Resources */ = {isa = PBXBuildFile; fileRef = 01A00112 /* Resources/Portraits/毕自严.png */; };
 		01A00103 /* Resources/Portraits/崔呈秀.png in Resources */ = {isa = PBXBuildFile; fileRef = 01A00113 /* Resources/Portraits/崔呈秀.png */; };
@@ -39,6 +40,7 @@
 		01A00019 /* Services/LLMAPIConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LLMAPIConfiguration.swift; sourceTree = "<group>"; };
 		01A0001A /* Services/LLMHTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LLMHTTPClient.swift; sourceTree = "<group>"; };
 		01A0001B /* Services/LLMServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LLMServices.swift; sourceTree = "<group>"; };
+		01A0001C /* Resources/Fonts/WangHanZongCuKaiTiJian-1.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Resources/Fonts/WangHanZongCuKaiTiJian-1.ttf"; sourceTree = "<group>"; };
 		01A00111 /* Resources/Portraits/韩爌.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/Portraits/韩爌.png"; sourceTree = "<group>"; };
 		01A00112 /* Resources/Portraits/毕自严.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/Portraits/毕自严.png"; sourceTree = "<group>"; };
 		01A00113 /* Resources/Portraits/崔呈秀.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/Portraits/崔呈秀.png"; sourceTree = "<group>"; };
@@ -82,6 +84,7 @@
 				01A00014 /* Resources/tiangang_seed.json */,
 				01A00016 /* Resources/NPCDatabase */,
 				01A00018 /* Resources/EnvironmentDatabase */,
+				01A0001C /* Resources/Fonts/WangHanZongCuKaiTiJian-1.ttf */,
 				01A00111 /* Resources/Portraits/韩爌.png */,
 				01A00112 /* Resources/Portraits/毕自严.png */,
 				01A00113 /* Resources/Portraits/崔呈秀.png */,
@@ -162,6 +165,7 @@
 				01A00004 /* Resources/tiangang_seed.json in Resources */,
 				01A00006 /* Resources/NPCDatabase in Resources */,
 				01A00008 /* Resources/EnvironmentDatabase in Resources */,
+				01A0000C /* Resources/Fonts/WangHanZongCuKaiTiJian-1.ttf in Resources */,
 				01A00101 /* Resources/Portraits/韩爌.png in Resources */,
 				01A00102 /* Resources/Portraits/毕自严.png in Resources */,
 				01A00103 /* Resources/Portraits/崔呈秀.png in Resources */,

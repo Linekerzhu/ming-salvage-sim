@@ -71,6 +71,7 @@ struct TiangangRootView: View {
                 .presentationDragIndicator(.visible)
             }
         }
+        .environment(\.font, MingTypography.body())
     }
 }
 
@@ -829,24 +830,30 @@ private enum StarPalette {
 }
 
 private enum MingTypography {
+    private static let gameFontName = "HanWangKaiBold-Gb5"
+
     static func display(_ size: CGFloat, weight: Font.Weight = .black) -> Font {
-        .system(size: size, weight: weight)
+        gameFont(size, weight: weight)
     }
 
     static func body(_ size: CGFloat = 16, weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight)
+        gameFont(size, weight: weight)
     }
 
     static func label(_ size: CGFloat = 12, weight: Font.Weight = .bold) -> Font {
-        .system(size: size, weight: weight)
+        gameFont(size, weight: weight)
     }
 
     static func kai(_ size: CGFloat, weight: Font.Weight = .semibold) -> Font {
-        .system(size: size, weight: weight)
+        gameFont(size, weight: weight)
     }
 
     static func verdict(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight)
+        gameFont(size, weight: weight)
+    }
+
+    private static func gameFont(_ size: CGFloat, weight: Font.Weight) -> Font {
+        .custom(gameFontName, size: size).weight(weight)
     }
 }
 
@@ -956,7 +963,7 @@ private struct StarFilterButton: View {
         Button(action: action) {
             ZStack(alignment: .topTrailing) {
                 Text("筛")
-                    .font(.system(size: 16, weight: .black))
+                    .font(MingTypography.body(16, weight: .black))
                     .foregroundStyle(activeFilterCount > 0 ? StarPalette.paper : StarPalette.cinnabar)
                     .frame(width: 42, height: 42)
                     .background(activeFilterCount > 0 ? StarPalette.cinnabar : StarPalette.paper.opacity(0.72))
@@ -966,7 +973,7 @@ private struct StarFilterButton: View {
                     )
                 if activeFilterCount > 0 {
                     Text("\(activeFilterCount)")
-                        .font(.system(size: 10, weight: .black))
+                        .font(MingTypography.body(10, weight: .black))
                         .foregroundStyle(StarPalette.cinnabar)
                         .frame(width: 18, height: 18)
                         .background(StarPalette.paper, in: Circle())
@@ -1102,10 +1109,10 @@ private struct FilterSheetHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("筛检群星")
-                .font(.system(size: 26, weight: .black))
+                .font(MingTypography.body(26, weight: .black))
                 .foregroundStyle(StarPalette.ink)
             Text(activeFilterCount == 0 ? "按名籍、势力与开局状态筛阅人物。" : "已启用 \(activeFilterCount) 项筛检。")
-                .font(.system(size: 13, weight: .regular))
+                .font(MingTypography.body(13, weight: .regular))
                 .foregroundStyle(StarPalette.muted)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1120,7 +1127,7 @@ private struct FilterSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
-                .font(.system(size: 16, weight: .black))
+                .font(MingTypography.body(16, weight: .black))
                 .foregroundStyle(StarPalette.ink)
             content
         }
@@ -1154,7 +1161,7 @@ private struct FilterSealChip: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 13, weight: .black))
+                .font(MingTypography.body(13, weight: .black))
                 .foregroundStyle(selected ? StarPalette.paper : color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
@@ -1179,12 +1186,12 @@ private struct FilteredStarEmptyState: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 9) {
                 Text("空")
-                    .font(.system(size: 14, weight: .black))
+                    .font(MingTypography.body(14, weight: .black))
                     .foregroundStyle(StarPalette.cinnabar)
                     .frame(width: 28, height: 28)
                     .overlay(Rectangle().stroke(StarPalette.cinnabar.opacity(0.58), lineWidth: 1))
                 Text("此筛无入册者")
-                    .font(.system(size: 22, weight: .black))
+                    .font(MingTypography.body(22, weight: .black))
                     .foregroundStyle(StarPalette.ink)
             }
             Text("放宽身份、状态或文教条件，可继续翻检群星谱。")
@@ -1192,7 +1199,7 @@ private struct FilteredStarEmptyState: View {
                 .foregroundStyle(StarPalette.muted)
             Button(action: resetFilters) {
                 Text("撤去筛检")
-                    .font(.system(size: 14, weight: .black))
+                    .font(MingTypography.body(14, weight: .black))
                     .foregroundStyle(StarPalette.cinnabar)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
@@ -1390,7 +1397,7 @@ private struct StageBackground: View {
         )
         .overlay(alignment: .topLeading) {
             Text(profile.identityKind.sealGlyph)
-                .font(.system(size: 118, weight: .black))
+                .font(MingTypography.body(118, weight: .black))
                 .foregroundStyle(profile.identityKind.tint.opacity(0.06))
                 .padding(.leading, 22)
                 .padding(.top, 10)
@@ -1589,7 +1596,7 @@ private struct IdentitySilhouette: View {
             )
             IdentityBackdropTexture(identity: identity)
             Text(identity.sealGlyph)
-                .font(.system(size: 108, weight: .black))
+                .font(MingTypography.body(108, weight: .black))
                 .foregroundStyle(identity.tint.opacity(0.42))
         }
     }
@@ -1813,13 +1820,13 @@ private struct RegisterAnnotation: View {
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
             Text(title)
-                .font(.system(size: 12, weight: .black))
+                .font(MingTypography.body(12, weight: .black))
                 .foregroundStyle(StarPalette.cinnabar)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
                 .overlay(Rectangle().stroke(StarPalette.cinnabar.opacity(0.45), lineWidth: 1))
             Text(text)
-                .font(.system(size: 13, weight: .regular))
+                .font(MingTypography.body(13, weight: .regular))
                 .foregroundStyle(StarPalette.muted)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1982,7 +1989,7 @@ private struct SummaryCluster: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: 14, weight: .black))
+                .font(MingTypography.body(14, weight: .black))
                 .foregroundStyle(color)
 
             if rows.isEmpty {
@@ -1992,7 +1999,7 @@ private struct SummaryCluster: View {
             } else {
                 FlexibleFlow(items: rows.map { "\($0.value.dimensionName)｜\($0.currentLabel)" }) { item in
                     Text(item)
-                        .font(.system(size: 13, weight: .bold))
+                        .font(MingTypography.body(13, weight: .bold))
                         .foregroundStyle(color)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)
@@ -2028,16 +2035,16 @@ private struct TiangangDisclosureGroup: View {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(group.summary)
-                            .font(.system(size: 14, weight: .bold))
+                            .font(MingTypography.body(14, weight: .bold))
                             .foregroundStyle(StarPalette.ink)
                             .fixedSize(horizontal: false, vertical: true)
                         Text("\(group.rows.count) 项")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(MingTypography.body(12, weight: .semibold))
                             .foregroundStyle(StarPalette.muted)
                     }
                     Spacer()
                     Text(isExpanded ? "收" : "展")
-                        .font(.system(size: 13, weight: .black))
+                        .font(MingTypography.body(13, weight: .black))
                         .foregroundStyle(StarPalette.cinnabar)
                         .frame(width: 28, height: 28)
                         .overlay(
@@ -2058,16 +2065,16 @@ private struct TiangangDetailRow: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(row.value.dimensionName)
-                    .font(.system(size: 17, weight: .black))
+                    .font(MingTypography.body(17, weight: .black))
                     .foregroundStyle(StarPalette.ink)
                 Text(row.currentLabel)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(MingTypography.body(14, weight: .bold))
                     .foregroundStyle(row.isPolitical ? StarPalette.cinnabar : StarPalette.indigo)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
                 Spacer()
                 Text(row.isPolitical ? "坐标 \(row.currentValue)" : "第 \(row.currentValue) 阶")
-                    .font(.system(size: 12, weight: .black))
+                    .font(MingTypography.body(12, weight: .black))
                     .foregroundStyle(StarPalette.muted)
             }
 
@@ -2078,7 +2085,7 @@ private struct TiangangDetailRow: View {
             }
 
             Text(row.currentExplanation.cleanDisplayText)
-                .font(.system(size: 13, weight: .regular))
+                .font(MingTypography.body(13, weight: .regular))
                 .foregroundStyle(StarPalette.muted)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
@@ -2094,7 +2101,7 @@ private struct MingshuPage: View {
         VStack(spacing: 12) {
             ParchmentSection(title: "命数主签", seal: "命") {
                 Text(profile.mingshu?.mingshuArchetype ?? "命数未详")
-                    .font(.system(size: 24, weight: .black))
+                    .font(MingTypography.body(24, weight: .black))
                     .foregroundStyle(StarPalette.ink)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -2151,7 +2158,7 @@ private struct MingshuSignalGroup: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: 14, weight: .black))
+                .font(MingTypography.body(14, weight: .black))
                 .foregroundStyle(color)
             if axes.isEmpty {
                 EmptySlip(text: "未详")
@@ -2210,11 +2217,11 @@ private struct HeartQuadrantChart: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 Text(state.quadrant.isEmpty ? quadrantName : state.quadrant)
-                    .font(.system(size: 21, weight: .black))
+                    .font(MingTypography.body(21, weight: .black))
                     .foregroundStyle(StarPalette.ink)
                 Spacer()
                 Text("道 \(String(format: "%.0f", state.daoHe))  ·  势 \(String(format: "%.0f", state.shiHe))")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(MingTypography.body(13, weight: .bold))
                     .foregroundStyle(StarPalette.muted)
             }
 
@@ -2311,7 +2318,7 @@ private struct QuadrantName: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 12, weight: .bold))
+            .font(MingTypography.body(12, weight: .bold))
             .foregroundStyle(StarPalette.faint)
     }
 }
@@ -2338,10 +2345,10 @@ private struct HeartTraceSeal: View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title)
-                    .font(.system(size: 13, weight: .black))
+                    .font(MingTypography.body(13, weight: .black))
                 Spacer()
                 Text(formattedValue)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(MingTypography.body(12, weight: .bold))
             }
             .foregroundStyle(color)
 
@@ -2381,10 +2388,10 @@ private struct NetworkPage: View {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(profile.social?.networkRole ?? "势网未详")
-                            .font(.system(size: 22, weight: .black))
+                            .font(MingTypography.body(22, weight: .black))
                             .foregroundStyle(StarPalette.ink)
                         Text("关系 \(profile.social?.edgeCounts.total ?? profile.relationships.count) 条")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(MingTypography.body(13, weight: .bold))
                             .foregroundStyle(StarPalette.muted)
                     }
                     Spacer()
@@ -2428,7 +2435,7 @@ private struct PoliticalStanceLadder: View {
             ForEach(1...5, id: \.self) { index in
                 let isCurrent = index == row.currentValue
                 Text(row.ladderLabels[index - 1])
-                    .font(.system(size: 10, weight: isCurrent ? .black : .semibold))
+                    .font(MingTypography.body(10, weight: isCurrent ? .black : .semibold))
                     .foregroundStyle(isCurrent ? StarPalette.cinnabar : StarPalette.muted)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
@@ -2458,9 +2465,9 @@ private struct SkillAnchorLadder: View {
                     let isCurrent = index == row.currentValue
                     VStack(spacing: 3) {
                         Text("\(index)")
-                            .font(.system(size: 11, weight: .black))
+                            .font(MingTypography.body(11, weight: .black))
                         Text(row.ladderLabels[index - 1])
-                            .font(.system(size: 10, weight: isCurrent ? .black : .semibold))
+                            .font(MingTypography.body(10, weight: isCurrent ? .black : .semibold))
                             .lineLimit(1)
                             .minimumScaleFactor(0.65)
                     }
@@ -2492,16 +2499,16 @@ private struct TiangangValueSlip: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(value.dimensionName)
-                    .font(.system(size: 17, weight: .black))
+                    .font(MingTypography.body(17, weight: .black))
                     .foregroundStyle(StarPalette.ink)
                 Text(value.label)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(MingTypography.body(14, weight: .bold))
                     .foregroundStyle(style == .stance ? StarPalette.cinnabar : StarPalette.indigo)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
                 Spacer()
                 Text(style == .stance ? "坐标 \(value.value)" : "阶 \(value.value)")
-                    .font(.system(size: 13, weight: .black))
+                    .font(MingTypography.body(13, weight: .black))
                     .foregroundStyle(StarPalette.muted)
             }
 
@@ -2522,11 +2529,11 @@ private struct MingshuAxisSlip: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 Text(axis.axisName)
-                    .font(.system(size: 17, weight: .black))
+                    .font(MingTypography.body(17, weight: .black))
                     .foregroundStyle(StarPalette.ink)
                 Spacer(minLength: 10)
                 Text(axis.label)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(MingTypography.body(14, weight: .bold))
                     .foregroundStyle(StarPalette.cinnabar)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
@@ -2545,7 +2552,7 @@ private struct RelationshipSlip: View {
         HStack(alignment: .top, spacing: 12) {
             VStack(spacing: 2) {
                 Text("星")
-                    .font(.system(size: 13, weight: .black))
+                    .font(MingTypography.body(13, weight: .black))
                     .foregroundStyle(StarPalette.cinnabar)
                 StarPips(score: relation.weightedScore)
             }
@@ -2554,15 +2561,15 @@ private struct RelationshipSlip: View {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(name)
-                        .font(.system(size: 17, weight: .black))
+                        .font(MingTypography.body(17, weight: .black))
                         .foregroundStyle(StarPalette.ink)
                     Text(relation.rawType)
-                        .font(.system(size: 13, weight: .bold))
+                        .font(MingTypography.body(13, weight: .bold))
                         .foregroundStyle(relation.relationshipKind.displayColor)
                     Spacer()
                 }
                 Text(relation.reason.playerFacingRelationReason)
-                    .font(.system(size: 13, weight: .regular))
+                    .font(MingTypography.body(13, weight: .regular))
                     .foregroundStyle(StarPalette.muted)
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -2643,11 +2650,11 @@ private struct BalanceScale: View {
         VStack(alignment: .leading, spacing: 7) {
             HStack {
                 Text(title)
-                    .font(.system(size: 14, weight: .black))
+                    .font(MingTypography.body(14, weight: .black))
                     .foregroundStyle(StarPalette.ink)
                 Spacer()
                 Text(String(format: "%.0f", value))
-                    .font(.system(size: 13, weight: .bold))
+                    .font(MingTypography.body(13, weight: .bold))
                     .foregroundStyle(StarPalette.muted)
             }
             GeometryReader { proxy in
@@ -2677,7 +2684,7 @@ private struct BalanceScale: View {
                 Spacer()
                 Text(positiveLabel)
             }
-            .font(.system(size: 12, weight: .semibold))
+            .font(MingTypography.body(12, weight: .semibold))
             .foregroundStyle(StarPalette.muted)
         }
     }
@@ -2693,11 +2700,11 @@ private struct MeasureBar: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(title)
-                    .font(.system(size: 14, weight: .black))
+                    .font(MingTypography.body(14, weight: .black))
                     .foregroundStyle(StarPalette.ink)
                 Spacer()
                 Text(formattedValue)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(MingTypography.body(13, weight: .bold))
                     .foregroundStyle(StarPalette.muted)
             }
             GeometryReader { proxy in
@@ -2897,7 +2904,7 @@ private struct FlowTextChips: View {
     var body: some View {
         FlexibleFlow(items: items) { item in
             Text(item)
-                .font(.system(size: 13, weight: .bold))
+                .font(MingTypography.body(13, weight: .bold))
                 .foregroundStyle(color)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
@@ -2932,11 +2939,11 @@ private struct EraLine: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(label)
-                .font(.system(size: 13, weight: .black))
+                .font(MingTypography.body(13, weight: .black))
                 .foregroundStyle(StarPalette.cinnabar)
                 .frame(width: 76, alignment: .leading)
             Text(value.isEmpty ? "未详" : value)
-                .font(.system(size: 15, weight: .bold))
+                .font(MingTypography.body(15, weight: .bold))
                 .foregroundStyle(StarPalette.ink)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
@@ -2956,7 +2963,7 @@ private struct SealBadge: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 13, weight: .black))
+            .font(MingTypography.body(13, weight: .black))
             .foregroundStyle(color)
             .padding(.horizontal, 9)
             .padding(.vertical, 6)
@@ -2981,7 +2988,7 @@ private struct EmptySlip: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 14, weight: .bold))
+            .font(MingTypography.body(14, weight: .bold))
             .foregroundStyle(StarPalette.muted)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 10)
