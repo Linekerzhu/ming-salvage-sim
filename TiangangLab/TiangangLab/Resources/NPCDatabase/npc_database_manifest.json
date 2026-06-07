@@ -123,6 +123,11 @@
       "record_count": 263
     },
     {
+      "module": "npc_mingpi_seed",
+      "filename": "npc_mingpi_seed.json",
+      "record_count": 263
+    },
+    {
       "module": "npc_start_1628_positions_seed",
       "filename": "npc_start_1628_positions_seed.json",
       "record_count": 263

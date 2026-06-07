@@ -12,8 +12,8 @@
       "rank_context": "outer_civil",
       "title_system": "ming_outer_civil",
       "title_name": "前内阁首辅",
-      "official_rank_code": null,
-      "rank_applicability": "mission_or_dispatch_variable",
+      "official_rank_code": "zheng_1",
+      "rank_applicability": "ranked",
       "title_order": null
     },
     {

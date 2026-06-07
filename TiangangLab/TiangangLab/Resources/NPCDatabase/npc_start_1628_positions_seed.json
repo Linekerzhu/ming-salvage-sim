@@ -19,8 +19,8 @@
       "environment_office_canonical_title": "内阁首辅/次辅",
       "office_capacity_policy": "plural",
       "rank_context": "outer_civil",
-      "official_rank_code": null,
-      "rank_applicability": "mission_or_dispatch_variable",
+      "official_rank_code": "zheng_1",
+      "rank_applicability": "ranked",
       "placement_class": "former_high_office_idle_home"
     },
     {

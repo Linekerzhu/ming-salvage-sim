@@ -1,0 +1,5473 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-06T22:01:01+00:00",
+  "records": [
+    {
+      "npc_id": "npc_ming_韩爌",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "调鼎余灰",
+      "lines": [
+        "砚池枯墨冷残编",
+        "庭树空枝影自悬",
+        "调鼎终成炊黍梦",
+        "寒灰吹入野云边"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张瑞图",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "砚尘劫",
+      "lines": [
+        "笔底烟云空自涌",
+        "墨池曾蘸天章",
+        "票传六幕待平章",
+        "未干方寸印",
+        "已改旧朝堂",
+        "莫问碑铭谁氏字",
+        "风回劫火仓皇",
+        "闭门深坐对颓墙",
+        "残锋收不得",
+        "散作野蒿霜"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_来宗道",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "调鼎尘",
+      "lines": [
+        "墨海调朱手",
+        "逢风便倚门",
+        "鸾台终寂寂",
+        "残砚落秋痕"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_施凤来",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "砚尘",
+      "lines": [
+        "檐铁咽霜风",
+        "旧牒尘封",
+        "调停朱墨总成空",
+        "一线残香烧欲尽",
+        "灰冷烟浓",
+        "蛛网锁雕栊",
+        "往迹匆匆",
+        "避舟容易覆舟同",
+        "多少承平膏火事",
+        "散入秋蛩"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_黄立极",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚老尘封",
+      "lines": [
+        "砚老墨痕枯",
+        "棋残局未收",
+        "梁空尘网厚",
+        "燕去旧帘秋"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王绍徽",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铨镜微尘",
+      "lines": [
+        "旧簿新名墨未干",
+        "砚山偏照影阑珊",
+        "铜衡一举千钧去",
+        "落锁空庭夜气寒"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_毕自严",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "度支残局",
+      "lines": [
+        "铁砚磨穿算海盈",
+        "寒砧捣碎旧时声",
+        "补天手困连环锁",
+        "冷看残灰覆禁城"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨嗣昌",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "筹边烬",
+      "lines": [
+        "细算秋毫填巨壑，孤怀空对残编",
+        "寒沙吹尽旧旌烟",
+        "鹤琴焚未得，筹笔落谁边",
+        "枢柄曾调霜雪重，海涛终夜摧舷",
+        "独留铁网罥荒天",
+        "烬余灰尚暖，风过已无弦"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_温体仁",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "镜尘枢影",
+      "lines": [
+        "锦字窥风气已移",
+        "孤桐斫处暗生歧",
+        "九衢尘满雕鞍重",
+        "一窖寒灰劫后棋"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_钱龙锡",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚尘枢冷",
+      "lines": [
+        "简策灰凝旧庙基",
+        "霜枢欲转鹤来迟",
+        "青蝇点素终投杼",
+        "戍角吹寒大泽陂"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘鸿训",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "急湍折楫",
+      "lines": [
+        "砚冷锋孤墨未匀",
+        "边垆筹火燎云鳞",
+        "风高易裂中流席",
+        "残简空陈逐海尘"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_钱谦益",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚尘寒",
+      "lines": [
+        "简册堆尘墨未干",
+        "庭槐半死抱霜寒",
+        "清名总被炎威误",
+        "一例斜阳入废坛"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_李标",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚尘铭",
+      "lines": [
+        "铜壶滴尽旧时波",
+        "调鼎心期付逝河",
+        "史笔虚悬完节后",
+        "宫槐影里暮鸦多"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孙承宗",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁砚尘深",
+      "lines": [
+        "铁砚磨穿老戍楼",
+        "边尘未洗又深秋",
+        "残棋一局星移尽",
+        "野火空烧故垒愁"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_崔呈秀",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "权烬",
+      "lines": [
+        "铁砚磨穿兵符冷",
+        "蛛丝暗度雕梁",
+        "当年只手覆朝堂",
+        "一江春水浊",
+        "万骨暮烟苍",
+        "忽报金阶收锁链",
+        "寒灰飞尽仓皇",
+        "残阳依旧照空廊",
+        "从来刀笔吏",
+        "几个得全桩"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王在晋",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "关锁尘",
+      "lines": [
+        "重垣锁旧尘",
+        "算铁化寒灰",
+        "海潮千载去",
+        "残甲锈成堆"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_徐光启",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "星槎余烬",
+      "lines": [
+        "海槎遥渡异书沉",
+        "铁范镕成试火砧",
+        "九陌尘飞农事晚",
+        "寒灰一捧是天心"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_袁可立",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "海峤孤臣",
+      "lines": [
+        "铁甲委潮痕，旧垒尘昏",
+        "孤帆曾系怒涛门",
+        "一夜霜钟惊海气，万灶烟沉",
+        "霜刃暗藏春，匣底龙呻",
+        "东江寒角不堪闻",
+        "谁见冰壶浇劫火，空照苔根"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_周延儒",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "玉绳空悬",
+      "lines": [
+        "窥天巧舌织云罗",
+        "避火兰舟入暗河",
+        "满架简编尘半掩",
+        "残棋劫尽剩空柯"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_倪元璐",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "玉碎冰弦",
+      "lines": [
+        "墨池寒浸旧冠绅",
+        "铁画孤悬砚底尘",
+        "一疏曾惊槐市鼠",
+        "冰弦迸作劫前磷"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_黄道周",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁骨劫灰",
+      "lines": [
+        "孤松霜后影犹寒",
+        "简策尘深墨未干",
+        "空持铁骨撑危局",
+        "终见劫灰飞满坛"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_曹化淳",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "虞美人",
+      "qupai": "",
+      "title": "锁钥寒",
+      "lines": [
+        "铜符玉漏深宫静",
+        "调鼎无人省",
+        "一朝劫火照天衢",
+        "空抱旧时锁钥泣残躯",
+        "丹青未写孤臣貌",
+        "冷眼观鱼鸟",
+        "宫车过处起寒灰",
+        "唯有暮鸦啼断旧池台"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《虞美人》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王体乾",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "墨冷朱销",
+      "lines": [
+        "铁栅锁宫廊",
+        "印匣深藏",
+        "旧年朱色透文章",
+        "暗数寒灰缄怨语",
+        "却道平常",
+        "线老畏新霜",
+        "巧舌如簧",
+        "故人缧绁借余香",
+        "终是残星沉暮阁",
+        "风卷空堂"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王承恩",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "缢痕",
+      "lines": [
+        "宫锁千门烟篆冷",
+        "玉墀曾映孤襟",
+        "墨痕犹渍旧缣缃",
+        "一朝风雨急",
+        "檐铁作秋吟",
+        "万仞煤峰凝碧血",
+        "素绦系住寒砧",
+        "残棋散后局空深",
+        "拂衣追赤日",
+        "霜杵碎瑶琴"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_魏忠贤",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "残柄",
+      "lines": [
+        "蛛丝斜锁旧时衢",
+        "半阶苔绣铜枢",
+        "当年炙手燎天衢",
+        "獒牙噬尽玉珊瑚",
+        "绣蟒空垂尘坌里",
+        "断翎犹插金铺",
+        "一朝寒雨散琼奴",
+        "残阳如血咽啼乌"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_田尔耕",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "绣霜织罪",
+      "lines": [
+        "铁衣承敕踏寒灰",
+        "诏狱风生鸱吻哀",
+        "权焰熏天缨络断",
+        "冰轮终照劫尘来"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_许显纯",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "duilian",
+      "form_label": "对联",
+      "cipai": "",
+      "qupai": "",
+      "title": "锁骨寒灰",
+      "lines": [
+        "铁册无恩翻冷局",
+        "寒灰有焰噬残柯"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "对联行数与等长已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_李若琏",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁衣折刃",
+      "lines": [
+        "霜锋独淬未封侯",
+        "孤堞云崩锁断喉",
+        "九阙尘飞星斗散",
+        "残旌犹指旧神州"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_客氏",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "乳虎噬香",
+      "lines": [
+        "椒风卷尽绣襦恩",
+        "铁网缠丝锁旧门",
+        "莫道乳香能蚀骨",
+        "宫鸦衔火报黄昏"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_袁崇焕",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁城劫灰",
+      "lines": [
+        "孤城一炮镇寒云",
+        "海上楼船尽化尘",
+        "独掌兵符诛叛后",
+        "九重泉路锁麒麟"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_曹文诏",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁骑劫灰",
+      "lines": [
+        "寒原突骑卷秋蓬",
+        "孤灶残旌没远风",
+        "纵使铁衣能贯日",
+        "终归荒碛伴雕弓"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_祖大寿",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "铁槛寒烟",
+      "lines": [
+        "戍角咽重垣，冻雀窥幡",
+        "炮痕旧渍铁衣斑",
+        "粮道已随秋草断，谁控乌犍",
+        "猎火照残鞍，暗啮金环",
+        "饥鹰饱去各天寒",
+        "廿载烽烟收一纸，雪满空山"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_满桂",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁衣尘",
+      "lines": [
+        "重铠曾冲万马屯",
+        "寒星坠野戟留痕",
+        "卢沟水赤孤鞍折",
+        "终古边沙葬虎贲"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_赵率教",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "关山铁衣",
+      "lines": [
+        "铁衣寒角暮云深",
+        "孤垒烽烟锁旧痕",
+        "折戟沉沙终有处",
+        "空留残盏对乾坤"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王之臣",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守边吟",
+      "lines": [
+        "半壁烽烟锁旧关",
+        "孤城落日铁衣寒",
+        "十年持重无遗策",
+        "忽遇狂澜断九旛"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_毛文龙",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "海帐寒灰",
+      "lines": [
+        "虚舟聚散海潮腥",
+        "散尽千金买锈钉",
+        "一夜重涛吞断缆",
+        "寒灰吹入野云青"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_阎鸣泰",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "废垒寒筹",
+      "lines": [
+        "铁衣久渍海霜痕",
+        "算尽残粮更闭门",
+        "纵守关山千帐冷",
+        "劫灰终散旧潮浑"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_洪承畴",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "筹边残砚",
+      "lines": [
+        "铁砚磨残边草白，寒芒曾照连营",
+        "冰弦忽断海东青",
+        "阵云吞旧垒，磷火笑空名",
+        "叵耐持衡终失手，降幡夜卷霜旌",
+        "从来大任累多能",
+        "孤星沉冻浦，万灶没春声"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孙传庭",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁砚沉锋",
+      "lines": [
+        "半卷残符锁冻河",
+        "孤锋淬火照铜驼",
+        "沙沉折戟寒潮尽",
+        "空勒危旌对劫波"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_卢象升",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁砚沉锋",
+      "lines": [
+        "孤城寒角咽秋星",
+        "血渍征衣铁甲腥",
+        "十万苍生同死义",
+        "一襟清露泣残铭"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_史可法",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "寒江孤旌",
+      "lines": [
+        "冻旗裂帛旧城阴",
+        "孤剑沉沙锈已深",
+        "寒潮夜打空舷去",
+        "谁信书生曾枕戈"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_周皇后",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "菩萨蛮",
+      "qupai": "",
+      "title": "宫槐落",
+      "lines": [
+        "铜龙漏咽沧波竭",
+        "椒风自卷残香屑",
+        "凤绶系春深",
+        "春深锁玉心",
+        "忽闻金界坼",
+        "宝瑟收寒色",
+        "无计劝天孙",
+        "抛梭化劫尘"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《菩萨蛮》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_周贵人",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "宫藤",
+      "lines": [
+        "禁苑藤萝附古槐",
+        "阴阳两面各安排",
+        "风高不见连根断",
+        "雨后残丝挂玉阶"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_田贵妃",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "御香残舞",
+      "lines": [
+        "锦茵旋罢烛龙寒",
+        "一缕柔丝系九銮",
+        "暗结椒风分宠影",
+        "劫灰飞尽旧珠襕"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_袁贵妃",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "虞美人",
+      "qupai": "",
+      "title": "宫烟散",
+      "lines": [
+        "绣帷深掩沉烟细",
+        "玉漏声迢递",
+        "凤衾寒透不成眠",
+        "谁见御沟流恨到人间",
+        "金舆一去无消息",
+        "空锁宫花寂",
+        "断香残粉委尘沙",
+        "忍向暮云深处说年华"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《虞美人》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_慧妃",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "duilian",
+      "form_label": "对联",
+      "cipai": "",
+      "qupai": "",
+      "title": "宫槐影",
+      "lines": [
+        "上联：稚语随香篆，难遮冷箭穿宫燕",
+        "下联：柔心避劫灰，终作浮萍逐逝川"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "对联行数与等长已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_皇太极",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "寒帐霜角",
+      "lines": [
+        "毳帐卷秋声，铁骑宵惊",
+        "雕弧欲挽海东青",
+        "纵有连环三十六，难锁潮平",
+        "离间计频成，汉吏虚迎",
+        "几回焚掠作深耕",
+        "一夜星芒垂大野，谁问枯荣"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_代善",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "穹庐霜刃",
+      "lines": [
+        "寒鞞曾惊万骑尘",
+        "穹庐共坐虎狼身",
+        "霜锋未破天心裂",
+        "散作松楸一叶春"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_莽古尔泰",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "蝶恋花",
+      "qupai": "",
+      "title": "虺栖金帐",
+      "lines": [
+        "金帐凝霜雕鹗怨",
+        "啮镞吞声",
+        "总被恩波断",
+        "宝刀夜泣腥红溅",
+        "鼙鼓惊风星斗颤",
+        "鸩羽深藏云外雁",
+        "一霎秋高",
+        "衮服成飞霰",
+        "从来狼纛飘零惯",
+        "寒草连天遮旧殿"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《蝶恋花》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_阿敏",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "朔云焚羽",
+      "lines": [
+        "霜碛卷孤旌，铁骑夜鸣",
+        "穹庐炙罢又分冰",
+        "海鹘东来翻日色，冻骨空擎",
+        "残箭没荒瀛，铩羽谁听",
+        "河倾星散旧时盟",
+        "一夜白毛吹作帐，何处春声"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_范文程",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "笔剑沉沙",
+      "lines": [
+        "冻砚裂霜纹",
+        "旧简生尘",
+        "塞垣寒角没层云",
+        "一纸檄成天下动",
+        "笔底千军",
+        "谁记故冠绅",
+        "跨圈孤身",
+        "权炉炼尽二朝臣",
+        "终是灰飞烟灭处",
+        "空对残曛"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_佟养性",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "xiaoqu",
+      "form_label": "小曲",
+      "cipai": "",
+      "qupai": "山坡羊",
+      "title": "炮衣",
+      "lines": [
+        "铁膛暗度星躔",
+        "烟火淬成新面",
+        "旧旗偃处，一纸功名贱",
+        "风沙卷，断弦声里，又见海潮咽",
+        "算珠满盘皆错，残盏难盛恩怨",
+        "劫灰冷，谁解连环"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "小曲曲牌《山坡羊》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_mongol_林丹汗",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "苍原孤纛",
+      "lines": [
+        "毳帐曾羁万里风",
+        "霜刀未试海青空",
+        "一朝尘散阴山雪",
+        "落日寒笳没草中"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_korea_仁祖",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "藩旌",
+      "lines": [
+        "霜笳吹冻海",
+        "毳帐压孤旌",
+        "莫问朝周礼",
+        "残星坠旧京"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_korea_张维",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "海东书尘",
+      "lines": [
+        "海东云断雁衔书",
+        "笔底山河影半虚",
+        "潮暗孤城风满牒",
+        "一秋残简落寒渠"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_王嘉胤",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "duilian",
+      "form_label": "对联",
+      "cipai": "",
+      "qupai": "",
+      "title": "荒山劫灰",
+      "lines": [
+        "饥鸢啄骨聚还散，空谷回飙卷残旌",
+        "疑心早种坟前棘，霸业终归陌上尘"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "对联行数与等长已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_李自成",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "劫灰谣",
+      "lines": [
+        "驿路尘销铁骑鸣",
+        "九门烽火照残旌",
+        "一朝紫盖成灰烬",
+        "空剩寒鸦说故营"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_张献忠",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "燎原烬",
+      "lines": [
+        "塞上飞星噬旧营",
+        "裹尘锋镝啸空城",
+        "锦城一炬烟霞冷",
+        "谁听秋坟鬼唱声"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_武当张真人",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "谶隐高真",
+      "lines": [
+        "雾锁九霄深，鹤影难寻",
+        "丹砂未救海尘侵",
+        "算尽璇玑终寂历，玄鬓霜沉",
+        "何处问升沉？药鼎空斟",
+        "百年功行付瑶琴",
+        "欲借松风扫劫烬，星斗寒音"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_铁臂周侗",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁衣尘隐",
+      "lines": [
+        "百炼钢锋匣里鸣",
+        "江湖潮落旧舟轻",
+        "辞麟不为丹墀近",
+        "终古寒星照野茔"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_青莲剑客",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "匣隐",
+      "lines": [
+        "匣底锈春残，酒冷星寒",
+        "青霜曾照藕花丹",
+        "易尽千容难易骨，市井孤鸾",
+        "潮打旧盟滩，劫墨斑斑",
+        "山深无路报恩难",
+        "一夕乱锋收野雾，谁见龙蟠"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_玄机道长",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守玄",
+      "lines": [
+        "砚冷天机歇",
+        "星沉药灶寒",
+        "苍生皆刍狗",
+        "独抱一炉丹"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_毒手药王",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "丹灶余灰",
+      "lines": [
+        "秘术锁烟深",
+        "回春不治心",
+        "炉寒丹灶冷",
+        "空守一丸金"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_红衣女侠",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "绛影劫灰",
+      "lines": [
+        "赤袂凌虚百步尘",
+        "空庭暗雨湿残春",
+        "千金散尽无归处",
+        "独向荒烟问旧津"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_盲眼琴师",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "虞美人",
+      "qupai": "",
+      "title": "弦外劫",
+      "lines": [
+        "冰弦暗度兴亡律",
+        "指冷宫槐寂",
+        "香销毳帐雁空回",
+        "谁见断纹深处、隐风雷",
+        "海潮翻雪沉渊铁",
+        "不抵浮生劫",
+        "尘飞沧海旧楼台",
+        "只剩焦桐三尺、锁秋苔"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《虞美人》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_鬼面商人",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "诡面行商",
+      "lines": [
+        "青铜冷铸真容隐，奇珍暗渡重关",
+        "自鸣钟碎漏声残",
+        "弩藏秋袖里，仇入海潮寒",
+        "丝路尘埋真假事，机关算尽谁看",
+        "一朝势散客舟单",
+        "劫灰飞处，残盏对空山"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_隐剑山庄主",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "匣剑吟",
+      "lines": [
+        "霜刃十年铸",
+        "匣空龙夜吟",
+        "拂拭惊天下",
+        "寒灰没剑心"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_白眉老僧",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "劫争残子",
+      "lines": [
+        "双肩压雪海潮寒",
+        "欲挽河山劫数难",
+        "一杖曾惊千嶂虎",
+        "独向残枰说胆肝"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_曹变蛟",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "虎帐霜锋",
+      "lines": [
+        "孤锋入阵影离群",
+        "夜半寒沙马不闻",
+        "绝塞风烟迷旧帐",
+        "残旗斜挂故将军"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_左良玉",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "虎符尘",
+      "lines": [
+        "辕门锈戟咽寒潮",
+        "八十楼船付烬飘",
+        "谁向空营收断纛",
+        "秋磷犹自照征袍"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_黄得功",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "白马谣",
+      "lines": [
+        "雕翎曾贯冻云间",
+        "铁骨轻抛旧垒边",
+        "一夜寒潮吞万骑",
+        "残弓空对野蒿烟"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘泽清",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "浊潮孤帜",
+      "lines": [
+        "铁衣空绣旧时潮",
+        "鼓角沉沙舟自摇",
+        "莫问春风归哪岸",
+        "劫灰吹尽是寒涛"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_高杰",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "枭羽沉沙",
+      "lines": [
+        "翻飞曾掠旧巢倾",
+        "铁翼横磨夜有声",
+        "一炬连营空照水",
+        "寒灰散入戍笳鸣"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_周遇吉",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁骨劫灰",
+      "lines": [
+        "断弦犹挂旧弓衣",
+        "孤城落日角声微",
+        "丹心不化寒灰冷",
+        "独向劫尘深处飞"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_熊文灿",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "duilian",
+      "form_label": "对联",
+      "cipai": "",
+      "qupai": "",
+      "title": "饵虎鉴",
+      "lines": [
+        "筑坛亲解降王缚，恩袍裹血，岂料辕门锁断、海啸鲸吞，空箱旧誓成灰烬",
+        "执简精筹边务策，砚匣蒙尘，终归铁狱霜寒、街衢刃碎，斜照残旌没劫波"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "对联行数与等长已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_郑芝龙",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "断缆谣",
+      "lines": [
+        "万帆曾蔽海东云",
+        "珠市潮回散若尘",
+        "铁索忽收千舰散",
+        "残锚独啮旧时痕"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_郑成功",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "焚冠记",
+      "lines": [
+        "怒海孤帆裂旧冠",
+        "父缨北系子南征",
+        "铁衣万碎沉残日",
+        "一缕沧溟葬大荒"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘宗周",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "烬冷疏牖",
+      "lines": [
+        "一砚枯云吞旧简，荒庭霜叶敲声",
+        "孤襟曾拂万言旌",
+        "冷灰堆绣豸，残线缀寒缨",
+        "忍看劫潮摧砥柱，空山饿骨吞名",
+        "饿鸱声断野蒿平",
+        "孤忠焚玉碎，沸鼎作羹清"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_范景文",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "井梧铭",
+      "lines": [
+        "寒柯抱井阴",
+        "霜节老尘襟",
+        "素绠悬空影",
+        "秋苔蚀旧心"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_李邦华",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砥柱劫灰",
+      "lines": [
+        "整顿残旗铸铁衣",
+        "孤忠难补九重围",
+        "终将碧血填沟壑",
+        "空有寒鸦绕殿飞"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_马士英",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "蝶恋花",
+      "qupai": "",
+      "title": "蛛缚危堂",
+      "lines": [
+        "檐角盘丝囚冷露",
+        "旧牍尘封",
+        "密约成空铸",
+        "暗数寒星争鹊渡",
+        "忽惊骤雨倾巢注",
+        "一炬荣枯皆往素",
+        "铁锁横江",
+        "终是西风误",
+        "宿怨如潮吞故步",
+        "残灰散尽无人顾"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《蝶恋花》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_阮大铖",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "错弦记",
+      "lines": [
+        "新声每借旧恩裁",
+        "半入宫商半入霾",
+        "燕子笺残灯谜散",
+        "罗钳吉网锁空台"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_姜曰广",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "简蠹",
+      "lines": [
+        "清望曾凝简册光",
+        "危旌独守海风凉",
+        "惊涛啮尽孤臣骨",
+        "犹作龙吟绕旧梁"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈子龙",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "简蠹砚尘",
+      "lines": [
+        "孤笔曾封江海疏",
+        "冷香犹系旧绨袍",
+        "一朝散作秋磷去",
+        "空锁残编泣蠹鱼"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_夏允彝",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "砚尘锁秋声",
+      "lines": [
+        "半壁残编堆冷署，墨痕暗度霜钟",
+        "铨量几度换春空",
+        "孤松扶断简，素履踏寒蛩",
+        "海上义声成底事，潮回难挽孤篷",
+        "尘网万缕锁孤衷",
+        "风高鸿影没，霜重药炉红"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_高起潜",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "监军残梦",
+      "lines": [
+        "宫漏咽铜龙",
+        "御墨尘封",
+        "铁衣遥借虎符重",
+        "纸上风雷空自壮",
+        "塞雁无踪",
+        "兵事付寒蛩",
+        "战血消融",
+        "避危长守禁闱红",
+        "一缕恩波争渡处",
+        "舟覆澜汹"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杜勋",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "趋尘谣",
+      "lines": [
+        "朱门香烬海潮腥",
+        "铁券尘封蛛网悬",
+        "最是仓皇拜尘日",
+        "空留残珮市坊前"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_多尔衮",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "霜翎坠",
+      "lines": [
+        "海青翻雪缚苍龙",
+        "铁翎忽坠寒空",
+        "紫垣深处锁春浓",
+        "九霄风裂帛",
+        "一箭落惊鸿",
+        "燕云黯黯城头改",
+        "毡庐旧火犹红",
+        "从来权柄似飘蓬",
+        "残碑蚀野草",
+        "孤骑没荒峰"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_多铎",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "铁骑寒星",
+      "lines": [
+        "霜鼓裂重城，血沃芜平",
+        "铁衣曾照角弓鸣",
+        "一夜风销千帐冷，万骨无名",
+        "寒燧没孤旌，霸业空营",
+        "劫灰深处旧鞍轻",
+        "三十六峰浑不语，鸦过心惊"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_阿济格",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "铁衣尘",
+      "lines": [
+        "朔气裂雕鞍，霜角凝寒",
+        "孤城落照血痕干",
+        "一骑踏翻千帐月，谁惜刀瘢",
+        "虎啸乱云间，终陷泥蟠",
+        "从来骄骨易摧残",
+        "荒垒废池鸦阵起，锈甲空攒"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_济尔哈朗",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "潭影沉甲",
+      "lines": [
+        "深潭不竞晚潮声",
+        "曾抱寒星护旧营",
+        "一夜风烟销铁骨",
+        "苔痕空锁未书名"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_索尼",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "楫冷灰沉",
+      "lines": [
+        "剑锷霜残毳帐风",
+        "旧楫曾凌不波中",
+        "一朝金柝黯深宫",
+        "乱云争鼎日",
+        "孤影守寒松",
+        "棋局未收星斗换",
+        "遗编空对尘封",
+        "劫灰飞尽海涛红",
+        "枯鳞犹护壑",
+        "无力挽流东"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_宁完我",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "蝶恋花",
+      "qupai": "",
+      "title": "砚冷星沉",
+      "lines": [
+        "半壁残经尘网护",
+        "旧简横斜",
+        "墨痕都作黏天絮",
+        "欲借霜毫撑砥柱",
+        "风雷过尽唯余蠹",
+        "铁甲未销香篆误",
+        "宝鼎烟沉",
+        "空记金銮语",
+        "乱世棋枰无定主",
+        "西园草没来时路"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《蝶恋花》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_鳌拜",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁帐寒星",
+      "lines": [
+        "曾掣苍鹰踏冻河",
+        "铁衣霜重没铜驼",
+        "忽闻帐外金縢裂",
+        "始信穹庐缚虎多"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_图赖",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "霜刃折",
+      "lines": [
+        "铁衣凝朔气",
+        "断镞没荒蒿",
+        "裹革平生志",
+        "寒潮咽暮壕"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_孔有德",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "海炮孤帆",
+      "lines": [
+        "铁舟焚契渡寒潮",
+        "赤焰摧城换紫袍",
+        "海雾终遮麟阁影",
+        "残锚独锈旧波涛"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_耿仲明",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "叛翼折潮录",
+      "lines": [
+        "铁翼曾翻辽海云",
+        "潮来折戟未归群",
+        "蛟宫不锁猜心索",
+        "浪打空舷似旧闻"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_houjin_尚可喜",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "xiaoqu",
+      "form_label": "小曲",
+      "cipai": "",
+      "qupai": "天净沙",
+      "title": "潮殿残鸥",
+      "lines": [
+        "铁帆曾压沧波",
+        "宫云堕作铜驼",
+        "海雨浇残霸火",
+        "珠帘深锁",
+        "老鲸空吼烟蓑"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "小曲曲牌《天净沙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_mongol_额哲",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "残帐遗玺",
+      "lines": [
+        "毳帐尘封旧鹫翎",
+        "寒沙啮骨没荒陉",
+        "传家空有蟠螭纽",
+        "换得穹庐一夜星"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_mongol_土谢图汗",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "穹帐雁寒",
+      "lines": [
+        "毳幕卷秋声，牧马空鸣",
+        "当年互市暗尘生",
+        "一夕寒潮吞旧界，谁记鸥盟",
+        "独坐数残星，霜角无凭",
+        "穹庐影里佛灯青",
+        "忽见冻河崩岸去，风卷孤旌"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_mongol_顺义王",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "菩萨蛮",
+      "qupai": "",
+      "title": "边尘守市",
+      "lines": [
+        "朔风紧，毳帐孤悬牧马稀",
+        "互市烟，依稀旧时旂",
+        "铁骑银鞍空对月",
+        "养痈成患悔难追",
+        "残阳如血，雁阵南飞"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《菩萨蛮》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_高迎祥",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "野旌残照",
+      "lines": [
+        "饥乌衔火过荒营",
+        "百寨残旗向日倾",
+        "锒铛忽锁盟坛月",
+        "却引新渠灌旧兵"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_罗汝才",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "智鸟投荒",
+      "lines": [
+        "万灶寒灰吹不起",
+        "营门夜数残星",
+        "巧舌偏误半生盟",
+        "断弦分旧垒",
+        "折戟没榛荆",
+        "百转机心终自缚",
+        "空山骤雨相迎",
+        "荒坟何处问枯荣",
+        "纸鸢飘断线",
+        "野蔓锁孤旌"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_革左五营",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "五营劫灰",
+      "lines": [
+        "五部旌旗连岭雾，十年霜角惊蓬",
+        "劫粮分帛亦豪雄",
+        "山深狐兔狡，风急鹞鹰空",
+        "终是合纵成断索，寒灰散入荒烽",
+        "残营磷火照荆丛",
+        "持中难守命，观火自焚弓"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_刘宗敏",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "xiaoqu",
+      "form_label": "小曲",
+      "cipai": "",
+      "qupai": "山坡羊",
+      "title": "铁魄劫灰",
+      "lines": [
+        "锻砧敲断残星",
+        "血淬霜锋惯陷城",
+        "金阶忽卷拷声",
+        "绮罗堆里醉眸横",
+        "忽喇喇烟尘蔽野",
+        "马嵬西去孤旌",
+        "猛回头铁骨成灰",
+        "空对着寒滩冷月明"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "小曲曲牌《山坡羊》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_宋献策",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "玄符烬",
+      "lines": [
+        "星移斗柄落寒筹",
+        "一纸玄符焚未休",
+        "马踏宫门灰尚热",
+        "西风残卦卷荒丘"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_牛金星",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "残筹",
+      "lines": [
+        "半卷儒经投沸鼎，枯毫换得金冠",
+        "蛇盘枢柄齿相残",
+        "帐前烟未散，身后缆先寒",
+        "万里流沙吞简册，孤星坠入荒滩",
+        "几人拾骨辨朱丹？",
+        "潮回空卷刃，鸦噪旧栏杆"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_李岩",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "谏星沉野",
+      "lines": [
+        "乱世仁声动寇营",
+        "歌谣曾教万心倾",
+        "虎狼丛里青毫折",
+        "终见残旌没草茔"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_红娘子",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "侠女劫灰",
+      "lines": [
+        "银鞍照夜走荒陂",
+        "一炬连营万灶炊",
+        "折尽长枪星似霰",
+        "荻花深处鹧鸪悲"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_白莲教主",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "幽谷谶烟",
+      "lines": [
+        "秘篆灰飞香积冷，空山谁叩玄关",
+        "无生谶语散如烟",
+        "劫尘迷去路，寒杵警残年",
+        "暗结枭雄分鼎计，几回窥伺星躔",
+        "一朝风起烛光偏",
+        "幽谷狐踪灭，危巢堕棘间"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_闻香教主",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "菩萨蛮",
+      "qupai": "",
+      "title": "残香谶",
+      "lines": [
+        "金炉篆冷鸦啼柱",
+        "铜匜烬落尘封杵",
+        "暗结网千丝",
+        "随风萦别枝",
+        "海潮吞旧约",
+        "毳帐凝霜角",
+        "香尽劫灰扬",
+        "空庭日影长"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《菩萨蛮》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_老渔夫",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "湖舟隐曜",
+      "lines": [
+        "舟泊寒星外",
+        "身浮万顷冥",
+        "潮来知势返",
+        "龙去入空青"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_塞外刀客",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "孤刃吟",
+      "lines": [
+        "寒锋淬塞尘",
+        "独骑没荒榛",
+        "庙堂非宿处",
+        "终古一萍身"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_苗疆蛊师",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "蛊影空山",
+      "lines": [
+        "万壑蛇虫衔秘咒，青烟指上冥冥",
+        "草灵不语役枯荣",
+        "九重金殿外，冷目送寒星",
+        "鼎沸人间皆过客，孤怀长锁云扃",
+        "从来救劫是空名",
+        "一肩风露去，山鬼伴溪声"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_倭寇首领",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "劫波遗烬",
+      "lines": [
+        "黑潮啮断桅，残缆空垂",
+        "铁鸥衔尽旧帆灰",
+        "曾借星槎偷火种，却照寒漪",
+        "疑网锁蛟螭，密约成非",
+        "匣中遗谱冷霜飞",
+        "终古沧溟吞恨去，谁认前麾"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_西洋传教士",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "鹧鸪天",
+      "qupai": "",
+      "title": "星槎客",
+      "lines": [
+        "远渡鲸波别故岑",
+        "异邦奇技换冠簪",
+        "浑仪暗转窥天意",
+        "药灶斜支救血砧",
+        "传火急",
+        "散烟沉",
+        "锦帆曾系岛云深",
+        "他乡历法空垂范",
+        "谁记西来一片心"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《鹧鸪天》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_南洋华侨",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "海客谶",
+      "lines": [
+        "潮信频催万斛银",
+        "暗礁参破即迷津",
+        "鲸波惯作投荒路",
+        "终老沧溟不系身"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨景辰",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浣溪沙",
+      "qupai": "",
+      "title": "简蠹砚尘",
+      "lines": [
+        "案牍堆云蠹字闲",
+        "铨衡如水砚池寒",
+        "衣冠几度换朱丹",
+        "暗室守中绳墨在",
+        "危檐看火羽书残",
+        "劫灰飞尽一枰间"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浣溪沙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_周道登",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守中影",
+      "lines": [
+        "寒砚栖尘久",
+        "庭枝避斧斤",
+        "残章封旧印",
+        "空阁散秋云"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_成基命",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "砚深",
+      "lines": [
+        "宝匣久藏玄圭冷，松烟曾染朝衣",
+        "孤光自照海涛西",
+        "鼎彝终古锈，谁辨旧时题",
+        "尘网暗牵千牍重，丹墀风劲难栖",
+        "空庭老桧拂檐低",
+        "垂裳人不见，寒日下荒蹊"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王洽",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "守中吟",
+      "lines": [
+        "简册积尘封旧署，庭槐空数寒星",
+        "援兵如叶落边庭",
+        "铁衣凝夜紫，焦尾涩余声",
+        "囹圄诵史消长昼，蛛丝暗锁檐铃",
+        "当年袖手望承平",
+        "孤忠成画饼，劫火照空城"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_何如宠",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚尘",
+      "lines": [
+        "架阁积年深",
+        "朱毫避斧砧",
+        "风来门自掩",
+        "寒灰落旧襟"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_钱象坤",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚尘",
+      "lines": [
+        "简册尘封旧砚枯",
+        "调弦袖手冷貔貅",
+        "忽闻宫漏惊残夜",
+        "散作青词不可收"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王元雅",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守城骨",
+      "lines": [
+        "冻砚磨寒齿",
+        "残旌卷市尘",
+        "孤城炊火绝",
+        "朝服化飞磷"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_何天球",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铨曹烬",
+      "lines": [
+        "铨曹簿上墨犹新",
+        "一夜胡尘没旧津",
+        "巷战血凝秋草白",
+        "空庭吏散锁荒榛"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_马世龙",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁衣寒角",
+      "lines": [
+        "寒角无声锈铁衣",
+        "孤城坐困雁空飞",
+        "调弦岂止防弦断",
+        "一夜秋衾万骑围"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孙祖寿",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "寒角沉沙",
+      "lines": [
+        "寒角吹残旧垒烟",
+        "铁衣曾护九边天",
+        "孤军尽没尘沙里",
+        "断镞犹镶劫火前"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_毕自肃",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "残牍谣",
+      "lines": [
+        "简册尘埋旧铁衣",
+        "寒潮空打暮城矶",
+        "孤旌不敌饥鹰噪",
+        "一索秋声共叶飞"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘若宰",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚尘铭",
+      "lines": [
+        "墨池曾照雁行斜",
+        "素简空悬世外槎",
+        "欲借天工裁九曲",
+        "蓬窗风雨没残纱"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_卓铭",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "沉灰引",
+      "lines": [
+        "铁砚未磨兵气销",
+        "孤旌久偃海门潮",
+        "九秋矿脉凝霜白",
+        "一疏寒灰覆旧寮"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_侯良柱",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "沉锚谣",
+      "lines": [
+        "铁衣曾照水西云",
+        "铩羽何须叹失群",
+        "一夜寒沙埋战骨",
+        "边尘散尽未铭勋"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘可训",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "伏草惊烽",
+      "lines": [
+        "兵符久锈砚尘深",
+        "谁引偏锋断莽岑",
+        "一夕寒灰埋故垒",
+        "空山杜宇泣幽林"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_郑国昌",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守器辞",
+      "lines": [
+        "简蠹砚枯尘",
+        "孤垣没棘榛",
+        "拜衣终化烬",
+        "残旆挂空闉"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张凤奇",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守城吏",
+      "lines": [
+        "候铨簿上墨痕枯",
+        "孤堞烟沉铁篆芜",
+        "北拜朝衣凝碧血",
+        "冷曹谁与辨龟符"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘策",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚冷弓沉",
+      "lines": [
+        "案头墨冻简编残",
+        "塞上霜凝铁甲寒",
+        "守到孤城星斗换",
+        "天风海雨葬衣冠"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘之纶",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "简霜",
+      "lines": [
+        "案头旧牍积尘深",
+        "忽闻边角动寒襟",
+        "铁衣未解身先死",
+        "唯有孤忠照劫林"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_吴自勉",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守门残印",
+      "lines": [
+        "辕门锈甲冷于灰",
+        "空握残符计总违",
+        "马骨未收秋又尽",
+        "乱云如戟去无归"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_吴宗达",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守器",
+      "lines": [
+        "砚尘埋旧简",
+        "庭树半枯枝",
+        "潮退舟难进",
+        "风斜燕自疑"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杜文焕",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁箸寒灰",
+      "lines": [
+        "冷灶温残局",
+        "危旌立暮云",
+        "持筹空算劫",
+        "铁甲渐生尘"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王国梁",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守印寒灰",
+      "lines": [
+        "砚冷霜毫涩",
+        "旌垂阵角偏",
+        "寒灰吹不起",
+        "一印锁残烟"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨鹤",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "抚绥散羽",
+      "lines": [
+        "简策尘封砚沼枯",
+        "虎符空授计全输",
+        "豺心难革恩波尽",
+        "戍角声催劫火孤"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张应昌",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "烬余弓",
+      "lines": [
+        "绣鞍曾踏贺兰秋",
+        "角罢辕门雨未收",
+        "莫向残灰寻旧镞",
+        "寒潮犹啮海西头"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈于泰",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "观弈身",
+      "lines": [
+        "尘架旧书蠹屑冷，曾窥遁甲森芒",
+        "寒灰拨尽未成光",
+        "棋枰星错落，袖手看兴亡",
+        "彩笔忽题金榜字，槐根蚁阵苍黄",
+        "烟蓑雨笠没沧浪",
+        "潮回孤屿没，残弈覆空堂"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_吴甡",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "尘牍",
+      "lines": [
+        "砚冷霜毫涩",
+        "台荒旧简深",
+        "空持一瓠策",
+        "难济九原沉"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张允登",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守器吟",
+      "lines": [
+        "孤城悬绝塞",
+        "一诺抵千钧",
+        "热血浇荒垒",
+        "残阳没虏尘"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘若愚",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "缧中录",
+      "lines": [
+        "重锁咽寒蛩",
+        "砚冷尘封",
+        "旧时彤管写从容",
+        "忽报雷霆诛恶木",
+        "同坠秋风",
+        "简册证孤忠",
+        "字字啼红",
+        "蛛丝垂牖日偏东",
+        "廿载宫垣多少事",
+        "尽付炉空"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孙暹",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "鹧鸪天",
+      "qupai": "",
+      "title": "蛛衣尘",
+      "lines": [
+        "曲槛曾悬刑印寒",
+        "绣衣频换旧罗襕",
+        "网丝巧借檐牙稳",
+        "不逐东风上钓竿",
+        "权作饵",
+        "势如澜",
+        "翻成劫火煮冰盘",
+        "残香未烬新香换",
+        "谁记收场一窨棺"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《鹧鸪天》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘吉祥",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "厩烟",
+      "lines": [
+        "曾引龙媒参玉辇，霜蹄踏碎宫鸦",
+        "金笼锁断旧烟霞",
+        "残司灯火暗，孤影数寒枒",
+        "争附乔柯终坠露，空枝自结霜痂",
+        "轭痕深浅没尘沙",
+        "苍茫谁为主，汗血冷铜琶"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_李永贞",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "书尘",
+      "lines": [
+        "砚底墨无锋",
+        "帘深算九重",
+        "一朝灰烬散",
+        "空阁锁秋蛩"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_梁栋",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "尘匣暗火",
+      "lines": [
+        "尘匣虚衔旧署纹",
+        "寒灰暂暖复纷纭",
+        "诸司篆影随波尽",
+        "独抱残灰避劫焚"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_石元雅",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "xiaoqu",
+      "form_label": "小曲",
+      "cipai": "",
+      "qupai": "水仙子",
+      "title": "柔藤附壁",
+      "lines": [
+        "暗廊深处篆烟斜",
+        "墨海浮舟惯署衙",
+        "几回潮退无鳞甲",
+        "剩空墙、网旧纱",
+        "看劫灰、落尽檐花",
+        "柔藤终覆瓦"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "小曲曲牌《水仙子》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_涂文辅",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "duilian",
+      "form_label": "对联",
+      "cipai": "",
+      "qupai": "",
+      "title": "珰影浮沉",
+      "lines": [
+        "砚山虚篆随风散",
+        "铁树空衔旧火痕"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "对联行数与等长已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈良谟",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁衣孤雁",
+      "lines": [
+        "尘沙暗铁衣",
+        "孤雁失群飞",
+        "同列皆星散",
+        "寒灰独不归"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_李九成",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "xiaoqu",
+      "form_label": "小曲",
+      "cipai": "",
+      "qupai": "山坡羊",
+      "title": "反戈谣",
+      "lines": [
+        "铁甲夜渡寒潮起，官库劫灰飞，海隅腥风裹旧旗",
+        "昨日辕门虎，今朝背水螭",
+        "狐踪两端顾，枭首一炬时",
+        "火照连营皆赤烬，礁滩野蔓挂残肢",
+        "潮打空城谁记汝，断弦沉戟伴磷吹"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "小曲曲牌《山坡羊》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张可大",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "边垣烬",
+      "lines": [
+        "画角凝寒镇海陬",
+        "孤城落日铁衣秋",
+        "烽烟不入麒麟阁",
+        "残镞犹衔故垒头"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孙元化",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铳台余烬",
+      "lines": [
+        "铁函封火势初炎",
+        "海雾侵城计转嫌",
+        "谁向旧章询去就",
+        "市声依旧卷霜帘"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_宋光兰",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "磨盾",
+      "lines": [
+        "磨盾承秋露",
+        "孤城啮海涛",
+        "援笳声断处",
+        "裂纛没蓬蒿"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_徐从治",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "寒垣折戟",
+      "lines": [
+        "铁衣曾照塞云昏",
+        "独挽危旌守废垣",
+        "一夜炮声摧壁垒",
+        "残星如血洒军门"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘宇烈",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "海尘录",
+      "lines": [
+        "铁衣潮信冷",
+        "舟锁岛烟深",
+        "擒得珊瑚骨",
+        "沧波未赎心"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_余大成",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "观澜客",
+      "lines": [
+        "砚池沉铁未磨锋",
+        "危旌独倚海云重",
+        "满朝霜简催征鼓",
+        "一棹寒潮没旧踪"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨嘉谟",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚折",
+      "lines": [
+        "玄圭承露久",
+        "中裂未磨心",
+        "铁甲寒生锈",
+        "空庭柏子深"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱大典",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "印泥销骨",
+      "lines": [
+        "寒潮啮锁旧衙深",
+        "断缆残旌海气沉",
+        "铁树不开空垒寂",
+        "劫灰飞尽问孤禽"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_郑以伟",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "素简寒灰",
+      "lines": [
+        "满架尘编久未裁",
+        "相门帘影借低徊",
+        "潮生闽海舟难系",
+        "一炷余香散阁台"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_谢琏",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "尘算",
+      "lines": [
+        "椒盘银漏计虚盈",
+        "阁火连天照簿旌",
+        "半卷青缃虫蠹满",
+        "寒潮终古打空城"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱万年",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "孤垒寒角",
+      "lines": [
+        "寒角啮孤城",
+        "铁衣霜色深",
+        "单骑没荒垒",
+        "一诺碎空襟"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨麒",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "边尘散",
+      "lines": [
+        "霜锋凝旧垒",
+        "饥卒撼辕门",
+        "空有连枝约",
+        "何曾护一温"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_杨正芳",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "歧途照影",
+      "lines": [
+        "空悬虎帐符",
+        "兵噪夜吞隅",
+        "半壁烽烟路",
+        "孤辕进退躯"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_祖宽",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守中悲风",
+      "lines": [
+        "边尘未洗又征袍",
+        "剑指登莱血染蒿",
+        "留得三分余力在",
+        "铁枷终负旧勋高"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_刘香",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "潮烬",
+      "lines": [
+        "舷外浪千巡，起落无根",
+        "樯旗卷处聚如云",
+        "忽有寒鸦啄断缆，散作浮尘",
+        "劫火照空津，算尽潮痕",
+        "铁衣成锈锁成纹",
+        "谁记当时磨刃客，独贩黄昏"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王志道",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "砥臣空守",
+      "lines": [
+        "简册积尘深，墨冷香沉",
+        "槐庭日影渐西侵",
+        "铁甲寒光销旧垒，孤角霜林",
+        "潮打石矶喑，算尽机心",
+        "残垣犹自苦支撑",
+        "一夕劫灰迷楚泽，雁断云阴"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈洪范",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "锈甲",
+      "lines": [
+        "寒角咽孤屯",
+        "粮空剑尚温",
+        "持盈如抱病",
+        "锈尽旧时痕"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_邓玘",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "边尘裁命",
+      "lines": [
+        "寒角遥催铁衣裂",
+        "旧简空悬法吏威",
+        "浮萍总被急流卷",
+        "纵得提携亦劫灰"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈大金",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守烛残",
+      "lines": [
+        "简素积尘久",
+        "绶囊空自香",
+        "烽来惊坐起",
+        "一炬付苍茫"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_李卑",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "海澨残锋",
+      "lines": [
+        "铁帐卷秋蓬",
+        "戍角嘶空",
+        "孤城曾系旧艨艟",
+        "一夜潮来腥雨急",
+        "万刃排风",
+        "寒水咽遗弓",
+        "劫烬摇红",
+        "海门烟散霸图穷",
+        "莫问枯鳞何处泊",
+        "都付蛟宫"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_黄龙",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁瓮孤潮",
+      "lines": [
+        "孤城咽角海云腥",
+        "一纸盟书换铁翎",
+        "火啮牙旗星坠野",
+        "残铛犹煮旧山青"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_钱士升",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "观澜谶",
+      "lines": [
+        "砚尘蛛网锁寒厅",
+        "潮退舟横藕叶腥",
+        "莫向中流矜善楫",
+        "洪波到处没浮萍"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王应熊",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "鹧鸪天",
+      "qupai": "",
+      "title": "守中吟",
+      "lines": [
+        "砚尘久覆旧时章",
+        "庭树无声送夕阳",
+        "香篆暗随宫漏断",
+        "铁衣遥带塞垣霜",
+        "依北斗",
+        "望南厢",
+        "半生依倚作津梁",
+        "一朝风动帘旌乱",
+        "却道秋深叶自黄"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《鹧鸪天》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_何吾驺",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "廊木自倾",
+      "lines": [
+        "简册积尘蛛线冷",
+        "冠簪守位瘴烟环",
+        "渡尽千帆终是客",
+        "回澜无力任潮删"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_许鼎臣",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "鼎尘",
+      "lines": [
+        "砚冷墨凝灰",
+        "城荒角咽苔",
+        "孤忠悬朽索",
+        "残甲没蒿莱"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张彝宪",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "残珠叹",
+      "lines": [
+        "朱垣影里算缗尘",
+        "铁钥空悬锁暮津",
+        "浪打孤舟星火渺",
+        "寒檐蛛结旧恩人"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘若金",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "xiaoqu",
+      "form_label": "小曲",
+      "cipai": "",
+      "qupai": "沉醉东风",
+      "title": "冷局残筹",
+      "lines": [
+        "算盘珠散落泥尘",
+        "簿册尘封锁旧痕",
+        "铁符争罢空余烬",
+        "布帆孤影向荒津"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "小曲曲牌《沉醉东风》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈奇瑜",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "青简劫灰",
+      "lines": [
+        "墨冷残编简策尘",
+        "风回星散五更轮",
+        "千山铁错空连弩",
+        "一纸降幡渡劫津"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘理顺",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "简烬",
+      "lines": [
+        "寒简积尘久",
+        "侯门老砚枯",
+        "焚星收旧算",
+        "一缕没荒衢"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨世恩",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "石河寒角",
+      "lines": [
+        "砚冷辕门草",
+        "河沉旧角声",
+        "孤忠悬一檄",
+        "铁甲锁空营"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_贺人龙",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "寒垒微生",
+      "lines": [
+        "铁衣曾照陇头尘",
+        "角咽孤城米似银",
+        "未抵洪波吞旧橹",
+        "空余寒锷锁荒津"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_丁魁楚",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "持衡客",
+      "lines": [
+        "铁契尘封关吏老，寒砧敲碎秋声",
+        "雁门霜色上帘旌",
+        "砚池沉旧牍，炉篆冷空庭",
+        "守得畿门金锁固，潮来终负孤城",
+        "樽前笑看劫灰轻",
+        "残旌犹在握，何处说承平"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_尤世威",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁尘叹",
+      "lines": [
+        "铁衣曾照冷关云",
+        "戍角无声阵影分",
+        "孤垒守成空画策",
+        "寒灰飞入败军文"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张宗衡",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚尘兵烬",
+      "lines": [
+        "简册堆尘砚未磨",
+        "寒樽空对旧山河",
+        "西风一夜凋庭树",
+        "残角声中劫火过"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陆梦龙",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "燃烛图",
+      "lines": [
+        "孤城啮锁啮寒砧",
+        "仓粟扬灰募死心",
+        "一夜西风衔刃立",
+        "残编零落不成阴"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱国相",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "守陵烟",
+      "lines": [
+        "铁甲寒凝三更露，孤城渐没尘涛",
+        "残旌犹卷旧时旄",
+        "殿灰飞作雪，空对楚山高",
+        "一纸授符终是误，重泉应愧青袍",
+        "百年陵阙付蓬蒿",
+        "西风如有恨，吹血过荒壕"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张国维",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "鹧鸪天",
+      "qupai": "",
+      "title": "浮梁客",
+      "lines": [
+        "简册蒙尘砚欲枯",
+        "庭柯数改不成图",
+        "隔江笳吹惊寒鹊",
+        "匝地烽烟逼旧垆",
+        "冠暂正",
+        "剑空拊",
+        "暗潮频啮系舟芦",
+        "残棋未了天先曙",
+        "遍野哀鸿入草芜"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《鹧鸪天》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨一鹏",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "漕桁沉沙",
+      "lines": [
+        "桁渡千艘粟",
+        "潮回一夕尘",
+        "刑书封旧篆",
+        "磷火照寒津"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_艾万年",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "劫尘孤弓",
+      "lines": [
+        "简书犹带旧营霜",
+        "寒角声消铁衣凉",
+        "平野烟尘迷去路",
+        "孤弓挂壁对斜阳"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_柳国镇",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "边尘劫影",
+      "lines": [
+        "铁衣曾染禁中香",
+        "羽檄频催塞上霜",
+        "一夜襄乐烽火急",
+        "孤军没处阵云黄"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_文震孟",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "尘简",
+      "lines": [
+        "槐庭旧简栖尘久，砚池曾映高冠",
+        "暗潮生处铁衣寒",
+        "素丝经纬乱，经纬乱朝班",
+        "冷眼觑他棋局换，袖中香篆销残",
+        "孤忠终付劫灰看",
+        "断弦沉露井，残盏覆颓垣"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张至发",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守默待烬",
+      "lines": [
+        "简册积尘蛛网细",
+        "庭槐聚蚁暗移时",
+        "残棋未了劫灰落",
+        "空对颓檐燕不知"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张全昌",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "辕门霜",
+      "lines": [
+        "铁衣栖暮色",
+        "寒角咽孤城",
+        "进退皆星火",
+        "沉沙戟自横"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_侯恂",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "秋堂算尽",
+      "lines": [
+        "寒檠照牍算缗空",
+        "铁册尘销海舶穷",
+        "莫向秋山询旧赋",
+        "残星如粟坠霜丛"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_林釬",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚冷尘封",
+      "lines": [
+        "素襟承简蠹",
+        "危阁对棋枰",
+        "欲补天衣裂",
+        "秋风卷旆旌"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_汤九州",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "孤堞寒角",
+      "lines": [
+        "铁衣栖冻雀",
+        "残角咽空壕",
+        "援绝霜锋折",
+        "寒星没海涛"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王楫",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚冷边声",
+      "lines": [
+        "寒角空城锁铁衣",
+        "砚池枯尽雁书稀",
+        "残旌夜卷千堆雪",
+        "终作尘沙劫后飞"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_丁启睿",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "砚冷尘深",
+      "lines": [
+        "薄宦似孤篷，潮打城空",
+        "曾凭片语定汹汹",
+        "铁甲无声秋塞远，雁过匆匆",
+        "进退总随风，蛛网悬弓",
+        "寒灰深处认前踪",
+        "谁见残棋收劫后，云外疏钟"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈起新",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守中吟",
+      "lines": [
+        "武弁入兰台",
+        "风涛视隙开",
+        "砚尘封谏草",
+        "寒角没蒿莱"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_祖大乐",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "塞雁南飞",
+      "lines": [
+        "铁衣曾染塞尘腥",
+        "一雁南飞入杳冥",
+        "故垒烟销弓影折",
+        "寒潮空打旧时汀"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_俞冲霄",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "征鞍遗镞",
+      "lines": [
+        "孤鞍循故垒",
+        "霜角咽危旌",
+        "尘销遗镞冷",
+        "星垂大野平"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孔贞运",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "槐堂印",
+      "lines": [
+        "槐根暗啮篆文斜",
+        "冷眼炎凉换岁华",
+        "袖手公门深似海",
+        "寒砧捣月落谁家"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_贺逢圣",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "冰衔待烬",
+      "lines": [
+        "砚北积霜简",
+        "东堂候篆灰",
+        "风移丹陛影",
+        "抱器独裴回"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_黄士俊",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守席人",
+      "lines": [
+        "砚冷尘封简",
+        "门深鹊绕枝",
+        "风来帘不动",
+        "云散局终时"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_解进忠",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "虞美人",
+      "qupai": "",
+      "title": "孤忠劫火",
+      "lines": [
+        "单骑欲挽滔天浪",
+        "赤手搏豺狼",
+        "寒营兵气结秋云",
+        "曾向盟坛片语定三军",
+        "孤城日落苍鹰起",
+        "血染征衣紫",
+        "故人遥哭乱山深",
+        "惟有残星数点照空林"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《虞美人》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_李国辅",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "守关人",
+      "lines": [
+        "宫漏滴残更",
+        "寒柝无声",
+        "铁衣未解戍烟横",
+        "万壑千崖如锁钥",
+        "一任云扃",
+        "潮打石根鸣",
+        "海沸山倾",
+        "孤忠只影向谁明",
+        "纵有丹心燃作烬",
+        "天意难争"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱纯臣",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "勋础冰销",
+      "lines": [
+        "铁券尘封映壁寒",
+        "三边烽色袖中观",
+        "千钧缆断洪涛里",
+        "空铸金符化雪残"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王肇坤",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "尘堞孤臣",
+      "lines": [
+        "锈篆曾封居庸险",
+        "羸卒寒角没蒿莱",
+        "孤垣尽处残阳裂",
+        "独照空名入劫灰"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张凤翼",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "残枰",
+      "lines": [
+        "铁砚磨穿策未平",
+        "阴符读罢羽书惊",
+        "监军虎节寒于雪",
+        "解佩春芜空自生"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱聿键",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "高墙孤雁",
+      "lines": [
+        "霜锋欲拭铁衣寒",
+        "金册尘封御路难",
+        "莫向宫垣问归雁",
+        "夕阳残垒暮云攒"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘同升",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚尘",
+      "lines": [
+        "简蠹墨痕枯",
+        "铨庭久待蛛",
+        "风移槐影乱",
+        "瓦碎一身糊"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_金日观",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "海墟孤戍",
+      "lines": [
+        "铁衣曾照塞尘昏",
+        "孤岛潮吞旧垒痕",
+        "炮矢尽时空手搏",
+        "海风犹卷未招魂"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_沈冬魁",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "海尘叹",
+      "lines": [
+        "铁衣凝夜霜",
+        "孤岛没寒潮",
+        "纵有回舟智",
+        "劫灰随浪消"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘宇亮",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守局吟",
+      "lines": [
+        "案牍尘封旧简寒",
+        "朝堂观火自凭栏",
+        "忽闻塞上风沙急",
+        "空抱残章带泪看"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_傅冠",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "duilian",
+      "form_label": "对联",
+      "cipai": "",
+      "qupai": "",
+      "title": "虚舟自横",
+      "lines": [
+        "砚冷堂空，依违两桨浑无岸",
+        "尘飞劫换，进退孤篷竟入沙"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "对联行数与等长已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_薛国观",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "尘署客",
+      "lines": [
+        "砚冷残编在",
+        "庭空老桧深",
+        "浮云无定迹",
+        "寒叶坠秋心"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张任学",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "文缨易铠",
+      "lines": [
+        "青简曾邻塞上星",
+        "忽抛霜锷佩华缨",
+        "阵云吞甲浑无影",
+        "风卷残灰过废营"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_程国祥",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "庸梁谶",
+      "lines": [
+        "砚尘简蠹守中堂",
+        "进退随潮祗自忙",
+        "节缩空持无活策",
+        "寒灰冷灶对斜阳"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_方逢年",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "浪淘沙令",
+      "qupai": "",
+      "title": "阁尘",
+      "lines": [
+        "砚匣锁苔痕，简册蒙尘",
+        "当时朱紫半阶云",
+        "偶向机锋藏半面，风满重门",
+        "锦轴暗回文，冷篆难温",
+        "孤舟一叶渡寒津",
+        "空有旧绦垂朽桁，蛛络黄昏"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《浪淘沙令》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_蔡国用",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砥尘",
+      "lines": [
+        "砚山曾刻省工痕",
+        "简册尘封旧紫垣",
+        "鼎沸声中舟自缓",
+        "寒灰散尽未逢源"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_范复粹",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "尘阁孤羽",
+      "lines": [
+        "鸾台尘未扫",
+        "焚草侍晨寒",
+        "一夜风欺砚",
+        "残棋局已残"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_吴阿衡",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守关人谶",
+      "lines": [
+        "铁函久锈锁寒云",
+        "一夕烽高惊旧垒",
+        "数尽援书化劫灰",
+        "孤城落日空持节"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱由枢",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "藩邸劫灰",
+      "lines": [
+        "简册凝尘守故封",
+        "仓皇铁骑破垣墉",
+        "当时岂少全躯策",
+        "一入寒飚没远踪"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张秉文",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "城头雁字",
+      "lines": [
+        "简册尘凝墨未干",
+        "寒城笳咽锁重阑",
+        "朝衣一拜星河裂",
+        "铁骨成灰雁影残"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_姚明恭",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "duilian",
+      "form_label": "对联",
+      "cipai": "",
+      "qupai": "",
+      "title": "庸樑蠹",
+      "lines": [
+        "调和鼎鼐终成缚，蛛丝悬牍承尘冷",
+        "引援狐鼠亦自危，灶马窥筵散秩空"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "对联行数与等长已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张四知",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "冷曹观弈",
+      "lines": [
+        "寒曹久坐简编尘",
+        "暗数残枰换劫新",
+        "忽讶西风移御柳",
+        "半肩秋色出宫闉"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_魏照乘",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "尘架观局",
+      "lines": [
+        "几回移柱避危弦",
+        "终古残枰冷似烟",
+        "自缚春蚕空织素",
+        "从来智巧不延年"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_bandits_李万庆",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "duilian",
+      "form_label": "对联",
+      "cipai": "",
+      "qupai": "",
+      "title": "尘烟谶",
+      "lines": [
+        "乱山深处聚残旌，一时进退争秦莽",
+        "孤堞寒时收旧甲，终古浮沉付楚潮"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "对联行数与等长已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_罗岱",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "荒垒骨",
+      "lines": [
+        "铁衣凝夜霜",
+        "寒角咽空冈",
+        "一骑没深草",
+        "千山衔夕阳"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_颜继祖",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚冷尘深",
+      "lines": [
+        "砚冷尘深墨自寒",
+        "城头角涩月将残",
+        "片楮风前灰已烬",
+        "弃途何處鉴肺肝"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_倪宠",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "寒角余灰",
+      "lines": [
+        "铁衣曾照塞尘昏",
+        "冷看兵符换主恩",
+        "终是望风持重误",
+        "寒灰吹尽暮云屯"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_邓希诏",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "监军叹",
+      "lines": [
+        "御烟销玉阶",
+        "虎帐雁空回",
+        "凝霜催戍骨",
+        "溅血落秋苔"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孙茂霖",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守中尘",
+      "lines": [
+        "观风持两端",
+        "未解倒悬寒",
+        "随例成灰去",
+        "空余旧简残"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_郑崇俭",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚山折戟",
+      "lines": [
+        "案牍初匀墨未干",
+        "铁衣骤染塞霜寒",
+        "一川枯骨归铨部",
+        "空对残棋说将坛"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_魏藻德",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚冷烟销",
+      "lines": [
+        "砚冷烟销旧简残",
+        "曾将周旋认长安",
+        "一朝铁索量金价",
+        "始信书生骨最寒"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_解学龙",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "荐玉焚身",
+      "lines": [
+        "简册尘封砚欲冰",
+        "孤松立雪骨棱棱",
+        "漫将赤琯量沧海",
+        "一夜天风折玉绳"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_谢陞",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "鹧鸪天",
+      "qupai": "",
+      "title": "铨台旧影",
+      "lines": [
+        "砚底尘封旧牒青",
+        "铨庭日影转空庭",
+        "潮回不见调元手",
+        "只剩寒灰伴漏瓶",
+        "袍易紫，笏终零",
+        "残枰散后各飘萍",
+        "老僧谶语无人解",
+        "风过虚廊铁马听"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《鹧鸪天》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_陈演",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "尘阁浮印",
+      "lines": [
+        "冰衙旧简篆烟沉",
+        "潮打空舟算粒心",
+        "一炬城乌衔印去",
+        "乱蒿深处铁衣砧"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_秦良玉",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "白杆霜",
+      "lines": [
+        "铁衣数寄锁寒云",
+        "白杆孤悬百战勋",
+        "一夕铜驼埋棘路",
+        "空山杜宇不堪闻"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_孙应元",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "冷铠",
+      "lines": [
+        "霜角吹残旧垒云",
+        "孤营夜半马空群",
+        "铁衣未解尘先暗",
+        "谁记当年百战勋"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张令",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守关叹",
+      "lines": [
+        "铁衣曾照塞尘黄",
+        "匣底孤鸣夜有霜",
+        "一自关门烽火合",
+        "断垣惟见野蒿长"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱采鑋",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "寒柯栖铁",
+      "lines": [
+        "虬枝挂旧章",
+        "霜甲溃南冈",
+        "一炬焚空牒",
+        "寒柯自咽伤"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_猛如虎",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "戍烟残角",
+      "lines": [
+        "虎符尘锁旧弓刀",
+        "百战残旌没野蒿",
+        "孤堞血凝寒角断",
+        "西风乱卷阵云高"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘士杰",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁衣劫",
+      "lines": [
+        "孤旌独向乱山横",
+        "一骑曾当万马声",
+        "血泼寒原天不曙",
+        "空壕残戟锁秋城"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱常洵",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "金椟叹",
+      "lines": [
+        "金椟深扃锁粟红",
+        "忽惊烽火照垣通",
+        "仓皇散尽千钟粟",
+        "不及城头半日风"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_吕维祺",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铨曹尘",
+      "lines": [
+        "简册蒙尘守旧章",
+        "寒烟衰草没宫墙",
+        "临危一诺轻生死",
+        "劫火焚天鹤影凉"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱翊铭",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "封圭碎",
+      "lines": [
+        "玺绶缠枯井",
+        "腥烟铸废池",
+        "残城危堞仄",
+        "血照旧王碑"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱常法",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "songci",
+      "form_label": "宋词",
+      "cipai": "临江仙",
+      "qupai": "",
+      "title": "空梁旧邸",
+      "lines": [
+        "锁院苔深封旧简，孤襟曾度边尘",
+        "密疏沉海竟无闻",
+        "空梁归燕杳，暮雨葬残春",
+        "坐对劫灰终不徙，鬓霜冷透冠绅",
+        "血凝朱邸化秋磷",
+        "寒潮吞故垒，孤月照遗民"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "宋词词牌《临江仙》与行数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_张克俭",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守襄残燹",
+      "lines": [
+        "简蠹尘封待铨庭",
+        "忽闻铁骑破襄汀",
+        "巷深血浸无归路",
+        "空有寒鸦绕戍亭"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_傅宗龙",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "冷铗沉星",
+      "lines": [
+        "砚底孤城暮角歧",
+        "残棋半局落灯时",
+        "铁衣未解秋霖重",
+        "一骑尘沙没断碑"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨文岳",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "砚冷棋残",
+      "lines": [
+        "简册尘封蠹已深",
+        "寒潮打岸铁衣沉",
+        "当时算尽往来策",
+        "独对残枰冷不禁"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_虎大威",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "wuyan_jueju",
+      "form_label": "五言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "老革沉沙",
+      "lines": [
+        "旧垒衔残镞",
+        "孤旌畏野磷",
+        "燎原终是烬",
+        "不敢问寒燐"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "五言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_杨国柱",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁衣沉沙",
+      "lines": [
+        "寒角吹残旧垒云",
+        "铁衣曾护雁门尘",
+        "阵前弓马空余骨",
+        "输与沧溟几度春"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_吴三桂",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "铁骑窥衡",
+      "lines": [
+        "虎帐初开列戟寒",
+        "雁行中折阵云残",
+        "霜蹄踏破山河影",
+        "一夕降幡换旧冠"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_王朴",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "守将叹",
+      "lines": [
+        "铁衣空对塞尘昏",
+        "按剑踌躇虎帐门",
+        "一夜霜蹄惊溃散",
+        "谁将劫火问乾坤"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_刘国能",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "危垣孤戍",
+      "lines": [
+        "铁砚磨残塞上烟",
+        "空城锁钥付寒鹃",
+        "潮吞断缆舟难系",
+        "劫火焚原旧纛悬"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱聿镆",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "劫火遗璋",
+      "lines": [
+        "金枝久系旧宫绦",
+        "一夜寒潮没海涛",
+        "铁甲未销星斗尽",
+        "残璋空对戍楼高"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_朱恭枵",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "藩守成灰",
+      "lines": [
+        "铁瓮曾悬一寸晖",
+        "寒涛啮锁蟹无肥",
+        "倾舟不是蛟涎恶",
+        "满袖秋声雁失围"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    },
+    {
+      "npc_id": "npc_ming_高名衡",
+      "profile_version": 1,
+      "display_name": "命批",
+      "form_id": "qiyan_jueju",
+      "form_label": "七言绝句",
+      "cipai": "",
+      "qupai": "",
+      "title": "汴垣尘影",
+      "lines": [
+        "孤城百战锁寒云",
+        "炮火空销蝼蚁群",
+        "铁瓮终随流水去",
+        "残旌犹附旧权勋"
+      ],
+      "prosody_check": {
+        "passed": true,
+        "notes": "七言绝句行数与字数已通过机器校验；避实词已通过硬校验。"
+      }
+    }
+  ]
+}

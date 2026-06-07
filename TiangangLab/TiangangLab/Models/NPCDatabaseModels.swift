@@ -411,7 +411,7 @@ struct NPCCapabilityFact: Decodable, Identifiable {
     let capabilityID: String
     let label: String
     let category: String
-    let evidenceKind: String
+    let evidenceKind: String?
     let source: String?
     let confidence: String?
     let reviewStatus: NPCReviewStatus?
@@ -1082,6 +1082,39 @@ struct NPCHistoricalBiographyRecord: Decodable, Identifiable {
     }
 }
 
+struct NPCMingpiProsodyCheck: Decodable {
+    let passed: Bool
+    let notes: String
+}
+
+struct NPCMingpiRecord: Decodable, Identifiable {
+    let npcID: String
+    let profileVersion: Int
+    let displayName: String
+    let formID: String
+    let formLabel: String
+    let cipai: String?
+    let qupai: String?
+    let title: String
+    let lines: [String]
+    let prosodyCheck: NPCMingpiProsodyCheck
+
+    var id: String { npcID }
+
+    enum CodingKeys: String, CodingKey {
+        case npcID = "npc_id"
+        case profileVersion = "profile_version"
+        case displayName = "display_name"
+        case formID = "form_id"
+        case formLabel = "form_label"
+        case cipai
+        case qupai
+        case title
+        case lines
+        case prosodyCheck = "prosody_check"
+    }
+}
+
 struct NPCStart1628PositionRecord: Decodable, Identifiable {
     let npcID: String
     let startYear: Int
@@ -1316,6 +1349,7 @@ struct NPCDatabase {
     let lifecycleWindows: [NPCLifecycleWindowRecord]
     let biographyArcs: [NPCBiographyArcRecord]
     let historicalBiographies: [NPCHistoricalBiographyRecord]
+    let mingpiRecords: [NPCMingpiRecord]
     let start1628Positions: [NPCStart1628PositionRecord]
     let assets: [NPCAssetRecord]
 
@@ -1370,6 +1404,7 @@ final class NPCDatabaseStore {
             lifecycleWindows: try Self.decodeSeed("npc_lifecycle_windows_seed", bundle: bundle),
             biographyArcs: try Self.decodeSeed("npc_biography_arcs_seed", bundle: bundle),
             historicalBiographies: try Self.decodeSeed("npc_historical_biographies_seed", bundle: bundle),
+            mingpiRecords: try Self.decodeSeed("npc_mingpi_seed", bundle: bundle),
             start1628Positions: try Self.decodeSeed("npc_start_1628_positions_seed", bundle: bundle),
             assets: try Self.decodeSeed("npc_assets_seed", bundle: bundle)
         )
