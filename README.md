@@ -20,6 +20,8 @@ This branch now keeps only clean runtime data for the iOS prototype:
 
 See `Docs/GameDesign.md` for the current game design, administrative model, official-rank simplifications, and data-foundation rules.
 
+See `Docs/IOSNativeImplementationPlan.md` for the native iOS technical stack, module breakdown, quantified milestones, and v1 execution plan.
+
 Open `ChongzhenSimulator/ChongzhenSimulator.xcodeproj` in Xcode and run the `ChongzhenSimulator` scheme on an iPhone simulator.
 
 ## LLM API configuration
