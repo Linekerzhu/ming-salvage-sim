@@ -9,11 +9,22 @@ struct LLMTextGenerationRequest: Encodable {
     let messages: [LLMChatMessage]
     let temperature: Double?
     let maxTokens: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case messages
+        case temperature
+        case maxTokens = "max_tokens"
+    }
 }
 
 struct LLMImageGenerationRequest: Encodable {
     let prompt: String
-    let size: String?
+    let imageSize: String?
+
+    enum CodingKeys: String, CodingKey {
+        case prompt
+        case imageSize
+    }
 }
 
 struct LLMTextGenerationResponse: Decodable {
@@ -23,6 +34,7 @@ struct LLMTextGenerationResponse: Decodable {
 struct LLMImageGenerationResponse: Decodable {
     let imageURL: URL?
     let base64Image: String?
+    let mimeType: String?
 }
 
 enum LLMHTTPClientError: Error, LocalizedError {
@@ -58,52 +70,151 @@ final class LLMHTTPClient {
     }
 
     func generateText(_ request: LLMTextGenerationRequest) async throws -> LLMTextGenerationResponse {
-        return try await send(
-            route: .textGeneration,
-            path: "generate",
-            body: request,
-            responseType: LLMTextGenerationResponse.self
-        )
-    }
-
-    func generateImage(_ request: LLMImageGenerationRequest) async throws -> LLMImageGenerationResponse {
-        return try await send(
-            route: .imageGeneration,
-            path: "generate",
-            body: request,
-            responseType: LLMImageGenerationResponse.self
-        )
-    }
-
-    private func send<RequestBody: Encodable, ResponseBody: Decodable>(
-        route: LLMServiceRoute,
-        path: String,
-        body: RequestBody,
-        responseType: ResponseBody.Type
-    ) async throws -> ResponseBody {
-        let endpoint = configuration[route]
-        let url = endpoint.baseURL.appending(path: path)
+        let endpoint = configuration.textGeneration
+        let url = endpoint.baseURL.appending(path: "chat/completions")
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.setValue("Bearer \(endpoint.apiKey)", forHTTPHeaderField: "Authorization")
-        urlRequest.httpBody = try encoder.encode(LLMRequestEnvelope(model: endpoint.model, input: body))
+        urlRequest.httpBody = try encoder.encode(
+            DeepSeekChatCompletionRequest(
+                model: endpoint.model,
+                messages: request.messages,
+                temperature: request.temperature,
+                maxTokens: request.maxTokens,
+                thinking: DeepSeekThinkingConfig(type: "disabled"),
+                stream: false
+            )
+        )
 
-        let (data, response) = try await session.data(for: urlRequest)
+        let response = try await data(for: urlRequest, route: .textGeneration)
+        let decoded = try decoder.decode(DeepSeekChatCompletionResponse.self, from: response)
+        return LLMTextGenerationResponse(text: decoded.choices.first?.message.content ?? "")
+    }
+
+    func generateImage(_ request: LLMImageGenerationRequest) async throws -> LLMImageGenerationResponse {
+        let endpoint = configuration.imageGeneration
+        let url = endpoint.baseURL
+            .appending(path: "models")
+            .appending(path: "\(endpoint.model):generateContent")
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue(endpoint.apiKey, forHTTPHeaderField: "x-goog-api-key")
+        urlRequest.httpBody = try encoder.encode(
+            GeminiGenerateContentRequest(
+                contents: [
+                    GeminiContent(
+                        role: "user",
+                        parts: [GeminiPart(text: request.prompt, inlineData: nil)]
+                    )
+                ],
+                generationConfig: GeminiGenerationConfig(
+                    imageConfig: GeminiImageConfig(
+                        imageSize: request.imageSize ?? endpoint.defaultImageSize
+                    )
+                )
+            )
+        )
+
+        let response = try await data(for: urlRequest, route: .imageGeneration)
+        let decoded = try decoder.decode(GeminiGenerateContentResponse.self, from: response)
+        let inlineData = decoded.candidates
+            .flatMap { $0.content.parts }
+            .compactMap(\.inlineData)
+            .first
+
+        return LLMImageGenerationResponse(
+            imageURL: nil,
+            base64Image: inlineData?.data,
+            mimeType: inlineData?.mimeType
+        )
+    }
+
+    private func data(
+        for request: URLRequest,
+        route: LLMServiceRoute
+    ) async throws -> Data {
+        let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw LLMHTTPClientError.invalidHTTPResponse
         }
 
         guard (200..<300).contains(httpResponse.statusCode) else {
             let responseBody = String(data: data, encoding: .utf8) ?? ""
-            throw LLMHTTPClientError.requestFailed(statusCode: httpResponse.statusCode, body: responseBody)
+            throw LLMHTTPClientError.requestFailed(statusCode: httpResponse.statusCode, body: "\(route.displayName): \(responseBody)")
         }
 
-        return try decoder.decode(responseType, from: data)
+        return data
     }
 }
 
-private struct LLMRequestEnvelope<Input: Encodable>: Encodable {
+private struct DeepSeekChatCompletionRequest: Encodable {
     let model: String
-    let input: Input
+    let messages: [LLMChatMessage]
+    let temperature: Double?
+    let maxTokens: Int?
+    let thinking: DeepSeekThinkingConfig
+    let stream: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case model
+        case messages
+        case temperature
+        case maxTokens = "max_tokens"
+        case thinking
+        case stream
+    }
+}
+
+private struct DeepSeekThinkingConfig: Encodable {
+    let type: String
+}
+
+private struct DeepSeekChatCompletionResponse: Decodable {
+    let choices: [Choice]
+
+    struct Choice: Decodable {
+        let message: Message
+    }
+
+    struct Message: Decodable {
+        let content: String
+    }
+}
+
+private struct GeminiGenerateContentRequest: Encodable {
+    let contents: [GeminiContent]
+    let generationConfig: GeminiGenerationConfig
+}
+
+private struct GeminiContent: Encodable, Decodable {
+    let role: String?
+    let parts: [GeminiPart]
+}
+
+private struct GeminiPart: Encodable, Decodable {
+    let text: String?
+    let inlineData: GeminiInlineData?
+}
+
+private struct GeminiInlineData: Encodable, Decodable {
+    let mimeType: String
+    let data: String
+}
+
+private struct GeminiGenerationConfig: Encodable {
+    let imageConfig: GeminiImageConfig
+}
+
+private struct GeminiImageConfig: Encodable {
+    let imageSize: String?
+}
+
+private struct GeminiGenerateContentResponse: Decodable {
+    let candidates: [Candidate]
+
+    struct Candidate: Decodable {
+        let content: GeminiContent
+    }
 }

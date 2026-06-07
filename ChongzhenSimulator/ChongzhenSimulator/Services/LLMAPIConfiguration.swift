@@ -45,6 +45,7 @@ struct LLMEndpointConfiguration {
     let baseURL: URL
     let apiKey: String
     let model: String
+    let defaultImageSize: String?
 }
 
 struct LLMAPIConfiguration {
@@ -82,11 +83,13 @@ enum LLMConfigurationLoader {
     ) throws -> LLMAPIConfiguration {
         return LLMAPIConfiguration(
             textGeneration: try endpoint(
+                route: .textGeneration,
                 prefix: "CHONGZHEN_TEXT_API",
                 environment: environment,
                 bundle: bundle
             ),
             imageGeneration: try endpoint(
+                route: .imageGeneration,
                 prefix: "CHONGZHEN_IMAGE_API",
                 environment: environment,
                 bundle: bundle
@@ -95,6 +98,7 @@ enum LLMConfigurationLoader {
     }
 
     private static func endpoint(
+        route: LLMServiceRoute,
         prefix: String,
         environment: [String: String],
         bundle: Bundle
@@ -102,8 +106,14 @@ enum LLMConfigurationLoader {
         let baseURLKey = "\(prefix)_BASE_URL"
         let apiKeyKey = "\(prefix)_KEY"
         let modelKey = "\(prefix)_MODEL"
+        let imageSizeKey = "\(prefix)_IMAGE_SIZE"
 
-        let baseURLString = try value(for: baseURLKey, environment: environment, bundle: bundle)
+        let baseURLString = value(
+            for: baseURLKey,
+            environment: environment,
+            bundle: bundle,
+            defaultValue: route.defaultBaseURLString
+        )
         guard let baseURL = URL(string: baseURLString) else {
             throw LLMConfigurationError.invalidURL(baseURLKey)
         }
@@ -111,8 +121,36 @@ enum LLMConfigurationLoader {
         return LLMEndpointConfiguration(
             baseURL: baseURL,
             apiKey: try value(for: apiKeyKey, environment: environment, bundle: bundle),
-            model: try value(for: modelKey, environment: environment, bundle: bundle)
+            model: value(
+                for: modelKey,
+                environment: environment,
+                bundle: bundle,
+                defaultValue: route.defaultModel
+            ),
+            defaultImageSize: value(
+                for: imageSizeKey,
+                environment: environment,
+                bundle: bundle,
+                defaultValue: route.defaultImageSize
+            )
         )
+    }
+
+    private static func value(
+        for key: String,
+        environment: [String: String],
+        bundle: Bundle,
+        defaultValue: String?
+    ) -> String {
+        if let value = environment[key], value.isEmpty == false {
+            return value
+        }
+
+        if let value = bundle.object(forInfoDictionaryKey: key) as? String, value.isEmpty == false {
+            return value
+        }
+
+        return defaultValue ?? ""
     }
 
     private static func value(
@@ -129,5 +167,34 @@ enum LLMConfigurationLoader {
         }
 
         throw LLMConfigurationError.missingValue(key)
+    }
+}
+
+private extension LLMServiceRoute {
+    var defaultBaseURLString: String {
+        switch self {
+        case .textGeneration:
+            return "https://api.deepseek.com"
+        case .imageGeneration:
+            return "https://generativelanguage.googleapis.com/v1beta"
+        }
+    }
+
+    var defaultModel: String {
+        switch self {
+        case .textGeneration:
+            return "deepseek-v4-flash"
+        case .imageGeneration:
+            return "gemini-3.1-flash-image"
+        }
+    }
+
+    var defaultImageSize: String? {
+        switch self {
+        case .textGeneration:
+            return nil
+        case .imageGeneration:
+            return "1K"
+        }
     }
 }

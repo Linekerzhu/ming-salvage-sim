@@ -6,3 +6,5 @@ build/
 .swiftpm/
 .xcodebuildmcp/
 Secrets.xcconfig
+.env.local
+LocalLLM/

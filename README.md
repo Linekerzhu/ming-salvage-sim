@@ -29,6 +29,6 @@ The project has two shared LLM routes for both development support and in-game r
 Environment variables:
 
 - Text generation: `CHONGZHEN_TEXT_API_BASE_URL`, `CHONGZHEN_TEXT_API_KEY`, `CHONGZHEN_TEXT_API_MODEL`
-- Image generation: `CHONGZHEN_IMAGE_API_BASE_URL`, `CHONGZHEN_IMAGE_API_KEY`, `CHONGZHEN_IMAGE_API_MODEL`
+- Image generation: `CHONGZHEN_IMAGE_API_BASE_URL`, `CHONGZHEN_IMAGE_API_KEY`, `CHONGZHEN_IMAGE_API_MODEL`, `CHONGZHEN_IMAGE_API_IMAGE_SIZE`
 
-For simulator-only development, pass these as scheme environment variables in Xcode. Do not commit real API keys. For production, route these calls through a backend so keys are not shipped inside the app bundle.
+Current defaults are DeepSeek `deepseek-v4-flash` for text and Google `gemini-3.1-flash-image` at `1K` image size for image generation. For simulator-only development, pass API keys as scheme environment variables in Xcode. Do not commit real API keys. For production, route these calls through a backend so keys are not shipped inside the app bundle.

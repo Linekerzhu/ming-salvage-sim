@@ -9,7 +9,7 @@ protocol TextGenerationServicing {
 }
 
 protocol ImageGenerationServicing {
-    func generateImage(prompt: String, size: String?) async throws -> LLMImageGenerationResponse
+    func generateImage(prompt: String, imageSize: String?) async throws -> LLMImageGenerationResponse
 }
 
 struct TextGenerationService: TextGenerationServicing {
@@ -34,11 +34,11 @@ struct TextGenerationService: TextGenerationServicing {
 struct ImageGenerationService: ImageGenerationServicing {
     let client: LLMHTTPClient
 
-    func generateImage(prompt: String, size: String? = nil) async throws -> LLMImageGenerationResponse {
+    func generateImage(prompt: String, imageSize: String? = nil) async throws -> LLMImageGenerationResponse {
         return try await client.generateImage(
             LLMImageGenerationRequest(
                 prompt: prompt,
-                size: size
+                imageSize: imageSize
             )
         )
     }
