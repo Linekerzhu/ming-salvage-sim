@@ -37,10 +37,5 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
-	<key>UIAppFonts</key>
-	<array>
-		<string>ZCOOLXiaoWei-Regular.ttf</string>
-		<string>MaShanZheng-Regular.ttf</string>
-	</array>
 </dict>
 </plist>
