@@ -17,7 +17,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-NPC_DIR = ROOT / "TiangangLab" / "Resources" / "NPCDatabase"
+NPC_DIR = ROOT / "ChongzhenSimulator" / "Resources" / "NPCDatabase"
 OUTPUT_FILE = NPC_DIR / "npc_mingpi_seed.json"
 DEEPSEEK_CHAT_COMPLETIONS_URL = "https://api.deepseek.com/chat/completions"
 

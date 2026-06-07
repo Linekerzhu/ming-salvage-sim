@@ -1,4 +1,4 @@
-# Ming iOS Tiangang Lab
+# 崇祯模拟器 iOS
 
 This orphan branch starts the iOS prototype from a blank tree.
 
@@ -13,8 +13,8 @@ The first prototype is deliberately small:
 
 This branch now keeps only clean runtime data for the iOS prototype:
 
-- `TiangangLab/Resources/NPCDatabase` contains final NPC game data.
-- `TiangangLab/Resources/EnvironmentDatabase` contains final administrative, institution, office, rank, location, and eunuch-agency data.
+- `ChongzhenSimulator/Resources/NPCDatabase` contains final NPC game data.
+- `ChongzhenSimulator/Resources/EnvironmentDatabase` contains final administrative, institution, office, rank, location, and eunuch-agency data.
 - Build notebooks, bridge indices, and generator-only artifacts are intentionally excluded from the iOS runtime tree.
 
-Open `TiangangLab/TiangangLab.xcodeproj` in Xcode and run the `TiangangLab` scheme on an iPhone simulator.
+Open `ChongzhenSimulator/ChongzhenSimulator.xcodeproj` in Xcode and run the `ChongzhenSimulator` scheme on an iPhone simulator.

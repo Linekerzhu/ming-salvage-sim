@@ -11,7 +11,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-NPC_DIR = ROOT / "TiangangLab" / "Resources" / "NPCDatabase"
+NPC_DIR = ROOT / "ChongzhenSimulator" / "Resources" / "NPCDatabase"
 
 EXPECTED_LITERACY_LABELS = {
     1: "目不识丁",

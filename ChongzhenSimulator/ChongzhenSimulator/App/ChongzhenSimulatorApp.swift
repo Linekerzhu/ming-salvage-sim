@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct TiangangLabApp: App {
+struct ChongzhenSimulatorApp: App {
     var body: some Scene {
         WindowGroup {
             TiangangRootView()

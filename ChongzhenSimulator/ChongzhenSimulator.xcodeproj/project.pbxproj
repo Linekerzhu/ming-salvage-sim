@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		01A00001 /* App/TiangangLabApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00011 /* App/TiangangLabApp.swift */; };
+		01A00001 /* App/ChongzhenSimulatorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00011 /* App/ChongzhenSimulatorApp.swift */; };
 		01A00002 /* Models/TiangangModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00012 /* Models/TiangangModels.swift */; };
 		01A00003 /* Views/TiangangRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00013 /* Views/TiangangRootView.swift */; };
 		01A00004 /* Resources/tiangang_seed.json in Resources */ = {isa = PBXBuildFile; fileRef = 01A00014 /* Resources/tiangang_seed.json */; };
@@ -24,8 +24,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		01A00010 /* TiangangLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TiangangLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		01A00011 /* App/TiangangLabApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/TiangangLabApp.swift; sourceTree = "<group>"; };
+		01A00010 /* ChongzhenSimulator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ChongzhenSimulator.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		01A00011 /* App/ChongzhenSimulatorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/ChongzhenSimulatorApp.swift; sourceTree = "<group>"; };
 		01A00012 /* Models/TiangangModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/TiangangModels.swift; sourceTree = "<group>"; };
 		01A00013 /* Views/TiangangRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/TiangangRootView.swift; sourceTree = "<group>"; };
 		01A00014 /* Resources/tiangang_seed.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = Resources/tiangang_seed.json; sourceTree = "<group>"; };
@@ -56,15 +56,15 @@
 		01A00030 = {
 			isa = PBXGroup;
 			children = (
-				01A00031 /* TiangangLab */,
+				01A00031 /* ChongzhenSimulator */,
 				01A00032 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		01A00031 /* TiangangLab */ = {
+		01A00031 /* ChongzhenSimulator */ = {
 			isa = PBXGroup;
 			children = (
-				01A00011 /* App/TiangangLabApp.swift */,
+				01A00011 /* App/ChongzhenSimulatorApp.swift */,
 				01A00012 /* Models/TiangangModels.swift */,
 				01A00015 /* Models/NPCDatabaseModels.swift */,
 				01A00017 /* Models/EnvironmentDatabaseModels.swift */,
@@ -80,13 +80,13 @@
 				01A00115 /* Resources/Portraits/袁崇焕.png */,
 				01A00116 /* Resources/Portraits/祖大寿.png */,
 			);
-			path = TiangangLab;
+			path = ChongzhenSimulator;
 			sourceTree = "<group>";
 		};
 		01A00032 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				01A00010 /* TiangangLab.app */,
+				01A00010 /* ChongzhenSimulator.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -94,9 +94,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		01A00040 /* TiangangLab */ = {
+		01A00040 /* ChongzhenSimulator */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 01A00070 /* Build configuration list for PBXNativeTarget "TiangangLab" */;
+			buildConfigurationList = 01A00070 /* Build configuration list for PBXNativeTarget "ChongzhenSimulator" */;
 			buildPhases = (
 				01A00050 /* Sources */,
 				01A00020 /* Frameworks */,
@@ -106,9 +106,9 @@
 			);
 			dependencies = (
 			);
-			name = TiangangLab;
-			productName = TiangangLab;
-			productReference = 01A00010 /* TiangangLab.app */;
+			name = ChongzhenSimulator;
+			productName = ChongzhenSimulator;
+			productReference = 01A00010 /* ChongzhenSimulator.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -126,7 +126,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 01A00090 /* Build configuration list for PBXProject "TiangangLab" */;
+			buildConfigurationList = 01A00090 /* Build configuration list for PBXProject "ChongzhenSimulator" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -140,7 +140,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				01A00040 /* TiangangLab */,
+				01A00040 /* ChongzhenSimulator */,
 			);
 		};
 /* End PBXProject section */
@@ -169,7 +169,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				01A00001 /* App/TiangangLabApp.swift in Sources */,
+				01A00001 /* App/ChongzhenSimulatorApp.swift in Sources */,
 				01A00002 /* Models/TiangangModels.swift in Sources */,
 				01A00005 /* Models/NPCDatabaseModels.swift in Sources */,
 				01A00007 /* Models/EnvironmentDatabaseModels.swift in Sources */,
@@ -229,8 +229,8 @@
 				DEVELOPMENT_TEAM = NX92ABPR9H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = TiangangLab/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Tiangang Lab";
+				INFOPLIST_FILE = ChongzhenSimulator/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "崇祯模拟器";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.strategy-games";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -242,7 +242,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ming.tianganglab;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ming.chongzhensimulator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -260,8 +260,8 @@
 				DEVELOPMENT_TEAM = NX92ABPR9H;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = TiangangLab/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Tiangang Lab";
+				INFOPLIST_FILE = ChongzhenSimulator/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "崇祯模拟器";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.strategy-games";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -273,7 +273,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ming.tianganglab;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ming.chongzhensimulator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -286,7 +286,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		01A00070 /* Build configuration list for PBXNativeTarget "TiangangLab" */ = {
+		01A00070 /* Build configuration list for PBXNativeTarget "ChongzhenSimulator" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				01A000B0 /* Debug */,
@@ -295,7 +295,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		01A00090 /* Build configuration list for PBXProject "TiangangLab" */ = {
+		01A00090 /* Build configuration list for PBXProject "ChongzhenSimulator" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				01A000A0 /* Debug */,

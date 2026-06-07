@@ -21,7 +21,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-NPC_DIR = ROOT / "TiangangLab" / "Resources" / "NPCDatabase"
+NPC_DIR = ROOT / "ChongzhenSimulator" / "Resources" / "NPCDatabase"
 OUTPUT_FILE = NPC_DIR / "npc_historical_biographies_seed.json"
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 DEEPSEEK_CHAT_COMPLETIONS_URL = "https://api.deepseek.com/chat/completions"
