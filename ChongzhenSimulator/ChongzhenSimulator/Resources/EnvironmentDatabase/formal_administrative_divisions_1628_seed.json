@@ -221,7 +221,10 @@
       "sort_order": 1001,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "大兴、宛平、通州、昌平州、涿州、霸州、蓟州、良乡、固安、永清、东安、香河、三河、武清、宝坻、顺义、密云、怀柔、房山、文安、大城、保定",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_north_zhili_保定府",
@@ -233,7 +236,10 @@
       "sort_order": 1002,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "清苑、满城、安肃、定兴、新城、唐县、博野、庆都、容城、完县、蠡县、雄县、安州、高阳、新安、束鹿、祁州、深泽",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_north_zhili_河间府",
@@ -245,7 +251,10 @@
       "sort_order": 1003,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "河间、献县、阜城、肃宁、任丘、交河、青县、兴济、静海、宁津、景州、吴桥、东光、故城、沧州、南皮、盐山、庆云",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_north_zhili_真定府",
@@ -257,7 +266,10 @@
       "sort_order": 1004,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "真定、井陉、获鹿、元氏、灵寿、藁城、栾城、无极、平山、阜平、定州、新乐、曲阳、行唐、冀州、南宫、新河、枣强、武邑、晋州、安平、饶阳、武强、赵州、柏乡、隆平、高邑、临城、赞皇、宁晋、深州、衡水",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_north_zhili_顺德府",
@@ -269,7 +281,10 @@
       "sort_order": 1005,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "邢台、沙河、南和、平乡、广宗、钜鹿、唐山、内丘、任县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_north_zhili_广平府",
@@ -281,7 +296,10 @@
       "sort_order": 1006,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "永年、曲周、肥乡、鸡泽、广平、邯郸、成安、威县、清河、磁州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_north_zhili_大名府",
@@ -293,7 +311,10 @@
       "sort_order": 1007,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "元城、大名、魏县、南乐、清丰、内黄、浚县、滑县、开州、长垣、东明",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_north_zhili_永平府",
@@ -305,7 +326,10 @@
       "sort_order": 1008,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "卢龙、迁安、抚宁、昌黎、滦州、乐亭、山海卫",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_north_zhili_延庆州",
@@ -317,7 +341,10 @@
       "sort_order": 1009,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "永宁、怀来、四海冶堡、岔道城、八达岭",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_north_zhili_保安州",
@@ -329,7 +356,10 @@
       "sort_order": 1010,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "府治及属县待考、鸡鸣驿、矾山堡",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_应天府",
@@ -341,7 +371,10 @@
       "sort_order": 2001,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "上元、江宁、句容、溧阳、溧水、高淳、江浦、六合",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_凤阳府",
@@ -353,7 +386,10 @@
       "sort_order": 2002,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "凤阳、临淮、怀远、定远、五河、虹县、寿州、泗州、宿州、颍州、亳州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_淮安府",
@@ -365,7 +401,10 @@
       "sort_order": 2003,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "山阳、清河、盐城、安东、桃源、沭阳、海州、邳州、赣榆",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_扬州府",
@@ -377,7 +416,10 @@
       "sort_order": 2004,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "江都、仪真、泰兴、高邮州、兴化、宝应、泰州、如皋、通州、海门",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_苏州府",
@@ -389,7 +431,10 @@
       "sort_order": 2005,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "吴县、长洲、吴江、昆山、常熟、嘉定、太仓州、崇明",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_松江府",
@@ -401,7 +446,10 @@
       "sort_order": 2006,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "华亭、上海、青浦、金山卫",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_常州府",
@@ -413,7 +461,10 @@
       "sort_order": 2007,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "武进、无锡、宜兴、江阴、靖江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_镇江府",
@@ -425,7 +476,10 @@
       "sort_order": 2008,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "丹徒、丹阳、金坛",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_庐州府",
@@ -437,7 +491,10 @@
       "sort_order": 2009,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "合肥、庐江、舒城、无为州、巢县、六安州、英山、霍山",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_安庆府",
@@ -449,7 +506,10 @@
       "sort_order": 2010,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "怀宁、桐城、潜山、太湖、宿松、望江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_太平府",
@@ -461,7 +521,10 @@
       "sort_order": 2011,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "当涂、芜湖、繁昌",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_池州府",
@@ -473,7 +536,10 @@
       "sort_order": 2012,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "贵池、青阳、铜陵、石埭、建德、东流",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_宁国府",
@@ -485,7 +551,10 @@
       "sort_order": 2013,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "宣城、宁国、泾县、太平、旌德、南陵",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_徽州府",
@@ -497,7 +566,10 @@
       "sort_order": 2014,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "歙县、休宁、婺源、祁门、黟县、绩溪",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_徐州",
@@ -509,7 +581,10 @@
       "sort_order": 2015,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "萧县、砀山、丰县、沛县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_滁州",
@@ -521,7 +596,10 @@
       "sort_order": 2016,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "全椒、来安",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_和州",
@@ -533,7 +611,10 @@
       "sort_order": 2017,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "含山、历阳、乌江、濡须河、和水、采石渡、江北驿道",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_south_zhili_广德州",
@@ -545,7 +626,10 @@
       "sort_order": 2018,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "建平、广德山川、桐汭水、誓节渡、郎溪乡里、皖南山道",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shandong_济南府",
@@ -557,7 +641,10 @@
       "sort_order": 3001,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "历城、章丘、邹平、淄川、长山、新城、齐河、齐东、济阳、禹城、临邑、长清、肥城、青城、陵县、泰安州、德州、武定州、滨州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shandong_兖州府",
@@ -569,7 +656,10 @@
       "sort_order": 3002,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "滋阳、曲阜、宁阳、邹县、泗水、滕县、峄县、金乡、鱼台、单县、城武、曹县、定陶、嘉祥、巨野、郓城、东平州、曹州、沂州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shandong_东昌府",
@@ -581,7 +671,10 @@
       "sort_order": 3003,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "聊城、堂邑、博平、茌平、莘县、清平、冠县、临清州、高唐州、濮州、朝城、观城、范县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shandong_青州府",
@@ -593,7 +686,10 @@
       "sort_order": 3004,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "益都、临淄、博兴、高苑、乐安、寿光、昌乐、临朐、安丘、诸城、蒙阴、莒州、沂水、日照",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shandong_莱州府",
@@ -605,7 +701,10 @@
       "sort_order": 3005,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "掖县、平度州、潍县、昌邑、胶州、高密、即墨、灵山卫、鳌山卫",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shandong_登州府",
@@ -617,7 +716,10 @@
       "sort_order": 3006,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "蓬莱、黄县、福山、栖霞、招远、莱阳、宁海州、文登、威海卫、成山卫、靖海卫",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shanxi_太原府",
@@ -629,7 +731,10 @@
       "sort_order": 4001,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "阳曲县、太原县、榆次县、太谷县、祁县、徐沟县、清源县、交城县、文水县、寿阳县、盂县、静乐县、河曲县、平定州、忻州、代州、岢岚州、保德州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shanxi_平阳府",
@@ -641,7 +746,10 @@
       "sort_order": 4002,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "临汾县、襄陵县、洪洞县、浮山县、赵城县、太平县、岳阳县、曲沃县、翼城县、汾西县、蒲县、灵石县、霍州、吉州、隰州、蒲州、解州、绛州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shanxi_汾州府",
@@ -653,7 +761,10 @@
       "sort_order": 4003,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "汾阳县、孝义县、平遥县、介休县、石楼县、临县、宁乡县、永宁州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shanxi_潞安府",
@@ -665,7 +776,10 @@
       "sort_order": 4004,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "长治县、长子县、屯留县、襄垣县、潞城县、壶关县、黎城县、平顺县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shanxi_大同府",
@@ -677,7 +791,10 @@
       "sort_order": 4005,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "大同县、怀仁县、浑源州、应州、朔州、蔚州、山阴县、马邑县、广灵县、灵丘县、阳和卫、高山卫、天成卫、镇虏卫",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shanxi_泽州",
@@ -689,7 +806,10 @@
       "sort_order": 4006,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "高平县、阳城县、陵川县、沁水县、端氏镇",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shanxi_沁州",
@@ -701,7 +821,10 @@
       "sort_order": 4007,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "沁源县、武乡县、铜鞮县（待考）",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shanxi_辽州",
@@ -713,7 +836,10 @@
       "sort_order": 4008,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "榆社县、和顺县、辽山县（待考）",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_henan_开封府",
@@ -725,7 +851,10 @@
       "sort_order": 5001,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "祥符县、陈留县、杞县、通许县、太康县、尉氏县、洧川县、鄢陵县、扶沟县、中牟县、阳武县、原武县、封丘县、延津县、兰阳县、仪封县、郑州、荥阳县、荥泽县、河阴县、汜水县、禹州、密县、新郑县、陈州、商水县、西华县、项城县、沈丘县、许州、临颍县、襄城县、郾城县、长葛县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_henan_河南府",
@@ -737,7 +866,10 @@
       "sort_order": 5002,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "洛阳县、偃师县、巩县、孟津县、宜阳县、永宁县、新安县、渑池县、登封县、嵩县、卢氏县、陕州、灵宝县、阌乡县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_henan_归德府",
@@ -749,7 +881,10 @@
       "sort_order": 5003,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "商丘县、宁陵县、鹿邑县、夏邑县、永城县、虞城县、睢州、考城县、柘城县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_henan_汝宁府",
@@ -761,7 +896,10 @@
       "sort_order": 5004,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "汝阳县、上蔡县、新蔡县、西平县、遂平县、确山县、真阳县、罗山县、光州、光山县、固始县、息县、商城县、信阳州、应山县（待考）",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_henan_南阳府",
@@ -773,7 +911,10 @@
       "sort_order": 5005,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "南阳县、镇平县、唐县、泌阳县、桐柏县、南召县、邓州、内乡县、新野县、淅川县、裕州、舞阳县、叶县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_henan_怀庆府",
@@ -785,7 +926,10 @@
       "sort_order": 5006,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "河内县、济源县、修武县、武陟县、孟县、温县、原武县（待考）、阳武县（待考）",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_henan_卫辉府",
@@ -797,7 +941,10 @@
       "sort_order": 5007,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "汲县、胙城县、新乡县、获嘉县、淇县、辉县、延津县（待考）",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_henan_彰德府",
@@ -809,7 +956,10 @@
       "sort_order": 5008,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "安阳县、汤阴县、临漳县、林县、武安县、涉县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_henan_汝州",
@@ -821,7 +971,10 @@
       "sort_order": 5009,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "鲁山县、郏县、宝丰县、伊阳县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shaanxi_西安府",
@@ -833,7 +986,10 @@
       "sort_order": 6001,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "长安县、咸宁县、临潼县、高陵县、鄠县、蓝田县、泾阳县、三原县、盩厔县、渭南县、富平县、醴泉县、华州、商州、同州、耀州、乾州、邠州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shaanxi_凤翔府",
@@ -845,7 +1001,10 @@
       "sort_order": 6002,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "凤翔县、岐山县、扶风县、郿县、麟游县、汧阳县、陇州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shaanxi_汉中府",
@@ -857,7 +1016,10 @@
       "sort_order": 6003,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "南郑县、褒城县、城固县、洋县、西乡县、沔县、略阳县、凤县、宁羌州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shaanxi_延安府",
@@ -869,7 +1031,10 @@
       "sort_order": 6004,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "肤施县、安塞县、甘泉县、保安县、安定县、宜川县、延长县、清涧县、洛川县、中部县、宜君县、绥德州、葭州、鄜州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shaanxi_庆阳府",
@@ -881,7 +1046,10 @@
       "sort_order": 6005,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "安化县、合水县、环县、宁州、真宁县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shaanxi_平凉府",
@@ -893,7 +1061,10 @@
       "sort_order": 6006,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "平凉县、崇信县、华亭县、镇原县、固原州、泾州、静宁州、隆德县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shaanxi_巩昌府",
@@ -905,7 +1076,10 @@
       "sort_order": 6007,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "陇西县、安定县、会宁县、通渭县、漳县、宁远县、伏羌县、西和县、成县、秦州、阶州、徽州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shaanxi_临洮府",
@@ -917,7 +1091,10 @@
       "sort_order": 6008,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "狄道县、渭源县、兰州、金县、河州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shaanxi_灵州",
@@ -929,7 +1106,10 @@
       "sort_order": 6009,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "灵州所、盐池、花马池、横城堡",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_shaanxi_兴安州",
@@ -941,7 +1121,10 @@
       "sort_order": 6010,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "平利县、石泉县、洵阳县、白河县、紫阳县、汉阴县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_成都府",
@@ -953,7 +1136,10 @@
       "sort_order": 7001,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "成都县、华阳县、双流县、温江县、新繁县、金堂县、新都县、郫县、灌县、彭县、崇宁县、安县、什邡县、绵竹县、德阳县、罗江县、汉州、简州、资阳县、内江县、仁寿县、井研县、资县、威远县、潼川州、射洪县、中江县、盐亭县、遂宁县、蓬溪县、安岳县、乐至县、眉州、彭山县、丹棱县、青神县、邛州、大邑县、蒲江县、嘉定州、峨眉县、夹江县、洪雅县、犍为县、荣县、威远县、泸州、纳溪县、江安县、合江县、雅州、名山县、荣经县、芦山县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_保宁府",
@@ -965,7 +1151,10 @@
       "sort_order": 7002,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "阆中县、苍溪县、南部县、广元县、昭化县、剑州、梓潼县、巴州、通江县、南江县、太平县、大宁县、达州、东乡县、新宁县、渠县、营山县、仪陇县、蓬州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_顺庆府",
@@ -977,7 +1166,10 @@
       "sort_order": 7003,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "南充县、西充县、蓬州、营山县、仪陇县、广安州、岳池县、渠县、邻水县、大竹县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_夔州府",
@@ -989,7 +1181,10 @@
       "sort_order": 7004,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "奉节县、巫山县、大昌县、云阳县、万县、开县、梁山县、新宁县、东乡县、太平县、大宁县、达州、建始县、瞿塘关、白帝城、巫峡",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_重庆府",
@@ -1001,7 +1196,10 @@
       "sort_order": 7005,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "巴县、江津县、长寿县、永川县、荣昌县、綦江县、南川县、合州、铜梁县、定远县、忠州、酆都县、垫江县、涪州、武隆县、彭水县、黔江县、石砫宣慰司、酉阳宣慰司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_遵义军民府",
@@ -1013,7 +1211,10 @@
       "sort_order": 7006,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。"
+      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。",
+      "subordinate_places_text": "遵义县、桐梓县、绥阳县、仁怀县、真安州、正安州、湄潭县、龙泉县、乌江关、娄山关",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_叙州府",
@@ -1025,7 +1226,10 @@
       "sort_order": 7007,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "宜宾县、南溪县、富顺县、长宁县、高县、珙县、筠连县、庆符县、兴文县、隆昌县、马湖府、屏山县、雷波厅、沐川司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_龙安府",
@@ -1037,7 +1241,10 @@
       "sort_order": 7008,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "平武县、江油县、石泉县、青川县、龙州、松潘卫、叠溪所、小河营",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_马湖府",
@@ -1049,7 +1256,10 @@
       "sort_order": 7009,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "屏山县、沐川长官司、雷波长官司、平夷长官司、泥溪长官司、蛮夷长官司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_镇雄府",
@@ -1061,7 +1271,10 @@
       "sort_order": 7010,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "府治及属县待考、白水江、芒部司、威信司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_乌蒙军民府",
@@ -1073,7 +1286,10 @@
       "sort_order": 7011,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。"
+      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。",
+      "subordinate_places_text": "府治及属县待考、乌蒙山、洒渔河、米贴寨",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_乌撒军民府",
@@ -1085,7 +1301,10 @@
       "sort_order": 7012,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。"
+      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。",
+      "subordinate_places_text": "府治及属县待考、乌撒卫、七星关、可渡河",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_东川军民府",
@@ -1097,7 +1316,10 @@
       "sort_order": 7013,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。"
+      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。",
+      "subordinate_places_text": "府治及属县待考、东川卫、金沙江、者海寨",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_潼川州",
@@ -1109,7 +1331,10 @@
       "sort_order": 7014,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "射洪县、中江县、盐亭县、遂宁县、蓬溪县、安岳县、乐至县、涪江、郪江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_眉州",
@@ -1121,7 +1346,10 @@
       "sort_order": 7015,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "彭山县、丹棱县、青神县、峨眉山、青衣江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_邛州",
@@ -1133,7 +1361,10 @@
       "sort_order": 7016,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "大邑县、蒲江县、火井县、邛崃山、南河",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_嘉定州",
@@ -1145,7 +1376,10 @@
       "sort_order": 7017,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "峨眉县、夹江县、洪雅县、犍为县、荣县、威远县、大渡河、凌云山",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_泸州",
@@ -1157,7 +1391,10 @@
       "sort_order": 7018,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "纳溪县、江安县、合江县、九姓司、赤水河、长江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_sichuan_雅州",
@@ -1169,7 +1406,10 @@
       "sort_order": 7019,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "名山县、荣经县、芦山县、天全六番招讨司、碉门、大渡河、邛崃关",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_jiangxi_南昌府",
@@ -1181,7 +1421,10 @@
       "sort_order": 8001,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "南昌县、新建县、丰城县、进贤县、奉新县、靖安县、武宁县、宁州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_jiangxi_瑞州府",
@@ -1193,7 +1436,10 @@
       "sort_order": 8002,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "高安县、上高县、新昌县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_jiangxi_九江府",
@@ -1205,7 +1451,10 @@
       "sort_order": 8003,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "德化县、德安县、瑞昌县、湖口县、彭泽县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_jiangxi_南康府",
@@ -1217,7 +1466,10 @@
       "sort_order": 8004,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "星子县、都昌县、建昌县、安义县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_jiangxi_饶州府",
@@ -1229,7 +1481,10 @@
       "sort_order": 8005,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "鄱阳县、余干县、乐平县、浮梁县、德兴县、安仁县、万年县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_jiangxi_广信府",
@@ -1241,7 +1496,10 @@
       "sort_order": 8006,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "上饶县、玉山县、弋阳县、贵溪县、铅山县、永丰县、兴安县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_jiangxi_建昌府",
@@ -1253,7 +1511,10 @@
       "sort_order": 8007,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "南城县、南丰县、新城县、广昌县、泸溪县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_jiangxi_抚州府",
@@ -1265,7 +1526,10 @@
       "sort_order": 8008,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "临川县、崇仁县、金溪县、宜黄县、乐安县、东乡县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_jiangxi_吉安府",
@@ -1277,7 +1541,10 @@
       "sort_order": 8009,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "庐陵县、泰和县、吉水县、永丰县、安福县、龙泉县、万安县、永新县、永宁县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_jiangxi_临江府",
@@ -1289,7 +1556,10 @@
       "sort_order": 8010,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "清江县、新淦县、新喻县、峡江县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_jiangxi_袁州府",
@@ -1301,7 +1571,10 @@
       "sort_order": 8011,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "宜春县、分宜县、萍乡县、万载县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_jiangxi_赣州府",
@@ -1313,7 +1586,10 @@
       "sort_order": 8012,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "赣县、雩都县、信丰县、兴国县、会昌县、安远县、宁都县、瑞金县、龙南县、石城县、定南县、长宁县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_jiangxi_南安府",
@@ -1325,7 +1601,10 @@
       "sort_order": 8013,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "大庾县、南康县、上犹县、崇义县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_武昌府",
@@ -1337,7 +1616,10 @@
       "sort_order": 9001,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "江夏县、武昌县、嘉鱼县、蒲圻县、咸宁县、崇阳县、通城县、兴国州、大冶县、通山县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_汉阳府",
@@ -1349,7 +1631,10 @@
       "sort_order": 9002,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "汉阳县、汉川县、沔阳州、景陵县、孝感县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_黄州府",
@@ -1361,7 +1646,10 @@
       "sort_order": 9003,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "黄冈县、蕲水县、罗田县、麻城县、黄陂县、黄安县、蕲州、广济县、黄梅县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_承天府",
@@ -1373,7 +1661,10 @@
       "sort_order": 9004,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "钟祥县、京山县、潜江县、沔阳州、景陵县、当阳县、荆门州、远安县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_德安府",
@@ -1385,7 +1676,10 @@
       "sort_order": 9005,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "安陆县、云梦县、应城县、孝感县、随州、应山县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_岳州府",
@@ -1397,7 +1691,10 @@
       "sort_order": 9006,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "巴陵县、临湘县、华容县、平江县、澧州、安乡县、石门县、慈利县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_荆州府",
@@ -1409,7 +1706,10 @@
       "sort_order": 9007,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "江陵县、公安县、石首县、监利县、松滋县、枝江县、夷陵州、长阳县、宜都县、远安县、归州、巴东县、兴山县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_襄阳府",
@@ -1421,7 +1721,10 @@
       "sort_order": 9008,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "襄阳县、宜城县、南漳县、枣阳县、谷城县、光化县、均州、郧县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_郧阳府",
@@ -1433,7 +1736,10 @@
       "sort_order": 9009,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "郧县、房县、竹山县、竹溪县、上津县、郧西县、保康县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_长沙府",
@@ -1445,7 +1751,10 @@
       "sort_order": 9010,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "长沙县、善化县、湘阴县、浏阳县、醴陵县、湘潭县、宁乡县、益阳县、湘乡县、攸县、安化县、茶陵州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_常德府",
@@ -1457,7 +1766,10 @@
       "sort_order": 9011,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "武陵县、桃源县、龙阳县、沅江县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_衡州府",
@@ -1469,7 +1781,10 @@
       "sort_order": 9012,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "衡阳县、衡山县、耒阳县、常宁县、安仁县、酃县、桂阳州、临武县、蓝山县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_永州府",
@@ -1481,7 +1796,10 @@
       "sort_order": 9013,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "零陵县、祁阳县、东安县、道州、宁远县、永明县、江华县、新田县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_宝庆府",
@@ -1493,7 +1811,10 @@
       "sort_order": 9014,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "邵阳县、新化县、城步县、武冈州、新宁县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_辰州府",
@@ -1505,7 +1826,10 @@
       "sort_order": 9015,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "沅陵县、辰溪县、溆浦县、泸溪县、沅州、黔阳县、麻阳县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_郴州",
@@ -1517,7 +1841,10 @@
       "sort_order": 9016,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "郴阳县、永兴县、宜章县、兴宁县、桂阳县、桂东县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_huguang_靖州",
@@ -1529,7 +1856,10 @@
       "sort_order": 9017,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "靖州本辖、会同县、通道县、绥宁县、天柱县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_zhejiang_杭州府",
@@ -1541,7 +1871,10 @@
       "sort_order": 10001,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "钱塘县、仁和县、海宁县、富阳县、余杭县、临安县、于潜县、新城县、昌化县、天目山、钱塘江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_zhejiang_严州府",
@@ -1553,7 +1886,10 @@
       "sort_order": 10002,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "建德县、淳安县、遂安县、寿昌县、桐庐县、分水县、新安江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_zhejiang_嘉兴府",
@@ -1565,7 +1901,10 @@
       "sort_order": 10003,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "嘉兴县、秀水县、嘉善县、海盐县、平湖县、崇德县、桐乡县、乍浦镇",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_zhejiang_湖州府",
@@ -1577,7 +1916,10 @@
       "sort_order": 10004,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "乌程县、归安县、长兴县、德清县、武康县、安吉州、孝丰县、太湖",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_zhejiang_绍兴府",
@@ -1589,7 +1931,10 @@
       "sort_order": 10005,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "山阴县、会稽县、萧山县、诸暨县、余姚县、上虞县、嵊县、新昌县、曹娥江、会稽山",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_zhejiang_宁波府",
@@ -1601,7 +1946,10 @@
       "sort_order": 10006,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "鄞县、慈溪县、奉化县、定海县、象山县、昌国卫、舟山",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_zhejiang_台州府",
@@ -1613,7 +1961,10 @@
       "sort_order": 10007,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "临海县、黄岩县、天台县、仙居县、宁海县、太平县、天台山、椒江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_zhejiang_金华府",
@@ -1625,7 +1976,10 @@
       "sort_order": 10008,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "金华县、兰溪县、东阳县、义乌县、永康县、武义县、浦江县、汤溪县、金华山",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_zhejiang_衢州府",
@@ -1637,7 +1991,10 @@
       "sort_order": 10009,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "西安县、龙游县、常山县、江山县、开化县、衢江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_zhejiang_处州府",
@@ -1649,7 +2006,10 @@
       "sort_order": 10010,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "丽水县、青田县、缙云县、松阳县、遂昌县、龙泉县、庆元县、云和县、宣平县、景宁县、括苍山",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_zhejiang_温州府",
@@ -1661,7 +2021,10 @@
       "sort_order": 10011,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "永嘉县、瑞安县、乐清县、平阳县、泰顺县、雁荡山、瓯江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_fujian_福州府",
@@ -1673,7 +2036,10 @@
       "sort_order": 11001,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "闽县、侯官、长乐、福清、连江、罗源、古田、闽清、永福、怀安、府治及属县待考",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_fujian_兴化府",
@@ -1685,7 +2051,10 @@
       "sort_order": 11002,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "莆田、仙游、府治及属县待考",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_fujian_建宁府",
@@ -1697,7 +2066,10 @@
       "sort_order": 11003,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "建安、瓯宁、建阳、崇安、浦城、松溪、政和、府治及属县待考",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_fujian_延平府",
@@ -1709,7 +2081,10 @@
       "sort_order": 11004,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "南平、将乐、大田、沙县、尤溪、顺昌、永安、府治及属县待考",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_fujian_汀州府",
@@ -1721,7 +2096,10 @@
       "sort_order": 11005,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "长汀、宁化、上杭、武平、清流、连城、归化、永定、府治及属县待考",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_fujian_邵武府",
@@ -1733,7 +2111,10 @@
       "sort_order": 11006,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "邵武、光泽、泰宁、建宁、府治及属县待考",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_fujian_泉州府",
@@ -1745,7 +2126,10 @@
       "sort_order": 11007,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "晋江、南安、同安、惠安、安溪、永春、德化、府治及属县待考",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_fujian_漳州府",
@@ -1757,7 +2141,10 @@
       "sort_order": 11008,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "龙溪、漳浦、海澄、南靖、长泰、平和、诏安、府治及属县待考",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_fujian_福宁州",
@@ -1769,7 +2156,10 @@
       "sort_order": 11009,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "宁德、福安、州治及属县待考",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangdong_广州府",
@@ -1781,7 +2171,10 @@
       "sort_order": 12001,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "南海县、番禺县、顺德县、东莞县、新安县、三水县、增城县、龙门县、香山县、新会县、从化县、清远县、连州、阳山县、连山县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangdong_肇庆府",
@@ -1793,7 +2186,10 @@
       "sort_order": 12002,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "高要县、四会县、新兴县、阳江县、阳春县、恩平县、广宁县、德庆州、封川县、开建县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangdong_韶州府",
@@ -1805,7 +2201,10 @@
       "sort_order": 12003,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "曲江县、乐昌县、仁化县、乳源县、翁源县、英德县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangdong_南雄府",
@@ -1817,7 +2216,10 @@
       "sort_order": 12004,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "保昌县、始兴县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangdong_惠州府",
@@ -1829,7 +2231,10 @@
       "sort_order": 12005,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "归善县、博罗县、长宁县、永安县、海丰县、陆丰县、河源县、和平县、龙川县、兴宁县、长乐县、连平州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangdong_潮州府",
@@ -1841,7 +2246,10 @@
       "sort_order": 12006,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "海阳县、潮阳县、揭阳县、程乡县、饶平县、惠来县、大埔县、平远县、镇平县、普宁县、澄海县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangdong_高州府",
@@ -1853,7 +2261,10 @@
       "sort_order": 12007,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "茂名县、电白县、信宜县、化州、吴川县、石城县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangdong_雷州府",
@@ -1865,7 +2276,10 @@
       "sort_order": 12008,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "海康县、遂溪县、徐闻县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangdong_廉州府",
@@ -1877,7 +2291,10 @@
       "sort_order": 12009,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "合浦县、钦州、灵山县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangdong_琼州府",
@@ -1889,7 +2306,10 @@
       "sort_order": 12010,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "琼山县、澄迈县、临高县、定安县、文昌县、会同县、乐会县、儋州、昌化县、万州、陵水县、崖州、感恩县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangdong_罗定州",
@@ -1901,7 +2321,10 @@
       "sort_order": 12011,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "东安县、西宁县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_桂林府",
@@ -1913,7 +2336,10 @@
       "sort_order": 13001,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "临桂县、兴安县、灵川县、阳朔县、永福县、义宁县、全州、灌阳县、荔浦县、修仁县、永宁州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_平乐府",
@@ -1925,7 +2351,10 @@
       "sort_order": 13002,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "平乐县、恭城县、富川县、贺县、荔浦县、修仁县、昭平县、永安州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_梧州府",
@@ -1937,7 +2366,10 @@
       "sort_order": 13003,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "苍梧县、藤县、容县、岑溪县、怀集县、郁林州、博白县、北流县、陆川县、兴业县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_浔州府",
@@ -1949,7 +2381,10 @@
       "sort_order": 13004,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "桂平县、平南县、贵县、武靖州、大藤峡",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_柳州府",
@@ -1961,7 +2396,10 @@
       "sort_order": 13005,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "马平县、洛容县、柳城县、罗城县、融县、怀远县、来宾县、象州、武宣县、宾州、迁江县、上林县",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_庆远府",
@@ -1973,7 +2411,10 @@
       "sort_order": 13006,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "宜山县、天河县、思恩县、荔波县、河池州、那地州、东兰州、忻城县、永定长官司、永顺长官司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_南宁府",
@@ -1985,7 +2426,10 @@
       "sort_order": 13007,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "宣化县、隆安县、横州、永淳县、上思州、新宁州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_思恩军民府",
@@ -1997,7 +2441,10 @@
       "sort_order": 13008,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。"
+      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。",
+      "subordinate_places_text": "府治及属县待考，辖有安定、白山、古零、兴隆等土巡检司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_太平府",
@@ -2009,7 +2456,10 @@
       "sort_order": 13009,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "崇善县、左州、养利州、永康州、太平州、安平州、万承州、全茗州、镇远州、思同州、上下冻州、龙英州、结安州、结伦州、都结州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_思明府",
@@ -2021,7 +2471,10 @@
       "sort_order": 13010,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "府治及属县待考，辖有思明州、上石西州、下石西州、忠州等土州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_镇安府",
@@ -2033,7 +2486,10 @@
       "sort_order": 13011,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "府治及属县待考，辖有上映州、湖润寨、小镇安等土司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_田州",
@@ -2045,7 +2501,10 @@
       "sort_order": 13012,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "田州土州，辖有上林县、恩城州、兼有部分土巡检司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_归顺州",
@@ -2057,7 +2516,10 @@
       "sort_order": 13013,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "归顺土州，辖有州治及附近村寨，与镇安府接壤",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_泗城州",
@@ -2069,7 +2531,10 @@
       "sort_order": 13014,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "泗城土州，辖有州治及凌云、乐业等地，兼有程县、利州等旧地",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_向武州",
@@ -2081,7 +2546,10 @@
       "sort_order": 13015,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "向武土州，辖有州治及附近村寨，与镇安府、田州相邻",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_都康州",
@@ -2093,7 +2561,10 @@
       "sort_order": 13016,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "都康土州，辖有州治及附近村寨，与向武州、龙州相邻",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_龙州",
@@ -2105,7 +2576,10 @@
       "sort_order": 13017,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "龙州土州，辖有州治及水口关、平而关等关隘，与安南接壤",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_江州",
@@ -2117,7 +2591,10 @@
       "sort_order": 13018,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "江州土州，辖有州治及附近村寨，与太平府、思明府相邻",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_思陵州",
@@ -2129,7 +2606,10 @@
       "sort_order": 13019,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "思陵土州，辖有州治及附近村寨，与思明府、安南接壤",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guangxi_凭祥州",
@@ -2141,7 +2621,10 @@
       "sort_order": 13020,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "凭祥土州，辖有州治及镇南关、隘口等关隘，与安南接壤",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_云南府",
@@ -2153,7 +2636,10 @@
       "sort_order": 14001,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "昆明县、富民县、宜良县、罗次县、晋宁州、归化县、呈贡县、安宁州、禄丰县、昆阳州、三泊县、易门县、嵩明州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_曲靖府",
@@ -2165,7 +2651,10 @@
       "sort_order": 14002,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "南宁县、沾益州、陆凉州、马龙州、罗平州、寻甸府（后改州属）、平夷卫、越州卫",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_寻甸府",
@@ -2177,7 +2666,10 @@
       "sort_order": 14003,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "府治及属县待考、寻甸州（后改）、木密关、易龙驿",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_临安府",
@@ -2189,7 +2681,10 @@
       "sort_order": 14004,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "建水州、石屏州、阿迷州、宁州、通海县、河西县、嶍峨县、蒙自县、新平县、纳楼茶甸长官司、亏容甸长官司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_澂江府",
@@ -2201,7 +2696,10 @@
       "sort_order": 14005,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "河阳县、江川县、阳宗县、新兴州、路南州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_广西府",
@@ -2213,7 +2711,10 @@
       "sort_order": 14006,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "师宗州、弥勒州、维摩州",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_广南府",
@@ -2225,7 +2726,10 @@
       "sort_order": 14007,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "府治及属县待考、富州、宝月关、西洋江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_元江军民府",
@@ -2237,7 +2741,10 @@
       "sort_order": 14008,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。"
+      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。",
+      "subordinate_places_text": "奉化州、恭顺州、因远罗必甸长官司、元江驿",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_楚雄府",
@@ -2249,7 +2756,10 @@
       "sort_order": 14009,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "楚雄县、广通县、定远县、定边县、南安州、镇南州、姚州（后属姚安）、吕合驿",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_姚安军民府",
@@ -2261,7 +2771,10 @@
       "sort_order": 14010,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。"
+      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。",
+      "subordinate_places_text": "姚州、大姚县、普淜驿、铁索箐",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_武定府",
@@ -2273,7 +2786,10 @@
       "sort_order": 14011,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "和曲州、元谋县、禄劝州、金沙江巡检司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_景东府",
@@ -2285,7 +2801,10 @@
       "sort_order": 14012,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "府治及属县待考、景东卫、澜沧江、板桥驿",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_镇沅府",
@@ -2297,7 +2816,10 @@
       "sort_order": 14013,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "府治及属县待考、禄谷寨长官司、者乐甸长官司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_大理府",
@@ -2309,7 +2831,10 @@
       "sort_order": 14014,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "太和县、赵州、云南县、邓川州、浪穹县、宾川州、云龙州、十二关长官司、点苍山、洱海",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_鹤庆军民府",
@@ -2321,7 +2846,10 @@
       "sort_order": 14015,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。"
+      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。",
+      "subordinate_places_text": "剑川州、顺州、观音山驿、鹤庆驿",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_丽江军民府",
@@ -2333,7 +2861,10 @@
       "sort_order": 14016,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。"
+      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。",
+      "subordinate_places_text": "通安州、巨津州、宝山州、兰州、临西县、雪山、金沙江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_永宁府",
@@ -2345,7 +2876,10 @@
       "sort_order": 14017,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "府治及属县待考、剌次和长官司、革甸长官司、香罗甸长官司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_北胜州",
@@ -2357,7 +2891,10 @@
       "sort_order": 14018,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "州治及属县待考、澜沧卫、程海、三渡河",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_永昌军民府",
@@ -2369,7 +2906,10 @@
       "sort_order": 14019,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。"
+      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。",
+      "subordinate_places_text": "保山县、永平县、腾越州、潞江安抚司、孟定御夷府（后属）、镇康御夷州（后属）、高黎贡山、怒江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_蒙化府",
@@ -2381,7 +2921,10 @@
       "sort_order": 14020,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "府治及属县待考、蒙化卫、漾濞巡检司、甸头巡检司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_顺宁府",
@@ -2393,7 +2936,10 @@
       "sort_order": 14021,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "府治及属县待考、猛缅长官司、大侯长官司、锡铅驿",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_云州",
@@ -2405,7 +2951,10 @@
       "sort_order": 14022,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "州治及属县待考、大猛麻巡检司、猛猛巡检司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_孟定御夷府",
@@ -2417,7 +2966,10 @@
       "sort_order": 14023,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "府治及属县待考、孟定驿、南汀河",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_孟艮御夷府",
@@ -2429,7 +2981,10 @@
       "sort_order": 14024,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "府治及属县待考、孟艮寨、萨江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_威远御夷州",
@@ -2441,7 +2996,10 @@
       "sort_order": 14025,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "州治及属县待考、威远驿、威远江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_镇康御夷州",
@@ -2453,7 +3011,10 @@
       "sort_order": 14026,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "州治及属县待考、镇康驿、潞江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_yunnan_广邑州",
@@ -2465,7 +3026,10 @@
       "sort_order": 14027,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。"
+      "notes": "西南土司/羁縻性质府州；第一版保留为府级节点，需后续史料复核。",
+      "subordinate_places_text": "州治及属县待考、广邑寨、枯柯河",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guizhou_贵阳军民府",
@@ -2477,7 +3041,10 @@
       "sort_order": 15001,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。"
+      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。",
+      "subordinate_places_text": "新贵县、贵定县、定番州、广顺州、开州、龙里卫、威清卫、平坝卫、普定卫、安庄卫",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guizhou_安顺军民府",
@@ -2489,7 +3056,10 @@
       "sort_order": 15002,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。"
+      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。",
+      "subordinate_places_text": "普定县、永宁州、镇宁州、普安州、安南卫、普安卫、关索岭、盘江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guizhou_都匀府",
@@ -2501,7 +3071,10 @@
       "sort_order": 15003,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "都匀县、清平县、麻哈州、独山州、平舟六寨、九名九姓长官司、邦水长官司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guizhou_平越军民府",
@@ -2513,7 +3086,10 @@
       "sort_order": 15004,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。"
+      "notes": "军民府；先纳入府级正式节点，后续可细分土司/军民属性。",
+      "subordinate_places_text": "平越县、湄潭县、瓮安县、余庆县、黄平州、杨义长官司、高坪司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guizhou_黎平府",
@@ -2525,7 +3101,10 @@
       "sort_order": 15005,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "黎平县、永从县、开泰县、五开卫、铜鼓卫、潭溪长官司、八舟长官司、洪州泊里长官司、曹滴洞长官司、古州八万洞长官司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guizhou_思南府",
@@ -2537,7 +3116,10 @@
       "sort_order": 15006,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "安化县、印江县、婺川县、蛮夷长官司、沿河祐溪长官司、朗溪长官司、水德江长官司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guizhou_思州府",
@@ -2549,7 +3131,10 @@
       "sort_order": 15007,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "府治及属县待考、都坪峨异溪长官司、都素长官司、施溪长官司、黄道溪长官司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guizhou_镇远府",
@@ -2561,7 +3146,10 @@
       "sort_order": 15008,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "镇远县、施秉县、偏桥长官司、邛水十五洞长官司、臻剖六洞横坡长官司、镇远卫、清浪卫",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guizhou_铜仁府",
@@ -2573,7 +3161,10 @@
       "sort_order": 15009,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "铜仁县、省溪长官司、提溪长官司、乌罗长官司、平头著可长官司、大万山长官司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guizhou_石阡府",
@@ -2585,7 +3176,10 @@
       "sort_order": 15010,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "正式府级行政节点；不展开属县。"
+      "notes": "正式府级行政节点；不展开属县。",
+      "subordinate_places_text": "石阡县、龙泉县、苗民长官司、葛彰葛商长官司、石阡长官司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guizhou_开州",
@@ -2597,7 +3191,10 @@
       "sort_order": 15011,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "州治及属里待考、乖西蛮夷长官司、底寨长官司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guizhou_广顺州",
@@ -2609,7 +3206,10 @@
       "sort_order": 15012,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "州治及属里待考、金筑安抚司、木瓜长官司、麻响长官司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guizhou_定番州",
@@ -2621,7 +3221,10 @@
       "sort_order": 15013,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "州治及属里待考、程番长官司、小程番长官司、上马桥长官司、卢番长官司、韦番长官司、方番长官司、洪番长官司、卧龙番长官司、小龙番长官司、大龙番长官司、金石番长官司、罗番长官司、卢山长官司",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guizhou_永宁州",
@@ -2633,7 +3236,10 @@
       "sort_order": 15014,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "州治及属里待考、慕役长官司、顶营长官司、沙营长官司、盘江",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     },
     {
       "region_id": "formal_guizhou_普安州",
@@ -2645,7 +3251,10 @@
       "sort_order": 15015,
       "is_formal_civil_administration": true,
       "review_status": "generated_needs_review",
-      "notes": "府级直隶州；不展开属县。"
+      "notes": "府级直隶州；不展开属县。",
+      "subordinate_places_text": "州治及属里待考、普安卫、乐民千户所、平夷千户所、安南千户所、安笼千户所",
+      "subordinate_places_review_status": "generated_place_text_needs_review",
+      "subordinate_places_use_policy": "剧情语料与地名氛围素材；不作为精确县级行政区划、赋税口径或司法辖区依据。"
     }
   ]
 }

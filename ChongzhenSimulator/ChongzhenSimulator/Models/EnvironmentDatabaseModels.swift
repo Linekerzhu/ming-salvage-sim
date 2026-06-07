@@ -227,6 +227,9 @@ struct FormalAdministrativeDivisionRecord: Decodable, Identifiable {
     let isFormalCivilAdministration: Bool
     let reviewStatus: String?
     let notes: String?
+    let subordinatePlacesText: String?
+    let subordinatePlacesReviewStatus: String?
+    let subordinatePlacesUsePolicy: String?
 
     var id: String { regionID }
 
@@ -241,6 +244,9 @@ struct FormalAdministrativeDivisionRecord: Decodable, Identifiable {
         case isFormalCivilAdministration = "is_formal_civil_administration"
         case reviewStatus = "review_status"
         case notes
+        case subordinatePlacesText = "subordinate_places_text"
+        case subordinatePlacesReviewStatus = "subordinate_places_review_status"
+        case subordinatePlacesUsePolicy = "subordinate_places_use_policy"
     }
 }
 

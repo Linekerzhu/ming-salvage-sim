@@ -88,6 +88,17 @@ def audit_formal_administrative_divisions(errors: list[str]) -> None:
             f"level-3 records not parented to level-2 regions {bad_level3[:8]}"
         )
 
+    missing_place_text = [
+        record["region_id"]
+        for record in records
+        if record["level"] == 3 and not record.get("subordinate_places_text")
+    ]
+    if missing_place_text:
+        errors.append(
+            "formal_administrative_divisions_1628_seed: "
+            f"level-3 records missing subordinate place text {missing_place_text[:8]}"
+        )
+
     print("Formal administrative divisions 1628:")
     print(f"  records: {len(records)}")
     for level, count in sorted(levels.items()):
