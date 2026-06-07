@@ -1020,7 +1020,6 @@ struct NPCMingshuProfileRecord: Decodable, Identifiable {
 
 struct NPCBiographyArcRecord: Decodable, Identifiable {
     let npcID: String
-    let publicBiography: String
     let careerOrigin: String
     let riseHooks: [String]
     let riskHooks: [String]
@@ -1034,7 +1033,6 @@ struct NPCBiographyArcRecord: Decodable, Identifiable {
 
     enum CodingKeys: String, CodingKey {
         case npcID = "npc_id"
-        case publicBiography = "public_biography"
         case careerOrigin = "career_origin"
         case riseHooks = "rise_hooks"
         case riskHooks = "risk_hooks"

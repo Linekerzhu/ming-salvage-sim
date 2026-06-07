@@ -293,8 +293,7 @@ def build_fact_packet(indexes: dict[str, Any], npc_id: str) -> dict[str, Any]:
         "势网": {
             "角色": social.get("network_role") or "",
             "要人关系": indexes["relationships"].get(npc_id, []),
-        },
-        "传记素材短句": clean_hint(arc.get("public_biography")),
+        }
     }
 
 

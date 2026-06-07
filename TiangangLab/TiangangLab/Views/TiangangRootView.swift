@@ -140,6 +140,7 @@ private final class StarCatalogStore: ObservableObject {
             let rankByID = Dictionary(uniqueKeysWithValues: database.rankTitles.map { ($0.npcID, $0) })
             let startByID = Dictionary(uniqueKeysWithValues: database.start1628Positions.map { ($0.npcID, $0) })
             let biographyByID = Dictionary(uniqueKeysWithValues: database.historicalBiographies.map { ($0.npcID, $0) })
+            let mingpiByID = Dictionary(uniqueKeysWithValues: database.mingpiRecords.map { ($0.npcID, $0) })
             let arcByID = Dictionary(uniqueKeysWithValues: database.biographyArcs.map { ($0.npcID, $0) })
             let tiangangByID = Dictionary(uniqueKeysWithValues: database.tiangangProfiles.map { ($0.npcID, $0) })
             let mingshuByID = Dictionary(uniqueKeysWithValues: database.mingshuProfiles.map { ($0.npcID, $0) })
@@ -170,6 +171,7 @@ private final class StarCatalogStore: ObservableObject {
                     rank: rankByID[core.npcID],
                     start: start,
                     biography: biographyByID[core.npcID],
+                    mingpi: mingpiByID[core.npcID],
                     arc: arcByID[core.npcID],
                     tiangang: tiangangByID[core.npcID],
                     mingshu: mingshuByID[core.npcID],
@@ -385,92 +387,12 @@ private struct StarProfileTag: Identifiable {
     let color: Color
 }
 
-private enum StarHookKind {
-    case positive
-    case risk
-}
-
-private struct StarHookTag: Identifiable, Hashable {
-    let id: String
-    let tag: String
-    let detail: String
-
-    init(capability: NPCCapabilityFact) {
-        let tag = capability.label.cleanDisplayText
-        self.tag = tag
-        detail = Self.capabilityDetail(label: tag, category: capability.category, notes: capability.notes)
-        id = "\(tag)-\(detail)"
-    }
-
-    init(rawText: String, kind: StarHookKind) {
-        let cleaned = rawText.cleanDisplayText
-        tag = Self.tag(from: cleaned, kind: kind)
-        detail = Self.detail(from: cleaned, tag: tag, kind: kind)
-        id = "\(tag)-\(detail)"
-    }
-
-    private static func capabilityDetail(label: String, category: String, notes: String?) -> String {
-        if let notes = notes?.cleanDisplayText, !notes.isEmpty {
-            return notes.hasSuffix("。") ? notes : "\(notes)。"
-        }
-        let categoryText = category.capabilityCategoryDetail
-        if categoryText.contains("此长处") {
-            return categoryText
-        }
-        return categoryText.replacingOccurrences(of: "可", with: "适合", options: [], range: categoryText.startIndex..<categoryText.index(after: categoryText.startIndex))
-    }
-
-    private static func tag(from text: String, kind: StarHookKind) -> String {
-        let compact = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let firstClause = compact.components(separatedBy: CharacterSet(charactersIn: "，,；;。:：")).first ?? compact
-        if firstClause.count <= 6, !firstClause.isEmpty {
-            return firstClause
-        }
-
-        switch kind {
-        case .positive:
-            if compact.contains("内廷") || compact.contains("宫禁") || compact.contains("传旨") { return "内廷执行" }
-            if compact.contains("军") || compact.contains("边") || compact.contains("战") { return "军务可托" }
-            if compact.contains("财") || compact.contains("饷") || compact.contains("税") { return "财计可用" }
-            if compact.contains("制度") || compact.contains("名分") || compact.contains("票拟") { return "制度名分" }
-            if compact.contains("舆论") || compact.contains("清流") || compact.contains("声望") { return "舆论声望" }
-            return firstClause.shortenedTag(fallback: "可用之处")
-        case .risk:
-            if compact.contains("旧") || compact.contains("牵连") || compact.contains("党") { return "旧网牵连" }
-            if compact.contains("越权") || compact.contains("专擅") || compact.contains("权") { return "越权生疑" }
-            if compact.contains("怨") || compact.contains("仇") || compact.contains("反噬") { return "积怨反噬" }
-            if compact.contains("军") || compact.contains("边") || compact.contains("兵") { return "军务掣肘" }
-            if compact.contains("名节") || compact.contains("清议") || compact.contains("舆论") { return "清议所限" }
-            return firstClause.shortenedTag(fallback: "忌处未明")
-        }
-    }
-
-    private static func detail(from text: String, tag: String, kind: StarHookKind) -> String {
-        let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if cleaned.isEmpty || cleaned == tag {
-            return "未详。"
-        }
-        var readable = cleaned
-            .replacingOccurrences(of: "皇帝", with: "若")
-            .replacingOccurrences(of: "时更愿意承担此路线", with: "，此人更肯担事")
-            .replacingOccurrences(of: "时更愿意承担", with: "，此人更肯承担")
-            .replacingOccurrences(of: "此路线", with: "此事")
-            .replacingOccurrences(of: "可提升", with: "并能增益")
-            .replacingOccurrences(of: "会转为", with: "容易转成")
-            .replacingOccurrences(of: "会扩大", with: "容易扩大")
-
-        if kind == .risk, readable.hasPrefix("若") == false {
-            readable = "若\(readable)"
-        }
-        return readable.hasSuffix("。") ? readable : "\(readable)。"
-    }
-}
-
 private struct StarProfile: Identifiable {
     let core: NPCCoreRecord
     let rank: NPCRankTitleRecord?
     let start: NPCStart1628PositionRecord?
     let biography: NPCHistoricalBiographyRecord?
+    let mingpi: NPCMingpiRecord?
     let arc: NPCBiographyArcRecord?
     let tiangang: NPCTiangangProfileRecord?
     let mingshu: NPCMingshuProfileRecord?
@@ -675,21 +597,8 @@ private struct StarProfile: Identifiable {
         "\(rankContextText) · \(sexText)"
     }
 
-    var overviewText: String {
-        if let text = arc?.publicBiography.cleanDisplayText, !text.isEmpty {
-            return text
-        }
-        if let text = biography?.biographyText.cleanDisplayText, !text.isEmpty {
-            return text
-        }
-        return "\(name)入列群星谱，名籍与事迹尚待补录。"
-    }
-
     var historyText: String {
         if let text = biography?.biographyText.cleanDisplayText, !text.isEmpty {
-            return text
-        }
-        if let text = arc?.publicBiography.cleanDisplayText, !text.isEmpty {
             return text
         }
         return "列传未详。"
@@ -716,18 +625,6 @@ private struct StarProfile: Identifiable {
         .map { $0 }
     }
 
-    var positiveHooks: [StarHookTag] {
-        var hooks: [StarHookTag] = []
-        if let capabilities {
-            hooks.append(contentsOf: capabilities.capabilities.prefix(3).map { StarHookTag(capability: $0) })
-        }
-        hooks.append(contentsOf: (arc?.riseHooks ?? []).prefix(3).map { StarHookTag(rawText: $0, kind: .positive) })
-        return hooks.uniqueByTag().prefix(3).map { $0 }
-    }
-
-    var riskHooks: [StarHookTag] {
-        (arc?.riskHooks ?? []).prefix(3).map { StarHookTag(rawText: $0, kind: .risk) }.uniqueByTag().prefix(3).map { $0 }
-    }
 }
 
 private struct StarTiangangRow: Identifiable {
@@ -1239,7 +1136,7 @@ private struct StarPortraitPager: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: isShowingFullPortrait ? 570 : 404)
+            .frame(height: isShowingFullPortrait ? 570 : 368)
             .clipped()
             .animation(.easeOut(duration: 0.22), value: store.selectedNPCID)
             .animation(.easeOut(duration: 0.22), value: isShowingFullPortrait)
@@ -1277,7 +1174,7 @@ private struct StarCharacterStage: View {
                 VStack(spacing: 0) {
                     PortraitFocusWindow(profile: profile, showFullPortrait: showFullPortrait)
                     StarCharacterCaption(profile: profile)
-                        .frame(height: 128, alignment: .top)
+                        .frame(height: 92, alignment: .top)
                         .clipped()
                 }
             }
@@ -1516,16 +1413,10 @@ private struct StarCharacterCaption: View {
                 ProfileTagStrip(tags: profile.profileTags)
                     .frame(width: 176, alignment: .trailing)
             }
-
-            Text(profile.overviewText)
-                .font(.system(size: 14, weight: .regular, design: .serif))
-                .foregroundStyle(StarPalette.ink)
-                .lineSpacing(3)
-                .lineLimit(2)
         }
         .padding(.horizontal, 16)
-        .padding(.top, 11)
-        .padding(.bottom, 10)
+        .padding(.top, 12)
+        .padding(.bottom, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(StarPalette.paper.opacity(0.90))
         .overlay(alignment: .top) {
@@ -1655,13 +1546,44 @@ private struct OverviewPage: View {
                     .classicBody()
             }
 
-            if !profile.positiveHooks.isEmpty || !profile.riskHooks.isEmpty {
-                ParchmentSection(title: "可用与忌处", seal: "策") {
-                    HookTagSection(title: "可用", hooks: profile.positiveHooks, color: StarPalette.indigo)
-                    ThinDivider()
-                    HookTagSection(title: "忌处", hooks: profile.riskHooks, color: StarPalette.cinnabar)
+            ParchmentSection(title: "命批", seal: "命") {
+                MingpiVerseSection(mingpi: profile.mingpi)
+            }
+        }
+    }
+}
+
+private struct MingpiVerseSection: View {
+    let mingpi: NPCMingpiRecord?
+
+    var body: some View {
+        if let mingpi {
+            VStack(alignment: .center, spacing: lineSpacing(for: mingpi)) {
+                ForEach(Array(mingpi.lines.enumerated()), id: \.offset) { _, line in
+                    Text(line)
+                        .font(.custom("Kaiti SC", size: 19).weight(.semibold))
+                        .foregroundStyle(StarPalette.ink)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(6)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .center)
+        } else {
+            EmptySlip(text: "命批未录")
+        }
+    }
+
+    private func lineSpacing(for mingpi: NPCMingpiRecord) -> CGFloat {
+        switch mingpi.formID {
+        case "duilian":
+            return 12
+        case "songci", "xiaoqu":
+            return 8
+        default:
+            return 9
         }
     }
 }
@@ -2610,18 +2532,18 @@ private struct ParchmentSection<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Text(seal)
-                    .font(.system(size: 13, weight: .black, design: .serif))
+            HStack {
+                Text(title)
+                    .font(.custom("Kaiti SC", size: 18).weight(.bold))
                     .foregroundStyle(StarPalette.cinnabar)
-                    .frame(width: 25, height: 25)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(StarPalette.cinnabar.opacity(0.075))
                     .overlay(
-                        Rectangle()
+                        RoundedRectangle(cornerRadius: 6)
                             .stroke(StarPalette.cinnabar.opacity(0.62), lineWidth: 1)
                     )
-                Text(title)
-                    .font(.system(size: 20, weight: .black, design: .serif))
-                    .foregroundStyle(StarPalette.ink)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
                 Spacer()
             }
 
@@ -2678,98 +2600,6 @@ private struct FactGrid: View {
                         .frame(height: 1)
                 }
             }
-        }
-    }
-}
-
-private struct HookTagSection: View {
-    let title: String
-    let hooks: [StarHookTag]
-    let color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text(title)
-                    .font(.system(size: 14, weight: .black, design: .serif))
-                    .foregroundStyle(color)
-                if hooks.isEmpty {
-                    Text("未详")
-                        .font(.system(size: 13, weight: .bold, design: .serif))
-                        .foregroundStyle(StarPalette.faint)
-                }
-            }
-
-            if !hooks.isEmpty {
-                VStack(alignment: .leading, spacing: 7) {
-                    ForEach(hooks.prefix(3)) { hook in
-                        HStack(alignment: .top, spacing: 8) {
-                            Text(hook.tag)
-                                .font(.system(size: 12, weight: .black, design: .serif))
-                                .foregroundStyle(color)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.72)
-                                .frame(width: 74, alignment: .leading)
-                                .padding(.vertical, 2)
-                            Text(hook.detail)
-                                .font(.system(size: 13, weight: .regular, design: .serif))
-                                .foregroundStyle(StarPalette.ink)
-                                .lineSpacing(3)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .padding(.vertical, 5)
-                        .padding(.horizontal, 8)
-                        .background(StarPalette.palePaper.opacity(0.42))
-                        .overlay(alignment: .leading) {
-                            Rectangle()
-                                .fill(color.opacity(0.52))
-                                .frame(width: 2)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-private struct HookList: View {
-    let title: String
-    let items: [String]
-    let color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text(title)
-                .font(.system(size: 14, weight: .black, design: .serif))
-                .foregroundStyle(color)
-            if items.isEmpty {
-                Text("未详")
-                    .classicBody()
-                    .foregroundStyle(StarPalette.muted)
-            } else {
-                ForEach(items, id: \.self) { item in
-                    HStack(alignment: .top, spacing: 8) {
-                        Text("•")
-                            .font(.system(size: 15, weight: .black, design: .serif))
-                            .foregroundStyle(color)
-                        Text(item.cleanDisplayText)
-                            .classicBody()
-                    }
-                }
-            }
-        }
-    }
-}
-
-private struct CapabilityLine: View {
-    let capabilities: [NPCCapabilityFact]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("可见所长")
-                .font(.system(size: 14, weight: .black, design: .serif))
-                .foregroundStyle(StarPalette.indigo)
-            FlowTextChips(items: capabilities.map(\.label), color: StarPalette.indigo)
         }
     }
 }
@@ -2968,68 +2798,11 @@ private extension String {
         }
     }
 
-    var capabilityCategoryDetail: String {
-        switch self {
-        case "court_administration":
-            return "可托付章奏、名分与衙署流转。"
-        case "inner_court":
-            return "可承接宫禁传递、内廷执行与近侍沟通。"
-        case "network_mobilization":
-            return "可借其声望人脉，聚合助力或缓和清议。"
-        case "political_tactics":
-            return "可用于试探风向、折冲掣肘与权势安排。"
-        case "culture_rhetoric":
-            return "可用于文辞、礼制与名声经营。"
-        case "military_command":
-            return "可承担军务、边防或战阵执行。"
-        case "fiscal_administration":
-            return "可处理钱粮、税赋与军饷事务。"
-        case "fiscal_economic":
-            return "可处理钱粮亏空、税赋调度与军饷筹措。"
-        case "military_warfare":
-            return "可用于边务、兵事条议或战阵执行。"
-        case "personal_combat":
-            return "可用于近身护卫、搏杀冲阵或危险差遣。"
-        case "security_intelligence":
-            return "可用于侦缉、查访、密探与禁中风声。"
-        case "technical_specialist":
-            return "可用于器械、历算、医药或专门技艺。"
-        case "religious_mystic":
-            return "可用于方术、祭祀、民间信仰与安抚人心。"
-        case "maritime_trade":
-            return "可用于海路、商贸、人货转运与边缘渠道。"
-        case "temperament_reputation":
-            return "可借其声望与行事风格稳定局面。"
-        case "uncategorized_specialty":
-            return "此长处可作为专项差事的切入口。"
-        default:
-            return "此长处可作为临时差遣的参考。"
-        }
-    }
-
-    func shortenedTag(fallback: String) -> String {
-        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return fallback }
-        if trimmed.count <= 6 { return trimmed }
-        return String(trimmed.prefix(6))
-    }
-
     var playerFacingRelationReason: String {
         if contains("游戏开局") || contains("不作史实断言") || contains("补网") {
             return "势网牵连，可作弱关系参考。"
         }
         return cleanDisplayText
-    }
-}
-
-private extension Array where Element == StarHookTag {
-    func uniqueByTag() -> [StarHookTag] {
-        var seen = Set<String>()
-        return filter { hook in
-            guard !seen.contains(hook.tag) else { return false }
-            seen.insert(hook.tag)
-            return true
-        }
     }
 }
 
