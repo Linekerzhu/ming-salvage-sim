@@ -18,6 +18,8 @@ This branch now keeps only clean runtime data for the iOS prototype:
 - `ChongzhenSimulator/Resources/EnvironmentDatabase` contains final administrative, institution, office, rank, location, and eunuch-agency data.
 - Build notebooks, bridge indices, and generator-only artifacts are intentionally excluded from the iOS runtime tree.
 
+See `Docs/GameDesign.md` for the current game design, administrative model, official-rank simplifications, and data-foundation rules.
+
 Open `ChongzhenSimulator/ChongzhenSimulator.xcodeproj` in Xcode and run the `ChongzhenSimulator` scheme on an iPhone simulator.
 
 ## LLM API configuration
