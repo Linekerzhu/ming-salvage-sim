@@ -10,7 +10,7 @@ The first prototype is deliberately small:
 - Full 36-dimension Tiangang values are visible in the development build, with value stances shown separately from professional skill bars.
 - Tiangang dimension labels include player-facing explanations for every stance and skill level.
 - The current viewer works without backend, LLM, or Python/Web runtime dependencies; optional LLM service routes are scaffolded for future gameplay features.
-- The game UI uses a single bundled Chinese typeface, `WangHanZongCuKaiTiJian-1.ttf`, registered as `HanWangKaiBold-Gb5`.
+- The game UI uses the bundled Simplified Chinese calligraphy-style font `LXGWWenKai-Regular.ttf` through `MingTypography`.
 
 This branch now keeps only clean runtime data for the iOS prototype:
 
