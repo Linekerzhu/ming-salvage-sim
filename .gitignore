@@ -5,3 +5,4 @@ DerivedData/
 build/
 .swiftpm/
 .xcodebuildmcp/
+Secrets.xcconfig

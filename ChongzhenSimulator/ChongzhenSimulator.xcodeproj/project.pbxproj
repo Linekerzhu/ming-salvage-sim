@@ -15,6 +15,9 @@
 		01A00006 /* Resources/NPCDatabase in Resources */ = {isa = PBXBuildFile; fileRef = 01A00016 /* Resources/NPCDatabase */; };
 		01A00007 /* Models/EnvironmentDatabaseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00017 /* Models/EnvironmentDatabaseModels.swift */; };
 		01A00008 /* Resources/EnvironmentDatabase in Resources */ = {isa = PBXBuildFile; fileRef = 01A00018 /* Resources/EnvironmentDatabase */; };
+		01A00009 /* Services/LLMAPIConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A00019 /* Services/LLMAPIConfiguration.swift */; };
+		01A0000A /* Services/LLMHTTPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A0001A /* Services/LLMHTTPClient.swift */; };
+		01A0000B /* Services/LLMServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A0001B /* Services/LLMServices.swift */; };
 		01A00101 /* Resources/Portraits/韩爌.png in Resources */ = {isa = PBXBuildFile; fileRef = 01A00111 /* Resources/Portraits/韩爌.png */; };
 		01A00102 /* Resources/Portraits/毕自严.png in Resources */ = {isa = PBXBuildFile; fileRef = 01A00112 /* Resources/Portraits/毕自严.png */; };
 		01A00103 /* Resources/Portraits/崔呈秀.png in Resources */ = {isa = PBXBuildFile; fileRef = 01A00113 /* Resources/Portraits/崔呈秀.png */; };
@@ -33,6 +36,9 @@
 		01A00016 /* Resources/NPCDatabase */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/NPCDatabase; sourceTree = "<group>"; };
 		01A00017 /* Models/EnvironmentDatabaseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/EnvironmentDatabaseModels.swift; sourceTree = "<group>"; };
 		01A00018 /* Resources/EnvironmentDatabase */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/EnvironmentDatabase; sourceTree = "<group>"; };
+		01A00019 /* Services/LLMAPIConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LLMAPIConfiguration.swift; sourceTree = "<group>"; };
+		01A0001A /* Services/LLMHTTPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LLMHTTPClient.swift; sourceTree = "<group>"; };
+		01A0001B /* Services/LLMServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LLMServices.swift; sourceTree = "<group>"; };
 		01A00111 /* Resources/Portraits/韩爌.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/Portraits/韩爌.png"; sourceTree = "<group>"; };
 		01A00112 /* Resources/Portraits/毕自严.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/Portraits/毕自严.png"; sourceTree = "<group>"; };
 		01A00113 /* Resources/Portraits/崔呈秀.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/Portraits/崔呈秀.png"; sourceTree = "<group>"; };
@@ -68,6 +74,9 @@
 				01A00012 /* Models/TiangangModels.swift */,
 				01A00015 /* Models/NPCDatabaseModels.swift */,
 				01A00017 /* Models/EnvironmentDatabaseModels.swift */,
+				01A00019 /* Services/LLMAPIConfiguration.swift */,
+				01A0001A /* Services/LLMHTTPClient.swift */,
+				01A0001B /* Services/LLMServices.swift */,
 				01A00013 /* Views/TiangangRootView.swift */,
 				01A00213 /* Info.plist */,
 				01A00014 /* Resources/tiangang_seed.json */,
@@ -173,6 +182,9 @@
 				01A00002 /* Models/TiangangModels.swift in Sources */,
 				01A00005 /* Models/NPCDatabaseModels.swift in Sources */,
 				01A00007 /* Models/EnvironmentDatabaseModels.swift in Sources */,
+				01A00009 /* Services/LLMAPIConfiguration.swift in Sources */,
+				01A0000A /* Services/LLMHTTPClient.swift in Sources */,
+				01A0000B /* Services/LLMServices.swift in Sources */,
 				01A00003 /* Views/TiangangRootView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -9,7 +9,7 @@ The first prototype is deliberately small:
 - Swipeable official portraits are fixed at the top of the iOS UI.
 - Full 36-dimension Tiangang values are visible in the development build, with value stances shown separately from professional skill bars.
 - Tiangang dimension labels include player-facing explanations for every stance and skill level.
-- No backend, no LLM, no Python/Web runtime dependency.
+- The current viewer works without backend, LLM, or Python/Web runtime dependencies; optional LLM service routes are scaffolded for future gameplay features.
 
 This branch now keeps only clean runtime data for the iOS prototype:
 
@@ -18,3 +18,12 @@ This branch now keeps only clean runtime data for the iOS prototype:
 - Build notebooks, bridge indices, and generator-only artifacts are intentionally excluded from the iOS runtime tree.
 
 Open `ChongzhenSimulator/ChongzhenSimulator.xcodeproj` in Xcode and run the `ChongzhenSimulator` scheme on an iPhone simulator.
+
+## LLM API configuration
+
+The app has two separate LLM routes:
+
+- Text generation: `CHONGZHEN_TEXT_API_BASE_URL`, `CHONGZHEN_TEXT_API_KEY`, `CHONGZHEN_TEXT_API_MODEL`
+- Image generation: `CHONGZHEN_IMAGE_API_BASE_URL`, `CHONGZHEN_IMAGE_API_KEY`, `CHONGZHEN_IMAGE_API_MODEL`
+
+For simulator-only development, pass these as scheme environment variables in Xcode. Do not commit real API keys. For production, route these calls through a backend so keys are not shipped inside the app bundle.
