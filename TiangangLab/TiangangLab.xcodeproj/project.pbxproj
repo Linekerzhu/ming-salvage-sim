@@ -21,6 +21,8 @@
 		01A00104 /* Resources/Portraits/曹化淳.png in Resources */ = {isa = PBXBuildFile; fileRef = 01A00114 /* Resources/Portraits/曹化淳.png */; };
 		01A00105 /* Resources/Portraits/袁崇焕.png in Resources */ = {isa = PBXBuildFile; fileRef = 01A00115 /* Resources/Portraits/袁崇焕.png */; };
 		01A00106 /* Resources/Portraits/祖大寿.png in Resources */ = {isa = PBXBuildFile; fileRef = 01A00116 /* Resources/Portraits/祖大寿.png */; };
+		01A00201 /* Resources/Fonts/ZCOOLXiaoWei-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 01A00211 /* Resources/Fonts/ZCOOLXiaoWei-Regular.ttf */; };
+		01A00202 /* Resources/Fonts/MaShanZheng-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 01A00212 /* Resources/Fonts/MaShanZheng-Regular.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -39,6 +41,9 @@
 		01A00114 /* Resources/Portraits/曹化淳.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/Portraits/曹化淳.png"; sourceTree = "<group>"; };
 		01A00115 /* Resources/Portraits/袁崇焕.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/Portraits/袁崇焕.png"; sourceTree = "<group>"; };
 		01A00116 /* Resources/Portraits/祖大寿.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Resources/Portraits/祖大寿.png"; sourceTree = "<group>"; };
+		01A00211 /* Resources/Fonts/ZCOOLXiaoWei-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Resources/Fonts/ZCOOLXiaoWei-Regular.ttf"; sourceTree = "<group>"; };
+		01A00212 /* Resources/Fonts/MaShanZheng-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Resources/Fonts/MaShanZheng-Regular.ttf"; sourceTree = "<group>"; };
+		01A00213 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,6 +73,7 @@
 				01A00015 /* Models/NPCDatabaseModels.swift */,
 				01A00017 /* Models/EnvironmentDatabaseModels.swift */,
 				01A00013 /* Views/TiangangRootView.swift */,
+				01A00213 /* Info.plist */,
 				01A00014 /* Resources/tiangang_seed.json */,
 				01A00016 /* Resources/NPCDatabase */,
 				01A00018 /* Resources/EnvironmentDatabase */,
@@ -77,6 +83,8 @@
 				01A00114 /* Resources/Portraits/曹化淳.png */,
 				01A00115 /* Resources/Portraits/袁崇焕.png */,
 				01A00116 /* Resources/Portraits/祖大寿.png */,
+				01A00211 /* Resources/Fonts/ZCOOLXiaoWei-Regular.ttf */,
+				01A00212 /* Resources/Fonts/MaShanZheng-Regular.ttf */,
 			);
 			path = TiangangLab;
 			sourceTree = "<group>";
@@ -157,6 +165,8 @@
 				01A00104 /* Resources/Portraits/曹化淳.png in Resources */,
 				01A00105 /* Resources/Portraits/袁崇焕.png in Resources */,
 				01A00106 /* Resources/Portraits/祖大寿.png in Resources */,
+				01A00201 /* Resources/Fonts/ZCOOLXiaoWei-Regular.ttf in Resources */,
+				01A00202 /* Resources/Fonts/MaShanZheng-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -226,7 +236,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = NX92ABPR9H;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TiangangLab/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Tiangang Lab";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.strategy-games";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -256,7 +267,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = NX92ABPR9H;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = TiangangLab/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Tiangang Lab";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.strategy-games";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

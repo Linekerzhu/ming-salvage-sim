@@ -10,7 +10,8 @@ struct TiangangRootView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                StarPalette.background.ignoresSafeArea()
+                ParchmentBackdrop()
+                    .ignoresSafeArea()
 
                 if let error = store.loadError {
                     ContentUnavailableView("群星谱未载入", systemImage: "exclamationmark.triangle", description: Text(error))
@@ -808,6 +809,123 @@ private enum StarPalette {
     static let plum = Color(red: 0.505, green: 0.160, blue: 0.245)
 }
 
+private enum MingTypography {
+    private static let displayFace = "ZCOOLXiaoWei-Regular"
+    private static let verdictFace = "MaShanZheng-Regular"
+
+    static func display(_ size: CGFloat, weight: Font.Weight = .black) -> Font {
+        customChineseFace(displayFace, size: size, fallbackFace: kaitiFace(for: weight), fallbackWeight: weight)
+    }
+
+    static func body(_ size: CGFloat = 16, weight: Font.Weight = .regular) -> Font {
+        customChineseFace(songtiFace(for: weight), size: size, fallbackWeight: weight)
+    }
+
+    static func label(_ size: CGFloat = 12, weight: Font.Weight = .bold) -> Font {
+        customChineseFace(songtiFace(for: weight), size: size, fallbackWeight: weight)
+    }
+
+    static func kai(_ size: CGFloat, weight: Font.Weight = .semibold) -> Font {
+        customChineseFace(displayFace, size: size, fallbackFace: kaitiFace(for: weight), fallbackWeight: weight)
+    }
+
+    static func verdict(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        customChineseFace(verdictFace, size: size, fallbackFace: "STFangsong", fallbackWeight: weight)
+    }
+
+    private static func customChineseFace(_ faceName: String, size: CGFloat, fallbackFace: String? = nil, fallbackWeight: Font.Weight) -> Font {
+        if UIFont(name: faceName, size: size) != nil {
+            return .custom(faceName, size: size)
+        }
+        if let fallbackFace, UIFont(name: fallbackFace, size: size) != nil {
+            return .custom(fallbackFace, size: size)
+        }
+        return .system(size: size, weight: fallbackWeight, design: .serif)
+    }
+
+    private static func songtiFace(for weight: Font.Weight) -> String {
+        if weight == .black || weight == .heavy {
+            return "STSongti-SC-Black"
+        }
+        if weight == .bold || weight == .semibold {
+            return "STSongti-SC-Bold"
+        }
+        if weight == .light || weight == .thin || weight == .ultraLight {
+            return "STSongti-SC-Light"
+        }
+        return "STSongti-SC-Regular"
+    }
+
+    private static func kaitiFace(for weight: Font.Weight) -> String {
+        if weight == .black || weight == .heavy {
+            return "STKaitiSC-Black"
+        }
+        if weight == .bold || weight == .semibold {
+            return "STKaitiSC-Bold"
+        }
+        return "STKaitiSC-Regular"
+    }
+}
+
+private struct ParchmentBackdrop: View {
+    var body: some View {
+        StarPalette.background
+            .overlay {
+                PaperTexture(tint: StarPalette.line, intensity: 0.78)
+            }
+            .overlay {
+                LinearGradient(
+                    colors: [
+                        StarPalette.paper.opacity(0.34),
+                        Color.clear,
+                        StarPalette.line.opacity(0.10)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+    }
+}
+
+private struct PaperTexture: View {
+    let tint: Color
+    var intensity: Double = 1
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = max(proxy.size.width, 1)
+            let height = max(proxy.size.height, 1)
+            ZStack {
+                ForEach(0..<38, id: \.self) { index in
+                    Capsule()
+                        .fill(tint.opacity(0.014 * intensity))
+                        .frame(
+                            width: CGFloat(22 + (index * 37) % 96),
+                            height: index.isMultiple(of: 7) ? 1.1 : 0.7
+                        )
+                        .rotationEffect(.degrees(Double((index * 11) % 13) - 6))
+                        .offset(
+                            x: CGFloat((index * 53) % Int(width)) - width / 2,
+                            y: CGFloat((index * 31) % Int(height)) - height / 2
+                        )
+                }
+
+                ForEach(0..<52, id: \.self) { index in
+                    Circle()
+                        .fill(tint.opacity(0.010 * intensity))
+                        .frame(width: CGFloat(1 + (index % 3)), height: CGFloat(1 + (index % 3)))
+                        .offset(
+                            x: CGFloat((index * 29) % Int(width)) - width / 2,
+                            y: CGFloat((index * 47) % Int(height)) - height / 2
+                        )
+                }
+            }
+            .frame(width: width, height: height)
+        }
+        .allowsHitTesting(false)
+    }
+}
+
 private struct StarHeaderView: View {
     let totalCount: Int
     let visibleCount: Int
@@ -819,10 +937,10 @@ private struct StarHeaderView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .lastTextBaseline, spacing: 10) {
                     Text("群星谱")
-                        .font(.system(size: 34, weight: .black, design: .serif))
+                        .font(MingTypography.display(34))
                         .foregroundStyle(StarPalette.ink)
                     Text(countText)
-                        .font(.system(size: 13, weight: .bold, design: .serif))
+                        .font(MingTypography.label(13, weight: .bold))
                         .foregroundStyle(StarPalette.cinnabar)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -831,8 +949,8 @@ private struct StarHeaderView: View {
                                 .stroke(StarPalette.cinnabar.opacity(0.55), lineWidth: 1)
                         )
                 }
-                Text("崇祯元年诸臣、内廷、边镇、宫闱与天下异势，皆录其名籍、列传与势网。")
-                    .font(.system(size: 14, weight: .regular, design: .serif))
+                Text("崇祯元年诸臣、内廷、边镇、宫闱与天下异势，俱入一卷。")
+                    .font(MingTypography.body(14))
                     .foregroundStyle(StarPalette.muted)
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1136,7 +1254,7 @@ private struct StarPortraitPager: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: isShowingFullPortrait ? 570 : 368)
+            .frame(height: isShowingFullPortrait ? 570 : 364)
             .clipped()
             .animation(.easeOut(duration: 0.22), value: store.selectedNPCID)
             .animation(.easeOut(duration: 0.22), value: isShowingFullPortrait)
@@ -1145,11 +1263,18 @@ private struct StarPortraitPager: View {
             }
 
             Text("\(store.selectedIndex + 1)/\(max(store.filteredProfiles.count, 1))")
-                .font(.system(size: 12, weight: .heavy, design: .serif))
+                .font(MingTypography.label(12, weight: .heavy))
                 .foregroundStyle(StarPalette.muted)
                 .padding(.horizontal, 9)
                 .padding(.vertical, 5)
-                .background(StarPalette.paper.opacity(0.86), in: Capsule())
+                .background {
+                    Capsule()
+                        .fill(StarPalette.paper.opacity(0.88))
+                        .overlay {
+                            PaperTexture(tint: StarPalette.line, intensity: 0.55)
+                                .clipShape(Capsule())
+                        }
+                }
                 .overlay(
                     Capsule()
                         .stroke(StarPalette.line.opacity(0.4), lineWidth: 1)
@@ -1174,7 +1299,7 @@ private struct StarCharacterStage: View {
                 VStack(spacing: 0) {
                     PortraitFocusWindow(profile: profile, showFullPortrait: showFullPortrait)
                     StarCharacterCaption(profile: profile)
-                        .frame(height: 92, alignment: .top)
+                        .frame(height: 88, alignment: .top)
                         .clipped()
                 }
             }
@@ -1202,11 +1327,14 @@ private struct PortraitFocusWindow: View {
                 LinearGradient(
                     colors: [
                         StarPalette.background.opacity(0),
-                        StarPalette.background.opacity(0.20)
+                        StarPalette.paper.opacity(0.46),
+                        StarPalette.background.opacity(0.86)
                     ],
-                    startPoint: .center,
+                    startPoint: .top,
                     endPoint: .bottom
                 )
+                .frame(height: 82)
+                .frame(maxHeight: .infinity, alignment: .bottom)
                 .allowsHitTesting(false)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1258,6 +1386,10 @@ private struct StageBackground: View {
                 .foregroundStyle(profile.identityKind.tint.opacity(0.06))
                 .padding(.leading, 22)
                 .padding(.top, 10)
+        }
+        .overlay {
+            PaperTexture(tint: profile.identityKind.tint, intensity: 0.72)
+                .opacity(0.48)
         }
         .overlay {
             IdentityBackdropTexture(identity: profile.identityKind)
@@ -1399,12 +1531,12 @@ private struct StarCharacterCaption: View {
             HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(profile.name)
-                        .font(.system(size: 32, weight: .black, design: .serif))
+                        .font(MingTypography.display(31))
                         .foregroundStyle(StarPalette.ink)
                         .minimumScaleFactor(0.72)
                         .lineLimit(1)
                     Text(profile.captionLine)
-                        .font(.system(size: 13, weight: .bold, design: .serif))
+                        .font(MingTypography.label(13, weight: .bold))
                         .foregroundStyle(profile.identityKind.tint)
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
@@ -1415,13 +1547,23 @@ private struct StarCharacterCaption: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, 12)
+        .padding(.top, 10)
+        .padding(.bottom, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(StarPalette.paper.opacity(0.90))
+        .background {
+            StarPalette.paper.opacity(0.94)
+                .overlay {
+                    PaperTexture(tint: StarPalette.line, intensity: 0.64)
+                }
+        }
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(StarPalette.line.opacity(0.70))
+                .frame(height: 1)
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(StarPalette.line.opacity(0.28))
                 .frame(height: 1)
         }
     }
@@ -1469,34 +1611,62 @@ private struct StarTabRail: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: 7) {
                 ForEach(StarCatalogTab.allCases) { tab in
                     Button {
                         withAnimation(.easeOut(duration: 0.18)) {
                             selectedTab = tab
                         }
                     } label: {
-                        VStack(spacing: 6) {
-                            Text(tab.title)
-                                .font(.system(size: 15, weight: selectedTab == tab ? .black : .bold, design: .serif))
-                            Rectangle()
-                                .fill(selectedTab == tab ? StarPalette.cinnabar : StarPalette.line.opacity(0.32))
-                                .frame(height: selectedTab == tab ? 3 : 1)
-                        }
-                        .foregroundStyle(selectedTab == tab ? StarPalette.cinnabar : StarPalette.ink)
-                        .padding(.horizontal, 13)
-                        .padding(.vertical, 8)
-                        .background(StarPalette.paper.opacity(selectedTab == tab ? 0.82 : 0.48))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 4)
-                                .stroke(selectedTab == tab ? StarPalette.cinnabar.opacity(0.36) : StarPalette.line.opacity(0.36), lineWidth: 1)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        StarTabBookmark(tab: tab, isSelected: selectedTab == tab)
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.vertical, 2)
+            .padding(.vertical, 3)
+        }
+    }
+}
+
+private struct StarTabBookmark: View {
+    let tab: StarCatalogTab
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(spacing: 5) {
+            Text(tab.title)
+                .font(MingTypography.kai(16, weight: isSelected ? .bold : .semibold))
+                .foregroundStyle(isSelected ? StarPalette.cinnabar : StarPalette.ink.opacity(0.86))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+
+            HStack(spacing: 5) {
+                Rectangle()
+                    .fill(isSelected ? StarPalette.cinnabar.opacity(0.82) : StarPalette.line.opacity(0.34))
+                    .frame(width: isSelected ? 28 : 18, height: isSelected ? 2 : 1)
+                if isSelected {
+                    Circle()
+                        .fill(StarPalette.cinnabar.opacity(0.78))
+                        .frame(width: 4, height: 4)
+                }
+            }
+            .frame(height: 4)
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
+        .padding(.bottom, 7)
+        .background {
+            if isSelected {
+                StarPalette.paper.opacity(0.88)
+                    .overlay { PaperTexture(tint: StarPalette.line, intensity: 0.48) }
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+            }
+        }
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(isSelected ? StarPalette.cinnabar.opacity(0.20) : Color.clear)
+                .frame(height: 1)
+                .padding(.horizontal, 8)
         }
     }
 }
@@ -1536,14 +1706,14 @@ private struct OverviewPage: View {
     let profile: StarProfile
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             ParchmentSection(title: "名籍", seal: "籍") {
                 OverviewRegisterSection(profile: profile)
             }
 
             ParchmentSection(title: "列传", seal: "传") {
-                Text(profile.historyText)
-                    .classicBody()
+                Text(profile.historyText.classicParagraphText)
+                    .historicalBody()
             }
 
             ParchmentSection(title: "命批", seal: "命") {
@@ -1558,19 +1728,42 @@ private struct MingpiVerseSection: View {
 
     var body: some View {
         if let mingpi {
-            VStack(alignment: .center, spacing: lineSpacing(for: mingpi)) {
-                ForEach(Array(mingpi.lines.enumerated()), id: \.offset) { _, line in
-                    Text(line)
-                        .font(.custom("Kaiti SC", size: 19).weight(.semibold))
-                        .foregroundStyle(StarPalette.ink)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(6)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .fixedSize(horizontal: false, vertical: true)
+            VStack(spacing: 14) {
+                FateDivider()
+                VStack(alignment: .center, spacing: lineSpacing(for: mingpi)) {
+                    ForEach(Array(mingpi.lines.enumerated()), id: \.offset) { _, line in
+                        Text(line)
+                            .font(MingTypography.verdict(20, weight: .regular))
+                            .foregroundStyle(StarPalette.ink)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(8)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
+                FateDivider()
             }
-            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 14)
             .frame(maxWidth: .infinity, alignment: .center)
+            .background {
+                StarPalette.palePaper.opacity(0.34)
+                    .overlay {
+                        PaperTexture(tint: StarPalette.line, intensity: 0.50)
+                    }
+            }
+            .overlay(alignment: .leading) {
+                Rectangle()
+                    .fill(StarPalette.cinnabar.opacity(0.18))
+                    .frame(width: 1)
+                    .padding(.vertical, 12)
+            }
+            .overlay(alignment: .trailing) {
+                Rectangle()
+                    .fill(StarPalette.cinnabar.opacity(0.18))
+                    .frame(width: 1)
+                    .padding(.vertical, 12)
+            }
         } else {
             EmptySlip(text: "命批未录")
         }
@@ -1585,6 +1778,23 @@ private struct MingpiVerseSection: View {
         default:
             return 9
         }
+    }
+}
+
+private struct FateDivider: View {
+    var body: some View {
+        HStack(spacing: 9) {
+            Rectangle()
+                .fill(StarPalette.line.opacity(0.42))
+                .frame(height: 1)
+            Circle()
+                .fill(StarPalette.cinnabar.opacity(0.52))
+                .frame(width: 5, height: 5)
+            Rectangle()
+                .fill(StarPalette.line.opacity(0.42))
+                .frame(height: 1)
+        }
+        .frame(maxWidth: 190)
     }
 }
 
@@ -2531,32 +2741,61 @@ private struct ParchmentSection<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text(title)
-                    .font(.custom("Kaiti SC", size: 18).weight(.bold))
-                    .foregroundStyle(StarPalette.cinnabar)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(StarPalette.cinnabar.opacity(0.075))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(StarPalette.cinnabar.opacity(0.62), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                SectionTitlePill(title: title)
                 Spacer()
             }
 
             content
         }
-        .padding(14)
+        .padding(.horizontal, 14)
+        .padding(.top, 13)
+        .padding(.bottom, 15)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(StarPalette.paper)
+        .background {
+            StarPalette.paper
+                .overlay {
+                    PaperTexture(tint: StarPalette.line, intensity: 0.58)
+                }
+        }
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(StarPalette.cinnabar.opacity(0.16))
+                .frame(height: 1)
+                .padding(.horizontal, 12)
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(StarPalette.line.opacity(0.42))
+                .frame(height: 1)
+                .padding(.horizontal, 12)
+        }
         .overlay(
-            RoundedRectangle(cornerRadius: 6)
-                .stroke(StarPalette.line.opacity(0.78), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 5)
+                .stroke(StarPalette.line.opacity(0.58), lineWidth: 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .clipShape(RoundedRectangle(cornerRadius: 5))
+        .shadow(color: StarPalette.ink.opacity(0.035), radius: 8, x: 0, y: 5)
+    }
+}
+
+private struct SectionTitlePill: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(MingTypography.kai(18, weight: .bold))
+            .foregroundStyle(StarPalette.paper)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 5)
+            .background(StarPalette.cinnabar.opacity(0.92))
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(StarPalette.cinnabar.opacity(0.68), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .shadow(color: StarPalette.cinnabar.opacity(0.12), radius: 2, x: 0, y: 1)
     }
 }
 
@@ -2575,30 +2814,59 @@ private struct FactGrid: View {
     let items: [FactItem]
 
     private let columns = [
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10)
+        GridItem(.flexible(), spacing: 0),
+        GridItem(.flexible(), spacing: 0)
     ]
 
     var body: some View {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
-            ForEach(items) { item in
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(item.title)
-                        .font(.system(size: 12, weight: .bold, design: .serif))
-                        .foregroundStyle(StarPalette.faint)
-                    Text(item.value.isEmpty ? "未详" : item.value)
-                        .font(.system(size: 15, weight: .bold, design: .serif))
-                        .foregroundStyle(StarPalette.ink)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.72)
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                RegisterFactCell(item: item, isLeftColumn: index.isMultiple(of: 2))
+            }
+        }
+        .background {
+            StarPalette.palePaper.opacity(0.28)
+                .overlay {
+                    PaperTexture(tint: StarPalette.line, intensity: 0.36)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 8)
-                .overlay(alignment: .bottom) {
-                    Rectangle()
-                        .fill(StarPalette.line.opacity(0.35))
-                        .frame(height: 1)
-                }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 3)
+                .stroke(StarPalette.line.opacity(0.34), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 3))
+    }
+}
+
+private struct RegisterFactCell: View {
+    let item: FactItem
+    let isLeftColumn: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(item.title)
+                .font(MingTypography.label(11, weight: .bold))
+                .foregroundStyle(StarPalette.faint)
+            Text(item.value.isEmpty ? "未详" : item.value)
+                .font(MingTypography.body(15, weight: .semibold))
+                .foregroundStyle(StarPalette.ink)
+                .lineLimit(2)
+                .minimumScaleFactor(0.72)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(StarPalette.line.opacity(0.30))
+                .frame(height: 1)
+        }
+        .overlay(alignment: .trailing) {
+            if isLeftColumn {
+                Rectangle()
+                    .fill(StarPalette.cinnabar.opacity(0.13))
+                    .frame(width: 1)
+                    .padding(.vertical, 8)
             }
         }
     }
@@ -2615,14 +2883,19 @@ private struct ProfileTagStrip: View {
         ) {
             ForEach(tags) { tag in
                 Text(tag.text)
-                    .font(.system(size: 11, weight: .black, design: .serif))
+                    .font(MingTypography.label(11, weight: .black))
                     .foregroundStyle(tag.color)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 4)
                     .frame(maxWidth: .infinity)
-                    .background(StarPalette.palePaper.opacity(0.78))
+                    .background {
+                        StarPalette.palePaper.opacity(0.76)
+                            .overlay {
+                                PaperTexture(tint: tag.color, intensity: 0.22)
+                            }
+                    }
                     .overlay(
                         RoundedRectangle(cornerRadius: 2)
                             .stroke(tag.color.opacity(0.32), lineWidth: 1)
@@ -2734,15 +3007,24 @@ private struct EmptySlip: View {
 private extension Text {
     func classicBody() -> some View {
         self
-            .font(.system(size: 15, weight: .regular, design: .serif))
+            .font(MingTypography.body(15))
             .foregroundStyle(StarPalette.ink)
             .lineSpacing(4)
             .fixedSize(horizontal: false, vertical: true)
     }
 
+    func historicalBody() -> some View {
+        self
+            .font(MingTypography.body(16))
+            .foregroundStyle(StarPalette.ink)
+            .lineSpacing(7)
+            .fixedSize(horizontal: false, vertical: true)
+            .textSelection(.disabled)
+    }
+
     func axisLabel() -> some View {
         self
-            .font(.system(size: 11, weight: .black, design: .serif))
+            .font(MingTypography.label(11, weight: .black))
             .foregroundStyle(StarPalette.muted)
             .padding(.horizontal, 5)
             .padding(.vertical, 2)
@@ -2751,6 +3033,15 @@ private extension Text {
 }
 
 private extension String {
+    var classicParagraphText: String {
+        split(separator: "\n", omittingEmptySubsequences: false)
+            .map { line in
+                let raw = String(line).trimmingCharacters(in: .whitespacesAndNewlines)
+                return raw.isEmpty ? "" : "　　\(raw)"
+            }
+            .joined(separator: "\n")
+    }
+
     var cleanDisplayText: String {
         replacingOccurrences(of: "棋子", with: "人物")
             .replacingOccurrences(of: "游戏开局补网：", with: "")
