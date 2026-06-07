@@ -830,7 +830,7 @@ private enum StarPalette {
 }
 
 private enum MingTypography {
-    private static let gameFontName = "LXGWWenKai-Regular"
+    private static let gameFontName = "LXGWWenKai-Medium"
 
     static func display(_ size: CGFloat, weight: Font.Weight = .black) -> Font {
         gameFont(size, weight: weight)
