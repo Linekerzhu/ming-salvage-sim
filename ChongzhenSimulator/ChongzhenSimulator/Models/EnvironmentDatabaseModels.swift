@@ -216,6 +216,34 @@ struct AdministrativeRegionRecord: Decodable, Identifiable {
     }
 }
 
+struct FormalAdministrativeDivisionRecord: Decodable, Identifiable {
+    let regionID: String
+    let name: String
+    let level: Int
+    let regionType: String
+    let parentRegionID: String?
+    let topLevelRegionID: String?
+    let sortOrder: Int
+    let isFormalCivilAdministration: Bool
+    let reviewStatus: String?
+    let notes: String?
+
+    var id: String { regionID }
+
+    enum CodingKeys: String, CodingKey {
+        case regionID = "region_id"
+        case name
+        case level
+        case regionType = "region_type"
+        case parentRegionID = "parent_region_id"
+        case topLevelRegionID = "top_level_region_id"
+        case sortOrder = "sort_order"
+        case isFormalCivilAdministration = "is_formal_civil_administration"
+        case reviewStatus = "review_status"
+        case notes
+    }
+}
+
 struct LocationAliasRecord: Decodable, Identifiable {
     let aliasID: String
     let alias: String
@@ -324,6 +352,7 @@ struct EnvironmentDatabase {
     let institutions: [MingInstitutionRecord]
     let officePosts: [MingOfficePostRecord]
     let administrativeRegions: [AdministrativeRegionRecord]
+    let formalAdministrativeDivisions1628: [FormalAdministrativeDivisionRecord]
     let locationAliases: [LocationAliasRecord]
     let eunuchAgencies: [MingEunuchAgencyRecord]
     let eunuchAttireMarkers: [MingEunuchAttireMarkerRecord]
@@ -359,6 +388,7 @@ final class EnvironmentDatabaseStore {
             institutions: try Self.decodeSeed("ming_institutions_seed", bundle: bundle),
             officePosts: try Self.decodeSeed("ming_office_posts_seed", bundle: bundle),
             administrativeRegions: try Self.decodeSeed("administrative_regions_seed", bundle: bundle),
+            formalAdministrativeDivisions1628: try Self.decodeSeed("formal_administrative_divisions_1628_seed", bundle: bundle),
             locationAliases: try Self.decodeSeed("location_aliases_seed", bundle: bundle),
             eunuchAgencies: try Self.decodeSeed("ming_eunuch_agencies_seed", bundle: bundle),
             eunuchAttireMarkers: try Self.decodeSeed("ming_eunuch_attire_markers_seed", bundle: bundle)

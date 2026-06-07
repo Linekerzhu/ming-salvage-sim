@@ -26,6 +26,11 @@
       "record_count": 41
     },
     {
+      "module": "formal_administrative_divisions_1628_seed",
+      "filename": "formal_administrative_divisions_1628_seed.json",
+      "record_count": 219
+    },
+    {
       "module": "location_aliases_seed",
       "filename": "location_aliases_seed.json",
       "record_count": 31
