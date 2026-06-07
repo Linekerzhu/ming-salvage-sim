@@ -1,5 +1,19 @@
 import Foundation
 
+enum LLMServiceUseCase: String, CaseIterable {
+    case developmentSupport
+    case inGameRuntime
+
+    var displayName: String {
+        switch self {
+        case .developmentSupport:
+            return "开发支持"
+        case .inGameRuntime:
+            return "游戏运行"
+        }
+    }
+}
+
 enum LLMServiceRoute: String, CaseIterable {
     case textGeneration
     case imageGeneration
@@ -10,6 +24,19 @@ enum LLMServiceRoute: String, CaseIterable {
             return "文字生成"
         case .imageGeneration:
             return "图像生成"
+        }
+    }
+
+    var supportedUseCases: [LLMServiceUseCase] {
+        return [.developmentSupport, .inGameRuntime]
+    }
+
+    var purpose: String {
+        switch self {
+        case .textGeneration:
+            return "开发期剧本文学与数值支持；游戏内对白、奏疏、事件叙述与决策生成。"
+        case .imageGeneration:
+            return "开发期插画、图标与美术资产支持；游戏内过程插画、头像与图像反馈生成。"
         }
     }
 }

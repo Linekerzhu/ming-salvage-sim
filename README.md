@@ -21,7 +21,12 @@ Open `ChongzhenSimulator/ChongzhenSimulator.xcodeproj` in Xcode and run the `Cho
 
 ## LLM API configuration
 
-The app has two separate LLM routes:
+The project has two shared LLM routes for both development support and in-game runtime features:
+
+- Text generation: supports script/literary writing and numeric design during development, and in-game dialogue, memorials, event narration, and decision generation.
+- Image generation: supports illustration, icon, and art-asset creation during development, and in-game illustration, portrait, and visual-feedback generation.
+
+Environment variables:
 
 - Text generation: `CHONGZHEN_TEXT_API_BASE_URL`, `CHONGZHEN_TEXT_API_KEY`, `CHONGZHEN_TEXT_API_MODEL`
 - Image generation: `CHONGZHEN_IMAGE_API_BASE_URL`, `CHONGZHEN_IMAGE_API_KEY`, `CHONGZHEN_IMAGE_API_MODEL`
