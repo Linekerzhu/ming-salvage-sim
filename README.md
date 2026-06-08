@@ -12,11 +12,18 @@ The first prototype is deliberately small:
 - The current viewer works without backend, LLM, or Python/Web runtime dependencies; optional LLM service routes are scaffolded for future gameplay features.
 - The game UI uses the bundled Simplified Chinese calligraphy-style font `LXGWWenKai-Medium.ttf` through `MingTypography`.
 
-This branch now keeps only clean runtime data for the iOS prototype:
+This branch now keeps clean seed data for the iOS prototype. These seeds are not yet a complete simulation foundation; P0 now focuses on connecting them into a gameplay-ready Foundation Graph.
 
-- `ChongzhenSimulator/Resources/NPCDatabase` contains final NPC game data.
-- `ChongzhenSimulator/Resources/EnvironmentDatabase` contains final administrative, institution, office, rank, location, and eunuch-agency data.
+- `ChongzhenSimulator/Resources/NPCDatabase` contains NPC seed data.
+- `ChongzhenSimulator/Resources/EnvironmentDatabase` contains administrative, institution, office, rank, location, and eunuch-agency seed data.
+- `npc_foundation_base_info_seed.json` is the first new NPC foundation table; older NPC seed tables are marked as legacy import assets.
 - Build notebooks, bridge indices, and generator-only artifacts are intentionally excluded from the iOS runtime tree.
+
+P0 data audits:
+
+- `python3 ChongzhenSimulator/Tools/audit_npc_database.py`
+- `python3 ChongzhenSimulator/Tools/audit_environment_database.py`
+- `python3 ChongzhenSimulator/Tools/audit_foundation_graph.py`
 
 See `Docs/GameDesign.md` for the current game design, administrative model, official-rank simplifications, and data-foundation rules.
 

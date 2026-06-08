@@ -1,6 +1,10 @@
 {
   "schema_version": 1,
   "generated_at": "2026-06-06T22:01:01+00:00",
+  "asset_status": "legacy_asset",
+  "asset_status_note": "Legacy Ming-derived seed table. Retained only as import/reference material for the new NPC foundation data base.",
+  "legacy_marked_at": "2026-06-08T00:03:30Z",
+  "replacement_policy": "Do not extend for new gameplay foundations; import from this table into explicit foundation v1 seed files instead.",
   "records": [
     {
       "axis_id": "a01_face_length",

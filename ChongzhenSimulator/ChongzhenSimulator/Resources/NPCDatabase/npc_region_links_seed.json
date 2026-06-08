@@ -1,0 +1,3956 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-08T00:42:06Z",
+  "asset_status": "foundation_current",
+  "module": "npc_region_links_seed",
+  "display_name": "NPC 籍贯桥接",
+  "scope": "Province/prefecture-level native-place links for NPC foundation data.",
+  "source_policy": "Legacy text is inherited when valid; otherwise DeepSeek infers credible fictional native places. External actors keep external native places.",
+  "records": [
+    {
+      "npc_id": "npc_ming_韩爌",
+      "native_place": {
+        "province": "山西",
+        "prefecture": "平阳府",
+        "province_region_id": "formal_shanxi",
+        "prefecture_region_id": "formal_shanxi_平阳府",
+        "is_external": false
+      },
+      "source_kind": "legacy_text",
+      "confidence": "high",
+      "evidence_text": "旧基础籍贯：山西平阳府",
+      "rationale": "旧基础表已有省府文本，且能映射到正式行政区。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_张瑞图",
+      "native_place": {
+        "province": "福建",
+        "prefecture": "泉州府",
+        "province_region_id": "formal_fujian",
+        "prefecture_region_id": "formal_fujian_泉州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传无载，但以其书法名家身份推断",
+      "rationale": "张瑞图书法与董其昌齐名，董其昌为南直隶松江府人，而张瑞图历史记载为福建泉州府人，故依此选取",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_来宗道",
+      "native_place": {
+        "province": "浙江",
+        "prefecture": "绍兴府",
+        "province_region_id": "formal_zhejiang",
+        "prefecture_region_id": "formal_zhejiang_绍兴府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "来姓在浙江绍兴府萧山为望族；明史载来宗道为萧山人。",
+      "rationale": "姓名姓氏与明代人物历史籍贯对应，推断为浙江绍兴府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_施凤来",
+      "native_place": {
+        "province": "浙江",
+        "prefecture": "嘉兴府",
+        "province_region_id": "formal_zhejiang",
+        "prefecture_region_id": "formal_zhejiang_嘉兴府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传未载籍贯，据其履历推测",
+      "rationale": "施凤来官至次辅，调停作风与浙江士风相合，故设籍嘉兴府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_黄立极",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传未明，依名位及行事推测",
+      "rationale": "黄立极为内阁首辅，长期在京任职，与内廷关系密切，籍贯以北直隶顺天府最为合理。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_王绍徽",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "西安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_西安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传云不知何许人也",
+      "rationale": "明末阉党核心多出北直或陕西，王绍徽常被记为陕西西安府人",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_毕自严",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "济南府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_济南府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "毕自严为明末户部尚书，史载山东淄川人，属济南府。",
+      "rationale": "根据历史记载，毕自严籍贯为山东淄川，淄川在明代属济南府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_杨嗣昌",
+      "native_place": {
+        "province": "湖广",
+        "prefecture": "常德府",
+        "province_region_id": "formal_huguang",
+        "prefecture_region_id": "formal_huguang_常德府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "字文弱，世称杨武陵",
+      "rationale": "据字文弱及世称杨武陵，推断籍贯湖广常德府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_温体仁",
+      "native_place": {
+        "province": "浙江",
+        "prefecture": "湖州府",
+        "province_region_id": "formal_zhejiang",
+        "prefecture_region_id": "formal_zhejiang_湖州府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "温体仁，字长卿，乌程人。",
+      "rationale": "列传明确记载其为乌程人，乌程属湖州府，故籍贯为浙江湖州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_钱龙锡",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "松江府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_松江府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "钱龙锡为松江府华亭人，史有明载。",
+      "rationale": "列传未提籍贯，但钱龙锡历史上为南直隶松江府华亭人，且无矛盾线索。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_刘鸿训",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "济南府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_济南府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "列传未明籍贯，但据史实刘鸿训为山东长山人",
+      "rationale": "根据明史记载，刘鸿训籍贯山东长山，属济南府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_钱谦益",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "legacy_text",
+      "confidence": "high",
+      "evidence_text": "旧基础籍贯：南直隶苏州府",
+      "rationale": "旧基础表已有省府文本，且能映射到正式行政区。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_李标",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "师事钱谦益，谦益为南直隶苏州府人",
+      "rationale": "李标师事钱谦益，钱谦益为苏州府常熟人，推断李标可能为同府或同省人，故设籍贯为南直隶苏州府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_孙承宗",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "保定府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_保定府",
+        "is_external": false
+      },
+      "source_kind": "legacy_text",
+      "confidence": "high",
+      "evidence_text": "旧基础籍贯：北直隶保定府",
+      "rationale": "旧基础表已有省府文本，且能映射到正式行政区。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_崔呈秀",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称不知何许人，据史载崔呈秀为顺天府蓟州人",
+      "rationale": "崔呈秀依附魏忠贤，魏忠贤为北直隶人，且史载其为顺天府人，故推断籍贯为北直隶顺天府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_王在晋",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "南京兵部尚书，与韩爌有师承之谊",
+      "rationale": "明代南京兵部尚书多由南直隶士人担任，苏州府文风鼎盛，王在晋之姓名与仕途符合此地域特征",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_徐光启",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "松江府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_松江府",
+        "is_external": false
+      },
+      "source_kind": "legacy_text",
+      "confidence": "high",
+      "evidence_text": "旧基础籍贯：南直隶松江府",
+      "rationale": "旧基础表已有省府文本，且能映射到正式行政区。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_袁可立",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "归德府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_归德府",
+        "is_external": false
+      },
+      "source_kind": "legacy_text",
+      "confidence": "high",
+      "evidence_text": "旧基础籍贯：河南归德府",
+      "rationale": "旧基础表已有省府文本，且能映射到正式行政区。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_周延儒",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "常州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_常州府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "周延儒，南直隶常州府人",
+      "rationale": "根据历史记载，周延儒籍贯为南直隶常州府宜兴县，此处仅取州府级，符合要求。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_倪元璐",
+      "native_place": {
+        "province": "浙江",
+        "prefecture": "绍兴府",
+        "province_region_id": "formal_zhejiang",
+        "prefecture_region_id": "formal_zhejiang_绍兴府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "倪元璐，浙江上虞人，明末名臣",
+      "rationale": "据历史记载，倪元璐为浙江绍兴府上虞县人，属绍兴府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_黄道周",
+      "native_place": {
+        "province": "福建",
+        "prefecture": "漳州府",
+        "province_region_id": "formal_fujian",
+        "prefecture_region_id": "formal_fujian_漳州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "传未明载，据史实为福建漳州人",
+      "rationale": "黄道周历史真实籍贯为福建漳浦，属漳州府，故此推断。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_曹化淳",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传云‘不知何许人也’",
+      "rationale": "曹化淳为宦官，明代宦官多来自北直隶，且其与王体乾、杜勋等北直隶籍宦官有旧，故推测籍贯为北直隶顺天府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_王体乾",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传曰‘不详其籍贯’",
+      "rationale": "太监多来自北直隶，顺天府为京师所在，常出内宦。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_王承恩",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传云'不知何许人'，内官多北直隶人",
+      "rationale": "明末太监多出自北直隶，王承恩为帝近侍，更可能来自京师周边",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_魏忠贤",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "河间府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_河间府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "少无赖，自阉入宫",
+      "rationale": "虽传记未载籍贯，但后世常见说法及地理位置推测为北直隶河间府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_田尔耕",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "河间府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_河间府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称不知何许人，据锦衣卫背景和派系推断",
+      "rationale": "田尔耕为锦衣卫都指挥使，魏忠贤党羽，锦衣卫多从北方招募，河间府靠近京师，且历史上田尔耕即任丘人（属河间府），故设此籍贯。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_许显纯",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传云'不知何许人也'，无明确籍贯线索。",
+      "rationale": "锦衣卫人员多籍隶北直隶，尤以顺天府为多，许显纯久任北镇抚司，故定籍于此。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_李若琏",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "保定府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_保定府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传未载籍贯",
+      "rationale": "李若琏以武隶锦衣卫，北直隶为京师所在地，锦衣卫多从此区域招募，故推断为北直隶保定府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_客氏",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传云'不知其所出'",
+      "rationale": "乳母多选自京畿，故定北直隶顺天府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_袁崇焕",
+      "native_place": {
+        "province": "广东",
+        "prefecture": "广州府",
+        "province_region_id": "formal_guangdong",
+        "prefecture_region_id": "formal_guangdong_广州府",
+        "is_external": false
+      },
+      "source_kind": "legacy_text",
+      "confidence": "high",
+      "evidence_text": "旧基础籍贯：广东广州府",
+      "rationale": "旧基础表已有省府文本，且能映射到正式行政区。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_曹文诏",
+      "native_place": {
+        "province": "山西",
+        "prefecture": "大同府",
+        "province_region_id": "formal_shanxi",
+        "prefecture_region_id": "formal_shanxi_大同府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "少从军辽东，骑射绝伦",
+      "rationale": "明代边将多出山西，大同为九边重镇，且列传称其从军辽东，推测其原籍为军户集中的山西大同府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_祖大寿",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "登州府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_登州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称其为'辽西将门子'",
+      "rationale": "辽西地域在明代属于辽东都司，但行政上隶属山东，故籍贯落在山东登州府符合明末地域逻辑。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_满桂",
+      "native_place": {
+        "province": "山西",
+        "prefecture": "大同府",
+        "province_region_id": "formal_shanxi",
+        "prefecture_region_id": "formal_shanxi_大同府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传言不知何许人，然始终在大同边镇活动",
+      "rationale": "满桂为边镇武将，长期镇守大同，且任大同总兵，故籍贯定为山西大同府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_赵率教",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "永平府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_永平府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传云‘不知何许人也’，无明确籍贯",
+      "rationale": "赵率教为北方边将，长期驻守山海关，常理推测籍贯在北直隶或山西，今取北直隶永平府以合其活动地域。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_王之臣",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "西安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_西安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称'不知何许人'，无明确籍贯。",
+      "rationale": "王之臣起行伍任边帅，明末边将多出陕西，故推测其为陕西西安府人。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_毛文龙",
+      "native_place": {
+        "province": "浙江",
+        "prefecture": "杭州府",
+        "province_region_id": "formal_zhejiang",
+        "prefecture_region_id": "formal_zhejiang_杭州府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "medium",
+      "evidence_text": "列传云'不知其所出，或曰浙人'",
+      "rationale": "以'或曰浙人'为据，选省城杭州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_阎鸣泰",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "永平府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_永平府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "少习兵，以边吏起",
+      "rationale": "阎鸣泰长期任职蓟辽，熟悉边务，推断为北直隶永平府人，以便就近从军。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_洪承畴",
+      "native_place": {
+        "province": "福建",
+        "prefecture": "泉州府",
+        "province_region_id": "formal_fujian",
+        "prefecture_region_id": "formal_fujian_泉州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "无明确线索，但史传多载其为福建泉州人",
+      "rationale": "姓洪为闽地大姓，结合史实常见记载，定为福建泉州府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_孙传庭",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "归德府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_归德府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "初为永城知县，永城属河南归德府",
+      "rationale": "永城是归德府属县，其任职地暗示与河南相关，但无明确籍贯记载，故推断为河南归德府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_卢象升",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "大名府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_大名府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称不识籍贯，官至大名府知府",
+      "rationale": "卢象升任大名府知府，故推测其籍贯可能为北直隶大名府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_史可法",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "应天府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_应天府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "应天府学诸生",
+      "rationale": "列传明确其为应天府学诸生，故籍贯定于南直隶应天府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_周皇后",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称不知其所出",
+      "rationale": "周皇后姓名与明代苏州周氏望族相合，且明代皇后多选自江南，故推断为苏州府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_周贵人",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称‘不知其所出’，无明确籍贯",
+      "rationale": "因无明确线索，其姓氏与周皇后同，且为良家子入宫，故推测可能出自南直隶富庶之地如苏州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_田贵妃",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "西安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_西安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传未载其籍贯",
+      "rationale": "田贵妃姓田，明末陕西田氏为名门，故推测籍贯为陕西西安府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_袁贵妃",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "不知其所出",
+      "rationale": "袁贵妃姓名及沉静性格，推测出身江南书香门第，苏州府为明代后妃常见籍贯。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_慧妃",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称不知何许人，性格婉娩天真，推测来自江南",
+      "rationale": "慧妃出身不明，以良家子入宫，性格天真，江南苏州府多出婉约女子，故推断。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_houjin_皇太极",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_houjin_代善",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_houjin_莽古尔泰",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_houjin_阿敏",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_houjin_范文程",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_houjin_佟养性",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_mongol_林丹汗",
+      "native_place": {
+        "province": "蒙古",
+        "prefecture": "察哈尔",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "蒙古外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_korea_仁祖",
+      "native_place": {
+        "province": "朝鲜",
+        "prefecture": "汉城府",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "朝鲜外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_korea_张维",
+      "native_place": {
+        "province": "朝鲜",
+        "prefecture": "汉城府",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "朝鲜外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_bandits_王嘉胤",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "列传称'秦中大饥'，秦指陕西，嘉胤起于此",
+      "rationale": "列传明确提及'秦中大饥'，且流寇起于陕西，故籍贯定为陕西延安府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_bandits_李自成",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "陕之米脂人也",
+      "rationale": "列传明确籍贯为陕西米脂，米脂属延安府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_bandits_张献忠",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "张献忠，陕西边地人，初为边兵",
+      "rationale": "列传明确说明其为陕西边地人，边地主要指延安、榆林一带，延安府是陕西代表性边地州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_武当张真人",
+      "native_place": {
+        "province": "湖广",
+        "prefecture": "襄阳府",
+        "province_region_id": "formal_huguang",
+        "prefecture_region_id": "formal_huguang_襄阳府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传言不知何许人也，然入武当为道士",
+      "rationale": "无明确籍贯线索，根据武当山位于湖广襄阳府，且主角为道士，故推测籍贯为此地。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_铁臂周侗",
+      "native_place": {
+        "province": "山西",
+        "prefecture": "平阳府",
+        "province_region_id": "formal_shanxi",
+        "prefecture_region_id": "formal_shanxi_平阳府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传云'不知何许人也'，无明确籍贯线索",
+      "rationale": "山西平阳府多习武之风，与周侗武师身份相符",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_青莲剑客",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传明言'不知何许人也'",
+      "rationale": "青莲剑客名号与李白相关，苏州府文风昌盛，多奇士游侠，故推测其籍贯为苏州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_玄机道长",
+      "native_place": {
+        "province": "江西",
+        "prefecture": "广信府",
+        "province_region_id": "formal_jiangxi",
+        "prefecture_region_id": "formal_jiangxi_广信府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "或云龙虎山天师府法师，后归龙虎山",
+      "rationale": "列传提及龙虎山天师府，龙虎山位于江西广信府，故籍贯定为此。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_毒手药王",
+      "native_place": {
+        "province": "山西",
+        "prefecture": "大同府",
+        "province_region_id": "formal_shanxi",
+        "prefecture_region_id": "formal_shanxi_大同府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "与曹文诏、李国辅同乡",
+      "rationale": "列传明确写结交曹文诏且以同乡故，曹文诏籍贯山西大同府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_红衣女侠",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "常州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_常州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "或言其为周延儒同乡",
+      "rationale": "列传提及可能与周延儒同乡，而周延儒籍贯为南直隶常州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_盲眼琴师",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传云或曰吴越间人",
+      "rationale": "结合列传'或曰吴越间人'及琴师身份，苏州为琴艺之乡，定为南直隶苏州府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_鬼面商人",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "临洮府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_临洮府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "自称西域胡商，常戴青铜鬼面",
+      "rationale": "因其自称西域胡商且行踪诡秘，故推测籍贯为地理上靠近西域的陕西临洮府，符合明末区域逻辑。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_隐剑山庄主",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "归隐于江南，筑山庄三吴",
+      "rationale": "列传提及归隐三吴，三吴核心为苏州府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_白眉老僧",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "河南府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_河南府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "或曰少林寺达摩院长老，世称空见大师",
+      "rationale": "少林寺位于河南府，故推断其籍贯为河南府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_曹变蛟",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传无明确籍贯，以叔曹文诏籍贯为线索",
+      "rationale": "曹变蛟从叔曹文诏从军，按明末曹氏武将多出自陕西延安府，故推断",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_左良玉",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "东昌府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_东昌府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "历史上左良玉为山东东昌府临清人",
+      "rationale": "明末名将左良玉史上籍贯山东东昌府，且列传未提其他线索",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_黄得功",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "少以勇闻，隶边镇",
+      "rationale": "黄得功出身军籍，隶边镇，明代边将多出陕西，延安府为常见籍贯。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_刘泽清",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "济南府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_济南府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "少从军，积功至山东总兵",
+      "rationale": "刘泽清为山东总兵，明末总兵多籍贯本地，且姓名无其他地域指向，故推测为山东人，以省会济南府为代表。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_高杰",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传：不知何许人也",
+      "rationale": "高杰为流寇出身，曾从李自成，李自成本籍陕西，故推测其为陕西延安府人。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_周遇吉",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "登州府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_登州府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "medium",
+      "evidence_text": "列传云‘或云辽东人’",
+      "rationale": "辽东与山东登州府隔海相望，明时辽东军籍多源自山东，故取登州府为籍贯。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_熊文灿",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "应天府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_应天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传云“不知何许人也”，但姓名文雅、官至尚书，推断为南直隶文风鼎盛之地。",
+      "rationale": "熊文灿姓名文雅，善结交，南直隶应天府为文官渊薮，符合人物气质。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_郑芝龙",
+      "native_place": {
+        "province": "福建",
+        "prefecture": "泉州府",
+        "province_region_id": "formal_fujian",
+        "prefecture_region_id": "formal_fujian_泉州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "列传称福建总兵，镇守福建，早年浪迹海舶，通番语，当为闽人。",
+      "rationale": "郑芝龙是明末福建总兵，活动中心在泉州，且海商身份与泉州府的地理特征吻合，籍贯定为泉州府最为合理。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_郑成功",
+      "native_place": {
+        "province": "福建",
+        "prefecture": "泉州府",
+        "province_region_id": "formal_fujian",
+        "prefecture_region_id": "formal_fujian_泉州府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "郑成功者，初名森，字大木，福建南安人。",
+      "rationale": "列传明确记载籍贯为福建南安，南安属泉州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_刘宗周",
+      "native_place": {
+        "province": "浙江",
+        "prefecture": "绍兴府",
+        "province_region_id": "formal_zhejiang",
+        "prefecture_region_id": "formal_zhejiang_绍兴府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "学者称念台先生，理学名家，与江南清流交游",
+      "rationale": "刘宗周为明末理学宗师，东林遗韵，其学术圈与浙江绍兴渊源深厚，故推籍于此。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_范景文",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "河间府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_河间府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "据传为北直隶河间府人",
+      "rationale": "借鉴历史记载，范景文籍贯为北直隶河间府，符合明末人物地域逻辑。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_李邦华",
+      "native_place": {
+        "province": "江西",
+        "prefecture": "吉安府",
+        "province_region_id": "formal_jiangxi",
+        "prefecture_region_id": "formal_jiangxi_吉安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "姓名与江西籍文人相合。",
+      "rationale": "李邦华之名常见于明代江西吉安府，且其忠直沉毅的文人气质与当地仕风相符。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_马士英",
+      "native_place": {
+        "province": "贵州",
+        "prefecture": "贵阳军民府",
+        "province_region_id": "formal_guizhou",
+        "prefecture_region_id": "formal_guizhou_贵阳军民府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "史载马士英为贵州贵阳人",
+      "rationale": "虽列传未明确籍贯，但历史记载马士英为贵州贵阳人，且其姓名、身份与明末籍贯分布相符。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_阮大铖",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "安庆府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_安庆府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "侨居南京，少负文才，尤工戏曲",
+      "rationale": "阮大铖为明末戏曲家，南直隶安庆府是江南文人常见籍贯，且其侨居南京，推测原籍为安庆府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_姜曰广",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "应天府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_应天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传云‘或云江南士族’",
+      "rationale": "江南士族多指南直隶，应天府为南直隶首府，士族聚居",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_陈子龙",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "松江府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_松江府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "列传称‘江南文坛巨擘’，且南都陷后栖隐乡里。",
+      "rationale": "江南文坛背景及南都栖隐表明其为南直隶人，结合史实松江府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_夏允彝",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "松江府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_松江府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "与陈子龙同郡，为挚友",
+      "rationale": "列传明确记载与陈子龙同郡，故籍贯为松江府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_高起潜",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "不知何许人也，据惯例推断",
+      "rationale": "无明确记载，太监多来自京畿，选顺天府为常见籍贯",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_杜勋",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传云‘不知何许人也’",
+      "rationale": "太监多来自京畿，顺天府为内廷近地，且无其他线索",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_houjin_多尔衮",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_houjin_多铎",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_houjin_阿济格",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_houjin_济尔哈朗",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_houjin_索尼",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_houjin_宁完我",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_houjin_鳌拜",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_houjin_图赖",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_houjin_孔有德",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_houjin_耿仲明",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_houjin_尚可喜",
+      "native_place": {
+        "province": "后金",
+        "prefecture": "赫图阿拉",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "后金外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_mongol_额哲",
+      "native_place": {
+        "province": "蒙古",
+        "prefecture": "察哈尔",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "蒙古外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_mongol_土谢图汗",
+      "native_place": {
+        "province": "蒙古",
+        "prefecture": "察哈尔",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "蒙古外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_mongol_顺义王",
+      "native_place": {
+        "province": "蒙古",
+        "prefecture": "察哈尔",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "蒙古外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_bandits_高迎祥",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传言不知何许人，但起于秦陇饥荒，推断为陕人。",
+      "rationale": "高迎祥起兵于陕西延安一带，常见记载为延安府人，故推断籍贯为延安府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_bandits_罗汝才",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传言‘不知何许人’，依流寇多出自陕西",
+      "rationale": "罗汝才为明末流寇，无明确籍贯，但流寇首领多来自陕西，延安府为流寇发源地之一，故推断为陕西延安府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_bandits_革左五营",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "起于秦陇",
+      "rationale": "列传言起于秦陇，陕西延安府为明末流寇多发地，故推断籍贯在此。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_bandits_刘宗敏",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "西安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_西安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "少为铁匠，从李自成为盗",
+      "rationale": "刘宗敏与李自成同乡，早期活动于陕西，铁匠出身，故推断其籍贯为陕西西安府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_bandits_宋献策",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "河南府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_河南府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "少习奇门遁甲，似中州术士之风",
+      "rationale": "宋献策为流寇军师，善占卜，河南自古多术数之士，且流寇活动于河南，故推测为河南府人。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_bandits_牛金星",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "河南府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_河南府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传曰不知何许人也，以书生从贼，屡试不第",
+      "rationale": "牛金星为不第书生，河南府为中原科举大府，且流寇多在河南活动，推测籍贯在此。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_bandits_李岩",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "开封府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_开封府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "不知何许人也，但姓名及身份暗示河南籍贯",
+      "rationale": "李岩为流寇谋士，工诗善词，河南为中原文化重镇，且李自成活动区域多在此，故推断为河南开封府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_bandits_红娘子",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "开封府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_开封府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称红娘子横行豫中",
+      "rationale": "活跃于河南中部，与李岩结缘，故推断为河南开封府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_白莲教主",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "济南府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_济南府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传曰'信众遍及齐、豫、秦、晋间'，齐指山东",
+      "rationale": "白莲教主姓刘，山东为白莲教活跃地区，故推断籍贯山东济南府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_闻香教主",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "河间府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_河间府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "聚徒众于河北、山东间",
+      "rationale": "活动范围在河北山东交界，河间府地处交汇，便于传教",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_老渔夫",
+      "native_place": {
+        "province": "湖广",
+        "prefecture": "岳州府",
+        "province_region_id": "formal_huguang",
+        "prefecture_region_id": "formal_huguang_岳州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称或曰楚人，隐于洞庭湖上",
+      "rationale": "洞庭湖位于湖广岳州府，故定为岳州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_塞外刀客",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "永平府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_永平府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "往来辽东塞上，人呼关外一刀。",
+      "rationale": "人物活动于辽东塞上，原籍按相近边塞推断为永平府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_苗疆蛊师",
+      "native_place": {
+        "province": "贵州",
+        "prefecture": "黎平府",
+        "province_region_id": "formal_guizhou",
+        "prefecture_region_id": "formal_guizhou_黎平府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "medium",
+      "evidence_text": "或曰自黔中万山深处来",
+      "rationale": "列传称来自黔中，苗疆核心区域，黎平府为明代贵州苗疆重镇，符合人物背景。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_倭寇首领",
+      "native_place": {
+        "province": "日本",
+        "prefecture": "九州",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "大明外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_西洋传教士",
+      "native_place": {
+        "province": "西洋",
+        "prefecture": "利玛窦故里",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "大明外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_南洋华侨",
+      "native_place": {
+        "province": "南洋",
+        "prefecture": "吕宋",
+        "province_region_id": null,
+        "prefecture_region_id": null,
+        "is_external": true
+      },
+      "source_kind": "external_inferred",
+      "confidence": "medium",
+      "evidence_text": "大明外部人物",
+      "rationale": "外族或外来人物保留外部籍贯，不强行纳入明制州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_杨景辰",
+      "native_place": {
+        "province": "江西",
+        "prefecture": "南昌府",
+        "province_region_id": "formal_jiangxi",
+        "prefecture_region_id": "formal_jiangxi_南昌府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称其先不可考",
+      "rationale": "无地理线索，根据官籍身份和常见科举大省推断为江西南昌府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_周道登",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "常州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_常州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称“不知其何许人也”，但姓名与同宗周延儒同族，周延儒为南直隶常州府人",
+      "rationale": "同宗周延儒为南直隶常州府人，且明朝内阁大学士多出自南直隶，故定为南直隶常州府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_成基命",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "永平府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_永平府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "同乡有周遇吉者",
+      "rationale": "同乡周遇吉为北直隶永平府人，故成基命籍贯与之相同。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_王洽",
+      "native_place": {
+        "province": "浙江",
+        "prefecture": "绍兴府",
+        "province_region_id": "formal_zhejiang",
+        "prefecture_region_id": "formal_zhejiang_绍兴府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "或云浙东人，未载确址",
+      "rationale": "列传提及‘或云浙东人’，浙东绍兴府文风鼎盛，多出经史之臣，与王洽经史起家、守中持重的形象契合。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_何如宠",
+      "native_place": {
+        "province": "浙江",
+        "prefecture": "杭州府",
+        "province_region_id": "formal_zhejiang",
+        "prefecture_region_id": "formal_zhejiang_杭州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称‘不知何许人也’，无籍贯线索。",
+      "rationale": "何如宠与浙江人从来宗道游，且久在部曹，推测可能为浙江籍。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_钱象坤",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "与同宗钱谦益善",
+      "rationale": "列传称其与钱谦益同宗，钱谦益为南直隶苏州府人，故推其籍贯亦为苏州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_王元雅",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "师事王绍徽，与王在晋叙同宗，借其乡贯",
+      "rationale": "王元雅与王在晋叙同宗，王在晋为南直隶苏州府人，故推断其籍贯可能相近。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_何天球",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "师事钱谦益，推断其籍贯",
+      "rationale": "师事江南名士钱谦益，且与何如宠序同宗，推测籍贯南直隶苏州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_马世龙",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传提及同乡卓铭，但未明籍贯",
+      "rationale": "边将多出陕西，且与陕西人孙传庭关系密切，故推断为陕西延安府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_孙祖寿",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "永平府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_永平府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "少以材武隶边镇",
+      "rationale": "军籍，隶边镇，姓名无南方特征，推为北直隶边镇永平府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_毕自肃",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "济南府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_济南府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "同宗毕自严为山东济南府人。",
+      "rationale": "列传提及同宗毕自严为尚书，毕自严籍贯山东济南府，故推断毕自肃亦为同籍。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_刘若宰",
+      "native_place": {
+        "province": "云南",
+        "prefecture": "云南府",
+        "province_region_id": "formal_yunnan",
+        "prefecture_region_id": "formal_yunnan_云南府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "low",
+      "evidence_text": "其先世不详，或云南直隶人",
+      "rationale": "列传明确提及籍贯可能为云南直隶，云南直隶对应云南府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_卓铭",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "同乡钱谦益",
+      "rationale": "列传明确写'同乡钱谦益'，钱谦益为南直隶苏州府人，故卓铭籍贯亦为苏州府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_侯良柱",
+      "native_place": {
+        "province": "江西",
+        "prefecture": "南昌府",
+        "province_region_id": "formal_jiangxi",
+        "prefecture_region_id": "formal_jiangxi_南昌府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "同乡姜曰广为江西新建人",
+      "rationale": "列传提到侯良柱与姜曰广为同乡，姜曰广是江西南昌府人，故推断侯良柱籍贯相近。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_刘可训",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "常州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_常州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "与周延儒有师承之谊",
+      "rationale": "周延儒为南直隶常州府宜兴人，同乡师承的可能性较大",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_郑国昌",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "松江府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_松江府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传云‘不知何许人也’，无明确籍贯。",
+      "rationale": "受学于徐光启，徐为南直隶松江府人，推测郑国昌可能亦为松江府人。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_张凤奇",
+      "native_place": {
+        "province": "浙江",
+        "prefecture": "湖州府",
+        "province_region_id": "formal_zhejiang",
+        "prefecture_region_id": "formal_zhejiang_湖州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "师事温体仁，或为同乡",
+      "rationale": "列传无籍贯线索，温体仁为浙江湖州人，张凤奇师事之，故推断其籍贯可能相近。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_刘策",
+      "native_place": {
+        "province": "江西",
+        "prefecture": "南昌府",
+        "province_region_id": "formal_jiangxi",
+        "prefecture_region_id": "formal_jiangxi_南昌府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称“不知何许人也”，无明确籍贯线索。",
+      "rationale": "前监察江西道，且江西籍臣僚甚众，故推测为南昌府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_刘之纶",
+      "native_place": {
+        "province": "湖广",
+        "prefecture": "武昌府",
+        "province_region_id": "formal_huguang",
+        "prefecture_region_id": "formal_huguang_武昌府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "medium",
+      "evidence_text": "或云湖广人",
+      "rationale": "列传有'或云湖广人'的明确记载，故籍贯定为湖广，取武昌府为代表性州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_吴自勉",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "永平府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_永平府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称不知何许人，据军籍身份推测",
+      "rationale": "吴自勉为蓟镇将领，蓟镇治所在北直隶永平府，故籍贯应为该府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_吴宗达",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "medium",
+      "evidence_text": "列传云其为吴中望族后裔",
+      "rationale": "吴中指苏州府，家族背景契合",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_杜文焕",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "不知何许人，然与陕籍杜勋同宗，且于陕北作战。",
+      "rationale": "姓杜且与杜勋同宗，杜勋为陕西籍，且杜文焕活动于陕北清涧等地，故籍贯陕西延安府较合理。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_王国梁",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "保安州",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_保安州",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "隶宣府边镇，积功至游击",
+      "rationale": "列传提及少隶边镇，曾任宣府左营游击，宣府镇在北直隶境内，故推断其籍贯为北直隶保安州。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_杨鹤",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "应天府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_应天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称不知何许人，依其师徐光启籍贯南直隶及官场关联推断",
+      "rationale": "徐光启为南直隶松江人，杨鹤师事之，且与南直籍官员袁崇焕、王在晋同署，故推断其籍贯为南直隶应天府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_张应昌",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "保安州",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_保安州",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "不知何许人，起行伍积功至宣府右营游击",
+      "rationale": "无明确籍贯，据其初仕宣府游击，推测为北直隶近宣府之保安州人",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_陈于泰",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "应天府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_应天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称‘不知何许人也’，无所考据。",
+      "rationale": "姓名陈于泰常见于江南，且其活动范围涉及京师与江南，故推断为南直隶应天府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_吴甡",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "常州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_常州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "与吴宗达同宗，吴宗达籍南直隶常州府",
+      "rationale": "列传以同宗关联吴宗达，故推断籍贯相似",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_张允登",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "济南府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_济南府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称‘不知何许人也’，故无明确线索。",
+      "rationale": "师事山东毕自严，籍贯可能关联山东济南府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_刘若愚",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "河间府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_河间府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传云'不知何许人'，无明确籍贯",
+      "rationale": "明代宦官多来自北直隶河间府等地，故拟定此地。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_孙暹",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称'不知何许人'",
+      "rationale": "明季内官多出自北直隶，且顺天府为京师所在，故推测籍贯于此。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_刘吉祥",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传未载籍贯，以太监身份多来自京畿，故推断为北直隶顺天府。",
+      "rationale": "明代太监多选自北直隶及京师附近，刘吉祥入宫后任职御马监，无其他籍贯线索，故按常见地域推断。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_李永贞",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称不知何许人",
+      "rationale": "太监多来自北直隶，顺天府为京师所在，常见籍贯",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_梁栋",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称不知何许人，据身份及姓名推为北直籍",
+      "rationale": "太监多来自京畿，梁栋居内廷枢要，以阉人身份推断其籍贯为顺天府一带。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_石元雅",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "河间府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_河间府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传云‘不知其所出’，籍贯无据",
+      "rationale": "太监多来自北直隶，石元雅幼年入宫，推测为北直隶河间府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_涂文辅",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "河间府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_河间府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称‘涂文辅者，不知何许人’",
+      "rationale": "明末宦官多出自北直隶河间府，故据此架空",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_陈良谟",
+      "native_place": {
+        "province": "山西",
+        "prefecture": "大同府",
+        "province_region_id": "formal_shanxi",
+        "prefecture_region_id": "formal_shanxi_大同府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "起行伍，积功至大同左营游击",
+      "rationale": "其军职在大同左营，且列传无其他籍贯线索，按明季边军多出自本地，推断为山西大同府人。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_bandits_李九成",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "登州府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_登州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称不知何许人，但李九成反于登莱，曾任山东副将",
+      "rationale": "李九成以山东副将身份在登莱起兵，活动核心在山东，故籍贯推断为山东登州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_张可大",
+      "native_place": {
+        "province": "山西",
+        "prefecture": "大同府",
+        "province_region_id": "formal_shanxi",
+        "prefecture_region_id": "formal_shanxi_大同府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "不知何许人也，起行伍积功至大同右营游击。",
+      "rationale": "列传未提供籍贯，但起行伍于大同，推测其籍贯可能为大同府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_孙元化",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "明末火器专家孙元化史籍记嘉定人，属苏州府",
+      "rationale": "虽列传未载籍贯，但同名历史人物为南直隶苏州府人，故据此推断",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_宋光兰",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "应天府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_应天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传记其与祖大乐、孔贞运同乡",
+      "rationale": "孔贞运为南直隶应天府句容人，故推断同乡宋光兰亦籍贯南直隶应天府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_徐从治",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "济南府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_济南府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "从毕自严游，毕自严为山东济南人",
+      "rationale": "徐从治与山东籍官员毕自严交往密切，且其事迹多与山东相关，故推断为山东济南府人。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_刘宇烈",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "登州府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_登州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "少以材武隶尺籍，后调浙督舟师，谙海道",
+      "rationale": "军籍出身，后任水师将领，参与登莱海战，故推测籍贯山东沿海州府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_余大成",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "登州府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_登州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "尝与乡人范复粹言及天下事",
+      "rationale": "列传中余大成与范复粹为同乡，范复粹为山东登州府人，故推断余大成亦为同籍。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_杨嘉谟",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "应天府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_应天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称'不知何许人也'",
+      "rationale": "籍贯无载，结合其兵部郎出身与江南士族背景，拟为南直隶应天府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_朱大典",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "凤阳府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_凤阳府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传仅言'不知何许人也'，未载籍贯。",
+      "rationale": "姓朱，明宗室同姓，南直隶凤阳为朱氏郡望，且大典官至巡抚，南直隶举子多，故推断凤阳府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_郑以伟",
+      "native_place": {
+        "province": "福建",
+        "prefecture": "泉州府",
+        "province_region_id": "formal_fujian",
+        "prefecture_region_id": "formal_fujian_泉州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "以伟以同宗故，私书往来（指郑芝龙）",
+      "rationale": "因与郑芝龙同宗，郑芝龙为福建泉州人，故推断为福建泉州府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_谢琏",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "济南府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_济南府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传言‘同宗谢陞方用事’，谢陞为山东德州人，属济南府",
+      "rationale": "谢琏与谢陞同宗，谢陞籍贯为山东济南府德州，故推断谢琏籍贯相同",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_朱万年",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "起行伍，积功至延绥左营游击",
+      "rationale": "延绥镇位于陕西，游击为边将，推测其籍贯在陕西延安府一带",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_杨麒",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "起行伍，积功至延绥右营游击，后镇固原，与陕籍武将多有往来。",
+      "rationale": "其起家延绥，镇戍固原，且与陕西籍将领交好，故推测籍贯陕西延安府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_bandits_杨正芳",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "平凉府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_平凉府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传谓‘不知何许人也’，无明确籍贯",
+      "rationale": "初为固原副将，固原属陕西平凉府，故推测籍贯为陕西平凉府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_祖宽",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "灵州",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_灵州",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "初为宁夏左翼游击，且与祖大寿同宗",
+      "rationale": "宁夏左翼游击驻地宁夏卫属陕西，同宗祖大寿为辽东人但不在列，故依驻地推断为陕西灵州",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_bandits_刘香",
+      "native_place": {
+        "province": "广东",
+        "prefecture": "潮州府",
+        "province_region_id": "formal_guangdong",
+        "prefecture_region_id": "formal_guangdong_潮州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "横行闽粤间，据南澳",
+      "rationale": "刘香活动核心在闽粤沿海，以南澳为基地，南澳属广东潮州府，故推断其为广东潮州府人。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_王志道",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称'不知何许人也'，无明确籍贯线索",
+      "rationale": "姓名风格偏文士，乡荐出身，江南科举大府最为合理",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_陈洪范",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传云'不知何许人也'，无籍贯线索。",
+      "rationale": "起行伍积功至总兵，无地域线索，按明末武将常见籍贯推断为北直隶顺天府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_邓玘",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "西安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_西安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称不知何许人，推测为陕籍边将",
+      "rationale": "邓玘起行伍，长期任甘肃游击，明末边将多陕西籍，故推断为陕西西安府人",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_陈大金",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "松江府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_松江府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "师从大学士韩爌，与陈子龙叙同宗。",
+      "rationale": "无明确籍贯，因与陈子龙叙同宗，故推断为南直隶松江府人。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_李卑",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "不知何许人也，起行伍，镇甘肃右翼。",
+      "rationale": "军籍行伍出身，长期在西北边镇任职，延安府为明代边镇重要兵源地，且与同宗李标等北直隶籍贯不同，故推断为陕西延安府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_黄龙",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "西安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_西安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传无明确籍贯，以军籍边将推之",
+      "rationale": "黄龙以军伍起，守固镇中营，调防旅顺，明末边将多籍陕西，故取省城西安府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_钱士升",
+      "native_place": {
+        "province": "浙江",
+        "prefecture": "嘉兴府",
+        "province_region_id": "formal_zhejiang",
+        "prefecture_region_id": "formal_zhejiang_嘉兴府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "钱士升，浙江嘉善人，属嘉兴府",
+      "rationale": "依据历史人物钱士升籍贯为浙江嘉兴府嘉善县，与列传中江南士人背景吻合。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_王应熊",
+      "native_place": {
+        "province": "四川",
+        "prefecture": "成都府",
+        "province_region_id": "formal_sichuan",
+        "prefecture_region_id": "formal_sichuan_成都府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "medium",
+      "evidence_text": "列传：其先世无考，或曰巴蜀人。",
+      "rationale": "列传称\"或曰巴蜀人\"，巴蜀即四川，故定为四川成都府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_何吾驺",
+      "native_place": {
+        "province": "广东",
+        "prefecture": "广州府",
+        "province_region_id": "formal_guangdong",
+        "prefecture_region_id": "formal_guangdong_广州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称‘不知何许人也’",
+      "rationale": "姓名无明确地域线索，取广东广州府作为合理架空，适应其跨圈身份。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_许鼎臣",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "大名府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_大名府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "与黄立极同乡",
+      "rationale": "列传提及与黄立极同乡，黄立极籍贯为大名府，故推断许鼎臣亦为大名府人。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_张彝宪",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称'不知其所出'",
+      "rationale": "张彝宪是阉人，明末太监多来自北直隶京畿地区，故推断为顺天府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_刘若金",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传云不详其乡里",
+      "rationale": "姓名无地域特征，以户部官身份推测来自南直隶苏州府，文风雅致。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_陈奇瑜",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "常州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_常州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "未知，依同宗陈于泰及门周延儒推为南直隶常州",
+      "rationale": "同宗陈于泰、陈起新及门周延儒皆南直常州府人，故推定",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_刘理顺",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "开封府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_开封府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "据历史记载，刘理顺为河南杞县人",
+      "rationale": "列传虽称籍贯未知，但历史原型明确为河南开封府杞县人，故据此推断。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_杨世恩",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "登州府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_登州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "起行伍，积功至东江水营游击",
+      "rationale": "东江水营为登莱水师，杨世恩出身行伍，籍贯可能在山东沿海军户地区，故推断为登州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_贺人龙",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "登州府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_登州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称不知何许人，初为登莱水师游击",
+      "rationale": "初任登莱水师游击，水师多征当地兵员，故推断籍贯山东登州府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_丁魁楚",
+      "native_place": {
+        "province": "福建",
+        "prefecture": "漳州府",
+        "province_region_id": "formal_fujian",
+        "prefecture_region_id": "formal_fujian_漳州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "黄道周亦其乡人",
+      "rationale": "列传指明丁魁楚与黄道周同乡，黄道周为福建漳州府人，故推断丁魁楚亦为福建漳州府人",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_尤世威",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "保定府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_保定府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "同乡许显纯、张宗衡",
+      "rationale": "由列传中同乡线索推断，许显纯为北直隶保定府人，故尤世威亦当为北直隶保定府人。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_张宗衡",
+      "native_place": {
+        "province": "山西",
+        "prefecture": "平阳府",
+        "province_region_id": "formal_shanxi",
+        "prefecture_region_id": "formal_shanxi_平阳府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "师事韩爌，韩爌为山西平阳府人",
+      "rationale": "张宗衡师从山西平阳府人韩爌，且与张凤翼等同宗，推断其籍贯可能为山西平阳府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_陆梦龙",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "与杜文焕同乡，杜文焕为陕西延安人",
+      "rationale": "列传提及与杜文焕同乡，故籍贯当与杜文焕相同，杜为陕西延安府人",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_朱国相",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "凤阳府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_凤阳府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称‘不知何许人’，因任凤阳留守，推断籍贯南直隶凤阳",
+      "rationale": "虽无明确记载，但作为凤阳留守，任职地与籍贯同省的可能性较高，且凤阳为中都，官员多来自本省",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_张国维",
+      "native_place": {
+        "province": "浙江",
+        "prefecture": "杭州府",
+        "province_region_id": "formal_zhejiang",
+        "prefecture_region_id": "formal_zhejiang_杭州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传无籍贯信息，称‘不知何许人也’",
+      "rationale": "因无明确线索，结合其师事温体仁（浙江湖州人）及任应天巡抚江南，推断为浙江杭州府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_杨一鹏",
+      "native_place": {
+        "province": "湖广",
+        "prefecture": "武昌府",
+        "province_region_id": "formal_huguang",
+        "prefecture_region_id": "formal_huguang_武昌府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "medium",
+      "evidence_text": "或云湖广人",
+      "rationale": "列传提到'或云湖广人'，结合其曾任湖广清吏司郎中，推断为湖广武昌府人。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_艾万年",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "保定府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_保定府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "少从军，积功至保定标营游击",
+      "rationale": "其早期军功升迁在保定，推测籍贯为北直隶保定府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_柳国镇",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "少从军，守榆林标营",
+      "rationale": "守榆林边镇，且与陕西籍田贵妃有同乡之谊，推断为陕西延安府人",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_文震孟",
+      "native_place": {
+        "province": "湖广",
+        "prefecture": "常德府",
+        "province_region_id": "formal_huguang",
+        "prefecture_region_id": "formal_huguang_常德府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "与杨嗣昌、刘若金同乡里",
+      "rationale": "列传称文震孟与杨嗣昌、刘若金为乡里，杨嗣昌为湖广常德府人，故推断文震孟籍贯也为湖广常德府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_张至发",
+      "native_place": {
+        "province": "浙江",
+        "prefecture": "杭州府",
+        "province_region_id": "formal_zhejiang",
+        "prefecture_region_id": "formal_zhejiang_杭州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "与浙籍官员来宗道、钱士升相善，且师事浙人温体仁。",
+      "rationale": "列传中张至发与来宗道、钱士升交好，二人皆浙江人，且温体仁亦浙江人，故推断其为浙江籍贯。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_张全昌",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "西安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_西安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "不知何许人，起行伍，积功至陕西标营游击",
+      "rationale": "列传记其不知何许人，但起行伍，积功至陕西标营游击，故推测籍贯陕西西安府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_侯恂",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "归德府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_归德府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称不知何许人，姓名与职务暗示北方籍贯。",
+      "rationale": "侯姓在河南分布集中，归德府历史上出过侯氏名宦，且中原地区常见户部官员出身。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_林釬",
+      "native_place": {
+        "province": "福建",
+        "prefecture": "泉州府",
+        "province_region_id": "formal_fujian",
+        "prefecture_region_id": "formal_fujian_泉州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传未载籍贯，以姓名与官职推断",
+      "rationale": "林姓在福建为望族，泉州府文风鼎盛，易出高官，故推断为福建泉州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_汤九州",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "池州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_池州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传云不知何许人也，但历史原型为南直隶池州人",
+      "rationale": "汤九州历史原型为南直隶池州府石埭人，且列传中“海寇为乡党”暗示其籍贯可能为沿海地区，故取池州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_王楫",
+      "native_place": {
+        "province": "湖广",
+        "prefecture": "武昌府",
+        "province_region_id": "formal_huguang",
+        "prefecture_region_id": "formal_huguang_武昌府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传云'不知何许人也'",
+      "rationale": "无明确线索，结合官籍（湖广道监察御史）及常见性，推测为湖广武昌府人",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_丁启睿",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "开封府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_开封府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "无明确籍贯记载，据其活动区域推断",
+      "rationale": "丁启睿主要活动在河南、陕西，且与河南籍官员有交集，故推测为河南开封府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_陈起新",
+      "native_place": {
+        "province": "浙江",
+        "prefecture": "绍兴府",
+        "province_region_id": "formal_zhejiang",
+        "prefecture_region_id": "formal_zhejiang_绍兴府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "师事来宗道，宗道浙江绍兴人，或为同乡",
+      "rationale": "列传称不知何许人，但师事来宗道，宗道为绍兴人，推测其可能同乡，且明代绍兴武举亦有人才",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_祖大乐",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "永平府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_永平府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "辽西将门子",
+      "rationale": "列传称其为辽西将门子，明末辽西将门多出自北直隶永平府及辽东，故推断为永平府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_俞冲霄",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称不知何许人，行伍出身，在边镇活动。",
+      "rationale": "俞冲霄为边镇将领，长期在延绥任职，且明末陕西多军户，故推断籍贯为陕西延安府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_孔贞运",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "兖州府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_兖州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传云“不知何许人”，无明确籍贯。",
+      "rationale": "孔姓以山东曲阜为郡望，且明代孔氏多居兖州府，故推测其为山东兖州府人。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_贺逢圣",
+      "native_place": {
+        "province": "湖广",
+        "prefecture": "武昌府",
+        "province_region_id": "formal_huguang",
+        "prefecture_region_id": "formal_huguang_武昌府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传言不知何许人，但据同乡王志道籍贯推断",
+      "rationale": "贺逢圣与王志道同乡，王志道为湖广武昌人，故推断贺逢圣籍贯为湖广武昌府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_黄士俊",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传云'不知何许人也'，姓名黄士俊，身份官籍，循默守位，推测为江南文风之地",
+      "rationale": "黄士俊为内阁官员，性格守中观望，似江南士大夫，南直隶苏州府为明末科举人文渊薮，故以此推定",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_解进忠",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "扬州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_扬州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传载：进忠与解学龙同宗",
+      "rationale": "解学龙为南直隶扬州府人，同宗暗示籍贯相近",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_李国辅",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传未载籍贯，仅言少选入内廷，与北直阁竖交好",
+      "rationale": "明代阉人多出自京畿，且与北直隶宦官李永贞交好，故推断为顺天府人。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_朱纯臣",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "凤阳府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_凤阳府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "列传未载，但成国公世系祖籍凤阳",
+      "rationale": "成国公朱能祖籍凤阳，朱纯臣为其后裔，故籍贯为凤阳",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_王肇坤",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "常州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_常州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "尝师事周延儒，延儒为南直隶常州府人",
+      "rationale": "王肇坤师从周延儒，且与江南文官集团声气相通，推断籍贯为南直隶常州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_张凤翼",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传无明确，师事徐光启，徐为松江人，苏州与之近。",
+      "rationale": "与徐光启的师徒关系暗示可能来自文化相近的苏州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_朱聿键",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "南阳府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_南阳府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "朱聿键，唐藩宗室也",
+      "rationale": "唐藩封地在南阳府，宗室籍贯以封地为准。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_刘同升",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "济南府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_济南府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "与刘鸿训、刘策同宗",
+      "rationale": "列传提及与刘鸿训、刘策同宗，二人均为山东济南府人，故推断其籍贯相同。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_金日观",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "松江府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_松江府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "low",
+      "evidence_text": "列传载：或言日观与徐光启同乡，然莫能详也",
+      "rationale": "列传有'或言与徐光启同乡'，徐光启为南直隶松江人，故推断，但原书存疑。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_沈冬魁",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "松江府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_松江府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "同乡夏允彝为松江府人",
+      "rationale": "与夏允彝有乡谊，推测为同籍",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_刘宇亮",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传未载籍贯，但与钱谦益友善，推测为南直人",
+      "rationale": "刘宇亮与钱谦益交游，钱为南直隶苏州府人，故籍贯定于苏州府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_傅冠",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "应天府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_应天府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "列传称其与张可大为同乡，张可大籍隶南直隶应天府",
+      "rationale": "依据列传中'同乡张可大'的明确线索，推测傅冠亦为南直隶应天府人",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_薛国观",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "西安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_西安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "其先世不可考，少习经史，长于案牍，受业于王绍徽（陕西人）。",
+      "rationale": "无明确线索，但受业于陕西籍王绍徽，且历史上薛国观为陕西韩城人，故推断为陕西西安府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_张任学",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "保安州",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_保安州",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称不知何许人，初任宣府先遣营游击",
+      "rationale": "因其初任宣府先遣营游击，宣府地近保安州，疑为本地军籍",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_程国祥",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "师事钱谦益，钱为南直隶苏州府人",
+      "rationale": "程国祥师从钱谦益，钱为苏州府人，且南直隶为明季人才渊薮，符合其官籍背景",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_方逢年",
+      "native_place": {
+        "province": "浙江",
+        "prefecture": "严州府",
+        "province_region_id": "formal_zhejiang",
+        "prefecture_region_id": "formal_zhejiang_严州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传未载籍贯，依姓名、同官及整体气质推断",
+      "rationale": "方姓在浙江分布广，且明末名臣方逢年原型为浙江严州人，取之",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_蔡国用",
+      "native_place": {
+        "province": "福建",
+        "prefecture": "漳州府",
+        "province_region_id": "formal_fujian",
+        "prefecture_region_id": "formal_fujian_漳州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "黄道周、朱翊铭以同乡时相过从",
+      "rationale": "列传称蔡国用与黄道周、朱翊铭为同乡，黄道周为福建漳州府人，故推断蔡国用亦为漳州府人。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_范复粹",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "常州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_常州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传未载籍贯，据姓名与仕途推测",
+      "rationale": "范复粹为周延儒门人，周延儒为南直隶常州府人，同乡可能性高",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_吴阿衡",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称'不知何许人也'，无明确籍贯",
+      "rationale": "据姓名吴阿衡，及与吴甡同宗，推测籍贯为苏州府，属吴姓聚居地。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_朱由枢",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "济南府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_济南府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "居济南",
+      "rationale": "列传明确记载其居济南，故籍贯为山东济南府",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_张秉文",
+      "native_place": {
+        "province": "浙江",
+        "prefecture": "杭州府",
+        "province_region_id": "formal_zhejiang",
+        "prefecture_region_id": "formal_zhejiang_杭州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传未载籍贯，师事浙江人而来宗道，且与张至发等交厚，推测为浙江",
+      "rationale": "师从来宗道（浙江人），且与张至发等同宗交厚，但布政使回避本省，故推断为浙江杭州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_姚明恭",
+      "native_place": {
+        "province": "湖广",
+        "prefecture": "黄州府",
+        "province_region_id": "formal_huguang",
+        "prefecture_region_id": "formal_huguang_黄州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传无籍贯，依姓名与明末姚姓官员地域分布推断",
+      "rationale": "无明确籍贯，据姓名与明末湖广籍姚姓官员常见，且历史上姚明恭为湖广黄州人，故推断。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_张四知",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "松江府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_松江府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "师从徐光启，徐为南直隶松江府人。",
+      "rationale": "师从徐光启，推测其籍贯亦在江南地区。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_魏照乘",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "大名府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_大名府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称同宗魏藻德，魏藻德为北直人；且历史原型魏照乘为滑县人，滑县属大名府",
+      "rationale": "同宗魏藻德为北直籍，且历史原型滑县属北直隶大名府，故推断籍贯为此",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_bandits_李万庆",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传言其起于陕",
+      "rationale": "流寇多出陕西，起于陕故籍贯定陕西延安府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_罗岱",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "归德府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_归德府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传载罗岱与丁启睿、程国祥同乡，丁启睿为河南归德府人。",
+      "rationale": "根据列传中“与丁启睿、程国祥同乡”的线索，丁启睿籍贯明确为河南归德府，故推断罗岱籍贯与此相同。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_颜继祖",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "开封府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_开封府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "史可法、杨世恩皆其同乡",
+      "rationale": "据同乡史可法推断为河南开封府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_倪宠",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "保安州",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_保安州",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "倪宠起行伍，初为宣府烽堠营游击，宣府属北直隶保安州、延庆州等地。",
+      "rationale": "倪宠行伍出身，长期在宣府活动，故籍贯拟为北直隶保安州，靠近其最初任职地。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_邓希诏",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传仅言'不知何许人也'，无明确籍贯",
+      "rationale": "明代宦官多来自北直隶，邓希诏与北直隶籍的王承恩关系密切，故推测为顺天府人",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_孙茂霖",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "顺天府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_顺天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称不知何许人，但宦官多来自北直隶",
+      "rationale": "明代宦官多来自北直隶顺天府一带，且无其他线索，故推断为此",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_郑崇俭",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "应天府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_应天府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "不知何许人也",
+      "rationale": "籍贯不明，据其郎署出身，以江南士绅居多，姑置南直应天。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_魏藻德",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "大名府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_大名府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "列传载：独与同乡王楫厚善。",
+      "rationale": "同宗魏照乘为大名府人，且与王楫同乡，故推断魏藻德亦为大名府人。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_解学龙",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "永平府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_永平府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "low",
+      "evidence_text": "或言其与同乡闻香教主有旧",
+      "rationale": "列传提及同乡闻香教主（王森，滦州人），推断其籍贯为北直隶永平府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_谢陞",
+      "native_place": {
+        "province": "山东",
+        "prefecture": "济南府",
+        "province_region_id": "formal_shandong",
+        "prefecture_region_id": "formal_shandong_济南府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传无明确籍贯，其同乡白眉老僧提示有地缘关系。",
+      "rationale": "据明史，谢陞实为山东德州人，德州属济南府，故推断为济南府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_陈演",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "常州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_常州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传中称与陈于泰同宗，陈于泰为南直隶常州府人",
+      "rationale": "陈演与陈于泰同宗，故推测祖籍为常州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_秦良玉",
+      "native_place": {
+        "province": "四川",
+        "prefecture": "重庆府",
+        "province_region_id": "formal_sichuan",
+        "prefecture_region_id": "formal_sichuan_重庆府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "列传：四川忠州人也",
+      "rationale": "列传明确记载籍贯，忠州属重庆府",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_孙应元",
+      "native_place": {
+        "province": "山西",
+        "prefecture": "大同府",
+        "province_region_id": "formal_shanxi",
+        "prefecture_region_id": "formal_shanxi_大同府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "初为大同先遣营游击",
+      "rationale": "首任官职在大同，且与山西籍将领孙传庭叙同宗，推测为山西人",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_张令",
+      "native_place": {
+        "province": "山西",
+        "prefecture": "大同府",
+        "province_region_id": "formal_shanxi",
+        "prefecture_region_id": "formal_shanxi_大同府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "起行伍，积功至大同后哨营游击",
+      "rationale": "张令起于大同行伍，边镇将领多就地募兵，故籍贯推测为山西大同府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_朱采鑋",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "河南府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_河南府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "列传载其封万安王，守偃师城",
+      "rationale": "明代周藩万安王封地在河南府，其籍贯应为河南府",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_猛如虎",
+      "native_place": {
+        "province": "山西",
+        "prefecture": "大同府",
+        "province_region_id": "formal_shanxi",
+        "prefecture_region_id": "formal_shanxi_大同府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "驻大同屯守营",
+      "rationale": "列传未载籍贯，但猛如虎长期驻守大同，且为军籍，推测为山西大同府人。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_刘士杰",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传无籍贯，以同宗刘国能为延安府人推之",
+      "rationale": "与刘国能同宗且同列军中，国能为陕西延安人，士杰可能亦出此地",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_朱常洵",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "河南府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_河南府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "封福王，之国河南",
+      "rationale": "福王朱常洵封藩洛阳，故籍贯为河南河南府",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_吕维祺",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "河南府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_河南府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传未明载籍贯，但记其居乡于河南，城陷被执",
+      "rationale": "传称其崇祯十四年于河南居乡，城陷被执，故推定籍贯为河南府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_朱翊铭",
+      "native_place": {
+        "province": "湖广",
+        "prefecture": "襄阳府",
+        "province_region_id": "formal_huguang",
+        "prefecture_region_id": "formal_huguang_襄阳府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "列传：张献忠陷襄阳，翊铭被执",
+      "rationale": "襄王封地在襄阳府，列传明确其镇守襄阳，可推断其籍贯为襄阳府",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_朱常法",
+      "native_place": {
+        "province": "贵州",
+        "prefecture": "贵阳军民府",
+        "province_region_id": "formal_guizhou",
+        "prefecture_region_id": "formal_guizhou_贵阳军民府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "列传记载：朱常法，万历间封贵阳王。",
+      "rationale": "明宗室封王以封地为号，贵阳王对应贵州贵阳军民府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_张克俭",
+      "native_place": {
+        "province": "南直隶",
+        "prefecture": "苏州府",
+        "province_region_id": "formal_south_zhili",
+        "prefecture_region_id": "formal_south_zhili_苏州府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传称‘不知何许人也’",
+      "rationale": "籍贯无记载，根据其姓张及明末江南多出官员，推测为南直隶苏州府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_傅宗龙",
+      "native_place": {
+        "province": "湖广",
+        "prefecture": "武昌府",
+        "province_region_id": "formal_huguang",
+        "prefecture_region_id": "formal_huguang_武昌府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "傅宗龙，楚人。",
+      "rationale": "列传明确记载'楚人'，楚即湖广，故省籍定为湖广；无具体府县信息，但常见湖广籍高官多出武昌府，故推断为武昌府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_杨文岳",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "开封府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_开封府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "不知何许人也",
+      "rationale": "无明确籍贯，以其督师中原且任职保定，明代河南文人辈出，故架设为河南开封府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_虎大威",
+      "native_place": {
+        "province": "山西",
+        "prefecture": "太原府",
+        "province_region_id": "formal_shanxi",
+        "prefecture_region_id": "formal_shanxi_太原府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传载不知何许人也",
+      "rationale": "虎大威早期任山西后哨营游击，故推测籍贯为山西太原府，符合边将出身地域特点。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_杨国柱",
+      "native_place": {
+        "province": "山西",
+        "prefecture": "大同府",
+        "province_region_id": "formal_shanxi",
+        "prefecture_region_id": "formal_shanxi_大同府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称不知何许人，但隶山西援剿营，任阳和总兵",
+      "rationale": "隶属山西援剿营且驻地阳和卫属大同府，推断其籍贯为山西大同府",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_吴三桂",
+      "native_place": {
+        "province": "北直隶",
+        "prefecture": "永平府",
+        "province_region_id": "formal_north_zhili",
+        "prefecture_region_id": "formal_north_zhili_永平府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "low",
+      "evidence_text": "列传载‘出身辽西将门’",
+      "rationale": "辽西将门指向北直隶永平府附近明边镇区域，永平府为辽西与关内交界，符合明代辽西将门逻辑。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_王朴",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "high",
+      "evidence_text": "列传称其为延绥边将",
+      "rationale": "延绥镇属陕西，王朴初任延绥后哨营游击，故籍贯推断为陕西延安府。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_刘国能",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传称不知何许人，初为宁夏先遣营游击",
+      "rationale": "明边镇将领多陕西籍，宁夏属陕西，暂以延安府为籍贯。",
+      "review_status": "needs_review"
+    },
+    {
+      "npc_id": "npc_ming_朱聿镆",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "南阳府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_南阳府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "列传记其于南阳城破时殉国",
+      "rationale": "唐藩封地南阳，列传明确其守南阳殉国",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_朱恭枵",
+      "native_place": {
+        "province": "河南",
+        "prefecture": "开封府",
+        "province_region_id": "formal_henan",
+        "prefecture_region_id": "formal_henan_开封府",
+        "is_external": false
+      },
+      "source_kind": "biography_explicit",
+      "confidence": "high",
+      "evidence_text": "列传称其为周王，守开封，周王封地在开封府。",
+      "rationale": "朱恭枵为周王后裔，封国在开封，故籍贯为河南开封府。",
+      "review_status": "accepted"
+    },
+    {
+      "npc_id": "npc_ming_高名衡",
+      "native_place": {
+        "province": "陕西",
+        "prefecture": "延安府",
+        "province_region_id": "formal_shaanxi",
+        "prefecture_region_id": "formal_shaanxi_延安府",
+        "is_external": false
+      },
+      "source_kind": "llm_inferred",
+      "confidence": "medium",
+      "evidence_text": "列传言与高杰、高起潜同宗，高杰籍陕西延安府",
+      "rationale": "高名衡与高杰同宗，高杰为陕西延安府人，故推断其籍贯为陕西延安府。",
+      "review_status": "needs_review"
+    }
+  ]
+}
