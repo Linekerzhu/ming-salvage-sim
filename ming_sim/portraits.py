@@ -15,7 +15,9 @@ import hashlib
 import json
 import os
 import re
+import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections import deque
 from dataclasses import dataclass
@@ -742,6 +744,166 @@ def _find_url(value: Any) -> Optional[str]:
     return None
 
 
+def _provider_base_url() -> str:
+    return os.environ.get("NANO_BANANA_BASE_URL", NANO_BANANA_DEFAULT_BASE_URL).rstrip("/")
+
+
+def _rewrite_302_url(url: str) -> str:
+    parsed = urllib.parse.urlparse(url)
+    host = parsed.netloc.lower()
+    if not host:
+        return url
+    base_host = urllib.parse.urlparse(_provider_base_url()).netloc
+    if host == "api.302.ai" and base_host:
+        return urllib.parse.urlunparse(parsed._replace(netloc=base_host))
+    if host == "file.302.ai":
+        override = os.environ.get("NANO_BANANA_FILE_BASE_URL", "").strip().rstrip("/")
+        if override:
+            override_parsed = urllib.parse.urlparse(override if "://" in override else f"https://{override}")
+            if override_parsed.netloc:
+                return urllib.parse.urlunparse(
+                    parsed._replace(
+                        scheme=override_parsed.scheme or parsed.scheme,
+                        netloc=override_parsed.netloc,
+                    )
+                )
+        if base_host.lower().endswith("302ai.cn"):
+            return urllib.parse.urlunparse(parsed._replace(netloc="file.302ai.cn"))
+    return url
+
+
+def _payload_data(payload: Dict[str, Any]) -> Dict[str, Any]:
+    data = payload.get("data") if isinstance(payload, dict) else None
+    return data if isinstance(data, dict) else {}
+
+
+def _payload_status(payload: Dict[str, Any]) -> str:
+    data = _payload_data(payload)
+    value = (data.get("status") or payload.get("status")) if isinstance(payload, dict) else ""
+    return str(value or "").strip().lower()
+
+
+def _payload_error_detail(payload: Dict[str, Any]) -> str:
+    if not isinstance(payload, dict):
+        return str(payload)[:300]
+    data = _payload_data(payload)
+    for container in (data, payload):
+        for key in ("error", "message", "msg", "detail"):
+            value = container.get(key)
+            if value:
+                return str(value)[:500]
+    return str(payload)[:500]
+
+
+def _payload_result_url(payload: Dict[str, Any]) -> Optional[str]:
+    data = _payload_data(payload)
+    for container in (data, payload):
+        urls = container.get("urls") if isinstance(container, dict) else None
+        if isinstance(urls, dict):
+            for key in ("get", "result"):
+                url = urls.get(key)
+                if isinstance(url, str) and url.startswith(("http://", "https://")):
+                    return url
+    return None
+
+
+def _is_302_result_url(url: str) -> bool:
+    parsed = urllib.parse.urlparse(url)
+    host = parsed.netloc.lower()
+    path = parsed.path.lower()
+    return host in {"api.302.ai", "api.302ai.cn"} and "/predictions/" in path and path.endswith("/result")
+
+
+def _looks_like_image_url(url: str) -> bool:
+    parsed = urllib.parse.urlparse(url)
+    host = parsed.netloc.lower()
+    path = parsed.path.lower()
+    if _is_302_result_url(url):
+        return False
+    if host.startswith("file.302"):
+        return True
+    return path.endswith((".png", ".jpg", ".jpeg", ".webp"))
+
+
+def _find_image_url(value: Any) -> Optional[str]:
+    if isinstance(value, str) and value.startswith(("http://", "https://")):
+        return value if _looks_like_image_url(value) else None
+    if isinstance(value, list):
+        for item in value:
+            found = _find_image_url(item)
+            if found:
+                return found
+    if isinstance(value, dict):
+        for key in ("outputs", "output", "images", "image_urls", "image_url", "url", "result", "results"):
+            found = _find_image_url(value.get(key))
+            if found:
+                return found
+        for item in value.values():
+            found = _find_image_url(item)
+            if found:
+                return found
+    return None
+
+
+def _download_image_url(url: str, timeout_s: int) -> bytes:
+    rewritten_url = _rewrite_302_url(url)
+    img_req = urllib.request.Request(
+        rewritten_url,
+        headers={
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+            "Referer": "https://302.ai/",
+        },
+    )
+    with urllib.request.urlopen(img_req, timeout=timeout_s) as img_resp:
+        return img_resp.read()
+
+
+def _read_302_result(result_url: str, key: str, timeout_s: int) -> Dict[str, Any]:
+    req = urllib.request.Request(
+        _rewrite_302_url(result_url),
+        method="GET",
+        headers={
+            "Authorization": f"Bearer {key}",
+            "User-Agent": "Ming-Salvage-Sim/portrait-pipeline",
+        },
+    )
+    return _read_json_response(req, timeout_s)
+
+
+def _poll_302_result(result_url: str, key: str, timeout_s: int) -> Dict[str, Any]:
+    deadline = time.monotonic() + max(1, timeout_s)
+    interval = max(0.5, float(os.environ.get("NANO_BANANA_POLL_INTERVAL_SECONDS", "3") or 3))
+    last_payload: Dict[str, Any] = {}
+    terminal_ok = {"succeeded", "success", "completed", "complete", "ready", "finished"}
+    terminal_bad = {"failed", "failure", "error", "cancelled", "canceled"}
+    while time.monotonic() < deadline:
+        remaining = max(1, min(30, int(deadline - time.monotonic())))
+        last_payload = _read_302_result(result_url, key, remaining)
+        status = _payload_status(last_payload)
+        if _find_base64(last_payload) or _find_image_url(last_payload):
+            return last_payload
+        if status in terminal_ok:
+            return last_payload
+        if status in terminal_bad:
+            raise RuntimeError(f"nano banana 任务失败：{_payload_error_detail(last_payload)}")
+        time.sleep(min(interval, max(0.1, deadline - time.monotonic())))
+    raise RuntimeError(f"nano banana 任务超时：{_payload_error_detail(last_payload)}")
+
+
+def _image_bytes_from_provider_payload(payload: Dict[str, Any], *, key: str, timeout_s: int, allow_poll: bool = True) -> bytes:
+    b64 = _find_base64(payload)
+    if b64:
+        return base64.b64decode(re.sub(r"\s+", "", b64))
+    url = _find_image_url(payload)
+    if url:
+        return _download_image_url(url, timeout_s)
+    result_url = _payload_result_url(payload)
+    if allow_poll and result_url:
+        result_payload = _poll_302_result(result_url, key, timeout_s)
+        return _image_bytes_from_provider_payload(result_payload, key=key, timeout_s=timeout_s, allow_poll=False)
+    raise RuntimeError(f"nano banana 未返回图片数据：{str(payload)[:500]}")
+
+
 def detect_image_mime(data: bytes) -> str:
     if data.startswith(b"\x89PNG\r\n\x1a\n"):
         return "image/png"
@@ -820,7 +982,7 @@ def _nano_banana_generate_with_references(
     key = os.environ.get("NANO_BANANA_API_KEY", "").strip() or os.environ.get("OPENAI_IMAGE_KEY", "").strip()
     if not key:
         raise RuntimeError("缺 NANO_BANANA_API_KEY 环境变量。")
-    base_url = os.environ.get("NANO_BANANA_BASE_URL", NANO_BANANA_DEFAULT_BASE_URL).rstrip("/")
+    base_url = _provider_base_url()
     endpoint = os.environ.get("NANO_BANANA_ORIGINAL_ENDPOINT", NANO_BANANA_DEFAULT_ORIGINAL_ENDPOINT)
     if not endpoint.startswith("/"):
         endpoint = "/" + endpoint
@@ -884,21 +1046,10 @@ def _nano_banana_generate_with_references(
             payload = _read_json_response(edit_req, timeout_s)
         except Exception as edit_error:
             raise RuntimeError(f"参考图生成失败：original={original_error}; edit={edit_error}") from edit_error
-    b64 = _find_base64(payload)
-    if b64:
-        return base64.b64decode(re.sub(r"\s+", "", b64))
-    url = _find_url(payload)
-    if url:
-        img_req = urllib.request.Request(
-            url,
-            headers={
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-                "Referer": "https://302.ai/",
-            },
-        )
-        with urllib.request.urlopen(img_req, timeout=timeout_s) as img_resp:
-            return img_resp.read()
-    raise RuntimeError(f"nano banana 参考图生成未返回图片数据：{str(payload)[:500]}")
+    try:
+        return _image_bytes_from_provider_payload(payload, key=key, timeout_s=timeout_s)
+    except Exception as exc:
+        raise RuntimeError(f"nano banana 参考图生成未返回图片数据：{exc}") from exc
 
 
 def _parse_aspect_ratio(value: Optional[str]) -> Optional[tuple[int, int]]:
@@ -1256,7 +1407,7 @@ def nano_banana_generate_png(
     key = os.environ.get("NANO_BANANA_API_KEY", "").strip() or os.environ.get("OPENAI_IMAGE_KEY", "").strip()
     if not key:
         raise RuntimeError("缺 NANO_BANANA_API_KEY 环境变量。")
-    base_url = os.environ.get("NANO_BANANA_BASE_URL", NANO_BANANA_DEFAULT_BASE_URL).rstrip("/")
+    base_url = _provider_base_url()
     endpoint = os.environ.get("NANO_BANANA_TEXT_ENDPOINT", NANO_BANANA_DEFAULT_ENDPOINT)
     if not endpoint.startswith("/"):
         endpoint = "/" + endpoint
@@ -1289,20 +1440,5 @@ def nano_banana_generate_png(
             "X-Client-Request-Id": hashlib.md5(prompt.encode("utf-8")).hexdigest(),
         },
     )
-    with urllib.request.urlopen(req, timeout=timeout_s) as resp:
-        payload = json.loads(resp.read().decode("utf-8"))
-    b64 = _find_base64(payload)
-    if b64:
-        return base64.b64decode(re.sub(r"\s+", "", b64))
-    url = _find_url(payload)
-    if url:
-        img_req = urllib.request.Request(
-            url,
-            headers={
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-                "Referer": "https://302.ai/",
-            },
-        )
-        with urllib.request.urlopen(img_req, timeout=timeout_s) as img_resp:
-            return img_resp.read()
-    raise RuntimeError(f"nano banana 未返回图片数据：{str(payload)[:500]}")
+    payload = _read_json_response(req, timeout_s)
+    return _image_bytes_from_provider_payload(payload, key=key, timeout_s=timeout_s)

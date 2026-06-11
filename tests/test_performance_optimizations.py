@@ -824,9 +824,10 @@ class PerformanceOptimizationTests(unittest.TestCase):
         ])
 
         self.assertEqual(CHARACTER_CARD_FIELDS[0], "name")
-        self.assertEqual(CHARACTER_CARD_FIELDS[-1], "favorite")
+        self.assertIn("favorite", CHARACTER_CARD_FIELDS)
+        self.assertEqual(CHARACTER_CARD_FIELDS[-1], "portrait_fallback_id")
         self.assertEqual(encoded[0][0], "韩爌")
-        self.assertEqual(encoded[0][-1], True)
+        self.assertEqual(encoded[0][CHARACTER_CARD_FIELDS.index("favorite")], True)
         self.assertEqual(len(encoded[0]), len(CHARACTER_CARD_FIELDS))
         self.assertNotIn("style", CHARACTER_CARD_FIELDS)
         self.assertNotIn("summary", CHARACTER_CARD_FIELDS)

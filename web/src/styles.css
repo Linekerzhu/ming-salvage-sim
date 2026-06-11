@@ -7329,6 +7329,33 @@ button:disabled {
   background: rgba(255, 235, 180, 0.08);
 }
 
+.auth-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 16px 0 18px;
+  padding: 4px;
+  border: 1px solid rgba(226, 180, 86, 0.24);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.auth-mode-switch button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  color: #d8c590;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.auth-mode-switch button.active {
+  color: #2a1b0e;
+  background: #e2b456;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+}
+
 .login-form {
   display: grid;
   gap: 12px;

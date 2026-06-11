@@ -22,11 +22,13 @@ CHARACTER_CARD_FIELDS = (
     "status_reason",
     "portrait_id",
     "favorite",
+    "portrait_fallback_id",
 )
 
 CHARACTER_CARD_DEFAULTS = {
     "status_reason": "",
     "portrait_id": "",
+    "portrait_fallback_id": "",
     "favorite": False,
 }
 

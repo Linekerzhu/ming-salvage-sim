@@ -7,7 +7,7 @@
 - 使用 `docker compose up --build -d` 启动服务。
 - 将 `/app/data` 挂载为持久卷；容器内默认 `MING_SIM_DATA_DIR=/app/data`。
 - 由 Nginx、Caddy、Traefik 或云负载均衡终止 HTTPS，再转发到容器 `8010`。
-- 公网服务必须开启账号模式：配置 `MING_SIM_SERVER_USERS` 和 `MING_SIM_ADMIN_USERS`。
+- 公网服务必须开启账号模式：可配置 `MING_SIM_SERVER_USERS` 和 `MING_SIM_ADMIN_USERS`，或保留 `MING_SIM_INVITE_CODE` 让玩家自助注册。
 
 ## 必要环境变量
 
@@ -17,6 +17,9 @@
 | `OPENAI_BASE_URL` / `OPENAI_MODEL` | 按供应商与成本策略配置 |
 | `MING_SIM_SERVER_USERS` | 使用 `pbkdf2_sha256$<iterations>$<salt>$<hex>` 密码 |
 | `MING_SIM_ADMIN_USERS` | 明确列出管理员，不依赖默认首用户 |
+| `MING_SIM_INVITE_CODE` | 默认 `shdl95598`；浏览器自助注册邀请码 |
+| `MING_SIM_ALLOW_REGISTRATION` | 默认 `1`；设为 `0` 可关闭自助注册 |
+| `MING_SIM_ALLOW_CLIENT_LLM_CONFIG` | 公网默认保持 `0`，普通用户不修改 AI API |
 | `MING_SIM_COOKIE_SECURE` | HTTPS 后设置为 `1` |
 | `MING_SIM_SESSION_TTL_SECONDS` | 公网建议 86400 到 604800 |
 | `MING_SIM_LOGIN_RATE_LIMIT_ATTEMPTS` | 默认 8 |

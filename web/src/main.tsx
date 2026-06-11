@@ -457,6 +457,7 @@ type Minister = {
   portrait_available?: boolean;
   portrait_status?: "ready" | "pending" | "error" | "missing" | string;
   portrait_error?: string;
+  portrait_fallback_id?: string;
   portrait_dna_seed?: string;
   portrait_wardrobe_key?: string;
   power_id?: string;     // 大明=ming, 后金=houjin, 流寇=bandits 等
@@ -1606,6 +1607,20 @@ function App() {
     }
   }, [refreshAuthStatus, refreshMenuStatus, loadState]);
 
+  const register = React.useCallback(async (username: string, password: string, inviteCode: string) => {
+    setError("");
+    await api<{ ok: boolean; username: string }>("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ username, password, invite_code: inviteCode }),
+    });
+    const auth = await refreshAuthStatus();
+    if (auth.auth_enabled && !auth.authenticated) {
+      throw new Error("注册已完成，但登录状态未生效，请重新登录。");
+    }
+    setAppView("menu");
+    await refreshMenuStatus();
+  }, [refreshAuthStatus, refreshMenuStatus]);
+
   const logout = React.useCallback(async () => {
     await api<{ ok: boolean }>("/api/auth/logout", { method: "POST" });
     invalidateOnDemandDetails();
@@ -1882,6 +1897,7 @@ function App() {
     return (
       <LoginPage
         onLogin={login}
+        onRegister={register}
         error={error}
         setError={setError}
       />
@@ -2849,16 +2865,23 @@ function SettlementLock({
   );
 }
 
-function MinisterPortrait({ primary, fallback, name }: { primary: string; fallback?: string; name: string }) {
-  // 两级 fallback：primary（专属）→ fallback（pool 预设）→ 占位符
-  const [stage, setStage] = React.useState<"primary" | "fallback" | "placeholder">(
-    fallback ? "primary" : (primary ? "primary" : "placeholder")
-  );
+function MinisterPortrait({ primary, fallback, fallbacks = [], name }: { primary: string; fallback?: string; fallbacks?: string[]; name: string }) {
+  const sources = React.useMemo(() => {
+    const seen = new Set<string>();
+    return [primary, fallback, ...fallbacks]
+      .filter((src): src is string => !!src)
+      .filter((src) => {
+        if (seen.has(src)) return false;
+        seen.add(src);
+        return true;
+      });
+  }, [primary, fallback, fallbacks]);
+  const [sourceIndex, setSourceIndex] = React.useState(0);
   React.useEffect(() => {
-    setStage(primary ? "primary" : fallback ? "fallback" : "placeholder");
-  }, [primary, fallback, name]);
-  const src = stage === "primary" ? primary : stage === "fallback" ? (fallback ?? "") : "";
-  if (stage === "placeholder") {
+    setSourceIndex(0);
+  }, [sources.join("|"), name]);
+  const src = sources[sourceIndex] || "";
+  if (!src) {
     return <div className="minister-card-portrait-placeholder">臣</div>;
   }
   return (
@@ -2869,8 +2892,7 @@ function MinisterPortrait({ primary, fallback, name }: { primary: string; fallba
       loading="lazy"
       decoding="async"
       onError={() => {
-        if (stage === "primary" && fallback) setStage("fallback");
-        else setStage("placeholder");
+        setSourceIndex((index) => index + 1);
       }}
     />
   );
@@ -3124,7 +3146,7 @@ function MinisterCardList({
     return (
       <div className="minister-list">
         {list.map((minister) => {
-          const { primary: dedicated, fallback: poolFallback } = portraitSources(minister, portraitPrefix);
+          const { primary: dedicated, fallback: poolFallback, fallbacks } = portraitSources(minister, portraitPrefix);
           const ousted = minister.status !== "active";
           return (
             <div key={minister.name}
@@ -3140,7 +3162,7 @@ function MinisterCardList({
               }}
             >
               <div className="minister-card-portrait-wrap">
-                <MinisterPortrait primary={dedicated} fallback={poolFallback} name={minister.name} />
+                <MinisterPortrait primary={dedicated} fallback={poolFallback} fallbacks={fallbacks} name={minister.name} />
                 <PortraitMissingBadge minister={minister} />
                 {onUploadPortrait && <PortraitUploadButton ministerName={minister.name} onUpload={onUploadPortrait} />}
                 {onGeneratePortrait && <PortraitGenerateButton minister={minister} onGenerate={onGeneratePortrait} />}
@@ -3164,7 +3186,7 @@ function MinisterCardList({
   return (
     <div className="minister-list minister-list-court" ref={containerRef}>
       {list.map((minister) => {
-        const { primary: dedicated, fallback: poolFallback } = portraitSources(minister, portraitPrefix);
+        const { primary: dedicated, fallback: poolFallback, fallbacks } = portraitSources(minister, portraitPrefix);
         const ousted = minister.status !== "active";
         const pct = positions[minister.name];
         // 透视缩放：py=0最远最小，py=1最近最大
@@ -3195,7 +3217,7 @@ function MinisterCardList({
             }}
           >
             <div className="minister-card-portrait-wrap">
-              <MinisterPortrait primary={dedicated} fallback={poolFallback} name={minister.name} />
+              <MinisterPortrait primary={dedicated} fallback={poolFallback} fallbacks={fallbacks} name={minister.name} />
               <PortraitMissingBadge minister={minister} />
               {onUploadPortrait && (
                 <PortraitUploadButton ministerName={minister.name} onUpload={onUploadPortrait} />
@@ -3227,22 +3249,28 @@ function cacheBust(key: string): number {
 
 function portraitSources(minister: Minister, portraitPrefix: string) {
   const portraitId = minister.portrait_id || "";
+  const namedStatic = `/portraits/${portraitPrefix}${minister.id ?? minister.name}.png`;
+  const fallbackId = minister.portrait_fallback_id || "";
+  const staticFallback = fallbackId ? `/portraits/${fallbackId}.png` : "";
   if (portraitId.startsWith("generated:")) {
     const assetId = portraitId.slice("generated:".length);
     return {
       primary: `/portraits/generated/${encodeURIComponent(assetId)}.png?t=${cacheBust(portraitId)}`,
-      fallback: `/portraits/${portraitPrefix}${minister.id ?? minister.name}.png`,
+      fallback: staticFallback || namedStatic,
+      fallbacks: [namedStatic],
     };
   }
   if (portraitId.startsWith("custom:")) {
     return {
       primary: `/portraits/custom/${encodeURIComponent(minister.name)}?t=${cacheBust(portraitId)}`,
-      fallback: undefined,
+      fallback: staticFallback || namedStatic,
+      fallbacks: [namedStatic],
     };
   }
   return {
-    primary: `/portraits/${portraitPrefix}${minister.id ?? minister.name}.png`,
-    fallback: portraitId ? `/portraits/${portraitId}.png` : undefined,
+    primary: namedStatic,
+    fallback: staticFallback || (portraitId ? `/portraits/${portraitId}.png` : undefined),
+    fallbacks: portraitId ? [`/portraits/${portraitId}.png`] : [],
   };
 }
 
@@ -8057,7 +8085,7 @@ function ChatModal({
   onAbandonGoal: (goal: ConversationGoal) => Promise<void>;
   onClose: () => void;
 }) {
-  const { primary: portraitPrimary, fallback: portraitFallback } = portraitSources(minister, portraitPrefix);
+  const { primary: portraitPrimary, fallback: portraitFallback, fallbacks: portraitFallbacks } = portraitSources(minister, portraitPrefix);
   const chatLogRef = React.useRef<HTMLDivElement | null>(null);
   const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
   const displayMessages: ChatDisplayMessage[] = [...chat];
@@ -8105,7 +8133,7 @@ function ChatModal({
       <aside className="modal-pane minister-side">
         <div className="chat-character-stage">
           <div className="chat-portrait-wrap">
-            <MinisterPortrait primary={portraitPrimary} fallback={portraitFallback} name={minister.name} />
+            <MinisterPortrait primary={portraitPrimary} fallback={portraitFallback} fallbacks={portraitFallbacks} name={minister.name} />
           </div>
         </div>
         <div className="chat-intel-stack">
@@ -9342,23 +9370,32 @@ function Info({ label, value, tone }: { label: string; value: React.ReactNode; t
 
 function LoginPage({
   onLogin,
+  onRegister,
   error,
   setError,
 }: {
   onLogin: (username: string, password: string) => Promise<void>;
+  onRegister: (username: string, password: string, inviteCode: string) => Promise<void>;
   error: string;
   setError: (msg: string) => void;
 }) {
+  const [mode, setMode] = React.useState<"login" | "register">("login");
   const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [inviteCode, setInviteCode] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const isRegister = mode === "register";
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
     setError("");
     try {
-      await onLogin(username.trim(), password);
+      if (isRegister) {
+        await onRegister(username.trim(), password, inviteCode.trim());
+      } else {
+        await onLogin(username.trim(), password);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -9371,7 +9408,23 @@ function LoginPage({
       <div className="menu-panel login-panel">
         <div className="login-mark"><Lock size={20} /></div>
         <h1 className="menu-title">明末力挽狂澜</h1>
-        <p className="menu-subtitle">入值内阁 · 凭信入局</p>
+        <p className="menu-subtitle">{isRegister ? "新立名册 · 邀码入局" : "入值内阁 · 凭信入局"}</p>
+        <div className="auth-mode-switch" role="tablist" aria-label="账号操作">
+          <button
+            type="button"
+            className={mode === "login" ? "active" : ""}
+            onClick={() => { setMode("login"); setError(""); }}
+          >
+            登录
+          </button>
+          <button
+            type="button"
+            className={mode === "register" ? "active" : ""}
+            onClick={() => { setMode("register"); setError(""); }}
+          >
+            注册
+          </button>
+        </div>
         {error && <div className="menu-error">{error}</div>}
         <form className="login-form" onSubmit={submit}>
           <label>
@@ -9389,11 +9442,25 @@ function LoginPage({
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              autoComplete="current-password"
+              autoComplete={isRegister ? "new-password" : "current-password"}
             />
           </label>
-          <button className="menu-btn primary" type="submit" disabled={busy || !username.trim() || !password}>
-            {busy ? "验看凭信..." : "登录"}
+          {isRegister && (
+            <label>
+              邀请码
+              <input
+                value={inviteCode}
+                onChange={(event) => setInviteCode(event.target.value)}
+                autoComplete="off"
+              />
+            </label>
+          )}
+          <button
+            className="menu-btn primary"
+            type="submit"
+            disabled={busy || !username.trim() || !password || (isRegister && !inviteCode.trim())}
+          >
+            {busy ? "验看凭信..." : (isRegister ? "注册并入局" : "登录")}
           </button>
         </form>
       </div>

@@ -1344,6 +1344,7 @@ class WebGame:
         dna_status = "missing"
         wardrobe_key = ""
         available = False
+        fallback_id = self._portrait_fallback_id(character, portrait_id, portrait_prefix)
         if portrait_id.startswith(GENERATED_PORTRAIT_PREFIX):
             asset_id = portrait_id.removeprefix(GENERATED_PORTRAIT_PREFIX)
             row = portrait_assets.get(asset_id) if portrait_assets is not None else self.db.get_portrait_asset(asset_id)
@@ -1375,9 +1376,10 @@ class WebGame:
         if not wardrobe_key:
             wardrobe_key = spec.wardrobe_key
         return {
-            "portrait_available": available,
+            "portrait_available": bool(available or fallback_id),
             "portrait_status": status,
             "portrait_error": error,
+            "portrait_fallback_id": fallback_id,
             "portrait_dna_seed": dna_seed,
             "portrait_dna_asset_id": dna_asset_id,
             "portrait_dna_status": dna_status,
@@ -1407,25 +1409,53 @@ class WebGame:
         *,
         portrait_assets: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
+        fallback_id = self._portrait_fallback_id(character, portrait_id, portrait_prefix)
         if portrait_id.startswith(GENERATED_PORTRAIT_PREFIX):
             asset_id = portrait_id.removeprefix(GENERATED_PORTRAIT_PREFIX)
             row = portrait_assets.get(asset_id) if portrait_assets is not None else self.db.get_portrait_asset(asset_id)
             if row is None:
-                return {"portrait_available": False, "portrait_status": "missing"}
+                return {"portrait_available": bool(fallback_id), "portrait_status": "missing", "portrait_fallback_id": fallback_id}
             status = str(row["status"] or "pending")
             has_image_blob = bool(row.get("has_image_blob")) if isinstance(row, dict) else bool(row["image_blob"] is not None)
+            available = bool(status == "ready" and has_image_blob)
             return {
-                "portrait_available": bool(status == "ready" and has_image_blob),
+                "portrait_available": bool(available or fallback_id),
                 "portrait_status": status,
+                "portrait_fallback_id": fallback_id,
             }
         if portrait_id.startswith(CUSTOM_PORTRAIT_PREFIX):
             available = _find_portrait_file(character.name, self.username) is not None
-            return {"portrait_available": available, "portrait_status": "ready" if available else "missing"}
+            return {
+                "portrait_available": bool(available or fallback_id),
+                "portrait_status": "ready" if available else "missing",
+                "portrait_fallback_id": fallback_id,
+            }
         available = (
             _static_portrait_exists(f"{portrait_prefix}{character.name}.png")
             or (bool(portrait_id) and _static_portrait_exists(f"{portrait_id}.png"))
         )
-        return {"portrait_available": available, "portrait_status": "ready" if available else "missing"}
+        return {
+            "portrait_available": bool(available or fallback_id),
+            "portrait_status": "ready" if available else "missing",
+            "portrait_fallback_id": fallback_id,
+        }
+
+    def _portrait_fallback_id(self, character: Character, portrait_id: str, portrait_prefix: str) -> str:
+        """Best static portrait id for UI fallback when a custom/generated image is absent."""
+        if not portrait_id.startswith((GENERATED_PORTRAIT_PREFIX, CUSTOM_PORTRAIT_PREFIX)):
+            return ""
+        candidates: List[str] = []
+        named_id = f"{portrait_prefix}{character.name}"
+        candidates.append(named_id)
+        pool_prefix = "consort_pool_" if portrait_prefix == "consort_" else "minister_pool_"
+        pool_id = _stable_static_portrait_id(pool_prefix, character.name)
+        if pool_id:
+            candidates.append(pool_id)
+        for candidate in candidates:
+            clean = os.path.basename(str(candidate or ""))
+            if clean and _static_portrait_exists(f"{clean}.png"):
+                return clean
+        return ""
 
     def directive_payload(self, row) -> Dict[str, Any]:
         return {
@@ -3058,6 +3088,12 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    invite_code: str
+
+
 class ServerAdminActionRequest(BaseModel):
     confirm: str = ""
 
@@ -3070,8 +3106,8 @@ def _configured_auth_users() -> Dict[str, str]:
       MING_SIM_AUTH_USERS="alice:pw"
       MING_SIM_ADMIN_USER / MING_SIM_ADMIN_PASSWORD
     """
+    users: Dict[str, str] = _registered_auth_users()
     raw = os.environ.get("MING_SIM_SERVER_USERS", "") or os.environ.get("MING_SIM_AUTH_USERS", "")
-    users: Dict[str, str] = {}
     for part in re.split(r"[,\n;]+", raw):
         item = part.strip()
         if not item or ":" not in item:
@@ -3106,7 +3142,7 @@ def _configured_admin_users() -> set:
 
 
 def _auth_enabled() -> bool:
-    return bool(_configured_auth_users())
+    return bool(_configured_auth_users()) or _registration_auth_mode_enabled()
 
 
 def _verify_password(stored: str, provided: str) -> bool:
@@ -3203,9 +3239,112 @@ def _server_state_conn() -> sqlite3.Connection:
             window_start REAL NOT NULL,
             attempts INTEGER NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS registered_users (
+            username TEXT PRIMARY KEY,
+            password_hash TEXT NOT NULL,
+            created_at REAL NOT NULL,
+            last_login_at REAL NOT NULL DEFAULT 0
+        );
         """
     )
     return conn
+
+
+def _registration_invite_code() -> str:
+    return os.environ.get("MING_SIM_INVITE_CODE", "shdl95598").strip()
+
+
+def _registration_enabled() -> bool:
+    return os.environ.get("MING_SIM_ALLOW_REGISTRATION", "1").strip().lower() not in ("0", "false", "no")
+
+
+def _registration_auth_mode_enabled() -> bool:
+    if not _registration_enabled():
+        return False
+    return (
+        bool(os.environ.get("MING_SIM_INVITE_CODE", "").strip())
+        or os.environ.get("MING_SIM_ALLOW_REGISTRATION", "").strip().lower() in ("1", "true", "yes")
+    )
+
+
+def _normalize_auth_username(username: str) -> str:
+    return re.sub(r"\s+", "", (username or "").strip())
+
+
+def _validate_register_username(username: str) -> str:
+    username = _normalize_auth_username(username)
+    if not re.fullmatch(r"[A-Za-z0-9_.\-\u4e00-\u9fff]{2,32}", username):
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "bad_username", "message": "用户名需为 2-32 位中文、字母、数字或 ._-。"},
+        )
+    return username
+
+
+def _validate_register_password(password: str) -> str:
+    password = password or ""
+    if len(password) < 6 or len(password) > 128:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "bad_password", "message": "密码需为 6-128 位。"},
+        )
+    return password
+
+
+def _hash_password(password: str) -> str:
+    rounds = _env_int("MING_SIM_PASSWORD_PBKDF2_ROUNDS", 200_000, minimum=100_000, maximum=2_000_000)
+    salt = secrets.token_urlsafe(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), rounds).hex()
+    return f"pbkdf2_sha256${rounds}${salt}${digest}"
+
+
+def _registered_auth_users() -> Dict[str, str]:
+    try:
+        with closing(_server_state_conn()) as conn, conn:
+            rows = conn.execute("SELECT username, password_hash FROM registered_users").fetchall()
+            return {str(row["username"]): str(row["password_hash"]) for row in rows}
+    except sqlite3.DatabaseError as exc:
+        _LOG.warning("registered_user_load_failed", exc_info=exc)
+        return {}
+
+
+def _create_registered_user(username: str, password: str) -> None:
+    now = time.time()
+    try:
+        with closing(_server_state_conn()) as conn, conn:
+            existing = conn.execute(
+                "SELECT 1 FROM registered_users WHERE username = ?",
+                (username,),
+            ).fetchone()
+            if existing is not None:
+                raise HTTPException(
+                    status_code=409,
+                    detail={"code": "username_taken", "message": "这个用户名已被注册。"},
+                )
+            conn.execute(
+                """
+                INSERT INTO registered_users(username, password_hash, created_at, last_login_at)
+                VALUES (?, ?, ?, 0)
+                """,
+                (username, _hash_password(password), now),
+            )
+    except HTTPException:
+        raise
+    except sqlite3.DatabaseError as exc:
+        _LOG.warning("registered_user_create_failed", exc_info=exc)
+        raise HTTPException(
+            status_code=500,
+            detail={"code": "registration_failed", "message": "注册失败，请稍后再试。"},
+        ) from None
+
+
+def _mark_registered_user_login(username: str) -> None:
+    try:
+        with closing(_server_state_conn()) as conn, conn:
+            conn.execute("UPDATE registered_users SET last_login_at = ? WHERE username = ?", (time.time(), username))
+    except sqlite3.DatabaseError as exc:
+        _LOG.warning("registered_user_login_mark_failed", exc_info=exc)
 
 
 def _cleanup_persistent_auth_sessions(now: Optional[float] = None) -> None:
@@ -3720,7 +3859,7 @@ async def api_auth_me() -> Dict[str, Any]:
 async def api_auth_login(request: Request, body: LoginRequest) -> Response:
     if not _auth_enabled():
         return JSONResponse({"ok": True, "auth_enabled": False, "username": "local", "is_admin": True})
-    username = body.username.strip()
+    username = _normalize_auth_username(body.username)
     limited, retry_after = _login_rate_limited(username, request)
     if limited:
         response = JSONResponse(
@@ -3733,6 +3872,45 @@ async def api_auth_login(request: Request, body: LoginRequest) -> Response:
     if not stored or not _verify_password(stored, body.password):
         _record_login_failure(username, request)
         raise HTTPException(status_code=401, detail={"code": "bad_credentials", "message": "用户名或密码不正确。"})
+    _clear_login_failures(username, request)
+    _mark_registered_user_login(username)
+    token = _new_auth_session(username)
+    response = JSONResponse({"ok": True, "auth_enabled": True, "username": username, "is_admin": _is_admin_user(username)})
+    response.set_cookie(
+        _AUTH_COOKIE,
+        token,
+        httponly=True,
+        samesite="lax",
+        secure=os.environ.get("MING_SIM_COOKIE_SECURE", "").strip().lower() in ("1", "true", "yes"),
+        max_age=_session_ttl_seconds(),
+        path="/",
+    )
+    return response
+
+
+@app.post("/api/auth/register")
+async def api_auth_register(request: Request, body: RegisterRequest) -> Response:
+    if not _registration_enabled():
+        raise HTTPException(status_code=403, detail={"code": "registration_disabled", "message": "注册暂未开放。"})
+    expected_invite = _registration_invite_code()
+    if not expected_invite or not secrets.compare_digest((body.invite_code or "").strip(), expected_invite):
+        raise HTTPException(status_code=403, detail={"code": "bad_invite_code", "message": "邀请码不正确。"})
+
+    username = _validate_register_username(body.username)
+    password = _validate_register_password(body.password)
+    if username in _configured_auth_users():
+        raise HTTPException(status_code=409, detail={"code": "username_taken", "message": "这个用户名已被注册。"})
+
+    limited, retry_after = _login_rate_limited(username, request)
+    if limited:
+        response = JSONResponse(
+            status_code=429,
+            content={"detail": {"code": "rate_limited", "message": "操作过于频繁，请稍后再试。"}},
+        )
+        response.headers["Retry-After"] = str(retry_after)
+        return response
+
+    _create_registered_user(username, password)
     _clear_login_failures(username, request)
     token = _new_auth_session(username)
     response = JSONResponse({"ok": True, "auth_enabled": True, "username": username, "is_admin": _is_admin_user(username)})
@@ -5046,6 +5224,28 @@ def _static_portrait_exists(filename: str) -> bool:
     """检查随包/源码静态立绘是否存在。"""
     clean = os.path.basename(str(filename or ""))
     return bool(clean and clean in _static_portrait_filenames())
+
+
+@lru_cache(maxsize=16)
+def _static_portrait_ids_with_prefix(prefix: str) -> tuple[str, ...]:
+    clean_prefix = os.path.basename(str(prefix or ""))
+    ids: List[str] = []
+    for filename in _static_portrait_filenames():
+        if not filename.endswith(".png") or not filename.startswith(clean_prefix):
+            continue
+        portrait_id = filename[:-4]
+        if " " in portrait_id:
+            continue
+        ids.append(portrait_id)
+    return tuple(sorted(ids))
+
+
+def _stable_static_portrait_id(prefix: str, key: str) -> str:
+    ids = _static_portrait_ids_with_prefix(prefix)
+    if not ids:
+        return ""
+    digest = hashlib.sha256(str(key or "").encode("utf-8")).hexdigest()
+    return ids[int(digest[:8], 16) % len(ids)]
 
 
 @app.get("/portraits/generated/{asset_id}.png")

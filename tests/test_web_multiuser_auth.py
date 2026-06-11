@@ -10,6 +10,7 @@ from tempfile import TemporaryDirectory
 from fastapi.testclient import TestClient
 
 import web_app
+import ming_sim.session as session_module
 from ming_sim.db import GameDB
 
 
@@ -37,6 +38,8 @@ class WebMultiuserAuthTests(unittest.TestCase):
                 "MING_SIM_TRUST_PROXY_HEADERS",
                 "MING_SIM_MAX_RUNNING_GAMES",
                 "MING_SIM_MAX_CONCURRENT_TURNS",
+                "MING_SIM_INVITE_CODE",
+                "MING_SIM_ALLOW_REGISTRATION",
             )
         }
         os.environ["MING_SIM_SERVER_USERS"] = "alice:pw,bob:pw2"
@@ -57,6 +60,8 @@ class WebMultiuserAuthTests(unittest.TestCase):
         os.environ.pop("MING_SIM_TRUST_PROXY_HEADERS", None)
         os.environ.pop("MING_SIM_MAX_RUNNING_GAMES", None)
         os.environ.pop("MING_SIM_MAX_CONCURRENT_TURNS", None)
+        os.environ.pop("MING_SIM_INVITE_CODE", None)
+        os.environ.pop("MING_SIM_ALLOW_REGISTRATION", None)
 
         self._user_data_dir = web_app.user_data_dir
         self._user_data_path = web_app.user_data_path
@@ -135,6 +140,98 @@ class WebMultiuserAuthTests(unittest.TestCase):
             },
         )
         self.assertEqual(llm_write.status_code, 403)
+
+    def test_invite_registration_creates_persistent_login_user(self) -> None:
+        client = TestClient(web_app.app)
+
+        bad_invite = client.post(
+            "/api/auth/register",
+            json={"username": "newplayer", "password": "secret123", "invite_code": "wrong"},
+        )
+        self.assertEqual(bad_invite.status_code, 403)
+        self.assertEqual(bad_invite.json()["detail"]["code"], "bad_invite_code")
+
+        registered = client.post(
+            "/api/auth/register",
+            json={"username": "newplayer", "password": "secret123", "invite_code": "shdl95598"},
+        )
+        self.assertEqual(registered.status_code, 200)
+        self.assertEqual(registered.json()["username"], "newplayer")
+        self.assertTrue(client.cookies.get(web_app._AUTH_COOKIE))
+
+        status = client.get("/api/menu/status")
+        self.assertEqual(status.status_code, 200)
+        self.assertEqual(status.json()["auth"]["username"], "newplayer")
+
+        duplicate = TestClient(web_app.app).post(
+            "/api/auth/register",
+            json={"username": "newplayer", "password": "secret123", "invite_code": "shdl95598"},
+        )
+        self.assertEqual(duplicate.status_code, 409)
+
+        returning = TestClient(web_app.app)
+        login = returning.post("/api/auth/login", json={"username": "newplayer", "password": "secret123"})
+        self.assertEqual(login.status_code, 200)
+        self.assertEqual(login.json()["username"], "newplayer")
+
+    def test_registration_can_be_disabled(self) -> None:
+        os.environ["MING_SIM_ALLOW_REGISTRATION"] = "0"
+        response = TestClient(web_app.app).post(
+            "/api/auth/register",
+            json={"username": "closed", "password": "secret123", "invite_code": "shdl95598"},
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["detail"]["code"], "registration_disabled")
+
+    def test_invite_only_mode_requires_auth_and_keeps_llm_server_managed(self) -> None:
+        os.environ.pop("MING_SIM_SERVER_USERS", None)
+        os.environ.pop("MING_SIM_AUTH_USERS", None)
+        os.environ["MING_SIM_INVITE_CODE"] = "shdl95598"
+
+        class DummySession:
+            def close(self) -> None:
+                pass
+
+        class DummyWebGame:
+            def __init__(self, fresh: bool = False, username: str = "") -> None:
+                self.username = username.strip()
+                self.session = DummySession()
+
+            def state_payload(self):
+                return {"username": self.username, "entered": True}
+
+        original_web_game = web_app.WebGame
+        web_app.WebGame = DummyWebGame
+        client = TestClient(web_app.app)
+        try:
+            me = client.get("/api/auth/me")
+            self.assertEqual(me.status_code, 200)
+            self.assertEqual(me.json()["auth_enabled"], True)
+            self.assertEqual(me.json()["authenticated"], False)
+            self.assertEqual(client.get("/api/menu/status").status_code, 401)
+
+            registered = client.post(
+                "/api/auth/register",
+                json={"username": "inviteonly", "password": "secret123", "invite_code": "shdl95598"},
+            )
+            self.assertEqual(registered.status_code, 200)
+
+            status = client.get("/api/menu/status")
+            self.assertEqual(status.status_code, 200)
+            self.assertEqual(status.json()["auth"]["username"], "inviteonly")
+            self.assertEqual(status.json()["llm_client_configurable"], False)
+
+            llm_write = client.post(
+                "/api/menu/llm",
+                json={"base_url": "https://example.test/v1", "model": "other-model", "api_key": "other-key"},
+            )
+            self.assertEqual(llm_write.status_code, 403)
+
+            new_game = client.post("/api/menu/new_game")
+            self.assertEqual(new_game.status_code, 200)
+            self.assertEqual(new_game.json()["state"]["username"], "inviteonly")
+        finally:
+            web_app.WebGame = original_web_game
 
     def test_health_and_ready_endpoints_are_public_operational_checks(self) -> None:
         client = TestClient(web_app.app)
@@ -237,6 +334,42 @@ class WebMultiuserAuthTests(unittest.TestCase):
         )
 
         self.assertEqual(orphaned, [])
+
+    def test_generated_portrait_error_keeps_static_fallback(self) -> None:
+        old_web_verify = web_app.verify_llm_available
+        old_session_verify = session_module.verify_llm_available
+        web_app.verify_llm_available = lambda _config: None
+        session_module.verify_llm_available = lambda _config: None
+        game = None
+        try:
+            game = web_app.WebGame(fresh=True)
+            character = game.content.characters["韩爌"]
+            asset_id = "a" * 24
+            game.db.upsert_portrait_asset(
+                asset_id=asset_id,
+                character_name=character.name,
+                kind="portrait",
+                dna_seed="test-seed",
+                wardrobe_key="test-wardrobe",
+                prompt="test prompt",
+                provider="test",
+                model="test",
+                status="error",
+                updated_turn=game.state.turn,
+                error="network unreachable",
+            )
+            game.set_custom_portrait(character.name, f"{web_app.GENERATED_PORTRAIT_PREFIX}{asset_id}")
+
+            payload = game.public_character(character)
+
+            self.assertEqual(payload["portrait_status"], "error")
+            self.assertEqual(payload["portrait_fallback_id"], "minister_韩爌")
+            self.assertTrue(payload["portrait_available"])
+        finally:
+            if game is not None:
+                game.session.close()
+            web_app.verify_llm_available = old_web_verify
+            session_module.verify_llm_available = old_session_verify
 
     def test_pbkdf2_password_and_expiring_session(self) -> None:
         salt = "unit-test-salt"

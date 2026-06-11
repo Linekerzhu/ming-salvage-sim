@@ -92,6 +92,7 @@ _SPECS: Tuple[WebPayloadRouteSpec, ...] = (
 EXCLUDED_WEB_PAYLOAD_ROUTES: Dict[str, str] = {
     "/api/auth": "Authentication/session bootstrap is not game-data payload.",
     "/api/auth/login": "Authentication boundary.",
+    "/api/auth/register": "Authentication registration boundary.",
     "/api/auth/logout": "Authentication boundary.",
     "/api/auth/me": "Authentication boundary.",
     "/api/llm/config": "Contains LLM configuration metadata and must stay outside game payload hooks.",
