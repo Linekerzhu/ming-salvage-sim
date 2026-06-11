@@ -132,13 +132,17 @@ def build_court_roster(context: CourtContext) -> str:
     含被罢/下狱/流放/致仕者（标状态），不含后宫、非大明势力、未登场者（防剧透）。
     """
     db = context.db
+    status_details = db.character_status_detail_map()
     lines: List[str] = []
     for c in _ctx().characters.values():
         if c.office_type == "后宫":
             continue
-        if getattr(c, "power_id", "ming") != "ming":
+        status, reason, power_id = status_details.get(
+            c.name,
+            (getattr(c, "status", "active"), "", getattr(c, "power_id", "ming")),
+        )
+        if power_id != "ming":
             continue
-        status, reason = db.get_character_status(c.name)
         if status == "offstage":
             continue
         # 直接按字段吐原值，不脑补、不翻译。状态原值 + 缘由（如有）。
@@ -169,7 +173,34 @@ def build_last_gazette_brief(context: CourtContext) -> str:
     return "【上回合邸报全文（上月朝局实录，作答涉及上月动静以此为准；更早月份调 read_past_report 查）】\n" + report.strip()
 
 
-def build_memory_brief(character: Character, context: CourtContext) -> str:
+def build_common_minister_context(context: CourtContext) -> Dict[str, str]:
+    """Common monthly prompt blocks shared by all outer-court ministers.
+
+    The registry owns a fresh CourtContext per turn/rebuild, so this cache is
+    process-local and naturally expires with the turn lifecycle. Runtime
+    identity changes call registry invalidation before new agents are built.
+    """
+    state = context.state
+    cache_key = ("minister_common_context", int(state.turn), int(state.year), int(state.period))
+    cached = context.prompt_cache.get(cache_key)
+    if isinstance(cached, dict):
+        return cached
+    blocks = {
+        "court_brief": build_court_brief(context),
+        "court_roster": build_court_roster(context),
+        "army_roster": context.db.army_roster(),
+        "last_gazette": build_last_gazette_brief(context),
+        "memory_brief": build_memory_brief(None, context),
+    }
+    context.prompt_cache[cache_key] = blocks
+    return blocks
+
+
+def clear_prompt_cache(context: CourtContext) -> None:
+    context.prompt_cache.clear()
+
+
+def build_memory_brief(character: Optional[Character], context: CourtContext) -> str:
     """更早朝局的章节记忆。上月（turn-1）整体动静已由 build_last_gazette_brief 喂全文，
     此处跳过 turn-1，只留 turn-2 及更早数月的章节，避免与邸报重叠。"""
     prev_turn = int(context.state.turn) - 1
@@ -188,10 +219,11 @@ def build_memory_brief(character: Character, context: CourtContext) -> str:
         return ""
     brief = "\n".join(lines)
     chap_list = "、".join(f"{c['year']}年{c['period']}月" for c in chapters)
+    subject = f"「{character.name}」" if character is not None else "外朝大臣公共"
     tlog(
-        f"[装填大臣记忆] 建「{character.name}」对话Agent时，把更早朝局的起居注章节"
+        f"[装填大臣记忆] 建{subject}对话Agent时，把更早朝局的起居注章节"
         f"（每月一段朝局叙事，取 turn-2 及更早4月内）塞进其system上下文，"
-        f"让他作答能记得这几月发生过什么。本次装 {len(chapters)} 章：{chap_list}，共 {len(brief)} 字"
+        f"让其作答能记得这几月发生过什么。本次装 {len(chapters)} 章：{chap_list}，共 {len(brief)} 字"
     )
     return brief
 
@@ -597,11 +629,12 @@ def create_minister_agent(
         # 月度动态上下文全挂 system 末尾——每月变一次破尾段缓存，但前面 game_world /
         # minister_agent / character 静态段仍命中前缀缓存，且大臣全程不会因 history 滚窗
         # 而忘掉年月、钱粮、在办事项、上回合旧事、自己名下密令。
-        court_brief = build_court_brief(context)
-        court_roster = build_court_roster(context)
-        army_roster = context.db.army_roster()
-        last_gazette = build_last_gazette_brief(context)
-        memory_brief = build_memory_brief(character, context)
+        common_context = build_common_minister_context(context)
+        court_brief = common_context["court_brief"]
+        court_roster = common_context["court_roster"]
+        army_roster = common_context["army_roster"]
+        last_gazette = common_context["last_gazette"]
+        memory_brief = common_context["memory_brief"]
         personal_memory_brief = build_personal_chat_memory_brief(character, context)
         followup_brief = build_monthly_followup_brief(character, context)
         stance_brief = build_stance_brief(character, context)
@@ -710,15 +743,18 @@ class MinisterRegistry:
         character = _ctx().characters.get(character_name)
         if character is None:
             return
+        clear_prompt_cache(self.context)
         self.agents[character.name] = self._create(character)
 
     def register(self, character: Character) -> None:
         """运行时新建人物（吏部铨选任命）后注册其 Agent，使本回合即可召见。"""
+        clear_prompt_cache(self.context)
         self.session_ids[character.name] = _npc_session_id(character.name, self.campaign_id)
         self.agents[character.name] = self._create(character)
 
     def register_runtime(self, character: Character, session_id: str = "") -> str:
         """注册不入正式名册的临时召见人物。"""
+        clear_prompt_cache(self.context)
         if not session_id:
             nonce = uuid.uuid4().hex[:8]
             session_id = _npc_session_id(

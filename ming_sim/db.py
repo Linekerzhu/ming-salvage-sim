@@ -558,6 +558,10 @@ class GameDB:
             );
             CREATE INDEX IF NOT EXISTS idx_minister_stances_turn
                 ON minister_stances(turn, minister_name, id);
+            CREATE INDEX IF NOT EXISTS idx_minister_stances_turn_id
+                ON minister_stances(turn, id DESC);
+            CREATE INDEX IF NOT EXISTS idx_minister_stances_minister_id
+                ON minister_stances(minister_name, id DESC);
             CREATE INDEX IF NOT EXISTS idx_minister_stances_issue
                 ON minister_stances(related_issue_id, turn);
 
@@ -585,6 +589,10 @@ class GameDB:
             );
             CREATE INDEX IF NOT EXISTS idx_conversation_goals_minister_status
                 ON conversation_goals(minister_name, status, id);
+            CREATE INDEX IF NOT EXISTS idx_conversation_goals_minister_id
+                ON conversation_goals(minister_name, id DESC);
+            CREATE INDEX IF NOT EXISTS idx_conversation_goals_status_id
+                ON conversation_goals(status, id DESC);
             CREATE INDEX IF NOT EXISTS idx_conversation_goals_agreement
                 ON conversation_goals(agreement_id);
 
@@ -685,6 +693,8 @@ class GameDB:
             );
             CREATE INDEX IF NOT EXISTS idx_negotiation_agreements_minister
                 ON negotiation_agreements(minister_name, action_kind, status, id);
+            CREATE INDEX IF NOT EXISTS idx_negotiation_agreements_minister_id
+                ON negotiation_agreements(minister_name, id DESC);
             CREATE INDEX IF NOT EXISTS idx_negotiation_agreements_status_id
                 ON negotiation_agreements(status, id);
 
@@ -900,6 +910,8 @@ class GameDB:
             ON event_memories(turn, importance);
             CREATE INDEX IF NOT EXISTS idx_event_memories_turn_importance
             ON event_memories(turn, importance, id);
+            CREATE INDEX IF NOT EXISTS idx_event_memories_event_turn
+            ON event_memories(event_type, turn);
 
             CREATE INDEX IF NOT EXISTS idx_event_memories_expiry
             ON event_memories(expires_turn, turn);
@@ -2005,6 +2017,17 @@ class GameDB:
     def character_status_map(self) -> Dict[str, str]:
         rows = self.conn.execute("SELECT name, status FROM characters").fetchall()
         return {str(row["name"]): str(row["status"] or "active") for row in rows}
+
+    def character_status_detail_map(self) -> Dict[str, Tuple[str, str, str]]:
+        rows = self.conn.execute("SELECT name, status, status_reason, power_id FROM characters").fetchall()
+        return {
+            str(row["name"]): (
+                str(row["status"] or "active"),
+                str(row["status_reason"] or ""),
+                str(row["power_id"] or "ming"),
+            )
+            for row in rows
+        }
 
     def apply_character_power_changes(
         self,

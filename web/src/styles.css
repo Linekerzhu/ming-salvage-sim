@@ -1353,6 +1353,8 @@ select:focus-visible {
     linear-gradient(180deg, rgba(47, 22, 10, 0.74), rgba(20, 10, 0, 0.5)),
     rgba(20, 10, 0, 0.42);
   cursor: pointer;
+  content-visibility: auto;
+  contain-intrinsic-block-size: 104px;
 }
 
 .monthly-followup-card:hover {
@@ -2013,6 +2015,8 @@ select:focus-visible {
   background: rgba(20, 10, 0, 0.38);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
   cursor: pointer;
+  content-visibility: auto;
+  contain-intrinsic-block-size: 78px;
 }
 
 .character-archive-row.selected {

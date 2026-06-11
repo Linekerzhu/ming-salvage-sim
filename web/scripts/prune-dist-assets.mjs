@@ -2,7 +2,10 @@ import { existsSync, readdirSync, rmSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-const distDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../dist");
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const distDir = path.resolve(scriptDir, "../dist");
+const publicPortraitDir = path.resolve(scriptDir, "../public/portraits");
+const distPortraitDir = path.join(distDir, "portraits");
 
 const removable = [
   "ming-ui-editor.html",
@@ -58,6 +61,22 @@ for (const item of removable) {
   removedBytes += bytesFor(target);
   removedCount += 1;
   rmSync(target, { recursive: true, force: true });
+}
+
+if (existsSync(publicPortraitDir) && existsSync(distPortraitDir)) {
+  const publicPortraits = new Set(
+    readdirSync(publicPortraitDir, { withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name),
+  );
+
+  for (const entry of readdirSync(distPortraitDir, { withFileTypes: true })) {
+    if (!entry.isFile() || publicPortraits.has(entry.name)) continue;
+    const target = path.join(distPortraitDir, entry.name);
+    removedBytes += bytesFor(target);
+    removedCount += 1;
+    rmSync(target, { force: true });
+  }
 }
 
 if (removedCount) {

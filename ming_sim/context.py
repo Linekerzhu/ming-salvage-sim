@@ -1403,37 +1403,57 @@ def _visible_ability_logic(value: object) -> str:
 
 
 def _network_character_ref(name: str, db: Optional[GameDB] = None) -> Dict[str, object]:
+    clean_name = str(name or "").strip()
+    return _network_character_refs([clean_name], db).get(clean_name, {"name": clean_name})
+
+
+def _network_character_refs(names: List[str], db: Optional[GameDB] = None) -> Dict[str, Dict[str, object]]:
     content = _ctx()
-    character = content.characters.get(name)
-    if character is None:
-        return {"name": name}
-    office = character.office
-    office_type = character.office_type
-    faction = character.faction
-    power_id = getattr(character, "power_id", "ming")
+    clean_names = [str(name or "").strip() for name in names if str(name or "").strip()]
+    if not clean_names:
+        return {}
+    db_rows: Dict[str, object] = {}
     if db is not None:
-        row = db.conn.execute(
-            "SELECT office, office_type, faction, power_id FROM characters WHERE name=?",
-            (name,),
-        ).fetchone()
-        if row is not None:
-            office = (row["office"] or office)
-            office_type = (row["office_type"] or office_type)
-            faction = (row["faction"] or faction)
-            power_id = (row["power_id"] or power_id)
-    status = db.get_character_status(name)[0] if db is not None else character.status
-    return {
-        "name": name,
-        "office": office or "",
-        "office_type": office_type or "",
-        "faction": faction or "",
-        "status": status,
-        "power_id": power_id or "ming",
-    }
+        placeholders = ",".join("?" for _ in clean_names)
+        rows = db.conn.execute(
+            f"""
+            SELECT name, office, office_type, faction, power_id, status
+            FROM characters
+            WHERE name IN ({placeholders})
+            """,
+            clean_names,
+        ).fetchall()
+        db_rows = {str(row["name"]): row for row in rows}
+    refs: Dict[str, Dict[str, object]] = {}
+    for name in clean_names:
+        character = content.characters.get(name)
+        if character is None:
+            refs[name] = {"name": name}
+            continue
+        row = db_rows.get(name)
+        office = (row["office"] if row is not None else character.office) or character.office
+        office_type = (row["office_type"] if row is not None else character.office_type) or character.office_type
+        faction = (row["faction"] if row is not None else character.faction) or character.faction
+        power_id = (row["power_id"] if row is not None else None) or getattr(character, "power_id", "ming")
+        status = str(row["status"] or "active") if row is not None else character.status
+        refs[name] = {
+            "name": name,
+            "office": office or "",
+            "office_type": office_type or "",
+            "faction": faction or "",
+            "status": status,
+            "power_id": power_id or "ming",
+        }
+    return refs
 
 
-def _derived_network_profile(character: Character, db: Optional[GameDB], limit: int) -> Dict[str, object]:
-    current = _network_character_ref(character.name, db)
+def _derived_network_profile(
+    character: Character,
+    db: Optional[GameDB],
+    limit: int,
+    status_by_name: Optional[Dict[str, str]] = None,
+) -> Dict[str, object]:
+    current = _network_character_refs([character.name], db).get(character.name, {"name": character.name})
     office = str(current.get("office") or character.office or "").strip()
     office_type = str(current.get("office_type") or character.office_type or "待铨").strip()
     faction = str(current.get("faction") or character.faction or "中立").strip()
@@ -1456,7 +1476,12 @@ def _derived_network_profile(character: Character, db: Optional[GameDB], limit: 
     strongest = "、".join(name for name, _ in sorted(core_scores, key=lambda item: item[1], reverse=True)[:3])
     weakest = "、".join(name for name, _ in sorted(core_scores, key=lambda item: item[1])[:2])
     recommendations = []
-    for raw in npc_network_recommendations(character.name, db=db, limit=max(1, min(6, limit))):
+    for raw in npc_network_recommendations(
+        character.name,
+        db=db,
+        limit=max(1, min(6, limit)),
+        status_by_name=status_by_name,
+    ):
         if not isinstance(raw, dict):
             continue
         recommendations.append({
@@ -1498,6 +1523,7 @@ def npc_network_profile(
     name: str,
     db: Optional[GameDB] = None,
     limit: int = 8,
+    status_by_name: Optional[Dict[str, str]] = None,
 ) -> Dict[str, object]:
     """前端/工具可用的人物网络画像。
 
@@ -1510,10 +1536,10 @@ def npc_network_profile(
         return {}
     entry = content.npc_network.get(name)
     if not isinstance(entry, dict):
-        return _derived_network_profile(character, db, limit)
+        return _derived_network_profile(character, db, limit, status_by_name=status_by_name)
 
     direct_limit = max(1, min(12, int(limit or 8)))
-    relations: List[Dict[str, object]] = []
+    relation_sources: List[Tuple[Dict[str, object], str]] = []
     raw_relations = entry.get("relations") if isinstance(entry.get("relations"), list) else []
     for raw in raw_relations[:direct_limit]:
         if not isinstance(raw, dict):
@@ -1521,7 +1547,11 @@ def npc_network_profile(
         target = _obsidian_target(raw.get("target"))
         if not target or target not in content.characters:
             continue
-        target_ref = _network_character_ref(target, db)
+        relation_sources.append((raw, target))
+    target_refs = _network_character_refs([target for _, target in relation_sources], db)
+    relations: List[Dict[str, object]] = []
+    for raw, target in relation_sources:
+        target_ref = target_refs.get(target, {"name": target})
         relations.append({
             "target": target,
             "type": str(raw.get("type") or "关系").strip(),
@@ -1536,7 +1566,12 @@ def npc_network_profile(
 
     growth = entry.get("growth_arc") if isinstance(entry.get("growth_arc"), dict) else {}
     recommendations: List[Dict[str, object]] = []
-    for raw in npc_network_recommendations(name, db=db, limit=max(1, min(6, limit))):
+    for raw in npc_network_recommendations(
+        name,
+        db=db,
+        limit=max(1, min(6, limit)),
+        status_by_name=status_by_name,
+    ):
         if not isinstance(raw, dict):
             continue
         recommendations.append({
@@ -1618,6 +1653,7 @@ def npc_network_recommendations(
     db: Optional[GameDB] = None,
     limit: int = 8,
     include_statuses: Optional[set] = None,
+    status_by_name: Optional[Dict[str, str]] = None,
 ) -> List[Dict[str, object]]:
     """按人物网络、反向关系和风闻生成举荐候选，不以派系作唯一依据。"""
     content = _ctx()
@@ -1626,7 +1662,7 @@ def npc_network_recommendations(
     if recommender is None:
         return []
     include_statuses = include_statuses or {"active", "offstage", "dismissed", "retired"}
-    status_by_name = db.character_status_map() if db is not None else {}
+    status_by_name = status_by_name if status_by_name is not None else (db.character_status_map() if db is not None else {})
     scores: Dict[str, Dict[str, object]] = {}
 
     def add(target: str, points: int, evidence: str, confidence: str) -> None:

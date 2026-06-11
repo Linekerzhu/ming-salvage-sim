@@ -30,6 +30,7 @@ from ming_sim.decree import advance_without_edict, resolve_directives, write_dec
 from ming_sim.dialogue_goals import PreparedDialogue, prepare_dialogue_context, record_dialogue_effects
 from ming_sim.issues import bind_content as _bind_issues
 from ming_sim.issues import sync_opening_legacies
+from ming_sim.hook_runner import HookRunner, build_default_hook_runner
 from ming_sim.llm_model import create_agno_db, extract_agent_text, verify_llm_available
 from ming_sim.models import Character, CourtContext, GameState, LLMConfig
 from ming_sim.paths import user_data_path
@@ -429,6 +430,7 @@ class GameSession:
         content: Optional[GameContent] = None,
         verify_llm: bool = True,
         start_ym: str = "",
+        hook_runner: Optional[HookRunner] = None,
     ) -> None:
         self.content = content if content is not None else GameContent.load()
         _bind_all_content(self.content)
@@ -455,6 +457,7 @@ class GameSession:
         self.last_report = ""
         self._begun = False
         self.dialogue_audit_client: object = None
+        self.hook_runner = hook_runner if hook_runner is not None else build_default_hook_runner()
 
     def _ensure_campaign_id(self) -> str:
         """每个存档/战局一个稳定 id，用于自动存档和 NPC LLM session 隔离。"""
@@ -491,7 +494,8 @@ class GameSession:
             self.db.save_state(self.state)
         self._begun = True
         self.auto_save("begin")
-        return self.turn_snapshot()
+        snapshot = self.turn_snapshot()
+        return self.hook_runner.run("turn.load", snapshot)
 
     def current_phase(self) -> TurnPhase:
         return TurnPhase(self.state.turn_phase)

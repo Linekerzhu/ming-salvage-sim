@@ -9,6 +9,7 @@ from typing import Dict, Optional
 
 from ming_sim.models import LLMConfig
 from ming_sim.paths import user_data_path
+from ming_sim.pipeline_registry import advanced_llm_roles
 
 RUNTIME_LLM_PATH = user_data_path("runtime_llm.json")
 
@@ -78,9 +79,8 @@ def load_llm_config(
 
 
 # 角色 → 用 advanced model 还是 main model。
-# 推演 / 打分 是回合结算的核心叙事 + 结构化抽取，最吃模型能力，单独走 advanced。
-# 其余 agent（大臣对话、诏书润色、记忆检索、JSON 修复、聊天记忆抽取）保持 main，省钱保缓存。
-_ADVANCED_ROLES = frozenset({"simulator", "extractor", "dialogue_audit"})
+# 具体工程契约集中在 pipeline_registry，避免新 LLM 管道绕过模型/预算治理。
+_ADVANCED_ROLES = advanced_llm_roles()
 
 
 def for_role(cfg: LLMConfig, role: str) -> LLMConfig:

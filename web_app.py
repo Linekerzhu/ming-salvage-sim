@@ -9,17 +9,21 @@ from __future__ import annotations
 
 import asyncio
 from contextvars import ContextVar
+from dataclasses import dataclass
 from functools import lru_cache
 import hashlib
 import json
+import logging
 import os
 import queue
 import random
 import re
 import secrets
+import sqlite3
 import threading
 import time
-from typing import Any, AsyncIterator, Dict, Iterator, List, Optional
+import uuid
+from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Tuple
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -77,6 +81,29 @@ from ming_sim.portraits import (
 )
 from ming_sim.exceptions import LLMContractError  # noqa: F401  (保留：供错误处理)
 from ming_sim.models import Character, LLMConfig
+from ming_sim.web_payloads import (
+    ARMY_FIELDS,
+    BUILDING_FIELDS,
+    CHARACTER_CARD_FIELDS,
+    CHARACTER_INDEX_FIELDS,
+    ISSUE_FIELDS,
+    LEGACY_FIELDS,
+    MAP_NODE_FIELDS,
+    POWER_FIELDS,
+    REGION_FIELDS,
+    compact_armies,
+    compact_map_nodes,
+    compact_buildings,
+    compact_character_cards,
+    compact_character_index,
+    compact_organization_payload,
+    compact_issues,
+    compact_legacies,
+    compact_powers,
+    compact_regions,
+    monthly_followups_payload,
+)
+from ming_sim.web_payload_hooks import attach_state_payload, run_web_payload_hook
 
 WEB_DIST = bundled_path("web", "dist")
 # 用户上传的自定义立绘存档级目录（不随 build 清空，git 可忽略）。
@@ -87,25 +114,6 @@ CUSTOM_PORTRAIT_PREFIX = "custom:"
 ALLOWED_PORTRAIT_TYPES = {"image/png", "image/jpeg", "image/webp"}
 MAX_PORTRAIT_BYTES = 8 * 1024 * 1024  # 8MB 上限
 GAME_START_YEAR = 1627
-CHARACTER_CARD_FIELDS = (
-    "name",
-    "office",
-    "office_type",
-    "faction",
-    "status",
-    "status_reason",
-    "status_label",
-    "career_state",
-    "summary",
-    "portrait_id",
-    "portrait_available",
-    "portrait_status",
-    "birth_year",
-    "start_age",
-    "age_label",
-    "power_id",
-    "favorite",
-)
 _PORTRAIT_KEY_PLACEHOLDERS = {
     "",
     "your_302_ai_key_here",
@@ -113,6 +121,38 @@ _PORTRAIT_KEY_PLACEHOLDERS = {
     "changeme",
     "change_me",
 }
+
+
+@dataclass(frozen=True)
+class CharacterRuntimeIdentity:
+    status: str
+    status_reason: str
+    status_label: str
+    career_state: str
+    office: str
+    office_type: str
+    faction: str
+    portrait_id: str
+    portrait_prefix: str
+    power_id: str
+    power_name: str
+    birth_year: int
+    summary: str
+
+
+def _row_value(row: Optional[Any], key: str, default: Any = None) -> Any:
+    if row is None:
+        return default
+    try:
+        keys = row.keys()
+        if key not in keys:
+            return default
+        return row[key]
+    except Exception:
+        try:
+            return row[key]
+        except Exception:
+            return default
 
 
 def _portrait_generation_configured() -> bool:
@@ -977,6 +1017,74 @@ class WebGame:
             "age_label": f"开局{start_age}岁" if start_age else "开局年龄未详",
         }
 
+    def _character_identity(
+        self,
+        character: Character,
+        *,
+        runtime_row: Optional[Any] = None,
+        runtime_rows: Optional[Dict[str, Any]] = None,
+    ) -> CharacterRuntimeIdentity:
+        row = runtime_row
+        if row is None and runtime_rows is not None:
+            row = runtime_rows.get(character.name)
+        if row is None:
+            row = self.db.conn.execute(
+                """
+                SELECT office, office_type, faction, portrait_id, power_id, birth_year, status, status_reason
+                FROM characters
+                WHERE name=?
+                """,
+                (character.name,),
+            ).fetchone()
+
+        status = str(_row_value(row, "status", getattr(character, "status", "active")) or "active")
+        status_reason = str(_row_value(row, "status_reason", "") or "")
+        status_label = _STATUS_LABEL_WEB.get(status, "在朝" if status == "active" else status)
+        office = str(_row_value(row, "office", character.office) or "")
+        office_type = str(_row_value(row, "office_type", character.office_type) or character.office_type)
+        office_type = effective_stored_office_type(office, office_type)
+        faction = str(_row_value(row, "faction", character.faction) or character.faction)
+        portrait_id = str(_row_value(row, "portrait_id", character.portrait_id) or character.portrait_id)
+        power_id = str(_row_value(row, "power_id", getattr(character, "power_id", "ming")) or "ming")
+        try:
+            birth_year = int(_row_value(row, "birth_year", getattr(character, "birth_year", 0)) or 0)
+        except (TypeError, ValueError):
+            birth_year = int(getattr(character, "birth_year", 0) or 0)
+        career_state = "出仕"
+        if status == "offstage":
+            career_state = "隐藏"
+        elif status == "candidate":
+            career_state = "待选"
+        elif status in {"dismissed", "exiled", "retired"}:
+            career_state = "在野"
+        elif status in {"imprisoned", "dead"}:
+            career_state = status_label
+        power = self.content.powers.get(power_id)
+        power_name = str(getattr(power, "name", "") or power_id or "大明")
+        identity_bits = [power_name, faction, office_type, status_label]
+        return CharacterRuntimeIdentity(
+            status=status,
+            status_reason=status_reason,
+            status_label=status_label,
+            career_state=career_state,
+            office=office,
+            office_type=office_type,
+            faction=faction,
+            portrait_id=portrait_id,
+            portrait_prefix="consort_" if office_type == "后宫" else "minister_",
+            power_id=power_id,
+            power_name=power_name,
+            birth_year=birth_year,
+            summary=" · ".join(bit for bit in identity_bits if bit),
+        )
+
+    def _character_identities(self, runtime_rows: Optional[Dict[str, Any]] = None) -> Dict[str, CharacterRuntimeIdentity]:
+        runtime_rows = runtime_rows if runtime_rows is not None else self._character_runtime_rows()
+        return {
+            character.name: self._character_identity(character, runtime_rows=runtime_rows)
+            for character in self.content.characters.values()
+        }
+
     def _character_runtime_rows(self) -> Dict[str, Any]:
         rows = self.db.conn.execute(
             """
@@ -1096,65 +1204,39 @@ class WebGame:
         *,
         include_detail: bool = True,
         runtime_row: Optional[Any] = None,
+        runtime_identity: Optional[CharacterRuntimeIdentity] = None,
         portrait_assets: Optional[Dict[str, Dict[str, Any]]] = None,
         stance_notes_by_minister: Optional[Dict[str, List[Dict[str, Any]]]] = None,
         conversation_goals_by_minister: Optional[Dict[str, List[Dict[str, Any]]]] = None,
+        status_by_name: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
-        if runtime_row is not None:
-            status = str(runtime_row["status"] or "active")
-            status_reason = str(runtime_row["status_reason"] or "")
-            db_row = runtime_row
-        else:
-            status, status_reason = self.db.get_character_status(character.name)
-            db_row = self.db.conn.execute(
-                "SELECT office, office_type, faction, portrait_id, power_id, birth_year FROM characters WHERE name=?", (character.name,)
-            ).fetchone()
-        status_label = _STATUS_LABEL_WEB.get(status, "在朝" if status == "active" else status)
-        office = (db_row["office"] if db_row else character.office) or ""  # 去职者已被清空，可能为空串
-        office_type = (db_row["office_type"] if db_row else character.office_type) or character.office_type
-        office_type = effective_stored_office_type(office, office_type)
-        faction = (db_row["faction"] if db_row else character.faction) or character.faction
-        portrait_id = (db_row["portrait_id"] if db_row else character.portrait_id) or character.portrait_id
-        power_id = (db_row["power_id"] if db_row else None) or getattr(character, "power_id", "ming") or "ming"
-        age_payload = self._age_payload(character, int(db_row["birth_year"] or 0) if db_row else 0)
-        portrait_prefix = "consort_" if office_type == "后宫" else "minister_"
+        identity = runtime_identity or self._character_identity(character, runtime_row=runtime_row)
+        age_payload = self._age_payload(character, identity.birth_year)
         portrait_meta = (
-            self._portrait_meta(character, portrait_id, portrait_prefix, portrait_assets=portrait_assets)
+            self._portrait_meta(character, identity.portrait_id, identity.portrait_prefix, portrait_assets=portrait_assets)
             if include_detail
-            else self._portrait_summary_meta(character, portrait_id, portrait_prefix, portrait_assets=portrait_assets)
+            else self._portrait_summary_meta(character, identity.portrait_id, identity.portrait_prefix, portrait_assets=portrait_assets)
         )
-        career_state = "出仕"
-        if status == "offstage":
-            career_state = "隐藏"
-        elif status == "candidate":
-            career_state = "待选"
-        elif status in {"dismissed", "exiled", "retired"}:
-            career_state = "在野"
-        elif status in {"imprisoned", "dead"}:
-            career_state = status_label
-        power = self.content.powers.get(power_id)
-        power_name = str(getattr(power, "name", "") or "大明")
-        identity_bits = [power_name, faction, office_type, status_label]
-        # 公开摘要只展示身份、处境和新的人格/关系/记忆输入。
-        summary = " · ".join(bit for bit in identity_bits if bit)
         payload: Dict[str, Any] = {
             "name": character.name,
-            "office": office,
-            "office_type": office_type,
-            "faction": faction,
-            "status": status,
-            "status_reason": status_reason,
-            "status_label": status_label,
-            "career_state": career_state,
-            "summary": summary,
-            "portrait_id": portrait_id,
+            "office": identity.office,
+            "office_type": identity.office_type,
+            "faction": identity.faction,
+            "status": identity.status,
+            "status_reason": identity.status_reason,
+            "status_label": identity.status_label,
+            "career_state": identity.career_state,
+            "summary": identity.summary,
+            "portrait_id": identity.portrait_id,
             **portrait_meta,
             **age_payload,
-            "power_id": power_id,
+            "power_id": identity.power_id,
             "skills": [],
             "favorite": character.name in self.favorites,
         }
         if include_detail:
+            active_skill_grants = self.db.active_skill_grants(character.name)
+            skill_ids = available_skill_ids(character, active_grants=active_skill_grants)
             payload.update({
                 "style": character.style,
                 "personal_skills": list(character.personal_skills or []),
@@ -1168,15 +1250,20 @@ class WebGame:
                     if conversation_goals_by_minister is not None
                     else self.conversation_goal_payload(minister_name=character.name, limit=8)
                 ),
-                "network_profile": npc_network_profile(character.name, db=self.db, limit=8),
+                "network_profile": npc_network_profile(
+                    character.name,
+                    db=self.db,
+                    limit=8,
+                    status_by_name=status_by_name,
+                ),
                 "skills": [
                     {
                         "id": skill_id,
                         "name": skill_display_name(skill_id),
-                        "sources": skill_source_labels(character, skill_id, self.db),
+                        "sources": skill_source_labels(character, skill_id, active_grants=active_skill_grants),
                         "description": self.content.skill_descriptions.get(skill_id, ""),
                     }
-                    for skill_id in available_skill_ids(character, self.db)
+                    for skill_id in skill_ids
                 ],
             })
         return payload
@@ -1188,46 +1275,28 @@ class WebGame:
     ) -> List[Dict[str, Any]]:
         """全 NPC 只读索引：轻量展示用，不携带人物网络大对象。"""
         rows: List[Dict[str, Any]] = []
+        portrait_assets = portrait_assets if portrait_assets is not None else self._portrait_asset_meta_map()
+        identities = self._character_identities(runtime_rows)
         for character in self.content.characters.values():
-            db_row = runtime_rows.get(character.name) if runtime_rows is not None else None
-            if db_row is not None:
-                status = str(db_row["status"] or "active")
-                status_reason = str(db_row["status_reason"] or "")
-            else:
-                status, status_reason = self.db.get_character_status(character.name)
-                db_row = self.db.conn.execute(
-                    "SELECT office, office_type, faction, portrait_id, power_id, birth_year FROM characters WHERE name=?",
-                    (character.name,),
-                ).fetchone()
-            status_label = _STATUS_LABEL_WEB.get(status, "在朝" if status == "active" else status)
-            office = (db_row["office"] if db_row else character.office) or ""
-            office_type = (db_row["office_type"] if db_row else character.office_type) or character.office_type
-            office_type = effective_stored_office_type(office, office_type)
-            faction = (db_row["faction"] if db_row else character.faction) or character.faction
-            portrait_id = (db_row["portrait_id"] if db_row else character.portrait_id) or character.portrait_id
-            power_id = (db_row["power_id"] if db_row else None) or getattr(character, "power_id", "ming") or "ming"
-            power = self.content.powers.get(power_id)
-            power_name = str(getattr(power, "name", "") or power_id or "大明")
-            portrait_prefix = "consort_" if office_type == "后宫" else "minister_"
-            identity_bits = [power_name, faction, office_type, status_label]
+            identity = identities[character.name]
             rows.append({
                 "name": character.name,
-                "office": office,
-                "office_type": office_type,
-                "faction": faction,
-                "status": status,
-                "status_reason": status_reason,
-                "status_label": status_label,
-                "power_id": power_id,
-                "power_name": power_name,
-                "summary": " · ".join(bit for bit in identity_bits if bit),
+                "office": identity.office,
+                "office_type": identity.office_type,
+                "faction": identity.faction,
+                "status": identity.status,
+                "status_reason": identity.status_reason,
+                "status_label": identity.status_label,
+                "power_id": identity.power_id,
+                "power_name": identity.power_name,
+                "summary": identity.summary,
                 "portrait_available": self._portrait_available(
                     character,
-                    portrait_id,
-                    portrait_prefix,
+                    identity.portrait_id,
+                    identity.portrait_prefix,
                     portrait_assets=portrait_assets,
                 ),
-                "can_summon": bool(power_id == "ming" and status == "active"),
+                "can_summon": bool(identity.power_id == "ming" and identity.status == "active"),
             })
         return rows
 
@@ -1236,32 +1305,18 @@ class WebGame:
         character: Character,
         *,
         runtime_row: Optional[Any] = None,
+        runtime_identity: Optional[CharacterRuntimeIdentity] = None,
     ) -> Dict[str, Any]:
-        if runtime_row is not None:
-            status = str(runtime_row["status"] or "active")
-            status_reason = str(runtime_row["status_reason"] or "")
-            db_row = runtime_row
-        else:
-            status, status_reason = self.db.get_character_status(character.name)
-            db_row = self.db.conn.execute(
-                "SELECT office, office_type, faction, power_id FROM characters WHERE name=?",
-                (character.name,),
-            ).fetchone()
-        office = (db_row["office"] if db_row else character.office) or ""
-        office_type = (db_row["office_type"] if db_row else character.office_type) or character.office_type
-        office_type = effective_stored_office_type(office, office_type)
-        faction = (db_row["faction"] if db_row else character.faction) or character.faction
-        power_id = (db_row["power_id"] if db_row else None) or getattr(character, "power_id", "ming") or "ming"
-        status_label = _STATUS_LABEL_WEB.get(status, "在朝" if status == "active" else status)
+        identity = runtime_identity or self._character_identity(character, runtime_row=runtime_row)
         return {
             "name": character.name,
-            "office": office,
-            "office_type": office_type,
-            "faction": faction,
-            "status": status,
-            "status_reason": status_reason,
-            "status_label": status_label,
-            "power_id": power_id,
+            "office": identity.office,
+            "office_type": identity.office_type,
+            "faction": identity.faction,
+            "status": identity.status,
+            "status_reason": identity.status_reason,
+            "status_label": identity.status_label,
+            "power_id": identity.power_id,
         }
 
     def character_power_id(self, character: Character, runtime_rows: Optional[Dict[str, Any]] = None) -> str:
@@ -1469,14 +1524,6 @@ class WebGame:
                     "armies": stationed,
                     "buildings": buildings_by_region.get(str(region["id"]), []),
                 })
-            else:
-                node["region"] = {
-                    "id": region["id"],
-                    "name": region["name"],
-                    "kind": region["kind"],
-                    "controlled_by": region["controlled_by"],
-                    "unrest": int(region["unrest"]),
-                }
             nodes.append(node)
         for node_id, (x, y) in theater_positions.items():
             stationed = [a for a in armies if self._army_belongs_to_theater(a, node_id)]
@@ -1711,6 +1758,8 @@ class WebGame:
         stance_notes_by_minister: Optional[Dict[str, List[Dict[str, Any]]]] = None,
         conversation_goals_by_minister: Optional[Dict[str, List[Dict[str, Any]]]] = None,
     ) -> Dict[str, Any]:
+        runtime_rows = runtime_rows if runtime_rows is not None else self._character_runtime_rows()
+        identities = self._character_identities(runtime_rows)
         base_institutions: List[Dict[str, Any]] = base_institution_specs()
         custom_institutions = self._custom_institutions()
         diagnostics = organization_diagnostics(self.db, custom_institutions)
@@ -1720,24 +1769,12 @@ class WebGame:
             if isinstance(item, dict)
         }
 
-        characters = [
-            c for c in self.content.characters.values()
-            if c.office_type != "后宫" and self.character_power_id(c, runtime_rows) == "ming"
-        ]
-        active_snapshots: List[tuple[Character, str, str]] = []
-        for character in characters:
-            row = runtime_rows.get(character.name) if runtime_rows is not None else None
-            status = str(row["status"] or "active") if row is not None else self.db.get_character_status(character.name)[0]
-            if status != "active":
+        active_snapshots: List[tuple[Character, CharacterRuntimeIdentity]] = []
+        for character in self.content.characters.values():
+            identity = identities[character.name]
+            if identity.office_type == "后宫" or identity.power_id != "ming" or identity.status != "active":
                 continue
-            if row is None:
-                row = self.db.conn.execute(
-                    "SELECT office, office_type FROM characters WHERE name=?", (character.name,)
-                ).fetchone()
-            office = (row["office"] if row else character.office) or ""
-            office_type = (row["office_type"] if row else character.office_type) or character.office_type
-            office_type = effective_stored_office_type(office, office_type)
-            active_snapshots.append((character, office, office_type))
+            active_snapshots.append((character, identity))
 
         assigned_names: set[str] = set()
 
@@ -1754,24 +1791,24 @@ class WebGame:
             match_re = str(slot.get("match_regex") or "").strip()
             office_types = {str(item).strip() for item in (slot.get("office_types") or []) if str(item).strip()}
             holders: List[Dict[str, Any]] = []
-            for character, office, actual_type in active_snapshots:
-                parts = usable_parts(office)
+            for character, identity in active_snapshots:
+                parts = usable_parts(identity.office)
                 text = " ".join(parts)
                 hit = False
-                if slot.get("office_type_only") and office_types and actual_type in office_types:
+                if slot.get("office_type_only") and office_types and identity.office_type in office_types:
                     hit = True
                 if not hit and terms:
                     hit = any(term in part for term in terms for part in parts)
                 if not hit and match_re:
                     hit = any(re.search(match_re, part) for part in parts)
-                if not hit and office_types and actual_type in office_types:
+                if not hit and office_types and identity.office_type in office_types:
                     hit = any(term in text for term in terms)
                 if hit:
                     assigned_names.add(character.name)
                     holders.append(
                         self.organization_character_card(
                             character,
-                            runtime_row=runtime_rows.get(character.name) if runtime_rows is not None else None,
+                            runtime_identity=identity,
                         )
                     )
             return holders
@@ -1824,11 +1861,12 @@ class WebGame:
             self.organization_character_card(
                 character,
                 runtime_row=runtime_rows.get(character.name) if runtime_rows is not None else None,
+                runtime_identity=identity,
             )
-            for character, office, actual_type in active_snapshots
+            for character, identity in active_snapshots
             if character.name not in assigned_names
-            and usable_parts(office)
-            and actual_type not in {"外臣"}
+            and usable_parts(identity.office)
+            and identity.office_type not in {"外臣"}
         ]
         unassigned.sort(key=lambda item: (str(item.get("office_type") or ""), str(item.get("name") or "")))
         return {
@@ -2030,11 +2068,13 @@ class WebGame:
 
     def recommend_hidden_official(self) -> Dict[str, Any]:
         rng = self.character_rng
+        identities = self._character_identities()
+        status_by_name = {name: identity.status for name, identity in identities.items()}
         active_recommenders = [
             c for c in self.content.characters.values()
-            if c.office_type != "后宫"
-            and self.character_power_id(c) == "ming"
-            and self.db.get_character_status(c.name)[0] == "active"
+            if identities[c.name].office_type != "后宫"
+            and identities[c.name].power_id == "ming"
+            and identities[c.name].status == "active"
         ]
         network_hits: List[Dict[str, Any]] = []
         for recommender in active_recommenders:
@@ -2043,6 +2083,7 @@ class WebGame:
                 db=self.db,
                 limit=12,
                 include_statuses={"offstage", "dismissed", "retired"},
+                status_by_name=status_by_name,
             ):
                 if row.get("status") != "offstage":
                     continue
@@ -2069,7 +2110,7 @@ class WebGame:
             self.maybe_queue_portrait_generation(chosen.name, "举贤发现")
             return {
                 "message": f"举贤发现：{hit['recommender']}举荐{chosen.name}出仕（{evidence}）。",
-                "minister": self.public_character(chosen),
+                "minister": self.public_character(chosen, status_by_name=status_by_name),
             }
 
         name = self._generated_name("recommend")
@@ -2474,9 +2515,13 @@ class WebGame:
             rows = self.db.list_conversation_goals(limit=limit)
         return self._conversation_goal_payload_from_rows(rows)
 
-    def _compact_character_cards(self, cards: List[Dict[str, Any]]) -> List[List[Any]]:
-        """Compact repeated roster keys out of hot state payloads."""
-        return [[card.get(field) for field in CHARACTER_CARD_FIELDS] for card in cards]
+    def _run_web_payload_hook(self, route: str, payload: Dict[str, Any], *, method: str = "") -> Dict[str, Any]:
+        """Run trusted payload hooks without letting handlers touch WebGame internals."""
+        return run_web_payload_hook(self.session.hook_runner, route, payload, method=method)
+
+    def web_payload_response(self, route: str, payload: Dict[str, Any], *, method: str = "") -> Dict[str, Any]:
+        """Apply the declared Web payload contract hook at route boundaries."""
+        return self._run_web_payload_hook(route, payload, method=method)
 
     def state_payload(self) -> Dict[str, Any]:
         runtime_rows = self._character_runtime_rows()
@@ -2487,63 +2532,52 @@ class WebGame:
         budget_lines = compute_budget_lines(self.db, self.state)
         treasury = self.db.treasury_report(self.state, budget=budget_lines)
         budget = self.budget_payload(budget=budget_lines)
+        identities = self._character_identities(runtime_rows)
 
-        def runtime_office_type(character: Character) -> str:
-            row = runtime_rows.get(character.name)
-            office = (row["office"] if row else character.office) or ""
-            office_type = (row["office_type"] if row else character.office_type) or character.office_type
-            return effective_stored_office_type(office, office_type)
-
-        def runtime_status(character: Character) -> str:
-            row = runtime_rows.get(character.name)
-            return str(row["status"] or "active") if row is not None else "active"
-
-        ministers = [
-            self.public_character(
-                c,
+        ministers: List[Dict[str, Any]] = []
+        consorts: List[Dict[str, Any]] = []
+        for character in self.content.characters.values():
+            identity = identities[character.name]
+            if identity.power_id != "ming":
+                continue
+            card = self.public_character(
+                character,
                 include_detail=False,
-                runtime_row=runtime_rows.get(c.name),
+                runtime_row=runtime_rows.get(character.name),
+                runtime_identity=identity,
                 portrait_assets=portrait_assets,
             )
-            for c in self.content.characters.values()
-            if runtime_office_type(c) != "后宫" and self.character_power_id(c, runtime_rows) == "ming"
-        ]
-        consorts = [
-            self.public_character(
-                c,
-                include_detail=False,
-                runtime_row=runtime_rows.get(c.name),
-                portrait_assets=portrait_assets,
-            )
-            for c in self.content.characters.values()
-            if runtime_office_type(c) == "后宫"
-            and runtime_status(c) == "active"
-            and self.character_power_id(c, runtime_rows) == "ming"
-        ]
+            if identity.office_type == "后宫":
+                if identity.status == "active":
+                    consorts.append(card)
+            else:
+                ministers.append(card)
 
-        return {
+        payload = {
             "turn": {"year": self.state.year, "period": self.state.period,
                      "turn": self.state.turn, "phase": self.state.turn_phase},
             "metrics": self.state.metrics,
             "previous_summary": self.previous_summary,
             "treasury": treasury,
-            "issues": self.issue_payloads(),
-            "legacies": self.legacies_payload(),
+            "issue_fields": list(ISSUE_FIELDS),
+            "issues": compact_issues(self.issue_payloads()),
+            "legacy_fields": list(LEGACY_FIELDS),
+            "legacies": compact_legacies(self.legacies_payload()),
             "closed_this_turn": self.closed_this_turn_payloads(),
             "budget": budget,
-            "region_warning": self.db.region_report(limit=5),
-            "army_warning": self.db.army_report(limit=5),
-            "power_warning": self.db.power_report(exclude_self=True),
-            "powers": self.db.power_payload(),
+            "power_fields": list(POWER_FIELDS),
+            "powers": compact_powers(self.db.power_payload()),
             "victory_status": self.session.victory(),
             "ending": self.ending_payload(),
             "events": [],
-            "regions": regions,
-            "armies": armies,
+            "region_fields": list(REGION_FIELDS),
+            "regions": compact_regions(regions),
+            "army_fields": list(ARMY_FIELDS),
+            "armies": compact_armies(armies),
             "map_nodes": self.map_nodes(regions=regions, armies=armies, include_detail=False),
             "minister_fields": list(CHARACTER_CARD_FIELDS),
-            "ministers": self._compact_character_cards(ministers),
-            "consorts": self._compact_character_cards(consorts),
+            "ministers": compact_character_cards(ministers),
+            "consorts": compact_character_cards(consorts),
             "directives": directives,
             "agreements": self.agreement_payload(),
             "conversation_goals": self.conversation_goal_payload(),
@@ -2553,6 +2587,15 @@ class WebGame:
             # 传奇文字冒险新增数据
             "adventures": self.adventure_payload(),
             "items": self.item_payload(),
+        }
+        return self.web_payload_response("/api/game/state", payload)
+
+    def situation_reports_payload(self) -> Dict[str, str]:
+        """Build heavier situation prose only when a panel explicitly asks for it."""
+        return {
+            "region_warning": self.db.region_report(limit=5),
+            "army_warning": self.db.army_report(limit=5),
+            "power_warning": self.db.power_report(exclude_self=True),
         }
 
     # ── 聊天 ──────────────────────────────────────────────────────────────
@@ -2925,6 +2968,9 @@ _auth_sessions_lock = threading.RLock()
 _current_username: ContextVar[str] = ContextVar("current_username", default="")
 _AUTH_COOKIE = "ming_session"
 _SERVER_STARTED_AT = time.time()
+_LOG = logging.getLogger("ming_sim.web")
+if not logging.getLogger().handlers:
+    logging.basicConfig(level=os.environ.get("MING_SIM_LOG_LEVEL", "INFO").upper())
 
 
 def _env_int(name: str, default: int, *, minimum: int = 0, maximum: int = 10**9) -> int:
@@ -3633,7 +3679,7 @@ async def api_menu_new_game() -> Dict[str, Any]:
     except LLMUnavailable as exc:
         raise HTTPException(status_code=412, detail=_llm_error_detail(exc))
     _set_running_game_for_user(username, game)
-    return {"state": game.state_payload()}
+    return _web_payload_response(game, "/api/menu/new_game", {"state": game.state_payload()})
 
 
 @app.post("/api/menu/continue")
@@ -3647,7 +3693,7 @@ async def api_menu_continue() -> Dict[str, Any]:
     except LLMUnavailable as exc:
         raise HTTPException(status_code=412, detail=_llm_error_detail(exc))
     _set_running_game_for_user(username, game)
-    return {"state": game.state_payload()}
+    return _web_payload_response(game, "/api/menu/continue", {"state": game.state_payload()})
 
 
 @app.post("/api/menu/load_save/{name}")
@@ -3660,7 +3706,7 @@ async def api_menu_load_save(name: str) -> Dict[str, Any]:
         raise HTTPException(status_code=412, detail=_llm_error_detail(exc))
     game.load_save(name)
     _set_running_game_for_user(username, game)
-    return {"state": game.state_payload()}
+    return _web_payload_response(game, "/api/menu/load_save/{name}", {"state": game.state_payload()})
 
 
 @app.delete("/api/menu/saves/{name}")
@@ -3818,21 +3864,38 @@ async def api_state() -> Dict[str, Any]:
 @app.get("/api/monthly_followups")
 async def api_monthly_followups() -> Dict[str, Any]:
     game = get_game()
-    return {
-        "turn": int(game.state.turn),
-        "followups": list(getattr(game.session, "monthly_followups", []) or []),
-    }
+    return _web_payload_response(
+        game,
+        "/api/monthly_followups",
+        monthly_followups_payload(
+            int(game.state.turn),
+            getattr(game.session, "monthly_followups", []) or [],
+        ),
+    )
 
 
-def _response_with_state(game: WebGame, payload: Dict[str, Any]) -> Dict[str, Any]:
-    out = dict(payload)
-    out["state"] = game.state_payload()
+def _response_with_state(game: WebGame, payload: Dict[str, Any], *, route: str = "", method: str = "") -> Dict[str, Any]:
+    out = attach_state_payload(payload, game.state_payload())
+    if route:
+        return _web_payload_response(game, route, out, method=method)
     return out
+
+
+def _web_payload_response(game: Any, route: str, payload: Dict[str, Any], *, method: str = "") -> Dict[str, Any]:
+    responder = getattr(game, "web_payload_response", None)
+    if callable(responder):
+        return responder(route, payload, method=method)
+    return payload
 
 
 @app.get("/api/organizations")
 async def api_organizations() -> Dict[str, Any]:
-    return get_game().organization_payload()
+    game = get_game()
+    return _web_payload_response(
+        game,
+        "/api/organizations",
+        compact_organization_payload(game.organization_payload()),
+    )
 
 
 @app.post("/api/organizations/custom")
@@ -3841,57 +3904,76 @@ async def api_add_custom_institution(body: CustomInstitutionRequest) -> Dict[str
     item = game.add_custom_institution(body.name, body.category, body.mandate, body.slots)
     return _response_with_state(game, {
         "message": f"已增设{item['name']}，空缺已进入组织图。",
-        "organizations": game.organization_payload(),
-    })
+        "organizations": compact_organization_payload(game.organization_payload()),
+    }, route="/api/organizations/custom")
 
 
 @app.post("/api/recruitment/exam")
 async def api_recruit_exam() -> Dict[str, Any]:
     game = get_game()
-    return _response_with_state(game, game.recruit_exam_official())
+    return _response_with_state(game, game.recruit_exam_official(), route="/api/recruitment/exam")
 
 
 @app.post("/api/recruitment/eunuch")
 async def api_recruit_eunuch() -> Dict[str, Any]:
     game = get_game()
-    return _response_with_state(game, game.recruit_eunuch())
+    return _response_with_state(game, game.recruit_eunuch(), route="/api/recruitment/eunuch")
 
 
 @app.post("/api/recruitment/recommend")
 async def api_recommend_hidden() -> Dict[str, Any]:
     game = get_game()
-    return _response_with_state(game, game.recommend_hidden_official())
+    return _response_with_state(game, game.recommend_hidden_official(), route="/api/recruitment/recommend")
 
 
 @app.post("/api/recruitment/castrate")
 async def api_castrate_official(body: CastrateRequest) -> Dict[str, Any]:
     game = get_game()
-    return _response_with_state(game, game.castrate_official(body.name, force=body.force))
+    return _response_with_state(
+        game,
+        game.castrate_official(body.name, force=body.force),
+        route="/api/recruitment/castrate",
+    )
 
 
 @app.post("/api/recruitment/emancipate")
 async def api_emancipate_eunuch(body: CastrateRequest) -> Dict[str, Any]:
     game = get_game()
-    return _response_with_state(game, game.emancipate_eunuch(body.name, force=body.force))
+    return _response_with_state(
+        game,
+        game.emancipate_eunuch(body.name, force=body.force),
+        route="/api/recruitment/emancipate",
+    )
 
 
 @app.get("/api/secret_orders")
 async def api_secret_orders(status: str = "") -> Dict[str, Any]:
     """列出密令。status 为空返回全部，否则按 active/done/failed 过滤。"""
-    orders = get_game().db.list_secret_orders(status=status or None)
-    return {"orders": orders}
+    game = get_game()
+    orders = game.db.list_secret_orders(status=status or None)
+    return _web_payload_response(game, "/api/secret_orders", {"orders": orders})
 
 
 @app.get("/api/agreements")
 async def api_agreements(minister_name: str = "") -> Dict[str, Any]:
     """列出奏对协议与履约 todo。"""
-    return {"agreements": get_game().agreement_payload(minister_name=minister_name)}
+    game = get_game()
+    return _web_payload_response(
+        game,
+        "/api/agreements",
+        {"agreements": game.agreement_payload(minister_name=minister_name)},
+    )
 
 
 @app.get("/api/conversation_goals")
 async def api_conversation_goals(minister_name: str = "") -> Dict[str, Any]:
     """列出奏对目的与心理握手进度。"""
-    return {"conversation_goals": get_game().conversation_goal_payload(minister_name=minister_name)}
+    game = get_game()
+    return _web_payload_response(
+        game,
+        "/api/conversation_goals",
+        {"conversation_goals": game.conversation_goal_payload(minister_name=minister_name)},
+    )
 
 
 @app.post("/api/conversation_goals/{goal_id}/abandon")
@@ -3901,7 +3983,7 @@ async def api_abandon_conversation_goal(goal_id: int, body: ConversationGoalAban
         goal = game.db.abandon_conversation_goal(game.state, goal_id, reason=body.reason or "玩家主动放弃")
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from None
-    return {"goal": goal, "state": game.state_payload()}
+    return _response_with_state(game, {"goal": goal}, route="/api/conversation_goals/{goal_id}/abandon")
 
 
 @app.patch("/api/agreements/tasks/{task_id}")
@@ -3955,12 +4037,29 @@ async def api_history_turn(turn: int) -> Dict[str, Any]:
 
 @app.get("/api/map")
 async def api_map() -> Dict[str, Any]:
-    return {"nodes": get_game().map_nodes()}
+    game = get_game()
+    return _web_payload_response(game, "/api/map", {
+        "node_fields": list(MAP_NODE_FIELDS),
+        "region_fields": list(REGION_FIELDS),
+        "army_fields": list(ARMY_FIELDS),
+        "building_fields": list(BUILDING_FIELDS),
+        "nodes": compact_map_nodes(game.map_nodes()),
+    })
+
+
+@app.get("/api/situation_reports")
+async def api_situation_reports() -> Dict[str, Any]:
+    game = get_game()
+    return _web_payload_response(game, "/api/situation_reports", game.situation_reports_payload())
 
 
 @app.get("/api/buildings")
 async def api_buildings(region_id: str = "") -> Dict[str, Any]:
-    return {"buildings": get_game().db.building_payload(region_id)}
+    game = get_game()
+    return _web_payload_response(game, "/api/buildings", {
+        "building_fields": list(BUILDING_FIELDS),
+        "buildings": compact_buildings(game.db.building_payload(region_id)),
+    })
 
 
 @app.get("/api/characters")
@@ -3968,20 +4067,28 @@ async def api_character_index() -> Dict[str, Any]:
     game = get_game()
     runtime_rows = game._character_runtime_rows()
     portrait_assets = game._portrait_asset_meta_map()
-    return {
-        "characters": game.character_index_payload(
-            runtime_rows=runtime_rows,
-            portrait_assets=portrait_assets,
-        )
-    }
+    return _web_payload_response(game, "/api/characters", {
+        "character_fields": list(CHARACTER_INDEX_FIELDS),
+        "characters": compact_character_index(
+            game.character_index_payload(
+                runtime_rows=runtime_rows,
+                portrait_assets=portrait_assets,
+            )
+        ),
+    })
 
 
 @app.get("/api/characters/{character_name}")
 async def api_character_detail(character_name: str) -> Dict[str, Any]:
-    character = get_game().content.characters.get(character_name)
+    game = get_game()
+    character = game.content.characters.get(character_name)
     if character is None:
         raise HTTPException(status_code=404, detail=f"未找到人物：{character_name}")
-    return {"character": get_game().public_character(character)}
+    return _web_payload_response(
+        game,
+        "/api/characters/{character_name}",
+        {"character": game.public_character(character)},
+    )
 
 
 @app.post("/api/favorites/{minister_name}")
@@ -3991,7 +4098,12 @@ async def api_add_favorite(minister_name: str) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail=f"未找到：{minister_name}")
     game.favorites.add(minister_name)
     game.db.kv_set("favorites", json.dumps(sorted(game.favorites)))
-    return _response_with_state(game, {"favorites": sorted(game.favorites)})
+    return _response_with_state(
+        game,
+        {"favorites": sorted(game.favorites)},
+        route="/api/favorites/{minister_name}",
+        method="POST",
+    )
 
 
 @app.delete("/api/favorites/{minister_name}")
@@ -3999,7 +4111,12 @@ async def api_remove_favorite(minister_name: str) -> Dict[str, Any]:
     game = get_game()
     game.favorites.discard(minister_name)
     game.db.kv_set("favorites", json.dumps(sorted(game.favorites)))
-    return _response_with_state(game, {"favorites": sorted(game.favorites)})
+    return _response_with_state(
+        game,
+        {"favorites": sorted(game.favorites)},
+        route="/api/favorites/{minister_name}",
+        method="DELETE",
+    )
 
 
 _STATUS_LABEL_WEB = {
@@ -4060,7 +4177,11 @@ async def api_create_secret_order(minister_name: str, request: SecretOrderReques
         raise HTTPException(status_code=409, detail=str(exc)) from None
     effect = game.session.record_secret_order_effect(order_id, minister_name)
     print(f"[secret_order/api] 直接落库 minister={minister_name} title={title!r} id={order_id}")
-    return {"order_id": order_id, "minister_name": minister_name, "title": title, "status": "active", "effect": effect}
+    return _web_payload_response(
+        game,
+        "/api/ministers/{minister_name}/secret_order",
+        {"order_id": order_id, "minister_name": minister_name, "title": title, "status": "active", "effect": effect},
+    )
 
 
 @app.post("/api/ministers/{minister_name}/chat")
@@ -4095,19 +4216,21 @@ async def api_chat_stream(minister_name: str, request: ChatRequest) -> Streaming
 async def api_create_directive(request: DirectiveRequest) -> Dict[str, Any]:
     if not request.text.strip():
         raise HTTPException(status_code=400, detail="指令内容不能为空。")
+    game = get_game()
     try:
-        dv = get_game().session.add_directive(request.text.strip(), notes=request.notes)
+        dv = game.session.add_directive(request.text.strip(), notes=request.notes)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from None
-    return {
+    return _web_payload_response(game, "/api/directives", {
         "directive": {"id": dv.id, "text": dv.text, "status": dv.status},
-        "directives": [get_game().directive_payload(item) for item in get_game().directive_rows()],
-    }
+        "directives": [game.directive_payload(item) for item in game.directive_rows()],
+    })
 
 
 @app.patch("/api/directives/{directive_id}")
 async def api_update_directive(directive_id: int, request: DirectivePatch) -> Dict[str, Any]:
-    rows = get_game().directive_rows()
+    game = get_game()
+    rows = game.directive_rows()
     row = next((item for item in rows if int(item["id"]) == directive_id), None)
     if row is None:
         raise HTTPException(status_code=404, detail="未找到草案。")
@@ -4115,54 +4238,76 @@ async def api_update_directive(directive_id: int, request: DirectivePatch) -> Di
     if not text.strip():
         raise HTTPException(status_code=400, detail="指令内容不能为空。")
     try:
-        get_game().session.update_directive(directive_id, text.strip())
+        game.session.update_directive(directive_id, text.strip())
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from None
-    return {"directives": [get_game().directive_payload(item) for item in get_game().directive_rows()]}
+    return _web_payload_response(
+        game,
+        "/api/directives/{directive_id}",
+        {"directives": [game.directive_payload(item) for item in game.directive_rows()]},
+        method="PATCH",
+    )
 
 
 @app.delete("/api/directives/{directive_id}")
 async def api_delete_directive(directive_id: int) -> Dict[str, Any]:
+    game = get_game()
     try:
-        get_game().session.delete_directive(directive_id)
+        game.session.delete_directive(directive_id)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from None
-    return {"directives": [get_game().directive_payload(item) for item in get_game().directive_rows()]}
+    return _web_payload_response(
+        game,
+        "/api/directives/{directive_id}",
+        {"directives": [game.directive_payload(item) for item in game.directive_rows()]},
+        method="DELETE",
+    )
 
 
 @app.post("/api/directives/{directive_id}/confirm")
 async def api_confirm_directive(directive_id: int) -> Dict[str, Any]:
     """大臣拟旨经皇帝核定：pending → draft。"""
+    game = get_game()
     try:
-        get_game().session.confirm_directive(directive_id)
+        game.session.confirm_directive(directive_id)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from None
-    return {
-        "directives": [get_game().directive_payload(item) for item in get_game().directive_rows()],
-        "pending_count": get_game().session.pending_count(),
-    }
+    return _web_payload_response(
+        game,
+        "/api/directives/{directive_id}/confirm",
+        {
+            "directives": [game.directive_payload(item) for item in game.directive_rows()],
+            "pending_count": game.session.pending_count(),
+        },
+    )
 
 
 @app.post("/api/directives/{directive_id}/reject")
 async def api_reject_directive(directive_id: int) -> Dict[str, Any]:
     """皇帝驳回大臣拟旨：pending → rejected。"""
+    game = get_game()
     try:
-        get_game().session.reject_directive(directive_id)
+        game.session.reject_directive(directive_id)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from None
-    return {
-        "directives": [get_game().directive_payload(item) for item in get_game().directive_rows()],
-        "pending_count": get_game().session.pending_count(),
-    }
+    return _web_payload_response(
+        game,
+        "/api/directives/{directive_id}/reject",
+        {
+            "directives": [game.directive_payload(item) for item in game.directive_rows()],
+            "pending_count": game.session.pending_count(),
+        },
+    )
 
 
 @app.post("/api/decree/write")
 async def api_write_decree() -> Dict[str, Any]:
+    game = get_game()
     try:
-        decree = get_game().session.write_decree()
+        decree = game.session.write_decree()
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from None
-    return {"decree": decree}
+    return _web_payload_response(game, "/api/decree/write", {"decree": decree})
 
 
 class EditDecreeRequest(BaseModel):
@@ -4172,11 +4317,12 @@ class EditDecreeRequest(BaseModel):
 @app.patch("/api/decree")
 async def api_edit_decree(body: EditDecreeRequest) -> Dict[str, Any]:
     """皇帝手动改定诏书正文（拟诏后、颁诏前）。"""
+    game = get_game()
     try:
-        decree = get_game().session.set_decree(body.decree)
+        decree = game.session.set_decree(body.decree)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from None
-    return {"decree": decree}
+    return _web_payload_response(game, "/api/decree", {"decree": decree})
 
 
 class IssueDecreeRequest(BaseModel):
@@ -4196,7 +4342,11 @@ async def api_issue_decree(body: IssueDecreeRequest = IssueDecreeRequest()) -> D
     decree = game.session.last_decree
     game.refresh_turn()
     portrait_jobs = game.queue_portrait_generation_for_signature_changes(portrait_before, "月末职服变化")
-    return {"decree": decree, "report": report, "state": game.state_payload(), "portrait_jobs": portrait_jobs}
+    return _web_payload_response(
+        game,
+        "/api/decree/issue",
+        {"decree": decree, "report": report, "state": game.state_payload(), "portrait_jobs": portrait_jobs},
+    )
 
 
 @app.post("/api/decree/issue/stream")
@@ -4278,7 +4428,7 @@ async def api_consort_candidates() -> Dict[str, Any]:
         and game.db.get_character_status(c.name)[0] == "candidate"
         and game.character_power_id(c) == "ming"
     ]
-    return {"candidates": candidates}
+    return _web_payload_response(game, "/api/consorts/candidates", {"candidates": candidates})
 
 
 @app.post("/api/consorts/{name}/select")
@@ -4302,13 +4452,17 @@ async def api_select_consort(name: str) -> Dict[str, Any]:
     game.session.registry.register(consort)
     game.chat_history.setdefault(name, [])
     game.maybe_queue_portrait_generation(consort.name, "皇帝选妃")
-    return {"selected": game.public_character(consort)}
+    return _web_payload_response(game, "/api/consorts/{name}/select", {"selected": game.public_character(consort)})
 
 
 @app.post("/api/consorts/{name}/action")
 async def api_consort_action(name: str, body: ConsortActionRequest) -> Dict[str, Any]:
     game = get_game()
-    return _response_with_state(game, game.perform_consort_action(name, body.action))
+    return _response_with_state(
+        game,
+        game.perform_consort_action(name, body.action),
+        route="/api/consorts/{name}/action",
+    )
 
 
 @app.get("/api/saves")
@@ -4330,15 +4484,17 @@ async def api_delete_save(name: str) -> Dict[str, Any]:
 
 @app.post("/api/saves/{name}/load")
 async def api_load_save(name: str) -> Dict[str, Any]:
-    get_game().load_save(name)
-    return {"state": get_game().state_payload()}
+    game = get_game()
+    game.load_save(name)
+    return _web_payload_response(game, "/api/saves/{name}/load", {"state": game.state_payload()})
 
 
 @app.post("/api/game/reset")
 async def api_reset_game() -> Dict[str, Any]:
     """清空主 DB 重开新局。存档目录保留。"""
-    get_game().reset_game()
-    return {"state": get_game().state_payload()}
+    game = get_game()
+    game.reset_game()
+    return _web_payload_response(game, "/api/game/reset", {"state": game.state_payload()})
 
 
 @app.get("/api/llm/config")
@@ -4487,7 +4643,11 @@ async def api_generate_portrait(name: str) -> Dict[str, Any]:
     game = get_game()
     job = game.queue_portrait_generation(name, "皇命重绘")
     character = game.find_character(name)
-    return _response_with_state(game, {"job": job, "character": game.public_character(character) if character else None})
+    return _response_with_state(
+        game,
+        {"job": job, "character": game.public_character(character) if character else None},
+        route="/api/portraits/{name}/generate",
+    )
 
 
 @app.get("/api/portraits/{name}/status")
@@ -4555,7 +4715,12 @@ async def api_upload_portrait(name: str, file: UploadFile = File(...)) -> Dict[s
     with open(os.path.join(portrait_dir, f"{name}.png"), "wb") as fh:
         fh.write(processed)
     game.set_custom_portrait(name, f"{CUSTOM_PORTRAIT_PREFIX}{name}")
-    return _response_with_state(game, {"name": name, "portrait_id": f"{CUSTOM_PORTRAIT_PREFIX}{name}"})
+    return _response_with_state(
+        game,
+        {"name": name, "portrait_id": f"{CUSTOM_PORTRAIT_PREFIX}{name}"},
+        route="/api/consorts/{name}/portrait",
+        method="POST",
+    )
 
 
 @app.delete("/api/consorts/{name}/portrait")
@@ -4569,7 +4734,12 @@ async def api_delete_portrait(name: str) -> Dict[str, Any]:
         os.remove(old)
     # 复位 portrait_id：清空 → 前端回落到池图（add/seed 时会按 office_type 再分配）。
     game.set_custom_portrait(name, "")
-    return {"name": name, "portrait_id": ""}
+    return _web_payload_response(
+        game,
+        "/api/consorts/{name}/portrait",
+        {"name": name, "portrait_id": ""},
+        method="DELETE",
+    )
 
 
 @app.get("/api/court_layout")

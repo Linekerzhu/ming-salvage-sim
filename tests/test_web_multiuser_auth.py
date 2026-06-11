@@ -1,5 +1,6 @@
 import hashlib
 import os
+import subprocess
 import time
 import unittest
 from pathlib import Path
@@ -156,6 +157,8 @@ class WebMultiuserAuthTests(unittest.TestCase):
         self.assertEqual(script.headers.get("cache-control"), "public, max-age=31536000, immutable")
         self.assertEqual(index.status_code, 200)
         self.assertEqual(index.headers.get("cache-control"), "no-cache")
+        self.assertNotIn("fonts.googleapis.com", index.text)
+        self.assertNotIn("fonts.gstatic.com", index.text)
 
     def test_precompressed_media_is_not_gzipped(self) -> None:
         image = Path(web_app.WEB_DIST) / "bg_state.webp"
@@ -169,6 +172,38 @@ class WebMultiuserAuthTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("cache-control"), "public, max-age=604800")
         self.assertIsNone(response.headers.get("content-encoding"))
+
+    def test_dist_portraits_do_not_keep_orphaned_static_files(self) -> None:
+        dist_portraits = Path(web_app.WEB_DIST) / "portraits"
+        public_portraits = Path(web_app.WEB_DIST).parent / "public" / "portraits"
+        if not dist_portraits.exists() or not public_portraits.exists():
+            self.skipTest("web portrait assets are not available")
+        root = Path(web_app.WEB_DIST).parents[1]
+        prune_script = root / "web" / "scripts" / "prune-dist-assets.mjs"
+        if prune_script.exists():
+            try:
+                subprocess.run(
+                    ["node", str(prune_script)],
+                    cwd=root,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+            except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+                self.skipTest(f"dist asset prune script is not runnable: {exc}")
+
+        public_files = {
+            entry.name
+            for entry in public_portraits.iterdir()
+            if entry.is_file()
+        }
+        orphaned = sorted(
+            entry.name
+            for entry in dist_portraits.iterdir()
+            if entry.is_file() and entry.name not in public_files
+        )
+
+        self.assertEqual(orphaned, [])
 
     def test_pbkdf2_password_and_expiring_session(self) -> None:
         salt = "unit-test-salt"

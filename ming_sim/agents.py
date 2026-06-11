@@ -22,6 +22,7 @@ from ming_sim.llm_config import for_role as _llm_for_role
 from ming_sim.llm_contract import abort_llm_contract, fail_if_llm_error
 from ming_sim.llm_model import create_chat_model, extract_agent_text
 from ming_sim.models import GameState, LLMConfig
+from ming_sim.pipeline_registry import llm_output_token_budget
 from ming_sim.token_stats import record_stream_metrics, tlog
 
 _content: Optional[GameContent] = None
@@ -311,7 +312,12 @@ def create_decree_writer_agent(llm_config: LLMConfig, agno_db: SqliteDb) -> Agen
     return Agent(
         name="诏书润色官",
         id="decree-writer",
-        model=create_chat_model(llm_config, temperature=0.3, top_p=0.9, max_tokens=max(1200, llm_config.max_tokens)),
+        model=create_chat_model(
+            llm_config,
+            temperature=0.3,
+            top_p=0.9,
+            max_tokens=llm_output_token_budget("llm.decree_writer", llm_config.max_tokens, minimum=1200),
+        ),
         instructions=[_ctx().game_world_prompt, _ctx().decree_writer_prompt],
         add_history_to_context=False,
         markdown=False,
@@ -466,7 +472,7 @@ def create_json_sanitizer_agent(llm_config: LLMConfig, agno_db: SqliteDb) -> Age
             llm_config,
             temperature=0.0,
             top_p=0.7,
-            max_tokens=max(4000, llm_config.max_tokens),
+            max_tokens=llm_output_token_budget("llm.json_sanitizer", llm_config.max_tokens, minimum=1200),
             enable_thinking=False,
             force_json_output=True,
         ),
@@ -521,7 +527,7 @@ def create_agreement_reviewer_agent(llm_config: LLMConfig, agno_db: SqliteDb) ->
             cfg,
             temperature=0.1,
             top_p=0.7,
-            max_tokens=max(1800, min(5000, cfg.max_tokens)),
+            max_tokens=llm_output_token_budget("llm.agreement_review", cfg.max_tokens, minimum=1800),
             enable_thinking=False,
             force_json_output=True,
         ),
@@ -543,7 +549,7 @@ def create_chapter_memory_agent(llm_config: LLMConfig, agno_db: SqliteDb) -> Age
             llm_config,
             temperature=0.5,
             top_p=0.85,
-            max_tokens=max(1200, llm_config.max_tokens),
+            max_tokens=llm_output_token_budget("llm.chapter_memory", llm_config.max_tokens, minimum=1200),
             enable_thinking=False,
             force_json_output=True,
         ),
@@ -564,7 +570,7 @@ def create_ending_summary_agent(llm_config: LLMConfig, agno_db: SqliteDb) -> Age
             llm_config,
             temperature=0.6,
             top_p=0.9,
-            max_tokens=max(2400, llm_config.max_tokens),
+            max_tokens=llm_output_token_budget("llm.ending_summary", llm_config.max_tokens, minimum=2400),
             enable_thinking=True,
         ),
         instructions=[ctx.game_world_prompt, ctx.ending_summary_prompt],

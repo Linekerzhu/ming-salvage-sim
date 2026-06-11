@@ -13,6 +13,7 @@
 
 ## 模块文件
 
+- [工程化模块架构](./engineering-architecture.md)
 - [事件模块](./modules/events.md)
 - [经济模块](./modules/economy.md)
 - [科技模块](./modules/technology.md)

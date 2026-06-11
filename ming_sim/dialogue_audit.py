@@ -24,6 +24,7 @@ from ming_sim.context import (
 from ming_sim.llm_config import for_role as llm_for_role
 from ming_sim.llm_model import create_chat_model
 from ming_sim.models import Character, GameState, LLMConfig
+from ming_sim.pipeline_registry import llm_output_token_budget
 
 
 CONFIDENCE_FLOOR = 70
@@ -619,6 +620,11 @@ JSON 字段：
 def _agent(llm_config: LLMConfig, agno_db: object, *, phase: str, prompt: str, max_tokens: int = 2200) -> Agent:
     del agno_db
     cfg = llm_for_role(llm_config, "dialogue_audit")
+    pipeline_id = {
+        "pre": "llm.dialogue_pre_audit",
+        "post": "llm.dialogue_post_audit",
+        "condition": "llm.dialogue_condition_audit",
+    }.get(phase, "llm.dialogue_condition_audit")
     return Agent(
         name=f"奏对审计-{phase}",
         id=f"dialogue-audit-{phase}",
@@ -626,7 +632,12 @@ def _agent(llm_config: LLMConfig, agno_db: object, *, phase: str, prompt: str, m
             cfg,
             temperature=0.1,
             top_p=0.7,
-            max_tokens=max(1200, min(max_tokens, cfg.max_tokens)),
+            max_tokens=llm_output_token_budget(
+                pipeline_id,
+                cfg.max_tokens,
+                requested=max_tokens,
+                minimum=1200,
+            ),
             enable_thinking=False,
             force_json_output=True,
         ),

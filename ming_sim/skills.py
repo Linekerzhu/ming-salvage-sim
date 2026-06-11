@@ -30,12 +30,18 @@ def office_skills(office_type: str) -> List[str]:
     return _ctx().office_skills.get(office_type, ["奏对", "拟办"])
 
 
-def available_skill_ids(character: Character, db: Optional[GameDB] = None) -> List[str]:
+def available_skill_ids(
+    character: Character,
+    db: Optional[GameDB] = None,
+    active_grants: Optional[List[str]] = None,
+) -> List[str]:
     c = _ctx()
     skill_ids = list(c.common_skills)
     skill_ids.extend(c.office_default_skills.get(character.office_type, []))
     skill_ids.extend(c.personal_skill_ids.get(character.name, []))
-    if db is not None:
+    if active_grants is not None:
+        skill_ids.extend(active_grants)
+    elif db is not None:
         skill_ids.extend(db.active_skill_grants(character.name))
     seen: set = set()
     unique = []
@@ -59,7 +65,12 @@ def skill_display_name(skill_id: str) -> str:
     return str(_ctx().skill_catalog.get(skill_id, {}).get("name", skill_id))
 
 
-def skill_source_labels(character: Character, skill_id: str, db: Optional[GameDB] = None) -> List[str]:
+def skill_source_labels(
+    character: Character,
+    skill_id: str,
+    db: Optional[GameDB] = None,
+    active_grants: Optional[List[str]] = None,
+) -> List[str]:
     c = _ctx()
     labels: List[str] = []
     if skill_id in c.common_skills:
@@ -68,7 +79,13 @@ def skill_source_labels(character: Character, skill_id: str, db: Optional[GameDB
         labels.append(f"{character.office_type}官职")
     if skill_id in c.personal_skill_ids.get(character.name, []):
         labels.append("个人")
-    if db is not None and skill_id in db.active_skill_grants(character.name):
+    if active_grants is not None:
+        granted = skill_id in active_grants
+    elif db is not None:
+        granted = skill_id in db.active_skill_grants(character.name)
+    else:
+        granted = False
+    if granted:
         labels.append("皇帝授权")
     if not labels:
         labels.append(str(c.skill_catalog.get(skill_id, {}).get("kind", "未知")))

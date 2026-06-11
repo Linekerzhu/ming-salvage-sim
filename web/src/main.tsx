@@ -33,6 +33,19 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import { ApiRequestError, api, formatApiError, normalizeApiError, streamChat } from "./api/client";
+import {
+  decodeCharacterIndexRows,
+  decodeMapNodes,
+  decodeMonthlyFollowups,
+  decodeOrganizationPayload,
+  normalizeGameState,
+  type CharacterIndexResponse,
+  type GameStateWire,
+  type MapResponse,
+  type MonthlyFollowupResponse,
+  type OrganizationWirePayload,
+} from "./api/payloads";
 import type { ExternalPathGroup, RegionPathGroup } from "./mapPaths";
 import "./styles.css";
 
@@ -606,9 +619,6 @@ type GameState = {
   legacies: Legacy[];
   closed_this_turn: ClosedIssue[];
   budget: Budget;
-  region_warning: string;
-  army_warning: string;
-  power_warning: string;
   powers: Power[];
   victory_status: { status: string; summary: string };
   ending: EndingPayload | null;
@@ -630,39 +640,7 @@ type GameState = {
   items: PlayerItem[];
 };
 
-type EncodedMinisterRow = Partial<Minister> | unknown[];
-type GameStateWire = Omit<GameState, "ministers" | "consorts"> & {
-  minister_fields?: string[];
-  ministers?: EncodedMinisterRow[];
-  consorts?: EncodedMinisterRow[];
-};
-
-const decodeMinisterRows = (rows: EncodedMinisterRow[] | undefined, fields: string[] | undefined): Minister[] => {
-  const fieldList = fields || [];
-  return (rows || []).map((row) => {
-    const decoded: Record<string, any> = Array.isArray(row)
-      ? Object.fromEntries(fieldList.map((field, index) => [field, row[index]]))
-      : { ...row };
-    return {
-      ...decoded,
-      status: String(decoded.status || "active"),
-      status_label: String(decoded.status_label || "在朝"),
-      summary: String(decoded.summary || [decoded.office, decoded.office_type, decoded.faction].filter(Boolean).join(" · ")),
-      power_id: String(decoded.power_id || "ming"),
-      favorite: !!decoded.favorite,
-      skills: Array.isArray(decoded.skills) ? decoded.skills : [],
-    } as Minister;
-  });
-};
-
-const normalizeGameState = (data: GameStateWire): GameState => {
-  const { minister_fields: ministerFields, ministers, consorts, ...rest } = data;
-  return {
-    ...rest,
-    ministers: decodeMinisterRows(ministers, ministerFields),
-    consorts: decodeMinisterRows(consorts, ministerFields),
-  } as GameState;
-};
+const GAME_START_YEAR = 1627;
 
 type EndingTimelineItem = {
   turn: number; year: number; period: number;
@@ -855,118 +833,6 @@ const secretOrderRisk = (order: SecretOrder, currentTurn: number) => {
   return { score: bounded, label, tone };
 };
 
-type ApiErrorDetail = {
-  code?: string;
-  message?: string;
-  provider_message?: string;
-  status_code?: number | null;
-};
-
-class ApiRequestError extends Error {
-  detail: ApiErrorDetail;
-
-  constructor(detail: ApiErrorDetail, fallback: string) {
-    const message = detail.message || fallback;
-    super(detail.code ? `[${detail.code}] ${message}` : message);
-    this.name = "ApiRequestError";
-    this.detail = detail;
-  }
-}
-
-const normalizeApiError = (error: any, fallback: string): ApiErrorDetail => {
-  const detail = error?.detail ?? error;
-  if (detail && typeof detail === "object") {
-    return {
-      code: detail.code,
-      message: detail.message || detail.detail || fallback,
-      provider_message: detail.provider_message,
-      status_code: detail.status_code,
-    };
-  }
-  return { message: String(detail || fallback) };
-};
-
-const formatApiError = (error: any, fallback: string) => {
-  const detail = error instanceof ApiRequestError ? error.detail : normalizeApiError(error, fallback);
-  return detail.code ? `[${detail.code}] ${detail.message || fallback}` : detail.message || fallback;
-};
-
-const api = async <T,>(path: string, options?: RequestInit): Promise<T> => {
-  const response = await fetch(path, {
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
-    ...options,
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new ApiRequestError(normalizeApiError(error, response.statusText), response.statusText);
-  }
-  return response.json();
-};
-
-const parseSseMessage = (raw: string): { event: string; data: string } | null => {
-  const lines = raw.split(/\r?\n/);
-  let event = "message";
-  const dataLines: string[] = [];
-  for (const line of lines) {
-    if (line.startsWith("event:")) {
-      event = line.slice(6).trim();
-    } else if (line.startsWith("data:")) {
-      dataLines.push(line.slice(5).trimStart());
-    }
-  }
-  if (!dataLines.length) return null;
-  return { event, data: dataLines.join("\n") };
-};
-
-const streamChat = async (
-  ministerName: string,
-  message: string,
-  onDelta: (delta: string) => void,
-): Promise<ChatResponse> => {
-  const response = await fetch(`/api/ministers/${encodeURIComponent(ministerName)}/chat/stream`, {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new ApiRequestError(normalizeApiError(error, response.statusText), response.statusText);
-  }
-  if (!response.body) {
-    throw new Error("浏览器不支持流式回复。");
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  while (true) {
-    const { value, done } = await reader.read();
-    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
-    const messages = buffer.split("\n\n");
-    buffer = messages.pop() || "";
-
-    for (const messageBlock of messages) {
-      const parsed = parseSseMessage(messageBlock);
-      if (!parsed) continue;
-      const payload = JSON.parse(parsed.data);
-      if (parsed.event === "delta") {
-        onDelta(String(payload.content || ""));
-      } else if (parsed.event === "done") {
-        return payload as ChatResponse;
-      } else if (parsed.event === "error") {
-        throw new ApiRequestError(normalizeApiError(payload, "流式回复失败。"), "流式回复失败。");
-      }
-    }
-
-    if (done) break;
-  }
-
-  throw new Error("流式回复中断，未收到完成事件。");
-};
-
 const scoreTone = (value: number, inverse = false) => {
   const danger = inverse ? value >= 65 : value <= 38;
   const warn = inverse ? value >= 45 : value <= 52;
@@ -1096,6 +962,32 @@ const POWER_ID_CN: Record<string, string> = {
   bandits: "流寇",
   dutch: "荷兰东印度公司",
   japan: "日本",
+};
+
+const STATUS_LABEL_CN: Record<string, string> = {
+  active: "在朝",
+  offstage: "尚未登场",
+  dead: "已殁",
+  dismissed: "已罢黜",
+  imprisoned: "下狱",
+  exiled: "流放",
+  retired: "致仕",
+  candidate: "待选",
+};
+
+const careerStateForStatus = (status: string, statusLabel: string) => {
+  if (status === "offstage") return "隐藏";
+  if (status === "candidate") return "待选";
+  if (["dismissed", "exiled", "retired"].includes(status)) return "在野";
+  if (status === "imprisoned" || status === "dead") return statusLabel;
+  return "出仕";
+};
+
+const PAYLOAD_DECODE_OPTIONS = {
+  gameStartYear: GAME_START_YEAR,
+  powerLabels: POWER_ID_CN,
+  statusLabels: STATUS_LABEL_CN,
+  careerStateForStatus,
 };
 
 function refreshLabelMaps(state: GameState) {
@@ -1412,6 +1304,18 @@ function App() {
   // 作弊控制台（Ctrl+~）：cheatDirective 暂存强制结算项，下次颁诏随结算一次性穿入。
   const [cheatOpen, setCheatOpen] = React.useState(false);
   const [cheatDirective, setCheatDirective] = React.useState("");
+  const detailEpochRef = React.useRef(0);
+  const characterIndexRequestRef = React.useRef<Promise<void> | null>(null);
+  const organizationsRequestRef = React.useRef<Promise<void> | null>(null);
+  const monthlyFollowupsRequestRef = React.useRef<Promise<void> | null>(null);
+  const mapDetailsRequestRef = React.useRef<Promise<void> | null>(null);
+  const invalidateOnDemandDetails = React.useCallback(() => {
+    detailEpochRef.current += 1;
+    characterIndexRequestRef.current = null;
+    organizationsRequestRef.current = null;
+    monthlyFollowupsRequestRef.current = null;
+    mapDetailsRequestRef.current = null;
+  }, []);
 
   const activeDrawer: DrawerName =
     drawerOpen ? "court" :
@@ -1439,7 +1343,8 @@ function App() {
   }, [activeDrawer, setActiveDrawer]);
 
   const applyGameState = React.useCallback((data: GameStateWire) => {
-    const normalized = normalizeGameState(data);
+    const normalized = normalizeGameState<GameState>(data, PAYLOAD_DECODE_OPTIONS);
+    invalidateOnDemandDetails();
     refreshLabelMaps(normalized);
     setState(normalized);
     setCharacterIndex(Array.isArray(normalized.character_index) ? normalized.character_index : []);
@@ -1454,66 +1359,133 @@ function App() {
     setSelectedNodeId((current) => current || normalized.map_nodes[0]?.id || "");
     setDecree(normalized.last_decree || "");
     setReport(normalized.last_report || "");
-  }, []);
+  }, [invalidateOnDemandDetails]);
 
   const loadState = React.useCallback(async () => {
     applyGameState(await api<GameStateWire>("/api/game/state"));
   }, [applyGameState]);
 
   const loadCharacterIndex = React.useCallback(async (force = false) => {
-    if (!force && (characterIndex.length || characterIndexLoading)) return;
+    if (!force && characterIndex.length) return;
+    if (!force && characterIndexRequestRef.current) return characterIndexRequestRef.current;
+    const requestEpoch = detailEpochRef.current;
     setCharacterIndexLoading(true);
     setCharacterIndexError("");
-    try {
-      const data = await api<{ characters: CharacterIndexEntry[] }>("/api/characters");
-      setCharacterIndex(data.characters || []);
-    } catch (err) {
-      setCharacterIndexError(formatApiError(err, "读取人物志失败"));
-    } finally {
-      setCharacterIndexLoading(false);
-    }
-  }, [characterIndex.length, characterIndexLoading]);
+    let request: Promise<void> = Promise.resolve();
+    request = (async () => {
+      try {
+        const data = await api<CharacterIndexResponse<CharacterIndexEntry>>("/api/characters");
+        if (requestEpoch !== detailEpochRef.current) return;
+        setCharacterIndex(decodeCharacterIndexRows<CharacterIndexEntry>(data.characters, data.character_fields, PAYLOAD_DECODE_OPTIONS));
+      } catch (err) {
+        if (requestEpoch === detailEpochRef.current) {
+          setCharacterIndexError(formatApiError(err, "读取人物志失败"));
+        }
+      } finally {
+        if (characterIndexRequestRef.current === request) {
+          characterIndexRequestRef.current = null;
+        }
+        if (requestEpoch === detailEpochRef.current) {
+          setCharacterIndexLoading(false);
+        }
+      }
+    })();
+    characterIndexRequestRef.current = request;
+    return request;
+  }, [characterIndex.length]);
 
   const loadOrganizations = React.useCallback(async (force = false) => {
-    if (!force && (organizations || organizationsLoading)) return;
+    if (!force && organizations) return;
+    if (!force && organizationsRequestRef.current) return organizationsRequestRef.current;
+    const requestEpoch = detailEpochRef.current;
     setOrganizationsLoading(true);
     setOrganizationsError("");
-    try {
-      setOrganizations(await api<OrganizationPayload>("/api/organizations"));
-    } catch (err) {
-      setOrganizationsError(formatApiError(err, "读取组织图失败"));
-    } finally {
-      setOrganizationsLoading(false);
-    }
-  }, [organizations, organizationsLoading]);
+    let request: Promise<void> = Promise.resolve();
+    request = (async () => {
+      try {
+        const data = await api<OrganizationWirePayload>("/api/organizations");
+        if (requestEpoch !== detailEpochRef.current) return;
+        setOrganizations(decodeOrganizationPayload<OrganizationPayload>(data, PAYLOAD_DECODE_OPTIONS));
+      } catch (err) {
+        if (requestEpoch === detailEpochRef.current) {
+          setOrganizationsError(formatApiError(err, "读取组织图失败"));
+        }
+      } finally {
+        if (organizationsRequestRef.current === request) {
+          organizationsRequestRef.current = null;
+        }
+        if (requestEpoch === detailEpochRef.current) {
+          setOrganizationsLoading(false);
+        }
+      }
+    })();
+    organizationsRequestRef.current = request;
+    return request;
+  }, [organizations]);
 
   const loadMonthlyFollowups = React.useCallback(async (force = false) => {
-    if (!force && (monthlyFollowups.length || monthlyFollowupsLoading)) return;
+    if (!force && monthlyFollowups.length) return;
+    if (!force && monthlyFollowupsRequestRef.current) return monthlyFollowupsRequestRef.current;
+    const requestEpoch = detailEpochRef.current;
     setMonthlyFollowupsLoading(true);
     setMonthlyFollowupsError("");
-    try {
-      const data = await api<{ followups: MonthlyFollowup[] }>("/api/monthly_followups");
-      setMonthlyFollowups(data.followups || []);
-    } catch (err) {
-      setMonthlyFollowupsError(formatApiError(err, "读取候见清单失败"));
-    } finally {
-      setMonthlyFollowupsLoading(false);
-    }
-  }, [monthlyFollowups.length, monthlyFollowupsLoading]);
+    let request: Promise<void> = Promise.resolve();
+    request = (async () => {
+      try {
+        const data = await api<MonthlyFollowupResponse<MonthlyFollowup>>("/api/monthly_followups");
+        if (requestEpoch !== detailEpochRef.current) return;
+        setMonthlyFollowups(decodeMonthlyFollowups<MonthlyFollowup>(data.followups, data.followup_fields, data.followup_defaults));
+      } catch (err) {
+        if (requestEpoch === detailEpochRef.current) {
+          setMonthlyFollowupsError(formatApiError(err, "读取候见清单失败"));
+        }
+      } finally {
+        if (monthlyFollowupsRequestRef.current === request) {
+          monthlyFollowupsRequestRef.current = null;
+        }
+        if (requestEpoch === detailEpochRef.current) {
+          setMonthlyFollowupsLoading(false);
+        }
+      }
+    })();
+    monthlyFollowupsRequestRef.current = request;
+    return request;
+  }, [monthlyFollowups.length]);
 
   const loadMapDetails = React.useCallback(async (force = false) => {
-    if (!force && (mapDetailNodes.length || mapDetailsLoading)) return;
+    if (!force && mapDetailNodes.length) return;
+    if (!force && mapDetailsRequestRef.current) return mapDetailsRequestRef.current;
+    const requestEpoch = detailEpochRef.current;
     setMapDetailsLoading(true);
     setMapDetailsError("");
-    try {
-      const data = await api<{ nodes: MapNode[] }>("/api/map");
-      setMapDetailNodes(data.nodes || []);
-    } catch (err) {
-      setMapDetailsError(formatApiError(err, "读取地图详情失败"));
-    } finally {
-      setMapDetailsLoading(false);
-    }
-  }, [mapDetailNodes.length, mapDetailsLoading]);
+    let request: Promise<void> = Promise.resolve();
+    request = (async () => {
+      try {
+        const data = await api<MapResponse<MapNode>>("/api/map");
+        if (requestEpoch !== detailEpochRef.current) return;
+        setMapDetailNodes(decodeMapNodes<MapNode>(
+          data.nodes,
+          data.node_fields,
+          data.region_fields,
+          data.army_fields,
+          data.building_fields,
+        ));
+      } catch (err) {
+        if (requestEpoch === detailEpochRef.current) {
+          setMapDetailsError(formatApiError(err, "读取地图详情失败"));
+        }
+      } finally {
+        if (mapDetailsRequestRef.current === request) {
+          mapDetailsRequestRef.current = null;
+        }
+        if (requestEpoch === detailEpochRef.current) {
+          setMapDetailsLoading(false);
+        }
+      }
+    })();
+    mapDetailsRequestRef.current = request;
+    return request;
+  }, [mapDetailNodes.length]);
 
   const loadMinisterChat = React.useCallback(async (ministerName: string) => {
     const data = await api<{ minister: Minister; history: ChatMessage[]; suggestions: Suggestion[]; can_undo_last_chat: boolean }>(`/api/ministers/${encodeURIComponent(ministerName)}/chat`);
@@ -1567,13 +1539,13 @@ function App() {
       const err = await resp.json().catch(() => ({ detail: resp.statusText }));
       throw new Error(err.detail || resp.statusText);
     }
-    const data = await resp.json().catch(() => ({} as { state?: GameState }));
+    const data = await resp.json().catch(() => ({} as { state?: GameStateWire }));
     if (data.state) applyGameState(data.state);
     else await loadState();  // 重新拉 state，新 portrait_id 流回卡片
   }, [applyGameState, loadState]);
 
   const generatePortrait = React.useCallback(async (ministerName: string) => {
-    const data = await api<{ job: { portrait_id: string; status: string }; character?: Minister | null; state?: GameState }>(
+    const data = await api<{ job: { portrait_id: string; status: string }; character?: Minister | null; state?: GameStateWire }>(
       `/api/portraits/${encodeURIComponent(ministerName)}/generate`,
       { method: "POST" },
     );
@@ -1636,6 +1608,7 @@ function App() {
 
   const logout = React.useCallback(async () => {
     await api<{ ok: boolean }>("/api/auth/logout", { method: "POST" });
+    invalidateOnDemandDetails();
     setState(null);
     setCharacterIndex([]);
     setOrganizations(null);
@@ -1646,7 +1619,7 @@ function App() {
     setMenuStatus(null);
     const auth = await refreshAuthStatus();
     setAppView(auth.auth_enabled && !auth.authenticated ? "login" : "menu");
-  }, [refreshAuthStatus]);
+  }, [invalidateOnDemandDetails, refreshAuthStatus]);
 
   const enterGameAfterMenu = React.useCallback(async () => {
     setAppView("game");
@@ -1655,6 +1628,7 @@ function App() {
 
   const exitToMenu = React.useCallback(async () => {
     await fetch("/api/menu/exit_to_menu", { method: "POST", credentials: "same-origin" });
+    invalidateOnDemandDetails();
     setState(null);
     setCharacterIndex([]);
     setOrganizations(null);
@@ -1664,7 +1638,7 @@ function App() {
     setMapDetailNodes([]);
     setAppView("menu");
     await refreshMenuStatus();
-  }, [refreshMenuStatus]);
+  }, [invalidateOnDemandDetails, refreshMenuStatus]);
 
   React.useEffect(() => {
     if (!state) return;
@@ -1798,20 +1772,12 @@ function App() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const gameDerived = React.useMemo(() => {
+  const mapDerived = React.useMemo(() => {
     if (!state) {
       return {
         mapNodes: [] as MapNode[],
         fullMapNodes: [] as MapNode[],
-        selectedNode: undefined as MapNode | undefined,
-        ministers: [] as Minister[],
-        consorts: [] as Minister[],
-        activeMinister: null as Minister | null,
-        characterByName: new Map<string, Minister>(),
-        mapIntelStyle: undefined as React.CSSProperties | undefined,
-        activeSecretOrderCount: 0,
-        activeMinisterSecretOrders: [] as SecretOrder[],
-        activeMinisterIsConsort: false,
+        fullNodeById: new Map<string, MapNode>(),
       };
     }
     const powerById = new Map((state.powers || []).map((power) => [power.id, power]));
@@ -1825,9 +1791,34 @@ function App() {
       return decorateNode(node);
     });
     const fullMapNodes = mapDetailNodes.map(decorateNode);
-    const fullNodeById = new Map(fullMapNodes.map((node) => [node.id, node]));
-    const selectedBase = mapNodes.find((node) => node.id === selectedNodeId) || mapNodes[0];
-    const selectedNode = selectedBase ? (fullNodeById.get(selectedBase.id) || selectedBase) : undefined;
+    return {
+      mapNodes,
+      fullMapNodes,
+      fullNodeById: new Map(fullMapNodes.map((node) => [node.id, node])),
+    };
+  }, [state, mapDetailNodes]);
+
+  const selectedMapDerived = React.useMemo(() => {
+    const selectedBase = mapDerived.mapNodes.find((node) => node.id === selectedNodeId) || mapDerived.mapNodes[0];
+    const selectedNode = selectedBase ? (mapDerived.fullNodeById.get(selectedBase.id) || selectedBase) : undefined;
+    return {
+      selectedNode,
+      mapIntelStyle: selectedNode ? getMapIntelStyle(selectedNode) : undefined,
+    };
+  }, [mapDerived.fullNodeById, mapDerived.mapNodes, selectedNodeId]);
+
+  const characterDerived = React.useMemo(() => {
+    if (!state) {
+      return {
+        ministers: [] as Minister[],
+        consorts: [] as Minister[],
+        activeMinister: null as Minister | null,
+        characterByName: new Map<string, Minister>(),
+        activeSecretOrderCount: 0,
+        activeMinisterSecretOrders: [] as SecretOrder[],
+        activeMinisterIsConsort: false,
+      };
+    }
     const ministers = filterMinisters(state.ministers, ministerGroup);
     const consorts = filterConsorts(state.consorts || [], haremGroup);
     const allCharacters = [...state.ministers, ...(state.consorts || [])];
@@ -1843,14 +1834,10 @@ function App() {
       ? secretOrders.filter((order) => order.minister_name === activeMinister.name && isOpenSecretOrder(order))
       : [];
     return {
-      mapNodes,
-      fullMapNodes,
-      selectedNode,
       ministers,
       consorts,
       activeMinister,
       characterByName,
-      mapIntelStyle: selectedNode ? getMapIntelStyle(selectedNode) : undefined,
       activeSecretOrderCount,
       activeMinisterSecretOrders,
       activeMinisterIsConsort: activeMinister
@@ -1859,14 +1846,26 @@ function App() {
     };
   }, [
     state,
-    selectedNodeId,
     ministerGroup,
     haremGroup,
     selectedMinister,
     temporaryActiveMinister,
     secretOrders,
-    mapDetailNodes,
   ]);
+
+  const gameDerived = React.useMemo(() => ({
+    mapNodes: mapDerived.mapNodes,
+    fullMapNodes: mapDerived.fullMapNodes,
+    selectedNode: selectedMapDerived.selectedNode,
+    ministers: characterDerived.ministers,
+    consorts: characterDerived.consorts,
+    activeMinister: characterDerived.activeMinister,
+    characterByName: characterDerived.characterByName,
+    mapIntelStyle: selectedMapDerived.mapIntelStyle,
+    activeSecretOrderCount: characterDerived.activeSecretOrderCount,
+    activeMinisterSecretOrders: characterDerived.activeMinisterSecretOrders,
+    activeMinisterIsConsort: characterDerived.activeMinisterIsConsort,
+  }), [characterDerived, mapDerived, selectedMapDerived]);
 
   if (!authStatus) {
     return (
@@ -1996,7 +1995,7 @@ function App() {
       setInput("");
     }
     try {
-      const data = await streamChat(activeMinister.name, message, (delta) => {
+      const data = await streamChat<ChatResponse>(activeMinister.name, message, (delta) => {
         setStreamingMinisterMessage((current) => current + delta);
       });
       if (data.minister_profile) {
@@ -2357,13 +2356,13 @@ function App() {
     setBusy("增设机构");
     setError("");
     try {
-      const data = await api<{ message: string; organizations: OrganizationPayload; state?: GameState }>("/api/organizations/custom", {
+      const data = await api<{ message: string; organizations: OrganizationWirePayload; state?: GameStateWire }>("/api/organizations/custom", {
         method: "POST",
         body: JSON.stringify(payload),
       });
       if (data.state) applyGameState(data.state);
       else await loadState();
-      setOrganizations(data.organizations || null);
+      setOrganizations(decodeOrganizationPayload<OrganizationPayload>(data.organizations, PAYLOAD_DECODE_OPTIONS));
       setOrganizationsError("");
       return data.message;
     } finally {
@@ -3520,9 +3519,15 @@ function ArmyDrawer({
   onClose: () => void;
 }) {
   const [q, setQ] = React.useState("");
-  const mingArmies = armies.filter((a) => (a.owner_power || "ming") === "ming");
-  const filtered = q ? mingArmies.filter((a) => a.name.includes(q) || a.station.includes(q) || a.commander.includes(q)) : mingArmies;
-  const selected = mingArmies.find((a) => a.id === selectedArmyId) || null;
+  const mingArmies = React.useMemo(() => armies.filter((a) => (a.owner_power || "ming") === "ming"), [armies]);
+  const filtered = React.useMemo(
+    () => (q ? mingArmies.filter((a) => a.name.includes(q) || a.station.includes(q) || a.commander.includes(q)) : mingArmies),
+    [mingArmies, q],
+  );
+  const selected = React.useMemo(
+    () => mingArmies.find((a) => a.id === selectedArmyId) || null,
+    [mingArmies, selectedArmyId],
+  );
   const arrearsTone = (army: Army) => {
     const maint = army.maintenance_per_turn || 1;
     const months = army.arrears / maint;
@@ -3592,9 +3597,15 @@ function RegionDrawer({
   onClose: () => void;
 }) {
   const [q, setQ] = React.useState("");
-  const mingRegions = regions.filter((r) => (r.controlled_by || "ming") === "ming");
-  const filtered = q ? mingRegions.filter((r) => r.name.includes(q)) : mingRegions;
-  const selected = mingRegions.find((r) => r.id === selectedRegionId) || null;
+  const mingRegions = React.useMemo(() => regions.filter((r) => (r.controlled_by || "ming") === "ming"), [regions]);
+  const filtered = React.useMemo(
+    () => (q ? mingRegions.filter((r) => r.name.includes(q)) : mingRegions),
+    [mingRegions, q],
+  );
+  const selected = React.useMemo(
+    () => mingRegions.find((r) => r.id === selectedRegionId) || null,
+    [mingRegions, selectedRegionId],
+  );
   const regionTone = (r: Region) => {
     if (r.unrest >= 70) return "danger";
     if (r.unrest >= 45) return "warn";
@@ -3658,20 +3669,29 @@ function BuildingDrawer({
   open: boolean;
   onClose: () => void;
 }) {
-  const allBuildings: (Building & { regionName: string })[] = [];
-  for (const node of mapNodes) {
-    if (!node.buildings) continue;
-    const regionName = node.region?.name || node.label || node.id;
-    for (const b of node.buildings) {
-      allBuildings.push({ ...b, regionName });
-    }
-  }
   const [filterRegion, setFilterRegion] = React.useState("");
   const [q, setQ] = React.useState("");
-  const regionNames = Array.from(new Set(allBuildings.map((b) => b.regionName)));
-  const filtered = allBuildings
-    .filter((b) => !filterRegion || b.regionName === filterRegion)
-    .filter((b) => !q || b.name.includes(q) || b.category.includes(q));
+  const allBuildings = React.useMemo(() => {
+    const rows: (Building & { regionName: string })[] = [];
+    for (const node of mapNodes) {
+      if (!node.buildings) continue;
+      const regionName = node.region?.name || node.label || node.id;
+      for (const b of node.buildings) {
+        rows.push({ ...b, regionName });
+      }
+    }
+    return rows;
+  }, [mapNodes]);
+  const regionNames = React.useMemo(
+    () => Array.from(new Set(allBuildings.map((b) => b.regionName))),
+    [allBuildings],
+  );
+  const filtered = React.useMemo(
+    () => allBuildings
+      .filter((b) => !filterRegion || b.regionName === filterRegion)
+      .filter((b) => !q || b.name.includes(q) || b.category.includes(q)),
+    [allBuildings, filterRegion, q],
+  );
   return (
     <RightDrawer open={open} onClose={onClose} title="建筑" icon={<Landmark size={17} />} extraClass="right-drawer-building">
       {loading ? <div className="empty-note">正在载入建筑图册...</div> : null}
@@ -3718,7 +3738,14 @@ function EconomyDrawer({
   const [tab, setTab] = React.useState<"国库" | "内库">("国库");
   const [q, setQ] = React.useState("");
   const budget = state.budget[tab];
-  const matchItem = (name: string) => !q || name.includes(q);
+  const filteredBudget = React.useMemo(() => {
+    const matchItem = (name: string) => !q || name.includes(q);
+    return {
+      income: budget.income.filter((item) => matchItem(item.name)),
+      expense: budget.expense.filter((item) => matchItem(item.name)),
+      movements: budget.movements.filter((m) => matchItem(m.category || m.reason)),
+    };
+  }, [budget, q]);
   return (
     <RightDrawer open={open} onClose={onClose} title="经济" icon={<ScrollText size={17} />} extraClass="right-drawer-economy">
       <div className="segmented right-drawer-segmented">
@@ -3737,23 +3764,23 @@ function EconomyDrawer({
       </div>
       <div className="right-drawer-list">
         <div className="right-drawer-section-title">固定收入</div>
-        {budget.income.filter((item) => matchItem(item.name)).map((item) => (
+        {filteredBudget.income.map((item) => (
           <div key={`in-${item.name}`} className="right-drawer-budget-row">
             <span>{item.name}</span>
             <b className="income">+{formatMoney(item.amount)}</b>
           </div>
         ))}
         <div className="right-drawer-section-title">固定支出</div>
-        {budget.expense.filter((item) => matchItem(item.name)).map((item) => (
+        {filteredBudget.expense.map((item) => (
           <div key={`ex-${item.name}`} className="right-drawer-budget-row">
             <span>{item.name}</span>
             <b className="expense">-{formatMoney(item.amount)}</b>
           </div>
         ))}
-        {budget.movements.filter((m) => matchItem(m.category || m.reason)).length > 0 && (
+        {filteredBudget.movements.length > 0 && (
           <>
             <div className="right-drawer-section-title">本月一次性入账</div>
-            {budget.movements.filter((m) => matchItem(m.category || m.reason)).map((m, i) => (
+            {filteredBudget.movements.map((m, i) => (
               <div key={`mv-${i}`} className="right-drawer-budget-row">
                 <span>{m.category || m.reason}</span>
                 <b className={m.delta >= 0 ? "income" : "expense"}>{formatSignedMoney(m.delta)}</b>
@@ -3765,6 +3792,9 @@ function EconomyDrawer({
     </RightDrawer>
   );
 }
+
+const APPOINTMENT_OFFICE_TYPES = ["内阁", "吏部", "户部", "礼部", "兵部", "刑部", "工部"];
+const APPOINTMENT_BUREAU_SCOPES = ["全部", "在职", "内阁六部", "边镇厂卫", "待铨外缘", "在野", "缺图"];
 
 function AppointmentDrawer({
   ministers,
@@ -3802,29 +3832,70 @@ function AppointmentDrawer({
   const [detailCache, setDetailCache] = React.useState<Record<string, { signature: string; detail: Minister }>>({});
   const [loadingDetail, setLoadingDetail] = React.useState("");
   const [detailError, setDetailError] = React.useState("");
-  const offices = ["内阁", "吏部", "户部", "礼部", "兵部", "刑部", "工部"];
-  const bureauScopes = ["全部", "在职", "内阁六部", "边镇厂卫", "待铨外缘", "在野", "缺图"];
-  const mingMinisters = ministers.filter((m) => (m.power_id || "ming") === "ming");
-  const activeMinisters = mingMinisters.filter((m) => m.status === "active");
-  const hiddenCount = mingMinisters.filter((m) => m.status === "offstage").length;
-  const fieldCount = mingMinisters.filter((m) => ["dismissed", "exiled", "retired"].includes(m.status)).length;
-  const imprisonedCount = mingMinisters.filter((m) => m.status === "imprisoned").length;
+  const ministerArchive = React.useMemo(() => {
+    const mingRows: Minister[] = [];
+    const activeRows: Minister[] = [];
+    let hidden = 0;
+    let field = 0;
+    let imprisoned = 0;
+    for (const minister of ministers) {
+      if ((minister.power_id || "ming") !== "ming") continue;
+      mingRows.push(minister);
+      if (minister.status === "active") activeRows.push(minister);
+      else if (minister.status === "offstage") hidden += 1;
+      else if (["dismissed", "exiled", "retired"].includes(minister.status)) field += 1;
+      else if (minister.status === "imprisoned") imprisoned += 1;
+    }
+    return {
+      mingMinisters: mingRows,
+      activeMinisters: activeRows,
+      hiddenCount: hidden,
+      fieldCount: field,
+      imprisonedCount: imprisoned,
+    };
+  }, [ministers]);
+  const {
+    mingMinisters,
+    activeMinisters,
+    hiddenCount,
+    fieldCount,
+    imprisonedCount,
+  } = ministerArchive;
+  const archiveStats = React.useMemo(() => {
+    let ming = 0;
+    let external = 0;
+    let harem = 0;
+    let managed = 0;
+    for (const row of characterIndex) {
+      const isMing = (row.power_id || "ming") === "ming";
+      if (isMing) {
+        ming += 1;
+        if (row.office_type !== "后宫") managed += 1;
+      } else {
+        external += 1;
+      }
+      if (row.office_type === "后宫") harem += 1;
+    }
+    return { ming, external, harem, managed };
+  }, [characterIndex]);
   const totalArchive = characterIndex.length || ministers.length;
-  const archiveMing = characterIndex.filter((m) => (m.power_id || "ming") === "ming");
-  const archiveExternal = characterIndex.filter((m) => (m.power_id || "ming") !== "ming").length;
-  const archiveHarem = characterIndex.filter((m) => m.office_type === "后宫").length;
-  const archiveManaged = archiveMing.filter((m) => m.office_type !== "后宫").length || mingMinisters.length;
-  const filterHit = (m: Minister) => !q || m.name.includes(q) || (m.office || "").includes(q) || (m.office_type || "").includes(q) || (m.faction || "").includes(q) || (m.age_label || "").includes(q);
-  const scopedHit = (m: Minister) => {
-    if (scope === "在职") return m.status === "active";
-    if (scope === "内阁六部") return offices.some((office) => (m.office_type || "").includes(office));
-    if (scope === "边镇厂卫") return /边镇|锦衣卫|东厂|司礼监|兵部/.test(`${m.office_type}${m.office}`);
-    if (scope === "待铨外缘") return /待铨|外臣|地方|未仕|翰林/.test(`${m.office_type}${m.office}`);
-    if (scope === "在野") return ["dismissed", "exiled", "retired", "offstage"].includes(m.status);
-    if (scope === "缺图") return m.portrait_available === false;
-    return true;
-  };
-  const filteredMinisters = mingMinisters.filter((m) => filterHit(m) && scopedHit(m));
+  const archiveExternal = archiveStats.external;
+  const archiveHarem = archiveStats.harem;
+  const archiveManaged = archiveStats.managed || mingMinisters.length;
+  const filteredMinisters = React.useMemo(() => {
+    const query = q.trim();
+    const filterHit = (m: Minister) => !query || m.name.includes(query) || (m.office || "").includes(query) || (m.office_type || "").includes(query) || (m.faction || "").includes(query) || (m.age_label || "").includes(query);
+    const scopedHit = (m: Minister) => {
+      if (scope === "在职") return m.status === "active";
+      if (scope === "内阁六部") return APPOINTMENT_OFFICE_TYPES.some((office) => (m.office_type || "").includes(office));
+      if (scope === "边镇厂卫") return /边镇|锦衣卫|东厂|司礼监|兵部/.test(`${m.office_type}${m.office}`);
+      if (scope === "待铨外缘") return /待铨|外臣|地方|未仕|翰林/.test(`${m.office_type}${m.office}`);
+      if (scope === "在野") return ["dismissed", "exiled", "retired", "offstage"].includes(m.status);
+      if (scope === "缺图") return m.portrait_available === false;
+      return true;
+    };
+    return mingMinisters.filter((m) => filterHit(m) && scopedHit(m));
+  }, [mingMinisters, q, scope]);
   React.useEffect(() => {
     if (selectedName && mingMinisters.some((m) => m.name === selectedName)) return;
     const preferred = activeMinisters[0]?.name || mingMinisters[0]?.name || "";
@@ -4049,7 +4120,7 @@ function AppointmentDrawer({
               <input className="right-drawer-search-input" aria-label="检索姓名、职位、派系或年龄" placeholder="检索姓名/职位/派系/年龄…" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <div className="bureau-scope-tabs">
-              {bureauScopes.map((item) => (
+              {APPOINTMENT_BUREAU_SCOPES.map((item) => (
                 <button key={item} className={scope === item ? "active" : ""} onClick={() => setScope(item)}>
                   {item}
                 </button>
@@ -4687,18 +4758,46 @@ function CourtDrawer({
   const [q, setQ] = React.useState("");
   const titleId = React.useId();
   const { drawerRef, closeRef } = useDrawerFocus(open);
-  const filtered = q
-    ? ministers.filter((m) => m.name.includes(q) || (m.office || "").includes(q) || (m.office_type || "").includes(q) || (m.faction || "").includes(q))
-    : ministers;
-  const missingPortraits = ministers.filter((m) => m.portrait_available === false).length;
-  const activeCount = _state.ministers.filter((m) => (m.power_id || "ming") === "ming" && m.status === "active").length;
+  const searchQuery = q.trim();
+  const filtered = React.useMemo(
+    () => searchQuery
+      ? ministers.filter((m) => m.name.includes(searchQuery) || (m.office || "").includes(searchQuery) || (m.office_type || "").includes(searchQuery) || (m.faction || "").includes(searchQuery))
+      : ministers,
+    [ministers, searchQuery],
+  );
+  const missingPortraits = React.useMemo(
+    () => ministers.reduce((count, minister) => count + (minister.portrait_available === false ? 1 : 0), 0),
+    [ministers],
+  );
+  const activeCount = React.useMemo(
+    () => _state.ministers.reduce(
+      (count, minister) => count + (((minister.power_id || "ming") === "ming" && minister.status === "active") ? 1 : 0),
+      0,
+    ),
+    [_state.ministers],
+  );
   const groups = ["在职", "内阁+六部", "边镇厂卫", "江湖外缘", "收藏", "全部", "人物志"];
-  const characterByName = new Map([..._state.ministers, ...(_state.consorts || [])].map((item) => [item.name, item]));
+  const characterByName = React.useMemo(
+    () => new Map([..._state.ministers, ...(_state.consorts || [])].map((item) => [item.name, item])),
+    [_state.ministers, _state.consorts],
+  );
   const archiveRows = characterIndex;
-  const archiveFilteredCount = archiveRows.filter((m) => {
-    if (!q.trim()) return true;
-    return m.name.includes(q) || m.office.includes(q) || m.office_type.includes(q) || m.faction.includes(q) || m.power_name.includes(q);
-  }).length;
+  const archiveFilteredCount = React.useMemo(() => {
+    if (!searchQuery) return archiveRows.length;
+    let count = 0;
+    for (const row of archiveRows) {
+      if (
+        row.name.includes(searchQuery)
+        || row.office.includes(searchQuery)
+        || row.office_type.includes(searchQuery)
+        || row.faction.includes(searchQuery)
+        || row.power_name.includes(searchQuery)
+      ) {
+        count += 1;
+      }
+    }
+    return count;
+  }, [archiveRows, searchQuery]);
   return (
     <>
       {open && <button className="drawer-scrim" aria-label="收起" onClick={onClose} />}
@@ -4792,22 +4891,27 @@ function CharacterArchive({
   const [detailError, setDetailError] = React.useState("");
   const [detailCache, setDetailCache] = React.useState<Record<string, { signature: string; detail: Minister }>>({});
   const scopes = ["全部", "大明", "外部", "后宫", "尚未登场", "缺图"];
-  const filtered = rows.filter((row) => {
+  const filtered = React.useMemo(() => {
     const q = query.trim();
-    const queryHit = !q || row.name.includes(q) || row.office.includes(q) || row.office_type.includes(q) || row.faction.includes(q) || row.power_name.includes(q);
-    if (!queryHit) return false;
-    if (scope === "大明") return (row.power_id || "ming") === "ming" && row.office_type !== "后宫";
-    if (scope === "外部") return (row.power_id || "ming") !== "ming";
-    if (scope === "后宫") return row.office_type === "后宫";
-    if (scope === "尚未登场") return row.status === "offstage";
-    if (scope === "缺图") return row.portrait_available === false;
-    return true;
-  });
+    return rows.filter((row) => {
+      const queryHit = !q || row.name.includes(q) || row.office.includes(q) || row.office_type.includes(q) || row.faction.includes(q) || row.power_name.includes(q);
+      if (!queryHit) return false;
+      if (scope === "大明") return (row.power_id || "ming") === "ming" && row.office_type !== "后宫";
+      if (scope === "外部") return (row.power_id || "ming") !== "ming";
+      if (scope === "后宫") return row.office_type === "后宫";
+      if (scope === "尚未登场") return row.status === "offstage";
+      if (scope === "缺图") return row.portrait_available === false;
+      return true;
+    });
+  }, [query, rows, scope]);
   React.useEffect(() => {
     if (selectedName && filtered.some((row) => row.name === selectedName)) return;
     setSelectedName(filtered[0]?.name || "");
   }, [selectedName, filtered, rows]);
-  const selectedRow = rows.find((row) => row.name === selectedName);
+  const selectedRow = React.useMemo(
+    () => rows.find((row) => row.name === selectedName),
+    [rows, selectedName],
+  );
   const selectedSignature = selectedRow
     ? [selectedRow.office, selectedRow.office_type, selectedRow.faction, selectedRow.status, selectedRow.power_id, selectedRow.portrait_available ? "1" : "0"].join("|")
     : "";
@@ -4848,10 +4952,20 @@ function CharacterArchive({
       cancelled = true;
     };
   }, [selectedName, selectedSignature, detailCache]);
-  const active = rows.filter((row) => row.status === "active").length;
-  const offstage = rows.filter((row) => row.status === "offstage").length;
-  const external = rows.filter((row) => (row.power_id || "ming") !== "ming").length;
-  const missing = rows.filter((row) => row.portrait_available === false).length;
+  const archiveStats = React.useMemo(() => {
+    let active = 0;
+    let offstage = 0;
+    let external = 0;
+    let missing = 0;
+    for (const row of rows) {
+      if (row.status === "active") active += 1;
+      else if (row.status === "offstage") offstage += 1;
+      if ((row.power_id || "ming") !== "ming") external += 1;
+      if (row.portrait_available === false) missing += 1;
+    }
+    return { active, offstage, external, missing };
+  }, [rows]);
+  const { active, offstage, external, missing } = archiveStats;
   const detailMeta = detail || selectedRow;
   const openArchiveChat = (row: CharacterIndexEntry, known?: Minister) => {
     if (!row.can_summon) return;
