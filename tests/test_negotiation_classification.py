@@ -51,6 +51,56 @@ class NegotiationClassificationTests(unittest.TestCase):
     def test_explicit_castration_still_classifies_as_castration(self) -> None:
         self.assertEqual(action_kind_from_text("朕欲令卿净身入内廷。"), "castration")
 
+    def test_legacy_xinpan_profile_no_longer_changes_handshake_score(self) -> None:
+        user_text = "此事须你承办，替朕密查阉党旧案。"
+        answer = "臣愿为陛下密查阉党旧案，三日内先回奏线索。"
+
+        baseline = evaluate_negotiation(None, user_text, answer, "support", "")
+        legacy_weighted = evaluate_negotiation(
+            None,
+            user_text,
+            answer,
+            "support",
+            "",
+            xinpan_profile={
+                "quadrant": "离心",
+                "dao_he": -100,
+                "shi_he": -100,
+                "fear": 100,
+                "hatred": 100,
+                "trust_coeff": 0.1,
+            },
+        )
+
+        self.assertEqual(baseline.psychological_score, legacy_weighted.psychological_score)
+        self.assertNotIn("xinpan_quadrant", legacy_weighted.factors)
+        self.assertNotIn("xinpan_hatred", legacy_weighted.factors)
+
+    def test_behavior_profile_truth_risks_change_handshake_score(self) -> None:
+        user_text = "此事须你承办，替朕密查阉党旧案。"
+        answer = "臣愿为陛下密查阉党旧案，三日内先回奏线索。"
+
+        plain = evaluate_negotiation(
+            None,
+            user_text,
+            answer,
+            "support",
+            "",
+            behavior_profile={"preferred_stance": "support", "truth_mode": "直陈为主", "risk_tags": []},
+        )
+        evasive = evaluate_negotiation(
+            None,
+            user_text,
+            answer,
+            "support",
+            "",
+            behavior_profile={"preferred_stance": "support", "truth_mode": "半真半假", "risk_tags": ["话术不实"]},
+        )
+
+        self.assertLess(evasive.psychological_score, plain.psychological_score)
+        self.assertEqual(evasive.factors["behavior_truth_mode"], "半真半假")
+        self.assertIn("话术不实", evasive.factors["behavior_risk_tags"])
+
 
 if __name__ == "__main__":
     unittest.main()

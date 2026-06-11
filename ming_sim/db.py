@@ -129,11 +129,25 @@ class GameDB:
         # 画像后台任务不用这条连接写库，避免多个线程同时操作同一 sqlite3.Connection。
         self.conn = sqlite3.connect(path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
+        self._configure_connection()
         self._portrait_asset_lock = threading.RLock()
         # 遗产修正符缓存：legacy_modifiers 在落账热路径被频繁调用，缓存聚合结果，
         # 仅在 active 遗产集变化（insert_legacy / expire_legacies）时失效。
         self._legacy_mod_cache: Optional[Dict[str, object]] = None
         self.init_schema()
+
+    def _configure_connection(self) -> None:
+        pragmas = (
+            "PRAGMA busy_timeout=5000",
+            "PRAGMA journal_mode=WAL",
+            "PRAGMA synchronous=NORMAL",
+            "PRAGMA temp_store=MEMORY",
+        )
+        for pragma in pragmas:
+            try:
+                self.conn.execute(pragma)
+            except sqlite3.DatabaseError:
+                continue
 
     def init_schema(self) -> None:
         self.conn.executescript(
@@ -480,6 +494,8 @@ class GameDB:
                 ON chat_messages(minister_name, id);
             CREATE INDEX IF NOT EXISTS idx_chat_messages_turn
                 ON chat_messages(turn);
+            CREATE INDEX IF NOT EXISTS idx_chat_messages_turn_minister
+                ON chat_messages(turn, minister_name, id);
 
             CREATE TABLE IF NOT EXISTS chat_turns (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -669,6 +685,8 @@ class GameDB:
             );
             CREATE INDEX IF NOT EXISTS idx_negotiation_agreements_minister
                 ON negotiation_agreements(minister_name, action_kind, status, id);
+            CREATE INDEX IF NOT EXISTS idx_negotiation_agreements_status_id
+                ON negotiation_agreements(status, id);
 
             CREATE TABLE IF NOT EXISTS negotiation_tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -709,6 +727,8 @@ class GameDB:
                 ON secret_orders(turn_issued, status);
             CREATE INDEX IF NOT EXISTS idx_secret_orders_status
                 ON secret_orders(status);
+            CREATE INDEX IF NOT EXISTS idx_secret_orders_status_due
+                ON secret_orders(status, due_turn, id);
 
             CREATE TABLE IF NOT EXISTS skill_grants (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -878,6 +898,8 @@ class GameDB:
 
             CREATE INDEX IF NOT EXISTS idx_event_memories_turn
             ON event_memories(turn, importance);
+            CREATE INDEX IF NOT EXISTS idx_event_memories_turn_importance
+            ON event_memories(turn, importance, id);
 
             CREATE INDEX IF NOT EXISTS idx_event_memories_expiry
             ON event_memories(expires_turn, turn);
@@ -1980,6 +2002,10 @@ class GameDB:
             return ("active", "")
         return (row["status"], row["status_reason"] or "")
 
+    def character_status_map(self) -> Dict[str, str]:
+        rows = self.conn.execute("SELECT name, status FROM characters").fetchall()
+        return {str(row["name"]): str(row["status"] or "active") for row in rows}
+
     def apply_character_power_changes(
         self,
         changes: List[Dict[str, object]],
@@ -2437,11 +2463,17 @@ class GameDB:
         self.sync_economy_accounts(state)
         self.conn.commit()
 
-    def treasury_budget_summary(self, state: "GameState | None" = None) -> str:
+    def treasury_budget_summary(
+        self,
+        state: "GameState | None" = None,
+        *,
+        budget: Optional[Dict[str, Dict[str, list]]] = None,
+    ) -> str:
         # 三套口径统一：直接调 flows.compute_budget_lines（唯一定额源），此处只负责拼文本。
-        from ming_sim.flows import compute_budget_lines  # 局部 import 避免与 flows 顶层循环依赖
-        st = state if state is not None else self.load_state("")
-        budget = compute_budget_lines(self, st)
+        if budget is None:
+            from ming_sim.flows import compute_budget_lines  # 局部 import 避免与 flows 顶层循环依赖
+            st = state if state is not None else self.load_state("")
+            budget = compute_budget_lines(self, st)
 
         def _sum(acc: str, direction: str) -> int:
             return sum(int(it["amount"]) for it in budget[acc][direction])
@@ -2464,7 +2496,13 @@ class GameDB:
             f"净{format_money_delta(nk_in - nk_out)}。"
         )
 
-    def treasury_report(self, state: GameState, limit: int = 6) -> str:
+    def treasury_report(
+        self,
+        state: GameState,
+        limit: int = 6,
+        *,
+        budget: Optional[Dict[str, Dict[str, list]]] = None,
+    ) -> str:
         account_rows = self.conn.execute(
             "SELECT account, balance FROM economy_accounts ORDER BY account DESC"
         ).fetchall()
@@ -2509,8 +2547,8 @@ class GameDB:
                 f"{period_label(int(row['year']), int(row['period']))} {row['account']}{sign}{format_money(delta)} {row['category']}：{row['reason']}"
             )
         recent_text = "；".join(recent) if recent else "未见流水"
-        budget = self.treasury_budget_summary(state)
-        return f"{budget}账面：{account_text}。本{TURN_UNIT}收支：{period_text}。近账：{recent_text}。"
+        budget_summary = self.treasury_budget_summary(state, budget=budget)
+        return f"{budget_summary}账面：{account_text}。本{TURN_UNIT}收支：{period_text}。近账：{recent_text}。"
 
     def faction_satisfaction(self, faction: str) -> int:
         row = self.conn.execute("SELECT satisfaction FROM factions WHERE name = ?", (faction,)).fetchone()
@@ -3913,6 +3951,46 @@ class GameDB:
             )
         return history
 
+    def load_recent_chat_history(self, limit_per_minister: int = 80) -> Dict[str, List[Dict[str, str]]]:
+        """读出每名 NPC 最近 N 条召对记录，供 Web 进程恢复轻量缓存。"""
+        try:
+            limit = max(1, int(limit_per_minister or 80))
+        except (TypeError, ValueError):
+            limit = 80
+        try:
+            rows = self.conn.execute(
+                """
+                SELECT minister_name, role, content FROM (
+                    SELECT
+                        minister_name,
+                        role,
+                        content,
+                        ROW_NUMBER() OVER (PARTITION BY minister_name ORDER BY id DESC) AS rn
+                    FROM chat_messages
+                )
+                WHERE rn <= ?
+                ORDER BY minister_name, rn DESC
+                """,
+                (limit,),
+            ).fetchall()
+        except sqlite3.DatabaseError:
+            rows = self.conn.execute(
+                "SELECT minister_name, role, content FROM chat_messages ORDER BY id"
+            ).fetchall()
+            trimmed: Dict[str, List[Any]] = {}
+            for row in rows:
+                bucket = trimmed.setdefault(row["minister_name"], [])
+                bucket.append(row)
+                if len(bucket) > limit:
+                    del bucket[0]
+            rows = [row for bucket in trimmed.values() for row in bucket]
+        history: Dict[str, List[Dict[str, str]]] = {}
+        for row in rows:
+            history.setdefault(row["minister_name"], []).append(
+                {"role": row["role"], "content": row["content"]}
+            )
+        return history
+
     # ----- chat_turns（本回合召对撤回）-----
 
     _ROLLBACK_TABLE_PK = {
@@ -4638,7 +4716,7 @@ class GameDB:
             f"""
             SELECT id, turn, year, period, minister_name, topic, stance, confidence,
                    summary, conditions, related_issue_id, source_chat_turn_id,
-                   evidence_json, risk_tags, execution_hint, handshake_status,
+                   user_message, minister_answer, evidence_json, risk_tags, execution_hint, handshake_status,
                    psychological_score, psychological_json, agreement_id, goal_id
             FROM minister_stances
             {sql_where}
@@ -4665,27 +4743,27 @@ class GameDB:
             parsed.append(item)
         return parsed
 
-    # ----- xinpan（NPC 对皇帝的动态心盘）-----
+    # ----- legacy xinpan compatibility no-ops -----
+    #
+    # NPC behavior is now driven by personality, relationship, memory, and the
+    # negotiation agreement ledger.  These methods remain only so older call
+    # sites or debug tools do not crash; they must not create/update xinpan data.
 
     def ensure_xinpan_states(self, state: Optional[GameState] = None) -> int:
-        from ming_sim.xinpan import ensure_all_xinpan_states
-
-        return ensure_all_xinpan_states(self, state)
+        _ = state
+        return 0
 
     def get_xinpan_profile(self, name: str, state: Optional[GameState] = None) -> Dict[str, object]:
-        from ming_sim.xinpan import public_profile
-
-        return public_profile(self, state, name)
+        _ = (name, state)
+        return {}
 
     def xinpan_agent_brief(self, name: str, state: Optional[GameState] = None) -> str:
-        from ming_sim.xinpan import agent_brief
-
-        return agent_brief(self, state, name)
+        _ = (name, state)
+        return ""
 
     def xinpan_simulator_rows(self, state: Optional[GameState] = None, limit: int = 80) -> List[Dict[str, object]]:
-        from ming_sim.xinpan import simulator_brief_rows
-
-        return simulator_brief_rows(self, state, limit=limit)
+        _ = (state, limit)
+        return []
 
     def apply_chat_xinpan_update(
         self,
@@ -4699,21 +4777,21 @@ class GameDB:
         psychological_score: int = 0,
         source_chat_turn_id: int = 0,
         goal_context: Optional[Dict[str, object]] = None,
+        xinpan_delta: Optional[Dict[str, object]] = None,
     ) -> Optional[Dict[str, object]]:
-        from ming_sim.xinpan import apply_chat_xinpan_update
-
-        return apply_chat_xinpan_update(
-            self,
+        _ = (
             state,
             minister_name,
             user_text,
             answer,
-            stance=stance,
-            handshake_status=handshake_status,
-            psychological_score=psychological_score,
-            source_chat_turn_id=source_chat_turn_id,
-            goal_context=goal_context,
+            stance,
+            handshake_status,
+            psychological_score,
+            source_chat_turn_id,
+            goal_context,
+            xinpan_delta,
         )
+        return None
 
     def apply_turn_xinpan_update(
         self,
@@ -4722,9 +4800,8 @@ class GameDB:
         narrative: str,
         applied: Dict[str, object],
     ) -> Dict[str, object]:
-        from ming_sim.xinpan import apply_turn_xinpan_update
-
-        return apply_turn_xinpan_update(self, state, decree_text, narrative, applied)
+        _ = (state, decree_text, narrative, applied)
+        return {}
 
     def apply_direct_xinpan_adjustment(
         self,
@@ -4739,20 +4816,18 @@ class GameDB:
         source_kind: str = "direct",
         source_id: str = "",
     ) -> Optional[Dict[str, object]]:
-        from ming_sim.xinpan import apply_direct_xinpan_adjustment
-
-        return apply_direct_xinpan_adjustment(
-            self,
+        _ = (
             state,
             name,
-            shi_delta=shi_delta,
-            fear_delta=fear_delta,
-            hatred_delta=hatred_delta,
-            trust_multiplier=trust_multiplier,
-            event=event,
-            source_kind=source_kind,
-            source_id=source_id,
+            shi_delta,
+            fear_delta,
+            hatred_delta,
+            trust_multiplier,
+            event,
+            source_kind,
+            source_id,
         )
+        return None
 
     # ----- negotiation agreements（奏对协议 / 履约系统）-----
 
@@ -5104,6 +5179,7 @@ class GameDB:
         *,
         phase: str,
         state: GameState,
+        allow_due_fallback: bool = False,
     ) -> tuple[str, str, int, str, str]:
         old_target = str(agreement.get("target_status") or "")
         if old_target == "blocked":
@@ -5163,7 +5239,7 @@ class GameDB:
             target_evidence = "条件未满足或已失败，标的未达成。"
         else:
             due_turn = int(agreement.get("due_turn") or 0)
-            if phase == "postresolve" and due_turn and int(state.turn) >= due_turn:
+            if allow_due_fallback and phase == "postresolve" and due_turn and int(state.turn) >= due_turn:
                 condition_status = "failed"
                 condition_score = 0
                 condition_evidence = "本回合已到期，仍未见全部条件兑现。"
@@ -5213,7 +5289,7 @@ class GameDB:
             "evidence": evidence[:180],
             "metric_delta": {},
             "faction_delta": {},
-            "xinpan": {},
+            "npc_influence": {},
         }
         if new_status == "fulfilled":
             wei_delta = 1 if action_kind in {"policy", "personnel", "secret_order", "castration", "emancipation", "court_commitment"} else 0
@@ -5223,20 +5299,10 @@ class GameDB:
             if faction:
                 self.adjust_factions({faction: {"satisfaction": 2}})
                 effect["faction_delta"] = {faction: {"satisfaction": 2}}
-            try:
-                self.apply_direct_xinpan_adjustment(
-                    state,
-                    minister,
-                    shi_delta=5.0,
-                    hatred_delta=-2.0,
-                    trust_multiplier=1.04,
-                    event="奏对协议条件满足，标的达成",
-                    source_kind="agreement",
-                    source_id=str(agreement.get("id") or ""),
-                )
-                effect["xinpan"] = {"shi_delta": 5.0, "hatred_delta": -2.0, "trust_multiplier": 1.04}
-            except Exception:
-                pass
+            effect["npc_influence"] = {
+                "memory_signal": "agreement_fulfilled",
+                "expected_behavior": "后续召对可把此事当作皇帝守约与本人履约资本；同党可据此背书，政敌也可质疑邀功。",
+            }
             self.record_log(state, f"奏对标的达成：{minister}「{agreement.get('target_text') or agreement.get('core_topic') or agreement.get('topic')}」。")
         elif new_status == "failed":
             wei_delta = -2 if re.search(r"身家名节|制度名分|军国成败", stakes) else -1
@@ -5245,21 +5311,10 @@ class GameDB:
             if faction:
                 self.adjust_factions({faction: {"satisfaction": -4}})
                 effect["faction_delta"] = {faction: {"satisfaction": -4}}
-            try:
-                self.apply_direct_xinpan_adjustment(
-                    state,
-                    minister,
-                    shi_delta=-8.0,
-                    fear_delta=1.0,
-                    hatred_delta=5.0,
-                    trust_multiplier=0.90,
-                    event="奏对协议条件失败，标的未达成",
-                    source_kind="agreement",
-                    source_id=str(agreement.get("id") or ""),
-                )
-                effect["xinpan"] = {"shi_delta": -8.0, "fear_delta": 1.0, "hatred_delta": 5.0, "trust_multiplier": 0.90}
-            except Exception:
-                pass
+            effect["npc_influence"] = {
+                "memory_signal": "agreement_failed",
+                "expected_behavior": "后续召对须把此事当作失信旧账；本人可能补奏、拖延、求保全，相关党争关系会借题清算。",
+            }
             self.record_log(state, f"奏对标的失信：{minister}「{agreement.get('target_text') or agreement.get('core_topic') or agreement.get('topic')}」未达成。")
         self.save_state(state)
         return effect
@@ -5302,6 +5357,8 @@ class GameDB:
         for row in rows:
             agreement = dict(row)
             llm_review = llm_review_by_id.get(int(agreement["id"]), {})
+            if not llm_review:
+                continue
             tasks = [
                 dict(task)
                 for task in self.conn.execute(
@@ -5315,9 +5372,7 @@ class GameDB:
                 if llm_task is not None:
                     next_status, evidence = llm_task
                 else:
-                    next_status, evidence = self._task_auto_decision(
-                        agreement, task, context, state=state, phase=phase
-                    )
+                    next_status, evidence = str(task.get("status") or "pending"), str(task.get("evidence") or "")
                 if next_status != str(task.get("status") or "pending") or evidence != str(task.get("evidence") or ""):
                     self.conn.execute(
                         """
@@ -5341,6 +5396,7 @@ class GameDB:
                 llm_review if isinstance(llm_review, dict) else {},
                 phase=phase,
                 state=state,
+                allow_due_fallback=False,
             )
             for task in tasks:
                 self.conn.execute(
@@ -5452,19 +5508,28 @@ class GameDB:
             """,
             params,
         ).fetchall()
+        if not rows:
+            return []
+        agreement_ids = [int(row["id"]) for row in rows]
+        placeholders = ",".join("?" for _ in agreement_ids)
+        task_rows = self.conn.execute(
+            f"""
+            SELECT id, agreement_id, description, task_kind, status, evidence, last_checked_turn
+            FROM negotiation_tasks
+            WHERE agreement_id IN ({placeholders})
+            ORDER BY agreement_id, id
+            """,
+            agreement_ids,
+        ).fetchall()
+        tasks_by_agreement: Dict[int, List[Dict[str, object]]] = {}
+        for task in task_rows:
+            item = dict(task)
+            agreement_id = int(item.pop("agreement_id"))
+            tasks_by_agreement.setdefault(agreement_id, []).append(item)
         out: List[Dict[str, object]] = []
         for row in rows:
             item = dict(row)
-            tasks = self.conn.execute(
-                """
-                SELECT id, description, task_kind, status, evidence, last_checked_turn
-                FROM negotiation_tasks
-                WHERE agreement_id=?
-                ORDER BY id
-                """,
-                (int(row["id"]),),
-            ).fetchall()
-            item["tasks"] = [dict(task) for task in tasks]
+            item["tasks"] = tasks_by_agreement.get(int(row["id"]), [])
             out.append(item)
         return out
 
@@ -5550,7 +5615,7 @@ class GameDB:
         condition_status = str(row.get("condition_status") or "")
         stakes = str(row.get("stakes") or "")
         if target_status == "achieved" or status == "fulfilled":
-            return "可作为真实政治资本：降低该官个人拖延，增强其对皇帝势合；仍须检验外部资源与派系阻力。"
+            return "可作为真实政治资本：降低该官个人拖延，增强其后续履约意愿与政治信用；仍须检验外部资源与派系阻力。"
         if condition_status == "satisfied" and status == "sealed":
             return "无待办条件的即时承诺：可作执行背书，但若后续诏书反向处置，会转为失信伤害。"
         if condition_status == "pending" or target_status == "pending_conditions" or status == "pending":
@@ -7360,6 +7425,81 @@ class GameDB:
                 {"role": row["role"], "content": row["content"]}
             )
         return result
+
+    def recent_chat_memory_for_minister(
+        self,
+        minister_name: str,
+        *,
+        upto_turn: int,
+        window: int = 2,
+        limit: int = 10,
+    ) -> List[Dict[str, object]]:
+        """Recent audience snippets that this NPC should remember.
+
+        Includes both the NPC's own direct talks with the emperor and other
+        ministers' audiences where this NPC is mentioned by name or alias. This
+        is a read-only digest over existing chat_messages; it does not introduce
+        a new runtime dependency or save schema.
+        """
+        name = str(minister_name or "").strip()
+        if not name:
+            return []
+        start_turn = max(1, int(upto_turn) - max(1, int(window or 1)) + 1)
+        mention_terms: List[str] = []
+
+        def add_term(raw: object) -> None:
+            term = str(raw or "").strip()
+            if term and term not in mention_terms:
+                mention_terms.append(term)
+
+        add_term(name)
+        character = self.content.characters.get(name) if self.content else None
+        if character is None and self.content:
+            for candidate in self.content.characters.values():
+                if name in (candidate.aliases or []):
+                    character = candidate
+                    add_term(candidate.name)
+                    break
+        if character is not None:
+            for alias in character.aliases or []:
+                add_term(alias)
+        mention_terms = mention_terms[:8]
+
+        def like_term(term: str) -> str:
+            escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            return f"%{escaped}%"
+
+        direct_placeholders = ", ".join("?" for _ in mention_terms)
+        mention_clauses = " OR ".join("content LIKE ? ESCAPE '\\'" for _ in mention_terms)
+        rows = self.conn.execute(
+            f"""
+            SELECT id, turn, minister_name, role, content
+            FROM chat_messages
+            WHERE turn BETWEEN ? AND ?
+              AND (minister_name IN ({direct_placeholders}) OR {mention_clauses})
+            ORDER BY turn DESC, id DESC
+            LIMIT ?
+            """,
+            (
+                start_turn,
+                int(upto_turn),
+                *mention_terms,
+                *(like_term(term) for term in mention_terms),
+                max(1, int(limit or 10)),
+            ),
+        ).fetchall()
+        direct_names = set(mention_terms)
+        return [
+            {
+                "id": int(row["id"]),
+                "turn": int(row["turn"]),
+                "minister_name": str(row["minister_name"] or ""),
+                "role": str(row["role"] or ""),
+                "content": str(row["content"] or ""),
+                "direct": str(row["minister_name"] or "") in direct_names,
+            }
+            for row in rows
+        ]
 
     # ── 调试用通用 CRUD（仅限白名单核心表）──────────────────────
     # 表名 → 主键列。只暴露核心几张，防误删元数据/日志表。

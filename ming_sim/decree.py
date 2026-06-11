@@ -24,6 +24,7 @@ from ming_sim.agents import (
     run_agent_text,
 )
 from ming_sim.constants import ECONOMY_ACCOUNTS, TURN_UNIT
+from ming_sim.bureaucracy import secret_order_actor_assessment
 from ming_sim.causality import build_turn_causal_notes
 from ming_sim.context import ENDING_LABELS, ENDING_ONGOING, ENDING_TIMEOUT, victory_status
 from ming_sim.db import GameDB
@@ -246,6 +247,7 @@ def resolve_directives(
             + db.list_secret_orders(status="pending_review")
         )[:20]
         for o in active_orders:
+            actor_assessment = secret_order_actor_assessment(state, db, o)
             secret_orders_for_sim.append({
                 "id": int(o["id"]),
                 "minister_name": o["minister_name"],
@@ -256,6 +258,7 @@ def resolve_directives(
                 "due_turn": o.get("due_turn") or 0,
                 "progress": o.get("result") or "",      # 承办人聊天里存的当前进展
                 "sim_note": o.get("sim_note") or "",     # 上轮推演写的副作用
+                "actor_assessment": actor_assessment,
             })
         n_active = sum(1 for o in active_orders if o["status"] == "active")
         n_pending = sum(1 for o in active_orders if o["status"] == "pending_review")
@@ -275,6 +278,8 @@ def resolve_directives(
             decree_text=decree_text,
             directives=directives,
             phase="preresolve",
+            llm_config=llm_config,
+            agno_db=agno_db,
         )
         if reviewed_goals:
             tlog(f"[dialogue_goal] 颁诏前目的审计 {len(reviewed_goals)} 条")
@@ -292,7 +297,7 @@ def resolve_directives(
             directives=directives,
         )
     except Exception as exc:
-        tlog(f"[agreement] 颁诏前 LLM 审计失败，改用规则兜底：{exc}")
+        tlog(f"[agreement] 颁诏前 LLM 审计失败，本阶段不推进履约语义：{exc}")
     try:
         reviewed = db.auto_review_negotiation_agreements(
             state,
@@ -304,7 +309,7 @@ def resolve_directives(
         if reviewed:
             tlog(f"[agreement] 颁诏前自动审计 {len(reviewed)} 条")
     except Exception as exc:
-        tlog(f"[agreement] 颁诏前规则审计失败，跳过：{exc}")
+        tlog(f"[agreement] 颁诏前履约审计落库失败，跳过：{exc}")
     simulator_payload = build_simulator_payload(
         state, db, decree_text, previous_narrative,
         fixed_flows=fixed_flows,
@@ -356,7 +361,7 @@ def resolve_directives(
                 directives=directives,
             )
         except Exception as review_exc:
-            tlog(f"[agreement] 失败兜底 LLM 审计失败，改用规则兜底：{review_exc}")
+            tlog(f"[agreement] 失败兜底 LLM 审计失败，本阶段不推进履约语义：{review_exc}")
         try:
             db.auto_review_negotiation_agreements(
                 state,
@@ -430,6 +435,8 @@ def resolve_directives(
             directives=directives,
             applied=applied,
             phase="postresolve",
+            llm_config=llm_config,
+            agno_db=agno_db,
         )
         if reviewed_goals:
             applied["conversation_goals"] = reviewed_goals
@@ -450,7 +457,7 @@ def resolve_directives(
             applied=applied,
         )
     except Exception as exc:
-        tlog(f"[agreement] 月末 LLM 审计失败，改用规则兜底：{exc}")
+        tlog(f"[agreement] 月末 LLM 审计失败，本阶段不推进履约语义：{exc}")
     try:
         reviewed = db.auto_review_negotiation_agreements(
             state,
@@ -465,11 +472,7 @@ def resolve_directives(
             applied["agreements"] = reviewed
             tlog(f"[agreement] 月末自动审计 {len(reviewed)} 条")
     except Exception as exc:
-        tlog(f"[agreement] 月末规则审计失败，跳过：{exc}")
-    try:
-        applied["xinpan"] = db.apply_turn_xinpan_update(state, decree_text, effective_narrative, applied)
-    except Exception as exc:
-        tlog(f"[xinpan] 月末更新失败，跳过：{exc}")
+        tlog(f"[agreement] 月末履约审计落库失败，跳过：{exc}")
     causal_notes = build_turn_causal_notes(db, state, decree_text, applied)
 
     # 4) 把 narrative 与诏书写入 turn_logs 作下月前文

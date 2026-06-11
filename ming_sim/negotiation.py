@@ -284,33 +284,10 @@ def evaluate_negotiation(
     score += round((ability - 50) * 0.10)
     score -= round(max(0, integrity - 65) * 0.10)
 
-    xinpan_profile = xinpan_profile or {}
+    # Backward-compatible argument only: the active handshake layer is driven by
+    # the personality/relationship/memory behavior profile and agreement ledger.
+    _ = xinpan_profile
     behavior_profile = behavior_profile or {}
-    quadrant = str(xinpan_profile.get("quadrant") or "")
-    try:
-        dao_he = float(xinpan_profile.get("dao_he") or 0)
-        shi_he = float(xinpan_profile.get("shi_he") or 0)
-        fear = float(xinpan_profile.get("fear") or 0)
-        hatred = float(xinpan_profile.get("hatred") or 0)
-        trust = float(xinpan_profile.get("trust_coeff") or 1.0)
-    except (TypeError, ValueError):
-        dao_he = shi_he = fear = hatred = 0.0
-        trust = 1.0
-    score += round(max(-8.0, min(8.0, dao_he / 12.0)))
-    score += round(max(-10.0, min(10.0, shi_he / 10.0)))
-    score -= round(min(18.0, hatred / 6.0))
-    if trust < 0.75:
-        score -= round((0.75 - trust) * 18)
-    if quadrant == "股肱":
-        score += 8
-    elif quadrant == "权附":
-        score += 2
-    elif quadrant == "离心":
-        score -= 12
-    if fear >= 70:
-        # Fear can mute open defiance, but it is not consent.
-        score += 3 if stance != "support" else 0
-
     preferred = str(behavior_profile.get("preferred_stance") or "")
     if preferred == "support":
         score += 8
@@ -318,6 +295,17 @@ def evaluate_negotiation(
         score -= 2
     elif preferred == "oppose":
         score -= 12
+    truth_mode = str(behavior_profile.get("truth_mode") or "直陈为主")
+    raw_risk_tags = behavior_profile.get("risk_tags")
+    risk_tags = [str(item).strip() for item in raw_risk_tags if str(item).strip()] if isinstance(raw_risk_tags, list) else []
+    if truth_mode == "半真半假":
+        score -= 5
+    elif truth_mode == "选择性真话":
+        score -= 3
+    if any(tag in risk_tags for tag in ("话术不实", "人情护短", "门户牵引", "侵吞风险")):
+        score -= 4
+    if "旧事牵引" in risk_tags:
+        score += 2
 
     explicit_commitment = bool(re.search(r"臣愿|奴才愿|小的愿|愿为陛下|臣领旨|遵旨|愿领|愿奉旨|愿听圣裁|敢不奉行|臣当奉行|臣愿担此", answer))
     explicit_castration = bool(re.search(r"臣愿净身|愿净身|自愿净身|愿入内廷|愿入宫禁|愿为内臣|愿作内臣|愿受此身", answer))
@@ -405,13 +393,9 @@ def evaluate_negotiation(
             "ability": ability,
             "stance": stance,
             "action_kind": action_kind,
-            "xinpan_quadrant": quadrant,
-            "xinpan_dao_he": round(dao_he, 1),
-            "xinpan_shi_he": round(shi_he, 1),
-            "xinpan_fear": round(fear, 1),
-            "xinpan_hatred": round(hatred, 1),
-            "xinpan_trust": round(trust, 2),
             "behavior_preferred": preferred,
+            "behavior_truth_mode": truth_mode,
+            "behavior_risk_tags": "、".join(risk_tags[:6]),
             "has_conditions": bool(tasks),
             "explicit_commitment": explicit_commitment,
             "explicit_castration": explicit_castration,

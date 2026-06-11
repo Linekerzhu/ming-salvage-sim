@@ -965,7 +965,7 @@ select:focus-visible {
   bottom: -6vh;
   width: 130vw;
   height: 17vh;
-  background: url('/ui/exact/案板.png') center / 100% 100% no-repeat;
+  background: url('/ui/exact/案板.webp') center / 100% 100% no-repeat;
   z-index: 11;
 }
 
@@ -1247,7 +1247,7 @@ select:focus-visible {
   z-index: 18;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto auto auto 1fr;
+  grid-template-rows: auto auto auto auto auto minmax(0, 1fr);
   padding: 0 calc(28px + var(--right-drawer-safe-right)) 0 28px;
   overflow-x: hidden;
   visibility: hidden;
@@ -1303,6 +1303,126 @@ select:focus-visible {
   color: #ffd2a0;
   border-color: rgba(180, 62, 45, 0.45);
   background: rgba(122, 27, 20, 0.32);
+}
+
+.monthly-followup-panel {
+  min-width: 0;
+  padding: 0 4px 8px;
+  color: rgba(255, 237, 193, 0.9);
+}
+
+.monthly-followup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+}
+
+.monthly-followup-head span,
+.monthly-followup-head small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.monthly-followup-head small {
+  color: rgba(255, 226, 169, 0.68);
+}
+
+.monthly-followup-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 7px;
+}
+
+.monthly-followup-card {
+  display: grid;
+  grid-template-rows: auto minmax(2.4em, auto) auto;
+  gap: 5px;
+  min-width: 0;
+  min-height: 104px;
+  padding: 9px 10px;
+  border: 1px solid rgba(226, 180, 86, 0.24);
+  border-left-width: 3px;
+  border-radius: 6px;
+  color: rgba(255, 244, 216, 0.92);
+  text-align: left;
+  background:
+    linear-gradient(180deg, rgba(47, 22, 10, 0.74), rgba(20, 10, 0, 0.5)),
+    rgba(20, 10, 0, 0.42);
+  cursor: pointer;
+}
+
+.monthly-followup-card:hover {
+  border-color: rgba(255, 220, 145, 0.5);
+  background:
+    linear-gradient(180deg, rgba(82, 29, 20, 0.82), rgba(45, 20, 8, 0.58)),
+    rgba(20, 10, 0, 0.5);
+}
+
+.monthly-followup-card:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.monthly-followup-card.stance-support { border-left-color: #5c946f; }
+.monthly-followup-card.stance-oppose { border-left-color: #b75646; }
+.monthly-followup-card.stance-caution { border-left-color: #c9984d; }
+.monthly-followup-card.stance-neutral { border-left-color: rgba(255, 226, 169, 0.38); }
+
+.monthly-followup-minister {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.monthly-followup-minister b {
+  color: #ffe8a0;
+  font-size: 0.88rem;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.monthly-followup-minister small {
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(255, 226, 169, 0.66);
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.monthly-followup-title {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(255, 244, 216, 0.84);
+  font-size: 0.75rem;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.monthly-followup-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.monthly-followup-tags i {
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 220, 145, 0.18);
+  border-radius: 999px;
+  color: rgba(255, 226, 169, 0.76);
+  font-size: 0.66rem;
+  font-style: normal;
+  line-height: 1.2;
+  background: rgba(255, 225, 143, 0.08);
 }
 
 .drawer-brand {
@@ -1453,6 +1573,11 @@ select:focus-visible {
   transition: transform 150ms ease, filter 150ms ease;
   cursor: pointer;
   filter: drop-shadow(0 4px 12px rgba(0,0,0,0.55));
+}
+
+.minister-list:not(.minister-list-court) .minister-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 160px 280px;
 }
 
 .minister-card-portrait-wrap {
@@ -2179,7 +2304,8 @@ select:focus-visible {
 .tiangang-spectrum,
 .stance-notes,
 .network-profile,
-.xinpan-profile {
+.xinpan-profile,
+.personality-readout {
   display: grid;
   gap: 8px;
   padding: 9px 10px;
@@ -2192,7 +2318,8 @@ select:focus-visible {
 .tiangang-spectrum-head,
 .stance-notes-head,
 .network-profile-head,
-.xinpan-profile-head {
+.xinpan-profile-head,
+.personality-readout-head {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -3464,7 +3591,7 @@ select:focus-visible {
   padding: 28px clamp(24px, 6vw, 92px) 42px;
   background:
     linear-gradient(180deg, rgba(16, 12, 9, 0.16), rgba(16, 12, 9, 0.34)),
-    url("/bg_state.png") center / cover no-repeat;
+    url("/bg_state.webp") center / cover no-repeat;
 }
 
 .ending-hero {
@@ -3548,7 +3675,7 @@ select:focus-visible {
   overflow: hidden;
   padding: clamp(26px, 4vw, 46px) clamp(34px, 7vw, 108px);
   background:
-    url("/icon_scroll.png") center / contain no-repeat;
+    url("/icon_scroll.webp") center / contain no-repeat;
   border-color: rgba(99, 66, 31, 0.18);
 }
 
@@ -4324,6 +4451,36 @@ select:focus-visible {
   backdrop-filter: blur(8px);
 }
 
+.personality-readout {
+  background:
+    linear-gradient(90deg, rgba(55, 110, 88, 0.08), rgba(183, 133, 44, 0.08)),
+    rgba(255, 248, 226, 0.66);
+}
+
+.personality-readout-row {
+  display: grid;
+  grid-template-columns: 3.4em minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  color: #5a4630;
+  font-size: 0.76rem;
+  line-height: 1.48;
+}
+
+.personality-readout-row b {
+  color: #5b3b1c;
+  font-weight: 800;
+}
+
+.personality-readout-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.personality-readout-row.risk b {
+  color: #8b382b;
+}
+
 .chat-intel-dossier .chat-intel-detail-body {
   grid-template-columns: 1fr;
   align-items: start;
@@ -5031,7 +5188,7 @@ button:disabled {
 }
 
 .modal-bg-state {
-  background-image: url("/bg_state.png");
+  background-image: url("/bg_state.webp");
 }
 
 .modal-bg-chat {
@@ -5045,7 +5202,7 @@ button:disabled {
 .modal-bg-long-goal {
   background:
     linear-gradient(180deg, rgba(42, 26, 16, 0.08), rgba(83, 38, 22, 0.16)),
-    url("/bg_state.png") center / cover no-repeat;
+    url("/bg_state.webp") center / cover no-repeat;
 }
 
 /* 弹窗内所有元素背景一律透明（通配），文字直贴背景图 */
@@ -5344,7 +5501,8 @@ button:disabled {
 .modal-bg-chat .tiangang-brief,
 .modal-bg-chat .stance-notes,
 .modal-bg-chat .network-profile,
-.modal-bg-chat .xinpan-profile {
+.modal-bg-chat .xinpan-profile,
+.modal-bg-chat .personality-readout {
   background: rgba(255, 248, 226, 0.72) !important;
   border-color: rgba(74, 45, 20, 0.18) !important;
 }
@@ -5493,7 +5651,7 @@ button:disabled {
 .modal-bg-ending .ending-document {
   background:
     linear-gradient(180deg, rgba(16, 12, 9, 0.16), rgba(16, 12, 9, 0.34)),
-    url("/bg_state.png") center / cover no-repeat !important;
+    url("/bg_state.webp") center / cover no-repeat !important;
 }
 
 .modal-bg-ending .ending-hero {
@@ -5520,7 +5678,7 @@ button:disabled {
 }
 
 .modal-bg-ending .ending-chronicle {
-  background: url("/icon_scroll.png") center / contain no-repeat !important;
+  background: url("/icon_scroll.webp") center / contain no-repeat !important;
 }
 
 .modal-bg-ending .ending-timeline-body {
@@ -5541,7 +5699,7 @@ button:disabled {
 
 /* 后宫独立弹窗背景：寝宫风格 */
 .harem-drawer {
-  background-image: url("/bg_harem.png");
+  background-image: url("/bg_harem.webp");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -5602,7 +5760,7 @@ button:disabled {
 
 /* 地图详情小面板背景 */
 .map-intel-panel {
-  background-image: url("/bg_node.png");
+  background-image: url("/bg_node.webp");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -5610,7 +5768,7 @@ button:disabled {
 
 /* 加载页背景 */
 .loading-screen {
-  background-image: url("/bg_loading.png");
+  background-image: url("/bg_loading.webp");
   background-size: cover;
   background-position: center;
 }
@@ -7135,7 +7293,7 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: url("/bg_loading.png") center/cover no-repeat, #1a140d;
+  background: url("/bg_loading.webp") center/cover no-repeat, #1a140d;
   padding: 24px;
 }
 
@@ -7149,6 +7307,85 @@ button:disabled {
   backdrop-filter: blur(8px);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   text-align: center;
+}
+
+.login-panel {
+  width: min(420px, 92vw);
+}
+
+.login-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(226, 180, 86, 0.42);
+  border-radius: 50%;
+  color: #f3d88b;
+  background: rgba(255, 235, 180, 0.08);
+}
+
+.login-form {
+  display: grid;
+  gap: 12px;
+  text-align: left;
+}
+
+.login-form label {
+  display: grid;
+  gap: 5px;
+  color: #d8c590;
+  font-size: 0.86rem;
+}
+
+.login-form input {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid rgba(226, 180, 86, 0.35);
+  border-radius: 6px;
+  color: #f3e6c4;
+  background: rgba(255, 245, 215, 0.08);
+  font: inherit;
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: rgba(240, 200, 100, 0.8);
+  background: rgba(255, 245, 215, 0.14);
+}
+
+.menu-user-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 8px 10px;
+  border: 1px solid rgba(226, 180, 86, 0.26);
+  border-radius: 8px;
+  color: #d8c590;
+  background: rgba(255, 235, 180, 0.06);
+  font-size: 0.82rem;
+}
+
+.menu-user-line span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.menu-user-line button {
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  border: 1px solid rgba(226, 180, 86, 0.35);
+  border-radius: 6px;
+  color: #f3e6c4;
+  background: rgba(255, 235, 180, 0.08);
+}
+
+.menu-user-line button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .menu-title {
@@ -7451,6 +7688,8 @@ button:disabled {
   border-radius: 8px;
   padding: 12px 14px;
   transition: transform 120ms ease, border-color 150ms ease, background 150ms ease;
+  content-visibility: auto;
+  contain-intrinsic-block-size: 180px;
 }
 
 .secret-order-card-button {
@@ -8147,6 +8386,8 @@ button:disabled {
   cursor: pointer;
   text-align: left;
   transition: background 100ms, border-color 100ms;
+  content-visibility: auto;
+  contain-intrinsic-block-size: 58px;
 }
 
 .right-drawer-row:hover {
@@ -10102,7 +10343,7 @@ button:disabled {
     border-top: 1px solid rgba(226, 180, 86, 0.26);
     background:
       linear-gradient(180deg, rgba(61, 34, 17, 0.78), rgba(19, 11, 6, 0.94)),
-      url("/ui/exact/案板.png") center / cover no-repeat;
+      url("/ui/exact/案板.webp") center / cover no-repeat;
   }
 
   .bottom-command-bar {
@@ -10762,7 +11003,7 @@ button:disabled {
 
   .court-drawer {
     inset: 6px;
-    grid-template-rows: auto auto auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto auto minmax(0, 1fr);
     gap: 7px;
     padding: 8px;
     overflow: hidden;
@@ -10835,6 +11076,40 @@ button:disabled {
   .court-drawer .right-drawer-search-input {
     min-height: 44px;
     font-size: 0.88rem;
+  }
+
+  .court-drawer .monthly-followup-panel {
+    padding: 0;
+  }
+
+  .court-drawer .monthly-followup-head {
+    margin-bottom: 4px;
+    font-size: 0.72rem;
+  }
+
+  .court-drawer .monthly-followup-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 5px;
+    max-height: min(184px, 23vh);
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+
+  .court-drawer .monthly-followup-card {
+    grid-template-rows: auto auto;
+    min-height: 70px;
+    padding: 7px 8px;
+  }
+
+  .court-drawer .monthly-followup-title {
+    font-size: 0.7rem;
+    -webkit-line-clamp: 2;
+  }
+
+  .court-drawer .monthly-followup-tags {
+    display: none;
   }
 
   .court-drawer .minister-list,
@@ -11139,6 +11414,16 @@ button:disabled {
 
   .menu-subtitle {
     margin-bottom: 20px;
+  }
+
+  .menu-user-line {
+    align-items: stretch;
+    flex-direction: column;
+    text-align: left;
+  }
+
+  .menu-user-line button {
+    min-height: 40px;
   }
 
   .menu-screen .menu-buttons {

@@ -16,8 +16,8 @@ from ming_sim.bureaucracy import (
 )
 from ming_sim.context import (
     historical_anchor_for_month,
+    npc_dialogue_behavior_brief,
     npc_network_profile,
-    npc_tiangang_behavior_brief,
     victory_status,
 )
 from ming_sim.db import GameDB
@@ -218,11 +218,95 @@ def _auto_table(rows: List[Dict[str, object]]) -> Dict[str, object]:
     return _table(rows, cols)
 
 
+def _conversation_goal_context(db: GameDB, *, limit: int = 80) -> List[Dict[str, object]]:
+    """未完成目的进推演主上下文；已完成目的只留少量摘要，事实背书走 agreement_ledger。"""
+    open_rows = db.list_conversation_goals(
+        statuses=["active", "waiting_conditions", "blocked", "expired"],
+        limit=min(60, max(1, int(limit or 80))),
+    )
+    remaining = max(0, int(limit or 80) - len(open_rows))
+    sealed_rows = db.list_conversation_goals(statuses=["sealed"], limit=min(12, remaining)) if remaining else []
+    return open_rows + sealed_rows
+
+
 def _row_value(row: sqlite3.Row, key: str, default: object = "") -> object:
     try:
         return row[key] if key in row.keys() else default
     except Exception:
         return default
+
+
+def _cross_pressure_read(
+    allies: List[str],
+    loyalty_hooks: List[str],
+    blockers: List[str],
+    trait_risks: List[str],
+    dialogue_reads: Optional[List[str]] = None,
+) -> str:
+    parts: List[str] = []
+    if allies:
+        parts.append("可借同党/同道背书：" + "、".join(allies[:3]))
+    if loyalty_hooks:
+        parts.append("受恩主座师等人情牵引：" + "、".join(loyalty_hooks[:3]))
+    if blockers:
+        parts.append("党争或旧怨阻力：" + "、".join(blockers[:3]))
+    if trait_risks:
+        parts.append("性格痼疾风险：" + "、".join(trait_risks[:4]))
+    if dialogue_reads:
+        parts.append("本回合召对话术：" + "、".join(dialogue_reads[:3]))
+    if not parts:
+        return "无显著人情牵引或党争阻力，主要按职掌、人格、旧事和资源判断。"
+    return "；".join(parts) + "。"
+
+
+def _stance_speech_pressure(stances: List[Dict[str, object]]) -> Dict[str, object]:
+    act_labels = {
+        "accusation": "借题告状/清算政敌",
+        "shielding": "替同党转圜护短",
+        "misdirection": "半真半假/话术留暗门",
+        "selective_truth": "选择性说真话",
+    }
+    speech_rows: List[str] = []
+    truth_risks: List[str] = []
+    risk_tags: List[str] = []
+    hints: List[str] = []
+    seen: set[str] = set()
+    for row in stances[:5]:
+        topic = str(row.get("topic") or "本轮奏对").strip()
+        evidence = row.get("evidence") if isinstance(row.get("evidence"), dict) else {}
+        psychological = row.get("psychological") if isinstance(row.get("psychological"), dict) else {}
+        speech = evidence.get("speech_profile") if isinstance(evidence.get("speech_profile"), dict) else {}
+        if not speech and isinstance(psychological.get("speech_profile"), dict):
+            speech = psychological["speech_profile"]  # type: ignore[index]
+        acts = speech.get("speech_acts") if isinstance(speech.get("speech_acts"), list) else []
+        for act in acts:
+            label = act_labels.get(str(act))
+            if not label:
+                continue
+            item = f"{topic}：{label}"
+            if item not in seen:
+                seen.add(item)
+                speech_rows.append(item[:96])
+        truth_mode = str(speech.get("truth_mode") or "").strip()
+        if truth_mode and truth_mode != "直陈为主":
+            item = f"{topic}：{truth_mode}"
+            if item not in truth_risks:
+                truth_risks.append(item[:80])
+        row_risks = row.get("risk_tags_list") if isinstance(row.get("risk_tags_list"), list) else []
+        for risk in row_risks:
+            text = str(risk or "").strip()
+            if text and text not in risk_tags:
+                risk_tags.append(text)
+        hint = str(row.get("execution_hint") or "").strip()
+        if hint and hint not in hints:
+            hints.append(hint[:140])
+    return {
+        "dialogue_speech": speech_rows[:6],
+        "truth_risks": truth_risks[:5],
+        "stance_risk_tags": risk_tags[:8],
+        "execution_hints": hints[:4],
+        "execution_read": "；".join([*speech_rows[:3], *truth_risks[:2], *hints[:1]])[:360],
+    }
 
 
 def _directive_context(
@@ -257,16 +341,47 @@ def _directive_context(
             item["execution_note"] = "拟旨人不在当前名册；不得强行按在朝现任办差。"
             rows.append(item)
             continue
-        network = npc_network_profile(actor, db=db, limit=4)
+        network = npc_network_profile(actor, db=db, limit=12)
         relations = []
+        allies = []
+        blockers = []
+        loyalty_hooks = []
         if isinstance(network.get("relations"), list):
-            for rel in network["relations"][:4]:  # type: ignore[index]
+            for rel in network["relations"][:12]:  # type: ignore[index]
                 if isinstance(rel, dict):
-                    relations.append({
+                    relation = {
                         "target": str(rel.get("target") or ""),
                         "type": str(rel.get("type") or ""),
                         "confidence": str(rel.get("confidence") or ""),
-                    })
+                        "note": str(rel.get("note") or "")[:140],
+                        "faction": str(rel.get("faction") or ""),
+                        "status": str(rel.get("status") or ""),
+                    }
+                    relations.append(relation)
+                    rel_type = relation["type"]
+                    rel_text = f"{rel_type} {relation['note']}"
+                    target = relation["target"]
+                    if any(word in rel_text for word in ("党争敌对", "旧怨", "政敌", "相忌", "清算", "阻挠")):
+                        blockers.append(f"{target}：{rel_type}")
+                    elif any(word in rel_text for word in ("同党", "党附", "同道", "同僚", "同乡")):
+                        allies.append(f"{target}：{rel_type}")
+                    elif any(word in rel_text for word in ("恩主", "座师", "门生", "父子", "兄弟", "对食")):
+                        loyalty_hooks.append(f"{target}：{rel_type}")
+        growth = network.get("growth_arc") if isinstance(network.get("growth_arc"), dict) else {}
+        ability_logic = str(network.get("ability_logic") or "")
+        trait_risks = []
+        for marker in ("阳奉阴违", "门户之见", "猜忌多疑", "结党营私", "贪墨成性", "沽名钓誉", "树大招风", "暴戾恣睢"):
+            if marker in ability_logic and marker not in trait_risks:
+                trait_risks.append(marker)
+        stance_evidence = db.list_minister_stances(
+            turn=state.turn,
+            minister_name=actor,
+            limit=5,
+        )
+        speech_pressure = _stance_speech_pressure(stance_evidence)
+        dialogue_reads = [str(item) for item in speech_pressure.get("dialogue_speech") or []]
+        if speech_pressure.get("execution_read"):
+            dialogue_reads.append(str(speech_pressure.get("execution_read") or ""))
         item.update({
             "actor_profile": {
                 "name": character["name"],
@@ -277,24 +392,37 @@ def _directive_context(
                 "power_id": character["power_id"] or "ming",
                 "location": character["location"] or "",
             },
-            "tiangang_behavior": npc_tiangang_behavior_brief(actor)[:700],
+            "personality_behavior": npc_dialogue_behavior_brief(actor, text=str(item.get("text") or ""))[:700],
             "network_brief": {
                 "biography": str(network.get("biography") or "")[:180],
-                "ability_logic": str(network.get("ability_logic") or "")[:220],
-                "growth_risk": str((network.get("growth_arc") or {}).get("risk") if isinstance(network.get("growth_arc"), dict) else "")[:180],
+                "ability_logic": ability_logic[:260],
+                "growth_rise": str(growth.get("rise") or "")[:180],
+                "growth_risk": str(growth.get("risk") or "")[:180],
                 "relations": relations,
             },
-            "stance_evidence": db.list_minister_stances(
-                turn=state.turn,
-                minister_name=actor,
-                limit=5,
-            ),
+            "cross_pressure": {
+                "usable_backing": allies[:4],
+                "loyalty_obligations": loyalty_hooks[:4],
+                "likely_blockers": blockers[:4],
+                "trait_risks": trait_risks[:5],
+                "dialogue_speech": speech_pressure.get("dialogue_speech") or [],
+                "truth_risks": speech_pressure.get("truth_risks") or [],
+                "stance_risk_tags": speech_pressure.get("stance_risk_tags") or [],
+                "execution_hints": speech_pressure.get("execution_hints") or [],
+                "execution_read": _cross_pressure_read(
+                    allies=allies,
+                    loyalty_hooks=loyalty_hooks,
+                    blockers=blockers,
+                    trait_risks=trait_risks,
+                    dialogue_reads=dialogue_reads,
+                ),
+            },
+            "stance_evidence": stance_evidence,
             "agreements": db.negotiation_agreement_ledger(
                 state,
                 minister_name=actor,
                 limit=10,
             ),
-            "xinpan": db.get_xinpan_profile(actor, state),
         })
         rows.append(item)
     return rows
@@ -356,9 +484,8 @@ def build_simulator_payload(
         ).fetchall()
     ])
     minister_stances = db.list_minister_stances(turn=state.turn, limit=80)
-    conversation_goals = db.list_conversation_goals(limit=80)
+    conversation_goals = _conversation_goal_context(db, limit=80)
     agreement_ledger = db.negotiation_agreement_ledger(state, limit=80)
-    xinpan_board = db.xinpan_simulator_rows(state, limit=100)
     bureaucracy = organization_diagnostics(db)
     directive_context = _directive_context(state, db, directives)
     execution_assessments = directive_execution_assessments(
@@ -391,13 +518,12 @@ def build_simulator_payload(
             "方案比选": [
                 "纯 LLM 推演：改动小但不可审计，玩家仍难看见班子强弱。",
                 "全公式硬结算：可预测但重写范围大，容易压扁晚明政治叙事。",
-                "确定性预评估 + LLM 叙事落地：以班子、承办人、心盘、派系形成可审计证据，再交推演官解释具体折损。本局采用此方案。",
+                "确定性预评估 + LLM 叙事落地：以班子、承办人、人格关系、履约证据与派系形成可审计证据，再交推演官解释具体折损。本局采用此方案。",
             ],
             "采用方案": "确定性预评估 + LLM 叙事落地",
             "口径": "execution_assessments 是每道旨意的执行预判；bureaucracy_brief 是整体官僚班子风险，不替代钱粮、地方、军队等硬盘面。",
         },
         "directive_context": directive_context,
-        "xinpan_board": xinpan_board,
         "minister_stances": minister_stances,
         "conversation_goals": conversation_goals,
         "agreement_ledger": agreement_ledger,
@@ -406,7 +532,7 @@ def build_simulator_payload(
         "debuts_this_turn": debuts_this_turn or [],
         "relevant_memories": relevant_memories or [],
         "secret_orders": secret_orders or [],
-        "data_note": "盘面表（buildings/court_roster/armies/regions）在本输入的开头以 TSV 文本块给出（首行列名、tab 分隔、每行一条记录），不在本 JSON 内；本 JSON 只含其余字段（含 powers_brief/factions_brief/classes_brief 叙述串、active_issues 等）。bureaucracy_brief 是朝廷班子完整度与风险摘要；execution_assessments 是每道旨意的确定性执行预评估，综合官署班子、承办人适配、心盘、派系和召对背书，须作为诏书下落的证据之一。directive_context 为每道草案的拟旨/承办画像，含安全天罡行为摘要、人脉、本回合立场证据、协议账本与心盘象限，用于判断办事能力、执行风险和具体阻力；xinpan_board 是全体 NPC 对皇帝的动态心盘摘要：道合决定理念站位，势合决定利益站位，畏惧只压制公开反抗、不消除反抗动机；conversation_goals 是奏对目的/心理握手状态，active/waiting_conditions 只能说明正在谈或条件待证，不得当作执行背书；minister_stances 为本回合召对后落档的官员真实立场/承诺，含 evidence/risk_tags/execution_hint 时必须作为政治黑板影响执行阻力；agreement_ledger 是奏对承诺账本，condition_status 判条件是否满足，target_status 判标的是否达成；只有 target_status=achieved 才可作执行背书，pending_conditions/failed/blocked 不得当作自愿配合；secret_orders 为皇帝密令列表，独立于 relevant_memories，每条含 id/minister_name/title/content/status/result 字段。",
+        "data_note": "盘面表（buildings/court_roster/armies/regions）在本输入的开头以 TSV 文本块给出（首行列名、tab 分隔、每行一条记录），不在本 JSON 内；本 JSON 只含其余字段（含 powers_brief/factions_brief/classes_brief 叙述串、active_issues 等）。bureaucracy_brief 是朝廷班子完整度与风险摘要；execution_assessments 是每道旨意的确定性执行预评估，综合官署班子、承办人适配、人格关系、履约证据、派系和召对背书，须作为诏书下落的证据之一。directive_context 为每道草案的拟旨/承办画像，含人格行为摘要、人脉、本回合立场证据和协议账本，用于判断办事能力、执行风险和具体阻力；conversation_goals 是奏对目的/心理握手状态，未完成目的优先，已 sealed 只保留少量近史；active/waiting_conditions 只能说明正在谈或条件待证，不得当作执行背书；minister_stances 为本回合召对后落档的官员真实立场/承诺，含 evidence/risk_tags/execution_hint 时必须作为政治黑板影响执行阻力；agreement_ledger 是奏对承诺账本，condition_status 判条件是否满足，target_status 判标的是否达成；只有 target_status=achieved 才可作执行背书，pending_conditions/failed/blocked 不得当作自愿配合；secret_orders 为皇帝密令列表，独立于 relevant_memories，每条含 id/minister_name/title/content/status/result 以及 actor_assessment；actor_assessment 是密令承办人的人格、能力、trait、人脉、相关召对和履约风险画像，核议密令时必须作为成败和副作用依据。",
     }
 
 
@@ -579,7 +705,7 @@ def _extractor_context_payload(
         "active_ministers": _auto_table(active_ministers),
         "offstage_ministers": _auto_table(offstage_ministers),
         "minister_stances": db.list_minister_stances(turn=state.turn, limit=80),
-        "conversation_goals": db.list_conversation_goals(limit=80),
+        "conversation_goals": _conversation_goal_context(db, limit=80),
         "agreement_ledger": db.negotiation_agreement_ledger(state, limit=80),
         "region_ids": [r["id"] for r in db.conn.execute("SELECT id FROM regions").fetchall()],
         "army_ids": [r["id"] for r in db.conn.execute("SELECT id FROM armies").fetchall()],

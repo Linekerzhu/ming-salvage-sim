@@ -8,17 +8,23 @@
 from __future__ import annotations
 
 import asyncio
+from contextvars import ContextVar
+from functools import lru_cache
+import hashlib
 import json
 import os
 import queue
 import random
 import re
+import secrets
 import threading
+import time
 from typing import Any, AsyncIterator, Dict, Iterator, List, Optional
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, Response, StreamingResponse
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -44,7 +50,6 @@ from ming_sim.context import (
     match_minister_from_text,
     npc_network_profile,
     npc_network_recommendations,
-    npc_tiangang_profile,
 )
 from ming_sim.db import effective_stored_office_type, infer_office_type_from_office, normalize_office
 from ming_sim.flows import compute_budget_lines
@@ -82,6 +87,25 @@ CUSTOM_PORTRAIT_PREFIX = "custom:"
 ALLOWED_PORTRAIT_TYPES = {"image/png", "image/jpeg", "image/webp"}
 MAX_PORTRAIT_BYTES = 8 * 1024 * 1024  # 8MB 上限
 GAME_START_YEAR = 1627
+CHARACTER_CARD_FIELDS = (
+    "name",
+    "office",
+    "office_type",
+    "faction",
+    "status",
+    "status_reason",
+    "status_label",
+    "career_state",
+    "summary",
+    "portrait_id",
+    "portrait_available",
+    "portrait_status",
+    "birth_year",
+    "start_age",
+    "age_label",
+    "power_id",
+    "favorite",
+)
 _PORTRAIT_KEY_PLACEHOLDERS = {
     "",
     "your_302_ai_key_here",
@@ -476,15 +500,12 @@ class ConsortActionRequest(BaseModel):
 class WebGame:
     """Web 端会话包装：持一个 GameSession + 网页专属态（聊天历史、收藏）。"""
 
-    def __init__(self, fresh: bool = False) -> None:
+    def __init__(self, fresh: bool = False, username: str = "") -> None:
         """实例化 = 真正进入游戏。无 API key 直接抛 LLMUnavailable。
         fresh=True：先清空主 DB（新游戏）再建 session。"""
-        db_path = os.environ.get("MING_SIM_DB", "")
-        # 默认存到用户数据目录（frozen=~/.ming_sim/ming_sim.db；源码=<repo>/data/ming_sim.db）。
-        if not db_path:
-            db_path = user_data_path("ming_sim.db")
-        elif not os.path.isabs(db_path):
-            db_path = str(user_data_dir() / db_path)
+        self.username = username.strip()
+        self.user_id = _safe_user_id(self.username) if self.username else ""
+        db_path = _db_path_for_user(self.username)
         base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
         model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
         api_key = os.environ.get("OPENAI_API_KEY", "")
@@ -529,26 +550,35 @@ class WebGame:
         )
         self.session = GameSession(db_path, llm_config)
         self.session.begin_turn()
-        # 召对记录持久化在 chat_messages 表，启动时恢复进内存缓存。
-        self.chat_history: Dict[str, List[Dict[str, str]]] = {
-            name: [] for name in self.session.content.characters
-        }
-        for name, msgs in self.db.load_all_chat_history().items():
-            self.chat_history.setdefault(name, []).extend(msgs)
+        # 召对记录完整持久化在 chat_messages 表；Web 进程只恢复最近窗口，避免长期运行时搬运全文历史。
+        self.chat_history: Dict[str, List[Dict[str, str]]] = {}
+        self._restore_chat_history_cache()
         _DEFAULT_FAVORITES = {"王承恩", "曹化淳", "李若琏", "魏忠贤", "田尔耕"}
         _fav_raw = self.db.kv_get("favorites")
         self.favorites: set = set(json.loads(_fav_raw)) if _fav_raw else set(_DEFAULT_FAVORITES)
         if not _fav_raw:
             self.db.kv_set("favorites", json.dumps(sorted(self.favorites)))
 
+    def _restore_chat_history_cache(self) -> None:
+        self.chat_history = {name: [] for name in self.session.content.characters}
+        loaded = self.db.load_recent_chat_history(_web_chat_history_limit())
+        for name, msgs in loaded.items():
+            self.chat_history.setdefault(name, []).extend(msgs)
+
+    def _prune_chat_history(self, minister_name: str) -> None:
+        limit = _web_chat_history_limit()
+        history = self.chat_history.get(minister_name, [])
+        if len(history) > limit:
+            self.chat_history[minister_name] = history[-limit:]
+
     # ── 存档管理 ─────────────────────────────────────────────────────────
     def saves_dir(self) -> str:
-        return user_data_path("saves")
+        return _saves_dir_for_user(self.username)
 
     def list_saves(self) -> List[Dict[str, Any]]:
         campaign_id = (self.db.kv_get("campaign_id") or "").strip()
         out = []
-        for item in _scan_saves():
+        for item in _scan_saves(self.saves_dir()):
             row = dict(item)
             save_campaign = str(row.get("campaign_id") or "")
             row["current"] = bool(save_campaign and save_campaign == campaign_id)
@@ -604,9 +634,7 @@ class WebGame:
         verify_llm_available(llm_config)
         self.session = GameSession(self.db_path, llm_config)
         self.session.begin_turn()
-        self.chat_history = {name: [] for name in self.session.content.characters}
-        for name, msgs in self.db.load_all_chat_history().items():
-            self.chat_history.setdefault(name, []).extend(msgs)
+        self._restore_chat_history_cache()
         _DEFAULT_FAVORITES = {"王承恩", "曹化淳", "李若琏", "魏忠贤", "田尔耕"}
         _fav_raw = self.db.kv_get("favorites")
         self.favorites = set(json.loads(_fav_raw)) if _fav_raw else set(_DEFAULT_FAVORITES)
@@ -899,24 +927,44 @@ class WebGame:
             return None
 
     # ── 序列化 ────────────────────────────────────────────────────────────
-    def _public_stance_notes(self, minister_name: str, *, limit: int = 3) -> List[Dict[str, Any]]:
+    def _public_stance_note_payload(self, row: Dict[str, Any] | Any) -> Dict[str, Any]:
         """玩家可见的奏对立场：保留证据与风险，隐藏月末推演用字段。"""
-        public_rows: List[Dict[str, Any]] = []
-        for row in self.db.list_minister_stances(
+        item = dict(row)
+        if "evidence" not in item:
+            try:
+                evidence = json.loads(str(item.get("evidence_json") or "{}"))
+            except (TypeError, ValueError):
+                evidence = {}
+            item["evidence"] = evidence if isinstance(evidence, dict) else {}
+        if "psychological" not in item:
+            try:
+                psychological = json.loads(str(item.get("psychological_json") or "{}"))
+            except (TypeError, ValueError):
+                psychological = {}
+            item["psychological"] = psychological if isinstance(psychological, dict) else {}
+        if "risk_tags_list" not in item:
+            raw_tags = str(item.get("risk_tags") or "")
+            item["risk_tags_list"] = [part for part in re.split(r"[、,，;；\s]+", raw_tags) if part]
+        for private_key in (
+            "evidence_json",
+            "risk_tags",
+            "execution_hint",
+            "source_chat_turn_id",
+            "psychological_json",
+        ):
+            item.pop(private_key, None)
+        item.pop("_rn", None)
+        return item
+
+    def _public_stance_notes(self, minister_name: str, *, limit: int = 3) -> List[Dict[str, Any]]:
+        return [
+            self._public_stance_note_payload(row)
+            for row in self.db.list_minister_stances(
             turn=self.state.turn,
             minister_name=minister_name,
             limit=limit,
-        ):
-            item = dict(row)
-            for private_key in (
-                "evidence_json",
-                "risk_tags",
-                "execution_hint",
-                "source_chat_turn_id",
-            ):
-                item.pop(private_key, None)
-            public_rows.append(item)
-        return public_rows
+            )
+        ]
 
     def _age_payload(self, character: Character, birth_year_override: int = 0) -> Dict[str, Any]:
         birth_year = int(birth_year_override or getattr(character, "birth_year", 0) or 0)
@@ -929,12 +977,139 @@ class WebGame:
             "age_label": f"开局{start_age}岁" if start_age else "开局年龄未详",
         }
 
-    def public_character(self, character: Character, *, include_detail: bool = True) -> Dict[str, Any]:
-        status, status_reason = self.db.get_character_status(character.name)
+    def _character_runtime_rows(self) -> Dict[str, Any]:
+        rows = self.db.conn.execute(
+            """
+            SELECT name, office, office_type, faction, portrait_id, power_id, birth_year, status, status_reason
+            FROM characters
+            """
+        ).fetchall()
+        return {str(row["name"]): row for row in rows}
+
+    def _portrait_asset_meta_map(self) -> Dict[str, Dict[str, Any]]:
+        rows = self.db.conn.execute(
+            """
+            SELECT asset_id, status, error, dna_seed, wardrobe_key,
+                   CASE WHEN image_blob IS NOT NULL THEN 1 ELSE 0 END AS has_image_blob
+            FROM portrait_assets
+            """
+        ).fetchall()
+        return {
+            str(row["asset_id"]): {
+                "status": row["status"],
+                "error": row["error"],
+                "dna_seed": row["dna_seed"],
+                "wardrobe_key": row["wardrobe_key"],
+                "has_image_blob": bool(row["has_image_blob"]),
+            }
+            for row in rows
+        }
+
+    def _conversation_goal_payload_from_rows(self, rows: List[Dict[str, Any]] | List[Any]) -> List[Dict[str, Any]]:
+        out: List[Dict[str, Any]] = []
+        for row in rows:
+            item = dict(row)
+            last_delta: Dict[str, Any] = {}
+            try:
+                parsed = json.loads(str(item.get("last_delta_json") or "{}"))
+                last_delta = parsed if isinstance(parsed, dict) else {}
+            except Exception:
+                last_delta = {}
+            item["public_hint"] = str(last_delta.get("public_hint") or "")
+            try:
+                item["audit_confidence"] = int(last_delta.get("audit_confidence") or last_delta.get("confidence") or 0)
+            except (TypeError, ValueError):
+                item["audit_confidence"] = 0
+            item["audit_status"] = str(last_delta.get("audit_status") or "")
+            item.pop("conditions_json", None)
+            item.pop("blockers_json", None)
+            item.pop("last_delta_json", None)
+            item.pop("_rn", None)
+            item["progress_label"] = f"{int(item.get('score') or 0)}%"
+            pending = [
+                cond for cond in (item.get("conditions") or [])
+                if isinstance(cond, dict) and str(cond.get("status") or "pending") != "done"
+            ]
+            item["pending_conditions"] = pending
+            out.append(item)
+        return out
+
+    def _conversation_goal_payloads_by_minister(self, names: List[str], *, limit: int = 8) -> Dict[str, List[Dict[str, Any]]]:
+        clean_names = sorted({str(name or "").strip() for name in names if str(name or "").strip()})
+        if not clean_names:
+            return {}
+        capped_limit = max(1, min(200, int(limit or 8)))
+        placeholders = ",".join("?" for _ in clean_names)
+        rows = self.db.conn.execute(
+            f"""
+            SELECT * FROM (
+                SELECT conversation_goals.*,
+                       ROW_NUMBER() OVER (PARTITION BY minister_name ORDER BY id DESC) AS _rn
+                FROM conversation_goals
+                WHERE minister_name IN ({placeholders})
+            )
+            WHERE _rn <= ?
+            ORDER BY minister_name, id DESC
+            """,
+            [*clean_names, capped_limit],
+        ).fetchall()
+        by_name: Dict[str, List[Dict[str, Any]]] = {name: [] for name in clean_names}
+        for row in rows:
+            parsed = self.db._parse_conversation_goal(row)
+            by_name.setdefault(str(parsed.get("minister_name") or ""), []).append(parsed)
+        return {
+            name: self._conversation_goal_payload_from_rows(goal_rows)
+            for name, goal_rows in by_name.items()
+        }
+
+    def _public_stance_notes_by_minister(self, names: List[str], *, limit: int = 3) -> Dict[str, List[Dict[str, Any]]]:
+        clean_names = sorted({str(name or "").strip() for name in names if str(name or "").strip()})
+        if not clean_names:
+            return {}
+        capped_limit = max(1, min(200, int(limit or 3)))
+        placeholders = ",".join("?" for _ in clean_names)
+        rows = self.db.conn.execute(
+            f"""
+            SELECT * FROM (
+                SELECT id, turn, year, period, minister_name, topic, stance, confidence,
+                       summary, conditions, related_issue_id, source_chat_turn_id,
+                       user_message, minister_answer, evidence_json, risk_tags, execution_hint,
+                       handshake_status, psychological_score, psychological_json, agreement_id, goal_id,
+                       ROW_NUMBER() OVER (PARTITION BY minister_name ORDER BY id DESC) AS _rn
+                FROM minister_stances
+                WHERE turn = ? AND minister_name IN ({placeholders})
+            )
+            WHERE _rn <= ?
+            ORDER BY minister_name, id DESC
+            """,
+            [int(self.state.turn), *clean_names, capped_limit],
+        ).fetchall()
+        by_name: Dict[str, List[Dict[str, Any]]] = {name: [] for name in clean_names}
+        for row in rows:
+            item = self._public_stance_note_payload(row)
+            by_name.setdefault(str(item.get("minister_name") or ""), []).append(item)
+        return by_name
+
+    def public_character(
+        self,
+        character: Character,
+        *,
+        include_detail: bool = True,
+        runtime_row: Optional[Any] = None,
+        portrait_assets: Optional[Dict[str, Dict[str, Any]]] = None,
+        stance_notes_by_minister: Optional[Dict[str, List[Dict[str, Any]]]] = None,
+        conversation_goals_by_minister: Optional[Dict[str, List[Dict[str, Any]]]] = None,
+    ) -> Dict[str, Any]:
+        if runtime_row is not None:
+            status = str(runtime_row["status"] or "active")
+            status_reason = str(runtime_row["status_reason"] or "")
+            db_row = runtime_row
+        else:
+            status, status_reason = self.db.get_character_status(character.name)
+            db_row = self.db.conn.execute(
+                "SELECT office, office_type, faction, portrait_id, power_id, birth_year FROM characters WHERE name=?", (character.name,)
+            ).fetchone()
         status_label = _STATUS_LABEL_WEB.get(status, "在朝" if status == "active" else status)
-        db_row = self.db.conn.execute(
-            "SELECT office, office_type, faction, portrait_id, power_id, birth_year FROM characters WHERE name=?", (character.name,)
-        ).fetchone()
         office = (db_row["office"] if db_row else character.office) or ""  # 去职者已被清空，可能为空串
         office_type = (db_row["office_type"] if db_row else character.office_type) or character.office_type
         office_type = effective_stored_office_type(office, office_type)
@@ -943,7 +1118,11 @@ class WebGame:
         power_id = (db_row["power_id"] if db_row else None) or getattr(character, "power_id", "ming") or "ming"
         age_payload = self._age_payload(character, int(db_row["birth_year"] or 0) if db_row else 0)
         portrait_prefix = "consort_" if office_type == "后宫" else "minister_"
-        portrait_meta = self._portrait_meta(character, portrait_id, portrait_prefix)
+        portrait_meta = (
+            self._portrait_meta(character, portrait_id, portrait_prefix, portrait_assets=portrait_assets)
+            if include_detail
+            else self._portrait_summary_meta(character, portrait_id, portrait_prefix, portrait_assets=portrait_assets)
+        )
         career_state = "出仕"
         if status == "offstage":
             career_state = "隐藏"
@@ -956,7 +1135,7 @@ class WebGame:
         power = self.content.powers.get(power_id)
         power_name = str(getattr(power, "name", "") or "大明")
         identity_bits = [power_name, faction, office_type, status_label]
-        # 公开摘要只展示身份与处境；性情/行事逻辑交给天罡谱尺和人物网络表达。
+        # 公开摘要只展示身份、处境和新的人格/关系/记忆输入。
         summary = " · ".join(bit for bit in identity_bits if bit)
         payload: Dict[str, Any] = {
             "name": character.name,
@@ -972,16 +1151,24 @@ class WebGame:
             **portrait_meta,
             **age_payload,
             "power_id": power_id,
-            "stance_notes": self._public_stance_notes(character.name, limit=3),
-            "conversation_goals": self.conversation_goal_payload(minister_name=character.name, limit=8),
-            "xinpan_profile": self.db.get_xinpan_profile(character.name, self.state),
             "skills": [],
             "favorite": character.name in self.favorites,
         }
         if include_detail:
             payload.update({
+                "style": character.style,
+                "personal_skills": list(character.personal_skills or []),
+                "stance_notes": (
+                    stance_notes_by_minister.get(character.name, [])
+                    if stance_notes_by_minister is not None
+                    else self._public_stance_notes(character.name, limit=3)
+                ),
+                "conversation_goals": (
+                    conversation_goals_by_minister.get(character.name, [])
+                    if conversation_goals_by_minister is not None
+                    else self.conversation_goal_payload(minister_name=character.name, limit=8)
+                ),
                 "network_profile": npc_network_profile(character.name, db=self.db, limit=8),
-                "tiangang_profile": npc_tiangang_profile(character.name),
                 "skills": [
                     {
                         "id": skill_id,
@@ -994,27 +1181,34 @@ class WebGame:
             })
         return payload
 
-    def character_index_payload(self) -> List[Dict[str, Any]]:
-        """全 NPC 只读索引：轻量展示用，不携带天罡/人脉大对象。"""
+    def character_index_payload(
+        self,
+        runtime_rows: Optional[Dict[str, Any]] = None,
+        portrait_assets: Optional[Dict[str, Dict[str, Any]]] = None,
+    ) -> List[Dict[str, Any]]:
+        """全 NPC 只读索引：轻量展示用，不携带人物网络大对象。"""
         rows: List[Dict[str, Any]] = []
         for character in self.content.characters.values():
-            status, status_reason = self.db.get_character_status(character.name)
+            db_row = runtime_rows.get(character.name) if runtime_rows is not None else None
+            if db_row is not None:
+                status = str(db_row["status"] or "active")
+                status_reason = str(db_row["status_reason"] or "")
+            else:
+                status, status_reason = self.db.get_character_status(character.name)
+                db_row = self.db.conn.execute(
+                    "SELECT office, office_type, faction, portrait_id, power_id, birth_year FROM characters WHERE name=?",
+                    (character.name,),
+                ).fetchone()
             status_label = _STATUS_LABEL_WEB.get(status, "在朝" if status == "active" else status)
-            db_row = self.db.conn.execute(
-                "SELECT office, office_type, faction, portrait_id, power_id, birth_year FROM characters WHERE name=?",
-                (character.name,),
-            ).fetchone()
             office = (db_row["office"] if db_row else character.office) or ""
             office_type = (db_row["office_type"] if db_row else character.office_type) or character.office_type
             office_type = effective_stored_office_type(office, office_type)
             faction = (db_row["faction"] if db_row else character.faction) or character.faction
             portrait_id = (db_row["portrait_id"] if db_row else character.portrait_id) or character.portrait_id
             power_id = (db_row["power_id"] if db_row else None) or getattr(character, "power_id", "ming") or "ming"
-            age_payload = self._age_payload(character, int(db_row["birth_year"] or 0) if db_row else 0)
             power = self.content.powers.get(power_id)
             power_name = str(getattr(power, "name", "") or power_id or "大明")
             portrait_prefix = "consort_" if office_type == "后宫" else "minister_"
-            portrait_meta = self._portrait_meta(character, portrait_id, portrait_prefix)
             identity_bits = [power_name, faction, office_type, status_label]
             rows.append({
                 "name": character.name,
@@ -1027,20 +1221,65 @@ class WebGame:
                 "power_id": power_id,
                 "power_name": power_name,
                 "summary": " · ".join(bit for bit in identity_bits if bit),
-                "xinpan_quadrant": str((self.db.get_xinpan_profile(character.name, self.state) or {}).get("quadrant") or ""),
-                **age_payload,
-                **portrait_meta,
+                "portrait_available": self._portrait_available(
+                    character,
+                    portrait_id,
+                    portrait_prefix,
+                    portrait_assets=portrait_assets,
+                ),
                 "can_summon": bool(power_id == "ming" and status == "active"),
             })
         return rows
 
-    def character_power_id(self, character: Character) -> str:
-        row = self.db.conn.execute(
-            "SELECT power_id FROM characters WHERE name=?", (character.name,)
-        ).fetchone()
+    def organization_character_card(
+        self,
+        character: Character,
+        *,
+        runtime_row: Optional[Any] = None,
+    ) -> Dict[str, Any]:
+        if runtime_row is not None:
+            status = str(runtime_row["status"] or "active")
+            status_reason = str(runtime_row["status_reason"] or "")
+            db_row = runtime_row
+        else:
+            status, status_reason = self.db.get_character_status(character.name)
+            db_row = self.db.conn.execute(
+                "SELECT office, office_type, faction, power_id FROM characters WHERE name=?",
+                (character.name,),
+            ).fetchone()
+        office = (db_row["office"] if db_row else character.office) or ""
+        office_type = (db_row["office_type"] if db_row else character.office_type) or character.office_type
+        office_type = effective_stored_office_type(office, office_type)
+        faction = (db_row["faction"] if db_row else character.faction) or character.faction
+        power_id = (db_row["power_id"] if db_row else None) or getattr(character, "power_id", "ming") or "ming"
+        status_label = _STATUS_LABEL_WEB.get(status, "在朝" if status == "active" else status)
+        return {
+            "name": character.name,
+            "office": office,
+            "office_type": office_type,
+            "faction": faction,
+            "status": status,
+            "status_reason": status_reason,
+            "status_label": status_label,
+            "power_id": power_id,
+        }
+
+    def character_power_id(self, character: Character, runtime_rows: Optional[Dict[str, Any]] = None) -> str:
+        row = runtime_rows.get(character.name) if runtime_rows is not None else None
+        if row is None:
+            row = self.db.conn.execute(
+                "SELECT power_id FROM characters WHERE name=?", (character.name,)
+            ).fetchone()
         return (row["power_id"] if row else None) or getattr(character, "power_id", "ming") or "ming"
 
-    def _portrait_meta(self, character: Character, portrait_id: str, portrait_prefix: str) -> Dict[str, Any]:
+    def _portrait_meta(
+        self,
+        character: Character,
+        portrait_id: str,
+        portrait_prefix: str,
+        *,
+        portrait_assets: Optional[Dict[str, Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
         status = "missing"
         error = ""
         dna_seed = ""
@@ -1050,17 +1289,18 @@ class WebGame:
         available = False
         if portrait_id.startswith(GENERATED_PORTRAIT_PREFIX):
             asset_id = portrait_id.removeprefix(GENERATED_PORTRAIT_PREFIX)
-            row = self.db.get_portrait_asset(asset_id)
+            row = portrait_assets.get(asset_id) if portrait_assets is not None else self.db.get_portrait_asset(asset_id)
             if row is not None:
                 status = str(row["status"] or "pending")
                 error = str(row["error"] or "")
                 dna_seed = str(row["dna_seed"] or "")
                 wardrobe_key = str(row["wardrobe_key"] or "")
-                available = bool(status == "ready" and row["image_blob"] is not None)
+                has_image_blob = bool(row.get("has_image_blob")) if isinstance(row, dict) else bool(row["image_blob"] is not None)
+                available = bool(status == "ready" and has_image_blob)
             else:
                 status = "missing"
         elif portrait_id.startswith(CUSTOM_PORTRAIT_PREFIX):
-            status = "ready" if _find_portrait_file(character.name) is not None else "missing"
+            status = "ready" if _find_portrait_file(character.name, self.username) is not None else "missing"
             available = status == "ready"
         else:
             available = (
@@ -1070,7 +1310,7 @@ class WebGame:
             status = "ready" if available else "missing"
         spec = build_portrait_spec(character, self.state, self.session.campaign_id)
         dna_asset_id = spec.dna_asset_id
-        dna_row = self.db.get_portrait_asset(dna_asset_id)
+        dna_row = portrait_assets.get(dna_asset_id) if portrait_assets is not None else self.db.get_portrait_asset(dna_asset_id)
         if dna_row is not None:
             dna_status = str(dna_row["status"] or "pending")
         if not dna_seed:
@@ -1086,6 +1326,49 @@ class WebGame:
             "portrait_dna_status": dna_status,
             "portrait_wardrobe_key": wardrobe_key,
         }
+
+    def _portrait_available(
+        self,
+        character: Character,
+        portrait_id: str,
+        portrait_prefix: str,
+        *,
+        portrait_assets: Optional[Dict[str, Dict[str, Any]]] = None,
+    ) -> bool:
+        return bool(self._portrait_summary_meta(
+            character,
+            portrait_id,
+            portrait_prefix,
+            portrait_assets=portrait_assets,
+        )["portrait_available"])
+
+    def _portrait_summary_meta(
+        self,
+        character: Character,
+        portrait_id: str,
+        portrait_prefix: str,
+        *,
+        portrait_assets: Optional[Dict[str, Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        if portrait_id.startswith(GENERATED_PORTRAIT_PREFIX):
+            asset_id = portrait_id.removeprefix(GENERATED_PORTRAIT_PREFIX)
+            row = portrait_assets.get(asset_id) if portrait_assets is not None else self.db.get_portrait_asset(asset_id)
+            if row is None:
+                return {"portrait_available": False, "portrait_status": "missing"}
+            status = str(row["status"] or "pending")
+            has_image_blob = bool(row.get("has_image_blob")) if isinstance(row, dict) else bool(row["image_blob"] is not None)
+            return {
+                "portrait_available": bool(status == "ready" and has_image_blob),
+                "portrait_status": status,
+            }
+        if portrait_id.startswith(CUSTOM_PORTRAIT_PREFIX):
+            available = _find_portrait_file(character.name, self.username) is not None
+            return {"portrait_available": available, "portrait_status": "ready" if available else "missing"}
+        available = (
+            _static_portrait_exists(f"{portrait_prefix}{character.name}.png")
+            or (bool(portrait_id) and _static_portrait_exists(f"{portrait_id}.png"))
+        )
+        return {"portrait_available": available, "portrait_status": "ready" if available else "missing"}
 
     def directive_payload(self, row) -> Dict[str, Any]:
         return {
@@ -1133,7 +1416,14 @@ class WebGame:
             "notes": notes,
         }
 
-    def map_nodes(self) -> List[Dict[str, Any]]:
+    def map_nodes(
+        self,
+        *,
+        regions: Optional[List[Dict[str, Any]]] = None,
+        armies: Optional[List[Dict[str, Any]]] = None,
+        buildings: Optional[List[Dict[str, Any]]] = None,
+        include_detail: bool = True,
+    ) -> List[Dict[str, Any]]:
         region_positions = {
             "beizhili": (55.5, 41.2), "nanzhili": (70, 41), "shandong": (56.8, 47.9),
             "shanxi": (48.8, 45.2), "henan": (58, 46), "shaanxi": (51, 38),
@@ -1152,19 +1442,49 @@ class WebGame:
             "liaodong": (57.76, 42.21), "dongjiang": (63.95, 42.39),
             "xuan_da": (50.49, 40.08), "shanhaiguan": (55.52, 42.84),
         }
-        armies = self.db.army_payload(danger_order=True)
+        regions = regions if regions is not None else self.db.region_payload()
+        armies = armies if armies is not None else self.db.army_payload(danger_order=True)
+        if include_detail and buildings is None:
+            buildings = self.db.building_payload()
+        buildings_by_region: Dict[str, List[Dict[str, Any]]] = {}
+        if include_detail:
+            for building in buildings or []:
+                buildings_by_region.setdefault(str(building.get("region_id") or ""), []).append(building)
         nodes: List[Dict[str, Any]] = []
-        for region in self.db.region_payload():
+        for region in regions:
             x, y = region_positions.get(str(region["id"]), (50, 50))
-            stationed = [a for a in armies if self._army_belongs_to_region(a, region)]
-            buildings = self.db.building_payload(str(region["id"]))
             risk = int(region["unrest"]) + int(region["military_pressure"]) + (100 - int(region["public_support"]))
             node_kind = "region" if str(region.get("controlled_by") or "ming") == "ming" else "external"
-            nodes.append({"id": region["id"], "kind": node_kind, "x": x, "y": y, "region": region, "armies": stationed, "buildings": buildings, "risk": risk})
+            node: Dict[str, Any] = {
+                "id": region["id"],
+                "kind": node_kind,
+                "x": x,
+                "y": y,
+                "risk": risk,
+            }
+            if include_detail:
+                stationed = [a for a in armies if self._army_belongs_to_region(a, region)]
+                node.update({
+                    "region": region,
+                    "armies": stationed,
+                    "buildings": buildings_by_region.get(str(region["id"]), []),
+                })
+            else:
+                node["region"] = {
+                    "id": region["id"],
+                    "name": region["name"],
+                    "kind": region["kind"],
+                    "controlled_by": region["controlled_by"],
+                    "unrest": int(region["unrest"]),
+                }
+            nodes.append(node)
         for node_id, (x, y) in theater_positions.items():
             stationed = [a for a in armies if self._army_belongs_to_theater(a, node_id)]
             if stationed:
-                nodes.append({"id": node_id, "kind": "theater", "x": x, "y": y, "label": self._theater_label(node_id), "armies": stationed, "risk": 120})
+                node = {"id": node_id, "kind": "theater", "x": x, "y": y, "label": self._theater_label(node_id), "risk": 120}
+                if include_detail:
+                    node["armies"] = stationed
+                nodes.append(node)
         return nodes
 
     def _army_belongs_to_region(self, army: Dict[str, Any], region: Dict[str, Any]) -> bool:
@@ -1279,9 +1599,9 @@ class WebGame:
             })
         return out
 
-    def budget_payload(self) -> Dict[str, Any]:
+    def budget_payload(self, budget: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         # 唯一定额源：flows.compute_budget_lines（与实际落账 / 大臣 treasury_budget_summary 三处统一）。
-        budget = compute_budget_lines(self.db, self.state)
+        budget = budget if budget is not None else compute_budget_lines(self.db, self.state)
         budget["国库"]["balance"] = int(self.state.metrics["国库"])
         budget["内库"]["balance"] = int(self.state.metrics["内库"])
         for account in (budget["国库"], budget["内库"]):
@@ -1384,7 +1704,13 @@ class WebGame:
         self._save_custom_institutions(current)
         return item
 
-    def organization_payload(self) -> Dict[str, Any]:
+    def organization_payload(
+        self,
+        runtime_rows: Optional[Dict[str, Any]] = None,
+        portrait_assets: Optional[Dict[str, Dict[str, Any]]] = None,
+        stance_notes_by_minister: Optional[Dict[str, List[Dict[str, Any]]]] = None,
+        conversation_goals_by_minister: Optional[Dict[str, List[Dict[str, Any]]]] = None,
+    ) -> Dict[str, Any]:
         base_institutions: List[Dict[str, Any]] = base_institution_specs()
         custom_institutions = self._custom_institutions()
         diagnostics = organization_diagnostics(self.db, custom_institutions)
@@ -1396,16 +1722,18 @@ class WebGame:
 
         characters = [
             c for c in self.content.characters.values()
-            if c.office_type != "后宫" and self.character_power_id(c) == "ming"
+            if c.office_type != "后宫" and self.character_power_id(c, runtime_rows) == "ming"
         ]
         active_snapshots: List[tuple[Character, str, str]] = []
         for character in characters:
-            status, _reason = self.db.get_character_status(character.name)
+            row = runtime_rows.get(character.name) if runtime_rows is not None else None
+            status = str(row["status"] or "active") if row is not None else self.db.get_character_status(character.name)[0]
             if status != "active":
                 continue
-            row = self.db.conn.execute(
-                "SELECT office, office_type FROM characters WHERE name=?", (character.name,)
-            ).fetchone()
+            if row is None:
+                row = self.db.conn.execute(
+                    "SELECT office, office_type FROM characters WHERE name=?", (character.name,)
+                ).fetchone()
             office = (row["office"] if row else character.office) or ""
             office_type = (row["office_type"] if row else character.office_type) or character.office_type
             office_type = effective_stored_office_type(office, office_type)
@@ -1440,7 +1768,12 @@ class WebGame:
                     hit = any(term in text for term in terms)
                 if hit:
                     assigned_names.add(character.name)
-                    holders.append(self.public_character(character, include_detail=False))
+                    holders.append(
+                        self.organization_character_card(
+                            character,
+                            runtime_row=runtime_rows.get(character.name) if runtime_rows is not None else None,
+                        )
+                    )
             return holders
 
         institutions: List[Dict[str, Any]] = []
@@ -1488,7 +1821,10 @@ class WebGame:
                 "holder_count": sum(int(slot["filled_count"]) for slot in slots),
             })
         unassigned = [
-            self.public_character(character, include_detail=False)
+            self.organization_character_card(
+                character,
+                runtime_row=runtime_rows.get(character.name) if runtime_rows is not None else None,
+            )
             for character, office, actual_type in active_snapshots
             if character.name not in assigned_names
             and usable_parts(office)
@@ -1847,8 +2183,12 @@ class WebGame:
             }
         latest_relevant: Optional[Dict[str, Any]] = None
         for row in self.db.list_minister_stances(turn=self.state.turn, minister_name=name, limit=12):
+            psychological = row.get("psychological") if isinstance(row.get("psychological"), dict) else {}
+            action_kind = str(psychological.get("action_kind") or "")
+            if action_kind and action_kind != "castration":
+                continue
             text = f"{row.get('topic', '')} {row.get('summary', '')} {row.get('conditions', '')}"
-            if not re.search(r"净身|入宫|内廷|司礼监|太监|宦官|宫禁", text):
+            if not action_kind and not re.search(r"净身|入宫|内廷|司礼监|太监|宦官|宫禁", text):
                 continue
             latest_relevant = row
             if row.get("handshake_status") == HANDSHAKE_SEALED:
@@ -1901,8 +2241,12 @@ class WebGame:
             }
         latest_relevant: Optional[Dict[str, Any]] = None
         for row in self.db.list_minister_stances(turn=self.state.turn, minister_name=name, limit=12):
+            psychological = row.get("psychological") if isinstance(row.get("psychological"), dict) else {}
+            action_kind = str(psychological.get("action_kind") or "")
+            if action_kind and action_kind != "emancipation":
+                continue
             text = f"{row.get('topic', '')} {row.get('summary', '')} {row.get('conditions', '')}"
-            if not re.search(r"奴籍|民籍|脱籍|还民|转为民|转民籍|出宫为民|归为百姓|赐还为民", text):
+            if not action_kind and not re.search(r"奴籍|民籍|脱籍|还民|转为民|转民籍|出宫为民|归为百姓|赐还为民", text):
                 continue
             latest_relevant = row
             if row.get("handshake_status") == HANDSHAKE_SEALED:
@@ -1918,43 +2262,6 @@ class WebGame:
         office_type = (row["office_type"] if row else character.office_type) or character.office_type or ""
         faction = (row["faction"] if row else character.faction) or character.faction or ""
         return office, effective_stored_office_type(office, office_type), faction
-
-    @staticmethod
-    def _xinpan_effect_summary(before: Optional[Dict[str, object]], after: Optional[Dict[str, object]]) -> str:
-        if not isinstance(after, dict):
-            return ""
-        before_map = before if isinstance(before, dict) else {}
-
-        def value(data: Dict[str, object], key: str, fallback: float = 0.0) -> float:
-            try:
-                return float(data.get(key, fallback) or fallback)
-            except (TypeError, ValueError):
-                return fallback
-
-        def signed(delta: float, digits: int = 1) -> str:
-            rounded = round(delta, digits)
-            text = f"{rounded:.{digits}f}".rstrip("0").rstrip(".")
-            if text == "-0":
-                text = "0"
-            return f"+{text}" if rounded > 0 else text
-
-        parts: List[str] = []
-        for key, label, digits, threshold in (
-            ("dao_he", "道", 1, 0.05),
-            ("shi_he", "势", 1, 0.05),
-            ("fear", "惧", 1, 0.05),
-            ("hatred", "恨", 1, 0.05),
-            ("trust_coeff", "信", 3, 0.004),
-        ):
-            fallback = 1.0 if key == "trust_coeff" else 0.0
-            delta = value(after, key, fallback) - value(before_map, key, fallback)
-            if abs(delta) >= threshold:
-                parts.append(f"{label}{signed(delta, digits)}")
-        if not parts:
-            return ""
-        quadrant = str(after.get("quadrant") or "")
-        tail = f"；现为{quadrant}" if quadrant else ""
-        return f"心盘实记：{' · '.join(parts)}{tail}。"
 
     def _castration_applicable(self, character: Character) -> bool:
         office, office_type, faction = self._current_office_identity(character)
@@ -2002,10 +2309,6 @@ class WebGame:
                 )
         new_office = "司礼监随堂太监"
         source = "强旨净身入宫" if force else "自愿净身入宫"
-        try:
-            xinpan_before = self.db.get_xinpan_profile(clean_name, self.state)
-        except Exception:
-            xinpan_before = {}
         character, political_reactions = convert_character_to_eunuch(
             self.db,
             self.state,
@@ -2017,40 +2320,12 @@ class WebGame:
         )
         if self.session.registry is not None:
             self.session.registry.register(character)
-        xinpan_effect_text = ""
-        try:
-            if force:
-                xinpan_after = self.db.apply_direct_xinpan_adjustment(
-                    self.state,
-                    character.name,
-                    shi_delta=-48,
-                    fear_delta=24,
-                    hatred_delta=52,
-                    trust_multiplier=0.58,
-                    event="强旨净身入内廷",
-                    source_kind="identity_conversion",
-                    source_id="forced_castration",
-                )
-            else:
-                xinpan_after = self.db.apply_direct_xinpan_adjustment(
-                    self.state,
-                    character.name,
-                    shi_delta=16,
-                    fear_delta=-2,
-                    hatred_delta=-3,
-                    trust_multiplier=1.06,
-                    event="自愿净身入内廷，转入近侍执行链",
-                    source_kind="identity_conversion",
-                    source_id="voluntary_castration",
-                )
-            xinpan_effect_text = self._xinpan_effect_summary(xinpan_before, xinpan_after)
-        except Exception as exc:  # noqa: BLE001 - identity conversion should still succeed
-            print(f"[WARN] 净身入内廷心盘更新失败 {character.name}: {exc}")
         self.maybe_queue_portrait_generation(character.name, source)
         prefix = "强旨已下，" if force else ""
         reaction_text = f" 朝局反应：{political_reactions[0].get('summary')}" if political_reactions else ""
+        relationship_text = " 关系记忆：强旨会留下身体与名节旧怨。" if force else " 关系记忆：自愿入内廷可作为近侍履约背书。"
         return {
-            "message": f"{prefix}{clean_name}已净身入内廷，补为{new_office}。{reaction_text}{(' ' + xinpan_effect_text) if xinpan_effect_text else ''}",
+            "message": f"{prefix}{clean_name}已净身入内廷，补为{new_office}。{reaction_text}{relationship_text}",
             "minister": self.public_character(character),
             "political_reactions": political_reactions,
         }
@@ -2090,10 +2365,6 @@ class WebGame:
                     detail=detail + "若陛下仍要执行，只能下旨强行脱籍。",
                 )
         source = "强旨奴籍转民籍" if force else "自愿奴籍转民籍"
-        try:
-            xinpan_before = self.db.get_xinpan_profile(clean_name, self.state)
-        except Exception:
-            xinpan_before = {}
         character, political_reactions = convert_eunuch_to_commoner(
             self.db,
             self.state,
@@ -2104,39 +2375,11 @@ class WebGame:
         )
         if self.session.registry is not None:
             self.session.registry.register(character)
-        xinpan_effect_text = ""
-        try:
-            if force:
-                xinpan_after = self.db.apply_direct_xinpan_adjustment(
-                    self.state,
-                    character.name,
-                    shi_delta=-36,
-                    fear_delta=10,
-                    hatred_delta=58,
-                    trust_multiplier=0.76,
-                    event="强旨赶出内廷，脱籍为民",
-                    source_kind="identity_conversion",
-                    source_id="forced_emancipation",
-                )
-            else:
-                xinpan_after = self.db.apply_direct_xinpan_adjustment(
-                    self.state,
-                    character.name,
-                    shi_delta=6,
-                    fear_delta=-2,
-                    hatred_delta=0,
-                    trust_multiplier=1.02,
-                    event="自愿脱离内廷奴籍，放归民籍",
-                    source_kind="identity_conversion",
-                    source_id="voluntary_emancipation",
-                )
-            xinpan_effect_text = self._xinpan_effect_summary(xinpan_before, xinpan_after)
-        except Exception as exc:  # noqa: BLE001 - identity conversion should still succeed
-            print(f"[WARN] 奴籍转民籍心盘更新失败 {character.name}: {exc}")
         self.maybe_queue_portrait_generation(character.name, source)
         prefix = "强旨已下，" if force else ""
+        relationship_text = "关系记忆：强旨脱籍会留下安身与名分旧怨。" if force else "关系记忆：自愿脱籍可作为身份履约完成记录。"
         return {
-            "message": f"{prefix}{clean_name}已脱离内廷奴籍，转为民籍百姓；新立绘将改为布衣头巾。{(' ' + xinpan_effect_text) if xinpan_effect_text else ''}",
+            "message": f"{prefix}{clean_name}已脱离内廷奴籍，转为民籍百姓；新立绘将改为布衣头巾。{relationship_text}",
             "minister": self.public_character(character),
             "political_reactions": political_reactions,
         }
@@ -2229,33 +2472,65 @@ class WebGame:
             rows = self.db.list_conversation_goals(minister_name=minister_name, limit=limit)
         else:
             rows = self.db.list_conversation_goals(limit=limit)
-        out: List[Dict[str, Any]] = []
-        for row in rows:
-            item = dict(row)
-            item.pop("conditions_json", None)
-            item.pop("blockers_json", None)
-            item.pop("last_delta_json", None)
-            item["progress_label"] = f"{int(item.get('score') or 0)}%"
-            pending = [
-                cond for cond in (item.get("conditions") or [])
-                if isinstance(cond, dict) and str(cond.get("status") or "pending") != "done"
-            ]
-            item["pending_conditions"] = pending
-            out.append(item)
-        return out
+        return self._conversation_goal_payload_from_rows(rows)
+
+    def _compact_character_cards(self, cards: List[Dict[str, Any]]) -> List[List[Any]]:
+        """Compact repeated roster keys out of hot state payloads."""
+        return [[card.get(field) for field in CHARACTER_CARD_FIELDS] for card in cards]
 
     def state_payload(self) -> Dict[str, Any]:
+        runtime_rows = self._character_runtime_rows()
+        portrait_assets = self._portrait_asset_meta_map()
         directives = [self.directive_payload(row) for row in self.directive_rows()]
+        regions = self.db.region_payload()
+        armies = self.db.army_payload()
+        budget_lines = compute_budget_lines(self.db, self.state)
+        treasury = self.db.treasury_report(self.state, budget=budget_lines)
+        budget = self.budget_payload(budget=budget_lines)
+
+        def runtime_office_type(character: Character) -> str:
+            row = runtime_rows.get(character.name)
+            office = (row["office"] if row else character.office) or ""
+            office_type = (row["office_type"] if row else character.office_type) or character.office_type
+            return effective_stored_office_type(office, office_type)
+
+        def runtime_status(character: Character) -> str:
+            row = runtime_rows.get(character.name)
+            return str(row["status"] or "active") if row is not None else "active"
+
+        ministers = [
+            self.public_character(
+                c,
+                include_detail=False,
+                runtime_row=runtime_rows.get(c.name),
+                portrait_assets=portrait_assets,
+            )
+            for c in self.content.characters.values()
+            if runtime_office_type(c) != "后宫" and self.character_power_id(c, runtime_rows) == "ming"
+        ]
+        consorts = [
+            self.public_character(
+                c,
+                include_detail=False,
+                runtime_row=runtime_rows.get(c.name),
+                portrait_assets=portrait_assets,
+            )
+            for c in self.content.characters.values()
+            if runtime_office_type(c) == "后宫"
+            and runtime_status(c) == "active"
+            and self.character_power_id(c, runtime_rows) == "ming"
+        ]
+
         return {
             "turn": {"year": self.state.year, "period": self.state.period,
                      "turn": self.state.turn, "phase": self.state.turn_phase},
             "metrics": self.state.metrics,
             "previous_summary": self.previous_summary,
-            "treasury": self.db.treasury_report(self.state),
+            "treasury": treasury,
             "issues": self.issue_payloads(),
             "legacies": self.legacies_payload(),
             "closed_this_turn": self.closed_this_turn_payloads(),
-            "budget": self.budget_payload(),
+            "budget": budget,
             "region_warning": self.db.region_report(limit=5),
             "army_warning": self.db.army_report(limit=5),
             "power_warning": self.db.power_report(exclude_self=True),
@@ -2263,23 +2538,12 @@ class WebGame:
             "victory_status": self.session.victory(),
             "ending": self.ending_payload(),
             "events": [],
-            "regions": self.db.region_payload(),
-            "armies": self.db.army_payload(),
-            "map_nodes": self.map_nodes(),
-            "organizations": self.organization_payload(),
-            "character_index": self.character_index_payload(),
-            "ministers": [
-                self.public_character(c, include_detail=False)
-                for c in self.content.characters.values()
-                if c.office_type != "后宫" and self.character_power_id(c) == "ming"
-            ],
-            "consorts": [
-                self.public_character(c, include_detail=False)
-                for c in self.content.characters.values()
-                if c.office_type == "后宫"
-                and self.db.get_character_status(c.name)[0] == "active"
-                and self.character_power_id(c) == "ming"
-            ],
+            "regions": regions,
+            "armies": armies,
+            "map_nodes": self.map_nodes(regions=regions, armies=armies, include_detail=False),
+            "minister_fields": list(CHARACTER_CARD_FIELDS),
+            "ministers": self._compact_character_cards(ministers),
+            "consorts": self._compact_character_cards(consorts),
             "directives": directives,
             "agreements": self.agreement_payload(),
             "conversation_goals": self.conversation_goal_payload(),
@@ -2348,20 +2612,21 @@ class WebGame:
         except ValueError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from None
         self.session.refresh_runtime_after_chat_rollback()
-        self.chat_history = {name: [] for name in self.session.content.characters}
-        for name, msgs in self.db.load_all_chat_history().items():
-            self.chat_history.setdefault(name, []).extend(msgs)
+        self._restore_chat_history_cache()
         character = self.session._character(minister_name)
         return {
             "minister": minister_name,
             "minister_profile": self.public_character(character),
             "undone_chat_turn_id": int(undone["id"]),
             "history": self.chat_history.get(minister_name, []),
+            "history_limit": _web_chat_history_limit(),
+            "history_truncated": len(self.chat_history.get(minister_name, [])) >= _web_chat_history_limit(),
             "directives": [self.directive_payload(row) for row in self.directive_rows()],
             "pending_count": self.session.pending_count(),
             "secret_orders": self.db.list_secret_orders(),
             "suggestions": self.suggestions_for(character),
             "can_undo_last_chat": self.can_undo_last_chat(minister_name),
+            "state": self.state_payload(),
         }
 
     def _chat_payload(
@@ -2379,6 +2644,7 @@ class WebGame:
         secret_order_assignee: str = "",
         secret_order_effect: Optional[Dict[str, Any]] = None,
         chat_turn_id: int = 0,
+        dialogue_goal: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         character = self.session._character(minister_name)
         self.chat_history[minister_name].append({"role": "minister", "content": answer})
@@ -2386,11 +2652,14 @@ class WebGame:
             message_id = self.db.append_chat_message(minister_name, self.state.turn, "minister", answer)
             if chat_turn_id:
                 self.db.update_chat_turn_messages(chat_turn_id, minister_message_id=message_id)
+        self._prune_chat_history(minister_name)
         return {
             "minister": minister_name,
             "minister_profile": self.public_character(character),
             "answer": answer,
             "history": self.chat_history[minister_name],
+            "history_limit": _web_chat_history_limit(),
+            "history_truncated": len(self.chat_history[minister_name]) >= _web_chat_history_limit(),
             "court_action": court_action,
             "next_minister": next_minister,
             "proposed_directive": proposed_directive,
@@ -2401,6 +2670,7 @@ class WebGame:
             "secret_order_id": secret_order_id or 0,
             "secret_order_assignee": secret_order_assignee,
             "secret_order_effect": secret_order_effect or {},
+            "dialogue_goal": dialogue_goal or {},
             "directives": [self.directive_payload(row) for row in self.directive_rows()],
             "pending_count": self.session.pending_count(),
             "suggestions": self.suggestions_for(character),
@@ -2459,6 +2729,7 @@ class WebGame:
             secret_order_assignee=result.secret_order_assignee,
             secret_order_effect=result.secret_order_effect,
             chat_turn_id=chat_turn_id,
+            dialogue_goal=result.dialogue_goal,
         )
 
     def chat_stream(self, minister_name: str, message: str) -> Iterator[Dict[str, Any]]:
@@ -2586,7 +2857,7 @@ class WebGame:
                                 secret_order_assignee or minister_name,
                             )
                     # 密令结案不再走大臣工具，由月末推演 + extractor 写入
-            self.session.record_dialogue_after_chat(
+            dialogue_goal = self.session.record_dialogue_after_chat(
                 character,
                 text,
                 answer,
@@ -2610,6 +2881,7 @@ class WebGame:
                 secret_order_assignee=secret_order_assignee,
                 secret_order_effect=secret_order_effect,
                 chat_turn_id=chat_turn_id,
+                dialogue_goal=dialogue_goal,
             )
             yield {"type": "done", "payload": payload}
         except Exception as error:
@@ -2645,15 +2917,403 @@ def sse_event(event: str, data: Dict[str, Any]) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
-web_game: Optional[WebGame] = None  # 懒加载：菜单页点「新游戏/继续/加载存档」才实例化
+web_game: Optional[WebGame] = None  # 未启用登录时的本地单用户兼容实例
+_web_games: Dict[str, WebGame] = {}
+_web_games_lock = threading.RLock()
+_auth_sessions: Dict[str, Any] = {}
+_auth_sessions_lock = threading.RLock()
+_current_username: ContextVar[str] = ContextVar("current_username", default="")
+_AUTH_COOKIE = "ming_session"
+_SERVER_STARTED_AT = time.time()
+
+
+def _env_int(name: str, default: int, *, minimum: int = 0, maximum: int = 10**9) -> int:
+    try:
+        value = int(os.environ.get(name, str(default)) or default)
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, value))
+
+
+def _web_chat_history_limit() -> int:
+    return _env_int("MING_SIM_WEB_CHAT_HISTORY_LIMIT", 80, minimum=20, maximum=500)
+
+
 app = FastAPI(title="Ming Salvage MVP Web")
+
+
+_GZIP_SKIP_PATH_SUFFIXES = (
+    ".avif",
+    ".gif",
+    ".ico",
+    ".jpg",
+    ".jpeg",
+    ".mp3",
+    ".mp4",
+    ".png",
+    ".webm",
+    ".webp",
+    ".woff",
+    ".woff2",
+)
+
+
+class SelectiveGZipMiddleware(GZipMiddleware):
+    async def __call__(self, scope, receive, send):
+        path = str(scope.get("path") or "")
+        if scope.get("type") == "http" and (path.endswith("/stream") or path.lower().endswith(_GZIP_SKIP_PATH_SUFFIXES)):
+            await self.app(scope, receive, send)
+            return
+        await super().__call__(scope, receive, send)
+
+
+app.add_middleware(SelectiveGZipMiddleware, minimum_size=1024)
+
+
+_STATIC_IMMUTABLE_CACHE = "public, max-age=31536000, immutable"
+_STATIC_MEDIA_CACHE = "public, max-age=604800"
+_STATIC_HTML_CACHE = "no-cache"
+_STATIC_MEDIA_RE = re.compile(r"\.(?:png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf)$", re.IGNORECASE)
+
+
+class CacheControlledStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope: Dict[str, Any]) -> Response:
+        response = await super().get_response(path, scope)
+        if response.status_code != 200:
+            return response
+
+        clean_path = path.lstrip("/")
+        content_type = response.headers.get("content-type", "")
+        if clean_path in {"", ".", "index.html"} or clean_path.endswith(".html") or content_type.startswith("text/html"):
+            response.headers["Cache-Control"] = _STATIC_HTML_CACHE
+        elif clean_path.startswith("assets/"):
+            response.headers["Cache-Control"] = _STATIC_IMMUTABLE_CACHE
+        elif _STATIC_MEDIA_RE.search(clean_path):
+            response.headers.setdefault("Cache-Control", _STATIC_MEDIA_CACHE)
+        return response
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class ServerAdminActionRequest(BaseModel):
+    confirm: str = ""
+
+
+def _configured_auth_users() -> Dict[str, str]:
+    """读取服务端账号配置。未配置账号时保持本地单用户免登录模式。
+
+    支持：
+      MING_SIM_SERVER_USERS="alice:pw,bob:pw"
+      MING_SIM_AUTH_USERS="alice:pw"
+      MING_SIM_ADMIN_USER / MING_SIM_ADMIN_PASSWORD
+    """
+    raw = os.environ.get("MING_SIM_SERVER_USERS", "") or os.environ.get("MING_SIM_AUTH_USERS", "")
+    users: Dict[str, str] = {}
+    for part in re.split(r"[,\n;]+", raw):
+        item = part.strip()
+        if not item or ":" not in item:
+            continue
+        username, password = item.split(":", 1)
+        username = username.strip()
+        password = password.strip()
+        if username and password:
+            users[username] = password
+    admin_user = os.environ.get("MING_SIM_ADMIN_USER", "").strip()
+    admin_password = os.environ.get("MING_SIM_ADMIN_PASSWORD", "").strip()
+    if admin_user and admin_password:
+        users[admin_user] = admin_password
+    return users
+
+
+def _split_env_list(raw: str) -> List[str]:
+    return [part.strip() for part in re.split(r"[,\n;]+", raw or "") if part.strip()]
+
+
+def _configured_admin_users() -> set:
+    admins = set(_split_env_list(os.environ.get("MING_SIM_ADMIN_USERS", "")))
+    admins.update(_split_env_list(os.environ.get("MING_SIM_SERVER_ADMINS", "")))
+    admin_user = os.environ.get("MING_SIM_ADMIN_USER", "").strip()
+    if admin_user:
+        admins.add(admin_user)
+    if not admins:
+        users = _configured_auth_users()
+        if users:
+            admins.add(next(iter(users.keys())))
+    return admins
+
+
+def _auth_enabled() -> bool:
+    return bool(_configured_auth_users())
+
+
+def _verify_password(stored: str, provided: str) -> bool:
+    stored = stored.strip()
+    provided = provided or ""
+    if stored.startswith("pbkdf2_sha256$"):
+        try:
+            _, iterations, salt, expected = stored.split("$", 3)
+            rounds = max(100_000, min(2_000_000, int(iterations)))
+            actual = hashlib.pbkdf2_hmac("sha256", provided.encode("utf-8"), salt.encode("utf-8"), rounds).hex()
+            return secrets.compare_digest(actual, expected.lower())
+        except (TypeError, ValueError):
+            return False
+    if stored.startswith("sha256:"):
+        expected = stored.split(":", 1)[1].strip().lower()
+        actual = hashlib.sha256(provided.encode("utf-8")).hexdigest()
+        return secrets.compare_digest(actual, expected)
+    return secrets.compare_digest(stored, provided)
+
+
+def _safe_user_id(username: str) -> str:
+    base = re.sub(r"[^A-Za-z0-9_.-]+", "_", username.strip()).strip("._-")[:48] or "user"
+    digest = hashlib.sha256(username.encode("utf-8")).hexdigest()[:10]
+    return f"{base}_{digest}"
+
+
+def _legacy_db_path() -> str:
+    db_path = os.environ.get("MING_SIM_DB", "")
+    if not db_path:
+        return user_data_path("ming_sim.db")
+    if not os.path.isabs(db_path):
+        return str(user_data_dir() / db_path)
+    return db_path
+
+
+def _user_root_dir(username: str) -> str:
+    root = user_data_dir() / "users" / _safe_user_id(username)
+    root.mkdir(parents=True, exist_ok=True)
+    return str(root)
+
+
+def _db_path_for_user(username: str = "") -> str:
+    if username.strip():
+        return os.path.join(_user_root_dir(username), "ming_sim.db")
+    return _legacy_db_path()
+
+
+def _saves_dir_for_user(username: str = "") -> str:
+    if username.strip():
+        path = os.path.join(_user_root_dir(username), "saves")
+        os.makedirs(path, exist_ok=True)
+        return path
+    return user_data_path("saves")
+
+
+def _portrait_dir_for_user(username: str = "") -> str:
+    if username.strip():
+        path = os.path.join(_user_root_dir(username), "uploads", "portraits")
+        os.makedirs(path, exist_ok=True)
+        return path
+    return UPLOAD_PORTRAIT_DIR
+
+
+def _session_ttl_seconds() -> int:
+    return _env_int("MING_SIM_SESSION_TTL_SECONDS", 60 * 60 * 24 * 7, minimum=300)
+
+
+def _new_auth_session(username: str) -> str:
+    token = secrets.token_urlsafe(32)
+    now = time.time()
+    _cleanup_auth_sessions(now)
+    with _auth_sessions_lock:
+        _auth_sessions[token] = {
+            "username": username,
+            "created_at": now,
+            "last_seen": now,
+            "expires_at": now + _session_ttl_seconds(),
+        }
+    return token
+
+
+def _session_record_username(record: Any) -> str:
+    if isinstance(record, str):
+        return record
+    if isinstance(record, dict):
+        return str(record.get("username") or "")
+    return ""
+
+
+def _cleanup_auth_sessions(now: Optional[float] = None) -> None:
+    now = time.time() if now is None else now
+    with _auth_sessions_lock:
+        expired = [
+            token
+            for token, record in _auth_sessions.items()
+            if isinstance(record, dict) and float(record.get("expires_at") or 0) <= now
+        ]
+        for token in expired:
+            _auth_sessions.pop(token, None)
+
+
+def _session_username(token: str) -> str:
+    if not token:
+        return ""
+    now = time.time()
+    with _auth_sessions_lock:
+        record = _auth_sessions.get(token, "")
+        if isinstance(record, dict) and float(record.get("expires_at") or 0) <= now:
+            _auth_sessions.pop(token, None)
+            return ""
+        username = _session_record_username(record)
+        if isinstance(record, dict) and username:
+            record["last_seen"] = now
+    if username and username in _configured_auth_users():
+        return username
+    return ""
+
+
+def _is_admin_user(username: str) -> bool:
+    if not _auth_enabled():
+        return True
+    return bool(username and username in _configured_admin_users())
+
+
+def _require_server_admin() -> str:
+    username = _current_game_username()
+    if not _is_admin_user(username):
+        raise HTTPException(status_code=403, detail={"code": "admin_required", "message": "需要管理员权限。"})
+    return username
+
+
+def _path_requires_auth(path: str) -> bool:
+    if not _auth_enabled():
+        return False
+    if path.startswith("/api/auth"):
+        return False
+    return (
+        path.startswith("/api/")
+        or path.startswith("/portraits/generated/")
+        or path.startswith("/portraits/custom/")
+        or path == "/admin"
+    )
+
+
+def _auth_error_response() -> JSONResponse:
+    return JSONResponse(
+        status_code=401,
+        content={"detail": {"code": "auth_required", "message": "请先登录。"}},
+    )
+
+
+def _current_game_username() -> str:
+    if not _auth_enabled():
+        return ""
+    username = _current_username.get()
+    if not username:
+        raise HTTPException(status_code=401, detail={"code": "auth_required", "message": "请先登录。"})
+    return username
+
+
+def _close_game(game: Optional[WebGame]) -> None:
+    if game is None:
+        return
+    try:
+        game.session.close()
+    except Exception:
+        pass
+
+
+def _running_game_for_user(username: str) -> Optional[WebGame]:
+    if username:
+        with _web_games_lock:
+            return _web_games.get(username)
+    return web_game
+
+
+def _set_running_game_for_user(username: str, game: Optional[WebGame]) -> None:
+    global web_game
+    if username:
+        with _web_games_lock:
+            old = _web_games.pop(username, None)
+            if game is not None:
+                _web_games[username] = game
+        _close_game(old)
+        return
+    old = web_game
+    web_game = game
+    _close_game(old)
+
+
+def _close_all_running_games() -> None:
+    global web_game
+    old_local = web_game
+    web_game = None
+    _close_game(old_local)
+    with _web_games_lock:
+        games = list(_web_games.values())
+        _web_games.clear()
+    for game in games:
+        _close_game(game)
 
 
 def get_game() -> WebGame:
     """游戏路由统一入口。未开局 → 409 让前端跳回菜单页。"""
-    if web_game is None:
+    username = _current_game_username()
+    game = _running_game_for_user(username)
+    if game is None:
         raise HTTPException(status_code=409, detail="尚未开局，请回菜单选择新游戏/继续/加载存档。")
-    return web_game
+    return game
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    username = ""
+    if _auth_enabled():
+        username = _session_username(request.cookies.get(_AUTH_COOKIE, ""))
+        if _path_requires_auth(request.url.path) and request.method.upper() != "OPTIONS" and not username:
+            return _auth_error_response()
+    token = _current_username.set(username)
+    try:
+        return await call_next(request)
+    finally:
+        _current_username.reset(token)
+
+
+@app.get("/api/auth/me")
+async def api_auth_me() -> Dict[str, Any]:
+    if not _auth_enabled():
+        return {"auth_enabled": False, "authenticated": True, "username": "local", "is_admin": True}
+    username = _current_username.get()
+    return {"auth_enabled": True, "authenticated": bool(username), "username": username, "is_admin": _is_admin_user(username)}
+
+
+@app.post("/api/auth/login")
+async def api_auth_login(body: LoginRequest) -> Response:
+    if not _auth_enabled():
+        return JSONResponse({"ok": True, "auth_enabled": False, "username": "local", "is_admin": True})
+    username = body.username.strip()
+    stored = _configured_auth_users().get(username, "")
+    if not stored or not _verify_password(stored, body.password):
+        raise HTTPException(status_code=401, detail={"code": "bad_credentials", "message": "用户名或密码不正确。"})
+    token = _new_auth_session(username)
+    response = JSONResponse({"ok": True, "auth_enabled": True, "username": username, "is_admin": _is_admin_user(username)})
+    response.set_cookie(
+        _AUTH_COOKIE,
+        token,
+        httponly=True,
+        samesite="lax",
+        secure=os.environ.get("MING_SIM_COOKIE_SECURE", "").strip().lower() in ("1", "true", "yes"),
+        max_age=_session_ttl_seconds(),
+        path="/",
+    )
+    return response
+
+
+@app.post("/api/auth/logout")
+async def api_auth_logout(request: Request) -> Response:
+    token = request.cookies.get(_AUTH_COOKIE, "")
+    username = _session_username(token)
+    if token:
+        with _auth_sessions_lock:
+            _auth_sessions.pop(token, None)
+    if username:
+        _set_running_game_for_user(username, None)
+    response = JSONResponse({"ok": True})
+    response.delete_cookie(_AUTH_COOKIE, path="/")
+    return response
 
 
 # 自动存档文件名：auto_<campaign_id>_<year>_<period>_t<turn>_<tag>.db
@@ -2686,10 +3346,8 @@ def _parse_save_name(name: str) -> Dict[str, Any]:
     }
 
 
-def _main_db_campaign_id() -> str:
-    db_path = os.environ.get("MING_SIM_DB", "") or user_data_path("ming_sim.db")
-    if not os.path.isabs(db_path):
-        db_path = str(user_data_dir() / db_path)
+def _main_db_campaign_id(db_path: str = "") -> str:
+    db_path = db_path or _db_path_for_user(_current_username.get())
     if not os.path.isfile(db_path):
         return ""
     try:
@@ -2705,10 +3363,10 @@ def _main_db_campaign_id() -> str:
         return ""
 
 
-def _scan_saves() -> List[Dict[str, Any]]:
+def _scan_saves(saves_dir: str = "") -> List[Dict[str, Any]]:
     """扫存档目录，独立于 WebGame 实例（菜单页无 game 也要能列）。
     不再按 campaign 过滤——所有局的存档都列出，由前端按局分组。"""
-    saves_dir = user_data_path("saves")
+    saves_dir = saves_dir or _saves_dir_for_user(_current_username.get())
     out: List[Dict[str, Any]] = []
     if not os.path.isdir(saves_dir):
         return out
@@ -2732,11 +3390,11 @@ def _scan_saves() -> List[Dict[str, Any]]:
     return out
 
 
-def _scan_campaigns() -> List[Dict[str, Any]]:
+def _scan_campaigns(saves_dir: str = "", db_path: str = "") -> List[Dict[str, Any]]:
     """把存档按局（campaign_id）分组，当前主 DB 的局标 current=True。
     手动存档（无 campaign_id）归到一个 manual 组。每组按 mtime 倒序，组也按最新档倒序。"""
-    saves = _scan_saves()
-    cur_campaign = _main_db_campaign_id()
+    saves = _scan_saves(saves_dir)
+    cur_campaign = _main_db_campaign_id(db_path)
     groups: Dict[str, Dict[str, Any]] = {}
     for s in saves:
         cid = s.get("campaign_id") or ""
@@ -2762,26 +3420,195 @@ def _scan_campaigns() -> List[Dict[str, Any]]:
     return out
 
 
-def _has_main_db() -> bool:
+def _has_main_db(db_path: str = "") -> bool:
     """主 DB 文件是否存在 → 决定「继续」按钮可不可点。"""
-    db_path = os.environ.get("MING_SIM_DB", "") or user_data_path("ming_sim.db")
-    if not os.path.isabs(db_path):
-        db_path = str(user_data_dir() / db_path)
+    db_path = db_path or _db_path_for_user(_current_username.get())
     return os.path.isfile(db_path)
+
+
+def _session_counts_by_user() -> Dict[str, int]:
+    _cleanup_auth_sessions()
+    counts: Dict[str, int] = {}
+    with _auth_sessions_lock:
+        for record in _auth_sessions.values():
+            username = _session_record_username(record)
+            if not username:
+                continue
+            counts[username] = counts.get(username, 0) + 1
+    return counts
+
+
+def _sqlite_game_summary(db_path: str) -> Dict[str, Any]:
+    summary = {"campaign_id": "", "year": 0, "period": 0, "turn": 0}
+    if not os.path.isfile(db_path):
+        return summary
+    try:
+        import sqlite3 as _sqlite3
+
+        conn = _sqlite3.connect(db_path)
+        try:
+            row = conn.execute("SELECT value FROM kv_store WHERE key='campaign_id'").fetchone()
+            if row and row[0]:
+                summary["campaign_id"] = str(row[0]).strip()
+            state = conn.execute("SELECT year, period, turn FROM game_state LIMIT 1").fetchone()
+            if state:
+                summary["year"] = int(state[0] or 0)
+                summary["period"] = int(state[1] or 0)
+                summary["turn"] = int(state[2] or 0)
+        finally:
+            conn.close()
+    except Exception:
+        pass
+    return summary
+
+
+def _file_stat(path: str) -> Dict[str, int]:
+    try:
+        st = os.stat(path)
+    except OSError:
+        return {"size": 0, "mtime": 0}
+    return {"size": int(st.st_size), "mtime": int(st.st_mtime)}
+
+
+def _configured_usernames() -> List[str]:
+    users = sorted(_configured_auth_users().keys())
+    return users or ["local"]
+
+
+def _server_admin_user_card(username: str, session_counts: Dict[str, int]) -> Dict[str, Any]:
+    auth_username = "" if username == "local" and not _auth_enabled() else username
+    db_path = _db_path_for_user(auth_username)
+    saves_dir = _saves_dir_for_user(auth_username)
+    saves = _scan_saves(saves_dir)
+    saves_size = sum(int(item.get("size") or 0) for item in saves)
+    running = _running_game_for_user(auth_username)
+    db_summary = _sqlite_game_summary(db_path)
+    if running is not None:
+        try:
+            db_summary.update({
+                "campaign_id": running.session.campaign_id,
+                "year": int(running.state.year),
+                "period": int(running.state.period),
+                "turn": int(running.state.turn),
+            })
+        except Exception:
+            pass
+    db_stat = _file_stat(db_path)
+    return {
+        "username": username,
+        "is_admin": _is_admin_user(username),
+        "user_id": _safe_user_id(username) if username != "local" else "local",
+        "running": running is not None,
+        "sessions": int(session_counts.get(username, 0)),
+        "has_main_db": os.path.isfile(db_path),
+        "db_path": db_path,
+        "db_size": db_stat["size"],
+        "db_mtime": db_stat["mtime"],
+        "saves_dir": saves_dir,
+        "saves_count": len(saves),
+        "saves_size": saves_size,
+        "latest_save_mtime": max([int(item.get("mtime") or 0) for item in saves] or [0]),
+        "current_campaign": db_summary.get("campaign_id", ""),
+        "year": int(db_summary.get("year") or 0),
+        "period": int(db_summary.get("period") or 0),
+        "turn": int(db_summary.get("turn") or 0),
+        "recent_saves": saves[:5],
+    }
+
+
+def _server_admin_overview_payload() -> Dict[str, Any]:
+    runtime = load_runtime_llm()
+    session_counts = _session_counts_by_user()
+    users = [_server_admin_user_card(username, session_counts) for username in _configured_usernames()]
+    return {
+        "auth_enabled": _auth_enabled(),
+        "admin_users": sorted(_configured_admin_users()) if _auth_enabled() else ["local"],
+        "uptime_seconds": int(time.time() - _SERVER_STARTED_AT),
+        "running_games": sum(1 for item in users if item["running"]),
+        "active_sessions": sum(int(item["sessions"]) for item in users),
+        "llm": {
+            "base_url": runtime.get("base_url") or os.environ.get("OPENAI_BASE_URL", ""),
+            "model": runtime.get("model") or os.environ.get("OPENAI_MODEL", ""),
+            "has_api_key": bool(runtime.get("api_key") or os.environ.get("OPENAI_API_KEY")),
+            "advanced_model": runtime.get("advanced_model") or os.environ.get("OPENAI_ADVANCED_MODEL", ""),
+            "has_advanced_api_key": bool(runtime.get("advanced_api_key") or os.environ.get("OPENAI_ADVANCED_API_KEY")),
+            "client_configurable": (
+                not _auth_enabled()
+                or os.environ.get("MING_SIM_ALLOW_CLIENT_LLM_CONFIG", "").strip().lower() in ("1", "true", "yes")
+            ),
+        },
+        "users": users,
+    }
+
+
+@app.get("/api/server_admin/overview")
+async def api_server_admin_overview() -> Dict[str, Any]:
+    _require_server_admin()
+    return _server_admin_overview_payload()
+
+
+@app.post("/api/server_admin/users/{username}/close_game")
+async def api_server_admin_close_game(username: str) -> Dict[str, Any]:
+    _require_server_admin()
+    if username not in _configured_usernames():
+        raise HTTPException(status_code=404, detail={"code": "user_not_found", "message": f"未找到用户：{username}"})
+    auth_username = "" if username == "local" and not _auth_enabled() else username
+    _set_running_game_for_user(auth_username, None)
+    return {"ok": True, "overview": _server_admin_overview_payload()}
+
+
+@app.post("/api/server_admin/users/{username}/logout")
+async def api_server_admin_logout_user(username: str) -> Dict[str, Any]:
+    _require_server_admin()
+    if username not in _configured_usernames():
+        raise HTTPException(status_code=404, detail={"code": "user_not_found", "message": f"未找到用户：{username}"})
+    with _auth_sessions_lock:
+        stale = [token for token, owner in _auth_sessions.items() if _session_record_username(owner) == username]
+        for token in stale:
+            _auth_sessions.pop(token, None)
+    auth_username = "" if username == "local" and not _auth_enabled() else username
+    _set_running_game_for_user(auth_username, None)
+    return {"ok": True, "logged_out": username, "overview": _server_admin_overview_payload()}
+
+
+@app.delete("/api/server_admin/users/{username}/main_db")
+async def api_server_admin_delete_main_db(username: str, body: ServerAdminActionRequest = ServerAdminActionRequest()) -> Dict[str, Any]:
+    _require_server_admin()
+    if username not in _configured_usernames():
+        raise HTTPException(status_code=404, detail={"code": "user_not_found", "message": f"未找到用户：{username}"})
+    if body.confirm not in (username, "DELETE"):
+        raise HTTPException(status_code=400, detail={"code": "confirm_required", "message": f"请输入 {username} 或 DELETE 确认删除主进度。"})
+    auth_username = "" if username == "local" and not _auth_enabled() else username
+    _set_running_game_for_user(auth_username, None)
+    _delete_sqlite_db_files_or_raise(_db_path_for_user(auth_username))
+    return {"ok": True, "deleted": username, "overview": _server_admin_overview_payload()}
 
 
 @app.get("/api/menu/status")
 async def api_menu_status() -> Dict[str, Any]:
     """菜单页状态：API key 是否配好、上次主 DB 是否存在、存档列表。"""
+    username = _current_game_username()
+    db_path = _db_path_for_user(username)
+    saves_dir = _saves_dir_for_user(username)
     runtime = load_runtime_llm()
     has_api_key = bool(runtime.get("api_key") or os.environ.get("OPENAI_API_KEY"))
+    llm_client_configurable = (
+        not _auth_enabled()
+        or os.environ.get("MING_SIM_ALLOW_CLIENT_LLM_CONFIG", "").strip().lower() in ("1", "true", "yes")
+    )
     return {
         "has_api_key": has_api_key,
-        "has_running_game": web_game is not None,
-        "has_main_db": _has_main_db(),
-        "saves": _scan_saves(),
-        "campaigns": _scan_campaigns(),
-        "current_campaign": _main_db_campaign_id(),
+        "has_running_game": _running_game_for_user(username) is not None,
+        "has_main_db": _has_main_db(db_path),
+        "saves": _scan_saves(saves_dir),
+        "campaigns": _scan_campaigns(saves_dir, db_path),
+        "current_campaign": _main_db_campaign_id(db_path),
+        "auth": {
+            "enabled": _auth_enabled(),
+            "username": username or "local",
+            "is_admin": _is_admin_user(username or "local"),
+        },
+        "llm_client_configurable": llm_client_configurable,
         "llm": {
             "base_url": runtime.get("base_url") or os.environ.get("OPENAI_BASE_URL", ""),
             "model": runtime.get("model") or os.environ.get("OPENAI_MODEL", ""),
@@ -2800,43 +3627,40 @@ async def api_menu_status() -> Dict[str, Any]:
 @app.post("/api/menu/new_game")
 async def api_menu_new_game() -> Dict[str, Any]:
     """开始新游戏：清主 DB → 新建 WebGame。"""
-    global web_game
-    if web_game is not None:
-        try:
-            web_game.session.close()
-        except Exception:
-            pass
-        web_game = None
+    username = _current_game_username()
     try:
-        web_game = WebGame(fresh=True)
+        game = WebGame(fresh=True, username=username)
     except LLMUnavailable as exc:
         raise HTTPException(status_code=412, detail=_llm_error_detail(exc))
-    return {"state": web_game.state_payload()}
+    _set_running_game_for_user(username, game)
+    return {"state": game.state_payload()}
 
 
 @app.post("/api/menu/continue")
 async def api_menu_continue() -> Dict[str, Any]:
     """继续：用上次主 DB 启动 WebGame。"""
-    global web_game
-    if not _has_main_db():
+    username = _current_game_username()
+    if not _has_main_db(_db_path_for_user(username)):
         raise HTTPException(status_code=404, detail="无上次进度可继续，请先新游戏或加载存档。")
     try:
-        web_game = WebGame(fresh=False)
+        game = WebGame(fresh=False, username=username)
     except LLMUnavailable as exc:
         raise HTTPException(status_code=412, detail=_llm_error_detail(exc))
-    return {"state": web_game.state_payload()}
+    _set_running_game_for_user(username, game)
+    return {"state": game.state_payload()}
 
 
 @app.post("/api/menu/load_save/{name}")
 async def api_menu_load_save(name: str) -> Dict[str, Any]:
     """从存档启动：先启动空 WebGame（fresh）→ 调 load_save 热替换主 DB。"""
-    global web_game
+    username = _current_game_username()
     try:
-        web_game = WebGame(fresh=False)  # 先有 session 才能 load_save
+        game = WebGame(fresh=False, username=username)  # 先有 session 才能 load_save
     except LLMUnavailable as exc:
         raise HTTPException(status_code=412, detail=_llm_error_detail(exc))
-    web_game.load_save(name)
-    return {"state": web_game.state_payload()}
+    game.load_save(name)
+    _set_running_game_for_user(username, game)
+    return {"state": game.state_payload()}
 
 
 @app.delete("/api/menu/saves/{name}")
@@ -2846,23 +3670,22 @@ async def api_menu_delete_save(name: str) -> Dict[str, Any]:
     cleaned = "".join(c for c in name.strip() if c.isalnum() or c in "._-")
     if not cleaned or cleaned.startswith("."):
         raise HTTPException(status_code=400, detail="存档名非法。仅允许字母/数字/._- ")
-    target = os.path.join(user_data_path("saves"), f"{cleaned}.db")
+    username = _current_game_username()
+    saves_dir = _saves_dir_for_user(username)
+    target = os.path.join(saves_dir, f"{cleaned}.db")
     if not os.path.isfile(target):
         raise HTTPException(status_code=404, detail="存档不存在。")
     os.remove(target)
-    return {"saves": _scan_saves(), "campaigns": _scan_campaigns()}
+    return {
+        "saves": _scan_saves(saves_dir),
+        "campaigns": _scan_campaigns(saves_dir, _db_path_for_user(username)),
+    }
 
 
 @app.post("/api/menu/exit_to_menu")
 async def api_menu_exit() -> Dict[str, Any]:
     """退回菜单：关 session 但不删 DB。"""
-    global web_game
-    if web_game is not None:
-        try:
-            web_game.session.close()
-        except Exception:
-            pass
-        web_game = None
+    _set_running_game_for_user(_current_game_username(), None)
     return {"ok": True}
 
 
@@ -2872,13 +3695,7 @@ async def api_menu_shutdown() -> Dict[str, Any]:
     import os as _os
     import signal as _signal
     import threading as _threading
-    global web_game
-    if web_game is not None:
-        try:
-            web_game.session.close()
-        except Exception:
-            pass
-        web_game = None
+    _close_all_running_games()
     # 先返回响应，再异步终止进程。SIGTERM 在 *nix 走优雅退出；
     # Windows 无完整 SIGTERM 语义（pywebview 主线程也不收信号），直接 os._exit 兜底。
     def _kill_later() -> None:
@@ -2909,6 +3726,11 @@ class LlmSetupRequest(BaseModel):
 @app.post("/api/menu/llm")
 async def api_menu_save_llm(request: LlmSetupRequest) -> Dict[str, Any]:
     """菜单页保存 LLM 配置：先发起轻量聊天校验，通过后才落盘。"""
+    if _auth_enabled() and os.environ.get("MING_SIM_ALLOW_CLIENT_LLM_CONFIG", "").strip().lower() not in ("1", "true", "yes"):
+        raise HTTPException(
+            status_code=403,
+            detail={"code": "server_managed_llm", "message": "服务器模式下 API 配置由服务端统一管理。"},
+        )
     base_url = (request.base_url or "").strip()
     model = (request.model or "").strip()
     api_key = (request.api_key or "").strip()
@@ -2993,6 +3815,21 @@ async def api_state() -> Dict[str, Any]:
     return get_game().state_payload()
 
 
+@app.get("/api/monthly_followups")
+async def api_monthly_followups() -> Dict[str, Any]:
+    game = get_game()
+    return {
+        "turn": int(game.state.turn),
+        "followups": list(getattr(game.session, "monthly_followups", []) or []),
+    }
+
+
+def _response_with_state(game: WebGame, payload: Dict[str, Any]) -> Dict[str, Any]:
+    out = dict(payload)
+    out["state"] = game.state_payload()
+    return out
+
+
 @app.get("/api/organizations")
 async def api_organizations() -> Dict[str, Any]:
     return get_game().organization_payload()
@@ -3002,35 +3839,40 @@ async def api_organizations() -> Dict[str, Any]:
 async def api_add_custom_institution(body: CustomInstitutionRequest) -> Dict[str, Any]:
     game = get_game()
     item = game.add_custom_institution(body.name, body.category, body.mandate, body.slots)
-    return {
+    return _response_with_state(game, {
         "message": f"已增设{item['name']}，空缺已进入组织图。",
         "organizations": game.organization_payload(),
-    }
+    })
 
 
 @app.post("/api/recruitment/exam")
 async def api_recruit_exam() -> Dict[str, Any]:
-    return get_game().recruit_exam_official()
+    game = get_game()
+    return _response_with_state(game, game.recruit_exam_official())
 
 
 @app.post("/api/recruitment/eunuch")
 async def api_recruit_eunuch() -> Dict[str, Any]:
-    return get_game().recruit_eunuch()
+    game = get_game()
+    return _response_with_state(game, game.recruit_eunuch())
 
 
 @app.post("/api/recruitment/recommend")
 async def api_recommend_hidden() -> Dict[str, Any]:
-    return get_game().recommend_hidden_official()
+    game = get_game()
+    return _response_with_state(game, game.recommend_hidden_official())
 
 
 @app.post("/api/recruitment/castrate")
 async def api_castrate_official(body: CastrateRequest) -> Dict[str, Any]:
-    return get_game().castrate_official(body.name, force=body.force)
+    game = get_game()
+    return _response_with_state(game, game.castrate_official(body.name, force=body.force))
 
 
 @app.post("/api/recruitment/emancipate")
 async def api_emancipate_eunuch(body: CastrateRequest) -> Dict[str, Any]:
-    return get_game().emancipate_eunuch(body.name, force=body.force)
+    game = get_game()
+    return _response_with_state(game, game.emancipate_eunuch(body.name, force=body.force))
 
 
 @app.get("/api/secret_orders")
@@ -3121,6 +3963,19 @@ async def api_buildings(region_id: str = "") -> Dict[str, Any]:
     return {"buildings": get_game().db.building_payload(region_id)}
 
 
+@app.get("/api/characters")
+async def api_character_index() -> Dict[str, Any]:
+    game = get_game()
+    runtime_rows = game._character_runtime_rows()
+    portrait_assets = game._portrait_asset_meta_map()
+    return {
+        "characters": game.character_index_payload(
+            runtime_rows=runtime_rows,
+            portrait_assets=portrait_assets,
+        )
+    }
+
+
 @app.get("/api/characters/{character_name}")
 async def api_character_detail(character_name: str) -> Dict[str, Any]:
     character = get_game().content.characters.get(character_name)
@@ -3131,18 +3986,20 @@ async def api_character_detail(character_name: str) -> Dict[str, Any]:
 
 @app.post("/api/favorites/{minister_name}")
 async def api_add_favorite(minister_name: str) -> Dict[str, Any]:
-    if minister_name not in get_game().content.characters:
+    game = get_game()
+    if minister_name not in game.content.characters:
         raise HTTPException(status_code=404, detail=f"未找到：{minister_name}")
-    get_game().favorites.add(minister_name)
-    get_game().db.kv_set("favorites", json.dumps(sorted(get_game().favorites)))
-    return {"favorites": sorted(get_game().favorites)}
+    game.favorites.add(minister_name)
+    game.db.kv_set("favorites", json.dumps(sorted(game.favorites)))
+    return _response_with_state(game, {"favorites": sorted(game.favorites)})
 
 
 @app.delete("/api/favorites/{minister_name}")
 async def api_remove_favorite(minister_name: str) -> Dict[str, Any]:
-    get_game().favorites.discard(minister_name)
-    get_game().db.kv_set("favorites", json.dumps(sorted(get_game().favorites)))
-    return {"favorites": sorted(get_game().favorites)}
+    game = get_game()
+    game.favorites.discard(minister_name)
+    game.db.kv_set("favorites", json.dumps(sorted(game.favorites)))
+    return _response_with_state(game, {"favorites": sorted(game.favorites)})
 
 
 _STATUS_LABEL_WEB = {
@@ -3168,12 +4025,16 @@ def _require_active_minister(minister_name: str, action_label: str = "召见") -
 @app.get("/api/ministers/{minister_name}/chat")
 async def api_chat_history(minister_name: str) -> Dict[str, Any]:
     _require_active_minister(minister_name)
-    character = get_game().session._character(minister_name)
+    game = get_game()
+    character = game.session._character(minister_name)
+    history = game.chat_history.get(minister_name, [])
     return {
-        "minister": get_game().public_character(character),
-        "history": get_game().chat_history.get(minister_name, []),
-        "suggestions": get_game().suggestions_for(character),
-        "can_undo_last_chat": get_game().can_undo_last_chat(minister_name),
+        "minister": game.public_character(character),
+        "history": history,
+        "history_limit": _web_chat_history_limit(),
+        "history_truncated": len(history) >= _web_chat_history_limit(),
+        "suggestions": game.suggestions_for(character),
+        "can_undo_last_chat": game.can_undo_last_chat(minister_name),
     }
 
 
@@ -3347,13 +4208,13 @@ async def api_issue_decree_stream(body: IssueDecreeRequest = IssueDecreeRequest(
     async generator 从 Queue 拉事件转成 SSE。
     """
     ev_queue: "queue.Queue[tuple[str, Any]]" = queue.Queue()
+    game = get_game()
 
     def on_event(kind: str, data: str) -> None:
         ev_queue.put((kind, data))
 
     def worker() -> None:
         try:
-            game = get_game()
             portrait_before = game.portrait_generation_signatures()
             report = game.session.resolve_turn(on_event=on_event, cheat_directive=body.cheat)
             decree = game.session.last_decree
@@ -3446,7 +4307,8 @@ async def api_select_consort(name: str) -> Dict[str, Any]:
 
 @app.post("/api/consorts/{name}/action")
 async def api_consort_action(name: str, body: ConsortActionRequest) -> Dict[str, Any]:
-    return get_game().perform_consort_action(name, body.action)
+    game = get_game()
+    return _response_with_state(game, game.perform_consort_action(name, body.action))
 
 
 @app.get("/api/saves")
@@ -3512,6 +4374,11 @@ async def api_get_llm_config() -> Dict[str, Any]:
 
 @app.post("/api/llm/config")
 async def api_set_llm_config(request: LLMConfigRequest) -> Dict[str, Any]:
+    if _auth_enabled() and os.environ.get("MING_SIM_ALLOW_CLIENT_LLM_CONFIG", "").strip().lower() not in ("1", "true", "yes"):
+        raise HTTPException(
+            status_code=403,
+            detail={"code": "server_managed_llm", "message": "服务器模式下 API 配置由服务端统一管理。"},
+        )
     thinking_level = None if request.thinking_level == "__keep__" else request.thinking_level
     advanced = None if request.advanced_model == "__keep__" else request.advanced_model
     adv_base = None if request.advanced_base_url == "__keep__" else request.advanced_base_url
@@ -3553,27 +4420,34 @@ async def api_set_llm_config(request: LLMConfigRequest) -> Dict[str, Any]:
 _PORTRAIT_EXT = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp"}
 
 
-def _find_portrait_file(name: str) -> Optional[str]:
+def _find_portrait_file(name: str, username: str = "") -> Optional[str]:
     """找该人物已存在的自定义立绘文件（任一扩展名），无则 None。"""
+    portrait_dir = _portrait_dir_for_user(username)
     for ext in _PORTRAIT_EXT.values():
-        path = os.path.join(UPLOAD_PORTRAIT_DIR, f"{name}.{ext}")
+        path = os.path.join(portrait_dir, f"{name}.{ext}")
         if os.path.exists(path):
             return path
     return None
 
 
-def _static_portrait_exists(filename: str) -> bool:
-    """检查随包/源码静态立绘是否存在。"""
-    clean = os.path.basename(str(filename or ""))
-    if not clean:
-        return False
+@lru_cache(maxsize=2)
+def _static_portrait_filenames() -> frozenset[str]:
+    names: set[str] = set()
     for base in (
         bundled_path("web", "public", "portraits"),
         bundled_path("web", "dist", "portraits"),
     ):
-        if os.path.exists(os.path.join(str(base), clean)):
-            return True
-    return False
+        try:
+            names.update(item for item in os.listdir(str(base)) if not item.startswith("."))
+        except OSError:
+            continue
+    return frozenset(names)
+
+
+def _static_portrait_exists(filename: str) -> bool:
+    """检查随包/源码静态立绘是否存在。"""
+    clean = os.path.basename(str(filename or ""))
+    return bool(clean and clean in _static_portrait_filenames())
 
 
 @app.get("/portraits/generated/{asset_id}.png")
@@ -3613,7 +4487,7 @@ async def api_generate_portrait(name: str) -> Dict[str, Any]:
     game = get_game()
     job = game.queue_portrait_generation(name, "皇命重绘")
     character = game.find_character(name)
-    return {"job": job, "character": game.public_character(character) if character else None}
+    return _response_with_state(game, {"job": job, "character": game.public_character(character) if character else None})
 
 
 @app.get("/api/portraits/{name}/status")
@@ -3652,7 +4526,8 @@ async def api_portrait_status(name: str) -> Dict[str, Any]:
 @app.post("/api/consorts/{name}/portrait")
 async def api_upload_portrait(name: str, file: UploadFile = File(...)) -> Dict[str, Any]:
     # 只接受已存在的人物名 → 集合固定，杜绝路径穿越/任意写。
-    character = get_game().find_character(name)
+    game = get_game()
+    character = game.find_character(name)
     if character is None:
         raise HTTPException(status_code=404, detail="未找到该人物")
     ext = _PORTRAIT_EXT.get(file.content_type or "")
@@ -3671,27 +4546,29 @@ async def api_upload_portrait(name: str, file: UploadFile = File(...)) -> Dict[s
     )
     if detect_image_mime(processed) != "image/png":
         raise HTTPException(status_code=400, detail="图片无法解析或后处理失败")
-    os.makedirs(UPLOAD_PORTRAIT_DIR, exist_ok=True)
+    portrait_dir = _portrait_dir_for_user(game.username)
+    os.makedirs(portrait_dir, exist_ok=True)
     # 后处理成功后再清旧图，避免失败上传导致原立绘丢失。
-    old = _find_portrait_file(name)
+    old = _find_portrait_file(name, game.username)
     if old is not None:
         os.remove(old)
-    with open(os.path.join(UPLOAD_PORTRAIT_DIR, f"{name}.png"), "wb") as fh:
+    with open(os.path.join(portrait_dir, f"{name}.png"), "wb") as fh:
         fh.write(processed)
-    get_game().set_custom_portrait(name, f"{CUSTOM_PORTRAIT_PREFIX}{name}")
-    return {"name": name, "portrait_id": f"{CUSTOM_PORTRAIT_PREFIX}{name}"}
+    game.set_custom_portrait(name, f"{CUSTOM_PORTRAIT_PREFIX}{name}")
+    return _response_with_state(game, {"name": name, "portrait_id": f"{CUSTOM_PORTRAIT_PREFIX}{name}"})
 
 
 @app.delete("/api/consorts/{name}/portrait")
 async def api_delete_portrait(name: str) -> Dict[str, Any]:
-    character = get_game().find_character(name)
+    game = get_game()
+    character = game.find_character(name)
     if character is None:
         raise HTTPException(status_code=404, detail="未找到该人物")
-    old = _find_portrait_file(name)
+    old = _find_portrait_file(name, game.username)
     if old is not None:
         os.remove(old)
     # 复位 portrait_id：清空 → 前端回落到池图（add/seed 时会按 office_type 再分配）。
-    get_game().set_custom_portrait(name, "")
+    game.set_custom_portrait(name, "")
     return {"name": name, "portrait_id": ""}
 
 
@@ -3709,7 +4586,7 @@ async def api_set_court_layout(body: Dict[str, Any]) -> Dict[str, Any]:
 
 @app.get("/portraits/custom/{name}")
 async def api_get_portrait(name: str):
-    path = _find_portrait_file(name)
+    path = _find_portrait_file(name, _current_game_username())
     if path is None:
         raise HTTPException(status_code=404, detail="无自定义立绘")
     return FileResponse(path)
@@ -3718,11 +4595,13 @@ async def api_get_portrait(name: str):
 # ── 调试台：直接读写核心表 ─────────────────────────────────────
 @app.get("/api/admin/tables")
 async def api_admin_tables() -> Dict[str, Any]:
+    _require_server_admin()
     return {"tables": list(get_game().db.ADMIN_TABLES.keys())}
 
 
 @app.get("/api/admin/table/{table}")
 async def api_admin_table(table: str) -> Dict[str, Any]:
+    _require_server_admin()
     db = get_game().db
     try:
         return {
@@ -3737,6 +4616,7 @@ async def api_admin_table(table: str) -> Dict[str, Any]:
 
 @app.post("/api/admin/table/{table}/upsert")
 async def api_admin_upsert(table: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _require_server_admin()
     game = get_game()
     try:
         row = game.db.admin_upsert(table, payload)
@@ -3753,6 +4633,7 @@ async def api_admin_upsert(table: str, payload: Dict[str, Any]) -> Dict[str, Any
 
 @app.post("/api/admin/table/{table}/delete")
 async def api_admin_delete(table: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    _require_server_admin()
     pk_value = payload.get("pk_value")
     if pk_value in (None, ""):
         raise HTTPException(status_code=400, detail="缺 pk_value")
@@ -3764,11 +4645,135 @@ async def api_admin_delete(table: str, payload: Dict[str, Any]) -> Dict[str, Any
 
 @app.get("/admin")
 async def admin_page():
+    _require_server_admin()
     return HTMLResponse(_ADMIN_HTML)
 
 
+@app.get("/server-admin")
+async def server_admin_page():
+    return HTMLResponse(_SERVER_ADMIN_HTML)
+
+
+@app.get("/server_admin")
+async def server_admin_page_alias():
+    return HTMLResponse(_SERVER_ADMIN_HTML)
+
+
 if os.path.isdir(WEB_DIST):
-    app.mount("/", StaticFiles(directory=WEB_DIST, html=True), name="web")
+    app.mount("/", CacheControlledStaticFiles(directory=WEB_DIST, html=True), name="web")
+
+
+_SERVER_ADMIN_HTML = """<!doctype html>
+<html lang="zh"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>服务器后台 · 明末力挽狂澜</title>
+<style>
+  :root{color-scheme:dark;--bg:#17130f;--panel:#241d16;--line:#3b3025;--txt:#eadfc9;--muted:#a89978;--accent:#d4aa5c;--ok:#6fa77e;--warn:#d2a04d;--bad:#c96452}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(135deg,#1e1812,#11100d);color:var(--txt);font:14px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC",sans-serif}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 22px;border-bottom:1px solid var(--line);background:rgba(20,16,12,.86);position:sticky;top:0;z-index:2}
+  h1{margin:0;color:var(--accent);font-size:19px;letter-spacing:.08em}
+  main{display:grid;gap:16px;max-width:1180px;margin:0 auto;padding:18px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+  .card,.panel{border:1px solid var(--line);border-radius:8px;background:rgba(36,29,22,.9);box-shadow:0 12px 30px rgba(0,0,0,.24)}
+  .card{padding:13px 14px}.card span{display:block;color:var(--muted);font-size:12px}.card b{display:block;margin-top:5px;font-size:20px;color:#fff4d2;word-break:break-all}
+  .panel{overflow:hidden}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .panel-head h2{margin:0;color:#f0d28c;font-size:15px}.hint{color:var(--muted);font-size:12px}
+  table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid rgba(59,48,37,.72);padding:9px 10px;text-align:left;vertical-align:top}th{color:#d6be86;font-size:12px;background:rgba(255,224,156,.05)}td{font-size:13px}
+  code{color:#f7d98c;word-break:break-all}.badge{display:inline-block;padding:2px 7px;border-radius:999px;border:1px solid var(--line);font-size:12px;color:var(--muted)}
+  .badge.ok{border-color:rgba(111,167,126,.5);color:#9fd1aa}.badge.warn{border-color:rgba(210,160,77,.5);color:#e8bf72}.badge.bad{border-color:rgba(201,100,82,.5);color:#e89b8f}
+  button,a.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:6px 10px;border:1px solid rgba(212,170,92,.48);border-radius:6px;color:#f3dfae;background:rgba(212,170,92,.08);text-decoration:none;cursor:pointer;font:inherit}
+  button:hover,a.btn:hover{background:rgba(212,170,92,.18)}button.danger{border-color:rgba(201,100,82,.6);color:#ffb8aa;background:rgba(201,100,82,.1)}button:disabled{opacity:.45;cursor:not-allowed}
+  .actions{display:flex;flex-wrap:wrap;gap:6px}.top-actions{display:flex;flex-wrap:wrap;gap:8px}.msg{min-height:20px;color:var(--muted)}
+  .login{max-width:390px;margin:12vh auto 0;padding:22px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+  .login h2{margin:0 0 10px;color:var(--accent)}label{display:grid;gap:5px;margin:10px 0;color:#d7c59b}input{width:100%;min-height:38px;border:1px solid var(--line);border-radius:6px;background:#15110d;color:var(--txt);padding:8px 10px;font:inherit}
+  .err{padding:9px 10px;border:1px solid rgba(201,100,82,.55);border-radius:6px;color:#ffc0b5;background:rgba(201,100,82,.12);white-space:pre-wrap}
+  @media(max-width:760px){header{align-items:flex-start;flex-direction:column}main{padding:12px}table{font-size:12px}th:nth-child(4),td:nth-child(4),th:nth-child(6),td:nth-child(6){display:none}.actions{flex-direction:column}}
+</style></head><body>
+<header>
+  <div><h1>服务器后台</h1><div class="hint">多用户对局、在线会话、服务端 LLM 配置</div></div>
+  <div class="top-actions">
+    <a class="btn" href="/">玩家入口</a>
+    <a class="btn" href="/admin">核心表调试台</a>
+    <button id="refreshBtn">刷新</button>
+    <button id="logoutBtn">退出登录</button>
+  </div>
+</header>
+<main id="app"><div class="msg">加载中...</div></main>
+<script>
+const $=s=>document.querySelector(s);
+let overview=null;
+function fmtBytes(n){n=Number(n||0);if(n<1024)return n+" B";if(n<1048576)return (n/1024).toFixed(1)+" KB";return (n/1048576).toFixed(1)+" MB"}
+function fmtTime(ts){return ts?new Date(ts*1000).toLocaleString():"-"}
+async function req(url,opt={}){
+  const r=await fetch(url,{credentials:"same-origin",headers:{"content-type":"application/json",...(opt.headers||{})},...opt});
+  const data=await r.json().catch(()=>({detail:r.statusText}));
+  if(!r.ok){const d=data.detail||data;throw new Error(d.message||d.detail||r.statusText)}
+  return data;
+}
+function renderLogin(err=""){
+  $("#app").innerHTML=`<section class="login"><h2>管理员登录</h2><p class="hint">使用服务端配置的管理员账号。</p>${err?`<div class="err">${err}</div>`:""}<form id="loginForm"><label>用户名<input id="u" autocomplete="username" autofocus></label><label>密码<input id="p" type="password" autocomplete="current-password"></label><button type="submit">登录</button></form></section>`;
+  $("#loginForm").onsubmit=async e=>{e.preventDefault();try{await req("/api/auth/login",{method:"POST",body:JSON.stringify({username:$("#u").value,password:$("#p").value})});await load()}catch(ex){renderLogin(ex.message)}};
+}
+function badge(text,cls){return `<span class="badge ${cls||""}">${text}</span>`}
+function render(data){
+  overview=data;
+  const llm=data.llm||{};
+  const users=(data.users||[]).map(u=>{
+    const turn=u.turn?`${u.year}.${String(u.period).padStart(2,"0")} / 第${u.turn}回合`:"-";
+    return `<tr>
+      <td><b>${u.username}</b><br>${u.is_admin?badge("管理员","warn"):badge("玩家","")}</td>
+      <td>${u.sessions?badge(`${u.sessions} 会话`,"ok"):badge("离线","")}<br>${u.running?badge("对局运行中","ok"):badge("未运行","")}</td>
+      <td>${u.has_main_db?badge("有主进度","ok"):badge("无主进度","bad")}<br><span class="hint">${turn}</span></td>
+      <td><code>${u.current_campaign||"-"}</code><br><span class="hint">${fmtTime(u.db_mtime)} · ${fmtBytes(u.db_size)}</span></td>
+      <td>${u.saves_count} 个<br><span class="hint">${fmtBytes(u.saves_size)} · 最新 ${fmtTime(u.latest_save_mtime)}</span></td>
+      <td><code>${u.db_path}</code></td>
+      <td><div class="actions">
+        <button data-act="close" data-u="${u.username}" ${u.running?"":"disabled"}>关闭对局</button>
+        <button data-act="logout" data-u="${u.username}" ${u.sessions?"":"disabled"}>强制登出</button>
+        <button class="danger" data-act="delete" data-u="${u.username}" ${u.has_main_db?"":"disabled"}>删主进度</button>
+      </div></td>
+    </tr>`;
+  }).join("");
+  $("#app").innerHTML=`<section class="cards">
+    <div class="card"><span>运行对局</span><b>${data.running_games}</b></div>
+    <div class="card"><span>在线会话</span><b>${data.active_sessions}</b></div>
+    <div class="card"><span>服务端模型</span><b>${llm.model||"-"}</b><span>${llm.base_url||""}</span></div>
+    <div class="card"><span>API Key</span><b>${llm.has_api_key?"已配置":"未配置"}</b><span>${llm.client_configurable?"允许网页修改":"服务端托管"}</span></div>
+  </section>
+  <section class="panel"><div class="panel-head"><h2>用户与对局</h2><span class="hint">管理员：${(data.admin_users||[]).join(", ")||"-"} · 已运行 ${Math.floor((data.uptime_seconds||0)/60)} 分钟</span></div>
+  <table><thead><tr><th>用户</th><th>在线</th><th>主进度</th><th>战局</th><th>存档</th><th>路径</th><th>操作</th></tr></thead><tbody>${users||`<tr><td colspan="7">无用户</td></tr>`}</tbody></table></section><div class="msg" id="msg"></div>`;
+  document.querySelectorAll("button[data-act]").forEach(b=>b.onclick=()=>act(b.dataset.act,b.dataset.u));
+}
+async function act(kind,user){
+  try{
+    if(kind==="close"&&!confirm(`关闭 ${user} 的运行对局？`))return;
+    if(kind==="logout"&&!confirm(`强制 ${user} 退出登录并关闭对局？`))return;
+    let data;
+    if(kind==="close")data=await req(`/api/server_admin/users/${encodeURIComponent(user)}/close_game`,{method:"POST"});
+    if(kind==="logout")data=await req(`/api/server_admin/users/${encodeURIComponent(user)}/logout`,{method:"POST"});
+    if(kind==="delete"){
+      const confirmText=prompt(`删除 ${user} 的主进度数据库？不会删除存档。输入 ${user} 或 DELETE 确认。`);
+      if(!confirmText)return;
+      data=await req(`/api/server_admin/users/${encodeURIComponent(user)}/main_db`,{method:"DELETE",body:JSON.stringify({confirm:confirmText})});
+    }
+    render(data.overview||await req("/api/server_admin/overview"));
+  }catch(ex){$("#msg").textContent="操作失败："+ex.message}
+}
+async function load(){
+  try{
+    const me=await req("/api/auth/me");
+    if(me.auth_enabled&&!me.authenticated){renderLogin();return}
+    render(await req("/api/server_admin/overview"));
+  }catch(ex){
+    if(String(ex.message).includes("请先登录"))renderLogin();
+    else $("#app").innerHTML=`<div class="err">${ex.message}</div>`;
+  }
+}
+$("#refreshBtn").onclick=load;
+$("#logoutBtn").onclick=async()=>{await req("/api/auth/logout",{method:"POST"}).catch(()=>{});renderLogin()};
+load();
+</script></body></html>"""
 
 
 _ADMIN_HTML = """<!doctype html>

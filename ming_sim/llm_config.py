@@ -80,7 +80,7 @@ def load_llm_config(
 # 角色 → 用 advanced model 还是 main model。
 # 推演 / 打分 是回合结算的核心叙事 + 结构化抽取，最吃模型能力，单独走 advanced。
 # 其余 agent（大臣对话、诏书润色、记忆检索、JSON 修复、聊天记忆抽取）保持 main，省钱保缓存。
-_ADVANCED_ROLES = frozenset({"simulator", "extractor"})
+_ADVANCED_ROLES = frozenset({"simulator", "extractor", "dialogue_audit"})
 
 
 def for_role(cfg: LLMConfig, role: str) -> LLMConfig:

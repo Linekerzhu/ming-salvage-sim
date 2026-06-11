@@ -18,6 +18,7 @@ from ming_sim.agents import _dump_llm_messages
 from ming_sim.constants import TURN_UNIT
 from ming_sim.content import GameContent
 from ming_sim.context import (
+    build_npc_monthly_followups,
     bind_content as _bind_context,
     character_from_name,
     match_minister_from_text,
@@ -34,7 +35,14 @@ from ming_sim.models import Character, CourtContext, GameState, LLMConfig
 from ming_sim.paths import user_data_path
 from ming_sim.political_reactions import apply_status_change_reaction, character_political_row
 from ming_sim.ranks import official_rank_for
-from ming_sim.registry import MinisterRegistry, bind_content as _bind_registry
+from ming_sim.registry import (
+    MinisterRegistry,
+    bind_content as _bind_registry,
+    build_monthly_followup_brief,
+    build_personal_chat_memory_brief,
+    build_secret_order_brief,
+    build_stance_brief,
+)
 from ming_sim.skills import bind_content as _bind_skills
 
 
@@ -157,6 +165,7 @@ class TurnSnapshot:
     metrics: Dict[str, int]
     deaths_this_turn: List[Dict[str, str]] = field(default_factory=list)
     previous_summary: str = ""
+    monthly_followups: List[Dict[str, object]] = field(default_factory=list)
 
 
 def _find_candidate_by_name(content: GameContent, name: str) -> Optional[str]:
@@ -431,7 +440,6 @@ class GameSession:
         _sync_offices_from_db_impl(self.content, self.db)
         self.agno_db = create_agno_db(db_path)
         self.state = self.db.load_state(start_ym)
-        self.db.ensure_xinpan_states(self.state)
         self.campaign_id = self._ensure_campaign_id()
         # 开局负面帝国修正：新档补全、旧档补缺、已达消除条件的不补/清残。不立 issue、不进推演。
         sync_opening_legacies(self.db, self.state)
@@ -439,12 +447,14 @@ class GameSession:
         self.debuts_this_turn: List[Dict[str, str]] = []
         self.power_renames_this_turn: List[Dict[str, object]] = []
         self.previous_summary = ""
+        self.monthly_followups: List[Dict[str, object]] = []
         self.registry: Optional[MinisterRegistry] = None
         self.temporary_characters: Dict[str, Character] = {}
         self.temporary_session_ids: Dict[str, str] = {}
         self.last_decree = ""
         self.last_report = ""
         self._begun = False
+        self.dialogue_audit_client: object = None
 
     def _ensure_campaign_id(self) -> str:
         """每个存档/战局一个稳定 id，用于自动存档和 NPC LLM session 隔离。"""
@@ -459,13 +469,18 @@ class GameSession:
     def begin_turn(self) -> TurnSnapshot:
         """加载/刷新本回合：历史卒、上回合奏报、重建 registry。幂等。"""
         self.state = self.db.load_state()
-        self.db.ensure_xinpan_states(self.state)
         self.deaths_this_turn = self.db.apply_historical_deaths(self.state)
         self.debuts_this_turn = self.db.apply_historical_debuts(self.state)
         self.power_renames_this_turn = self.db.apply_historical_power_renames(self.state)
         _sync_offices_from_db_impl(self.content, self.db)
         self.previous_summary = self.db.previous_turn_summary(self.state) or ""
-        context = CourtContext(state=self.state, db=self.db, previous_summary=self.previous_summary)
+        self.monthly_followups = build_npc_monthly_followups(self.db, self.state, limit=10)
+        context = CourtContext(
+            state=self.state,
+            db=self.db,
+            previous_summary=self.previous_summary,
+            monthly_followups=list(self.monthly_followups),
+        )
         self.campaign_id = self._ensure_campaign_id()
         self.registry = MinisterRegistry(self.llm_config, self.agno_db, context, campaign_id=self.campaign_id)
         self._register_temporary_characters()
@@ -494,6 +509,7 @@ class GameSession:
             metrics=dict(self.state.metrics),
             deaths_this_turn=list(self.deaths_this_turn),
             previous_summary=self.previous_summary,
+            monthly_followups=list(self.monthly_followups),
         )
 
     def end_turn(self) -> None:
@@ -510,6 +526,7 @@ class GameSession:
                 state=self.state,
                 db=self.db,
                 previous_summary=self.previous_summary,
+                monthly_followups=list(self.monthly_followups),
             )
             self.campaign_id = self._ensure_campaign_id()
             self.registry = MinisterRegistry(self.llm_config, self.agno_db, context, campaign_id=self.campaign_id)
@@ -650,6 +667,30 @@ class GameSession:
     def _persistent_dialogue_character(self, character: Character) -> bool:
         return character.name not in self.temporary_characters and character.office_type != "后宫"
 
+    def _live_dialogue_memory_brief(self, character: Character) -> str:
+        context = CourtContext(
+            state=self.state,
+            db=self.db,
+            previous_summary=self.previous_summary,
+            monthly_followups=list(self.monthly_followups),
+        )
+        parts: List[str] = []
+        for builder in (
+            build_monthly_followup_brief,
+            build_secret_order_brief,
+            build_stance_brief,
+            build_personal_chat_memory_brief,
+        ):
+            try:
+                brief = builder(character, context)
+            except Exception:
+                brief = ""
+            if brief:
+                parts.append(brief)
+        if not parts:
+            return ""
+        return "【本轮动态记忆/立场（隐藏；用于保持人物连续性，不要复述机制名）】\n" + "\n\n".join(parts)
+
     def prepare_chat_run(
         self,
         character: Character,
@@ -658,6 +699,7 @@ class GameSession:
         source_chat_turn_id: int = 0,
     ) -> Tuple[str, PreparedDialogue]:
         augmented = self._retrieve_memories_for_message(message)
+        retrieved_context = augmented if augmented != message else ""
         persistent = self._persistent_dialogue_character(character)
         dialogue_prep = prepare_dialogue_context(
             self.db,
@@ -666,23 +708,25 @@ class GameSession:
             message,
             llm_config=self.llm_config,
             agno_db=self.agno_db,
+            audit_client=self.dialogue_audit_client,
             persistent=persistent,
         )
-        try:
-            xinpan_profile = self.db.get_xinpan_profile(character.name, self.state)
-        except Exception:
-            xinpan_profile = {}
-        goal_text = ""
-        preview_goal = dialogue_prep.preview_goal or {}
-        if isinstance(preview_goal, dict):
-            goal_text = f"{preview_goal.get('title') or ''}\n{preview_goal.get('target_text') or ''}".strip()
-        behavior_brief = npc_dialogue_behavior_brief(
-            character.name,
-            xinpan_profile=xinpan_profile if isinstance(xinpan_profile, dict) else {},
-            text=f"{goal_text}\n{message}" if goal_text else message,
-        )
+        live_memory_brief = self._live_dialogue_memory_brief(character) if persistent else ""
+        if live_memory_brief:
+            augmented = f"{live_memory_brief}\n\n{augmented}"
         if dialogue_prep.prefix:
             augmented = f"{dialogue_prep.prefix}\n\n{augmented}"
+        behavior_parts = [message]
+        if dialogue_prep.prefix:
+            behavior_parts.append(dialogue_prep.prefix[:1800])
+        if live_memory_brief:
+            behavior_parts.append(live_memory_brief[:2600])
+        if retrieved_context:
+            behavior_parts.append(retrieved_context[:2200])
+        behavior_text = "\n\n".join(part for part in behavior_parts if part)
+        behavior_brief = npc_dialogue_behavior_brief(character.name, text=behavior_text)
+        dialogue_prep.behavior_context = behavior_text
+        dialogue_prep.behavior_brief = behavior_brief
         if behavior_brief:
             augmented = f"{behavior_brief}\n\n{augmented}"
         # 本回合已核定草案随大臣议事滚动累加，agent system 在月初冻结拿不到——
@@ -709,6 +753,9 @@ class GameSession:
             answer,
             prepared,
             source_chat_turn_id=source_chat_turn_id,
+            llm_config=self.llm_config,
+            agno_db=self.agno_db,
+            audit_client=self.dialogue_audit_client,
             persistent=self._persistent_dialogue_character(character),
         )
 
@@ -862,29 +909,9 @@ class GameSession:
             "dismissed",
             reason,
         )
-        xinpan = {
-            "shi_delta": -26,
-            "fear_delta": 5,
-            "hatred_delta": 12,
-            "trust_multiplier": 0.84,
-        }
-        try:
-            self.db.apply_direct_xinpan_adjustment(
-                self.state,
-                displaced,
-                shi_delta=float(xinpan["shi_delta"]),
-                fear_delta=float(xinpan["fear_delta"]),
-                hatred_delta=float(xinpan["hatred_delta"]),
-                trust_multiplier=float(xinpan["trust_multiplier"]),
-                event=reason,
-                source_kind="appointment_displacement",
-                source_id=f"{self.state.turn}:{appointed}:{displaced}",
-            )
-        except Exception as exc:  # noqa: BLE001 - appointment itself is already committed
-            print(f"[WARN] 腾缺去职心盘更新失败 {displaced}: {exc}")
         summary = (
             f"{displaced}因{new_office or '新缺'}改授{appointed}被腾缺去职；"
-            f"原任{old_office or old_type or '旧缺'}已削，心盘势合-26、仇恨+12。"
+            f"原任{old_office or old_type or '旧缺'}已削，已记为人事旧怨与履约风险。"
         )
         reaction_summary = str(reactions[0].get("summary") or "") if reactions else ""
         self.db.record_log(self.state, reaction_summary or summary)
@@ -894,7 +921,10 @@ class GameSession:
             "old_office": old_office,
             "old_office_type": old_type,
             "old_faction": old_faction,
-            "xinpan": xinpan,
+            "effect_chips": [
+                {"label": "关系记忆", "value": "腾缺去职", "tone": "bad"},
+                {"label": "履约风险", "value": "旧怨待察", "tone": "warn"},
+            ],
         }
 
     def _apply_unlisted_person_registration(self, payload: str) -> Tuple[str, bool]:
@@ -1026,62 +1056,21 @@ class GameSession:
             risk_score += 1
         risk_score = max(0, min(5, risk_score))
         risk_label = ("常密", "限密", "险密", "危密", "危密", "死密")[risk_score]
-        # Low-risk secret work reads as private trust; dangerous clandestine
-        # work reads as coercive exposure, so it should stop being a free
-        # relationship gain.
-        shi_delta = 5.0 - risk_score * 2.0
-        fear_delta = 1.0 + risk_score * 1.5
-        hatred_delta = 0.0 if risk_score < 3 else (risk_score - 2) * 2.5
-        trust_multiplier = 1.015 if risk_score <= 1 else max(0.92, 1.0 - max(0, risk_score - 2) * 0.015)
-        xinpan = {
-            "shi_delta": round(shi_delta, 1),
-            "fear_delta": round(fear_delta, 1),
-            "hatred_delta": round(hatred_delta, 1),
-            "trust_multiplier": round(trust_multiplier, 3),
-        }
+        pressure = ("低", "中", "高", "极高", "极高", "死局")[risk_score]
+        trust_read = "私下信任可增" if risk_score <= 1 else "保密压力上升" if risk_score <= 3 else "暴露反噬风险高"
         summary = (
             f"密令 #{int(order_id)}「{title}」已交付{minister}；"
-            f"{risk_label}，心盘势合{xinpan['shi_delta']:+g}、畏惧+{xinpan['fear_delta']:g}"
-            + (f"、仇恨+{xinpan['hatred_delta']:g}" if xinpan["hatred_delta"] else "")
-            + (f"、信言×{xinpan['trust_multiplier']:g}" if xinpan["trust_multiplier"] != 1 else "")
-            + "。"
+            f"{risk_label}，保密压力{pressure}，{trust_read}；后续按记忆、履约和月末核议追踪。"
         )
-        already_recorded = self.db.conn.execute(
-            """
-            SELECT 1 FROM xinpan_logs
-            WHERE character_name=? AND source_kind='secret_order' AND source_id=?
-            LIMIT 1
-            """,
-            (minister, str(int(order_id))),
-        ).fetchone()
-        if already_recorded:
-            return {
-                "summary": f"{summary}（已登记心盘，不重复叠加。）",
-                "risk_label": risk_label,
-                "risk_score": risk_score,
-                "xinpan": xinpan,
-                "already_recorded": True,
-            }
-        try:
-            self.db.apply_direct_xinpan_adjustment(
-                self.state,
-                minister,
-                shi_delta=xinpan["shi_delta"],
-                fear_delta=xinpan["fear_delta"],
-                hatred_delta=xinpan["hatred_delta"],
-                trust_multiplier=xinpan["trust_multiplier"],
-                event=f"受领密令 #{int(order_id)}「{title}」",
-                source_kind="secret_order",
-                source_id=str(int(order_id)),
-            )
-        except Exception as exc:  # noqa: BLE001 - secret order itself is already committed
-            print(f"[WARN] 密令心盘更新失败 {minister} #{order_id}: {exc}")
         self.db.record_log(self.state, summary)
         return {
             "summary": summary,
             "risk_label": risk_label,
             "risk_score": risk_score,
-            "xinpan": xinpan,
+            "effect_chips": [
+                {"label": "保密压力", "value": pressure, "tone": "bad" if risk_score >= 3 else "warn" if risk_score >= 2 else "neutral"},
+                {"label": "关系记忆", "value": trust_read, "tone": "warn" if risk_score >= 2 else "good"},
+            ],
             "already_recorded": False,
         }
 

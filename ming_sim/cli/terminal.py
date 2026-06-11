@@ -375,6 +375,17 @@ def play_turn(session: GameSession) -> None:
     if snap.deaths_this_turn:
         names = "、".join(f"{d['name']}（{d['office']}）" for d in snap.deaths_this_turn)
         print(f"【讣闻】本{TURN_UNIT}卒：{names}\n")
+    if snap.monthly_followups:
+        lines = []
+        for item in snap.monthly_followups[:3]:
+            name = str(item.get("minister_name") or "")
+            title = str(item.get("title") or item.get("summary") or "")
+            mode = str(item.get("truth_mode") or "")
+            risks = "、".join(str(tag) for tag in (item.get("risk_tags") or [])[:3])
+            suffix = f"；{mode}" if mode else ""
+            suffix += f"；风险：{risks}" if risks else ""
+            lines.append(f"{name}：{title}{suffix}")
+        print("【候见/请安】" + "；".join(lines) + "\n")
     from ming_sim.issues import show_active_issues
     show_active_issues(session.db)
 

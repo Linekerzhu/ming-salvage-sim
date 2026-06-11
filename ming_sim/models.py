@@ -264,6 +264,7 @@ class CourtContext:
     state: "GameState"
     db: "object"  # GameDB；用 object 注解避免 import db.py 造成环
     previous_summary: str = ""
+    monthly_followups: List[Dict[str, object]] = field(default_factory=list)
 
 
 def period_label(year: int, month: int) -> str:

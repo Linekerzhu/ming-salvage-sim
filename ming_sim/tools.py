@@ -5,8 +5,17 @@ from __future__ import annotations
 import json
 import re
 
+from ming_sim.bureaucracy import secret_order_actor_assessment
 from ming_sim.constants import TURN_UNIT
-from ming_sim.context import _ctx as _content_ctx, npc_network_brief, npc_network_recommendations, state_context
+from ming_sim.context import (
+    _ctx as _content_ctx,
+    npc_dialogue_behavior_profile,
+    npc_network_brief,
+    npc_network_profile,
+    npc_network_recommendations,
+    npc_relation_perspective,
+    state_context,
+)
 from ming_sim.models import Character, CourtContext
 from ming_sim.skills import available_skill_ids, skill_template
 
@@ -122,7 +131,7 @@ def build_minister_tools(character: Character, context: CourtContext):
             return f"未找到建筑 '{building_name}'。可先调 list_buildings 看建筑列表。错误：{e}"
 
     def inspect_npc_network(name: str) -> str:
-        """查看某人的人物小传、人脉关系、能力构成和天罡行为摘要。name 填人物姓名或别名；隐藏数值原值不会返回。"""
+        """查看某人的人物小传、人脉关系、能力构成和人格-关系行为摘要。name 填人物姓名或别名；隐藏数值原值不会返回。"""
         query = str(name or "").strip()
         if not query:
             return "请给出人物姓名。"
@@ -142,6 +151,90 @@ def build_minister_tools(character: Character, context: CourtContext):
             return f"未找到人物网络卡：{query}。"
         return npc_network_brief(key, max_relations=12, year=context.state.year) or f"{key} 暂无人脉卡。"
 
+    def candidate_fit_brief(name: str, need: str = "", office: str = "") -> str:
+        target_name = str(name or "").strip()
+        content = _content_ctx()
+        target = content.characters.get(target_name)
+        if target is None:
+            return "能力匹配：未建档，须另查履历。"
+        topic = f"{need or ''} {office or ''}".strip()
+        profile = npc_network_profile(target_name, db=context.db, limit=4)
+        ability_logic = _clean_obsidian_text(profile.get("ability_logic") if isinstance(profile, dict) else "")
+        growth = profile.get("growth_arc") if isinstance(profile.get("growth_arc"), dict) else {}
+        growth_risk = _clean_obsidian_text(growth.get("risk") if isinstance(growth, dict) else "")
+        trait_text = " ".join(str(item) for item in (target.personal_skills or []) if str(item).strip())
+        candidate_text = " ".join(
+            part
+            for part in (
+                target.office,
+                target.office_type,
+                target.faction,
+                trait_text,
+                target.style,
+                ability_logic,
+            )
+            if part
+        )
+        domains = [
+            ("钱粮财政", ("钱粮", "财政", "户部", "赋税", "税", "盐", "仓", "度支", "理财", "清丈")),
+            ("辽事军务", ("辽", "边", "军", "兵", "饷", "督师", "总兵", "战", "守城", "关宁", "宁远")),
+            ("刑名查办", ("刑", "狱", "审", "法", "查办", "会审", "取证", "清查")),
+            ("密查耳目", ("密查", "密令", "厂卫", "东厂", "锦衣卫", "耳目", "刺探", "情报")),
+            ("人事铨选", ("人事", "铨", "吏部", "举荐", "保荐", "起复", "门生", "官缺")),
+            ("清议辞令", ("清议", "东林", "言路", "科道", "名分", "公论", "礼部", "文章")),
+            ("地方民生", ("地方", "民生", "赈", "灾", "流民", "田亩", "士绅", "抚民")),
+        ]
+        hits = [
+            label
+            for label, markers in domains
+            if any(marker in topic for marker in markers) and any(marker in candidate_text for marker in markers)
+        ]
+        behavior = npc_dialogue_behavior_profile(target_name, text=topic or f"{need} {office}")
+        risk_tags = [
+            str(item).strip()
+            for item in (behavior.get("risk_tags") if isinstance(behavior, dict) else []) or []
+            if str(item).strip()
+        ]
+        stance = str(behavior.get("preferred_stance") or "neutral") if isinstance(behavior, dict) else "neutral"
+        stance_text = {
+            "support": "倾向接办",
+            "caution": "倾向附条件",
+            "oppose": "倾向抵触",
+            "neutral": "先审利害",
+        }.get(stance, "先审利害")
+        hit_text = "、".join(hits[:3]) if hits else "未直接命中，须补授权/资源/佐贰"
+        risk_text = "、".join(risk_tags[:3]) if risk_tags else "无显著性格风险"
+        boundary = growth_risk[:80] if growth_risk else "需按其职掌、关系网和当前状态设复命期限。"
+        return f"能力命中：{hit_text}；性格风险：{risk_text}；承办倾向：{stance_text}；承办边界：{boundary}"
+
+    def memory_recall_behavior_hint(text: str) -> str:
+        source = str(text or "").strip()
+        if not source:
+            return ""
+        profile = npc_dialogue_behavior_profile(character.name, text=source)
+        network = profile.get("network_pressure") if isinstance(profile.get("network_pressure"), dict) else {}
+        bits = []
+        for key, label in (("rivals", "政敌/旧怨"), ("allies", "同党/同道"), ("obligations", "恩主座师")):
+            values = [str(item) for item in (network.get(key) or []) if str(item).strip()]
+            if values:
+                bits.append(f"{label}：" + "、".join(values[:3]))
+        risk_tags = [str(item) for item in (profile.get("risk_tags") or []) if str(item).strip()]
+        decisions = [str(item) for item in (profile.get("decision") or []) if str(item).strip()]
+        self_mentioned = character.name in source or any(alias and alias in source for alias in (character.aliases or []))
+        if not bits and not risk_tags and not self_mentioned:
+            return ""
+        parts = ["【旧事入戏提示（隐藏；按本人记忆和关系反应，不要机械复述史料）】"]
+        if self_mentioned:
+            parts.append(f"- 旧事点名你本人或别称；回奏时要接续自身前言、功过或未了条件。")
+        if bits:
+            parts.append("- 关系触发：" + "；".join(bits))
+        if risk_tags:
+            parts.append("- 风险标签：" + "、".join(risk_tags[:5]))
+        parts.append(f"- 真话策略：{profile.get('truth_mode') or '直陈为主'}。")
+        if decisions:
+            parts.append("- 回奏口径：" + "；".join(decisions[:3]))
+        return "\n".join(parts)
+
     def recommend_candidates_by_network(need: str = "", office: str = "", limit: int = 6) -> str:
         """按本人多维人脉、反向关系、同乡/同年/师徒/同官署/风闻等举荐候选。
         举荐他人、保荐、铨选、请某人办差前先调用；不要只按派系举荐。
@@ -152,16 +245,46 @@ def build_minister_tools(character: Character, context: CourtContext):
         lines = [f"【{character.name}人脉举荐候选】需求：{need or '未明'}；拟缺：{office or '未明'}"]
         for idx, row in enumerate(rows, 1):
             evidence = "；".join(_clean_obsidian_text(item) for item in row.get("evidence", [])[:3])
+            conflicts = "；".join(_clean_obsidian_text(item) for item in row.get("conflicts", [])[:2])
+            if conflicts:
+                evidence = f"{evidence}；冲突：{conflicts}" if evidence else f"冲突：{conflicts}"
             try:
                 score = int(row.get("score") or 0)
             except (TypeError, ValueError):
                 score = 0
             weight = "强背书" if score >= 30 else "可参考" if score >= 18 else "弱风闻"
+            fit = candidate_fit_brief(str(row["name"]), need=need, office=office)
             lines.append(
                 f"{idx}. {row['name']}（{row['office'] or row['office_type']}，{row['faction']}，{row['status']}）"
-                f" {weight}，依据：{evidence}"
+                f" {weight}，依据：{evidence}；{fit}"
             )
         return "\n".join(lines)
+
+    def assess_person_by_network(name: str, topic: str = "") -> str:
+        """以当前大臣自己的关系网评价某人。
+        皇帝询问某人建议、要你举荐/反对/处置某人、或让你评价他人能否承办时先调用；
+        返回会提示你是否因政敌、同党、恩主座师而告状、护短、选择性真话或半真半假。
+        """
+        perspective = npc_relation_perspective(character.name, name, topic=topic)
+        if not perspective.get("found"):
+            return str(perspective.get("brief") or f"未找到人物：{name}")
+        profile = perspective.get("target_profile") if isinstance(perspective.get("target_profile"), dict) else {}
+        risks = "、".join(str(item) for item in perspective.get("risk_tags", []) if str(item).strip())
+        traits = "、".join(str(item) for item in perspective.get("traits", []) if str(item).strip())
+        note = str(perspective.get("relation_note") or "").strip()
+        topic_text = f"；议题：{perspective.get('topic')}" if perspective.get("topic") else ""
+        fit = candidate_fit_brief(str(perspective.get("target") or name), need=topic)
+        return (
+            f"【{character.name}评价{perspective.get('target')}的关系压力】{topic_text}\n"
+            f"- 对象：{perspective.get('target')}，{profile.get('office') or profile.get('office_type') or '职掌未明'}，"
+            f"{profile.get('faction') or '派系未明'}，状态{profile.get('status') or '未知'}。\n"
+            f"- 目标匹配：{fit}\n"
+            f"- 关系：{perspective.get('relation_type')}；类别：{perspective.get('relation_class')}。"
+            + (f"依据：{note}\n" if note else "\n")
+            + f"- 建议口径：{perspective.get('guidance')}\n"
+            f"- 真话策略：{perspective.get('truth_mode')}；风险：{risks or '无显著关系风险'}"
+            + (f"；本人话术特质：{traits}" if traits else "")
+        )
 
     def estimate_resistance(slot: int) -> str:
         """估算某条在办事项若下旨推动的主要阻力。slot 是事项编号（由 list_memorials 给出）。"""
@@ -223,7 +346,10 @@ def build_minister_tools(character: Character, context: CourtContext):
         ).fetchone()
         if not row or not row["report"]:
             return f"{target_year}年{target_month}月未见正式邸报记录。"
-        return f"【{target_year}年{target_month}月邸报】\n{row['report']}"
+        report = str(row["report"] or "")
+        hint = memory_recall_behavior_hint(report)
+        suffix = f"\n{hint}" if hint else ""
+        return f"【{target_year}年{target_month}月邸报】\n{report}{suffix}"
 
     def recall_memories_by_time(
         year: int,
@@ -242,9 +368,14 @@ def build_minister_tools(character: Character, context: CourtContext):
         if not window:
             return f"{year}年{period}月前后未见起居注记载。"
         lines = [f"【{year}年{period}月前后起居注】"]
+        recall_text_parts = []
         for c in window:
             body = (c.get("body") or c.get("title") or "").strip()
+            recall_text_parts.append(body)
             lines.append(f"- {c['year']}年{c['period']}月：{body}")
+        hint = memory_recall_behavior_hint("\n".join(recall_text_parts))
+        if hint:
+            lines.append(hint)
         return "\n".join(lines)
 
     def search_memories(keywords: str) -> str:
@@ -268,9 +399,14 @@ def build_minister_tools(character: Character, context: CourtContext):
         from ming_sim.token_stats import tlog
         tlog(f"[search_memories] keywords={kw_list} hit={len(hits)}")
         lines = [f"【起居注检索：{' '.join(kw_list)}】"]
+        recall_text_parts = []
         for c in hits[-8:]:
             body = (c.get("body") or c.get("title") or "").strip()
+            recall_text_parts.append(body)
             lines.append(f"- {c['year']}年{c['period']}月：{body}")
+        hint = memory_recall_behavior_hint("\n".join(recall_text_parts))
+        if hint:
+            lines.append(hint)
         return "\n".join(lines)
 
     def check_treasury() -> str:
@@ -313,12 +449,28 @@ def build_minister_tools(character: Character, context: CourtContext):
         off = (office or "").strip()
         if not nm or not off:
             return "铨选失败：姓名或拟授官职为空。"
+        perspective = npc_relation_perspective(character.name, nm, topic=f"铨选{off}")
         recommendations = npc_network_recommendations(character.name, db=context.db, limit=12)
         evidence = ""
         for row in recommendations:
             if row["name"] == nm:
                 evidence = "；".join(_clean_obsidian_text(item) for item in row.get("evidence", [])[:3])
+                conflicts = "；".join(_clean_obsidian_text(item) for item in row.get("conflicts", [])[:2])
+                if conflicts:
+                    evidence += f"；但有关系冲突：{conflicts}"
+                fit = candidate_fit_brief(nm, need=reason, office=off)
+                evidence = f"{evidence}；{fit}" if evidence else fit
                 break
+        if perspective.get("found") and perspective.get("relation_class") == "rival":
+            evidence = (
+                f"关系风险：{character.name}与{perspective.get('target')}属{perspective.get('relation_type')}，"
+                f"{perspective.get('guidance')} 若仍拟任，须说明这是皇帝点名、公开才具或制衡安排，不是私人举荐。"
+            )
+        elif not evidence and perspective.get("found") and perspective.get("relation_class") in {"ally", "obligation"}:
+            evidence = (
+                f"关系背书：{character.name}与{perspective.get('target')}属{perspective.get('relation_type')}；"
+                f"{perspective.get('guidance')}"
+            )
         if not evidence:
             evidence = "无直接人脉强背书；若仍举荐，须在 reason 里说明史实、才具或皇帝已确认的来源。"
         import json as _json
@@ -415,7 +567,38 @@ def build_minister_tools(character: Character, context: CourtContext):
             return f"__secret_order__{json.dumps({'title': t, 'content': c, 'tags': tags_clean, 'assignee': real_assignee, 'deadline_months': deadline}, ensure_ascii=False)}"
         print(f"[secret_order/tool] 直接落库 id={order_id} assignee={real_assignee} title={t!r}")
         deadline_text = f"，御限 {deadline} 个月" if deadline else ""
-        return f"__secret_order_registered__{order_id}__密令已登记入档，编号 #{order_id}，承办：{real_assignee}{deadline_text}，标题：{t}。"
+        order = context.db.get_secret_order(order_id) or {"id": order_id, "title": t, "minister_name": real_assignee, "content": c}
+        actor_brief = secret_order_actor_brief(order)
+        suffix = f"\n{actor_brief}" if actor_brief else ""
+        return f"__secret_order_registered__{order_id}__密令已登记入档，编号 #{order_id}，承办：{real_assignee}{deadline_text}，标题：{t}。{suffix}"
+
+    def secret_order_actor_brief(order: dict) -> str:
+        try:
+            assessment = secret_order_actor_assessment(context.state, context.db, order)
+        except Exception:
+            return ""
+        drivers = "；".join(str(item) for item in (assessment.get("drivers") or [])[:4] if str(item).strip())
+        risk_items = [
+            str(item).strip()
+            for item in [
+                *((assessment.get("risks") or [])[:5]),
+                *((assessment.get("stance_risks") or [])[:3]),
+            ]
+            if str(item).strip()
+        ]
+        risks = "；".join(list(dict.fromkeys(risk_items))[:5])
+        behavior = re.sub(r"\s+", " ", str(assessment.get("personality_behavior") or "").strip())[:260]
+        lines = [
+            "【密令承办画像（隐藏；回奏须按本人性格、关系与风险取舍，不要机械报流水）】",
+            f"- 承办适配：{assessment.get('label') or '未判'}（{assessment.get('score', 0)}/100）。",
+        ]
+        if drivers:
+            lines.append(f"- 驱动：{drivers}")
+        if risks:
+            lines.append(f"- 风险：{risks}")
+        if behavior:
+            lines.append(f"- 行为口径：{behavior}")
+        return "\n".join(lines)
 
     def _own_secret_order(order_id: int):
         """取本承办人名下密令；非承办人或不存在返回 (None, 提示串)。"""
@@ -460,6 +643,9 @@ def build_minister_tools(character: Character, context: CourtContext):
         parts.append(f"查办经过（按月，末行最新）：\n{order['result'] or '尚无进展记录。'}")
         if order.get("sim_note"):
             parts.append(f"外间动静（按月，末行最新）：\n{order['sim_note']}")
+        actor_brief = secret_order_actor_brief(order)
+        if actor_brief:
+            parts.append(actor_brief)
         if saved:
             parts.append(f"✅ 本月新进展已落档：{note}")
         elif is_issuing_turn:
@@ -492,7 +678,10 @@ def build_minister_tools(character: Character, context: CourtContext):
         )
         if not ok:
             return f"密令 #{order['id']} 提交失败（当前状态非 active）。"
-        return f"密令 #{order['id']}「{order['title']}」已提交待推演核议，本月不再可推进。陛下可静候月末邸报「密旨核议」章定夺。"
+        order = context.db.get_secret_order(order["id"]) or order
+        actor_brief = secret_order_actor_brief(order)
+        suffix = f"\n{actor_brief}" if actor_brief else ""
+        return f"密令 #{order['id']}「{order['title']}」已提交待推演核议，本月不再可推进。陛下可静候月末邸报「密旨核议」章定夺。{suffix}"
 
     def rush_secret_order(order_id: int, deadline_months: int = 1, reason: str = "") -> str:
         """皇帝催办/加急某条密令时调用，缩短硬期限。
@@ -512,10 +701,13 @@ def build_minister_tools(character: Character, context: CourtContext):
             )
         except Exception as exc:
             return f"密令 #{order['id']} 催办失败：{exc}"
+        updated_order = context.db.get_secret_order(order["id"]) or rushed
+        actor_brief = secret_order_actor_brief(updated_order)
+        suffix = f"\n{actor_brief}" if actor_brief else ""
         if rushed["status"] == "pending_review":
-            return f"密令 #{order['id']}「{order['title']}」已奉旨即核，转入待核议；本月月末推演必须判 done/failed。"
+            return f"密令 #{order['id']}「{order['title']}」已奉旨即核，转入待核议；本月月末推演必须判 done/failed。{suffix}"
         remain = max(0, int(rushed["due_turn"]) - int(context.state.turn))
-        return f"密令 #{order['id']}「{order['title']}」已奉旨加急，限 {remain} 个月内核议。"
+        return f"密令 #{order['id']}「{order['title']}」已奉旨加急，限 {remain} 个月内核议。{suffix}"
 
     def dismiss_minister() -> str:
         """结束本次召见。"""
@@ -536,6 +728,7 @@ def build_minister_tools(character: Character, context: CourtContext):
         inspect_building,
         inspect_npc_network,
         recommend_candidates_by_network,
+        assess_person_by_network,
         estimate_resistance,
         read_past_report,
         search_memories,

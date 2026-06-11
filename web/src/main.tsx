@@ -33,7 +33,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { EXTERNAL_PATH_GROUPS, MAP_VIEW_BOX, REGION_PATH_GROUPS } from "./mapPaths";
+import type { ExternalPathGroup, RegionPathGroup } from "./mapPaths";
 import "./styles.css";
 
 type Metrics = Record<string, number>;
@@ -109,11 +109,22 @@ type Building = {
   origin: string;
 };
 
+type OrgPerson = {
+  name: string;
+  office: string;
+  office_type: string;
+  faction: string;
+  status: string;
+  status_reason?: string;
+  status_label: string;
+  power_id?: string;
+};
+
 type OrgSlot = {
   title: string;
   office_type: string;
   count: number;
-  holders: Minister[];
+  holders: OrgPerson[];
   filled_count?: number;
   vacancies: number;
   overflow_count?: number;
@@ -142,7 +153,7 @@ type OrganizationPayload = {
   vacancy_count: number;
   custom_count: number;
   assigned_count?: number;
-  unassigned?: Minister[];
+  unassigned?: OrgPerson[];
   court_readiness?: number;
   risk_count?: number;
   execution_summary?: string;
@@ -319,6 +330,9 @@ type ConversationGoal = {
   expires_turn?: number;
   abandoned_reason?: string;
   progress_label?: string;
+  public_hint?: string;
+  audit_confidence?: number;
+  audit_status?: string;
 };
 
 type AgreementTask = {
@@ -379,7 +393,7 @@ type MapNode = {
   label?: string;
   risk: number;
   region?: Region;
-  armies: Army[];
+  armies?: Army[];
   buildings?: Building[];
   power?: Power;
 };
@@ -420,6 +434,8 @@ type Minister = {
   status_label: string;  // 中文：在朝/已罢黜/下狱/流放/致仕…
   career_state?: string;
   summary: string;
+  style?: string;
+  personal_skills?: string[];
   birth_year?: number;
   start_age?: number;
   age_label?: string;
@@ -432,8 +448,6 @@ type Minister = {
   portrait_wardrobe_key?: string;
   power_id?: string;     // 大明=ming, 后金=houjin, 流寇=bandits 等
   network_profile?: NetworkProfile;
-  xinpan_profile?: XinpanProfile;
-  tiangang_profile?: TiangangProfile;
   stance_notes?: StanceNote[];
   conversation_goals?: ConversationGoal[];
   skills: Array<{ id: string; name: string; sources: string[]; description: string }>;
@@ -450,16 +464,8 @@ type CharacterIndexEntry = {
   power_id: string;
   power_name: string;
   summary: string;
-  birth_year?: number;
-  start_age?: number;
-  age_label?: string;
   portrait_available?: boolean;
-  portrait_status?: "ready" | "pending" | "error" | "missing" | string;
-  portrait_error?: string;
-  portrait_dna_seed?: string;
-  portrait_wardrobe_key?: string;
   can_summon?: boolean;
-  xinpan_quadrant?: string;
 };
 
 type EventItem = {
@@ -575,10 +581,26 @@ type PlayerItem = {
   id: string; name: string; category: string;
   rarity: string; quantity: number; equipped: boolean;
 };
+
+type MonthlyFollowup = {
+  minister_name: string;
+  priority: number;
+  reason_types?: string[];
+  memory_hooks?: string[];
+  title: string;
+  summary: string;
+  suggested_opening: string;
+  preferred_stance?: "support" | "oppose" | "caution" | "neutral" | string;
+  truth_mode?: string;
+  personality_cue?: string;
+  risk_tags?: string[];
+};
+
 type GameState = {
   turn: { year: number; period: number; turn: number };
   metrics: Metrics;
   previous_summary: string;
+  monthly_followups?: MonthlyFollowup[];
   treasury: string;
   issues: Issue[];
   legacies: Legacy[];
@@ -594,7 +616,7 @@ type GameState = {
   regions: Region[];
   armies: Army[];
   map_nodes: MapNode[];
-  organizations: OrganizationPayload;
+  organizations?: OrganizationPayload;
   character_index?: CharacterIndexEntry[];
   ministers: Minister[];
   consorts: Minister[];
@@ -606,6 +628,40 @@ type GameState = {
   last_report: string;
   adventures: AdventureLog[];
   items: PlayerItem[];
+};
+
+type EncodedMinisterRow = Partial<Minister> | unknown[];
+type GameStateWire = Omit<GameState, "ministers" | "consorts"> & {
+  minister_fields?: string[];
+  ministers?: EncodedMinisterRow[];
+  consorts?: EncodedMinisterRow[];
+};
+
+const decodeMinisterRows = (rows: EncodedMinisterRow[] | undefined, fields: string[] | undefined): Minister[] => {
+  const fieldList = fields || [];
+  return (rows || []).map((row) => {
+    const decoded: Record<string, any> = Array.isArray(row)
+      ? Object.fromEntries(fieldList.map((field, index) => [field, row[index]]))
+      : { ...row };
+    return {
+      ...decoded,
+      status: String(decoded.status || "active"),
+      status_label: String(decoded.status_label || "在朝"),
+      summary: String(decoded.summary || [decoded.office, decoded.office_type, decoded.faction].filter(Boolean).join(" · ")),
+      power_id: String(decoded.power_id || "ming"),
+      favorite: !!decoded.favorite,
+      skills: Array.isArray(decoded.skills) ? decoded.skills : [],
+    } as Minister;
+  });
+};
+
+const normalizeGameState = (data: GameStateWire): GameState => {
+  const { minister_fields: ministerFields, ministers, consorts, ...rest } = data;
+  return {
+    ...rest,
+    ministers: decodeMinisterRows(ministers, ministerFields),
+    consorts: decodeMinisterRows(consorts, ministerFields),
+  } as GameState;
 };
 
 type EndingTimelineItem = {
@@ -713,7 +769,7 @@ type ChatResponse = {
     old_office?: string;
     old_office_type?: string;
     old_faction?: string;
-    xinpan?: Record<string, number>;
+    effect_chips?: ChatEffectChip[];
   };
   proposed_directive?: ProposedDirective | null;
   secret_order_id?: number;
@@ -722,7 +778,14 @@ type ChatResponse = {
     summary?: string;
     risk_label?: string;
     risk_score?: number;
-    xinpan?: Record<string, number>;
+    effect_chips?: ChatEffectChip[];
+  };
+  dialogue_goal?: {
+    audit_status?: string;
+    public_hint?: string;
+    audit_confidence?: number;
+    event?: string;
+    error?: string;
   };
 };
 
@@ -751,33 +814,7 @@ type ChatUndoResponse = {
   pending_count: number;
   secret_orders: SecretOrder[];
   can_undo_last_chat: boolean;
-};
-
-const signedEffect = (value: number, digits = 1) => {
-  const rounded = Number(value.toFixed(digits));
-  return `${rounded > 0 ? "+" : ""}${rounded}`;
-};
-
-const xinpanEffectChips = (xinpan?: Record<string, number>): ChatEffectChip[] => {
-  if (!xinpan) return [];
-  const chips: ChatEffectChip[] = [];
-  const shi = Number(xinpan.shi_delta || 0);
-  const fear = Number(xinpan.fear_delta || 0);
-  const hatred = Number(xinpan.hatred_delta || 0);
-  const trust = Number(xinpan.trust_multiplier || 1);
-  if (Math.abs(shi) >= 0.05) {
-    chips.push({ label: "势合", value: signedEffect(shi), tone: shi > 0 ? "good" : "bad" });
-  }
-  if (Math.abs(fear) >= 0.05) {
-    chips.push({ label: "畏惧", value: signedEffect(fear), tone: fear > 0 ? "warn" : "good" });
-  }
-  if (Math.abs(hatred) >= 0.05) {
-    chips.push({ label: "仇恨", value: signedEffect(hatred), tone: hatred > 0 ? "bad" : "good" });
-  }
-  if (Math.abs(trust - 1) >= 0.004) {
-    chips.push({ label: "信言", value: `x${Number(trust.toFixed(3))}`, tone: trust >= 1 ? "good" : "bad" });
-  }
-  return chips;
+  state?: GameState;
 };
 
 const secretOrderUrgency = (order: SecretOrder, currentTurn: number) => {
@@ -856,6 +893,7 @@ const formatApiError = (error: any, fallback: string) => {
 
 const api = async <T,>(path: string, options?: RequestInit): Promise<T> => {
   const response = await fetch(path, {
+    credentials: "same-origin",
     headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
     ...options,
   });
@@ -888,6 +926,7 @@ const streamChat = async (
 ): Promise<ChatResponse> => {
   const response = await fetch(`/api/ministers/${encodeURIComponent(ministerName)}/chat/stream`, {
     method: "POST",
+    credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message }),
   });
@@ -1249,7 +1288,7 @@ const getMapIntelStyle = (node: MapNode): React.CSSProperties => {
   return style;
 };
 
-type AppView = "menu" | "game";
+type AppView = "login" | "menu" | "game";
 
 type MenuSave = {
   name: string;
@@ -1279,6 +1318,12 @@ type MenuStatus = {
   saves: MenuSave[];
   campaigns?: MenuCampaign[];
   current_campaign?: string;
+  llm_client_configurable?: boolean;
+  auth?: {
+    enabled: boolean;
+    username: string;
+    is_admin?: boolean;
+  };
   llm: {
     base_url: string;
     model: string;
@@ -1293,10 +1338,30 @@ type MenuStatus = {
   };
 };
 
+type AuthStatus = {
+  auth_enabled: boolean;
+  authenticated: boolean;
+  username: string;
+  is_admin?: boolean;
+};
+
 function App() {
   const [appView, setAppView] = React.useState<AppView>("menu");
+  const [authStatus, setAuthStatus] = React.useState<AuthStatus | null>(null);
   const [menuStatus, setMenuStatus] = React.useState<MenuStatus | null>(null);
   const [state, setState] = React.useState<GameState | null>(null);
+  const [characterIndex, setCharacterIndex] = React.useState<CharacterIndexEntry[]>([]);
+  const [characterIndexLoading, setCharacterIndexLoading] = React.useState(false);
+  const [characterIndexError, setCharacterIndexError] = React.useState("");
+  const [organizations, setOrganizations] = React.useState<OrganizationPayload | null>(null);
+  const [organizationsLoading, setOrganizationsLoading] = React.useState(false);
+  const [organizationsError, setOrganizationsError] = React.useState("");
+  const [monthlyFollowups, setMonthlyFollowups] = React.useState<MonthlyFollowup[]>([]);
+  const [monthlyFollowupsLoading, setMonthlyFollowupsLoading] = React.useState(false);
+  const [monthlyFollowupsError, setMonthlyFollowupsError] = React.useState("");
+  const [mapDetailNodes, setMapDetailNodes] = React.useState<MapNode[]>([]);
+  const [mapDetailsLoading, setMapDetailsLoading] = React.useState(false);
+  const [mapDetailsError, setMapDetailsError] = React.useState("");
   const [selectedNodeId, setSelectedNodeId] = React.useState<string>("");
   const [mapIntelOpen, setMapIntelOpen] = React.useState(false);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
@@ -1373,14 +1438,82 @@ function App() {
     setActiveDrawer(activeDrawer === drawer ? "" : drawer);
   }, [activeDrawer, setActiveDrawer]);
 
+  const applyGameState = React.useCallback((data: GameStateWire) => {
+    const normalized = normalizeGameState(data);
+    refreshLabelMaps(normalized);
+    setState(normalized);
+    setCharacterIndex(Array.isArray(normalized.character_index) ? normalized.character_index : []);
+    setCharacterIndexError("");
+    setOrganizations(normalized.organizations || null);
+    setOrganizationsError("");
+    setMonthlyFollowups([]);
+    setMonthlyFollowupsLoading(false);
+    setMonthlyFollowupsError("");
+    setMapDetailNodes([]);
+    setMapDetailsError("");
+    setSelectedNodeId((current) => current || normalized.map_nodes[0]?.id || "");
+    setDecree(normalized.last_decree || "");
+    setReport(normalized.last_report || "");
+  }, []);
+
   const loadState = React.useCallback(async () => {
-    const data = await api<GameState>("/api/game/state");
-    refreshLabelMaps(data);
-    setState(data);
-    setSelectedNodeId((current) => current || data.map_nodes[0]?.id || "");
-    setDecree(data.last_decree || "");
-    setReport(data.last_report || "");
-  }, [selectedMinister]);
+    applyGameState(await api<GameStateWire>("/api/game/state"));
+  }, [applyGameState]);
+
+  const loadCharacterIndex = React.useCallback(async (force = false) => {
+    if (!force && (characterIndex.length || characterIndexLoading)) return;
+    setCharacterIndexLoading(true);
+    setCharacterIndexError("");
+    try {
+      const data = await api<{ characters: CharacterIndexEntry[] }>("/api/characters");
+      setCharacterIndex(data.characters || []);
+    } catch (err) {
+      setCharacterIndexError(formatApiError(err, "读取人物志失败"));
+    } finally {
+      setCharacterIndexLoading(false);
+    }
+  }, [characterIndex.length, characterIndexLoading]);
+
+  const loadOrganizations = React.useCallback(async (force = false) => {
+    if (!force && (organizations || organizationsLoading)) return;
+    setOrganizationsLoading(true);
+    setOrganizationsError("");
+    try {
+      setOrganizations(await api<OrganizationPayload>("/api/organizations"));
+    } catch (err) {
+      setOrganizationsError(formatApiError(err, "读取组织图失败"));
+    } finally {
+      setOrganizationsLoading(false);
+    }
+  }, [organizations, organizationsLoading]);
+
+  const loadMonthlyFollowups = React.useCallback(async (force = false) => {
+    if (!force && (monthlyFollowups.length || monthlyFollowupsLoading)) return;
+    setMonthlyFollowupsLoading(true);
+    setMonthlyFollowupsError("");
+    try {
+      const data = await api<{ followups: MonthlyFollowup[] }>("/api/monthly_followups");
+      setMonthlyFollowups(data.followups || []);
+    } catch (err) {
+      setMonthlyFollowupsError(formatApiError(err, "读取候见清单失败"));
+    } finally {
+      setMonthlyFollowupsLoading(false);
+    }
+  }, [monthlyFollowups.length, monthlyFollowupsLoading]);
+
+  const loadMapDetails = React.useCallback(async (force = false) => {
+    if (!force && (mapDetailNodes.length || mapDetailsLoading)) return;
+    setMapDetailsLoading(true);
+    setMapDetailsError("");
+    try {
+      const data = await api<{ nodes: MapNode[] }>("/api/map");
+      setMapDetailNodes(data.nodes || []);
+    } catch (err) {
+      setMapDetailsError(formatApiError(err, "读取地图详情失败"));
+    } finally {
+      setMapDetailsLoading(false);
+    }
+  }, [mapDetailNodes.length, mapDetailsLoading]);
 
   const loadMinisterChat = React.useCallback(async (ministerName: string) => {
     const data = await api<{ minister: Minister; history: ChatMessage[]; suggestions: Suggestion[]; can_undo_last_chat: boolean }>(`/api/ministers/${encodeURIComponent(ministerName)}/chat`);
@@ -1427,25 +1560,35 @@ function App() {
     form.append("file", file);
     const resp = await fetch(`/api/consorts/${encodeURIComponent(ministerName)}/portrait`, {
       method: "POST",
+      credentials: "same-origin",
       body: form,
     });
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({ detail: resp.statusText }));
       throw new Error(err.detail || resp.statusText);
     }
-    await loadState();  // 重新拉 state，新 portrait_id 流回卡片
-  }, [loadState]);
+    const data = await resp.json().catch(() => ({} as { state?: GameState }));
+    if (data.state) applyGameState(data.state);
+    else await loadState();  // 重新拉 state，新 portrait_id 流回卡片
+  }, [applyGameState, loadState]);
 
   const generatePortrait = React.useCallback(async (ministerName: string) => {
-    const data = await api<{ job: { portrait_id: string; status: string }; character?: Minister | null }>(
+    const data = await api<{ job: { portrait_id: string; status: string }; character?: Minister | null; state?: GameState }>(
       `/api/portraits/${encodeURIComponent(ministerName)}/generate`,
       { method: "POST" },
     );
     if (data.job?.portrait_id) {
       _portraitBust[data.job.portrait_id] = Date.now();
     }
-    await loadState();
-  }, [loadState]);
+    if (data.state) applyGameState(data.state);
+    else await loadState();
+  }, [applyGameState, loadState]);
+
+  const refreshAuthStatus = React.useCallback(async () => {
+    const s = await api<AuthStatus>("/api/auth/me");
+    setAuthStatus(s);
+    return s;
+  }, []);
 
   const refreshMenuStatus = React.useCallback(async () => {
     const s = await api<MenuStatus>("/api/menu/status");
@@ -1454,15 +1597,56 @@ function App() {
   }, []);
 
   React.useEffect(() => {
-    refreshMenuStatus()
-      .then((s) => {
+    let cancelled = false;
+    refreshAuthStatus()
+      .then(async (auth) => {
+        if (cancelled) return;
+        if (auth.auth_enabled && !auth.authenticated) {
+          setAppView("login");
+          return;
+        }
+        const s = await refreshMenuStatus();
+        if (cancelled) return;
         if (s.has_running_game) {
           setAppView("game");
           loadState().catch((err) => setError(err.message));
         }
       })
       .catch((err) => setError(err.message));
-  }, [refreshMenuStatus, loadState]);
+    return () => { cancelled = true; };
+  }, [refreshAuthStatus, refreshMenuStatus, loadState]);
+
+  const login = React.useCallback(async (username: string, password: string) => {
+    setError("");
+    await api<{ ok: boolean; username: string }>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    });
+    const auth = await refreshAuthStatus();
+    if (auth.auth_enabled && !auth.authenticated) {
+      throw new Error("登录状态未生效，请重试。");
+    }
+    setAppView("menu");
+    const s = await refreshMenuStatus();
+    if (s.has_running_game) {
+      setAppView("game");
+      await loadState();
+    }
+  }, [refreshAuthStatus, refreshMenuStatus, loadState]);
+
+  const logout = React.useCallback(async () => {
+    await api<{ ok: boolean }>("/api/auth/logout", { method: "POST" });
+    setState(null);
+    setCharacterIndex([]);
+    setOrganizations(null);
+    setMonthlyFollowups([]);
+    setMonthlyFollowupsLoading(false);
+    setMonthlyFollowupsError("");
+    setMapDetailNodes([]);
+    setMenuStatus(null);
+    const auth = await refreshAuthStatus();
+    setAppView(auth.auth_enabled && !auth.authenticated ? "login" : "menu");
+  }, [refreshAuthStatus]);
 
   const enterGameAfterMenu = React.useCallback(async () => {
     setAppView("game");
@@ -1470,11 +1654,41 @@ function App() {
   }, [loadState]);
 
   const exitToMenu = React.useCallback(async () => {
-    await fetch("/api/menu/exit_to_menu", { method: "POST" });
+    await fetch("/api/menu/exit_to_menu", { method: "POST", credentials: "same-origin" });
     setState(null);
+    setCharacterIndex([]);
+    setOrganizations(null);
+    setMonthlyFollowups([]);
+    setMonthlyFollowupsLoading(false);
+    setMonthlyFollowupsError("");
+    setMapDetailNodes([]);
     setAppView("menu");
     await refreshMenuStatus();
   }, [refreshMenuStatus]);
+
+  React.useEffect(() => {
+    if (!state) return;
+    if (appointmentDrawerOpen || (drawerOpen && ministerGroup === "人物志")) {
+      void loadCharacterIndex();
+    }
+  }, [state, appointmentDrawerOpen, drawerOpen, ministerGroup, loadCharacterIndex]);
+
+  React.useEffect(() => {
+    if (!state || !organizationDrawerOpen) return;
+    void loadOrganizations();
+  }, [state, organizationDrawerOpen, loadOrganizations]);
+
+  React.useEffect(() => {
+    if (!state || !drawerOpen) return;
+    void loadMonthlyFollowups();
+  }, [state, drawerOpen, loadMonthlyFollowups]);
+
+  React.useEffect(() => {
+    if (!state) return;
+    if (mapIntelOpen || buildingDrawerOpen) {
+      void loadMapDetails();
+    }
+  }, [state, mapIntelOpen, buildingDrawerOpen, loadMapDetails]);
 
   React.useEffect(() => {
     if (!state) return;
@@ -1584,12 +1798,105 @@ function App() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  const gameDerived = React.useMemo(() => {
+    if (!state) {
+      return {
+        mapNodes: [] as MapNode[],
+        fullMapNodes: [] as MapNode[],
+        selectedNode: undefined as MapNode | undefined,
+        ministers: [] as Minister[],
+        consorts: [] as Minister[],
+        activeMinister: null as Minister | null,
+        characterByName: new Map<string, Minister>(),
+        mapIntelStyle: undefined as React.CSSProperties | undefined,
+        activeSecretOrderCount: 0,
+        activeMinisterSecretOrders: [] as SecretOrder[],
+        activeMinisterIsConsort: false,
+      };
+    }
+    const powerById = new Map((state.powers || []).map((power) => [power.id, power]));
+    const regionById = new Map((state.regions || []).map((region) => [region.id, region]));
+    const decorateNode = (node: MapNode): MapNode => {
+      const region = node.region || regionById.get(node.id);
+      const powerId = region?.controlled_by;
+      return powerId ? { ...node, region, power: powerById.get(powerId) } : { ...node, region };
+    };
+    const mapNodes = state.map_nodes.map((node) => {
+      return decorateNode(node);
+    });
+    const fullMapNodes = mapDetailNodes.map(decorateNode);
+    const fullNodeById = new Map(fullMapNodes.map((node) => [node.id, node]));
+    const selectedBase = mapNodes.find((node) => node.id === selectedNodeId) || mapNodes[0];
+    const selectedNode = selectedBase ? (fullNodeById.get(selectedBase.id) || selectedBase) : undefined;
+    const ministers = filterMinisters(state.ministers, ministerGroup);
+    const consorts = filterConsorts(state.consorts || [], haremGroup);
+    const allCharacters = [...state.ministers, ...(state.consorts || [])];
+    const characterByName = new Map(allCharacters.map((m) => [m.name, m]));
+    const activeMinister = selectedMinister
+      ? (temporaryActiveMinister?.name === selectedMinister ? temporaryActiveMinister : null)
+        || characterByName.get(selectedMinister)
+        || null
+      : null;
+    const isOpenSecretOrder = (order: SecretOrder) => order.status === "active" || order.status === "pending_review";
+    const activeSecretOrderCount = secretOrders.reduce((count, order) => count + (isOpenSecretOrder(order) ? 1 : 0), 0);
+    const activeMinisterSecretOrders = activeMinister
+      ? secretOrders.filter((order) => order.minister_name === activeMinister.name && isOpenSecretOrder(order))
+      : [];
+    return {
+      mapNodes,
+      fullMapNodes,
+      selectedNode,
+      ministers,
+      consorts,
+      activeMinister,
+      characterByName,
+      mapIntelStyle: selectedNode ? getMapIntelStyle(selectedNode) : undefined,
+      activeSecretOrderCount,
+      activeMinisterSecretOrders,
+      activeMinisterIsConsort: activeMinister
+        ? (state.consorts || []).some((consort) => consort.name === activeMinister.name)
+        : false,
+    };
+  }, [
+    state,
+    selectedNodeId,
+    ministerGroup,
+    haremGroup,
+    selectedMinister,
+    temporaryActiveMinister,
+    secretOrders,
+    mapDetailNodes,
+  ]);
+
+  if (!authStatus) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-panel">
+          <Crown size={28} />
+          <p>正在校验入值凭信...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (appView === "login" || (authStatus.auth_enabled && !authStatus.authenticated)) {
+    return (
+      <LoginPage
+        onLogin={login}
+        error={error}
+        setError={setError}
+      />
+    );
+  }
+
   if (appView === "menu") {
     return (
       <MenuPage
         status={menuStatus}
+        auth={authStatus}
         onRefresh={refreshMenuStatus}
         onEnterGame={enterGameAfterMenu}
+        onLogout={logout}
         error={error}
         setError={setError}
       />
@@ -1607,22 +1914,38 @@ function App() {
     );
   }
 
-  const powerById = new Map((state.powers || []).map((power) => [power.id, power]));
-  const mapNodes = state.map_nodes.map((node) => {
-    const powerId = node.region?.controlled_by;
-    return powerId ? { ...node, power: powerById.get(powerId) } : node;
-  });
-  const selectedNode = mapNodes.find((node) => node.id === selectedNodeId) || mapNodes[0];
-  const ministers = filterMinisters(state.ministers, ministerGroup);
-  const consorts = filterConsorts(state.consorts || [], haremGroup);
-  const allCharacters = [...state.ministers, ...(state.consorts || [])];
-  const activeMinister = selectedMinister
-    ? (temporaryActiveMinister?.name === selectedMinister ? temporaryActiveMinister : null)
-      || allCharacters.find((m) => m.name === selectedMinister)
-    : null;
-  const mapIntelStyle = selectedNode ? getMapIntelStyle(selectedNode) : undefined;
+  const {
+    mapNodes,
+    fullMapNodes,
+    selectedNode,
+    ministers,
+    consorts,
+    activeMinister,
+    characterByName,
+    mapIntelStyle,
+    activeSecretOrderCount,
+    activeMinisterSecretOrders,
+    activeMinisterIsConsort,
+  } = gameDerived;
 
-  const openChat = (minister: Minister, prefill = "") => {
+  const openChat = (ministerLike: Minister | OrgPerson, prefill = "") => {
+    const partial = ministerLike as Partial<Minister>;
+    const minister: Minister = characterByName.get(ministerLike.name) || {
+      name: ministerLike.name,
+      office: ministerLike.office || "",
+      office_type: ministerLike.office_type || "",
+      faction: ministerLike.faction || "",
+      status: ministerLike.status || "active",
+      status_reason: ministerLike.status_reason,
+      status_label: ministerLike.status_label || "在朝",
+      summary: partial.summary || [ministerLike.office, ministerLike.office_type, ministerLike.faction].filter(Boolean).join(" · "),
+      favorite: !!partial.favorite,
+      power_id: ministerLike.power_id || "ming",
+      personal_skills: partial.personal_skills || [],
+      stance_notes: partial.stance_notes || [],
+      conversation_goals: partial.conversation_goals || [],
+      skills: partial.skills || [],
+    };
     if (minister.status && minister.status !== "active") {
       setError(`${minister.name}${minister.status_label}${minister.status_reason ? "（" + minister.status_reason + "）" : ""}，无法召见。`);
       return;
@@ -1703,7 +2026,7 @@ function App() {
           source: "吏部铨选",
           summary: data.displaced_effect?.summary || `${data.displaced_minister}已因腾缺去任。`,
           detail: data.displaced_effect?.reaction_summary ? `朝局余波：${data.displaced_effect.reaction_summary}` : "",
-          chips: xinpanEffectChips(data.displaced_effect?.xinpan),
+          chips: data.displaced_effect?.effect_chips || [],
           tone: "danger",
         });
       }
@@ -1719,12 +2042,17 @@ function App() {
           title: `密令交付 #${data.secret_order_id}`,
           source: data.secret_order_effect?.risk_label || "密令",
           summary: data.secret_order_effect?.summary || `密令已秘密交付${data.secret_order_assignee || activeMinister.name}。`,
-          chips: xinpanEffectChips(data.secret_order_effect?.xinpan),
+          chips: data.secret_order_effect?.effect_chips || [],
           tone: riskScore >= 3 ? "danger" : riskScore >= 2 ? "warn" : "neutral",
         });
       }
       if (data.proposed_directive) {
         notices.push(`${data.proposed_directive.actor || activeMinister.name}已拟旨一道，待陛下在「诏书草案」核定（准/驳）。`);
+      }
+      if (data.dialogue_goal?.audit_status === "not_recorded") {
+        notices.push(data.dialogue_goal.public_hint || "本轮奏对审计未落档。");
+      } else if (data.dialogue_goal?.public_hint) {
+        notices.push(data.dialogue_goal.public_hint);
       }
       if (data.next_minister) {
         setChat([]);
@@ -1781,8 +2109,8 @@ function App() {
       setCanUndoLastChat(!!data.can_undo_last_chat);
       setSecretOrders(data.secret_orders || []);
       setState((current) => (current ? { ...current, directives: data.directives, pending_count: data.pending_count } : current));
-      await loadState();
-      await loadMinisterChat(activeMinister.name);
+      if (data.state) applyGameState(data.state);
+      else await loadState();
       setChatNotice("已撤回最近一轮召对。");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -1803,8 +2131,7 @@ function App() {
         method: "POST",
         body: JSON.stringify({ reason: "玩家主动放弃" }),
       });
-      setState(data.state);
-      await loadState();
+      applyGameState(data.state);
       if (activeMinister) {
         await loadMinisterChat(activeMinister.name);
       }
@@ -1840,7 +2167,7 @@ function App() {
     setBusy(minister.favorite ? "移出收藏" : "加入收藏");
     setError("");
     try {
-      const data = await api<{ favorites: string[] }>(`/api/favorites/${encodeURIComponent(minister.name)}`, {
+      const data = await api<{ favorites: string[]; state?: GameState }>(`/api/favorites/${encodeURIComponent(minister.name)}`, {
         method: minister.favorite ? "DELETE" : "POST",
       });
       setTemporaryActiveMinister((current) => (
@@ -1848,7 +2175,8 @@ function App() {
           ? { ...current, favorite: data.favorites.includes(minister.name) }
           : current
       ));
-      await loadState();
+      if (data.state) applyGameState(data.state);
+      else await loadState();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -2029,11 +2357,14 @@ function App() {
     setBusy("增设机构");
     setError("");
     try {
-      const data = await api<{ message: string; organizations: OrganizationPayload }>("/api/organizations/custom", {
+      const data = await api<{ message: string; organizations: OrganizationPayload; state?: GameState }>("/api/organizations/custom", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      await loadState();
+      if (data.state) applyGameState(data.state);
+      else await loadState();
+      setOrganizations(data.organizations || null);
+      setOrganizationsError("");
       return data.message;
     } finally {
       setBusy("");
@@ -2044,8 +2375,9 @@ function App() {
     setBusy("遴选人才");
     setError("");
     try {
-      const data = await api<{ message: string; minister?: Minister }>(`/api/recruitment/${action}`, { method: "POST" });
-      await loadState();
+      const data = await api<{ message: string; minister?: Minister; state?: GameState }>(`/api/recruitment/${action}`, { method: "POST" });
+      if (data.state) applyGameState(data.state);
+      else await loadState();
       return data.message;
     } finally {
       setBusy("");
@@ -2056,11 +2388,12 @@ function App() {
     setBusy("净身入宫");
     setError("");
     try {
-      const data = await api<{ message: string; minister: Minister }>("/api/recruitment/castrate", {
+      const data = await api<{ message: string; minister: Minister; state?: GameState }>("/api/recruitment/castrate", {
         method: "POST",
         body: JSON.stringify({ name, force }),
       });
-      await loadState();
+      if (data.state) applyGameState(data.state);
+      else await loadState();
       return data.message;
     } finally {
       setBusy("");
@@ -2071,11 +2404,12 @@ function App() {
     setBusy("奴籍转民籍");
     setError("");
     try {
-      const data = await api<{ message: string; minister: Minister }>("/api/recruitment/emancipate", {
+      const data = await api<{ message: string; minister: Minister; state?: GameState }>("/api/recruitment/emancipate", {
         method: "POST",
         body: JSON.stringify({ name, force }),
       });
-      await loadState();
+      if (data.state) applyGameState(data.state);
+      else await loadState();
       return data.message;
     } finally {
       setBusy("");
@@ -2086,11 +2420,12 @@ function App() {
     setBusy("后宫行事");
     setError("");
     try {
-      const data = await api<{ message: string }>(`/api/consorts/${encodeURIComponent(name)}/action`, {
+      const data = await api<{ message: string; state?: GameState }>(`/api/consorts/${encodeURIComponent(name)}/action`, {
         method: "POST",
         body: JSON.stringify({ action }),
       });
-      await loadState();
+      if (data.state) applyGameState(data.state);
+      else await loadState();
       return data.message;
     } finally {
       setBusy("");
@@ -2126,7 +2461,7 @@ function App() {
       <BottomCommandBar
         eventsCount={state.events.length}
         directivesCount={state.directives.length}
-        secretOrdersCount={secretOrders.filter((o) => o.status === "active" || o.status === "pending_review").length}
+        secretOrdersCount={activeSecretOrderCount}
         adventureCount={(state.adventures || []).length}
         onOpenMemorials={() => setActiveModal("state")}
         onOpenEdict={() => setActiveModal("edict")}
@@ -2139,6 +2474,12 @@ function App() {
       <CourtDrawer
         state={state}
         ministers={ministers}
+        characterIndex={characterIndex}
+        characterIndexLoading={characterIndexLoading}
+        characterIndexError={characterIndexError}
+        monthlyFollowups={monthlyFollowups}
+        monthlyFollowupsLoading={monthlyFollowupsLoading}
+        monthlyFollowupsError={monthlyFollowupsError}
         ministerGroup={ministerGroup}
         selectedMinister={selectedMinister}
         open={drawerOpen}
@@ -2180,7 +2521,9 @@ function App() {
 
       <BuildingDrawer
         regions={state.regions}
-        mapNodes={mapNodes}
+        mapNodes={fullMapNodes}
+        loading={mapDetailsLoading}
+        error={mapDetailsError}
         open={buildingDrawerOpen}
         onClose={guardClose(() => setActiveDrawer(""))}
       />
@@ -2193,7 +2536,9 @@ function App() {
 
       <AppointmentDrawer
         ministers={state.ministers}
-        characterIndex={state.character_index || []}
+        characterIndex={characterIndex}
+        characterIndexLoading={characterIndexLoading}
+        characterIndexError={characterIndexError}
         agreements={state.agreements || []}
         open={appointmentDrawerOpen}
         onOpenChat={openChat}
@@ -2205,7 +2550,9 @@ function App() {
       />
 
       <OrganizationDrawer
-        organizations={state.organizations}
+        organizations={organizations}
+        loading={organizationsLoading}
+        error={organizationsError}
         open={organizationDrawerOpen}
         onAddCustom={addCustomInstitution}
         onOpenChat={openChat}
@@ -2219,7 +2566,13 @@ function App() {
       />
 
       {mapIntelOpen && selectedNode ? (
-        <MapIntelPanel node={selectedNode} style={mapIntelStyle} onClose={() => setMapIntelOpen(false)} />
+        <MapIntelPanel
+          node={selectedNode}
+          style={mapIntelStyle}
+          loading={mapDetailsLoading && !mapDetailNodes.length}
+          error={mapDetailsError}
+          onClose={() => setMapIntelOpen(false)}
+        />
       ) : null}
 
       {activeModal === "state" ? (
@@ -2236,7 +2589,7 @@ function App() {
         <FullscreenModal title="召对" bgClass="modal-bg-chat" onClose={guardClose(() => setActiveModal("none"))} hideHeading>
           <ChatModal
             minister={activeMinister}
-            portraitPrefix={(state.consorts || []).some((c) => c.name === activeMinister.name) ? "consort_" : "minister_"}
+            portraitPrefix={activeMinisterIsConsort ? "consort_" : "minister_"}
             chat={chat}
             suggestions={suggestions}
             pendingUserMessage={pendingUserMessage}
@@ -2248,7 +2601,7 @@ function App() {
             input={input}
             busy={busy}
             error={error}
-            secretOrders={secretOrders.filter((o) => o.minister_name === activeMinister.name && (o.status === "active" || o.status === "pending_review"))}
+            secretOrders={activeMinisterSecretOrders}
             onInput={setInput}
             onSend={sendChat}
             onUndo={undoLastChat}
@@ -2514,6 +2867,8 @@ function MinisterPortrait({ primary, fallback, name }: { primary: string; fallba
       className="minister-card-portrait"
       src={src}
       alt={name}
+      loading="lazy"
+      decoding="async"
       onError={() => {
         if (stage === "primary" && fallback) setStage("fallback");
         else setStage("placeholder");
@@ -3291,11 +3646,15 @@ function RegionDrawer({
 function BuildingDrawer({
   regions,
   mapNodes,
+  loading,
+  error,
   open,
   onClose,
 }: {
   regions: Region[];
   mapNodes: MapNode[];
+  loading: boolean;
+  error: string;
   open: boolean;
   onClose: () => void;
 }) {
@@ -3315,6 +3674,8 @@ function BuildingDrawer({
     .filter((b) => !q || b.name.includes(q) || b.category.includes(q));
   return (
     <RightDrawer open={open} onClose={onClose} title="建筑" icon={<Landmark size={17} />} extraClass="right-drawer-building">
+      {loading ? <div className="empty-note">正在载入建筑图册...</div> : null}
+      {error ? <div className="empty-note">{error}</div> : null}
       <div className="right-drawer-search">
         <input className="right-drawer-search-input" aria-label="搜索建筑名或类别" placeholder="搜索建筑名/类别…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
@@ -3408,6 +3769,8 @@ function EconomyDrawer({
 function AppointmentDrawer({
   ministers,
   characterIndex,
+  characterIndexLoading,
+  characterIndexError,
   agreements,
   open,
   onOpenChat,
@@ -3419,6 +3782,8 @@ function AppointmentDrawer({
 }: {
   ministers: Minister[];
   characterIndex: CharacterIndexEntry[];
+  characterIndexLoading: boolean;
+  characterIndexError: string;
   agreements: Agreement[];
   open: boolean;
   onOpenChat: (minister: Minister, prefill?: string) => void;
@@ -3667,6 +4032,8 @@ function AppointmentDrawer({
             <span>后宫 <b>{archiveHarem}</b></span>
           </div>
           <p>总录含大明、后金、流寇、蒙古、朝鲜与后宫；本台只处理大明非后宫人物，所以开局看到 77 名不是丢人，是吏部管理口径。</p>
+          {characterIndexLoading ? <p>人物总录加载中...</p> : null}
+          {characterIndexError ? <p className="warn">{characterIndexError}</p> : null}
         </section>
 
         <section className="bureau-recruit-row">
@@ -3796,9 +4163,8 @@ function AppointmentDrawer({
 
                 {loadingDetail ? <div className="empty-note">正在调阅{loadingDetail}考核档...</div> : null}
                 {detailError ? <div className="empty-note">{detailError}</div> : null}
+                {detailCharacter ? <PersonalityReadout minister={detailCharacter} /> : null}
                 {selectedDetail?.network_profile ? <NetworkProfileBlock profile={selectedDetail.network_profile} /> : null}
-                {selectedDetail?.xinpan_profile ? <XinpanProfileBlock profile={selectedDetail.xinpan_profile} /> : null}
-                {selectedDetail?.tiangang_profile ? <TiangangSpectrum profile={selectedDetail.tiangang_profile} /> : null}
 
                 <details className="bureau-special-action">
                   <summary>特殊身份转换</summary>
@@ -3883,15 +4249,19 @@ function AppointmentDrawer({
 
 function OrganizationDrawer({
   organizations,
+  loading,
+  error,
   open,
   onAddCustom,
   onOpenChat,
   onClose,
 }: {
-  organizations: OrganizationPayload;
+  organizations?: OrganizationPayload | null;
+  loading: boolean;
+  error: string;
   open: boolean;
   onAddCustom: (payload: { name: string; category: string; mandate: string; slots: string[] }) => Promise<string>;
-  onOpenChat: (minister: Minister) => void;
+  onOpenChat: (minister: OrgPerson) => void;
   onClose: () => void;
 }) {
   const [q, setQ] = React.useState("");
@@ -4020,6 +4390,8 @@ function OrganizationDrawer({
           <p>{organizations.execution_summary}</p>
         </div>
       ) : null}
+      {loading ? <div className="empty-note">正在调阅组织图...</div> : null}
+      {error ? <div className="empty-note">{error}</div> : null}
       <div className="org-category-tabs" aria-label="机构类别">
         {categoryStats.map((item) => (
           <button
@@ -4215,9 +4587,77 @@ function OrganizationDrawer({
   );
 }
 
+function buildMonthlyFollowupPrompt(item: MonthlyFollowup): string {
+  const title = (item.title || item.summary || "旧事回奏").replace(/[。；;]+$/g, "").trim();
+  return `卿本月因「${title || "旧事回奏"}」候见，先向朕说清进展、难处与所需。`;
+}
+
+function MonthlyFollowupPanel({
+  followups,
+  loading,
+  error,
+  characterByName,
+  onOpenChat,
+}: {
+  followups: MonthlyFollowup[];
+  loading?: boolean;
+  error?: string;
+  characterByName: Map<string, Minister>;
+  onOpenChat: (minister: Minister, prefill?: string) => void;
+}) {
+  const visible = followups
+    .filter((item) => characterByName.has(item.minister_name))
+    .slice(0, 5);
+  if (!visible.length && !loading && !error) return null;
+  return (
+    <section className="monthly-followup-panel" aria-label="本月候见请安">
+      <div className="monthly-followup-head">
+        <span><MessageSquare size={14} />候见/请安</span>
+        <small>{loading ? "读取中" : `${visible.length}人`}</small>
+      </div>
+      {error ? <p className="empty-note warn">{error}</p> : null}
+      {loading && !visible.length ? <p className="empty-note">正在整理本月候见清单...</p> : null}
+      <div className="monthly-followup-list">
+        {visible.map((item) => {
+          const minister = characterByName.get(item.minister_name);
+          const disabled = !minister || minister.status !== "active";
+          const hook = (item.memory_hooks || []).find((text) => text.trim()) || item.summary || item.title;
+          const risks = (item.risk_tags || []).filter(Boolean).slice(0, 3);
+          return (
+            <button
+              key={`${item.minister_name}-${item.title}`}
+              type="button"
+              className={`monthly-followup-card stance-${item.preferred_stance || "neutral"}`}
+              disabled={disabled}
+              onClick={() => minister && onOpenChat(minister, buildMonthlyFollowupPrompt(item))}
+            >
+              <span className="monthly-followup-minister">
+                <b>{item.minister_name}</b>
+                {minister?.office ? <small>{minister.office}</small> : null}
+              </span>
+              <span className="monthly-followup-title">{hook}</span>
+              {risks.length ? (
+                <span className="monthly-followup-tags">
+                  {risks.map((risk) => <i key={risk}>{risk}</i>)}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function CourtDrawer({
   state: _state,
   ministers,
+  characterIndex,
+  characterIndexLoading,
+  characterIndexError,
+  monthlyFollowups,
+  monthlyFollowupsLoading,
+  monthlyFollowupsError,
   ministerGroup,
   selectedMinister,
   open,
@@ -4229,12 +4669,18 @@ function CourtDrawer({
 }: {
   state: GameState;
   ministers: Minister[];
+  characterIndex: CharacterIndexEntry[];
+  characterIndexLoading: boolean;
+  characterIndexError: string;
+  monthlyFollowups: MonthlyFollowup[];
+  monthlyFollowupsLoading: boolean;
+  monthlyFollowupsError: string;
   ministerGroup: string;
   selectedMinister: string;
   open: boolean;
   onGroupChange: (group: string) => void;
   onClose: () => void;
-  onOpenChat: (minister: Minister) => void;
+  onOpenChat: (minister: Minister, prefill?: string) => void;
   onUploadPortrait: (ministerName: string, file: File) => Promise<void>;
   onGeneratePortrait: (ministerName: string) => Promise<void>;
 }) {
@@ -4248,7 +4694,7 @@ function CourtDrawer({
   const activeCount = _state.ministers.filter((m) => (m.power_id || "ming") === "ming" && m.status === "active").length;
   const groups = ["在职", "内阁+六部", "边镇厂卫", "江湖外缘", "收藏", "全部", "人物志"];
   const characterByName = new Map([..._state.ministers, ...(_state.consorts || [])].map((item) => [item.name, item]));
-  const archiveRows = _state.character_index || [];
+  const archiveRows = characterIndex;
   const archiveFilteredCount = archiveRows.filter((m) => {
     if (!q.trim()) return true;
     return m.name.includes(q) || m.office.includes(q) || m.office_type.includes(q) || m.faction.includes(q) || m.power_name.includes(q);
@@ -4291,10 +4737,19 @@ function CourtDrawer({
         <div className="right-drawer-search court-search">
           <input className="right-drawer-search-input" aria-label="搜索姓名、职位或派系" placeholder="搜索姓名/职位/派系…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
+        <MonthlyFollowupPanel
+          followups={monthlyFollowups}
+          loading={monthlyFollowupsLoading}
+          error={monthlyFollowupsError}
+          characterByName={characterByName}
+          onOpenChat={onOpenChat}
+        />
         {ministerGroup === "人物志" ? (
           <CharacterArchive
             rows={archiveRows}
             query={q}
+            loading={characterIndexLoading}
+            error={characterIndexError}
             characterByName={characterByName}
             onOpenChat={onOpenChat}
           />
@@ -4318,11 +4773,15 @@ function CourtDrawer({
 function CharacterArchive({
   rows,
   query,
+  loading,
+  error,
   characterByName,
   onOpenChat,
 }: {
   rows: CharacterIndexEntry[];
   query: string;
+  loading: boolean;
+  error: string;
   characterByName: Map<string, Minister>;
   onOpenChat: (minister: Minister) => void;
 }) {
@@ -4420,6 +4879,8 @@ function CharacterArchive({
   };
   return (
     <section className="character-archive">
+      {loading ? <div className="empty-note">正在载入人物总录...</div> : null}
+      {error ? <div className="empty-note">{error}</div> : null}
       <div className="character-archive-stats">
         <span>总录 <b>{rows.length}</b></span>
         <span>在场 <b>{active}</b></span>
@@ -4489,16 +4950,12 @@ function CharacterArchive({
                 <span>{selectedRow?.power_name || ((detail.power_id || "ming") === "ming" ? "大明" : detail.power_id || "外部")} · {detail.faction} · {detail.office_type}</span>
                 {detail.office ? <span>{detail.office}</span> : null}
                 <span>{detail.age_label || (detail.start_age ? `开局${detail.start_age}岁` : "年龄未详")}</span>
-                {detail.xinpan_profile?.quadrant ? <span>{detail.xinpan_profile.quadrant}</span> : null}
               </div>
               <div className="character-archive-dossier-grid">
                 <div className="character-archive-primary">
+                  <PersonalityReadout minister={detail} />
                   <NetworkProfileBlock profile={detail.network_profile} />
                   <StanceNotes notes={detail.stance_notes} />
-                </div>
-                <div className="character-archive-secondary">
-                  <XinpanProfileBlock profile={detail.xinpan_profile} />
-                  <TiangangSpectrum profile={detail.tiangang_profile} />
                 </div>
               </div>
             </>
@@ -4510,10 +4967,10 @@ function CharacterArchive({
             <div className="character-archive-skeleton">
               <b>{detailMeta.name}</b>
               <span>{detailMeta.summary || detailMeta.office || "档案尚未载入。"}</span>
-              <small>正在展开人物网络、心盘与天纲谱尺。</small>
+              <small>正在展开人物网络、性格与履约线索。</small>
             </div>
           ) : (
-            <div className="empty-note">选择一名人物查看小传、人脉与天罡谱尺。</div>
+            <div className="empty-note">选择一名人物查看小传、人脉与履约线索。</div>
           )}
         </div>
       </div>
@@ -4645,7 +5102,7 @@ function TopStatusBar({
     <>
     <header className="status-bar" aria-label="国势状态栏">
       <button className="status-emblem" onClick={onOpenState}>
-        <img src="/icon_ming_emblem.png" alt="大明" className="emblem-art" />
+        <img src="/icon_ming_emblem.webp" alt="大明" className="emblem-art" width={26} height={26} />
         <span>{state.turn.year} 年 {state.turn.period} 月</span>
       </button>
       <div className="status-metrics">
@@ -4965,26 +5422,26 @@ function BottomCommandBar({
         {/* 图标行：底部贴基准线向上生长 */}
         <nav className="bottom-command-bar" aria-label="朝政辅助操作">
           <button className="command-icon" onClick={onOpenMemorials} aria-label={`奏疏 ${eventsCount} 件待览`}>
-            <img src="/ui/exact/zoushu.png" alt="" className="command-art" />
+            <img src="/ui/exact/zoushu.webp" alt="" className="command-art" loading="eager" decoding="async" />
             {eventsCount ? <span className="command-badge">{eventsCount}</span> : null}
           </button>
           <button className="command-icon" onClick={onOpenExtraction} aria-label="邸报详明">
-            <img src="/ui/exact/mingxi.png" alt="" className="command-art" />
+            <img src="/ui/exact/mingxi.webp" alt="" className="command-art" loading="eager" decoding="async" />
           </button>
           <button className="command-icon" onClick={onOpenSecretOrders} aria-label={`密令 ${secretOrdersCount} 条进行中`}>
-            <img src="/ui/exact/miling.png" alt="" className="command-art command-art-secret" />
+            <img src="/ui/exact/miling.webp" alt="" className="command-art command-art-secret" loading="eager" decoding="async" />
             {secretOrdersCount ? <span className="command-badge command-badge-secret">{secretOrdersCount}</span> : null}
           </button>
           <button className="command-icon" onClick={onOpenHistory} aria-label="历代奏报">
-            <img src="/ui/exact/lishi.png" alt="" className="command-art" />
+            <img src="/ui/exact/lishi.webp" alt="" className="command-art" loading="eager" decoding="async" />
           </button>
           <button className="command-icon" onClick={onOpenAdventure} aria-label={`天命异闻 ${adventureCount} 条记录`}>
-            <img src="/ui/exact/yiwen.png" alt="" className="command-art command-art-adventure" />
+            <img src="/ui/exact/yiwen.webp" alt="" className="command-art command-art-adventure" loading="eager" decoding="async" />
             {adventureCount ? <span className="command-badge command-badge-adventure">{adventureCount}</span> : null}
           </button>
           <button className="edict-turn-button" onClick={onOpenEdict} aria-label={`诏书草案 ${directivesCount} 道待发`}>
             <span className="edict-turn-art">
-              <img src="/ui/exact/nizhao.png" alt="" />
+              <img src="/ui/exact/nizhao.webp" alt="" loading="eager" decoding="async" />
               {directivesCount ? <span className="command-badge edict-turn-badge">{directivesCount}</span> : null}
             </span>
           </button>
@@ -5245,14 +5702,21 @@ function SecretOrdersModal({
     failed: "so-failed",
     cancelled: "so-cancelled",
   };
+  const statusCounts = React.useMemo(() => orders.reduce((acc, order) => {
+    acc[order.status] = (acc[order.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>), [orders]);
   const tabs: { key: typeof tab; label: string }[] = [
-    { key: "active",         label: `进行中 (${orders.filter(o => o.status === "active").length})` },
-    { key: "pending_review", label: `待核议 (${orders.filter(o => o.status === "pending_review").length})` },
-    { key: "done",           label: `已完成 (${orders.filter(o => o.status === "done").length})` },
-    { key: "failed",         label: `已失败 (${orders.filter(o => o.status === "failed").length})` },
+    { key: "active",         label: `进行中 (${statusCounts.active || 0})` },
+    { key: "pending_review", label: `待核议 (${statusCounts.pending_review || 0})` },
+    { key: "done",           label: `已完成 (${statusCounts.done || 0})` },
+    { key: "failed",         label: `已失败 (${statusCounts.failed || 0})` },
     { key: "all",            label: `全部 (${orders.length})` },
   ];
-  const visible = tab === "all" ? orders : orders.filter(o => o.status === tab);
+  const visible = React.useMemo(
+    () => tab === "all" ? orders : orders.filter((order) => order.status === tab),
+    [orders, tab],
+  );
   return (
     <FullscreenModal title="密令进度" subtitle={`共 ${orders.length} 条密令记录`} bgClass="modal-bg-edict" onClose={onClose}>
       <article className="state-document modal-scroll">
@@ -5979,7 +6443,7 @@ function ShutdownTab() {
     setBusy(true);
     setErr("");
     try {
-      await fetch("/api/menu/shutdown", { method: "POST" });
+      await fetch("/api/menu/shutdown", { method: "POST", credentials: "same-origin" });
       // server 已发 SIGTERM 给自己；前端尝试关页面（浏览器可能拦截），否则提示用户。
       setTimeout(() => {
         try { window.close(); } catch { /* noop */ }
@@ -7108,248 +7572,80 @@ function IssueGroup({ title, issues }: { title: string; issues: Issue[] }) {
   );
 }
 
-const xinpanPlanePoint = (daoRaw: number, shiRaw: number) => {
-  const dao = Math.max(-100, Math.min(100, Number(daoRaw || 0)));
-  const shi = Math.max(-100, Math.min(100, Number(shiRaw || 0)));
-  return {
-    x: Math.max(0, Math.min(100, 50 + shi / 2)),
-    y: Math.max(0, Math.min(100, 50 - dao / 2)),
-  };
+const compactPublicText = (value?: string, limit = 150) => {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  return text.length > limit ? `${text.slice(0, limit)}…` : text;
 };
 
-type XinpanPlanePoint = ReturnType<typeof xinpanPlanePoint>;
+const publicClauses = (value?: string, limit = 2) => {
+  const text = String(value || "")
+    .replace(/^能力构成[:：]/, "")
+    .replace(/\[\[([^\]]+)\]\]/g, "$1")
+    .trim();
+  if (!text) return [];
+  return text
+    .split(/[。；;\n]/)
+    .map((item) => compactPublicText(item, 90))
+    .filter(Boolean)
+    .slice(0, limit);
+};
 
-const xinpanSmoothTrailPath = (points: XinpanPlanePoint[]) => {
-  if (!points.length) return "";
-  const fmt = (value: number) => value.toFixed(2);
-  if (points.length === 1) return `M ${fmt(points[0].x)} ${fmt(points[0].y)}`;
-  if (points.length === 2) return `M ${fmt(points[0].x)} ${fmt(points[0].y)} L ${fmt(points[1].x)} ${fmt(points[1].y)}`;
-
-  let path = `M ${fmt(points[0].x)} ${fmt(points[0].y)}`;
-  for (let index = 0; index < points.length - 1; index += 1) {
-    const previous = points[index - 1] || points[index];
-    const current = points[index];
-    const next = points[index + 1];
-    const afterNext = points[index + 2] || next;
-    const cp1x = current.x + (next.x - previous.x) / 6;
-    const cp1y = current.y + (next.y - previous.y) / 6;
-    const cp2x = next.x - (afterNext.x - current.x) / 6;
-    const cp2y = next.y - (afterNext.y - current.y) / 6;
-    path += ` C ${fmt(cp1x)} ${fmt(cp1y)}, ${fmt(cp2x)} ${fmt(cp2y)}, ${fmt(next.x)} ${fmt(next.y)}`;
+const uniqueStrings = (items: Array<string | undefined | null>, limit = 6) => {
+  const out: string[] = [];
+  for (const item of items) {
+    const text = String(item || "").trim();
+    if (!text || out.includes(text)) continue;
+    out.push(text);
+    if (out.length >= limit) break;
   }
-  return path;
+  return out;
 };
 
-const xinpanQuadrantReading: Record<string, { title: string; summary: string }> = {
-  股肱: { title: "同道同利", summary: "价值与利益都站在皇权一侧，适合托付重任与预警。" },
-  权附: { title: "逐势依附", summary: "利益暂附，忠诚多半来自局势和赏罚，需持续给出可兑现好处。" },
-  道隐: { title: "同道失势", summary: "价值可谈但利益受损，长期亏待会把清议拖成离心。" },
-  离心: { title: "异心积怨", summary: "价值和利益都远离皇权，畏惧只能压住表面，不能消除反抗动机。" },
-};
-
-const xinpanSourceLabel: Record<string, string> = {
-  turn: "月末",
-  chat: "奏对",
-  agreement: "履约",
-  identity_conversion: "身份",
-  appointment_displacement: "腾缺",
-  secret_order: "密令",
-  current: "当前",
-};
-
-const xinpanConcernReason = (reason?: string) => {
-  const text = String(reason || "").trim();
-  if (!text) return "核心关切";
-  if (text.includes("极值")) return "立场很硬";
-  if (text.includes("偏向")) return "有明显偏向";
-  if (text.includes("身份") || text.includes("派系")) return "身份/派系牵动";
-  return text;
-};
-
-function XinpanProfileBlock({ profile }: { profile?: XinpanProfile }) {
-  if (!profile || !profile.quadrant) return null;
-  const dao = Math.max(-100, Math.min(100, Number(profile.dao_he || 0)));
-  const shi = Math.max(-100, Math.min(100, Number(profile.shi_he || 0)));
-  const fear = Math.round(Number(profile.fear || 0));
-  const hatred = Math.round(Number(profile.hatred || 0));
-  const trust = Number(profile.trust_coeff || 0);
-  const currentPoint = xinpanPlanePoint(dao, shi);
-  const planeStyle = {
-    "--xinpan-axis-x": "50%",
-    "--xinpan-axis-y": "50%",
-  } as React.CSSProperties;
-  const pointStyle = {
-    left: `${currentPoint.x}%`,
-    top: `${currentPoint.y}%`,
-  };
-  const quadrantClass = String(profile.quadrant || "").replace(/[^\w\u4e00-\u9fff-]/g, "");
-  const concerns = profile.core_concerns || [];
-  const abilities = profile.top_abilities || [];
-  const warnings = profile.warnings || [];
-  const trajectory = (profile.trajectory || [])
-    .map((point) => ({
-      ...point,
-      dao_he: Math.max(-100, Math.min(100, Number(point.dao_he || 0))),
-      shi_he: Math.max(-100, Math.min(100, Number(point.shi_he || 0))),
-    }))
-    .filter((point) => Number.isFinite(point.dao_he) && Number.isFinite(point.shi_he));
-  const trailPoints = trajectory.map((point) => xinpanPlanePoint(point.dao_he, point.shi_he));
-  const trailPath = xinpanSmoothTrailPath(trailPoints);
-  const hasTrail = trailPoints.length > 1;
-  const reading = xinpanQuadrantReading[String(profile.quadrant)] || { title: "心迹未定", summary: "需继续观察奏对、履约与人事处置后的变化。" };
-  const recentEvents = trajectory
-    .filter((point) => point.event && !["当前", "初始点"].includes(point.event))
-    .slice(-4)
-    .reverse();
-  const positiveTone = (value: number) => (value > 8 ? "good" : value < -8 ? "bad" : "neutral");
-  const pressureTone = (value: number) => (value >= 70 ? "bad" : value >= 40 ? "warn" : "neutral");
-  const trustTone = trust >= 0.9 ? "good" : trust <= 0.62 ? "bad" : "neutral";
-  const deltaText = (value?: number, digits = 1) => {
-    const numeric = Number(value || 0);
-    const rounded = Number(numeric.toFixed(digits));
-    return `${rounded > 0 ? "+" : ""}${rounded}`;
-  };
-  const deltaTone = (value?: number, positiveIsGood = true) => {
-    const numeric = Number(value || 0);
-    if (Math.abs(numeric) < 0.05) return "neutral";
-    const good = positiveIsGood ? numeric > 0 : numeric < 0;
-    return good ? "good" : "bad";
-  };
+function PersonalityReadout({ minister }: { minister: Minister }) {
+  const network = minister.network_profile;
+  const skillNames = uniqueStrings([
+    ...(minister.personal_skills || []),
+    ...(minister.skills || []).map((skill) => skill.name),
+  ], 6);
+  const ability = uniqueStrings([
+    ...publicClauses(network?.ability_logic, 2),
+  ], 3);
+  const riskTags = uniqueStrings([
+    network?.growth_arc?.risk,
+    ...((minister.stance_notes || []).flatMap((note) => note.risk_tags_list || [])),
+  ], 4);
+  const tone = compactPublicText(minister.style || network?.biography || minister.summary, 150);
+  if (!tone && !skillNames.length && !ability.length && !riskTags.length) return null;
   return (
-    <div className={`xinpan-profile quadrant-${quadrantClass}`}>
-      <div className="xinpan-profile-head">
-        <Shield size={13} />
-        <span>心盘</span>
-        <b>{profile.quadrant}</b>
+    <div className="personality-readout">
+      <div className="personality-readout-head">
+        <Star size={13} />
+        <span>性格与办事读法</span>
       </div>
-      <div className="xinpan-judgement">
-        <strong>{reading.title}</strong>
-        <span>{reading.summary}</span>
-      </div>
-      <div className="xinpan-grid">
-        <div className="xinpan-plane" style={planeStyle} aria-label={`心盘：道合${dao}，势合${shi}`}>
-          <i className="threshold-x" />
-          <i className="threshold-y" />
-          <span className="axis-label axis-label-dao">道合↑</span>
-          <span className="axis-label axis-label-shi">势合→</span>
-          <span className="quad q1">股肱</span>
-          <span className="quad q2">道隐</span>
-          <span className="quad q3">离心</span>
-          <span className="quad q4">权附</span>
-          <svg className="xinpan-trail" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            {hasTrail ? <path d={trailPath} /> : null}
-          </svg>
-          <b className="xinpan-point" style={pointStyle} title={`真实位置：道合${dao}，势合${shi}`} />
-        </div>
-        <div className="xinpan-metrics">
-          <span className={positiveTone(dao)}><b>道合</b>{dao > 0 ? "+" : ""}{dao}</span>
-          <span className={positiveTone(shi)}><b>势合</b>{shi > 0 ? "+" : ""}{shi}</span>
-          <span className={pressureTone(fear)}><b>畏惧</b>{fear}</span>
-          <span className={trustTone}><b>信言</b>{trust.toFixed(2)}</span>
-          <span className={pressureTone(hatred)}><b>仇恨</b>{hatred}</span>
-        </div>
-      </div>
-      {profile.behavior_hint ? <p className="xinpan-behavior">{profile.behavior_hint}</p> : null}
-      {recentEvents.length ? (
-        <div className="xinpan-ledger">
-          <b>近期心证</b>
-          {recentEvents.map((point, index) => (
-            <span key={`${point.turn}-${point.event}-${index}`}>
-              <i>{point.turn ? `第${point.turn}回合` : "本局"}</i>
-              <em>{xinpanSourceLabel[point.source_kind || ""] || point.source_kind || "记录"}</em>
-              <strong>{point.event}</strong>
-              {point.has_delta ? (
-                <small className="xinpan-delta-line">
-                  <b className={deltaTone(point.dao_delta)}>道{deltaText(point.dao_delta)}</b>
-                  <b className={deltaTone(point.shi_delta)}>势{deltaText(point.shi_delta)}</b>
-                  <b className={deltaTone(point.fear_delta, false)}>惧{deltaText(point.fear_delta)}</b>
-                  <b className={deltaTone(point.hatred_delta, false)}>恨{deltaText(point.hatred_delta)}</b>
-                  <b className={deltaTone(point.trust_delta)}>信{deltaText(point.trust_delta, 3)}</b>
-                </small>
-              ) : null}
-              <small className="xinpan-landing-line">事后落点 道{point.dao_he > 0 ? "+" : ""}{point.dao_he} · 势{point.shi_he > 0 ? "+" : ""}{point.shi_he} · {point.quadrant || "未定"}</small>
-            </span>
-          ))}
+      {tone ? (
+        <div className="personality-readout-row">
+          <b>底色</b>
+          <span>{tone}</span>
         </div>
       ) : null}
-      {concerns.length ? (
-        <div className="xinpan-insight-group">
-          <b className="xinpan-insight-title">他最在意</b>
-          <div className="xinpan-concerns">
-            {concerns.slice(0, 5).map((concern) => (
-              <span key={concern.dim_id || `${concern.symbol}-${concern.name}`} title={xinpanConcernReason(concern.reason)}>
-                <b>{concern.symbol}{concern.name}</b>
-                <small>{xinpanConcernReason(concern.reason)}</small>
-              </span>
-            ))}
-          </div>
+      {skillNames.length ? (
+        <div className="personality-readout-row">
+          <b>抓手</b>
+          <span>{skillNames.join("、")}</span>
         </div>
       ) : null}
-      {abilities.length ? (
-        <div className="xinpan-insight-group">
-          <b className="xinpan-insight-title">可用强项</b>
-          <div className="xinpan-abilities">
-            {abilities.slice(0, 5).map((ability) => (
-              <i key={ability.dim_id || `${ability.symbol}-${ability.name}`}>
-                {ability.symbol}{ability.name}{ability.band ? ` · ${ability.band}` : ""}
-              </i>
-            ))}
-          </div>
+      {ability.length ? (
+        <div className="personality-readout-row">
+          <b>边界</b>
+          <span>{ability.join("；")}</span>
         </div>
       ) : null}
-      {warnings.length ? (
-        <div className="xinpan-warnings">
-          {warnings.slice(0, 3).map((warning) => <span key={warning}>{warning}</span>)}
+      {riskTags.length ? (
+        <div className="personality-readout-row risk">
+          <b>风险</b>
+          <span>{riskTags.join("；")}</span>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function TiangangSpectrum({ profile }: { profile?: TiangangProfile }) {
-  const groups = profile?.groups || [];
-  if (!groups.length) return null;
-  return (
-    <div className="tiangang-spectrum">
-      <div className="tiangang-spectrum-head">
-        <Target size={13} />
-        <span>天罡谱尺</span>
-        {profile?.archetype && <b>{profile.archetype}</b>}
-      </div>
-      <div className="tiangang-spectrum-groups">
-        {groups.map((group) => (
-          <section className="tiangang-spectrum-group" key={group.name}>
-            <h3>{group.name}</h3>
-            <div className="tiangang-spectrum-list">
-              {group.dimensions.map((dim) => {
-                const left = dim.poles?.left || "一端";
-                const right = dim.poles?.right || "另一端";
-                const band = dim.band || { left: 28, width: 44, tone: "center" as const };
-                const bandLeft = Math.max(0, Math.min(100, Number(band.left) || 0));
-                const bandWidth = Math.max(16, Math.min(100 - bandLeft, Number(band.width) || 36));
-                return (
-                  <div className={`tiangang-spectrum-row type-${dim.type || "mixed"}`} key={`${group.name}-${dim.symbol}-${dim.name}`}>
-                    <div className="tiangang-spectrum-name">
-                      <span>{dim.symbol}</span>
-                      <b>{dim.name}</b>
-                    </div>
-                    <div className="tiangang-spectrum-scale" aria-label={`${dim.name}：谱尺显影`}>
-                      <i
-                        className={`tiangang-spectrum-band tone-${band.tone || "center"}`}
-                        style={{ left: `${bandLeft}%`, width: `${bandWidth}%` }}
-                      />
-                    </div>
-                    <div className="tiangang-spectrum-labels">
-                      <small>{left}</small>
-                      <small>{right}</small>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        ))}
-      </div>
     </div>
   );
 }
@@ -7560,12 +7856,16 @@ function ConversationGoalList({
   onAbandonGoal?: (goal: ConversationGoal) => Promise<void> | void;
   compact?: boolean;
 }) {
-  const visible = (goals || []).filter((goal) => goal.status !== "abandoned").slice(0, compact ? 5 : 8);
+  const activeGoals = (goals || []).filter((goal) => ["active", "waiting_conditions", "blocked", "expired"].includes(goal.status));
+  const completedLimit = activeGoals.length ? 0 : compact ? 1 : 2;
+  const completedGoals = (goals || []).filter((goal) => goal.status === "sealed").slice(0, completedLimit);
+  const visible = [...activeGoals, ...completedGoals].slice(0, compact ? 4 : 6);
   if (!visible.length) return null;
   return (
     <div className={`conversation-goals ${compact ? "compact" : ""}`}>
       <b><Target size={14} />奏对目的</b>
       {visible.map((goal) => {
+        const isCompleted = goal.status === "sealed";
         const pending = (goal.pending_conditions || goal.conditions || []).filter((item) => item.status !== "done");
         const canAbandon = ["active", "waiting_conditions", "blocked", "expired"].includes(goal.status) && !goal.agreement_id && goal.status !== "sealed";
         return (
@@ -7581,9 +7881,11 @@ function ConversationGoalList({
             <small>
               进度 {goal.score || 0}% · 阈值 {goal.threshold || 0}
               {goal.condition_status && goal.condition_status !== "none" ? ` · ${goal.condition_status === "pending" ? "条件待证" : goal.condition_status === "satisfied" ? "条件已足" : "条件失败"}` : ""}
+              {goal.audit_confidence ? ` · 审计 ${goal.audit_confidence}%` : ""}
             </small>
-            {pending.length ? <p>条件待证：{pending.map((item) => item.description).join("；")}</p> : null}
-            {goal.target_text ? <p>标的：{goal.target_text}</p> : null}
+            {!isCompleted && goal.public_hint ? <p>{goal.public_hint}</p> : null}
+            {!isCompleted && pending.length ? <p>条件待证：{pending.map((item) => item.description).join("；")}</p> : null}
+            {!isCompleted && goal.target_text ? <p>标的：{goal.target_text}</p> : null}
             {canAbandon && onAbandonGoal ? (
               <button type="button" onClick={() => onAbandonGoal(goal)}>放弃目的</button>
             ) : null}
@@ -7714,10 +8016,9 @@ function ChatModal({
           <details className="chat-intel-details chat-intel-dossier" open>
             <summary>人物情报</summary>
             <div className="chat-intel-detail-body">
+              <PersonalityReadout minister={minister} />
               <NetworkProfileBlock profile={minister.network_profile} />
               <StanceNotes notes={minister.stance_notes} />
-              <XinpanProfileBlock profile={minister.xinpan_profile} />
-              <TiangangSpectrum profile={minister.tiangang_profile} />
             </div>
           </details>
           <button className="secondary-action" onClick={onOpenEdict}>
@@ -8058,8 +8359,14 @@ const THEATER_ONLY_REGION_IDS = new Set(["liaodong"]);
 const THEATER_COORD_STORAGE_KEY = "ming-map-theater-coords";
 const MAP_PENCIL_STORAGE_KEY = "ming-map-pencil-line";
 const MAP_TERRAIN_STORAGE_KEY = "ming-map-terrain-transform-v3";
+const FALLBACK_MAP_VIEW_BOX = "840 82 276 206";
 
 type TerrainTransform = { x: number; y: number; width: number; height: number };
+type MapPathAssets = {
+  MAP_VIEW_BOX: string;
+  REGION_PATH_GROUPS: RegionPathGroup[];
+  EXTERNAL_PATH_GROUPS: ExternalPathGroup[];
+};
 
 const DEFAULT_TERRAIN_TRANSFORM: TerrainTransform = {
   x: 840.22,
@@ -8083,7 +8390,24 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
   const mapTileRef = React.useRef<HTMLDivElement | null>(null);
   const svgRef = React.useRef<SVGSVGElement | null>(null);
   const didCenterRef = React.useRef(false);
-  const viewBoxParts = React.useMemo(() => MAP_VIEW_BOX.split(/\s+/).map(Number), []);
+  const [pathAssets, setPathAssets] = React.useState<MapPathAssets | null>(null);
+  React.useEffect(() => {
+    let cancelled = false;
+    import("./mapPaths").then((module) => {
+      if (!cancelled) {
+        setPathAssets({
+          MAP_VIEW_BOX: module.MAP_VIEW_BOX,
+          REGION_PATH_GROUPS: module.REGION_PATH_GROUPS,
+          EXTERNAL_PATH_GROUPS: module.EXTERNAL_PATH_GROUPS,
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const mapViewBox = pathAssets?.MAP_VIEW_BOX || FALLBACK_MAP_VIEW_BOX;
+  const viewBoxParts = React.useMemo(() => mapViewBox.split(/\s+/).map(Number), [mapViewBox]);
   const defaultTerrainTransform = DEFAULT_TERRAIN_TRANSFORM;
 
   // 坐标取点工具：URL 加 ?coords=1 开启。点地图打印 x/y% 与 SVG viewBox 坐标。
@@ -8323,7 +8647,7 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
   }, []);
   const nodeById = React.useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
   const regionPathItems = React.useMemo<RegionPathRenderItem[]>(
-    () => REGION_PATH_GROUPS.filter((group) => !THEATER_ONLY_REGION_IDS.has(group.regionId)).map((group) => {
+    () => (pathAssets?.REGION_PATH_GROUPS || []).filter((group) => !THEATER_ONLY_REGION_IDS.has(group.regionId)).map((group) => {
       const node = nodeById.get(group.regionId);
       return {
         id: group.regionId,
@@ -8336,11 +8660,11 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
         paths: group.paths,
       };
     }),
-    [nodeById],
+    [nodeById, pathAssets],
   );
   const externalPathItems = React.useMemo<ExternalPathRenderItem[]>(
     () => {
-      return EXTERNAL_PATH_GROUPS.filter((group) => group.paths.length > 0).map((group) => {
+      return (pathAssets?.EXTERNAL_PATH_GROUPS || []).filter((group) => group.paths.length > 0).map((group) => {
         const node = nodeById.get(group.id);
         return {
           ...group,
@@ -8349,7 +8673,7 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
         };
       });
     },
-    [nodeById],
+    [nodeById, pathAssets],
   );
 
   React.useLayoutEffect(() => {
@@ -8540,7 +8864,7 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
             <svg
               ref={svgRef}
               className="province-map-layer"
-              viewBox={MAP_VIEW_BOX}
+              viewBox={mapViewBox}
               preserveAspectRatio="xMinYMin meet"
             >
               <image
@@ -8712,7 +9036,19 @@ function GrandMap({ nodes, selectedId, onSelect }: { nodes: MapNode[]; selectedI
   );
 }
 
-function MapIntelPanel({ node, style, onClose }: { node: MapNode; style?: React.CSSProperties; onClose: () => void }) {
+function MapIntelPanel({
+  node,
+  style,
+  loading,
+  error,
+  onClose,
+}: {
+  node: MapNode;
+  style?: React.CSSProperties;
+  loading?: boolean;
+  error?: string;
+  onClose: () => void;
+}) {
   const titleId = React.useId();
   const closeRef = React.useRef<HTMLButtonElement | null>(null);
   const previousFocusRef = React.useRef<((HTMLElement | SVGElement) & { focus: () => void }) | null>(null);
@@ -8764,6 +9100,8 @@ function MapIntelPanel({ node, style, onClose }: { node: MapNode; style?: React.
       <button ref={closeRef} className="icon-button panel-close" aria-label="关闭地区详情" onClick={closePanel}>
         <X size={16} />
       </button>
+      {loading ? <div className="empty-note">正在载入驻军与建筑详情...</div> : null}
+      {error ? <div className="empty-note">{error}</div> : null}
       <NodeIntel node={node} titleId={titleId} />
     </section>
   );
@@ -8772,6 +9110,7 @@ function MapIntelPanel({ node, style, onClose }: { node: MapNode; style?: React.
 function NodeIntel({ node, titleId }: { node: MapNode; titleId?: string }) {
   const region = node.region;
   const power = node.power;
+  const armies = node.armies || [];
   if (node.kind === "external") {
     return (
       <>
@@ -8823,13 +9162,13 @@ function NodeIntel({ node, titleId }: { node: MapNode; titleId?: string }) {
         </>
       ) : null}
       <div className="garrison-title">驻军</div>
-      {node.armies.length ? (
+      {armies.length ? (
         <table className="intel-table">
           <thead>
             <tr><th>番号</th><th>兵种</th><th>兵</th><th>饷</th><th>士气</th><th>欠饷</th></tr>
           </thead>
           <tbody>
-            {node.armies.map((army) => {
+            {armies.map((army) => {
               const maint = army.maintenance_per_turn || 0;
               const arr = army.arrears || 0;
               const months = maint > 0 && arr > 0 ? (arr / maint) : 0;
@@ -8887,16 +9226,81 @@ function Info({ label, value, tone }: { label: string; value: React.ReactNode; t
   );
 }
 
+function LoginPage({
+  onLogin,
+  error,
+  setError,
+}: {
+  onLogin: (username: string, password: string) => Promise<void>;
+  error: string;
+  setError: (msg: string) => void;
+}) {
+  const [username, setUsername] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await onLogin(username.trim(), password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="menu-screen">
+      <div className="menu-panel login-panel">
+        <div className="login-mark"><Lock size={20} /></div>
+        <h1 className="menu-title">明末力挽狂澜</h1>
+        <p className="menu-subtitle">入值内阁 · 凭信入局</p>
+        {error && <div className="menu-error">{error}</div>}
+        <form className="login-form" onSubmit={submit}>
+          <label>
+            用户名
+            <input
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              autoComplete="username"
+              autoFocus
+            />
+          </label>
+          <label>
+            密码
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="current-password"
+            />
+          </label>
+          <button className="menu-btn primary" type="submit" disabled={busy || !username.trim() || !password}>
+            {busy ? "验看凭信..." : "登录"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function MenuPage({
   status,
+  auth,
   onRefresh,
   onEnterGame,
+  onLogout,
   error,
   setError,
 }: {
   status: MenuStatus | null;
+  auth: AuthStatus;
   onRefresh: () => Promise<MenuStatus>;
   onEnterGame: () => Promise<void>;
+  onLogout: () => Promise<void>;
   error: string;
   setError: (msg: string) => void;
 }) {
@@ -8939,6 +9343,9 @@ function MenuPage({
   const hasMainDb = !!status?.has_main_db;
   const saves = status?.saves || [];
   const campaigns = status?.campaigns || [];
+  const canConfigureLlm = status?.llm_client_configurable ?? true;
+  const username = status?.auth?.username || auth.username;
+  const isAdmin = !!(status?.auth?.is_admin ?? auth.is_admin);
 
   return (
     <div className="menu-screen">
@@ -8946,8 +9353,17 @@ function MenuPage({
         <h1 className="menu-title">明末力挽狂澜</h1>
         <p className="menu-subtitle">崇祯元年正月 · 召大臣议天下事</p>
 
+        {auth.auth_enabled && (
+          <div className="menu-user-line">
+            <span>当前用户：{username}</span>
+            <button disabled={!!busy} onClick={() => guard("退出登录...", onLogout)}>退出登录</button>
+          </div>
+        )}
+
         {!hasKey && (
-          <div className="menu-notice">尚未配置 API 接口。请先「设置 API」。</div>
+          <div className="menu-notice">
+            {canConfigureLlm ? "尚未配置 API 接口。请先「设置 API」。" : "服务器尚未配置 API 接口，请联系管理员。"}
+          </div>
         )}
         {error && <div className="menu-error">{error}</div>}
 
@@ -8961,9 +9377,16 @@ function MenuPage({
           <button className="menu-btn" disabled={!hasKey || !!busy || !saves.length} onClick={() => setShowSaveList(true)} title={saves.length ? "" : "暂无存档"}>
             加载存档 {saves.length ? `(${saves.length})` : ""}
           </button>
-          <button className="menu-btn" disabled={!!busy} onClick={() => setShowApiForm(true)}>
-            设置 API {hasKey ? "" : "（必需）"}
-          </button>
+          {canConfigureLlm && (
+            <button className="menu-btn" disabled={!!busy} onClick={() => setShowApiForm(true)}>
+              设置 API {hasKey ? "" : "（必需）"}
+            </button>
+          )}
+          {isAdmin && (
+            <button className="menu-btn" disabled={!!busy} onClick={() => window.open("/server-admin", "_blank", "noopener,noreferrer")}>
+              服务器后台
+            </button>
+          )}
         </div>
 
         {busy && <div className="menu-busy">{busy}</div>}
@@ -9042,6 +9465,7 @@ function ApiSettingsModal({
     try {
       const response = await fetch("/api/menu/llm", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           base_url: baseUrl.trim(),

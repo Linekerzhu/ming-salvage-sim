@@ -39,13 +39,40 @@ def _ctx() -> GameContent:
 
 
 # 调试开关：MING_SIM_DUMP_LLM=1 时把每次 agno 调用真实送进 LLM 的 system/user/assistant
-# 全文落盘到 scripts/runs/llm_dump_<pid>.log。从 RunOutput.messages 取（=实际 payload，非重建）。
+# 落盘到 scripts/runs/llm_dump_<pid>.log。从 RunOutput.messages 取（=实际 payload，非重建）。
 _DUMP_LLM = os.environ.get("MING_SIM_DUMP_LLM", "").strip() in ("1", "true", "yes")
+_DUMP_FULL = os.environ.get("MING_SIM_DUMP_LLM_FULL", "").strip() in ("1", "true", "yes")
 _DUMP_PATH = f"scripts/runs/llm_dump_{os.getpid()}.log"
 
 
+def _env_int(name: str, default: int, *, minimum: int = 0, maximum: int = 10**9) -> int:
+    try:
+        value = int(os.environ.get(name, str(default)) or default)
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, value))
+
+
+_DUMP_MAX_CHARS = _env_int("MING_SIM_DUMP_LLM_MAX_CHARS", 4000, minimum=1000, maximum=200000)
+
+
+def _redact_dump_text(text: object) -> str:
+    raw = str(text or "")
+    raw = re.sub(r"sk-[A-Za-z0-9_\-]{12,}", "sk-***REDACTED***", raw)
+    raw = re.sub(
+        r"(?i)(api[_-]?key|authorization|bearer)(\s*[:=]\s*)([^\s,'\"]+)",
+        r"\1\2***REDACTED***",
+        raw,
+    )
+    if _DUMP_FULL or len(raw) <= _DUMP_MAX_CHARS:
+        return raw
+    head = raw[: _DUMP_MAX_CHARS // 2]
+    tail = raw[-(_DUMP_MAX_CHARS // 2) :]
+    return f"{head}\n...[截断 {len(raw) - len(head) - len(tail)} 字，设 MING_SIM_DUMP_LLM_FULL=1 可输出全文]...\n{tail}"
+
+
 def _dump_llm_messages(output: Any, tag: str, agent: Optional[Agent] = None) -> None:
-    """把这次 run 的完整 messages（含 system prompt）追加写盘。仅 _DUMP_LLM 开时生效。
+    """把这次 run 的 messages 追加写盘。仅 _DUMP_LLM 开时生效。
 
     非流式：output 即 RunOutput，带 .messages。
     流式：终结事件 RunCompletedEvent 无 .messages，改从 agent.get_last_run_output() 取。"""
@@ -66,11 +93,12 @@ def _dump_llm_messages(output: Any, tag: str, agent: Optional[Agent] = None) -> 
         content = getattr(m, "content", "")
         if content is None:
             content = ""
-        lines.append(f"\n----- #{i} role={role} ({len(str(content))} 字) -----\n{content}")
+        safe_content = _redact_dump_text(content)
+        lines.append(f"\n----- #{i} role={role} ({len(str(content))} 字) -----\n{safe_content}")
         # 工具调用也带上
         tcalls = getattr(m, "tool_calls", None)
         if tcalls:
-            lines.append(f"\n  [tool_calls] {tcalls}")
+            lines.append(f"\n  [tool_calls] {_redact_dump_text(tcalls)}")
     try:
         with open(_DUMP_PATH, "a", encoding="utf-8") as f:
             f.write("\n".join(lines) + "\n")
@@ -485,7 +513,7 @@ AGREEMENT_REVIEWER_PROMPT = """
 def create_agreement_reviewer_agent(llm_config: LLMConfig, agno_db: SqliteDb) -> Agent:
     """奏对履约审计：判断条件是否满足、标的是否达成。一次性，不持久化。"""
     del agno_db
-    cfg = _llm_for_role(llm_config, "extractor")
+    cfg = _llm_for_role(llm_config, "dialogue_audit")
     return Agent(
         name="奏对履约审计官",
         id="agreement-reviewer",

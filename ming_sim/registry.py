@@ -20,9 +20,8 @@ from ming_sim.content import GameContent
 from ming_sim.context import (
     character_age_label,
     character_context_with_db,
-    npc_dialogue_behavior_brief,
     npc_network_brief,
-    npc_tiangang_hidden_brief,
+    npc_relation_perspective,
 )
 from ming_sim.models import Character, CourtContext, LLMConfig
 from ming_sim.llm_model import create_chat_model
@@ -197,6 +196,83 @@ def build_memory_brief(character: Character, context: CourtContext) -> str:
     return brief
 
 
+def build_personal_chat_memory_brief(character: Character, context: CourtContext) -> str:
+    """NPC personal audience memory.
+
+    This gives an NPC continuity with its own talks to the emperor and a limited
+    sense of what others have said about it recently. Other-minister snippets
+    are framed as court gossip/inner-court relay, not omniscient certainty.
+    """
+    try:
+        rows = context.db.recent_chat_memory_for_minister(
+            character.name,
+            upto_turn=int(context.state.turn),
+            window=2,
+            limit=10,
+        )
+    except Exception:
+        return ""
+    if not rows:
+        return ""
+
+    def compact(text: object, limit: int = 120) -> str:
+        return re.sub(r"\s+", " ", str(text or "").strip())[:limit]
+
+    def relation_memory_hint(speaker: str) -> str:
+        if not speaker or speaker == character.name:
+            return ""
+        try:
+            perspective = npc_relation_perspective(character.name, speaker)
+        except Exception:
+            return ""
+        if not perspective.get("found"):
+            return ""
+        relation_type = str(perspective.get("relation_type") or "").strip()
+        relation_class = str(perspective.get("relation_class") or "").strip()
+        if relation_class == "neutral" and relation_type in {"", "无直接强关系"}:
+            return ""
+        class_hint = {
+            "rival": "政敌/党争对手，需防构陷、翻旧账或借题清算",
+            "ally": "同党/同道，容易背书、护短或转圜",
+            "obligation": "恩义/师门牵连，容易求情、缓办或保全名节",
+        }.get(relation_class, "")
+        parts = [relation_type] if relation_type and relation_type != "无直接强关系" else []
+        if class_hint:
+            parts.append(class_hint)
+        risk_tags = perspective.get("risk_tags")
+        if isinstance(risk_tags, list) and risk_tags:
+            parts.append("风险=" + "、".join(str(tag) for tag in risk_tags[:3]))
+        return "；关系=" + "，".join(parts) if parts else ""
+
+    lines = ["【近来与你有关的召对记忆（隐藏；用于接续，不要逐字复述）】"]
+    direct_count = 0
+    mention_count = 0
+    for row in rows:
+        content = compact(row.get("content"))
+        if not content:
+            continue
+        turn = int(row.get("turn") or 0)
+        speaker = str(row.get("minister_name") or "")
+        role = str(row.get("role") or "")
+        if row.get("direct"):
+            if direct_count >= 5:
+                continue
+            actor = "皇帝问" if role == "user" else "你答"
+            lines.append(f"- 你与皇帝（第{turn}回合，{actor}）：{content}")
+            direct_count += 1
+        else:
+            if mention_count >= 4:
+                continue
+            actor = "皇帝问及" if role == "user" else f"{speaker}奏及"
+            relation_hint = relation_memory_hint(speaker)
+            lines.append(f"- 朝房风闻（第{turn}回合，召见{speaker}时{actor}你{relation_hint}）：{content}")
+            mention_count += 1
+    if len(lines) == 1:
+        return ""
+    lines.append("这些记忆会影响你的态度、信任、护短、告状或回避；他人奏对只按风闻处理，不要说成亲耳所闻。")
+    return "\n".join(lines)
+
+
 def build_stance_brief(character: Character, context: CourtContext) -> str:
     """本回合召对立场，提醒 Agent 接续自身承诺/保留。"""
     rows = context.db.list_minister_stances(
@@ -227,13 +303,72 @@ def build_stance_brief(character: Character, context: CourtContext) -> str:
                 driver_text = "；证据：" + "；".join(parts)
         risk_tags = row.get("risk_tags_list") if isinstance(row.get("risk_tags_list"), list) else []
         risk_text = f"；风险：{'、'.join(str(x) for x in risk_tags[:6])}" if risk_tags else ""
+        continuity = _stance_continuity_brief(row)
+        continuity_text = f"；后续口径：{continuity}" if continuity else ""
         execution_hint = str(row.get("execution_hint") or "").strip()
         hint_text = f"；推演提示：{execution_hint}" if execution_hint else ""
         lines.append(
             f"- {row.get('topic')}：{label.get(str(row.get('stance')), str(row.get('stance')))}"
-            f"（置信{row.get('confidence')}）{suffix}{driver_text}{risk_text}{hint_text}"
+            f"（置信{row.get('confidence')}）{suffix}{driver_text}{risk_text}{continuity_text}{hint_text}"
         )
     return "\n".join(lines)
+
+
+def build_monthly_followup_brief(character: Character, context: CourtContext) -> str:
+    """月初候见/请安提示：只给当前 NPC 自己的待回奏事项。"""
+    rows = [
+        item for item in (getattr(context, "monthly_followups", []) or [])
+        if isinstance(item, dict) and str(item.get("minister_name") or "") == character.name
+    ]
+    if not rows:
+        return ""
+    item = rows[0]
+    hooks = [str(hook) for hook in (item.get("memory_hooks") or []) if str(hook).strip()]
+    reasons = [str(reason) for reason in (item.get("reason_types") or []) if str(reason).strip()]
+    risks = [str(tag) for tag in (item.get("risk_tags") or []) if str(tag).strip()]
+    lines = [
+        "【本月候见/请安提示（隐藏；用于开场主动性，不要复述机制名）】",
+        f"- 你本月有理由主动请安或回奏：{str(item.get('title') or item.get('summary') or '上月事务未了')}",
+        f"- 记忆钩子：{'；'.join(hooks[:4]) if hooks else '上月有与你有关的奏对/差事，需主动接续。'}",
+        f"- 建议开场：{str(item.get('suggested_opening') or '请安后先回奏进展，再等皇帝裁断。')}",
+        f"- 真话策略：{str(item.get('truth_mode') or '直陈为主')}；性格口径：{str(item.get('personality_cue') or '按身份、旧事和关系自然回奏。')}",
+    ]
+    if reasons:
+        lines.append(f"- 触发来源：{'、'.join(reasons[:5])}。")
+    if risks:
+        lines.append(f"- 风险提醒：{'、'.join(risks[:6])}。")
+    lines.append("若皇帝召见你但没有先问此事，可先用一两句请安并自然带出最要紧的回奏；若皇帝改问别事，再服从皇帝话题。")
+    return "\n".join(lines)
+
+
+def _stance_continuity_brief(row: Dict[str, object]) -> str:
+    evidence = row.get("evidence") if isinstance(row.get("evidence"), dict) else {}
+    psychological = row.get("psychological") if isinstance(row.get("psychological"), dict) else {}
+    speech = evidence.get("speech_profile") if isinstance(evidence.get("speech_profile"), dict) else {}
+    if not speech and isinstance(psychological.get("speech_profile"), dict):
+        speech = psychological["speech_profile"]  # type: ignore[index]
+    if not isinstance(speech, dict):
+        return ""
+    acts = {str(item) for item in speech.get("speech_acts") or []}
+    pressure = speech.get("network_pressure") if isinstance(speech.get("network_pressure"), dict) else {}
+    truth_mode = str(speech.get("truth_mode") or "").strip()
+    pieces: List[str] = []
+    rivals = "、".join(str(item) for item in (pressure.get("rivals") or [])[:3])
+    allies = "、".join(str(item) for item in (pressure.get("allies") or [])[:3])
+    obligations = "、".join(str(item) for item in (pressure.get("obligations") or [])[:3])
+    if "accusation" in acts:
+        target_text = f"（{rivals}）" if rivals else ""
+        pieces.append(f"涉及政敌{target_text}时延续告状/奏劾口径，不突然替其开脱")
+    if "shielding" in acts:
+        target_text = f"（{allies or obligations}）" if (allies or obligations) else ""
+        pieces.append(f"涉及同党人情{target_text}时继续留余地、避株连")
+    if "misdirection" in acts:
+        pieces.append("可继续半真半假、拖延或转移焦点，不要自曝底牌")
+    elif "selective_truth" in acts or truth_mode == "选择性真话":
+        pieces.append("继续选择性陈述事实，可放大有利证据、压低不利动机")
+    if truth_mode and truth_mode not in {"直陈为主", "选择性真话"}:
+        pieces.append(f"真话策略保持「{truth_mode}」")
+    return "；".join(pieces)[:220]
 
 
 def build_secret_order_brief(character: Character, context: CourtContext) -> str:
@@ -446,10 +581,6 @@ def create_minister_agent(
         if extra_traits_str:
             cultivate_desc += f"性情逐渐变化：{extra_traits_str}。"
         network_brief = npc_network_brief(character.name, year=context.state.year)
-        tiangang_brief = npc_tiangang_hidden_brief(character.name)
-        xinpan_profile = context.db.get_xinpan_profile(character.name, context.state)
-        xinpan_brief = context.db.xinpan_agent_brief(character.name, context.state)
-        behavior_brief = npc_dialogue_behavior_brief(character.name, xinpan_profile=xinpan_profile)
         instructions = [
             c.game_world_prompt,
             c.consort_agent_prompt,
@@ -458,9 +589,6 @@ def create_minister_agent(
             + (f"\n{cultivate_desc}" if cultivate_desc else ""),
             persona_self_address_rule(character),
             network_brief,
-            tiangang_brief,
-            xinpan_brief,
-            behavior_brief,
             f"你与皇帝的对话在后宫寝殿；同一回合复召时接续此前对话，不要重置记忆。",
             f"当前为 {context.state.year} 年 {context.state.period} 月。",
         ]
@@ -474,13 +602,11 @@ def create_minister_agent(
         army_roster = context.db.army_roster()
         last_gazette = build_last_gazette_brief(context)
         memory_brief = build_memory_brief(character, context)
+        personal_memory_brief = build_personal_chat_memory_brief(character, context)
+        followup_brief = build_monthly_followup_brief(character, context)
         stance_brief = build_stance_brief(character, context)
         secret_brief = build_secret_order_brief(character, context)
         network_brief = npc_network_brief(character.name, year=context.state.year)
-        tiangang_brief = npc_tiangang_hidden_brief(character.name)
-        xinpan_profile = context.db.get_xinpan_profile(character.name, context.state)
-        xinpan_brief = context.db.xinpan_agent_brief(character.name, context.state)
-        behavior_brief = npc_dialogue_behavior_brief(character.name, xinpan_profile=xinpan_profile)
         monthly_block_parts = [
             f"当前为 {context.state.year} 年 {context.state.period} 月（第 {context.state.turn} 回合）。"
             "作答涉及时序（某事多久前、某人是否已亡、某限期是否到）时以此为准。",
@@ -494,6 +620,10 @@ def create_minister_agent(
             monthly_block_parts.append(last_gazette)
         if memory_brief:
             monthly_block_parts.append(memory_brief)
+        if personal_memory_brief:
+            monthly_block_parts.append(personal_memory_brief)
+        if followup_brief:
+            monthly_block_parts.append(followup_brief)
         if stance_brief:
             monthly_block_parts.append(stance_brief)
         if secret_brief:
@@ -505,9 +635,6 @@ def create_minister_agent(
             f"任事处：{_duty_location(character.office, character.office_type, 'active')}。",
             persona_self_address_rule(character),
             network_brief,
-            tiangang_brief,
-            xinpan_brief,
-            behavior_brief,
             f"你与皇帝的多轮对话会持续到本{TURN_UNIT}退朝；同一{TURN_UNIT}复召时要接续此前奏对，不要重置记忆。",
             "\n\n".join(monthly_block_parts),
         ]

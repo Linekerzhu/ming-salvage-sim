@@ -959,8 +959,12 @@ def _castration_consent_recorded(db: GameDB, state: GameState, name: str) -> boo
     if db.has_successful_agreement(name, "castration", max_age_turns=12, current_turn=state.turn) is not None:
         return True
     for row in db.list_minister_stances(turn=state.turn, minister_name=name, limit=12):
+        psychological = row.get("psychological") if isinstance(row.get("psychological"), dict) else {}
+        action_kind = str(psychological.get("action_kind") or "")
+        if action_kind and action_kind != "castration":
+            continue
         text = f"{row.get('topic', '')} {row.get('summary', '')} {row.get('conditions', '')}"
-        if not re.search(r"净身|入宫|内廷|司礼监|太监|宦官|宫禁", text):
+        if not action_kind and not re.search(r"净身|入宫|内廷|司礼监|太监|宦官|宫禁", text):
             continue
         return row.get("handshake_status") == HANDSHAKE_SEALED
     return False
@@ -971,8 +975,12 @@ def _emancipation_consent_recorded(db: GameDB, state: GameState, name: str) -> b
     if db.has_successful_agreement(name, "emancipation", max_age_turns=12, current_turn=state.turn) is not None:
         return True
     for row in db.list_minister_stances(turn=state.turn, minister_name=name, limit=12):
+        psychological = row.get("psychological") if isinstance(row.get("psychological"), dict) else {}
+        action_kind = str(psychological.get("action_kind") or "")
+        if action_kind and action_kind != "emancipation":
+            continue
         text = f"{row.get('topic', '')} {row.get('summary', '')} {row.get('conditions', '')}"
-        if not re.search(r"奴籍|民籍|脱籍|还民|出宫为民|归为百姓|赐还为民", text):
+        if not action_kind and not re.search(r"奴籍|民籍|脱籍|还民|出宫为民|归为百姓|赐还为民", text):
             continue
         return row.get("handshake_status") == HANDSHAKE_SEALED
     return False

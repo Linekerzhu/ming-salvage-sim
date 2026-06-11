@@ -2,7 +2,8 @@
 
 This module keeps the court-organization display and the turn simulator anchored
 to the same deterministic evidence: filled seats, key vacancies, overloaded
-office holders, actor fitness, current xinpan, and faction posture.
+office holders, actor fitness, dialogue stance, agreement ledger, NPC network,
+and faction posture.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 from ming_sim.db import effective_stored_office_type, normalize_office
+from ming_sim.context import npc_dialogue_behavior_brief, npc_network_profile
 
 
 InstitutionSpec = Dict[str, Any]
@@ -354,20 +356,37 @@ def directive_execution_assessments(
         actor_row = _actor_row(db, actor)
         actor_score = _actor_fit_score(actor_row, domains)
         actor_domain_bonus = _actor_domain_bonus(actor_row, domains)
+        trait_modifier, trait_note, trait_risks = _actor_trait_modifier(db, actor, domains)
+        actor_adjusted = _clamp_int(actor_score + actor_domain_bonus + trait_modifier, 0, 100)
         relationship_score, relationship_note = _relationship_score(db, state, actor)
         faction_score, faction_note = _faction_score(db, actor_row)
         stance_score, stance_note = _stance_score(db, getattr(state, "turn", 0), actor, text)
+        stance_risks = _stance_execution_risks(db, getattr(state, "turn", 0), actor, text)
         score = _clamp_int(round(
             institution_score * 0.42
-            + (actor_score + actor_domain_bonus) * 0.30
+            + actor_adjusted * 0.30
             + relationship_score * 0.12
             + faction_score * 0.10
             + stance_score * 0.06
         ), 0, 100)
-        risks = _directive_risks(relevant, actor_row, actor_domain_bonus, relationship_score, faction_score, stance_score)
+        risks = _directive_risks(
+            relevant,
+            actor_row,
+            actor_domain_bonus,
+            relationship_score,
+            faction_score,
+            stance_score,
+            stance_risks=stance_risks,
+        )
+        risks = [
+            *trait_risks,
+            *[risk for risk in stance_risks if risk not in trait_risks],
+            *[risk for risk in risks if risk not in trait_risks and risk not in stance_risks],
+        ]
         drivers = [
             f"班子执行力{institution_score}",
-            f"承办人适配{_clamp_int(actor_score + actor_domain_bonus, 0, 100)}",
+            f"承办人适配{actor_adjusted}",
+            trait_note,
             relationship_note,
             faction_note,
             stance_note,
@@ -381,10 +400,13 @@ def directive_execution_assessments(
             "score": score,
             "label": label,
             "institution_score": institution_score,
-            "actor_score": _clamp_int(actor_score + actor_domain_bonus, 0, 100),
+            "actor_score": actor_adjusted,
+            "trait_modifier": trait_modifier,
+            "trait_note": trait_note,
             "relationship_score": relationship_score,
             "faction_score": faction_score,
             "stance_score": stance_score,
+            "stance_risks": stance_risks,
             "relevant_institutions": [
                 {
                     "id": item.get("id"),
@@ -399,6 +421,115 @@ def directive_execution_assessments(
             "execution_hint": _execution_hint(score, risks),
         })
     return out
+
+
+def secret_order_actor_assessment(
+    state: Any,
+    db: Any,
+    order: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Deterministic assignee profile for secret-order simulation review."""
+    actor = str((order or {}).get("minister_name") or "").strip()
+    title = str((order or {}).get("title") or "")
+    content = str((order or {}).get("content") or "")
+    result = str((order or {}).get("result") or "")
+    sim_note = str((order or {}).get("sim_note") or "")
+    text = "\n".join(part for part in (title, content, result, sim_note) if part.strip())
+    domains = infer_directive_domains(text or title)
+    actor_row = _actor_row(db, actor)
+    actor_score = _actor_fit_score(actor_row, domains)
+    actor_domain_bonus = _actor_domain_bonus(actor_row, domains)
+    trait_modifier, trait_note, trait_risks = _actor_trait_modifier(db, actor, domains)
+    actor_adjusted = _clamp_int(actor_score + actor_domain_bonus + trait_modifier, 0, 100)
+    relationship_score, relationship_note = _relationship_score(db, state, actor)
+    faction_score, faction_note = _faction_score(db, actor_row)
+    stance_score, stance_note = _stance_score(db, getattr(state, "turn", 0), actor, text)
+    stance_risks = _stance_execution_risks(db, getattr(state, "turn", 0), actor, text)
+    score = _clamp_int(round(
+        actor_adjusted * 0.46
+        + relationship_score * 0.22
+        + stance_score * 0.20
+        + faction_score * 0.12
+    ), 0, 100)
+    try:
+        network = npc_network_profile(actor, db=db, limit=10)
+    except Exception:
+        network = {}
+    relations: List[Dict[str, str]] = []
+    for rel in (network.get("relations") if isinstance(network, dict) else []) or []:
+        if not isinstance(rel, dict):
+            continue
+        relations.append({
+            "target": str(rel.get("target") or ""),
+            "type": str(rel.get("type") or ""),
+            "note": str(rel.get("note") or "")[:100],
+        })
+        if len(relations) >= 6:
+            break
+    try:
+        stances = db.list_minister_stances(turn=getattr(state, "turn", 0), minister_name=actor, limit=8)
+    except Exception:
+        stances = []
+    related_stances = [
+        {
+            "topic": str(row.get("topic") or ""),
+            "stance": str(row.get("stance") or ""),
+            "handshake_status": str(row.get("handshake_status") or ""),
+            "risk_tags": row.get("risk_tags_list") if isinstance(row.get("risk_tags_list"), list) else [],
+            "execution_hint": str(row.get("execution_hint") or "")[:160],
+        }
+        for row in stances
+        if _stance_relevant_to_directive(db, row, text)
+    ][:4]
+    risks = [
+        *trait_risks,
+        *[risk for risk in stance_risks if risk not in trait_risks],
+    ]
+    if actor_row is None:
+        risks.append("密令承办人不在当前名册，核议应从严。")
+    elif actor_domain_bonus < 0:
+        risks.append("承办人职掌与密令类型不合，需额外核查线索来源。")
+    if relationship_score < 45:
+        risks.append("承办人缺少可信握手或履约背书，密令陈词可能变形。")
+    if stance_score < 45:
+        risks.append("相关召对未形成背书，密令核议不可只信承办人口供。")
+    ability_logic = str((network or {}).get("ability_logic") if isinstance(network, dict) else "")
+    growth = network.get("growth_arc") if isinstance(network, dict) and isinstance(network.get("growth_arc"), dict) else {}
+    return {
+        "actor": actor,
+        "domains": domains,
+        "score": score,
+        "label": _score_label(score),
+        "actor_score": actor_adjusted,
+        "trait_modifier": trait_modifier,
+        "trait_note": trait_note,
+        "relationship_score": relationship_score,
+        "faction_score": faction_score,
+        "stance_score": stance_score,
+        "drivers": [
+            part for part in (
+                f"密令承办适配{actor_adjusted}",
+                trait_note,
+                relationship_note,
+                faction_note,
+                stance_note,
+            )
+            if part
+        ],
+        "risks": list(dict.fromkeys(risks))[:8],
+        "stance_risks": stance_risks,
+        "related_stances": related_stances,
+        "personality_behavior": npc_dialogue_behavior_brief(actor, text=text)[:700] if actor else "",
+        "network_brief": {
+            "ability_logic": ability_logic[:260],
+            "growth_risk": str((growth or {}).get("risk") or "")[:180],
+            "relations": relations,
+        },
+        "review_guidance": (
+            "核议时同时看任务可行性、承办人能力/trait、相关召对是否已握手、"
+            "同党护短或政敌清算风险、既有进展与自述 claim 是否一致。"
+        ),
+    }
 
 
 def infer_directive_domains(text: str) -> List[str]:
@@ -541,19 +672,54 @@ def _actor_domain_bonus(row: Optional[Dict[str, Any]], domains: Sequence[str]) -
 def _relationship_score(db: Any, state: Any, actor: str) -> tuple[int, str]:
     if not actor:
         return 45, "未指定承办人"
+    score = 50
+    notes: List[str] = []
     try:
-        profile = db.get_xinpan_profile(actor, state)
+        stances = db.list_minister_stances(turn=getattr(state, "turn", 0), minister_name=actor, limit=5)
+    except Exception:
+        stances = []
+    for stance in stances[:3]:
+        value = str(stance.get("stance") or "")
+        topic = str(stance.get("topic") or "本回合奏对")
+        if value == "support":
+            score += 14
+            notes.append(f"{topic}已表支持")
+        elif value == "caution":
+            score += 2
+            notes.append(f"{topic}仍附条件")
+        elif value == "oppose":
+            score -= 18
+            notes.append(f"{topic}真实抵触")
+    try:
+        agreements = db.negotiation_agreement_ledger(state, minister_name=actor, limit=6)
+    except Exception:
+        agreements = []
+    for agreement in agreements[:3]:
+        topic = str(agreement.get("core_topic") or agreement.get("topic") or "履约事项")
+        target_status = str(agreement.get("target_status") or agreement.get("status") or "")
+        if target_status in {"achieved", "fulfilled"}:
+            score += 12
+            notes.append(f"{topic}已履约背书")
+        elif target_status == "pending_conditions":
+            score -= 4
+            notes.append(f"{topic}条件未闭环")
+        elif target_status == "failed":
+            score -= 16
+            notes.append(f"{topic}失信折损")
+        elif target_status in {"blocked", "abandoned"}:
+            score -= 10
+            notes.append(f"{topic}未说服")
+    try:
+        profile = npc_network_profile(actor, db=db, limit=8)
     except Exception:
         profile = {}
-    quadrant = str((profile or {}).get("quadrant") or "")
-    base = {"股肱": 78, "权附": 64, "道隐": 52, "离心": 32}.get(quadrant, 50)
-    fear = float((profile or {}).get("fear") or 0)
-    if quadrant == "离心" and fear >= 60:
-        base += 5
-    note = f"心盘{quadrant or '未明'}"
-    if quadrant == "离心" and fear >= 60:
-        note += "，畏惧压住公开抗命但暗阻仍在"
-    return _clamp_int(base, 0, 100), note
+    ability_logic = str((profile or {}).get("ability_logic") or "")
+    if any(marker in ability_logic for marker in ("阳奉阴违", "善观风色", "猜忌多疑", "结党营私", "贪墨成性")):
+        score -= 8
+        notes.append("人物痼疾带来话术或执行走样风险")
+    if "直言不讳" in ability_logic:
+        notes.append("性格直切，奏对更可能明言边界")
+    return _clamp_int(score, 0, 100), "；".join(notes[:4]) or "无本回合明确握手或履约背书"
 
 
 def _faction_score(db: Any, actor_row: Optional[Dict[str, Any]]) -> tuple[int, str]:
@@ -569,6 +735,133 @@ def _faction_score(db: Any, actor_row: Optional[Dict[str, Any]]) -> tuple[int, s
     if sat <= 35 and lev >= 60:
         score -= 14
     return _clamp_int(score, 0, 100), f"{faction}满意{sat}/影响{lev}"
+
+
+_STANCE_STOP_TERMS = {
+    "皇帝", "陛下", "微臣", "臣愿", "臣以", "奏对", "目的", "本次", "本轮",
+    "明旨", "条件", "承办", "查办", "会审", "回奏", "支持", "反对", "保留",
+}
+
+
+def _stance_terms(text: str) -> set[str]:
+    terms: set[str] = set()
+    for raw in re.findall(r"[\u4e00-\u9fffA-Za-z0-9]{2,}", str(text or "")):
+        if raw in _STANCE_STOP_TERMS:
+            continue
+        if len(raw) >= 2:
+            terms.add(raw)
+        if len(raw) >= 4:
+            for size in (2, 3):
+                for idx in range(0, len(raw) - size + 1):
+                    part = raw[idx:idx + size]
+                    if part not in _STANCE_STOP_TERMS:
+                        terms.add(part)
+    return terms
+
+
+def _stance_text_related(left: str, right: str) -> bool:
+    left = str(left or "").strip()
+    right = str(right or "").strip()
+    if not left or not right:
+        return False
+    chunks = [
+        chunk for chunk in re.split(r"[\s,，;；。！？、（）()《》「」\"']+", left)
+        if len(chunk) >= 4 and chunk not in _STANCE_STOP_TERMS
+    ]
+    if any(chunk and chunk in right for chunk in chunks[:12]):
+        return True
+    left_terms = _stance_terms(left)
+    right_terms = _stance_terms(right)
+    overlap = left_terms.intersection(right_terms)
+    return any(len(term) >= 3 for term in overlap) or len(overlap) >= 2
+
+
+def _stance_relevance_text(row: Dict[str, object]) -> str:
+    evidence = row.get("evidence") if isinstance(row.get("evidence"), dict) else {}
+    psychological = row.get("psychological") if isinstance(row.get("psychological"), dict) else {}
+    parts = [
+        row.get("topic"),
+        row.get("summary"),
+        row.get("conditions"),
+        row.get("user_message"),
+        row.get("minister_answer"),
+        row.get("execution_hint"),
+    ]
+    if isinstance(evidence, dict):
+        parts.append(evidence.get("public_hint"))
+        parts.append(evidence.get("private_reason"))
+        parts.append(evidence.get("speech_profile_summary"))
+    if isinstance(psychological, dict):
+        parts.append(psychological.get("core_topic"))
+        parts.append(psychological.get("target_text"))
+        parts.append(psychological.get("private_reason"))
+        parts.append(psychological.get("public_hint"))
+    return "\n".join(str(part or "") for part in parts if str(part or "").strip())
+
+
+def _stance_relevant_to_directive(db: Any, row: Dict[str, object], directive_text: str) -> bool:
+    directive_text = str(directive_text or "").strip()
+    if not directive_text:
+        return True
+    agreement_id = int(row.get("agreement_id") or 0)
+    if agreement_id:
+        try:
+            agreement = db.conn.execute(
+                "SELECT * FROM negotiation_agreements WHERE id=?",
+                (agreement_id,),
+            ).fetchone()
+            if agreement is not None and db._agreement_relevant_in_context(dict(agreement), directive_text):
+                return True
+        except Exception:
+            pass
+    goal_id = int(row.get("goal_id") or 0)
+    if goal_id:
+        try:
+            goal = db.get_conversation_goal(goal_id)
+        except Exception:
+            goal = None
+        if isinstance(goal, dict):
+            goal_text = "\n".join(str(goal.get(key) or "") for key in ("title", "target_text", "last_event_summary"))
+            if _stance_text_related(goal_text, directive_text):
+                return True
+    return _stance_text_related(_stance_relevance_text(row), directive_text)
+
+
+def _speech_profile_from_stance(row: Dict[str, object]) -> Dict[str, object]:
+    evidence = row.get("evidence") if isinstance(row.get("evidence"), dict) else {}
+    psychological = row.get("psychological") if isinstance(row.get("psychological"), dict) else {}
+    speech = evidence.get("speech_profile") if isinstance(evidence.get("speech_profile"), dict) else {}
+    if not speech and isinstance(psychological.get("speech_profile"), dict):
+        speech = psychological["speech_profile"]  # type: ignore[index]
+    return speech if isinstance(speech, dict) else {}
+
+
+def _stance_execution_risks(db: Any, turn: int, actor: str, directive_text: str = "") -> List[str]:
+    if not actor:
+        return []
+    try:
+        stances = db.list_minister_stances(turn=turn, minister_name=actor, limit=8)
+    except Exception:
+        stances = []
+    risks: List[str] = []
+    for row in stances:
+        if not _stance_relevant_to_directive(db, row, directive_text):
+            continue
+        speech = _speech_profile_from_stance(row)
+        acts = {str(item) for item in (speech.get("speech_acts") or [])}
+        risk_tags = [str(item) for item in (row.get("risk_tags_list") or []) if str(item).strip()]
+        topic = str(row.get("topic") or "本轮奏对")
+        if acts.intersection({"misdirection", "selective_truth"}) or "话术不实" in risk_tags:
+            risks.append(f"{topic}话术有保留，口头顺从不可直接等同真实履约。")
+        if "accusation" in acts or "政敌告状" in risk_tags:
+            risks.append(f"{topic}牵涉政敌告状，承办时可能借旨清算或扩大打击。")
+        if "shielding" in acts or "人情护短" in risk_tags or "同党背书" in risk_tags:
+            risks.append(f"{topic}牵涉同党/恩主人情，承办时可能拖延、转圜或护短。")
+        if "旧事牵引" in risk_tags:
+            risks.append(f"{topic}承接旧事或待证条件，须核查复命与履约闭环。")
+        if len(risks) >= 5:
+            break
+    return list(dict.fromkeys(risks))[:5]
 
 
 def _stance_score(db: Any, turn: int, actor: str, directive_text: str = "") -> tuple[int, str]:
@@ -603,7 +896,46 @@ def _stance_score(db: Any, turn: int, actor: str, directive_text: str = "") -> t
         stances = []
     if not stances:
         return 50, "本月无明确召对立场"
-    best = stances[0]
+    relevant_stances = [row for row in stances if _stance_relevant_to_directive(db, row, directive_text)]
+    if directive_text and not relevant_stances:
+        return 50, "本月召对立场未命中本旨"
+    best = relevant_stances[0] if relevant_stances else stances[0]
+    stance_agreement_id = int(best.get("agreement_id") or 0)
+    if stance_agreement_id:
+        try:
+            row = db.conn.execute(
+                "SELECT topic, core_topic, target_status, status FROM negotiation_agreements WHERE id=?",
+                (stance_agreement_id,),
+            ).fetchone()
+        except Exception:
+            row = None
+        if row is not None:
+            target_status = str(row["target_status"] or "")
+            status = str(row["status"] or "")
+            topic = str(row["core_topic"] or row["topic"] or "奏对协议")
+            if target_status == "achieved" or status == "fulfilled":
+                return 88, f"履约背书已达成：{topic}"
+            if target_status == "pending_conditions" or status == "pending":
+                return 42, f"履约条件待证：{topic}"
+            if target_status in {"blocked", "failed"} or status in {"blocked", "failed"}:
+                return 28, f"履约未成：{topic}"
+    stance_goal_id = int(best.get("goal_id") or 0)
+    if stance_goal_id:
+        try:
+            goal = db.get_conversation_goal(stance_goal_id)
+        except Exception:
+            goal = None
+        if isinstance(goal, dict):
+            goal_status = str(goal.get("status") or "")
+            topic = str(goal.get("title") or goal.get("target_text") or "奏对目的")
+            if goal_status == "waiting_conditions":
+                return 42, f"奏对目的条件待证：{topic}"
+            if goal_status in {"active", "expired"}:
+                return 48, f"奏对目的未握手入账：{topic}"
+            if goal_status in {"blocked", "abandoned"}:
+                return 28, f"奏对目的未成：{topic}"
+            if goal_status == "sealed":
+                return 52, f"奏对目的已握手但未见 achieved 履约背书：{topic}"
     stance = str(best.get("stance") or "neutral")
     handshake = str(best.get("handshake_status") or "none")
     score = {"support": 70, "caution": 54, "neutral": 48, "oppose": 30}.get(stance, 48)
@@ -616,6 +948,112 @@ def _stance_score(db: Any, turn: int, actor: str, directive_text: str = "") -> t
     return _clamp_int(score, 0, 100), f"召对{stance}/{handshake}"
 
 
+def _actor_trait_modifier(db: Any, actor: str, domains: Sequence[str]) -> tuple[int, str, List[str]]:
+    actor = str(actor or "").strip()
+    if not actor:
+        return 0, "", []
+    try:
+        content = getattr(db, "content", None)
+        network = getattr(content, "npc_network", {}) if content is not None else {}
+        entry = network.get(actor, {}) if isinstance(network, dict) else {}
+    except Exception:
+        entry = {}
+    if not isinstance(entry, dict):
+        return 0, "", []
+    ability_logic = str(entry.get("ability_logic") or "")
+    if not ability_logic:
+        return 0, "", []
+    domain_set = set(str(domain) for domain in domains)
+    axes = _ability_axes_from_logic(ability_logic)
+    positive = 0
+    negative = 0
+    notes: List[str] = []
+    risks: List[str] = []
+
+    def bump(amount: int, note: str = "", risk: str = "") -> None:
+        nonlocal positive, negative
+        if amount >= 0:
+            positive += amount
+        else:
+            negative += amount
+        if note and note not in notes:
+            notes.append(note)
+        if risk and risk not in risks:
+            risks.append(risk)
+
+    def axis_adjust(axis_names: Sequence[str], note: str) -> None:
+        values = [axes[name] for name in axis_names if name in axes]
+        if not values:
+            return
+        avg = sum(values) / len(values)
+        if avg >= 17:
+            bump(6, f"{note}能力轴高")
+        elif avg >= 15:
+            bump(3, f"{note}能力轴可用")
+        elif avg <= 10:
+            bump(-5, f"{note}能力轴短板", f"承办人{note}能力轴偏弱，执行需另给辅佐。")
+
+    if "fiscal" in domain_set:
+        axis_adjust(("治", "识"), "钱粮经世")
+        if any(term in ability_logic for term in ("钱粮", "财政", "经世行政", "清丈", "盐课", "户部")):
+            bump(8, "钱粮/经世强项")
+        if any(term in ability_logic for term in ("贪墨成性", "营私", "贪")):
+            bump(-10, "财务清望风险", "承办人有贪墨/营私风险，钱粮执行可能变形。")
+    if "military" in domain_set:
+        axis_adjust(("略", "韬"), "军务谋略")
+        if any(term in ability_logic for term in ("军事", "边防", "统兵", "兵事", "辽事", "武略")):
+            bump(8, "军事/边防强项")
+        if any(term in ability_logic for term in ("怯懦", "沽名钓誉", "纸上")):
+            bump(-7, "军务胆略风险", "承办人军务胆略或务实名声不足。")
+    if "investigation" in domain_set:
+        axis_adjust(("识", "略"), "查办判断")
+        if any(term in ability_logic for term in ("侦缉", "厂卫", "权术", "审讯", "刑名", "查案", "耳目")):
+            bump(7, "查办/权术强项")
+        if any(term in ability_logic for term in ("暴戾恣睢", "构陷", "酷烈")):
+            bump(-6, "查办酷烈风险", "查办可能扩大成酷烈清算。")
+    if domain_set.intersection({"procedure", "personnel", "law"}):
+        axis_adjust(("治", "望"), "制度人事")
+        if any(term in ability_logic for term in ("礼法", "制度", "铨选", "台谏", "清议", "名分", "章程")):
+            bump(6, "制度/名分强项")
+        if any(term in ability_logic for term in ("门户之见", "结党营私")):
+            bump(-7, "门户人事风险", "承办人门户牵引强，人事/程序可能护短或排异。")
+    if "local" in domain_set:
+        axis_adjust(("治", "望"), "地方治理")
+        if any(term in ability_logic for term in ("地方", "抚民", "民生", "赈济", "州县", "巡抚")):
+            bump(6, "地方治理强项")
+    if "construction" in domain_set:
+        axis_adjust(("识", "治"), "工程营造")
+        if any(term in ability_logic for term in ("工程", "火器", "水利", "营造", "算学", "西学")):
+            bump(7, "工程/火器强项")
+    if "inner" in domain_set:
+        axis_adjust(("治", "略"), "内廷执行")
+        if any(term in ability_logic for term in ("内廷", "司礼监", "厂卫", "传旨", "宫禁")):
+            bump(6, "内廷执行强项")
+
+    if any(term in ability_logic for term in ("阳奉阴违", "善观风色")):
+        bump(-5, "阳奉阴违/观风色", "承办人可能口头顺从、执行留活口。")
+    if "猜忌多疑" in ability_logic:
+        bump(-4, "猜忌多疑", "承办人猜忌多疑，协同成本上升。")
+    if "直言不讳" in ability_logic:
+        bump(2, "直言预警", "")
+
+    modifier = _clamp_int(positive + negative, -18, 14)
+    if not notes:
+        return 0, "", risks
+    sign = "+" if modifier > 0 else ""
+    return modifier, f"能力/trait修正{sign}{modifier}（{'、'.join(notes[:4])}）", risks[:4]
+
+
+def _ability_axes_from_logic(ability_logic: str) -> Dict[str, int]:
+    axes: Dict[str, int] = {}
+    for name, value in re.findall(r"([韬治识略望])\s*(\d+)", str(ability_logic or "")):
+        try:
+            axes[name] = int(value)
+        except ValueError:
+            continue
+    return axes
+
+
 def _directive_risks(
     relevant: Sequence[Dict[str, Any]],
     actor_row: Optional[Dict[str, Any]],
@@ -623,18 +1061,24 @@ def _directive_risks(
     relationship_score: int,
     faction_score: int,
     stance_score: int,
+    *,
+    stance_risks: Optional[Sequence[str]] = None,
 ) -> List[str]:
     risks: List[str] = []
     for item in relevant:
         for risk in item.get("risks") or []:
             if risk not in risks:
                 risks.append(str(risk))
+    for risk in stance_risks or []:
+        text = str(risk or "").strip()
+        if text and text not in risks:
+            risks.append(text)
     if actor_row is None:
         risks.append("未指定或未找到承办人。")
     elif actor_bonus < 0:
         risks.append("承办人官署与旨意类型不匹配。")
     if relationship_score < 45:
-        risks.append("承办人心盘离心，可能阳奉阴违。")
+        risks.append("承办人缺少可信握手或履约背书，可能拖延、变形或阳奉阴违。")
     if faction_score < 45:
         risks.append("承办派系满意不足，存在程序或人手阻滞。")
     if stance_score < 45:

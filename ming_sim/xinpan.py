@@ -644,12 +644,61 @@ def apply_chat_xinpan_update(
     psychological_score: int = 0,
     source_chat_turn_id: int = 0,
     goal_context: Optional[Dict[str, object]] = None,
+    xinpan_delta: Optional[Dict[str, object]] = None,
 ) -> Optional[Dict[str, object]]:
     row = ensure_xinpan_state(db, state, minister_name)
     if row is None:
         return None
     item = _row_state(row)
     before = _compact_state_for_log(item)
+    if isinstance(xinpan_delta, dict):
+        perception = item.get("perception") if isinstance(item.get("perception"), dict) else {}
+        perception = {dim: float(perception.get(dim, 3.0) or 3.0) for dim in POLITICAL_DIM_IDS}
+        raw_perception_delta = xinpan_delta.get("dao_perception_delta")
+        if isinstance(raw_perception_delta, dict):
+            for dim_id, raw_delta in raw_perception_delta.items():
+                dim = str(dim_id or "").strip()
+                if dim not in POLITICAL_DIM_IDS:
+                    continue
+                try:
+                    delta = float(raw_delta)
+                except (TypeError, ValueError):
+                    continue
+                perception[dim] = round(_clamp(float(perception.get(dim, 3.0)) + delta, 1.0, 5.0), 2)
+        item["perception"] = perception
+        try:
+            shi_delta = float(xinpan_delta.get("shi_delta") or 0)
+        except (TypeError, ValueError):
+            shi_delta = 0.0
+        try:
+            fear_delta = float(xinpan_delta.get("fear_delta") or 0)
+        except (TypeError, ValueError):
+            fear_delta = 0.0
+        try:
+            hatred_delta = float(xinpan_delta.get("hatred_delta") or 0)
+        except (TypeError, ValueError):
+            hatred_delta = 0.0
+        try:
+            trust_multiplier = float(xinpan_delta.get("trust_multiplier") or 1.0)
+        except (TypeError, ValueError):
+            trust_multiplier = 1.0
+        item["shi_he"] = round(_clamp(float(item.get("shi_he") or 0) + shi_delta, -100, 100), 1)
+        item["fear"] = round(_clamp(float(item.get("fear") or 0) + fear_delta, 0, 100), 1)
+        item["hatred"] = round(_clamp(float(item.get("hatred") or 0) + hatred_delta, 0, 100), 1)
+        item["trust_coeff"] = round(_clamp(float(item.get("trust_coeff") or 1.0) * trust_multiplier, 0.25, 1.0), 3)
+        _refresh_dao_and_quadrant(minister_name, item)
+        after = _compact_state_for_log(item)
+        if before == after:
+            return item
+        _persist_state(db, state, item)
+        _log_change(
+            db, state, minister_name, "chat", str(source_chat_turn_id or ""),
+            "LLM奏对审计更新心盘感知与势合",
+            before, after,
+        )
+        db.conn.commit()
+        return item
+
     signals = infer_stance_signals(user_text)
     if signals:
         item["perception"] = _apply_signals(

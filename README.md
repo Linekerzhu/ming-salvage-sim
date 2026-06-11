@@ -66,6 +66,21 @@ python3 -m uvicorn web_app:app --host 127.0.0.1 --port 8010
 
 打开 <http://127.0.0.1:8010>。
 
+服务器多用户模式：
+
+```bash
+set -a
+source .env
+set +a
+export MING_SIM_SERVER_USERS='admin:change_me,player1:change_me'
+export MING_SIM_ADMIN_USERS='admin'
+python3 -m uvicorn web_app:app --host 0.0.0.0 --port 8010
+```
+
+此模式下所有浏览器用户必须用用户名密码登录；每个用户的主进度、存档和自定义立绘会隔离到 `data/users/<user_id>/`，LLM API 统一使用服务端 `.env` 里的 `OPENAI_*` 配置。生产部署建议把密码配置为 `pbkdf2_sha256$<iterations>$<salt>$<hex>`，并按需设置 `MING_SIM_SESSION_TTL_SECONDS`、`MING_SIM_COOKIE_SECURE=1`。管理员后台在 <http://127.0.0.1:8010/server-admin>，可查看在线会话、运行中对局、主库/存档状态，并关闭对局、强制登出或删除某用户主进度。
+
+Web 进程默认只缓存/返回每名 NPC 最近 80 条召对消息（`MING_SIM_WEB_CHAT_HISTORY_LIMIT` 可调），SQLite 仍保留完整历史用于存档和追溯。LLM payload dump 默认关闭；只有排查问题时才设置 `MING_SIM_DUMP_LLM=1`，全文 dump 需额外设置 `MING_SIM_DUMP_LLM_FULL=1`。
+
 前端开发模式可另开一个终端：
 
 ```bash
