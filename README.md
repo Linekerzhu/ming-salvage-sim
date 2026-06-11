@@ -81,6 +81,22 @@ python3 -m uvicorn web_app:app --host 0.0.0.0 --port 8010
 
 Web 进程默认只缓存/返回每名 NPC 最近 80 条召对消息（`MING_SIM_WEB_CHAT_HISTORY_LIMIT` 可调），SQLite 仍保留完整历史用于存档和追溯。LLM payload dump 默认关闭；只有排查问题时才设置 `MING_SIM_DUMP_LLM=1`，全文 dump 需额外设置 `MING_SIM_DUMP_LLM_FULL=1`。
 
+服务器健康检查：
+
+- `GET /healthz`：进程存活、运行中对局数、登录会话数。
+- `GET /readyz`：检查服务状态库、前端构建产物与内容目录是否可用。
+
+Docker 部署：
+
+```bash
+cp .env.example .env
+# 编辑 .env，至少填 OPENAI_*，公网服务还应填 MING_SIM_SERVER_USERS / MING_SIM_ADMIN_USERS
+docker compose up --build -d
+```
+
+容器默认把运行数据写入 `/app/data`，`docker-compose.yml` 已挂载为持久卷。公网部署建议放在 HTTPS 反向代理后，设置 `MING_SIM_COOKIE_SECURE=1`、`MING_SIM_JSON_LOGS=1`，并保留默认登录限流。
+小型服务器还可以用 `MING_SIM_MAX_RUNNING_GAMES` 和 `MING_SIM_MAX_CONCURRENT_TURNS` 控制运行中对局数与同时颁诏结算数。
+
 前端开发模式可另开一个终端：
 
 ```bash

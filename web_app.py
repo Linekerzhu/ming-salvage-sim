@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import closing
 from contextvars import ContextVar
 from dataclasses import dataclass
 from functools import lru_cache
@@ -571,6 +572,7 @@ class WebGame:
             raise LLMUnavailable("未配 API key，请先到设置页填写。")
         random.seed(int(os.environ.get("MING_SIM_SEED", "7")))
         self.character_rng = random.SystemRandom()
+        self.turn_resolution_lock = threading.Lock()
         os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
         self.db_path = db_path
         if fresh:
@@ -2963,13 +2965,17 @@ def sse_event(event: str, data: Dict[str, Any]) -> str:
 web_game: Optional[WebGame] = None  # 未启用登录时的本地单用户兼容实例
 _web_games: Dict[str, WebGame] = {}
 _web_games_lock = threading.RLock()
+_turn_resolution_capacity_lock = threading.RLock()
+_active_turn_resolutions = 0
 _auth_sessions: Dict[str, Any] = {}
 _auth_sessions_lock = threading.RLock()
 _current_username: ContextVar[str] = ContextVar("current_username", default="")
 _AUTH_COOKIE = "ming_session"
 _SERVER_STARTED_AT = time.time()
 _LOG = logging.getLogger("ming_sim.web")
-if not logging.getLogger().handlers:
+if not logging.getLogger().handlers and (
+    os.environ.get("MING_SIM_LOG_LEVEL") or os.environ.get("MING_SIM_JSON_LOGS")
+):
     logging.basicConfig(level=os.environ.get("MING_SIM_LOG_LEVEL", "INFO").upper())
 
 
@@ -2983,6 +2989,14 @@ def _env_int(name: str, default: int, *, minimum: int = 0, maximum: int = 10**9)
 
 def _web_chat_history_limit() -> int:
     return _env_int("MING_SIM_WEB_CHAT_HISTORY_LIMIT", 80, minimum=20, maximum=500)
+
+
+def _max_running_games() -> int:
+    return _env_int("MING_SIM_MAX_RUNNING_GAMES", 64, minimum=1, maximum=10000)
+
+
+def _max_concurrent_turn_resolutions() -> int:
+    return _env_int("MING_SIM_MAX_CONCURRENT_TURNS", 2, minimum=1, maximum=1000)
 
 
 app = FastAPI(title="Ming Salvage MVP Web")
@@ -3160,17 +3174,236 @@ def _session_ttl_seconds() -> int:
     return _env_int("MING_SIM_SESSION_TTL_SECONDS", 60 * 60 * 24 * 7, minimum=300)
 
 
+def _server_state_db_path() -> str:
+    return user_data_path("server_state.sqlite3")
+
+
+def _server_state_conn() -> sqlite3.Connection:
+    path = _server_state_db_path()
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    conn = sqlite3.connect(path, timeout=5)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout=5000")
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS auth_sessions (
+            token TEXT PRIMARY KEY,
+            username TEXT NOT NULL,
+            created_at REAL NOT NULL,
+            last_seen REAL NOT NULL,
+            expires_at REAL NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_auth_sessions_username ON auth_sessions(username);
+        CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires ON auth_sessions(expires_at);
+
+        CREATE TABLE IF NOT EXISTS login_rate_limits (
+            bucket TEXT PRIMARY KEY,
+            username TEXT NOT NULL,
+            remote_addr TEXT NOT NULL,
+            window_start REAL NOT NULL,
+            attempts INTEGER NOT NULL
+        );
+        """
+    )
+    return conn
+
+
+def _cleanup_persistent_auth_sessions(now: Optional[float] = None) -> None:
+    now = time.time() if now is None else now
+    try:
+        with closing(_server_state_conn()) as conn, conn:
+            conn.execute("DELETE FROM auth_sessions WHERE expires_at <= ?", (now,))
+    except sqlite3.DatabaseError as exc:
+        _LOG.warning("auth_session_cleanup_failed", exc_info=exc)
+
+
+def _persist_auth_session(token: str, record: Dict[str, Any]) -> None:
+    try:
+        with closing(_server_state_conn()) as conn, conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO auth_sessions(token, username, created_at, last_seen, expires_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    token,
+                    str(record.get("username") or ""),
+                    float(record.get("created_at") or 0),
+                    float(record.get("last_seen") or 0),
+                    float(record.get("expires_at") or 0),
+                ),
+            )
+    except sqlite3.DatabaseError as exc:
+        _LOG.warning("auth_session_persist_failed", exc_info=exc)
+
+
+def _load_persistent_auth_session(token: str, now: Optional[float] = None) -> Dict[str, Any]:
+    if not token:
+        return {}
+    now = time.time() if now is None else now
+    try:
+        with closing(_server_state_conn()) as conn, conn:
+            row = conn.execute(
+                "SELECT username, created_at, last_seen, expires_at FROM auth_sessions WHERE token = ?",
+                (token,),
+            ).fetchone()
+            if row is None:
+                return {}
+            if float(row["expires_at"] or 0) <= now:
+                conn.execute("DELETE FROM auth_sessions WHERE token = ?", (token,))
+                return {}
+            conn.execute("UPDATE auth_sessions SET last_seen = ? WHERE token = ?", (now, token))
+            return {
+                "username": str(row["username"] or ""),
+                "created_at": float(row["created_at"] or now),
+                "last_seen": now,
+                "expires_at": float(row["expires_at"] or 0),
+            }
+    except sqlite3.DatabaseError as exc:
+        _LOG.warning("auth_session_load_failed", exc_info=exc)
+        return {}
+
+
+def _delete_persistent_auth_session(token: str) -> None:
+    if not token:
+        return
+    try:
+        with closing(_server_state_conn()) as conn, conn:
+            conn.execute("DELETE FROM auth_sessions WHERE token = ?", (token,))
+    except sqlite3.DatabaseError as exc:
+        _LOG.warning("auth_session_delete_failed", exc_info=exc)
+
+
+def _delete_persistent_auth_sessions_for_user(username: str) -> None:
+    if not username:
+        return
+    try:
+        with closing(_server_state_conn()) as conn, conn:
+            conn.execute("DELETE FROM auth_sessions WHERE username = ?", (username,))
+    except sqlite3.DatabaseError as exc:
+        _LOG.warning("auth_session_user_delete_failed", exc_info=exc)
+
+
+def _persistent_session_counts(now: Optional[float] = None, *, exclude_tokens: Optional[set] = None) -> Dict[str, int]:
+    now = time.time() if now is None else now
+    excluded = exclude_tokens or set()
+    try:
+        with closing(_server_state_conn()) as conn, conn:
+            conn.execute("DELETE FROM auth_sessions WHERE expires_at <= ?", (now,))
+            rows = conn.execute(
+                "SELECT token, username FROM auth_sessions"
+            ).fetchall()
+            counts: Dict[str, int] = {}
+            for row in rows:
+                token = str(row["token"] or "")
+                if token in excluded:
+                    continue
+                username = str(row["username"] or "")
+                if username:
+                    counts[username] = counts.get(username, 0) + 1
+            return counts
+    except sqlite3.DatabaseError as exc:
+        _LOG.warning("auth_session_count_failed", exc_info=exc)
+        return {}
+
+
+def _trust_proxy_headers() -> bool:
+    return os.environ.get("MING_SIM_TRUST_PROXY_HEADERS", "").strip().lower() in ("1", "true", "yes")
+
+
+def _remote_addr(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "").split(",", 1)[0].strip()
+    if forwarded and _trust_proxy_headers():
+        return forwarded[:80]
+    return (request.client.host if request.client else "unknown")[:80]
+
+
+def _login_rate_limit_config() -> Tuple[int, int]:
+    attempts = _env_int("MING_SIM_LOGIN_RATE_LIMIT_ATTEMPTS", 8, minimum=1, maximum=1000)
+    window = _env_int("MING_SIM_LOGIN_RATE_LIMIT_WINDOW_SECONDS", 300, minimum=30, maximum=86400)
+    return attempts, window
+
+
+def _login_rate_bucket(username: str, remote_addr: str) -> str:
+    digest = hashlib.sha256(f"{username.lower()}|{remote_addr}".encode("utf-8")).hexdigest()
+    return digest[:32]
+
+
+def _login_rate_limited(username: str, request: Request) -> Tuple[bool, int]:
+    max_attempts, window = _login_rate_limit_config()
+    now = time.time()
+    remote = _remote_addr(request)
+    bucket = _login_rate_bucket(username, remote)
+    try:
+        with closing(_server_state_conn()) as conn, conn:
+            row = conn.execute(
+                "SELECT window_start, attempts FROM login_rate_limits WHERE bucket = ?",
+                (bucket,),
+            ).fetchone()
+            if row is None:
+                return False, 0
+            window_start = float(row["window_start"] or now)
+            attempts = int(row["attempts"] or 0)
+            if now - window_start >= window:
+                conn.execute("DELETE FROM login_rate_limits WHERE bucket = ?", (bucket,))
+                return False, 0
+            retry_after = max(1, int(window - (now - window_start)))
+            return attempts >= max_attempts, retry_after
+    except sqlite3.DatabaseError as exc:
+        _LOG.warning("login_rate_limit_check_failed", exc_info=exc)
+        return False, 0
+
+
+def _record_login_failure(username: str, request: Request) -> None:
+    _max_attempts, window = _login_rate_limit_config()
+    now = time.time()
+    remote = _remote_addr(request)
+    bucket = _login_rate_bucket(username, remote)
+    try:
+        with closing(_server_state_conn()) as conn, conn:
+            row = conn.execute(
+                "SELECT window_start, attempts FROM login_rate_limits WHERE bucket = ?",
+                (bucket,),
+            ).fetchone()
+            if row is None or now - float(row["window_start"] or 0) >= window:
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO login_rate_limits(bucket, username, remote_addr, window_start, attempts)
+                    VALUES (?, ?, ?, ?, 1)
+                    """,
+                    (bucket, username, remote, now),
+                )
+            else:
+                conn.execute(
+                    "UPDATE login_rate_limits SET attempts = attempts + 1 WHERE bucket = ?",
+                    (bucket,),
+                )
+    except sqlite3.DatabaseError as exc:
+        _LOG.warning("login_rate_limit_record_failed", exc_info=exc)
+
+
+def _clear_login_failures(username: str, request: Request) -> None:
+    bucket = _login_rate_bucket(username, _remote_addr(request))
+    try:
+        with closing(_server_state_conn()) as conn, conn:
+            conn.execute("DELETE FROM login_rate_limits WHERE bucket = ?", (bucket,))
+    except sqlite3.DatabaseError as exc:
+        _LOG.warning("login_rate_limit_clear_failed", exc_info=exc)
+
+
 def _new_auth_session(username: str) -> str:
     token = secrets.token_urlsafe(32)
     now = time.time()
     _cleanup_auth_sessions(now)
+    record = {
+        "username": username,
+        "created_at": now,
+        "last_seen": now,
+        "expires_at": now + _session_ttl_seconds(),
+    }
     with _auth_sessions_lock:
-        _auth_sessions[token] = {
-            "username": username,
-            "created_at": now,
-            "last_seen": now,
-            "expires_at": now + _session_ttl_seconds(),
-        }
+        _auth_sessions[token] = dict(record)
+    _persist_auth_session(token, record)
     return token
 
 
@@ -3192,6 +3425,8 @@ def _cleanup_auth_sessions(now: Optional[float] = None) -> None:
         ]
         for token in expired:
             _auth_sessions.pop(token, None)
+            _delete_persistent_auth_session(token)
+    _cleanup_persistent_auth_sessions(now)
 
 
 def _session_username(token: str) -> str:
@@ -3202,10 +3437,18 @@ def _session_username(token: str) -> str:
         record = _auth_sessions.get(token, "")
         if isinstance(record, dict) and float(record.get("expires_at") or 0) <= now:
             _auth_sessions.pop(token, None)
+            _delete_persistent_auth_session(token)
             return ""
         username = _session_record_username(record)
         if isinstance(record, dict) and username:
             record["last_seen"] = now
+            _persist_auth_session(token, record)
+    if not username:
+        record = _load_persistent_auth_session(token, now)
+        username = _session_record_username(record)
+        if username:
+            with _auth_sessions_lock:
+                _auth_sessions[token] = dict(record)
     if username and username in _configured_auth_users():
         return username
     return ""
@@ -3295,6 +3538,45 @@ def _close_all_running_games() -> None:
         _close_game(game)
 
 
+def _running_game_count() -> int:
+    with _web_games_lock:
+        return len(_web_games) + (1 if web_game is not None else 0)
+
+
+def _ensure_game_capacity_for_user(username: str) -> None:
+    current = _running_game_for_user(username)
+    if current is not None:
+        return
+    if _running_game_count() >= _max_running_games():
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "server_capacity_full",
+                "message": "服务器运行中对局已达上限，请稍后再试或联系管理员关闭空闲对局。",
+            },
+        )
+
+
+def _try_acquire_turn_resolution_capacity() -> bool:
+    global _active_turn_resolutions
+    with _turn_resolution_capacity_lock:
+        if _active_turn_resolutions >= _max_concurrent_turn_resolutions():
+            return False
+        _active_turn_resolutions += 1
+        return True
+
+
+def _release_turn_resolution_capacity() -> None:
+    global _active_turn_resolutions
+    with _turn_resolution_capacity_lock:
+        _active_turn_resolutions = max(0, _active_turn_resolutions - 1)
+
+
+def _active_turn_resolution_count() -> int:
+    with _turn_resolution_capacity_lock:
+        return int(_active_turn_resolutions)
+
+
 def get_game() -> WebGame:
     """游戏路由统一入口。未开局 → 409 让前端跳回菜单页。"""
     username = _current_game_username()
@@ -3304,18 +3586,126 @@ def get_game() -> WebGame:
     return game
 
 
+def _json_logs_enabled() -> bool:
+    return os.environ.get("MING_SIM_JSON_LOGS", "").strip().lower() in ("1", "true", "yes")
+
+
+def _log_request(
+    request: Request,
+    *,
+    request_id: str,
+    status_code: int,
+    elapsed_ms: float,
+    username: str = "",
+) -> None:
+    payload = {
+        "event": "http_request",
+        "request_id": request_id,
+        "method": request.method,
+        "path": request.url.path,
+        "status": status_code,
+        "elapsed_ms": round(elapsed_ms, 2),
+        "username": username or "anonymous",
+        "remote_addr": _remote_addr(request),
+    }
+    if _json_logs_enabled():
+        _LOG.info(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+    else:
+        _LOG.info(
+            "%s %s status=%s elapsed_ms=%.2f user=%s request_id=%s",
+            request.method,
+            request.url.path,
+            status_code,
+            elapsed_ms,
+            username or "anonymous",
+            request_id,
+        )
+
+
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
+    start = time.perf_counter()
+    request_id = request.headers.get("x-request-id") or uuid.uuid4().hex
     username = ""
     if _auth_enabled():
         username = _session_username(request.cookies.get(_AUTH_COOKIE, ""))
         if _path_requires_auth(request.url.path) and request.method.upper() != "OPTIONS" and not username:
-            return _auth_error_response()
+            response = _auth_error_response()
+            response.headers["X-Request-ID"] = request_id
+            _log_request(
+                request,
+                request_id=request_id,
+                status_code=response.status_code,
+                elapsed_ms=(time.perf_counter() - start) * 1000,
+                username=username,
+            )
+            return response
     token = _current_username.set(username)
     try:
-        return await call_next(request)
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        _log_request(
+            request,
+            request_id=request_id,
+            status_code=response.status_code,
+            elapsed_ms=(time.perf_counter() - start) * 1000,
+            username=username,
+        )
+        return response
+    except Exception:
+        _LOG.exception(
+            "http_request_failed method=%s path=%s user=%s request_id=%s",
+            request.method,
+            request.url.path,
+            username or "anonymous",
+            request_id,
+        )
+        raise
     finally:
         _current_username.reset(token)
+
+
+def _health_payload() -> Dict[str, Any]:
+    return {
+        "status": "ok",
+        "uptime_seconds": int(time.time() - _SERVER_STARTED_AT),
+        "auth_enabled": _auth_enabled(),
+        "running_games": _running_game_count(),
+        "active_sessions": sum(_session_counts_by_user().values()),
+        "active_turn_resolutions": _active_turn_resolution_count(),
+        "limits": {
+            "max_running_games": _max_running_games(),
+            "max_concurrent_turns": _max_concurrent_turn_resolutions(),
+        },
+    }
+
+
+def _server_state_ready() -> bool:
+    try:
+        with closing(_server_state_conn()) as conn, conn:
+            conn.execute("SELECT 1").fetchone()
+        return True
+    except sqlite3.DatabaseError:
+        return False
+
+
+@app.get("/healthz")
+async def healthz() -> Dict[str, Any]:
+    return _health_payload()
+
+
+@app.get("/readyz")
+async def readyz() -> Response:
+    checks = {
+        "server_state_db": _server_state_ready(),
+        "web_dist": os.path.isdir(WEB_DIST),
+        "content_dir": os.path.isdir(bundled_path("content")),
+    }
+    payload = {**_health_payload(), "checks": checks}
+    status = 200 if all(checks.values()) else 503
+    if status != 200:
+        payload["status"] = "degraded"
+    return JSONResponse(payload, status_code=status)
 
 
 @app.get("/api/auth/me")
@@ -3327,13 +3717,23 @@ async def api_auth_me() -> Dict[str, Any]:
 
 
 @app.post("/api/auth/login")
-async def api_auth_login(body: LoginRequest) -> Response:
+async def api_auth_login(request: Request, body: LoginRequest) -> Response:
     if not _auth_enabled():
         return JSONResponse({"ok": True, "auth_enabled": False, "username": "local", "is_admin": True})
     username = body.username.strip()
+    limited, retry_after = _login_rate_limited(username, request)
+    if limited:
+        response = JSONResponse(
+            status_code=429,
+            content={"detail": {"code": "rate_limited", "message": "登录失败次数过多，请稍后再试。"}},
+        )
+        response.headers["Retry-After"] = str(retry_after)
+        return response
     stored = _configured_auth_users().get(username, "")
     if not stored or not _verify_password(stored, body.password):
+        _record_login_failure(username, request)
         raise HTTPException(status_code=401, detail={"code": "bad_credentials", "message": "用户名或密码不正确。"})
+    _clear_login_failures(username, request)
     token = _new_auth_session(username)
     response = JSONResponse({"ok": True, "auth_enabled": True, "username": username, "is_admin": _is_admin_user(username)})
     response.set_cookie(
@@ -3355,6 +3755,7 @@ async def api_auth_logout(request: Request) -> Response:
     if token:
         with _auth_sessions_lock:
             _auth_sessions.pop(token, None)
+        _delete_persistent_auth_session(token)
     if username:
         _set_running_game_for_user(username, None)
     response = JSONResponse({"ok": True})
@@ -3474,13 +3875,16 @@ def _has_main_db(db_path: str = "") -> bool:
 
 def _session_counts_by_user() -> Dict[str, int]:
     _cleanup_auth_sessions()
-    counts: Dict[str, int] = {}
     with _auth_sessions_lock:
-        for record in _auth_sessions.values():
-            username = _session_record_username(record)
-            if not username:
-                continue
-            counts[username] = counts.get(username, 0) + 1
+        memory_items = list(_auth_sessions.items())
+    counts: Dict[str, int] = _persistent_session_counts(
+        exclude_tokens={token for token, _record in memory_items}
+    )
+    for _token, record in memory_items:
+        username = _session_record_username(record)
+        if not username:
+            continue
+        counts[username] = counts.get(username, 0) + 1
     return counts
 
 
@@ -3572,6 +3976,11 @@ def _server_admin_overview_payload() -> Dict[str, Any]:
         "uptime_seconds": int(time.time() - _SERVER_STARTED_AT),
         "running_games": sum(1 for item in users if item["running"]),
         "active_sessions": sum(int(item["sessions"]) for item in users),
+        "active_turn_resolutions": _active_turn_resolution_count(),
+        "limits": {
+            "max_running_games": _max_running_games(),
+            "max_concurrent_turns": _max_concurrent_turn_resolutions(),
+        },
         "llm": {
             "base_url": runtime.get("base_url") or os.environ.get("OPENAI_BASE_URL", ""),
             "model": runtime.get("model") or os.environ.get("OPENAI_MODEL", ""),
@@ -3612,6 +4021,8 @@ async def api_server_admin_logout_user(username: str) -> Dict[str, Any]:
         stale = [token for token, owner in _auth_sessions.items() if _session_record_username(owner) == username]
         for token in stale:
             _auth_sessions.pop(token, None)
+            _delete_persistent_auth_session(token)
+    _delete_persistent_auth_sessions_for_user(username)
     auth_username = "" if username == "local" and not _auth_enabled() else username
     _set_running_game_for_user(auth_username, None)
     return {"ok": True, "logged_out": username, "overview": _server_admin_overview_payload()}
@@ -3674,6 +4085,7 @@ async def api_menu_status() -> Dict[str, Any]:
 async def api_menu_new_game() -> Dict[str, Any]:
     """开始新游戏：清主 DB → 新建 WebGame。"""
     username = _current_game_username()
+    _ensure_game_capacity_for_user(username)
     try:
         game = WebGame(fresh=True, username=username)
     except LLMUnavailable as exc:
@@ -3688,6 +4100,7 @@ async def api_menu_continue() -> Dict[str, Any]:
     username = _current_game_username()
     if not _has_main_db(_db_path_for_user(username)):
         raise HTTPException(status_code=404, detail="无上次进度可继续，请先新游戏或加载存档。")
+    _ensure_game_capacity_for_user(username)
     try:
         game = WebGame(fresh=False, username=username)
     except LLMUnavailable as exc:
@@ -3700,6 +4113,7 @@ async def api_menu_continue() -> Dict[str, Any]:
 async def api_menu_load_save(name: str) -> Dict[str, Any]:
     """从存档启动：先启动空 WebGame（fresh）→ 调 load_save 热替换主 DB。"""
     username = _current_game_username()
+    _ensure_game_capacity_for_user(username)
     try:
         game = WebGame(fresh=False, username=username)  # 先有 session 才能 load_save
     except LLMUnavailable as exc:
@@ -4334,11 +4748,24 @@ class IssueDecreeRequest(BaseModel):
 async def api_issue_decree(body: IssueDecreeRequest = IssueDecreeRequest()) -> Dict[str, Any]:
     """非流式颁诏（保留兼容）。前端默认走 /api/decree/issue/stream。"""
     game = get_game()
+    lock = getattr(game, "turn_resolution_lock", None)
+    acquired = lock.acquire(blocking=False) if lock is not None else True
+    if not acquired:
+        raise HTTPException(status_code=409, detail={"code": "turn_resolution_in_progress", "message": "本局正在结算，请等待当前颁诏完成。"})
+    capacity_acquired = _try_acquire_turn_resolution_capacity()
+    if not capacity_acquired:
+        if lock is not None and acquired:
+            lock.release()
+        raise HTTPException(status_code=503, detail={"code": "turn_resolution_capacity_full", "message": "服务器结算任务已达上限，请稍后再试。"})
     portrait_before = game.portrait_generation_signatures()
     try:
         report = game.session.resolve_turn(cheat_directive=body.cheat)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from None
+    finally:
+        _release_turn_resolution_capacity()
+        if lock is not None and acquired:
+            lock.release()
     decree = game.session.last_decree
     game.refresh_turn()
     portrait_jobs = game.queue_portrait_generation_for_signature_changes(portrait_before, "月末职服变化")
@@ -4364,6 +4791,17 @@ async def api_issue_decree_stream(body: IssueDecreeRequest = IssueDecreeRequest(
         ev_queue.put((kind, data))
 
     def worker() -> None:
+        lock = getattr(game, "turn_resolution_lock", None)
+        acquired = lock.acquire(blocking=False) if lock is not None else True
+        if not acquired:
+            ev_queue.put(("__error__", {"code": "turn_resolution_in_progress", "message": "本局正在结算，请等待当前颁诏完成。"}))
+            return
+        capacity_acquired = _try_acquire_turn_resolution_capacity()
+        if not capacity_acquired:
+            if lock is not None and acquired:
+                lock.release()
+            ev_queue.put(("__error__", {"code": "turn_resolution_capacity_full", "message": "服务器结算任务已达上限，请稍后再试。"}))
+            return
         try:
             portrait_before = game.portrait_generation_signatures()
             report = game.session.resolve_turn(on_event=on_event, cheat_directive=body.cheat)
@@ -4380,6 +4818,10 @@ async def api_issue_decree_stream(body: IssueDecreeRequest = IssueDecreeRequest(
             ev_queue.put(("__error__", str(e)))
         except Exception as e:  # noqa: BLE001
             ev_queue.put(("__error__", _llm_error_detail(e) if isinstance(e, LLMUnavailable) else str(e)))
+        finally:
+            _release_turn_resolution_capacity()
+            if lock is not None and acquired:
+                lock.release()
 
     async def generate() -> AsyncIterator[str]:
         thread = threading.Thread(target=worker, daemon=True)

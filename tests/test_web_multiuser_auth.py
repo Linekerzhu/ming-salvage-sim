@@ -1,6 +1,7 @@
 import hashlib
 import os
 import subprocess
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -30,6 +31,12 @@ class WebMultiuserAuthTests(unittest.TestCase):
                 "OPENAI_MODEL",
                 "MING_SIM_SESSION_TTL_SECONDS",
                 "MING_SIM_WEB_CHAT_HISTORY_LIMIT",
+                "MING_SIM_LOGIN_RATE_LIMIT_ATTEMPTS",
+                "MING_SIM_LOGIN_RATE_LIMIT_WINDOW_SECONDS",
+                "MING_SIM_JSON_LOGS",
+                "MING_SIM_TRUST_PROXY_HEADERS",
+                "MING_SIM_MAX_RUNNING_GAMES",
+                "MING_SIM_MAX_CONCURRENT_TURNS",
             )
         }
         os.environ["MING_SIM_SERVER_USERS"] = "alice:pw,bob:pw2"
@@ -44,6 +51,12 @@ class WebMultiuserAuthTests(unittest.TestCase):
         os.environ["OPENAI_MODEL"] = "test-model"
         os.environ.pop("MING_SIM_SESSION_TTL_SECONDS", None)
         os.environ.pop("MING_SIM_WEB_CHAT_HISTORY_LIMIT", None)
+        os.environ.pop("MING_SIM_LOGIN_RATE_LIMIT_ATTEMPTS", None)
+        os.environ.pop("MING_SIM_LOGIN_RATE_LIMIT_WINDOW_SECONDS", None)
+        os.environ.pop("MING_SIM_JSON_LOGS", None)
+        os.environ.pop("MING_SIM_TRUST_PROXY_HEADERS", None)
+        os.environ.pop("MING_SIM_MAX_RUNNING_GAMES", None)
+        os.environ.pop("MING_SIM_MAX_CONCURRENT_TURNS", None)
 
         self._user_data_dir = web_app.user_data_dir
         self._user_data_path = web_app.user_data_path
@@ -67,12 +80,16 @@ class WebMultiuserAuthTests(unittest.TestCase):
         web_app.UPLOAD_PORTRAIT_DIR = user_data_path("uploads", "portraits")
         with web_app._auth_sessions_lock:
             web_app._auth_sessions.clear()
+        with web_app._turn_resolution_capacity_lock:
+            web_app._active_turn_resolutions = 0
         web_app._close_all_running_games()
 
     def tearDown(self) -> None:
         web_app._close_all_running_games()
         with web_app._auth_sessions_lock:
             web_app._auth_sessions.clear()
+        with web_app._turn_resolution_capacity_lock:
+            web_app._active_turn_resolutions = 0
         web_app.user_data_dir = self._user_data_dir
         web_app.user_data_path = self._user_data_path
         web_app.load_runtime_llm = self._load_runtime_llm
@@ -118,6 +135,22 @@ class WebMultiuserAuthTests(unittest.TestCase):
             },
         )
         self.assertEqual(llm_write.status_code, 403)
+
+    def test_health_and_ready_endpoints_are_public_operational_checks(self) -> None:
+        client = TestClient(web_app.app)
+
+        health = client.get("/healthz")
+        self.assertEqual(health.status_code, 200)
+        self.assertEqual(health.json()["status"], "ok")
+        self.assertEqual(health.json()["auth_enabled"], True)
+        self.assertIn("X-Request-ID", health.headers)
+
+        ready = client.get("/readyz")
+        self.assertIn(ready.status_code, (200, 503))
+        payload = ready.json()
+        self.assertIn("checks", payload)
+        self.assertTrue(payload["checks"]["server_state_db"])
+        self.assertTrue(payload["checks"]["content_dir"])
 
     def test_auth_disabled_keeps_local_menu_public(self) -> None:
         os.environ.pop("MING_SIM_SERVER_USERS", None)
@@ -220,6 +253,57 @@ class WebMultiuserAuthTests(unittest.TestCase):
         self.assertEqual(web_app._session_username(token), "")
         with web_app._auth_sessions_lock:
             self.assertNotIn(token, web_app._auth_sessions)
+
+    def test_auth_session_survives_memory_cache_loss(self) -> None:
+        client = TestClient(web_app.app)
+        login = client.post("/api/auth/login", json={"username": "alice", "password": "pw"})
+        self.assertEqual(login.status_code, 200)
+        token = client.cookies.get(web_app._AUTH_COOKIE)
+        self.assertTrue(token)
+        self.assertEqual(web_app._session_counts_by_user().get("alice"), 1)
+
+        with web_app._auth_sessions_lock:
+            web_app._auth_sessions.clear()
+
+        self.assertEqual(web_app._session_counts_by_user().get("alice"), 1)
+        self.assertEqual(web_app._session_username(token), "alice")
+        status = client.get("/api/menu/status")
+        self.assertEqual(status.status_code, 200)
+        self.assertEqual(status.json()["auth"]["username"], "alice")
+
+    def test_login_failures_are_rate_limited_and_success_clears_bucket(self) -> None:
+        os.environ["MING_SIM_LOGIN_RATE_LIMIT_ATTEMPTS"] = "2"
+        os.environ["MING_SIM_LOGIN_RATE_LIMIT_WINDOW_SECONDS"] = "300"
+        client = TestClient(web_app.app)
+
+        self.assertEqual(client.post("/api/auth/login", json={"username": "alice", "password": "bad"}).status_code, 401)
+        self.assertEqual(client.post("/api/auth/login", json={"username": "alice", "password": "bad"}).status_code, 401)
+        limited = client.post("/api/auth/login", json={"username": "alice", "password": "bad"})
+        self.assertEqual(limited.status_code, 429)
+        self.assertEqual(limited.json()["detail"]["code"], "rate_limited")
+        self.assertIn("Retry-After", limited.headers)
+
+        bob = TestClient(web_app.app)
+        self.assertEqual(bob.post("/api/auth/login", json={"username": "bob", "password": "pw2"}).status_code, 200)
+
+    def test_login_rate_limit_ignores_forwarded_for_without_trusted_proxy(self) -> None:
+        os.environ["MING_SIM_LOGIN_RATE_LIMIT_ATTEMPTS"] = "1"
+        os.environ["MING_SIM_LOGIN_RATE_LIMIT_WINDOW_SECONDS"] = "300"
+        client = TestClient(web_app.app)
+
+        first = client.post(
+            "/api/auth/login",
+            json={"username": "alice", "password": "bad"},
+            headers={"x-forwarded-for": "203.0.113.10"},
+        )
+        self.assertEqual(first.status_code, 401)
+
+        second = client.post(
+            "/api/auth/login",
+            json={"username": "alice", "password": "bad"},
+            headers={"x-forwarded-for": "203.0.113.11"},
+        )
+        self.assertEqual(second.status_code, 429)
 
     def test_recent_chat_history_loads_bounded_window(self) -> None:
         db = GameDB(str(Path(self.tmp.name) / "chat_window.db"))
@@ -379,6 +463,88 @@ class WebMultiuserAuthTests(unittest.TestCase):
             self.assertEqual(bob_card["running"], False)
         finally:
             web_app.WebGame = original_web_game
+
+    def test_turn_resolution_rejects_concurrent_issue_requests(self) -> None:
+        class DummySession:
+            def close(self) -> None:
+                pass
+
+        class DummyWebGame:
+            def __init__(self) -> None:
+                self.session = DummySession()
+                self.turn_resolution_lock = threading.Lock()
+
+        client = TestClient(web_app.app)
+        self.assertEqual(client.post("/api/auth/login", json={"username": "alice", "password": "pw"}).status_code, 200)
+        game = DummyWebGame()
+        self.assertTrue(game.turn_resolution_lock.acquire(blocking=False))
+        web_app._set_running_game_for_user("alice", game)
+        try:
+            response = client.post("/api/decree/issue", json={})
+            self.assertEqual(response.status_code, 409)
+            self.assertEqual(response.json()["detail"]["code"], "turn_resolution_in_progress")
+        finally:
+            game.turn_resolution_lock.release()
+            web_app._set_running_game_for_user("alice", None)
+
+    def test_running_game_capacity_limit_blocks_new_users(self) -> None:
+        os.environ["MING_SIM_MAX_RUNNING_GAMES"] = "1"
+
+        class DummySession:
+            def close(self) -> None:
+                pass
+
+        class DummyWebGame:
+            def __init__(self, fresh: bool = False, username: str = "") -> None:
+                self.username = username.strip()
+                self.session = DummySession()
+
+            def state_payload(self):
+                return {"username": self.username}
+
+        original_web_game = web_app.WebGame
+        web_app.WebGame = DummyWebGame
+        alice = TestClient(web_app.app)
+        bob = TestClient(web_app.app)
+        try:
+            self.assertEqual(alice.post("/api/auth/login", json={"username": "alice", "password": "pw"}).status_code, 200)
+            self.assertEqual(bob.post("/api/auth/login", json={"username": "bob", "password": "pw2"}).status_code, 200)
+            self.assertEqual(alice.post("/api/menu/new_game").status_code, 200)
+
+            blocked = bob.post("/api/menu/new_game")
+            self.assertEqual(blocked.status_code, 503)
+            self.assertEqual(blocked.json()["detail"]["code"], "server_capacity_full")
+        finally:
+            web_app.WebGame = original_web_game
+
+    def test_global_turn_resolution_capacity_limit_blocks_issue(self) -> None:
+        os.environ["MING_SIM_MAX_CONCURRENT_TURNS"] = "1"
+
+        class DummySession:
+            def close(self) -> None:
+                pass
+
+        class DummyWebGame:
+            def __init__(self) -> None:
+                self.session = DummySession()
+                self.turn_resolution_lock = threading.Lock()
+
+            def portrait_generation_signatures(self):
+                raise AssertionError("capacity check should run before mutation work")
+
+        client = TestClient(web_app.app)
+        self.assertEqual(client.post("/api/auth/login", json={"username": "alice", "password": "pw"}).status_code, 200)
+        web_app._set_running_game_for_user("alice", DummyWebGame())
+        with web_app._turn_resolution_capacity_lock:
+            web_app._active_turn_resolutions = 1
+        try:
+            response = client.post("/api/decree/issue", json={})
+            self.assertEqual(response.status_code, 503)
+            self.assertEqual(response.json()["detail"]["code"], "turn_resolution_capacity_full")
+        finally:
+            with web_app._turn_resolution_capacity_lock:
+                web_app._active_turn_resolutions = 0
+            web_app._set_running_game_for_user("alice", None)
 
 
 if __name__ == "__main__":
