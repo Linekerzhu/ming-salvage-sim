@@ -748,6 +748,7 @@ class GameSession:
         prepared: Optional[PreparedDialogue] = None,
         *,
         source_chat_turn_id: int = 0,
+        directive_already_recorded: bool = False,
     ) -> Dict[str, object]:
         return record_dialogue_effects(
             self.db,
@@ -761,6 +762,7 @@ class GameSession:
             agno_db=self.agno_db,
             audit_client=self.dialogue_audit_client,
             persistent=self._persistent_dialogue_character(character),
+            directive_already_recorded=directive_already_recorded,
         )
 
     def chat(self, minister_name: str, message: str, *, source_chat_turn_id: int = 0) -> ChatTurnResult:
@@ -869,7 +871,19 @@ class GameSession:
             answer,
             dialogue_prep,
             source_chat_turn_id=source_chat_turn_id,
+            directive_already_recorded=result.proposed_directive is not None,
         )
+        if result.proposed_directive is None:
+            proposed = result.dialogue_goal.get("proposed_directive")
+            if isinstance(proposed, dict) and proposed.get("id") and proposed.get("text"):
+                result.proposed_directive = DirectiveView(
+                    id=int(proposed.get("id") or 0),
+                    text=str(proposed.get("text") or ""),
+                    status=str(proposed.get("status") or "pending"),
+                    source=str(proposed.get("source") or "大臣拟旨"),
+                    notes=str(proposed.get("notes") or ""),
+                    actor=str(proposed.get("actor") or character.name),
+                )
         return result
 
     def _apply_appointment(self, payload: str, appointer: Character) -> Tuple[str, str, Dict[str, object]]:

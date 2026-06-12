@@ -451,6 +451,70 @@ def _create_agreement_for_goal(
     return agreement_id
 
 
+def _create_directive_from_audit(
+    db: Any,
+    state: GameState,
+    character: Character,
+    post: Any,
+    *,
+    source_chat_turn_id: int = 0,
+    already_recorded: bool = False,
+) -> Dict[str, object]:
+    if already_recorded:
+        return {}
+    if str(getattr(post, "directive_action", "") or "") != "propose_pending":
+        return {}
+    text = str(getattr(post, "directive_text", "") or "").strip()
+    if not text:
+        return {}
+    actor = str(getattr(character, "name", "") or "").strip()
+    try:
+        existing = db.conn.execute(
+            """
+            SELECT id, text, status, source, notes, actor
+            FROM turn_directives
+            WHERE turn=? AND actor=? AND text=? AND status IN ('pending','draft')
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (int(state.turn), actor, text),
+        ).fetchone()
+    except Exception:
+        existing = None
+    if existing is not None:
+        return {
+            "id": int(existing["id"]),
+            "text": str(existing["text"] or text),
+            "status": str(existing["status"] or "pending"),
+            "source": str(existing["source"] or "大臣拟旨"),
+            "notes": str(existing["notes"] or ""),
+            "actor": str(existing["actor"] or actor),
+            "already_recorded": True,
+        }
+    notes = f"由{actor}拟旨入档（语义审计）"
+    if source_chat_turn_id:
+        notes += f"；chat_turn={int(source_chat_turn_id)}"
+    directive_id = db.add_directive(
+        state,
+        None,
+        text,
+        "大臣拟旨",
+        actor=actor,
+        notes=notes,
+        status="pending",
+    )
+    return {
+        "id": int(directive_id),
+        "text": text,
+        "status": "pending",
+        "source": "大臣拟旨",
+        "notes": notes,
+        "actor": actor,
+        "already_recorded": False,
+        "audit_confidence": int(getattr(post, "confidence", 0) or 0),
+    }
+
+
 def record_dialogue_effects(
     db: Any,
     state: GameState,
@@ -464,6 +528,7 @@ def record_dialogue_effects(
     agno_db: object = None,
     audit_client: object = None,
     persistent: bool = True,
+    directive_already_recorded: bool = False,
 ) -> Dict[str, object]:
     if not persistent:
         return {}
@@ -498,10 +563,19 @@ def record_dialogue_effects(
             "error": post.error,
             "public_hint": "本轮奏对审计未落档。",
         }
+    proposed_directive = _create_directive_from_audit(
+        db,
+        state,
+        character,
+        post,
+        source_chat_turn_id=source_chat_turn_id,
+        already_recorded=directive_already_recorded,
+    )
     if post.goal_decision == "none":
         return {
             "audit_status": "recorded",
-            "event": "none",
+            "event": "directive_proposed" if proposed_directive else "none",
+            "proposed_directive": proposed_directive,
             "public_hint": post.public_hint,
             "audit_confidence": post.confidence,
         }
@@ -779,6 +853,7 @@ def record_dialogue_effects(
         "goal": goal,
         "stance_id": stance_id,
         "agreement_id": agreement_id,
+        "proposed_directive": proposed_directive,
         "event": event,
         "handshake_status": handshake_status,
         "score": next_score,

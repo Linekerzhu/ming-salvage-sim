@@ -107,6 +107,21 @@ class CapturingAudit:
         }
 
 
+class StaticAudit:
+    def __init__(self, pre_payload, post_payload):
+        self.pre_payload = dict(pre_payload)
+        self.post_payload = dict(post_payload)
+        self.payloads = {}
+
+    def pre(self, payload):
+        self.payloads["pre"] = payload
+        return dict(self.pre_payload)
+
+    def post(self, payload):
+        self.payloads["post"] = payload
+        return dict(self.post_payload)
+
+
 class NPCBehaviorCrossPressureTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -217,6 +232,197 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 self.assertIn("政敌牵动", profile["risk_tags"])
                 self.assertIn("NPC对话行为档案", payload["behavior_brief"])
                 self.assertIn("魏忠贤余党", payload["behavior_source_excerpt"])
+            db.conn.close()
+
+    def test_semantic_refine_reuses_active_goal_instead_of_creating_duplicate(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db = GameDB(str(Path(tmp) / "npc_goal_refine.db"), content=self.content)
+            db.seed_static_data()
+            state = GameState(
+                year=1628,
+                period=1,
+                turn=1,
+                metrics={"国库": 100, "内库": 50, "民心": 50, "皇威": 50},
+            )
+            goal_id = db.create_conversation_goal(
+                state,
+                minister_name="韩爌",
+                action_kind="personnel",
+                title="接受兵部任职",
+                target_text="本人考虑接受兵部任职安排",
+                threshold=72,
+                score=25,
+                status="active",
+            )
+            audit = StaticAudit(
+                {
+                    "goal_decision": "continue",
+                    "goal_relation": "refine_goal",
+                    "action_kind": "personnel",
+                    "title": "接受兵部尚书任职",
+                    "target_text": "本人接受兵部尚书任职安排",
+                    "confidence": 94,
+                    "public_hint": "同一人事目的被细化。",
+                },
+                {
+                    "goal_decision": "continue",
+                    "goal_relation": "refine_goal",
+                    "action_kind": "personnel",
+                    "title": "接受兵部尚书任职",
+                    "target_text": "本人接受兵部尚书任职安排",
+                    "stance": "caution",
+                    "handshake_status": "conditional",
+                    "goal_status": "waiting_conditions",
+                    "score_delta": 20,
+                    "score_after": 45,
+                    "threshold": 72,
+                    "conditions": [{"description": "须有明旨授官", "status": "pending", "evidence": "韩爌称须有明旨。"}],
+                    "blockers": [],
+                    "agreement_action": "none",
+                    "confidence": 95,
+                    "public_hint": "同一目的修正为兵部尚书，仍待明旨。",
+                    "private_reason": "NPC 没有换题，只要求明旨。",
+                },
+            )
+
+            result = record_dialogue_effects(
+                db,
+                state,
+                self.content.characters["韩爌"],
+                "那就明旨授你兵部尚书，如何才肯接？",
+                "臣不敢辞，但此事须有明旨授官，臣方可承当。",
+                audit_client=audit,
+            )
+
+            goals = db.list_conversation_goals(minister_name="韩爌")
+            self.assertEqual(len(goals), 1)
+            self.assertEqual(int(goals[0]["id"]), goal_id)
+            self.assertEqual(goals[0]["title"], "接受兵部尚书任职")
+            self.assertEqual(goals[0]["target_text"], "本人接受兵部尚书任职安排")
+            self.assertEqual(goals[0]["status"], "waiting_conditions")
+            self.assertEqual(result["event"], "waiting_conditions")
+            db.conn.close()
+
+    def test_condition_closure_seals_goal_and_creates_agreement_from_llm_audit(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db = GameDB(str(Path(tmp) / "npc_goal_condition_close.db"), content=self.content)
+            db.seed_static_data()
+            state = GameState(
+                year=1628,
+                period=1,
+                turn=1,
+                metrics={"国库": 100, "内库": 50, "民心": 50, "皇威": 50},
+            )
+            goal_id = db.create_conversation_goal(
+                state,
+                minister_name="韩爌",
+                action_kind="personnel",
+                title="接受兵部尚书任职",
+                target_text="本人接受兵部尚书任职安排",
+                threshold=72,
+                score=45,
+                status="waiting_conditions",
+                condition_status="pending",
+                conditions=[{"description": "须有明旨授官", "status": "pending", "evidence": ""}],
+            )
+            audit = StaticAudit(
+                {
+                    "goal_decision": "continue",
+                    "goal_relation": "same_goal",
+                    "action_kind": "personnel",
+                    "title": "接受兵部尚书任职",
+                    "target_text": "本人接受兵部尚书任职安排",
+                    "confidence": 94,
+                },
+                {
+                    "goal_decision": "continue",
+                    "goal_relation": "same_goal",
+                    "action_kind": "personnel",
+                    "title": "接受兵部尚书任职",
+                    "target_text": "本人接受兵部尚书任职安排",
+                    "stance": "support",
+                    "handshake_status": "sealed",
+                    "goal_status": "sealed",
+                    "score_delta": 55,
+                    "score_after": 100,
+                    "threshold": 72,
+                    "conditions": [{"description": "须有明旨授官", "status": "done", "evidence": "玩家已给明旨，韩爌称臣领旨。"}],
+                    "blockers": [],
+                    "agreement_action": "create_achieved",
+                    "confidence": 96,
+                    "public_hint": "条件已闭环，韩爌领旨接任。",
+                    "private_reason": "明旨条件已由本轮原文满足。",
+                },
+            )
+
+            result = record_dialogue_effects(
+                db,
+                state,
+                self.content.characters["韩爌"],
+                "朕已明旨授你兵部尚书。",
+                "臣既蒙明旨，愿领兵部尚书之任。",
+                audit_client=audit,
+            )
+
+            goal = db.get_conversation_goal(goal_id) or {}
+            self.assertEqual(goal["status"], "sealed")
+            self.assertEqual(goal["condition_status"], "satisfied")
+            self.assertGreater(int(goal["agreement_id"] or 0), 0)
+            self.assertGreater(int(result["agreement_id"] or 0), 0)
+            agreement = db.list_negotiation_agreements(minister_name="韩爌", limit=1)[0]
+            self.assertEqual(agreement["target_status"], "achieved")
+            db.conn.close()
+
+    def test_llm_audit_can_auto_record_natural_language_directive(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db = GameDB(str(Path(tmp) / "npc_directive_from_audit.db"), content=self.content)
+            db.seed_static_data()
+            state = GameState(
+                year=1628,
+                period=1,
+                turn=1,
+                metrics={"国库": 100, "内库": 50, "民心": 50, "皇威": 50},
+            )
+            directive_text = "命户部核太仓亏空，三日内具实数以闻。"
+            audit = StaticAudit(
+                {"goal_decision": "none", "confidence": 93},
+                {
+                    "goal_decision": "none",
+                    "goal_relation": "none",
+                    "action_kind": "general",
+                    "stance": "neutral",
+                    "handshake_status": "none",
+                    "goal_status": "active",
+                    "score_delta": 0,
+                    "score_after": 0,
+                    "threshold": 70,
+                    "conditions": [],
+                    "blockers": [],
+                    "agreement_action": "none",
+                    "directive_action": "propose_pending",
+                    "directive_text": directive_text,
+                    "confidence": 96,
+                    "public_hint": "NPC 已拟成一条可核定草案。",
+                    "private_reason": "NPC 原文称臣已拟旨如下。",
+                },
+            )
+
+            result = record_dialogue_effects(
+                db,
+                state,
+                self.content.characters["毕自严"],
+                "户部亏空先拟一道旨。",
+                f"臣已拟旨如下：{directive_text}",
+                audit_client=audit,
+            )
+
+            directives = db.list_directives(state, statuses=("pending", "draft"))
+            self.assertEqual(len(directives), 1)
+            self.assertEqual(str(directives[0]["text"]), directive_text)
+            self.assertEqual(str(directives[0]["status"]), "pending")
+            self.assertEqual(str(directives[0]["actor"]), "毕自严")
+            self.assertEqual(result["event"], "directive_proposed")
+            self.assertEqual(result["proposed_directive"]["id"], int(directives[0]["id"]))
             db.conn.close()
 
     def test_hostile_relations_are_not_positive_recommendations(self) -> None:

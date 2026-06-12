@@ -44,6 +44,7 @@ STANCES = {"support", "caution", "oppose", "neutral"}
 HANDSHAKES = {"none", "conditional", "sealed", "blocked"}
 GOAL_STATUSES = {"active", "waiting_conditions", "sealed", "blocked", "abandoned", "expired"}
 AGREEMENT_ACTIONS = {"none", "create_achieved", "create_pending", "bind_existing"}
+DIRECTIVE_ACTIONS = {"none", "propose_pending"}
 INSTANT_AGREEMENT_ACTIONS = {"castration", "emancipation", "personnel"}
 IDENTITY_CONVERSION_ACTIONS = {"castration", "emancipation"}
 
@@ -229,6 +230,8 @@ class PostDialogueAudit:
     blockers: List[str] = field(default_factory=list)
     explicit_consent: bool = False
     agreement_action: str = "none"
+    directive_action: str = "none"
+    directive_text: str = ""
     public_hint: str = ""
     private_reason: str = ""
     confidence: int = 0
@@ -311,6 +314,8 @@ def _normalize_post(data: Dict[str, object], *, existing_threshold: int = 70) ->
     blockers = _list_strings(data.get("blockers"), limit=8, item_limit=120)
     explicit_consent = bool(data.get("explicit_consent"))
     agreement_action = _enum(data.get("agreement_action"), AGREEMENT_ACTIONS, "none")
+    directive_action = _enum(data.get("directive_action"), DIRECTIVE_ACTIONS, "none")
+    directive_text = _compact(data.get("directive_text"), 1800)
     public_hint = _compact(data.get("public_hint"), 180)
     private_reason = _compact(data.get("private_reason") or data.get("reason"), 400)
 
@@ -382,6 +387,11 @@ def _normalize_post(data: Dict[str, object], *, existing_threshold: int = 70) ->
         agreement_action = "none" if agreement_action.startswith("create_") else agreement_action
     if goal_status == "sealed" and score_after < threshold:
         score_after = 100
+    if directive_action == "propose_pending":
+        if not directive_text:
+            directive_action = "none"
+        elif confidence < CONFIDENCE_FLOOR:
+            directive_action = "none"
 
     return PostDialogueAudit(
         audit_status="recorded",
@@ -400,6 +410,8 @@ def _normalize_post(data: Dict[str, object], *, existing_threshold: int = 70) ->
         blockers=blockers[:8],
         explicit_consent=explicit_consent,
         agreement_action=agreement_action,
+        directive_action=directive_action,
+        directive_text=directive_text,
         public_hint=public_hint,
         private_reason=private_reason,
         confidence=confidence,
@@ -527,6 +539,7 @@ PRE_AUDIT_PROMPT = """
 - action_kind 选择：personnel=任职/调任/接受官职；secret_order=密查/密办/秘密回报；policy=承办/支持政策；court_commitment=举荐/背书/调停/守口；castration/emancipation=身份转换；general 只用于 none。
 - goal_relation 是与 active_goal 的关系：same_goal=继续原目标；refine_goal=同一目标的细化/修正；distinct_goal=另起目标；abandon_goal=放弃原目标；无 active_goal 时用 distinct_goal 或 none。
 - 同一 NPC 围绕同一官职/同一差事/同一条件边界继续谈，即便措辞像“要你做兵部尚书”“如何才肯接兵部”，也应输出 continue + refine_goal，而不是 new/switch。
+- 判断“同一件事”优先看政治对象、承办人、目标结果、条件标的和上下文指代，不要依赖字面重合；“此事/照你说的/刚才/条件已给/明旨已下”要结合 recent_dialogue 和 active_goal 解读。
 
 判例：
 - “你是否愿去吏部做官，司礼监会照会” => personnel，不是 castration。
@@ -573,6 +586,8 @@ POST_AUDIT_PROMPT = """
 - sealed 需要 NPC 对 target_text 有明确承诺、清楚接受，或 waiting 条件已被证据满足。
 - 若本轮只是把同一 active_goal 从粗目标细化为具体官职/授权/名分/条件，输出 goal_relation=refine_goal，并把 title/target_text 改成修订后的版本；不要创建多个 goal。
 - 若确属另一个目标，输出 goal_relation=distinct_goal；若旧目标应让位，goal_decision=switch。
+- 若 active_goal 正在 waiting_conditions，而玩家/NPC 原文表明要求的明旨、授权、人手、钱粮、名分、保全、期限等已经给足，conditions 对应项应标 done；NPC 随即接受标的时可 sealed。
+- 如果 NPC 原文已经给出一段可直接进入旨意库的完整草案、条陈式诏令或“臣已拟旨如下”，但没有工具调用痕迹，输出 directive_action=propose_pending，并把 directive_text 填为可入库草案。只有建议、原则、口头意见、零散条款时仍为 none。
 
 JSON 字段：
 {
@@ -591,6 +606,8 @@ JSON 字段：
   "blockers": ["阻碍"],
   "explicit_consent": false,
   "agreement_action": "none|create_achieved|create_pending|bind_existing",
+  "directive_action": "none|propose_pending",
+  "directive_text": "NPC 已拟成、可入库的旨意草案；无则空字符串",
   "public_hint": "玩家可见一句短解释",
   "private_reason": "debug 审计理由，含原文证据",
   "confidence": 0
@@ -602,6 +619,8 @@ CONDITION_AUDIT_PROMPT = """
 你是明末历史策略游戏的“奏对条件审计官”。你只输出 JSON，不写 Markdown。
 任务：阅读 waiting goal、它的条件、诏书/草案/月末邸报/落库事实，判断每个条件是否被满足或否定。
 不要替皇帝补事实；证据不足保持 pending。
+判断条件达成时以语义为准：明旨/圣旨/诏/交办/专责可对应授权或名分；拨银/发饷/给人/调校尉可对应资源或人手；保全/安置/免坐可对应保护条件。只要证据清楚指向同一政治标的，即使字面不同也可标 done。
+若所有关键条件 done，且没有相反证据，goal_status 可为 sealed；若出现驳回、未准、食言、强推导致 NPC 原条件被破坏，可为 blocked。
 
 JSON 字段：
 {
