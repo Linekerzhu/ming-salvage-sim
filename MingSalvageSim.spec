@@ -152,8 +152,8 @@ if sys.platform == "darwin":
         info_plist={
             "NSHighResolutionCapable": True,
             "LSBackgroundOnly": False,
-            "CFBundleShortVersionString": "0.1.0",
-            "CFBundleVersion": "0.1.0",
+            "CFBundleShortVersionString": "0.5.0",
+            "CFBundleVersion": "0.5.0",
             # WKWebView 默认禁明文 HTTP；允许 127.0.0.1 + localhost 本地 server
             "NSAppTransportSecurity": {
                 "NSAllowsLocalNetworking": True,

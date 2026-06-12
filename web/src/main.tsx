@@ -1,5 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import { DeskDrawer, TimeBar, WatchDrawer } from "./upgrade";
 import {
   Check,
   Crown,
@@ -678,7 +679,7 @@ function renderChatMarkdownText(content: string): React.ReactNode[] {
 }
 
 type ModalName = "none" | "state" | "chat" | "edict" | "report" | "extraction" | "history" | "menu" | "secret_orders" | "ending" | "long_goals" | "adventure";
-type DrawerName = "" | "court" | "harem" | "army" | "region" | "building" | "economy" | "appointment" | "organization";
+type DrawerName = "" | "court" | "harem" | "army" | "region" | "building" | "economy" | "appointment" | "organization" | "desk" | "watch";
 type SaveEntry = MenuSave & { current?: boolean };
 type LLMConfigInfo = {
   base_url: string;
@@ -1305,6 +1306,9 @@ function App() {
   // 作弊控制台（Ctrl+~）：cheatDirective 暂存强制结算项，下次颁诏随结算一次性穿入。
   const [cheatOpen, setCheatOpen] = React.useState(false);
   const [cheatDirective, setCheatDirective] = React.useState("");
+  // 升级总案半即时层：御案与司天台抽屉
+  const [deskDrawerOpen, setDeskDrawerOpen] = React.useState(false);
+  const [watchDrawerOpen, setWatchDrawerOpen] = React.useState(false);
   const detailEpochRef = React.useRef(0);
   const characterIndexRequestRef = React.useRef<Promise<void> | null>(null);
   const organizationsRequestRef = React.useRef<Promise<void> | null>(null);
@@ -1326,7 +1330,9 @@ function App() {
     buildingDrawerOpen ? "building" :
     economyDrawerOpen ? "economy" :
     appointmentDrawerOpen ? "appointment" :
-    organizationDrawerOpen ? "organization" : "";
+    organizationDrawerOpen ? "organization" :
+    deskDrawerOpen ? "desk" :
+    watchDrawerOpen ? "watch" : "";
 
   const setActiveDrawer = React.useCallback((drawer: DrawerName) => {
     setDrawerOpen(drawer === "court");
@@ -1337,6 +1343,8 @@ function App() {
     setEconomyDrawerOpen(drawer === "economy");
     setAppointmentDrawerOpen(drawer === "appointment");
     setOrganizationDrawerOpen(drawer === "organization");
+    setDeskDrawerOpen(drawer === "desk");
+    setWatchDrawerOpen(drawer === "watch");
   }, []);
 
   const toggleDrawer = React.useCallback((drawer: Exclude<DrawerName, "">) => {
@@ -2461,6 +2469,7 @@ function App() {
         onOpenState={() => setActiveModal("state")}
         onOpenMenu={() => setActiveModal("menu")}
       />
+      <TimeBar settling={settling} onWorldChanged={() => { loadState().catch(() => {}); }} />
       <RightNavBar
         onToggleCourt={() => toggleDrawer("court")}
         onToggleHarem={() => toggleDrawer("harem")}
@@ -2470,8 +2479,20 @@ function App() {
         onToggleEconomy={() => toggleDrawer("economy")}
         onToggleAppointment={() => toggleDrawer("appointment")}
         onToggleOrganization={() => toggleDrawer("organization")}
+        onToggleDesk={() => toggleDrawer("desk")}
+        onToggleWatch={() => toggleDrawer("watch")}
         onOpenLongGoals={() => setActiveModal("long_goals")}
         activeDrawer={activeDrawer}
+      />
+      <DeskDrawer
+        open={deskDrawerOpen}
+        onClose={guardClose(() => setActiveDrawer(""))}
+        onWorldChanged={() => { loadState().catch(() => {}); }}
+      />
+      <WatchDrawer
+        open={watchDrawerOpen}
+        onClose={guardClose(() => setActiveDrawer(""))}
+        onWorldChanged={() => { loadState().catch(() => {}); }}
       />
       <BottomCommandBar
         eventsCount={state.events.length}
@@ -3367,6 +3388,8 @@ function RightNavBar({
   onToggleEconomy,
   onToggleAppointment,
   onToggleOrganization,
+  onToggleDesk,
+  onToggleWatch,
   onOpenLongGoals,
   activeDrawer,
 }: {
@@ -3378,10 +3401,14 @@ function RightNavBar({
   onToggleEconomy: () => void;
   onToggleAppointment: () => void;
   onToggleOrganization: () => void;
+  onToggleDesk: () => void;
+  onToggleWatch: () => void;
   onOpenLongGoals: () => void;
   activeDrawer: DrawerName;
 }) {
   const items = [
+    { key: "desk", label: "批", short: "御案", title: "御案·批红奏疏", onClick: onToggleDesk },
+    { key: "watch", label: "观", short: "司天", title: "司天台·预警与在办旨意", onClick: onToggleWatch },
     { key: "court", label: "政", short: "朝堂", title: "朝堂·召见大臣", onClick: onToggleCourt },
     { key: "harem", label: "内", short: "后宫", title: "后宫", onClick: onToggleHarem },
     { key: "army", label: "兵", short: "军队", title: "军队列表", onClick: onToggleArmy },

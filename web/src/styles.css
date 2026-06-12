@@ -12281,3 +12281,153 @@ button:disabled {
     overflow-y: auto;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   升级总案半即时层（upgrade.tsx）：时钟条 / 御案 / 司天台
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.upgrade-timebar {
+  /* 定位在 status-bar(top:12,z:12) 与 legacy-bar 之下、抽屉遮罩(z:17)之下：
+     fixed 布局避免压住国势栏（legacy-bar 底边≈118px），z-index 13 保证开抽屉时被 scrim 盖住 */
+  position: fixed;
+  top: 126px;
+  left: 16px;
+  z-index: 13;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px;
+  background: rgba(24, 18, 12, 0.82);
+  border: 1px solid rgba(176, 138, 84, 0.35);
+  border-radius: 8px;
+  color: #e8d9bd;
+  font-size: 12.5px;
+  backdrop-filter: blur(4px);
+  width: fit-content;
+  max-width: min(720px, calc(100vw - var(--right-drawer-safe-right) - 40px));
+}
+.upgrade-timebar-date { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+.upgrade-timebar-track {
+  width: 110px; height: 6px; border-radius: 3px;
+  background: rgba(176, 138, 84, 0.2); overflow: hidden;
+}
+.upgrade-timebar-fill { display: block; height: 100%; background: linear-gradient(90deg, #8a6a3a, #c9a25e); }
+.upgrade-timebar-controls { display: inline-flex; gap: 5px; }
+.upgrade-timebar-controls button {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 3px 9px; border-radius: 6px; cursor: pointer;
+  background: rgba(176, 138, 84, 0.16); color: #e8d9bd;
+  border: 1px solid rgba(176, 138, 84, 0.4); font-size: 12px;
+}
+.upgrade-timebar-controls button:hover:not(:disabled) { background: rgba(176, 138, 84, 0.32); }
+.upgrade-timebar-controls button:disabled { opacity: 0.45; cursor: default; }
+.upgrade-timebar-monthend { color: #e0b25a; font-weight: 600; }
+.upgrade-timebar-pills { display: inline-flex; gap: 6px; }
+.upgrade-pill {
+  padding: 2px 8px; border-radius: 10px; font-size: 11.5px;
+  background: rgba(176, 138, 84, 0.14); border: 1px solid rgba(176, 138, 84, 0.32);
+}
+.upgrade-pill.danger { background: rgba(160, 50, 40, 0.3); border-color: rgba(200, 80, 60, 0.6); }
+.upgrade-timebar-error { color: #e07a6a; font-size: 11.5px; }
+.upgrade-event-ticker { flex-basis: 100%; display: flex; flex-direction: column; gap: 2px; padding-top: 2px; }
+.upgrade-event { font-size: 11.5px; padding: 2px 6px; border-radius: 4px; }
+.upgrade-event b { margin-right: 5px; opacity: 0.75; }
+.upgrade-event-red { background: rgba(150, 40, 32, 0.35); color: #f0c3ba; }
+.upgrade-event-yellow { background: rgba(150, 110, 30, 0.28); color: #ecd9a8; }
+.upgrade-event-blue { background: rgba(60, 80, 110, 0.25); color: #c4d2e4; }
+.upgrade-event-detail { margin-left: 6px; opacity: 0.75; }
+
+/* 御案 / 司天台 共用 */
+.upgrade-drawer .right-drawer-body { font-size: 13px; }
+.upgrade-desk-head { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0 8px; opacity: 0.9; }
+.upgrade-trap-hint {
+  margin: 4px 0 8px; padding: 7px 10px; border-radius: 6px;
+  background: rgba(150, 40, 32, 0.22); border: 1px solid rgba(190, 80, 60, 0.45);
+  color: #f0c3ba; font-size: 12.5px;
+}
+.upgrade-desk-message {
+  margin: 4px 0 8px; padding: 6px 10px; border-radius: 6px;
+  background: rgba(80, 110, 70, 0.22); border: 1px solid rgba(110, 150, 90, 0.4);
+  font-size: 12.5px;
+}
+.upgrade-empty { opacity: 0.6; font-size: 12.5px; padding: 6px 0; }
+
+.upgrade-memorial { border: 1px solid rgba(176, 138, 84, 0.28); border-radius: 7px; margin-bottom: 7px; overflow: hidden; }
+.upgrade-memorial.urgency-3 { border-color: rgba(190, 80, 60, 0.6); }
+.upgrade-memorial-head {
+  display: flex; align-items: center; gap: 7px; width: 100%;
+  padding: 7px 9px; background: transparent; border: 0; cursor: pointer;
+  color: inherit; text-align: left; font-size: 12.5px;
+}
+.upgrade-memorial-head:hover { background: rgba(176, 138, 84, 0.1); }
+.upgrade-memorial-urgency {
+  flex: 0 0 auto; width: 18px; height: 18px; line-height: 18px; text-align: center;
+  border-radius: 50%; font-size: 11px; background: rgba(176, 138, 84, 0.25);
+}
+.urgency-3 .upgrade-memorial-urgency { background: rgba(190, 80, 60, 0.5); color: #fff; }
+.upgrade-memorial-kind { flex: 0 0 auto; opacity: 0.8; }
+.upgrade-memorial-summary { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upgrade-memorial-author { flex: 0 0 auto; opacity: 0.6; font-size: 11.5px; }
+.upgrade-memorial-body { padding: 4px 11px 9px; border-top: 1px dashed rgba(176, 138, 84, 0.25); }
+.upgrade-memorial-text { white-space: pre-wrap; line-height: 1.65; margin: 6px 0; }
+.upgrade-memorial-piaoni {
+  margin: 6px 0; padding: 6px 9px; border-left: 3px solid rgba(176, 138, 84, 0.55);
+  background: rgba(176, 138, 84, 0.1); font-size: 12.5px; line-height: 1.6;
+}
+.upgrade-piaoni-note { display: block; opacity: 0.55; font-size: 11px; margin-top: 2px; }
+.upgrade-memorial-actions { display: flex; gap: 6px; margin-top: 6px; }
+.upgrade-memorial-actions button,
+.upgrade-directive-actions button,
+.upgrade-ledger-actions button {
+  padding: 3px 10px; border-radius: 6px; cursor: pointer; font-size: 12px;
+  background: rgba(176, 138, 84, 0.16); color: inherit;
+  border: 1px solid rgba(176, 138, 84, 0.4);
+}
+.upgrade-memorial-actions button:hover:not(:disabled),
+.upgrade-directive-actions button:hover:not(:disabled),
+.upgrade-ledger-actions button:hover:not(:disabled) { background: rgba(176, 138, 84, 0.32); }
+
+.upgrade-decided { margin-top: 8px; font-size: 12.5px; }
+.upgrade-decided summary { cursor: pointer; opacity: 0.75; }
+.upgrade-decided-row { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; opacity: 0.8; }
+.upgrade-decided-status { flex: 0 0 auto; opacity: 0.7; }
+
+.upgrade-section { margin: 10px 0 14px; }
+.upgrade-section h4 { margin: 0 0 6px; font-size: 13.5px; }
+.upgrade-section-note { font-weight: 400; font-size: 11px; opacity: 0.55; }
+.upgrade-zx-total { font-size: 17px; }
+.upgrade-zx-parts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.upgrade-zx-part { padding: 2px 8px; border-radius: 10px; font-size: 11.5px; background: rgba(176, 138, 84, 0.14); }
+.upgrade-stage { margin-top: 6px; padding: 7px 10px; border-radius: 7px; background: rgba(176, 138, 84, 0.08); }
+.upgrade-stage-title { margin: 0; font-weight: 600; font-size: 12.5px; }
+.upgrade-stage-brief { margin: 3px 0 6px; opacity: 0.7; font-size: 12px; }
+.upgrade-goal { display: flex; flex-direction: column; padding: 2px 0; font-size: 12.5px; }
+.upgrade-goal.done { opacity: 0.55; text-decoration: line-through; }
+.upgrade-goal-hint { opacity: 0.55; font-size: 11px; padding-left: 18px; }
+
+.upgrade-watch { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 5px 8px; margin-bottom: 5px; border-radius: 6px; }
+.upgrade-watch-danger { background: rgba(150, 40, 32, 0.24); border: 1px solid rgba(190, 80, 60, 0.5); }
+.upgrade-watch-warn { background: rgba(150, 110, 30, 0.18); border: 1px solid rgba(190, 150, 60, 0.4); }
+.upgrade-watch-title { font-weight: 600; font-size: 12.5px; }
+.upgrade-gauge { font-size: 11.5px; padding: 1px 7px; border-radius: 9px; background: rgba(0,0,0,0.18); }
+.upgrade-gauge-danger { color: #f0a698; }
+.upgrade-gauge-warn { color: #ecd9a8; }
+
+.upgrade-directive { border: 1px solid rgba(176, 138, 84, 0.28); border-radius: 7px; padding: 7px 10px; margin-bottom: 7px; }
+.upgrade-directive.status-stalled { border-color: rgba(190, 80, 60, 0.6); }
+.upgrade-directive-head { display: flex; gap: 7px; align-items: baseline; }
+.upgrade-directive-status { flex: 0 0 auto; font-size: 11px; padding: 1px 7px; border-radius: 9px; background: rgba(176, 138, 84, 0.22); }
+.status-stalled .upgrade-directive-status { background: rgba(190, 80, 60, 0.4); }
+.upgrade-directive-text { font-size: 12.5px; }
+.upgrade-directive-meta { opacity: 0.65; font-size: 11.5px; margin: 3px 0; }
+.upgrade-progress-track { height: 5px; border-radius: 3px; background: rgba(176, 138, 84, 0.18); overflow: hidden; margin: 4px 0 6px; }
+.upgrade-progress-fill { display: block; height: 100%; background: linear-gradient(90deg, #6e8a4e, #a3bd72); }
+.upgrade-directive-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+
+.upgrade-ledger-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px dashed rgba(176, 138, 84, 0.2); font-size: 12.5px; }
+.upgrade-ledger-note { flex: 1 1 auto; }
+.upgrade-ledger-actions { display: flex; gap: 5px; flex: 0 0 auto; }
+
+.upgrade-shibi { margin: 0 0 8px; padding: 7px 11px; border-left: 3px solid rgba(176, 138, 84, 0.55); background: rgba(176, 138, 84, 0.08); font-size: 12.5px; line-height: 1.7; }
+.upgrade-shibi-date { display: block; opacity: 0.55; font-size: 11px; margin-bottom: 2px; }

@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from contextlib import closing
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -538,6 +539,50 @@ class ConsortActionRequest(BaseModel):
     action: str
 
 
+class TimeAdvanceRequest(BaseModel):
+    days: int = 1
+    stop_on_yellow: bool = True
+
+
+class TimeSpeedRequest(BaseModel):
+    speed: int = 1
+
+
+class DirectiveInterveneRequest(BaseModel):
+    action: str  # cuiban|reassign|fund|abort
+    new_assignee: str = ""
+    fund: int = 0
+
+
+class MemorialDecideRequest(BaseModel):
+    action: str  # approve|deny|shelve|refer
+    note: str = ""
+
+
+class PunishRequest(BaseModel):
+    name: str
+    severity: str  # light|heavy|execute
+    public: bool = True
+    reason: str = ""
+
+
+class BackRequest(BaseModel):
+    name: str
+    kind: str  # shoulder|comfort|reuse
+    cost: int = 0
+
+
+class InvestigateRequest(BaseModel):
+    line: str  # changwei|kedao
+    target_kind: str  # army|character|directive
+    target_id: str
+
+
+class SignalRequest(BaseModel):
+    kind: str  # tingzhang|zuiji|xianfu
+    target: str = ""
+
+
 class WebGame:
     """Web 端会话包装：持一个 GameSession + 网页专属态（聊天历史、收藏）。"""
 
@@ -600,6 +645,13 @@ class WebGame:
         self.favorites: set = set(json.loads(_fav_raw)) if _fav_raw else set(_DEFAULT_FAVORITES)
         if not _fav_raw:
             self.db.kv_set("favorites", json.dumps(sorted(self.favorites)))
+        # 异步 LLM 结算队列（升级总案 S1.4）：每存档库一个 daemon worker，
+        # 消费旨意异常陈情/办结奏报等文案任务；LLM 失败有模板兜底，不阻塞主流程。
+        try:
+            from ming_sim.scheduler import ensure_worker
+            ensure_worker(self.db_path, llm_config)
+        except Exception as exc:
+            print(f"[WARN] LLM 队列 worker 未启动：{exc}")
 
     def _restore_chat_history_cache(self) -> None:
         self.chat_history = {name: [] for name in self.session.content.characters}
@@ -647,8 +699,10 @@ class WebGame:
         os.remove(target)
 
     def reset_game(self) -> None:
-        """全清主 DB：关连接 → 删 sqlite 主/wal/shm → 重建空 session。
+        """全清主 DB：停队列 worker → 关连接 → 删 sqlite 主/wal/shm → 重建空 session。
         存档目录不动。"""
+        from ming_sim.scheduler import stop_worker
+        stop_worker(self.db_path)
         try:
             self.session.close()
         except Exception:
@@ -663,7 +717,10 @@ class WebGame:
         if not os.path.isfile(source):
             raise HTTPException(status_code=404, detail="存档不存在。")
         prepared = _prepare_sqlite_save_for_replace(source, self.db_path)
-        # 先关闭当前 session 的 DB 连接，避免 Windows/某些平台上的 file lock。
+        # 先停队列 worker 并关闭当前 session 的 DB 连接，
+        # 避免 Windows/某些平台上的 file lock（worker 持有独立 sqlite 连接）。
+        from ming_sim.scheduler import stop_worker
+        stop_worker(self.db_path)
         try:
             self.session.close()
         except Exception:
@@ -672,10 +729,16 @@ class WebGame:
         self._rebuild_session(self.session.llm_config)
 
     def _rebuild_session(self, llm_config: LLMConfig) -> None:
-        """用新 llm_config（或换完 DB 后）重建 GameSession + 内存缓存。"""
+        """用新 llm_config（或换完 DB 后）重建 GameSession + 内存缓存 + 队列 worker。"""
         verify_llm_available(llm_config)
         self.session = GameSession(self.db_path, llm_config)
         self.session.begin_turn()
+        # 换档/改配置后重挂队列 worker（旧 worker 已由调用方 stop；此处幂等并热更配置）
+        try:
+            from ming_sim.scheduler import ensure_worker
+            ensure_worker(self.db_path, llm_config)
+        except Exception as exc:
+            print(f"[WARN] LLM 队列 worker 未启动：{exc}")
         self._restore_chat_history_cache()
         _DEFAULT_FAVORITES = {"王承恩", "曹化淳", "李若琏", "魏忠贤", "田尔耕"}
         _fav_raw = self.db.kv_get("favorites")
@@ -1239,6 +1302,13 @@ class WebGame:
         if include_detail:
             active_skill_grants = self.db.active_skill_grants(character.name)
             skill_ids = available_skill_ids(character, active_grants=active_skill_grants)
+            # 印象档案（升级总案 S3）：属性不出真值，只出评语+置信度，
+            # 噪声随召对熟悉度与密查收敛——「识人」是玩法不是面板。
+            try:
+                from ming_sim.veil import character_evaluations
+                payload["evaluations"] = character_evaluations(self.db, character)
+            except Exception:
+                payload["evaluations"] = []
             payload.update({
                 "style": character.style,
                 "personal_skills": list(character.personal_skills or []),
@@ -1531,6 +1601,13 @@ class WebGame:
         }
         regions = regions if regions is not None else self.db.region_payload()
         armies = armies if armies is not None else self.db.army_payload(danger_order=True)
+        # 文书化黑箱（S3）：地图口径与国势面板一致——明军兵额显示兵部账面值，
+        # 否则 /api/map 会把空饷真值整个旁路掉
+        try:
+            from ming_sim.veil import army_reported_overlay
+            armies = army_reported_overlay(self.db, armies)
+        except Exception:
+            pass
         if include_detail and buildings is None:
             buildings = self.db.building_payload()
         buildings_by_region: Dict[str, List[Dict[str, Any]]] = {}
@@ -1963,6 +2040,32 @@ class WebGame:
         self.chat_history.setdefault(character.name, [])
         self.maybe_queue_portrait_generation(character.name, source)
         return character
+
+    def recruit_from_foundation(self, name: str) -> Dict[str, Any]:
+        """从 NPC 数据基座起复/征辟真实历史人物入朝（人才池闭环）。"""
+        from ming_sim.foundation import build_game_character, profile as foundation_profile
+        if name in self.content.characters:
+            existing = self.content.characters[name]
+            if existing.status != "active":
+                self.db.conn.execute(
+                    "UPDATE characters SET status='active', status_reason='奉旨起复', "
+                    "status_changed_turn=? WHERE name=?", (self.state.turn, name))
+                self.db.conn.commit()
+                existing.status = "active"
+                if self.session.registry is not None:
+                    self.session.registry.register(existing)
+                return {"message": f"{name}奉旨起复，重列朝班。"}
+            return {"message": f"{name}已在朝中。"}
+        character = build_game_character(name, self.state.year)
+        if character is None:
+            raise HTTPException(status_code=404, detail=f"国朝人事档案中查无此人：{name}")
+        added = self._add_runtime_character(character, "基座起复")
+        prof = foundation_profile(name) or {}
+        return {
+            "message": f"征{added.name}入朝听用（{prof.get('native_place') or ''}人，"
+                       f"原{prof.get('service_status') or '在野'}）。吏部将安排铨选。",
+            "minister": self.public_character(added),
+        }
 
     def recruit_exam_official(self) -> Dict[str, Any]:
         rng = self.character_rng
@@ -2561,6 +2664,13 @@ class WebGame:
         directives = [self.directive_payload(row) for row in self.directive_rows()]
         regions = self.db.region_payload()
         armies = self.db.army_payload()
+        # 文书化黑箱（S3）：玩家口径的明军兵额是兵部账面值（含空饷虚冒），
+        # 真值只驱动推演/战斗；盘验揭穿后才显实数。
+        try:
+            from ming_sim.veil import army_reported_overlay
+            armies = army_reported_overlay(self.db, armies)
+        except Exception:
+            pass
         budget_lines = compute_budget_lines(self.db, self.state)
         treasury = self.db.treasury_report(self.state, budget=budget_lines)
         budget = self.budget_payload(budget=budget_lines)
@@ -3639,6 +3749,11 @@ def _close_game(game: Optional[WebGame]) -> None:
     if game is None:
         return
     try:
+        from ming_sim.scheduler import stop_worker
+        stop_worker(game.db_path)
+    except Exception:
+        pass
+    try:
         game.session.close()
     except Exception:
         pass
@@ -4215,6 +4330,12 @@ async def api_server_admin_delete_main_db(username: str, body: ServerAdminAction
         raise HTTPException(status_code=400, detail={"code": "confirm_required", "message": f"请输入 {username} 或 DELETE 确认删除主进度。"})
     auth_username = "" if username == "local" and not _auth_enabled() else username
     _set_running_game_for_user(auth_username, None)
+    # _close_game 已停该用户 worker；此处兜底再停一次（幂等），确保 Windows 句柄释放
+    try:
+        from ming_sim.scheduler import stop_worker
+        stop_worker(_db_path_for_user(auth_username))
+    except Exception:
+        pass
     _delete_sqlite_db_files_or_raise(_db_path_for_user(auth_username))
     return {"ok": True, "deleted": username, "overview": _server_admin_overview_payload()}
 
@@ -4453,6 +4574,264 @@ async def api_state() -> Dict[str, Any]:
     return get_game().state_payload()
 
 
+# ── 半即时时间引擎（升级总案 S1/S10/S11）────────────────────────────────────
+
+@app.get("/api/time")
+async def api_time_status() -> Dict[str, Any]:
+    from ming_sim import timeflow
+    game = get_game()
+    status = timeflow.time_status(game.db, game.state)
+    return _plain_payload({"time": status})
+
+
+@app.post("/api/time/advance")
+async def api_time_advance(body: TimeAdvanceRequest) -> Dict[str, Any]:
+    """推进 1-30 天（规则层日 tick）。月末/红事件必停，黄事件按 stop_on_yellow。"""
+    from ming_sim import timeflow
+    game = get_game()
+    if game.state.ended:
+        raise HTTPException(status_code=409, detail="本局已终，时间不再流动。")
+    days = max(1, min(30, int(body.days)))
+    with _settlement_guard(game):
+        result = timeflow.advance_days(game.db, game.state, days, stop_on_yellow=body.stop_on_yellow)
+    return _response_with_state(game, result)
+
+
+@app.post("/api/time/speed")
+async def api_time_speed(body: TimeSpeedRequest) -> Dict[str, Any]:
+    from ming_sim import timeflow
+    game = get_game()
+    speed = timeflow.set_speed(game.db, body.speed)
+    return {"time_speed": speed}
+
+
+@app.get("/api/directives/lifecycle")
+async def api_directive_lifecycle() -> Dict[str, Any]:
+    """指令生命周期面板（S2）。integrity 只暴露奏报口径（账实分离见 S3）。"""
+    from ming_sim.lifecycle import lifecycle_payload
+    game = get_game()
+    return _plain_payload({"directives": lifecycle_payload(game.db)})
+
+
+@app.post("/api/directives/{directive_id}/intervene")
+async def api_directive_intervene(directive_id: int, body: DirectiveInterveneRequest) -> Dict[str, Any]:
+    """执行中旨意的中途干预：催办/换人/加拨/收回成命。"""
+    from ming_sim import timeflow
+    from ming_sim.lifecycle import intervene, lifecycle_payload
+    game = get_game()
+    with _settlement_guard(game):
+        day = timeflow.ensure_active(game.db, game.state)
+        result = intervene(game.db, game.state, directive_id, body.action,
+                           day=day, new_assignee=body.new_assignee, fund=body.fund)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=str(result.get("message")))
+    return _response_with_state(game, {
+        "message": result["message"],
+        "directives": lifecycle_payload(game.db),
+    })
+
+
+@app.get("/api/desk")
+async def api_desk() -> Dict[str, Any]:
+    """御案（S4）：待批奏疏、票拟、注意力余量、势/任事意愿（崇祯陷阱双仪表）。"""
+    from ming_sim import timeflow
+    from ming_sim.memorials import desk_payload
+    game = get_game()
+    day = timeflow.ensure_active(game.db, game.state)
+    return _plain_payload(desk_payload(game.db, game.state, day))
+
+
+@app.post("/api/desk/{memorial_id}/decide")
+async def api_desk_decide(memorial_id: int, body: MemorialDecideRequest) -> Dict[str, Any]:
+    """批红：照准/驳/留中/发部议。消耗当日注意力。"""
+    from ming_sim import timeflow
+    from ming_sim.memorials import decide_memorial, desk_payload
+    game = get_game()
+    with _settlement_guard(game):
+        day = timeflow.ensure_active(game.db, game.state)
+        result = decide_memorial(game.db, game.state, memorial_id, body.action,
+                                 day=day, note=body.note)
+        if not result.get("ok"):
+            raise HTTPException(status_code=400, detail=str(result.get("message")))
+        message = str(result["message"])
+        # 起复荐疏照准 → 从 NPC 数据基座完成入朝注册（写操作，须同在锁内）
+        followup = result.get("followup") or {}
+        if isinstance(followup, dict) and followup.get("kind") == "recruit_foundation":
+            try:
+                recruited = game.recruit_from_foundation(str(followup.get("name")))
+                message = message + " " + str(recruited.get("message") or "")
+            except HTTPException as exc:
+                message = message + f"（入朝注册失败：{exc.detail}）"
+    return _response_with_state(game, {
+        "message": message,
+        "desk": desk_payload(game.db, game.state, day),
+    })
+
+
+@app.post("/api/court/punish")
+async def api_court_punish(body: PunishRequest) -> Dict[str, Any]:
+    """问罪官员（S5 立威杠杆）：势+而任事意愿-。public=False 走密旨，有泄露风险。"""
+    from ming_sim import timeflow
+    from ming_sim.memorials import punish_official
+    game = get_game()
+    with _settlement_guard(game):
+        day = timeflow.ensure_active(game.db, game.state)
+        result = punish_official(game.db, game.state, body.name, body.severity,
+                                 day=day, public=body.public, reason=body.reason)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=str(result.get("message")))
+    return _response_with_state(game, result)
+
+
+@app.post("/api/court/back")
+async def api_court_back(body: BackRequest) -> Dict[str, Any]:
+    """为失败的忠臣买单（S5 破陷阱杠杆）：担责/抚恤/复用，任事意愿回暖而势受损。"""
+    from ming_sim import timeflow
+    from ming_sim.memorials import back_official
+    game = get_game()
+    with _settlement_guard(game):
+        day = timeflow.ensure_active(game.db, game.state)
+        result = back_official(game.db, game.state, body.name, body.kind, day=day, cost=body.cost)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=str(result.get("message")))
+    return _response_with_state(game, result)
+
+
+@app.get("/api/thresholds")
+async def api_thresholds() -> Dict[str, Any]:
+    """硬阈值预警仪表（S10）。注意：读的是呈报口径，账被做假时仪表同样会骗你。"""
+    from ming_sim import timeflow
+    from ming_sim.thresholds import threshold_dashboard
+    game = get_game()
+    day = timeflow.ensure_active(game.db, game.state)
+    board = threshold_dashboard(game.db, game.state, day)
+    return _plain_payload({"board": board, "day": day})
+
+
+@app.post("/api/court/signal")
+async def api_court_signal(body: SignalRequest) -> Dict[str, Any]:
+    """信号类指令（S6 朝堂剧场）：廷杖/罪己诏/献俘——不改钱粮，只改全体观众的信念。"""
+    from ming_sim import timeflow
+    from ming_sim.theater import signal_action
+    game = get_game()
+    with _settlement_guard(game):
+        day = timeflow.ensure_active(game.db, game.state)
+        result = signal_action(game.db, game.state, body.kind, day=day, target=body.target)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=str(result.get("message")))
+    return _response_with_state(game, result)
+
+
+@app.get("/api/court/leverage")
+async def api_court_leverage(name: str = "") -> Dict[str, Any]:
+    """问罪抓手（S8）：官员失诺自动生成的可问罪依据清单。"""
+    from ming_sim.theater import leverage_payload
+    game = get_game()
+    return _plain_payload({"items": leverage_payload(game.db, game.state, name)})
+
+
+@app.get("/api/foundation/candidates")
+async def api_foundation_candidates(keyword: str = "", limit: int = 20) -> Dict[str, Any]:
+    """国朝人事档案·赋闲人才池（NPC 数据基座）：在野真才，可征辟起复。"""
+    from ming_sim.foundation import available, candidates
+    game = get_game()
+    if not available():
+        return _plain_payload({"available": False, "candidates": []})
+    in_court = {str(r["name"]) for r in game.db.conn.execute("SELECT name FROM characters")}
+    return _plain_payload({
+        "available": True,
+        "candidates": candidates(in_court, limit=max(1, min(60, limit)), keyword=keyword),
+    })
+
+
+@app.post("/api/foundation/recruit")
+async def api_foundation_recruit(body: CastrateRequest) -> Dict[str, Any]:
+    """征辟：直接从人才池征人入朝（耗当日注意力 2 点——亲自下征辟诏不是小事）。"""
+    from ming_sim import timeflow
+    from ming_sim.memorials import consume_attention
+    game = get_game()
+    with _settlement_guard(game):
+        timeflow.ensure_active(game.db, game.state)
+        if not consume_attention(game.db, 2):
+            raise HTTPException(status_code=400, detail="今日精力已竭，征辟之诏明日再下。")
+        result = game.recruit_from_foundation(body.name)
+        game.db.record_log(game.state, f"【征辟】{result.get('message')}")
+    return _response_with_state(game, result)
+
+
+@app.post("/api/veil/investigate")
+async def api_veil_investigate(body: InvestigateRequest) -> Dict[str, Any]:
+    """密查（S9）：厂卫快而准但累积政治成本且可能被反侦；科道慢且带派系滤镜。"""
+    from ming_sim import timeflow
+    from ming_sim.veil import start_investigation
+    game = get_game()
+    with _settlement_guard(game):
+        day = timeflow.ensure_active(game.db, game.state)
+        result = start_investigation(game.db, game.state, line=body.line,
+                                     target_kind=body.target_kind, target_id=body.target_id,
+                                     day=day)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=str(result.get("message")))
+    return _response_with_state(game, result)
+
+
+@app.get("/api/veil/contradictions")
+async def api_veil_contradictions() -> Dict[str, Any]:
+    """文书互证线索：未揭穿的呈报存疑条目（只给疑点，不给真值——审计即侦探）。"""
+    from ming_sim.veil import ledger_contradictions
+    game = get_game()
+    items = ledger_contradictions(game.db)
+    # 只暴露账面值与出处，actual 列绝不出 API
+    for item in items:
+        item.pop("actual_value", None)
+    return _plain_payload({"items": items})
+
+
+@app.get("/api/shibi")
+async def api_shibi() -> Dict[str, Any]:
+    """史笔系统（S11）：季度史评与（终局后）立传。"""
+    from ming_sim.shibi import get_biography, list_quarterly_reviews
+    game = get_game()
+    return _plain_payload({
+        "reviews": list_quarterly_reviews(game.db),
+        "biography": get_biography(game.db),
+    })
+
+
+@app.get("/api/zhongxing")
+async def api_zhongxing() -> Dict[str, Any]:
+    """中兴指数（趋势仪表，非胜利条件）+ 当前阶段诏题（S12）。"""
+    from ming_sim.zhongxing import compute_zhongxing, stage_payload, zhongxing_history
+    game = get_game()
+    return _plain_payload({
+        "current": compute_zhongxing(game.db, game.state),
+        "history": zhongxing_history(game.db)[-36:],
+        **stage_payload(game.db, game.state),
+    })
+
+
+@app.get("/api/beliefs")
+async def api_beliefs() -> Dict[str, Any]:
+    """信念变量（势/任事意愿）当前值与变动轨迹（S5/S6 趋势线数据源）。"""
+    from ming_sim.upgrade_schema import (
+        KV_RISK_AVERSION, KV_SHI, RISK_AVERSION_DEFAULT, SHI_DEFAULT, kv_int,
+    )
+    game = get_game()
+    rows = game.db.conn.execute(
+        "SELECT day, key, old_value, new_value, reason FROM belief_logs ORDER BY id DESC LIMIT 120"
+    ).fetchall()
+    return _plain_payload({
+        "shi": kv_int(game.db, KV_SHI, SHI_DEFAULT),
+        "renshi": 100 - kv_int(game.db, KV_RISK_AVERSION, RISK_AVERSION_DEFAULT),
+        "changes": [
+            {"day": int(r["day"]), "key": str(r["key"]),
+             "from": int(r["old_value"]), "to": int(r["new_value"]),
+             "reason": str(r["reason"])}
+            for r in reversed(rows)
+        ],
+    })
+
+
 @app.get("/api/monthly_followups")
 async def api_monthly_followups() -> Dict[str, Any]:
     game = get_game()
@@ -4464,6 +4843,33 @@ async def api_monthly_followups() -> Dict[str, Any]:
             getattr(game.session, "monthly_followups", []) or [],
         ),
     )
+
+
+def _plain_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """升级总案半即时层路由的直通响应：这些路由已在 EXCLUDED_WEB_PAYLOAD_ROUTES
+    声明边界，不走通用 game-data hook（要扩展时先声明半即时层专用 hook）。"""
+    return payload
+
+
+@contextlib.contextmanager
+def _settlement_guard(game: "WebGame"):
+    """半即时层写路由的结算互斥：流式颁诏（resolve_turn）在 worker 线程上
+    持 turn_resolution_lock 跑数分钟，期间共享同一条 sqlite 连接与 GameState——
+    任何并发写（推进时间/批红/干预/问责）都会造成旬税赋重复落账、metrics 丢更新。
+    写操作全程持锁；结算进行中即 409，与 /api/decree/issue 同语义。"""
+    lock = getattr(game, "turn_resolution_lock", None)
+    if lock is None:
+        yield
+        return
+    if not lock.acquire(blocking=False):
+        raise HTTPException(status_code=409, detail={
+            "code": "turn_resolution_in_progress",
+            "message": "月末结算正在进行，朝务暂停；待邸报出来再处置。",
+        })
+    try:
+        yield
+    finally:
+        lock.release()
 
 
 def _response_with_state(game: WebGame, payload: Dict[str, Any], *, route: str = "", method: str = "") -> Dict[str, Any]:

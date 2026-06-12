@@ -90,6 +90,27 @@ _SPECS: Tuple[WebPayloadRouteSpec, ...] = (
 )
 
 EXCLUDED_WEB_PAYLOAD_ROUTES: Dict[str, str] = {
+    # ── 升级总案（docs/upgrade-master-plan.md）半即时层：各子系统自洽 payload，
+    #    暂不进通用 game-data hook；要扩展时先为半即时层声明专用 hook。
+    "/api/time": "Semi-realtime clock status; timeflow-owned payload.",
+    "/api/time/advance": "Semi-realtime tick driver; timeflow-owned payload.",
+    "/api/time/speed": "Semi-realtime speed toggle; timeflow-owned payload.",
+    "/api/directives/{directive_id}/intervene": "Directive intervention mutation; lifecycle-owned payload.",
+    "/api/desk/{memorial_id}/decide": "Memorial decision mutation; memorials-owned payload.",
+    "/api/thresholds": "Hard-threshold warning dashboard; thresholds-owned payload.",
+    "/api/directives/lifecycle": "Directive lifecycle panel; lifecycle-owned payload.",
+    "/api/desk": "Imperial desk memorial flow; memorials-owned payload.",
+    "/api/court/punish": "Chongzhen-trap lever mutation; memorials-owned payload.",
+    "/api/court/back": "Chongzhen-trap lever mutation; memorials-owned payload.",
+    "/api/court/signal": "Court-theater signal mutation; theater-owned payload.",
+    "/api/court/leverage": "Failed-promise leverage list; theater-owned payload.",
+    "/api/veil/investigate": "Investigation dispatch mutation; veil-owned payload.",
+    "/api/veil/contradictions": "Report-ledger contradiction clues; veil-owned payload.",
+    "/api/shibi": "Historiography previews; shibi-owned payload.",
+    "/api/foundation/candidates": "NPC foundation talent pool; foundation-owned payload.",
+    "/api/foundation/recruit": "NPC foundation recruit mutation; foundation-owned payload.",
+    "/api/beliefs": "Belief-variable trend lines; upgrade-schema-owned payload.",
+    "/api/zhongxing": "Revival-index dashboard; zhongxing-owned payload.",
     "/api/auth": "Authentication/session bootstrap is not game-data payload.",
     "/api/auth/login": "Authentication boundary.",
     "/api/auth/register": "Authentication registration boundary.",
