@@ -1123,6 +1123,9 @@ class GameDB:
             )
         """)
         self.conn.commit()
+        # 升级总案（docs/upgrade-master-plan.md）新表/新列：调度表、账实分离、奏疏、伏笔等
+        from ming_sim.upgrade_schema import ensure_upgrade_schema
+        ensure_upgrade_schema(self)
         self.init_fiscal_config()
 
     def get_player_profile(self) -> Dict[str, Any]:
@@ -4068,11 +4071,16 @@ class GameDB:
         agno_session_id: str,
         agno_runs_before: int,
     ) -> int:
+        # 半即时时间线闸门：记下召对发生在哪一天，跨日后禁止撤回（见 can_undo_last_chat_turn）
+        try:
+            created_day = int(self.kv_get("upgrade.current_day") or 0)
+        except (TypeError, ValueError):
+            created_day = 0
         cur = self.conn.execute(
             """
             INSERT INTO chat_turns
-                (minister_name, turn, year, period, agno_session_id, agno_runs_before)
-            VALUES (?, ?, ?, ?, ?, ?)
+                (minister_name, turn, year, period, agno_session_id, agno_runs_before, created_day)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 minister_name,
@@ -4081,6 +4089,7 @@ class GameDB:
                 int(state.period),
                 agno_session_id,
                 max(0, int(agno_runs_before)),
+                created_day,
             ),
         )
         self.conn.commit()
@@ -4299,6 +4308,16 @@ class GameDB:
             return False
         if not row.get("user_message_id") or not row.get("minister_message_id"):
             return False
+        # 半即时时间线闸门：召对快照不含 kv/奏疏/调度表，时间已推进则撤回会把
+        # 执行中旨意回滚 N 天而日历/势/RA 不回滚——跨日一律禁撤。
+        try:
+            created_day = int(row.get("created_day") or 0)
+            if created_day > 0:
+                current_day = int(self.kv_get("upgrade.current_day") or 0)
+                if current_day > created_day:
+                    return False
+        except (TypeError, ValueError):
+            pass
         return self.is_global_last_active_chat_turn(int(row["id"]))
 
     # ----- conversation goals（奏对目的 / 心理握手状态机）-----

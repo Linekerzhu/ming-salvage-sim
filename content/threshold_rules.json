@@ -1,0 +1,139 @@
+{
+  "meta": {
+    "doc": "硬阈值规则表（upgrade-master-plan.md §S10）。原则：是否发生由规则决定，如何发生由 LLM 叙述。",
+    "scan": "timeflow 日 tick 扫描。conditions 全部满足即必然触发 event（经 event_to_issue 立项），LLM 只负责叙事。",
+    "scopes": {
+      "global": "conditions 的 key 走 issues._eval_gate_key 语法（metric / region.x.f / army.x.f / power.x.f / class.n@r.f）",
+      "ming_armies": "按每支明军展开；conditions/watch 的 key 是军队字段名；支持派生字段 arrears_months = arrears/maintenance_per_turn",
+      "ming_regions": "按每个 controlled_by=ming 的地区展开；key 是地区字段名"
+    },
+    "watch": "预警仪表配置：danger_at=触发线，warn_ratio=进入黄色预警的比例（相对触发线）。direction=above 越高越危险 / below 越低越危险。",
+    "cooldown_days": "同一规则同一对象触发后冷却天数，防重复立项。",
+    "calibration": "开局参考：关宁欠饷4.0月/士气52，陕西镇5.0月/士气36（贴线，史实陕西兵变频发），宣大3.0月/士气48。"
+  },
+  "rules": [
+    {
+      "id": "army_mutiny",
+      "scope": "ming_armies",
+      "title": "{army_name}哗变",
+      "conditions": { "arrears_months": ">=6", "morale": "<=40" },
+      "watch": [
+        { "field": "arrears_months", "label": "欠饷月数", "danger_at": 6.0, "warn_ratio": 0.6, "direction": "above" },
+        { "field": "morale", "label": "士气", "danger_at": 40, "warn_ratio": 1.25, "direction": "below" }
+      ],
+      "cooldown_days": 360,
+      "event": {
+        "id": "th_mutiny_{army_id}",
+        "title": "{army_name}哗变",
+        "kind": "军务",
+        "summary": "{army_name}积欠粮饷逾半年，军心已堕，营中鼓噪而起：缚将官、掠库藏、胁城邑索饷。此变由欠饷与士气崩坏必然引致，朝廷此前未予整饬。",
+        "urgency": 5,
+        "severity": 4,
+        "credibility": 5,
+        "interests": ["军务", "财政"],
+        "audiences": ["兵部", "户部"],
+        "event_type": "situation",
+        "bar_value": 30,
+        "bar_good_meaning": "抚定归伍",
+        "bar_bad_meaning": "溃散为乱或倒戈",
+        "issue_inertia": -4,
+        "resolve_condition": "补足大部欠饷并惩抚得当，军心收束",
+        "fail_condition": "弹压失措或置之不理，乱兵溃散裹挟地方",
+        "ongoing_effects": { "metric_delta": { "皇威": -1 } },
+        "effect_on_fail": { "metric_delta": { "民心": -6, "皇威": -6 } }
+      }
+    },
+    {
+      "id": "region_uprising",
+      "scope": "ming_regions",
+      "title": "{region_name}民变",
+      "conditions": { "unrest": ">=75", "public_support": "<=25" },
+      "watch": [
+        { "field": "unrest", "label": "动乱", "danger_at": 75, "warn_ratio": 0.75, "direction": "above" },
+        { "field": "public_support", "label": "民心", "danger_at": 25, "warn_ratio": 1.6, "direction": "below" }
+      ],
+      "cooldown_days": 270,
+      "event": {
+        "id": "th_uprising_{region_id}",
+        "title": "{region_name}饥民揭竿",
+        "kind": "民变",
+        "summary": "{region_name}动乱已极而民心丧尽，饥民、逃卒与流民啸聚成势，攻掠州县。此变由动乱与民心两项数值触线必然引致。",
+        "urgency": 5,
+        "severity": 4,
+        "credibility": 5,
+        "interests": ["民生", "军务"],
+        "audiences": ["兵部", "户部", "都察院"],
+        "event_type": "situation",
+        "bar_value": 30,
+        "bar_good_meaning": "抚剿得宜，复归安业",
+        "bar_bad_meaning": "燎原成巨寇",
+        "issue_inertia": -3,
+        "region_hint": "{region_id}",
+        "resolve_condition": "赈抚到位且首乱就抚或就歼",
+        "fail_condition": "蔓延邻省或破府县",
+        "ongoing_effects": { "metric_delta": { "民心": -1 } },
+        "effect_on_fail": { "metric_delta": { "民心": -8, "皇威": -5 } }
+      }
+    },
+    {
+      "id": "treasury_insolvency",
+      "scope": "global",
+      "title": "国库见底危机",
+      "conditions": { "derived.treasury_deficit_streak": ">=3" },
+      "watch": [
+        { "field": "derived.treasury_deficit_streak", "label": "国库连月赤字", "danger_at": 3, "warn_ratio": 0.34, "direction": "above" }
+      ],
+      "cooldown_days": 360,
+      "event": {
+        "id": "th_treasury_insolvency",
+        "title": "太仓见底，京俸边饷俱无所出",
+        "kind": "财政",
+        "summary": "国库连续三月入不敷出，太仓存银见底。户部具题：京官俸、九边饷俱无所出，请上速决开源之策——或劝捐俸工，或加派田亩，或发内帑。三害相权，必取其一。",
+        "urgency": 5,
+        "severity": 5,
+        "credibility": 5,
+        "interests": ["财政"],
+        "audiences": ["户部", "内阁"],
+        "event_type": "situation",
+        "bar_value": 25,
+        "bar_good_meaning": "岁入复衡",
+        "bar_bad_meaning": "财政总崩溃",
+        "issue_inertia": -5,
+        "resolve_condition": "当月国库收支转正且存银回升",
+        "fail_condition": "持续枯竭致军饷俸禄全面停发",
+        "ongoing_effects": { "metric_delta": { "皇威": -2 } },
+        "effect_on_fail": { "metric_delta": { "民心": -6, "皇威": -10 } }
+      }
+    },
+    {
+      "id": "minxin_collapse",
+      "scope": "global",
+      "title": "天下民心崩解",
+      "conditions": { "民心": "<=20" },
+      "watch": [
+        { "field": "民心", "label": "天下民心", "danger_at": 20, "warn_ratio": 1.75, "direction": "below" }
+      ],
+      "cooldown_days": 360,
+      "event": {
+        "id": "th_minxin_collapse",
+        "title": "四方汹汹，人心思乱",
+        "kind": "民变",
+        "summary": "天下民心已堕至危线之下，讹言四起，巨寇得众。此后凡有灾荒兵祸，民皆从乱不从官。",
+        "urgency": 5,
+        "severity": 5,
+        "credibility": 5,
+        "interests": ["民生"],
+        "audiences": ["内阁", "都察院"],
+        "event_type": "situation",
+        "bar_value": 20,
+        "bar_good_meaning": "渐复生业，民心回暖",
+        "bar_bad_meaning": "改朝换代之势已成",
+        "issue_inertia": -3,
+        "resolve_condition": "民心回升过三十",
+        "fail_condition": "民心跌破十，群盗蜂起",
+        "ongoing_effects": {},
+        "effect_on_fail": { "metric_delta": { "皇威": -10 } }
+      }
+    }
+  ]
+}
