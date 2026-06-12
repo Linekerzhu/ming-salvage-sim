@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "doc": "阶段诏题（S12）：把 240 个月切成有张力的章节，兼作软教程。gate 语法同 issues trigger_gate，另支持 derived.renshi（任事意愿=100-RA）、derived.zhongxing（中兴指数）。",
+    "reward": "完成时 势+shi_reward 并记入起居注；全部完成给阶段叙事。"
+  },
+  "stages": [
+    {
+      "id": "stage_foothold",
+      "title": "站稳脚跟（崇祯元年—二年）",
+      "from": { "year": 1627, "month": 10 },
+      "to": { "year": 1629, "month": 10 },
+      "brief": "新君初立，魏阉虽除，朝局未定。先把钱粮、京营与百官任事之心稳住。",
+      "goals": [
+        { "id": "g_treasury_300", "title": "太仓存银保住三百万两", "gate": { "国库": ">=300" }, "shi_reward": 3,
+          "hint": "看「预警仪表」的赤字计数；旬税赋入账在御案时钟下方。" },
+        { "id": "g_renshi_55", "title": "百官任事意愿不低于55", "gate": { "derived.renshi": ">=55" }, "shi_reward": 4,
+          "hint": "少用株连重典；为办砸事的忠臣买单（/担责/抚恤/复用）可挽回任事之心。" },
+        { "id": "g_jingying_supply", "title": "整饬京营（补给≥50）", "gate": { "army.jingying.supply": ">=50" }, "shi_reward": 3,
+          "hint": "京营空饷可遣厂卫盘验——账面四十万，实在几何？" }
+      ]
+    },
+    {
+      "id": "stage_jisi",
+      "title": "己巳之劫（崇祯二年—四年）",
+      "from": { "year": 1629, "month": 11 },
+      "to": { "year": 1631, "month": 12 },
+      "brief": "建虏叩关在即。蓟门单弱、勤王兵饷、朝中互劾，皆是劫数。",
+      "goals": [
+        { "id": "g_jizhen_supply", "title": "蓟镇补给不堕（≥55）", "gate": { "army.jizhen.supply": ">=55" }, "shi_reward": 4,
+          "hint": "己巳之变的史实裂口在蓟门。" },
+        { "id": "g_guanning_arrears", "title": "关宁欠饷压到两月以内", "gate": { "army.guanning.arrears": "<=30" }, "shi_reward": 4,
+          "hint": "欠饷月数看预警仪表；拨饷诏书走 economy_moves 自动抵欠。" },
+        { "id": "g_no_minxin_slide", "title": "天下民心守住四十", "gate": { "民心": ">=40" }, "shi_reward": 3, "hint": "" }
+      ]
+    },
+    {
+      "id": "stage_two_fronts",
+      "title": "双线之困（崇祯五年—九年）",
+      "from": { "year": 1632, "month": 1 },
+      "to": { "year": 1636, "month": 12 },
+      "brief": "辽东与流寇两面受敌，财政是唯一的真前线。",
+      "goals": [
+        { "id": "g_shaanxi_unrest", "title": "陕西动乱压回五十以下", "gate": { "region.shaanxi.unrest": "<=50" }, "shi_reward": 5,
+          "hint": "剿抚并用；赈济旨意的执行打折要派员核查。" },
+        { "id": "g_zhongxing_50", "title": "中兴指数过半", "gate": { "derived.zhongxing": ">=50" }, "shi_reward": 5, "hint": "" }
+      ]
+    },
+    {
+      "id": "stage_revival",
+      "title": "中兴之望（崇祯十年以后）",
+      "from": { "year": 1637, "month": 1 },
+      "to": { "year": 1647, "month": 10 },
+      "brief": "若至此尚有余力，史书的笔调已在你手中。",
+      "goals": [
+        { "id": "g_zhongxing_60", "title": "中兴指数达六十", "gate": { "derived.zhongxing": ">=60" }, "shi_reward": 6, "hint": "" },
+        { "id": "g_minxin_55", "title": "民心过五十五", "gate": { "民心": ">=55" }, "shi_reward": 5, "hint": "" }
+      ]
+    }
+  ]
+}
