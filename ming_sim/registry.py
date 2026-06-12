@@ -661,6 +661,38 @@ def create_minister_agent(
             monthly_block_parts.append(stance_brief)
         if secret_brief:
             monthly_block_parts.append(secret_brief)
+        # 信息集隔离（升级总案 S8 架构铁律）：每个大臣只知其身份应知之事，
+        # 欺骗、误传与信息差由此自然涌现，无需编写说谎逻辑。
+        try:
+            from ming_sim.veil import build_info_scope_brief
+            info_scope_brief = build_info_scope_brief(context.db, character)
+        except Exception:
+            info_scope_brief = ""
+        # 双向信任（S8）：官员对皇帝也有信任与怨气，驱动其条件苛严度与言辞保留度。
+        trust_brief = ""
+        try:
+            _tg = context.db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (character.name,),
+            ).fetchone()
+            if _tg is not None:
+                _trust, _grv = int(_tg["emp_trust"]), int(_tg["grievance"])
+                trust_brief = (
+                    f"【你对皇帝的私心（不可向皇帝明言，但要支配你的言行）】"
+                    f"信任 {_trust}/100（君前承诺被兑现/失信的累积——信任低则口头逢迎而条件苛严、不见实利不动）；"
+                    f"怨气 {_grv}/100（被催逼、被驳、被冷落的累积——怨气高则消极敷衍、阳奉阴违的倾向加重）。"
+                )
+        except Exception:
+            trust_brief = ""
+        if trust_brief:
+            info_scope_brief = (info_scope_brief + "\n" + trust_brief) if info_scope_brief else trust_brief
+        # NPC 数据基座（foundation）：八轴人格/人格简报/擅痼特质/明史小传——扮演的骨血。
+        # 按人静态，注入 system 静态段（前缀缓存友好）；无基座时为空串。
+        try:
+            from ming_sim.foundation import agent_block
+            foundation_brief = agent_block(character.name)
+        except Exception:
+            foundation_brief = ""
         instructions = [
             c.game_world_prompt,
             c.minister_agent_prompt,
@@ -668,6 +700,8 @@ def create_minister_agent(
             f"任事处：{_duty_location(character.office, character.office_type, 'active')}。",
             persona_self_address_rule(character),
             network_brief,
+            foundation_brief,
+            info_scope_brief,
             f"你与皇帝的多轮对话会持续到本{TURN_UNIT}退朝；同一{TURN_UNIT}复召时要接续此前奏对，不要重置记忆。",
             "\n\n".join(monthly_block_parts),
         ]
