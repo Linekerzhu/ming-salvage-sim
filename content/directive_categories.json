@@ -1,0 +1,109 @@
+{
+  "meta": {
+    "doc": "指令类别表（upgrade-master-plan.md §S2）。颁诏时规则层按 keywords 给每道旨意归类，决定工期/风险/利益受损映射。",
+    "exec_days": "基础执行工期（天）。实际工期 = base_days × 官署执行力修正 × 距离修正 × 派系阻力修正。",
+    "lead_days": "诏书送达天数基准（京畿值；乘距离系数）。",
+    "harms": "该类政策默认伤害的阶级/派系（经手链条阻力与派系 heat 的来源）。",
+    "check_risk": "旬检定中各异常的相对权重（delay 拖延 / skim 截留打折 / block 封驳顶撞 / surprise 实情有变）。",
+    "distance_factors": "按地区粗分的距离系数；未列出的取 default。"
+  },
+  "distance_factors": {
+    "beizhili": 1.0,
+    "shandong": 1.2, "shanxi": 1.2, "henan": 1.2,
+    "nanzhili": 1.3, "shaanxi": 1.3, "zhejiang": 1.4, "jiangxi": 1.4, "huguang": 1.4,
+    "liaodong": 1.3, "dongjiang_area": 1.5,
+    "sichuan": 1.6, "fujian": 1.6, "guangdong": 1.7, "guangxi": 1.8, "yunnan": 1.9, "guizhou": 1.8,
+    "default": 1.4
+  },
+  "default_category": "misc",
+  "categories": [
+    {
+      "id": "ritual_signal",
+      "name": "礼仪信号",
+      "keywords": ["祭", "罪己", "经筵", "褒奖", "赐谥", "立碑", "旌表", "大赦", "廷杖", "献俘"],
+      "base_days": 3, "lead_days": 1,
+      "harms": { "classes": [], "factions": [] },
+      "check_risk": { "delay": 5, "skim": 0, "block": 5, "surprise": 5 }
+    },
+    {
+      "id": "personnel",
+      "name": "人事任免",
+      "keywords": ["任", "免", "革职", "擢升", "起复", "补缺", "调任", "致仕", "下狱", "罢", "升任", "推举", "会推"],
+      "base_days": 8, "lead_days": 2,
+      "harms": { "classes": ["官僚"], "factions": [] },
+      "check_risk": { "delay": 20, "skim": 0, "block": 25, "surprise": 10 }
+    },
+    {
+      "id": "fiscal_allocation",
+      "name": "财政调拨",
+      "keywords": ["拨", "饷", "帑", "银两", "解送", "补发", "犒赏", "内帑", "协济"],
+      "base_days": 12, "lead_days": 3,
+      "harms": { "classes": [], "factions": [] },
+      "check_risk": { "delay": 25, "skim": 35, "block": 5, "surprise": 10 }
+    },
+    {
+      "id": "relief",
+      "name": "赈济民生",
+      "keywords": ["赈", "蠲免", "减免", "平粜", "施粥", "安置", "招抚流民", "免税"],
+      "base_days": 20, "lead_days": 4,
+      "harms": { "classes": ["官僚"], "factions": [] },
+      "check_risk": { "delay": 30, "skim": 40, "block": 0, "surprise": 15 }
+    },
+    {
+      "id": "military_ops",
+      "name": "军务调度",
+      "keywords": ["进剿", "驰援", "布防", "练兵", "募兵", "移镇", "出关", "戒严", "整军", "操练", "援辽"],
+      "base_days": 25, "lead_days": 4,
+      "harms": { "classes": ["军户"], "factions": [] },
+      "check_risk": { "delay": 30, "skim": 20, "block": 10, "surprise": 25 }
+    },
+    {
+      "id": "audit_purge",
+      "name": "清查整饬",
+      "keywords": ["清查", "整饬", "查办", "盘库", "核饷", "考成", "追赃", "查抄", "核兵", "清军", "厘清", "查勘"],
+      "base_days": 35, "lead_days": 4,
+      "harms": { "classes": ["官僚", "士绅"], "factions": [] },
+      "check_risk": { "delay": 30, "skim": 25, "block": 25, "surprise": 15 }
+    },
+    {
+      "id": "tax_reform",
+      "name": "税政钱法",
+      "keywords": ["加派", "摊派", "盐政", "商税", "钱法", "开纳", "折色", "清丈", "田亩", "矿税", "关税", "罢辽饷", "改折"],
+      "base_days": 60, "lead_days": 5,
+      "harms": { "classes": ["士绅", "商人"], "factions": [] },
+      "check_risk": { "delay": 35, "skim": 30, "block": 25, "surprise": 10 }
+    },
+    {
+      "id": "construction",
+      "name": "工程营造",
+      "keywords": ["修", "筑", "营造", "疏浚", "开渠", "造船", "铸炮", "屯田", "兴建"],
+      "base_days": 75, "lead_days": 4,
+      "harms": { "classes": ["匠户"], "factions": [] },
+      "check_risk": { "delay": 35, "skim": 35, "block": 5, "surprise": 15 }
+    },
+    {
+      "id": "secret_investigation",
+      "name": "密查缉捕",
+      "keywords": ["密查", "缉拿", "侦缉", "访查", "查访", "东厂", "锦衣卫", "缇骑", "密访"],
+      "base_days": 20, "lead_days": 1,
+      "harms": { "classes": ["官僚"], "factions": [] },
+      "check_risk": { "delay": 20, "skim": 10, "block": 5, "surprise": 30 }
+    },
+    {
+      "id": "diplomacy",
+      "name": "和议抚赏",
+      "keywords": ["和议", "抚赏", "封贡", "市赏", "招抚", "议和", "通好", "使臣"],
+      "base_days": 30, "lead_days": 6,
+      "harms": { "classes": [], "factions": [] },
+      "check_risk": { "delay": 25, "skim": 15, "block": 30, "surprise": 25 }
+    },
+    {
+      "id": "misc",
+      "name": "庶政",
+      "keywords": [],
+      "base_days": 15, "lead_days": 3,
+      "harms": { "classes": [], "factions": [] },
+      "check_risk": { "delay": 25, "skim": 15, "block": 10, "surprise": 15 }
+    }
+  ]
+}

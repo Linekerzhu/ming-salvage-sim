@@ -488,6 +488,16 @@ def build_simulator_payload(
     agreement_ledger = db.negotiation_agreement_ledger(state, limit=80)
     bureaucracy = organization_diagnostics(db)
     directive_context = _directive_context(state, db, directives)
+    try:
+        from ming_sim.lifecycle import executing_directives_brief
+        executing_directives = executing_directives_brief(db)
+    except Exception:
+        executing_directives = []
+    try:
+        from ming_sim.timeflow import month_event_log
+        month_facts = month_event_log(db)
+    except Exception:
+        month_facts = []
     execution_assessments = directive_execution_assessments(
         state,
         db,
@@ -524,6 +534,8 @@ def build_simulator_payload(
             "口径": "execution_assessments 是每道旨意的执行预判；bureaucracy_brief 是整体官僚班子风险，不替代钱粮、地方、军队等硬盘面。",
         },
         "directive_context": directive_context,
+        "executing_directives": executing_directives,
+        "month_event_log": month_facts,
         "minister_stances": minister_stances,
         "conversation_goals": conversation_goals,
         "agreement_ledger": agreement_ledger,
@@ -532,7 +544,7 @@ def build_simulator_payload(
         "debuts_this_turn": debuts_this_turn or [],
         "relevant_memories": relevant_memories or [],
         "secret_orders": secret_orders or [],
-        "data_note": "盘面表（buildings/court_roster/armies/regions）在本输入的开头以 TSV 文本块给出（首行列名、tab 分隔、每行一条记录），不在本 JSON 内；本 JSON 只含其余字段（含 powers_brief/factions_brief/classes_brief 叙述串、active_issues 等）。bureaucracy_brief 是朝廷班子完整度与风险摘要；execution_assessments 是每道旨意的确定性执行预评估，综合官署班子、承办人适配、人格关系、履约证据、派系和召对背书，须作为诏书下落的证据之一。directive_context 为每道草案的拟旨/承办画像，含人格行为摘要、人脉、本回合立场证据和协议账本，用于判断办事能力、执行风险和具体阻力；conversation_goals 是奏对目的/心理握手状态，未完成目的优先，已 sealed 只保留少量近史；active/waiting_conditions 只能说明正在谈或条件待证，不得当作执行背书；minister_stances 为本回合召对后落档的官员真实立场/承诺，含 evidence/risk_tags/execution_hint 时必须作为政治黑板影响执行阻力；agreement_ledger 是奏对承诺账本，condition_status 判条件是否满足，target_status 判标的是否达成；只有 target_status=achieved 才可作执行背书，pending_conditions/failed/blocked 不得当作自愿配合；secret_orders 为皇帝密令列表，独立于 relevant_memories，每条含 id/minister_name/title/content/status/result 以及 actor_assessment；actor_assessment 是密令承办人的人格、能力、trait、人脉、相关召对和履约风险画像，核议密令时必须作为成败和副作用依据。",
+        "data_note": "盘面表（buildings/court_roster/armies/regions）在本输入的开头以 TSV 文本块给出（首行列名、tab 分隔、每行一条记录），不在本 JSON 内；本 JSON 只含其余字段（含 powers_brief/factions_brief/classes_brief 叙述串、active_issues 等）。bureaucracy_brief 是朝廷班子完整度与风险摘要；execution_assessments 是每道旨意的确定性执行预评估，综合官署班子、承办人适配、人格关系、履约证据、派系和召对背书，须作为诏书下落的证据之一。directive_context 为每道草案的拟旨/承办画像，含人格行为摘要、人脉、本回合立场证据和协议账本，用于判断办事能力、执行风险和具体阻力；conversation_goals 是奏对目的/心理握手状态，未完成目的优先，已 sealed 只保留少量近史；active/waiting_conditions 只能说明正在谈或条件待证，不得当作执行背书；minister_stances 为本回合召对后落档的官员真实立场/承诺，含 evidence/risk_tags/execution_hint 时必须作为政治黑板影响执行阻力；agreement_ledger 是奏对承诺账本，condition_status 判条件是否满足，target_status 判标的是否达成；只有 target_status=achieved 才可作执行背书，pending_conditions/failed/blocked 不得当作自愿配合；secret_orders 为皇帝密令列表，独立于 relevant_memories，每条含 id/minister_name/title/content/status/result 以及 actor_assessment；actor_assessment 是密令承办人的人格、能力、trait、人脉、相关召对和履约风险画像，核议密令时必须作为成败和副作用依据。executing_directives 是仍在执行中的往月旨意（半即时生命周期），其效果尚未落地——邸报可叙述其推进、阻滞与朝野反应，但不得按已完成结算其最终效果，结构化增量也不得按完成抽取。month_event_log 是本月日推演中已由规则层定案的既成事实（硬阈值触发的哗变/民变立项、旨意异常与办结、伏笔萌发等）——你是史官不是推演者：邸报必须把这些事实如实纳入叙述并解释其来龙去脉，不得矛盾、不得另行改判其是否发生。",
     }
 
 

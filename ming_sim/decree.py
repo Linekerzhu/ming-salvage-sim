@@ -30,7 +30,6 @@ from ming_sim.context import ENDING_LABELS, ENDING_ONGOING, ENDING_TIMEOUT, vict
 from ming_sim.db import GameDB
 from ming_sim.dialogue_goals import review_conversation_goals
 from ming_sim.exceptions import LLMContractError, LLMUnavailable
-from ming_sim.flows import apply_fixed_period_flows
 from ming_sim.issues import apply_issue_inertia_and_ongoing, apply_score_extraction, auto_trigger_seed_issues, clear_gated_legacies
 from ming_sim.llm_model import extract_agent_text, llm_unavailable_from_error
 from ming_sim.models import GameState, LLMConfig
@@ -109,7 +108,8 @@ def write_decree_with_agno(
 
 
 def advance_without_edict(state: GameState, db: GameDB) -> None:
-    apply_fixed_period_flows(db, state)
+    from ming_sim.timeflow import month_fixed_flows, on_month_resolved
+    month_fixed_flows(db, state)
     message = f"本{TURN_UNIT}退朝未下正式圣旨，诸事仍待来{TURN_UNIT}处置。"
     try:
         review_conversation_goals(
@@ -132,6 +132,7 @@ def advance_without_edict(state: GameState, db: GameDB) -> None:
     print("\n" + message)
     state.next_period()
     db.save_state(state)
+    on_month_resolved(db, state)
 
 
 def _review_agreements_with_llm(
@@ -210,10 +211,24 @@ def resolve_directives(
 
     # 草案内容已由拟诏合并进 decree_text，simulator 只读 decree_text，不再单传逐条草案。
 
+    # 0.5) 指令生命周期（S2）：颁诏即入送达/执行流程，跨月持续推进。
+    try:
+        from ming_sim.timeflow import ensure_active as _tf_ensure_active
+        from ming_sim.lifecycle import init_directive_lifecycles
+        _current_day = _tf_ensure_active(db, state)
+        inited = init_directive_lifecycles(db, state, directives, _current_day)
+        if inited:
+            tlog(f"[lifecycle] 本诏 {len(inited)} 道旨意入生命周期："
+                 + "；".join(f"#{i['id']}{i['category_name']}≈{i['exec_days']}日" for i in inited))
+    except Exception as exc:
+        tlog(f"[lifecycle] 初始化失败，跳过：{exc}")
+
     # 1) 固定月度财政 tick（田赋/辽饷/军饷等，在 LLM 推演前落账）
+    #    时间引擎激活时由 timeflow 接管（已逐旬落账，此处仅快进余额并取累计 flows）
+    from ming_sim.timeflow import month_fixed_flows, on_month_resolved
     tlog("结算 1/4 固定月度财政 tick")
     _emit("stage", "固定月度财政入账")
-    fixed_flows = apply_fixed_period_flows(db, state)
+    fixed_flows = month_fixed_flows(db, state)
 
     # 1.6) 程序硬触发：标了 auto_trigger 的 seed 情势，gate 达标即由程序直接立项，
     #      绕过 LLM 因果判定。放在 simulator 前，使硬立的 issue 当回合即进盘面被邸报叙述。
@@ -379,6 +394,7 @@ def resolve_directives(
         db.mark_directives_issued(state)
         state.next_period()
         db.save_state(state)
+        on_month_resolved(db, state)
         return f"\n本{TURN_UNIT}颁布诏书：\n" + decree_text + "\n\n" + narrative
 
     # 2.5) 作弊强制项：拼到邸报最前面一起喂 extractor（唯一入口）。
@@ -496,6 +512,16 @@ def resolve_directives(
         record_chapter_memory(chapter_agent, db, state, decree_text, narrative, applied)
     except Exception as exc:
         tlog(f"[chapter-memory] 跳过：{exc}")
+
+    # 5.5) 季度史评（史笔系统 S11）：每季度由起居注日讲官录一段「史臣曰」，
+    #      让玩家中途窥见「史书会怎么写我」。失败静默跳过。
+    if state.turn % 3 == 0:
+        try:
+            from ming_sim.shibi import quarterly_review
+            _emit("stage", "起居注史臣曰")
+            quarterly_review(db, state, llm_config)
+        except Exception as exc:
+            tlog(f"[shibi] 季评跳过：{exc}")
 
     # 6) 天命异闻：低频暗线事件，服务政略主循环。
     _emit("stage", "异闻入档")
@@ -623,6 +649,7 @@ def resolve_directives(
     db.mark_directives_issued(state)
     state.next_period()
     db.save_state(state)
+    on_month_resolved(db, state)
     assert state.turn == before_turn + 1
 
     ending = ""
@@ -674,6 +701,27 @@ def _generate_ending_summary(
             if body:
                 bits.append(f"{c['year']}年{c['period']}月：{body}")
         summary_text = "\n".join(b for b in bits if b)
+
+    # 结局光谱（S12）：按中兴指数+任事意愿归档基调，喂史笔定笔调。
+    spectrum: Dict[str, str] = {}
+    try:
+        from ming_sim.zhongxing import spectrum_label
+        spectrum = spectrum_label(db, state, str(outcome.get("status") or ""))
+        db.kv_set("upgrade.ending_spectrum", json.dumps(spectrum, ensure_ascii=False))
+        summary_text = f"【结局归档：{spectrum['label']}】（中兴指数 {spectrum['zhongxing']}）\n" + summary_text
+        outcome["spectrum"] = spectrum
+    except Exception as exc:
+        tlog(f"[spectrum] 归档跳过：{exc}")
+
+    # 史笔立传（S11）：明史馆史官按实际作为定笔调，为这位崇祯作传。
+    try:
+        from ming_sim.shibi import generate_biography
+        _emit("stage", "明史馆立传")
+        biography = generate_biography(db, state, llm_config, outcome)
+        if biography:
+            summary_text = summary_text + "\n\n【明史·本纪】\n" + biography
+    except Exception as exc:
+        tlog(f"[shibi] 立传跳过：{exc}")
 
     try:
         db.save_ending_summary(
