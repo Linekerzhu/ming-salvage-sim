@@ -3808,7 +3808,7 @@ function BuildingDrawer({
             <span className="right-drawer-row-name">{b.name}</span>
             <span className="right-drawer-row-meta">{b.regionName} · {b.category} Lv{b.level}</span>
             <span className="right-drawer-row-sub">
-              完好{b.condition} · 维护{b.maintenance}万/月
+              <span className={`row-metric ${b.condition < 30 ? "danger" : b.condition < 55 ? "warn" : ""}`}>完好{b.condition}</span> · 维护{b.maintenance}万/月
               {b.output_metric ? ` · ${b.output_metric}+${b.output_amount}` : ""}
             </span>
           </div>
