@@ -479,7 +479,14 @@ export function WatchDrawer({
         api<{ available: boolean; candidates: FoundationCandidate[] }>("/api/foundation/candidates?limit=8"),
         api<{ time: TimeStatus }>("/api/time"),
       ]);
-      setBoard(t.board.filter((b) => b.status !== "safe").slice(0, 12));
+      // 按严重度排序：危险在前，警示次之——最该处置的浮到顶端（分诊直觉）
+      const sev = { danger: 0, warn: 1, safe: 2 } as Record<string, number>;
+      setBoard(
+        t.board
+          .filter((b) => b.status !== "safe")
+          .sort((a, b) => (sev[a.status] ?? 9) - (sev[b.status] ?? 9))
+          .slice(0, 12),
+      );
       setZx(z);
       setCurrentDay(tm.time.current_day);
       setDirectives(d.directives);
