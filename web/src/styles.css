@@ -23,7 +23,7 @@
   --hud-deep: #14120f;
   --hud-line: rgba(226, 180, 86, 0.34);
   --shadow: 0 22px 54px rgba(24, 18, 11, 0.38);
-  --right-nav-rail-width: 44px;
+  --right-nav-rail-width: 52px;
   --right-nav-rail-gap: 8px;
   --right-drawer-safe-right: calc(var(--right-nav-rail-width) + var(--right-nav-rail-gap));
   --right-drawer-viewport-gutter: 8px;
@@ -10177,11 +10177,15 @@ button:disabled {
 }
 
 .right-nav-glyph {
-  line-height: 1;
+  display: none;
 }
 
 .right-nav-label {
-  display: none;
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.15;
+  letter-spacing: 1px;
+  writing-mode: horizontal-tb;
 }
 
 .report-document .report-section {
@@ -12620,3 +12624,12 @@ button:disabled {
 .status-delta.down { color: #c5503a; }
 @keyframes status-delta-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
 @keyframes status-delta-out { to { opacity: 0; } }
+
+/* 右侧导航分簇：理政/察看 分组标签 + 分隔线（让入口一眼分清动手 vs 查看） */
+.right-nav-group-label {
+  font-size: 9px; letter-spacing: 2px; color: rgba(226, 180, 86, 0.65);
+  text-align: center; padding: 2px 0 1px; writing-mode: horizontal-tb;
+}
+.right-nav-divider {
+  height: 1px; margin: 3px 8px; background: rgba(226, 180, 86, 0.22);
+}

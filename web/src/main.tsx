@@ -3434,36 +3434,45 @@ function RightNavBar({
   onOpenLongGoals: () => void;
   activeDrawer: DrawerName;
 }) {
-  const items = [
+  // 分两簇：上＝「理政」(可决策/落子)，下＝「察看」(查阅/账册)。让导航一眼分清动手 vs 查看。
+  const coreItems = [
     { key: "desk", label: "批", short: "御案", title: "御案 — 批红奏疏。请款/弹章/荐人/告变都在这里裁夺；留中不批久则淹没，弹章淹没折损君威", onClick: onToggleDesk },
     { key: "watch", label: "观", short: "司天", title: "司天台 — 朝局观测。看预警仪表、在办旨意进度、账实矛盾（可派密查揭穿）、阶段诏题与史笔评判", onClick: onToggleWatch },
     { key: "court", label: "政", short: "朝堂", title: "朝堂 — 召见大臣议事。言语即落子：与大臣对谈定策、托付密令、查访风闻（核心爽点）", onClick: onToggleCourt },
-    { key: "harem", label: "内", short: "后宫", title: "后宫 — 内廷嫔妃、宦官管理（净身/转民籍等内廷处置）", onClick: onToggleHarem },
-    { key: "army", label: "兵", short: "军队", title: "军队 — 各镇军额、欠饷、士气一览（兵部账面未必是实在兵，存截留空饷）", onClick: onToggleArmy },
-    { key: "region", label: "省", short: "省份", title: "省份 — 各省民心、动乱、税赋、士绅阻力一览（税到账率随君威与腐败浮动）", onClick: onToggleRegion },
-    { key: "building", label: "工", short: "建筑", title: "建筑 — 城防、仓廪、工坊等营建状况与产出/维护", onClick: onToggleBuilding },
-    { key: "economy", label: "户", short: "经济", title: "经济 — 国库/内库收支总账：田赋辽饷盐商、军饷、皇庄等定额收支明细", onClick: onToggleEconomy },
     { key: "appointment", label: "吏", short: "吏部", title: "吏部 — 官员考核、起复征辟、罢黜，及失诺问责依据", onClick: onToggleAppointment },
-    { key: "organization", label: "制", short: "组织", title: "组织 — 朝廷机构架构与席位编制", onClick: onToggleOrganization },
   ];
+  const refItems = [
+    { key: "economy", label: "户", short: "经济", title: "经济 — 国库/内库收支总账：田赋辽饷盐商、军饷、皇庄等定额收支明细", onClick: onToggleEconomy },
+    { key: "region", label: "省", short: "省份", title: "省份 — 各省民心、动乱、税赋、士绅阻力一览（税到账率随君威与腐败浮动）", onClick: onToggleRegion },
+    { key: "army", label: "兵", short: "军队", title: "军队 — 各镇军额、欠饷、士气一览（兵部账面未必是实在兵，存截留空饷）", onClick: onToggleArmy },
+    { key: "building", label: "工", short: "建筑", title: "建筑 — 城防、仓廪、工坊等营建状况与产出/维护", onClick: onToggleBuilding },
+    { key: "organization", label: "制", short: "组织", title: "组织 — 朝廷机构架构与席位编制", onClick: onToggleOrganization },
+    { key: "harem", label: "内", short: "后宫", title: "后宫 — 内廷嫔妃、宦官管理（净身/转民籍等内廷处置）", onClick: onToggleHarem },
+  ];
+  const renderBtn = (item: { key: string; label: string; short: string; title: string; onClick: () => void }) => (
+    <button
+      key={item.key}
+      className={`right-nav-btn${activeDrawer === item.key ? " active" : ""}`}
+      title={item.title}
+      aria-label={item.title}
+      aria-expanded={activeDrawer === item.key}
+      onClick={item.onClick}
+    >
+      <span className="right-nav-glyph">{item.label}</span>
+      <span className="right-nav-label">{item.short}</span>
+    </button>
+  );
   return (
-    <nav className="right-nav-bar" aria-label="六部入口">
-      {items.map((item) => (
-        <button
-          key={item.key}
-          className={`right-nav-btn${activeDrawer === item.key ? " active" : ""}`}
-          title={item.title}
-          aria-label={item.title}
-          aria-expanded={activeDrawer === item.key}
-          onClick={item.onClick}
-        >
-          <span className="right-nav-glyph">{item.label}</span>
-          <span className="right-nav-label">{item.short}</span>
-        </button>
-      ))}
+    <nav className="right-nav-bar" aria-label="朝政入口">
+      <span className="right-nav-group-label" aria-hidden="true">理政</span>
+      {coreItems.map(renderBtn)}
+      <span className="right-nav-divider" aria-hidden="true" />
+      <span className="right-nav-group-label" aria-hidden="true">察看</span>
+      {refItems.map(renderBtn)}
+      <span className="right-nav-divider" aria-hidden="true" />
       <button
         className="right-nav-btn right-nav-btn-goal"
-        title="长期目标"
+        title="长期目标 — 大明的远期愿景"
         aria-label="大明长期目标"
         onClick={onOpenLongGoals}
       >
