@@ -38,6 +38,16 @@ ATTENTION_COSTS = {
 
 KV_LAST_ATTENTION_DAY = "upgrade.attention_day"
 
+# 奏疏淹没：弹章/告变/密揭按「急」算（越压不得）。单一真源——
+# 日 tick 淹没判定与御案倒计时倒数同此公式，禁止各自重算。
+EXPIRE_FORCED_URGENT_KINDS = ("弹章", "告变", "密揭")
+
+
+def expire_deadline_days(kind: str, urgency: int) -> int:
+    """奏疏自到案起多少日无人处置即「淹没」出队（urgency 越高越快）：u1→45 u2→40 u3→35。"""
+    u = 3 if kind in EXPIRE_FORCED_URGENT_KINDS else max(1, min(3, int(urgency or 2)))
+    return 50 - u * 5
+
 
 # ── 注意力 ───────────────────────────────────────────────────────────────────
 
@@ -165,10 +175,35 @@ def memorials_daily_tick(db: GameDB, state: GameState, day: int) -> List[Dict[st
                            "detail": "勇于任事之臣主动言事——任事意愿尚存的迹象。",
                            "ref_kind": "memorial", "ref_id": str(mid), "day": day})
 
-    # 3) 留中积压：每 10 日结一次怨账；弹章留中折势。
+    # 3) 留中积压：每 10 日结一次怨账；弹章留中折势。逾期则淹没出队（一次性结算），
+    #    使待奏队列与「弹章留中折势」均有界——奏而不答是有代价的，但代价不无限累积。
     rows = db.conn.execute("SELECT * FROM memorials WHERE status='pending'").fetchall()
     for row in rows:
         shelved = int(day) - int(row["arrived_day"])
+        deadline = expire_deadline_days(str(row["kind"]), int(row["urgency"] or 2))
+        if shelved >= deadline:
+            # 淹没：出队 + 一次性后果。弹章淹没＝言路寒心（势/RA 一次性折损 + 同党记恨）。
+            db.conn.execute("UPDATE memorials SET status='expired', shelved_days=?, decided_day=? WHERE id=?",
+                            (shelved, int(day), int(row["id"])))
+            author = str(row["author_name"] or "")
+            if author:
+                db.conn.execute(
+                    "UPDATE characters SET grievance=MIN(100, grievance+6), "
+                    "emp_trust=MAX(0, emp_trust-4) WHERE name=?", (author,))
+            if str(row["kind"]) == "弹章":
+                adjust_belief(db, KV_SHI, -3, f"弹章淹没不报（#{row['id']}）", day=day)
+                try:
+                    from ming_sim.theater import adjust_faction_heat, faction_of
+                    adjust_faction_heat(db, faction_of(db, author), +4, "弹章石沉大海")
+                except Exception:
+                    pass
+            adjust_belief(db, KV_RISK_AVERSION, +1,
+                          f"奏疏淹没（{author}{row['kind']}）", day=day)
+            events.append({"level": LEVEL_YELLOW, "kind": "memorial_expired",
+                           "title": f"奏疏淹没：{str(row['summary'])[:28]}",
+                           "detail": "久奏不答，其人灰心，事亦不了了之——然臣心已寒。",
+                           "ref_kind": "memorial", "ref_id": str(row["id"]), "day": day})
+            continue
         db.conn.execute("UPDATE memorials SET shelved_days=? WHERE id=?",
                         (shelved, int(row["id"])))
         if shelved > 0 and shelved % 10 == 0:
@@ -440,13 +475,19 @@ def desk_payload(db: GameDB, state: GameState, day: int) -> Dict[str, object]:
     ).fetchall()
 
     def _row(r) -> Dict[str, object]:
+        kind = str(r["kind"])
+        # 淹没倒计时：以「在案天数」(day-到案日，pending 比 shelved_days 更准) 折算
+        shelved_now = max(int(r["shelved_days"]), int(day) - int(r["arrived_day"]))
+        deadline = expire_deadline_days(kind, int(r["urgency"]))
+        days_to_expire = max(0, deadline - shelved_now) if str(r["status"]) == "pending" else 0
         return {
             "id": int(r["id"]), "author": str(r["author_name"]), "org": str(r["org"]),
-            "kind": str(r["kind"]), "urgency": int(r["urgency"]),
+            "kind": kind, "urgency": int(r["urgency"]),
             "summary": str(r["summary"]), "full_text": str(r["full_text"]),
             "piaoni": str(r["piaoni"]), "piaoni_author": str(r["piaoni_author"]),
             "arrived_day": int(r["arrived_day"]), "shelved_days": int(r["shelved_days"]),
             "status": str(r["status"]), "ref_kind": str(r["ref_kind"]), "ref_id": str(r["ref_id"]),
+            "days_to_expire": days_to_expire,
         }
 
     ra = kv_int(db, KV_RISK_AVERSION, RISK_AVERSION_DEFAULT)

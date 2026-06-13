@@ -55,6 +55,7 @@ type Memorial = {
   status: string;
   ref_kind: string;
   ref_id: string;
+  days_to_expire: number;
 };
 
 type DeskPayload = {
@@ -233,7 +234,7 @@ export function TimeBar({
       )}
       {beliefs && (
         <span className="upgrade-timebar-pills">
-          <span className="upgrade-pill" title="势：百官对『抗命会被惩罚、服从是大流』的信念。诏令落地+，朝令夕改/弹章留中-">
+          <span className="upgrade-pill" title="势：君威/号令力。诏令落地+、朝令夕改/弹章留中-。势高则派系慑服、地方解额足；势衰则党争气焰盛、税赋截留。无大失则每月向基线缓回（恒稳态）">
             势 <b>{beliefs.shi}</b>
           </span>
           <span
@@ -361,8 +362,15 @@ export function DeskDrawer({
           {desk.trap_hint && <div className="upgrade-trap-hint">{desk.trap_hint}</div>}
           {message && <div className="upgrade-desk-message">{message}</div>}
           {desk.pending.length === 0 && <p className="upgrade-empty">御案清净，并无待批章奏。</p>}
-          {desk.pending.map((m) => (
-            <div key={m.id} className={`upgrade-memorial urgency-${m.urgency}`}>
+          {desk.pending.map((m) => {
+            const dte = m.days_to_expire;
+            const drowning = dte > 0 && dte <= 7; // 临近淹没
+            const isTanzhang = m.kind === "弹章" || m.kind === "告变" || m.kind === "密揭";
+            const expireHint = isTanzhang
+              ? `久压不报则淹没出队：${m.kind}淹没将折势、招同党记恨、上疏人寒心`
+              : `久压不报则淹没出队：此疏不了了之，上疏人灰心`;
+            return (
+            <div key={m.id} className={`upgrade-memorial urgency-${m.urgency}${drowning ? " drowning" : ""}`}>
               <button
                 className="upgrade-memorial-head"
                 onClick={() => setExpanded(expanded === m.id ? 0 : m.id)}
@@ -375,6 +383,14 @@ export function DeskDrawer({
                   {m.author}
                   {m.shelved_days > 0 ? ` · 留中${m.shelved_days}日` : ""}
                 </span>
+                {dte > 0 && (
+                  <span
+                    className={`upgrade-memorial-expire${drowning ? " warn" : ""}`}
+                    title={expireHint}
+                  >
+                    {drowning ? "⚠ " : ""}距淹没{dte}日
+                  </span>
+                )}
               </button>
               {expanded === m.id && (
                 <div className="upgrade-memorial-body">
@@ -399,10 +415,18 @@ export function DeskDrawer({
                       发部议
                     </button>
                   </div>
+                  {dte > 0 && (
+                    <p className={`upgrade-memorial-expire-note${drowning ? " warn" : ""}`}>
+                      {drowning ? "⚠ 即将淹没（" : "距淹没 "}
+                      {dte} 日{drowning ? "）：" : "："}
+                      {expireHint.replace("久压不报则淹没出队：", "")}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
           {desk.recent_decided.length > 0 && (
             <details className="upgrade-decided">
               <summary>近批章奏（{desk.recent_decided.length}）</summary>
@@ -435,6 +459,7 @@ export function WatchDrawer({
 }) {
   const [board, setBoard] = React.useState<ThresholdItem[]>([]);
   const [zx, setZx] = React.useState<ZhongxingPayload | null>(null);
+  const [currentDay, setCurrentDay] = React.useState<number>(0);
   const [directives, setDirectives] = React.useState<LifecycleDirective[]>([]);
   const [contradictions, setContradictions] = React.useState<Contradiction[]>([]);
   const [reviews, setReviews] = React.useState<Array<{ year: number; period: number; text: string }>>([]);
@@ -445,16 +470,18 @@ export function WatchDrawer({
 
   const refresh = React.useCallback(async () => {
     try {
-      const [t, z, d, c, s, f] = await Promise.all([
+      const [t, z, d, c, s, f, tm] = await Promise.all([
         api<{ board: ThresholdItem[] }>("/api/thresholds"),
         api<ZhongxingPayload>("/api/zhongxing"),
         api<{ directives: LifecycleDirective[] }>("/api/directives/lifecycle"),
         api<{ items: Contradiction[] }>("/api/veil/contradictions"),
         api<{ reviews: Array<{ year: number; period: number; text: string }> }>("/api/shibi"),
         api<{ available: boolean; candidates: FoundationCandidate[] }>("/api/foundation/candidates?limit=8"),
+        api<{ time: TimeStatus }>("/api/time"),
       ]);
       setBoard(t.board.filter((b) => b.status !== "safe").slice(0, 12));
       setZx(z);
+      setCurrentDay(tm.time.current_day);
       setDirectives(d.directives);
       setContradictions(c.items.slice(0, 8));
       setReviews(s.reviews.slice(-3).reverse());
@@ -489,6 +516,8 @@ export function WatchDrawer({
 
   const intervene = async (id: number, action: string) => {
     if (busy) return;
+    if (action === "abort" && !window.confirm("收回成命？朝令夕改，势-3、百官益发观望，且此前进度尽废。")) return;
+    if (action === "ducai" && !window.confirm("乾纲独断强推？绕开部议封驳，然独断日久任事之心日灰（任事意愿-3）。")) return;
     setBusy(true);
     try {
       const result = await api<{ message: string }>(`/api/directives/${id}/intervene`, {
@@ -571,11 +600,26 @@ export function WatchDrawer({
       <section className="upgrade-section">
         <h4>在办旨意（{live.length}）</h4>
         {live.length === 0 && <p className="upgrade-empty">并无在办之旨。</p>}
-        {live.map((d) => (
+        {live.map((d) => {
+          const remain = currentDay > 0 && d.eta_day > 0 ? d.eta_day - currentDay : null;
+          const etaLabel =
+            d.status === "stalled"
+              ? "封驳中·停摆"
+              : remain === null
+              ? ""
+              : remain <= 0
+              ? "逾期未毕"
+              : `约剩 ${remain} 日`;
+          return (
           <div key={d.id} className={`upgrade-directive status-${d.status}`}>
             <div className="upgrade-directive-head">
               <span className="upgrade-directive-status">{LIFECYCLE_LABEL[d.status] || d.status}</span>
               <span className="upgrade-directive-text">{d.text.slice(0, 40)}</span>
+              {etaLabel && (
+                <span className={`upgrade-directive-eta${remain !== null && remain <= 0 ? " warn" : ""}`}>
+                  {etaLabel}
+                </span>
+              )}
             </div>
             <div className="upgrade-directive-meta">
               主办 {d.assignee || "未定"} · {d.category} · 阻力 {d.resistance}
@@ -605,7 +649,8 @@ export function WatchDrawer({
               </button>
             </div>
           </div>
-        ))}
+          );
+        })}
         {recent.length > 0 && (
           <details className="upgrade-decided">
             <summary>近毕旨意（{recent.length}）</summary>

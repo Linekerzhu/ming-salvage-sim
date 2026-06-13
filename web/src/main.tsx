@@ -2236,6 +2236,7 @@ function App() {
   };
 
   const deleteDirective = async (directiveId: number) => {
+    if (!window.confirm("删除此旨意草案？删后不可复原。")) return;
     setBusy("删除草案");
     setError("");
     try {
@@ -8431,7 +8432,7 @@ function EdictModal({
             </div>
           </div>
         ) : decree || report ? (
-          <pre>{`${decree || ""}${report ? `\n\n${report}` : ""}`}</pre>
+          <pre className="memorial-text">{`${decree || ""}${report ? `\n\n${report}` : ""}`}</pre>
         ) : (
           <div className="empty-note">生成诏书后，正式诏文会在此显示；可手动改定，颁布后会显示月末总结奏章。</div>
         )}

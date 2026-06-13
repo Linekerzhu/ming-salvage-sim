@@ -32,6 +32,7 @@ from ming_sim.upgrade_schema import (
 )
 
 _CATS_CACHE: Optional[Dict[str, object]] = None
+_CONSEQ_CACHE: Optional[Dict[str, object]] = None
 
 LIVE_STATUSES = ("in_transit", "executing", "stalled")
 
@@ -42,6 +43,17 @@ def load_categories() -> Dict[str, object]:
         with open(bundled_path("content", "directive_categories.json"), encoding="utf-8") as fh:
             _CATS_CACHE = json.load(fh)
     return _CATS_CACHE
+
+
+def load_consequences() -> Dict[str, object]:
+    global _CONSEQ_CACHE
+    if _CONSEQ_CACHE is None:
+        try:
+            with open(bundled_path("content", "causal_consequences.json"), encoding="utf-8") as fh:
+                _CONSEQ_CACHE = json.load(fh)
+        except (OSError, ValueError):
+            _CONSEQ_CACHE = {"consequences": []}
+    return _CONSEQ_CACHE
 
 
 def classify_directive(text: str) -> Dict[str, object]:
@@ -291,6 +303,50 @@ _ANOMALY_TEXT = {
 }
 
 
+def _plant_consequences(db: GameDB, state: GameState, did: int, text: str, day: int) -> List[str]:
+    """缺口1 因果伏笔：旨意办结时按关键词命中埋 causal_seed（裁驿→流寇等）。
+    当下省钱省力的政策，fuse_days 后（gate 达标）萌发为情势——延迟的代价。返回已埋说明。"""
+    from ming_sim.timeflow import plant_causal_seed
+    planted: List[str] = []
+    for rule in load_consequences().get("consequences") or []:
+        kws = rule.get("keywords") or []
+        if not kws or not all(kw in text for kw in kws):
+            continue
+        spec = dict(rule.get("event") or {})
+        region = spec.get("region_hint") or ""
+        if region:  # 爆发地随旨意正文里点到的地区走（无则用配置默认）
+            det = _detect_region(db, text)
+            if det and det != "beizhili":
+                spec["region_hint"] = det
+        plant_causal_seed(
+            db, created_day=int(day), fuse_days=int(rule.get("fuse_days") or 60),
+            trigger_gate=dict(rule.get("gate") or {}), event_spec=spec,
+            note=f"#{did} {str(rule.get('note') or '')}",
+        )
+        planted.append(str(rule.get("id") or ""))
+        db.record_log(state, f"【因果伏笔】{text[:18]}…埋下祸根（{rule.get('note') or ''}）")
+    return planted
+
+
+def _apply_execution_consequence(db: GameDB, state: GameState, meta: Dict[str, object],
+                                 actual: int, day: int) -> None:
+    """缺口3 截留黑箱落地：integrity_actual<85 的办结，截留的银钱化为实在恶果——
+    经手地方腐败/民怨抬头（unrest↑）、天下民心折损（民心↓），与 report_ledger 并存：
+    数值后果即刻发生（规则层），账实矛盾留待密查/盘库揭穿（P4 一切数据皆证言）。"""
+    shortfall = max(0, 100 - int(actual))   # 被截留的执行率点
+    if shortfall <= 15:
+        return
+    region_id = str(meta.get("region_id") or "")
+    if region_id:
+        # 截留之政未达民，反激民怨：经手省份民变压力上升
+        db.conn.execute(
+            "UPDATE regions SET unrest=MIN(100, unrest + ?) WHERE id=?",
+            (max(1, round(shortfall / 12)), region_id))
+    # 天下民心折损（办差走样、银钱不知所终）
+    before = int(state.metrics.get("民心", 50))
+    state.metrics["民心"] = max(0, before - max(1, round(shortfall / 20)))
+
+
 def tick_directives(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:
     """日推进：送达→执行；执行中按日涨进度；逢旬（每10日）做执行检定。
     返回 timeflow 事件 dict 列表。"""
@@ -401,12 +457,17 @@ def tick_directives(db: GameDB, state: GameState, day: int) -> List[Dict[str, ob
                      str(row2["assignee"] or ""), int(day),
                      f"旨意办结奏报：{str(row2['text'] or '')[:40]}"),
                 )
+                # 缺口3：截留即刻化为实在恶果（民怨/地方民变压力），不再是无后果的黑箱
+                _apply_execution_consequence(db, state, meta, actual, day)
+            # 缺口1：政策落地即埋因果伏笔（裁驿→流寇等延迟代价）
+            _plant_consequences(db, state, did, str(row2["text"] or ""), day)
             events.append({"level": LEVEL_YELLOW, "kind": "directive_done",
                            "title": f"〔{str(row2['text'] or '')[:24]}〕办结奏闻",
                            "detail": f"主办{row2['assignee']}奏称已遵旨办竣。",
                            "ref_kind": "directive", "ref_id": str(did), "day": day})
             _enqueue(db, "settle_note", {"directive_id": did})
     db.conn.commit()
+    db.save_state(state)  # 缺口3 的民心折损改的是 GameState.metrics，须落库
     return events
 
 

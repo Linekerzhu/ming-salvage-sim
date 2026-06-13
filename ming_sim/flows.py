@@ -60,6 +60,11 @@ def calc_province_fiscal(
         raise SystemExit("calc_province_fiscal: regions 表无数据，中止。")
 
     wei = state.metrics.get("皇威", 58)
+    # 缺口2：势（君威/号令力）耦合到账率（P1 皇权是均衡）。势隆→州县奉行、解额足；
+    # 势衰→阳奉阴违、截留挪移，到账率随之 ±15%。势55（基准）取 1.0。
+    from ming_sim.upgrade_schema import KV_SHI, SHI_DEFAULT, kv_int
+    shi = kv_int(db, KV_SHI, SHI_DEFAULT)
+    shi_factor = max(0.85, min(1.15, 0.85 + shi / 333.0))
 
     guo_ku_total = 0
     nei_ku_total = 0
@@ -78,8 +83,9 @@ def calc_province_fiscal(
         salt_tax     = fiscal.get("salt_tax", 0)
         commerce_tax = fiscal.get("commerce_tax", 0)
 
-        # 综合到账率（单一系数，上限1.0，改革后可接近满额）
-        eff = _province_efficiency(fiscal, gentry, unrest)
+        # 综合到账率（单一系数，上限1.0，改革后可接近满额）；再乘势耦合系数
+        eff = _province_efficiency(fiscal, gentry, unrest) * shi_factor
+        eff = max(0.05, min(1.00, eff))
 
         # 辽饷受皇威额外折扣（皇威低→地方截留多）
         liao_eff = eff * (0.5 + wei / 200)

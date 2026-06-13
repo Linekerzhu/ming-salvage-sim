@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "doc": "因果后果表（upgrade-master-plan.md §S10 因果伏笔）。旨意办结时按 keywords 命中即埋一颗 causal_seed：当下省钱省力，fuse_days 后（gate 达标）萌发为情势 issue，兑现『延迟的代价』。",
+    "match": "keywords 全部出现在旨意正文才命中；一道旨意可命中多条，各埋一颗。",
+    "fuse_days": "引信天数：办结日 + fuse_days 起逐日查 gate。",
+    "gate": "萌发条件（issues gate 语法，如 {\"民心\":\"<55\"}）；空 {} = 到引信日必萌发。",
+    "event": "萌发出的情势 Event 字段；region_hint 指定爆发地区，effect_on_fail/ongoing_effects 为不处置的代价。"
+  },
+  "consequences": [
+    {
+      "id": "post_station_cut_banditry",
+      "keywords": ["裁", "驿"],
+      "fuse_days": 75,
+      "gate": {},
+      "note": "裁驿之政：驿卒骤失生计，渐次流亡，西北边荒尤甚，终聚为寇。",
+      "event": {
+        "id": "seed_post_bandit",
+        "title": "裁驿余波：驿卒流为盗",
+        "kind": "民变",
+        "summary": "去岁裁汰驿递冗员，失业驿卒走投无路，纠合饥民剽掠州县，西北已成燎原之势。",
+        "urgency": 6, "severity": 5, "credibility": 6,
+        "interests": ["兵部", "陕西", "百姓"],
+        "audiences": ["杨鹤", "洪承畴"],
+        "region_hint": "shaanxi",
+        "bar_value": 35,
+        "ongoing_effects": {"metrics": {"民心": -2}},
+        "effect_on_fail": {"metrics": {"民心": -10, "皇威": -4}}
+      }
+    },
+    {
+      "id": "liaoxiang_levy_revolt",
+      "keywords": ["加派", "辽饷"],
+      "fuse_days": 90,
+      "gate": {"民心": "<55"},
+      "note": "加派辽饷：田赋骤增，民力已竭，逢荒即溃。",
+      "event": {
+        "id": "seed_levy_revolt",
+        "title": "辽饷加派激民变",
+        "kind": "民变",
+        "summary": "辽饷层层加派，里甲破家、流民载道，今岁大旱遂成民变，焚劫官仓。",
+        "urgency": 6, "severity": 5, "credibility": 5,
+        "interests": ["户部", "百姓", "士绅"],
+        "audiences": [],
+        "region_hint": "henan",
+        "bar_value": 30,
+        "ongoing_effects": {"metrics": {"民心": -2}},
+        "effect_on_fail": {"metrics": {"民心": -8}}
+      }
+    },
+    {
+      "id": "mine_tax_riot",
+      "keywords": ["矿", "税"],
+      "fuse_days": 60,
+      "gate": {"民心": "<60"},
+      "note": "矿监税使：中官四出搜刮，市井骚然。",
+      "event": {
+        "id": "seed_mine_riot",
+        "title": "矿税激市民暴动",
+        "kind": "民变",
+        "summary": "矿监税使横征暴敛，工商罢市，聚众殴毙税吏，势同鼎沸。",
+        "urgency": 5, "severity": 4, "credibility": 5,
+        "interests": ["商人", "百姓"],
+        "audiences": [],
+        "region_hint": "nanzhili",
+        "bar_value": 35,
+        "ongoing_effects": {"metrics": {"民心": -1}},
+        "effect_on_fail": {"metrics": {"民心": -6, "皇威": -2}}
+      }
+    }
+  ]
+}

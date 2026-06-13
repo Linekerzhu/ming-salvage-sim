@@ -55,6 +55,16 @@ def faction_moves_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str,
     # heat 朔日衰减在 timeflow._ensure_month_open（日 tick 永远从第 2 日起，dim==1 在此不可达）
     if dim not in (5, 15, 25):  # 错开旬税赋/旬检定日，避免节点拥挤
         return events
+    # 缺口2：势驱动派系气焰（P1 皇权是均衡）。君威不振→百僚轻朝廷，党争气焰日炽（heat 逐旬涨）；
+    # 君威隆盛→慑服敛迹（heat 加速衰减）。出招概率亦随之放大/压低。
+    shi = kv_int(db, KV_SHI, SHI_DEFAULT)
+    if shi < 45:
+        db.conn.execute("UPDATE factions SET heat=MIN(100, heat + ?)", (max(1, (45 - shi) // 12),))
+        db.conn.commit()
+    elif shi > 65:
+        db.conn.execute("UPDATE factions SET heat=MAX(0, heat - ?)", (max(1, (shi - 65) // 15),))
+        db.conn.commit()
+    embolden = max(0.55, min(1.7, 1.0 + (55 - shi) / 90.0))  # 势55→1.0；势0→1.6；势100→0.55
     rng = random.Random(day * 2654435761 % (2 ** 31))
     rows = db.conn.execute(
         "SELECT name, heat, agenda FROM factions WHERE heat>0 ORDER BY heat DESC"
@@ -64,7 +74,7 @@ def faction_moves_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str,
         if moves_left <= 0:
             break
         heat = int(row["heat"])
-        if rng.random() >= heat / 250.0:
+        if rng.random() >= (heat / 250.0) * embolden:
             continue
         ev = _execute_move(db, state, str(row["name"]), str(row["agenda"] or ""), day, rng)
         if ev is not None:
@@ -249,12 +259,13 @@ def signal_action(db: GameDB, state: GameState, kind: str, *, day: int,
             return {"ok": False, "message": "无此在朝官员。"}
         adjust_belief(db, KV_SHI, +3, f"廷杖{target}（杀鸡儆猴）", day=day)
         adjust_belief(db, KV_RISK_AVERSION, +6, f"廷杖{target}（言路侧目）", day=day)
+        state.metrics["皇威"] = min(100, int(state.metrics.get("皇威", 20)) + 2)
         db.conn.execute(
             "UPDATE characters SET grievance=MIN(100, grievance+30), "
             "emp_trust=MAX(0, emp_trust-25) WHERE name=?", (target,))
         adjust_faction_heat(db, str(row["faction"]), +12, "同党遭廷杖")
         db.record_log(state, f"【廷杖】杖{target}于午门。观者股栗。")
-        msg = f"杖{target}于午门。势+3，而百官钳口（任事意愿-6），其同党衔恨。"
+        msg = f"杖{target}于午门。势+3、皇威+2，而百官钳口（任事意愿-6），其同党衔恨。"
     elif kind == "zuiji":
         adjust_belief(db, KV_SHI, -5, "下罪己诏（自承其过）", day=day)
         adjust_belief(db, KV_RISK_AVERSION, -8, "罪己诏安人心", day=day)
@@ -264,8 +275,9 @@ def signal_action(db: GameDB, state: GameState, kind: str, *, day: int,
     elif kind == "xianfu":
         adjust_belief(db, KV_SHI, +5, "午门献俘（武功昭示）", day=day)
         state.metrics["民心"] = min(100, int(state.metrics.get("民心", 50)) + 2)
+        state.metrics["皇威"] = min(100, int(state.metrics.get("皇威", 20)) + 4)
         db.record_log(state, "【献俘】御午门受俘，百官朝贺。")
-        msg = "午门献俘，中外振奋。势+5，民心+2。（若无实捷而虚饰献俘，邸报与史笔自有公论。）"
+        msg = "午门献俘，中外振奋。势+5、皇威+4，民心+2。（若无实捷而虚饰献俘，邸报与史笔自有公论。）"
     else:
         return {"ok": False, "message": f"未知信号：{kind}"}
     db.conn.commit()

@@ -176,6 +176,21 @@ def _ensure_month_open(db: GameDB, state: GameState, day: int) -> List[Dict[str,
         db.conn.commit()
     except Exception:
         pass
+    # 恒稳态（P1 皇权是均衡）：势/任事意愿每月向基线缓慢回归，
+    # 使其成为可被玩家拉扯的张力变量，而非一路棘轮到 0/100 的吸收态。
+    # 君威无大失则自复（势→55）；积重无新刺激则渐缓（RA→40）。回归步长＝当前缺口的 ~14%。
+    try:
+        from ming_sim.upgrade_schema import (
+            KV_RISK_AVERSION, KV_SHI, RISK_AVERSION_DEFAULT, SHI_DEFAULT, adjust_belief,
+        )
+        for key, default in ((KV_SHI, SHI_DEFAULT), (KV_RISK_AVERSION, RISK_AVERSION_DEFAULT)):
+            cur = kv_int(db, key, default)
+            gap = default - cur
+            if gap:
+                step = max(1, round(abs(gap) * 0.14)) * (1 if gap > 0 else -1)
+                adjust_belief(db, key, step, "恒稳态回归（君威自复/积重渐缓）", day=day)
+    except Exception:
+        pass
     try:
         from ming_sim.memorials import reset_attention_for_day
         reset_attention_for_day(db, day)
