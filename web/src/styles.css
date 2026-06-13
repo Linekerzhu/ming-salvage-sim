@@ -8551,13 +8551,20 @@ button:disabled {
 
 .right-drawer-economy-summary {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
   padding: 8px 16px 6px;
   font-size: 0.85rem;
   color: #2a1a08;
   border-bottom: 1px solid rgba(180, 140, 60, 0.15);
   flex-shrink: 0;
 }
+.economy-runway {
+  font-size: 0.74rem; padding: 2px 8px; border-radius: 9px; width: 100%;
+}
+.economy-runway.warn { background: rgba(200, 140, 30, 0.16); color: #9a6a10; }
+.economy-runway.danger { background: rgba(180, 40, 30, 0.16); color: #b4281e; font-weight: 600; }
 
 .right-drawer-economy-summary b {
   margin-left: 4px;

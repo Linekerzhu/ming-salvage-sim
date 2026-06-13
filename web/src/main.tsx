@@ -3854,6 +3854,11 @@ function EconomyDrawer({
         <span className={budget.net >= 0 ? "income" : "expense"}>
           月净 <b>{formatSignedMoney(budget.net)}</b>
         </span>
+        {budget.net < 0 && budget.balance > 0 ? (
+          <span className={`economy-runway ${budget.balance / -budget.net <= 3 ? "danger" : "warn"}`}>
+            按此入不敷出，约 <b>{Math.max(1, Math.floor(budget.balance / -budget.net))}</b> 月见底
+          </span>
+        ) : null}
       </div>
       <div className="right-drawer-list">
         <div className="right-drawer-section-title">固定收入</div>
