@@ -12455,3 +12455,85 @@ button:disabled {
 
 .upgrade-shibi { margin: 0 0 8px; padding: 7px 11px; border-left: 3px solid rgba(176, 138, 84, 0.55); background: rgba(176, 138, 84, 0.08); font-size: 12.5px; line-height: 1.7; }
 .upgrade-shibi-date { display: block; opacity: 0.55; font-size: 11px; margin-bottom: 2px; }
+
+/* ── 中枢·今日朝政（核心循环引导枢纽，council.tsx）──────────────────────── */
+.council-hub {
+  position: fixed;
+  top: 82px;
+  right: 78px;
+  z-index: 11;
+  width: 326px;
+  max-height: calc(100vh - 220px);
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px 11px;
+  border: 1px solid rgba(120, 72, 40, 0.4);
+  border-radius: 10px;
+  background: rgba(238, 230, 212, 0.96);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(7px);
+  color: #2b2018;
+  font-size: 12.5px;
+}
+.council-hub.collapsed { width: 200px; }
+.council-hub-head {
+  display: flex; align-items: center; gap: 8px;
+  padding-bottom: 8px; border-bottom: 1px solid rgba(120, 72, 40, 0.22);
+}
+.council-hub-title { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13.5px; letter-spacing: 0.5px; }
+.council-hub-date { margin-left: auto; opacity: 0.6; font-size: 11.5px; }
+.council-hub-collapse {
+  flex: 0 0 auto; display: grid; place-items: center; width: 22px; height: 22px;
+  background: transparent; border: 0; cursor: pointer; color: inherit; opacity: 0.7;
+}
+.council-hub.collapsed .council-hub-date { display: none; }
+.council-hub-collapse:hover { opacity: 1; }
+
+.council-hub-objective {
+  display: block; width: 100%; text-align: left; margin: 9px 0 4px; padding: 9px 11px;
+  border: 0; border-left: 3px solid rgba(150, 90, 40, 0.85); border-radius: 0 7px 7px 0;
+  background: rgba(150, 90, 40, 0.1); cursor: pointer; color: inherit;
+}
+.council-hub-objective:hover { background: rgba(150, 90, 40, 0.18); }
+.council-hub-obj-tag {
+  display: inline-block; font-size: 10.5px; padding: 1px 7px; border-radius: 9px;
+  background: rgba(150, 90, 40, 0.8); color: #f6efe0; letter-spacing: 1px;
+}
+.council-hub-obj-title { display: block; font-weight: 700; font-size: 13.5px; margin: 5px 0 2px; }
+.council-hub-obj-brief { display: block; opacity: 0.78; line-height: 1.55; }
+.council-hub-goals { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.council-hub-goal { font-size: 11.5px; opacity: 0.72; }
+
+.council-hub-actions { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; overflow-y: auto; }
+.council-action {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  padding: 8px 10px; border: 1px solid rgba(120, 72, 40, 0.26); border-radius: 8px;
+  background: rgba(255, 250, 238, 0.7); cursor: pointer; color: inherit; transition: background 0.12s, border-color 0.12s;
+}
+.council-action:hover { background: rgba(255, 248, 230, 1); border-color: rgba(120, 72, 40, 0.5); }
+.council-action.urgent { border-color: rgba(180, 70, 50, 0.6); background: rgba(190, 80, 60, 0.09); }
+.council-action.urgent:hover { background: rgba(190, 80, 60, 0.16); }
+.council-action-icon {
+  flex: 0 0 auto; display: grid; place-items: center; width: 30px; height: 30px;
+  border-radius: 7px; background: rgba(120, 72, 40, 0.14); color: #6a3d1c;
+}
+.council-action.urgent .council-action-icon { background: rgba(180, 70, 50, 0.2); color: #a3402a; }
+.council-action-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.council-action-label { font-weight: 650; font-size: 12.5px; }
+.council-action-detail { font-size: 11px; opacity: 0.68; line-height: 1.45; }
+.council-action-cta {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 1px;
+  font-size: 11px; font-weight: 600; color: #6a3d1c; white-space: nowrap;
+}
+.council-action.urgent .council-action-cta { color: #a3402a; }
+
+.council-hub-loop {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 2px;
+  margin-top: 7px; padding-top: 8px; border-top: 1px solid rgba(120, 72, 40, 0.2);
+  font-size: 11px; opacity: 0.62; letter-spacing: 0.5px;
+}
+.council-hub-loop span { white-space: nowrap; }
+
+@media (max-width: 1180px) {
+  .council-hub { width: 268px; right: 70px; }
+}
