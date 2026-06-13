@@ -4924,6 +4924,7 @@ function CourtDrawer({
           <div className="panel-title">
             <Landmark size={17} />
             <span id={titleId}>朝堂</span>
+            <span className="right-drawer-subtitle">召见大臣议事·定策·托密令——言语即落子</span>
           </div>
           <button ref={closeRef} className="icon-button" aria-label="收起" onClick={onClose}><X size={16} /></button>
         </div>
@@ -5278,6 +5279,7 @@ function HaremDrawer({
           <div className="panel-title">
             <Crown size={17} />
             <span id={titleId}>后宫</span>
+            <span className="right-drawer-subtitle">内廷嫔妃·宫务；可协理/安抚/举荐宫人</span>
           </div>
           <button ref={closeRef} className="icon-button" aria-label="收起" onClick={onClose}><X size={16} /></button>
         </div>
