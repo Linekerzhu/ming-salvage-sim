@@ -3634,6 +3634,16 @@ function ArmyDrawer({
             <span className="right-drawer-row-meta">
               {army.manpower}兵 · {army.station}
             </span>
+            <span className="right-drawer-row-tags">
+              {army.arrears > 0 ? (
+                <span className={`row-tag ${arrearsTone(army) || "warn"}`}>
+                  欠饷{army.arrears}万（{Math.floor(army.arrears / (army.maintenance_per_turn || 1))}月）
+                </span>
+              ) : null}
+              {typeof army.morale === "number" && army.morale < 50 ? (
+                <span className={`row-tag ${army.morale < 30 ? "danger" : "warn"}`}>士气{army.morale}</span>
+              ) : null}
+            </span>
           </button>
         ))}
         {!filtered.length && <div className="empty-note">{q ? "无匹配结果。" : "暂无大明军队记录。"}</div>}
@@ -3708,7 +3718,7 @@ function RegionDrawer({
           >
             <span className="right-drawer-row-name">{r.name}</span>
             <span className="right-drawer-row-meta">
-              动乱{r.unrest} · 月税{r.tax_per_turn}万
+              <span className={`row-metric ${regionTone(r)}`}>动乱{r.unrest}</span> · 月税{r.tax_per_turn}万
             </span>
           </button>
         ))}

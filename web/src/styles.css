@@ -8452,6 +8452,21 @@ button:disabled {
   cursor: default;
 }
 
+/* 严重度左边框强调：让危险/警示行一眼可辨（原 0.08 底色太淡，反直觉） */
+.right-drawer-row.danger { border-left: 3px solid rgba(180, 40, 30, 0.75); }
+.right-drawer-row.warn { border-left: 3px solid rgba(200, 140, 30, 0.8); }
+
+/* 行内严重度徽标/指标：把关键健康数（欠饷/士气/动乱）直接上色，免点开 */
+.right-drawer-row-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.row-tag {
+  font-size: 0.68rem; padding: 1px 6px; border-radius: 9px; font-weight: 600;
+  background: rgba(120, 90, 50, 0.14); color: #6a5030;
+}
+.row-tag.warn { background: rgba(200, 140, 30, 0.2); color: #9a6a10; }
+.row-tag.danger { background: rgba(180, 40, 30, 0.18); color: #b4281e; }
+.row-metric.warn { color: #9a6a10; font-weight: 700; }
+.row-metric.danger { color: #b4281e; font-weight: 700; }
+
 .right-drawer-row-name {
   font-size: 0.9rem;
   font-weight: 700;
