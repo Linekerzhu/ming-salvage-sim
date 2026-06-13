@@ -50,6 +50,20 @@ import {
 import type { ExternalPathGroup, RegionPathGroup } from "./mapPaths";
 import "./styles.css";
 
+/**
+ * 受控输入去抖：返回 [即时值, 去抖值, setter]。
+ * 输入框绑即时值(立即响应键入)，列表过滤用去抖值(默认160ms合批，避免大列表逐字重渲染)。
+ */
+function useDebouncedState(initial: string, delayMs = 160): [string, string, (v: string) => void] {
+  const [value, setValue] = React.useState(initial);
+  const [debounced, setDebounced] = React.useState(initial);
+  React.useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(t);
+  }, [value, delayMs]);
+  return [value, debounced, setValue];
+}
+
 type Metrics = Record<string, number>;
 
 type Region = {
@@ -1528,7 +1542,7 @@ function App() {
         await loadState();
       }
     };
-    const timer = window.setInterval(() => { void poll(); }, 5000);
+    const timer = window.setInterval(() => { void poll(); }, 2500);
     void poll();
     return () => {
       cancelled = true;
@@ -3574,11 +3588,11 @@ function ArmyDrawer({
   onSelectArmy: (id: string) => void;
   onClose: () => void;
 }) {
-  const [q, setQ] = React.useState("");
+  const [q, dq, setQ] = useDebouncedState("");
   const mingArmies = React.useMemo(() => armies.filter((a) => (a.owner_power || "ming") === "ming"), [armies]);
   const filtered = React.useMemo(
-    () => (q ? mingArmies.filter((a) => a.name.includes(q) || a.station.includes(q) || a.commander.includes(q)) : mingArmies),
-    [mingArmies, q],
+    () => (dq ? mingArmies.filter((a) => a.name.includes(dq) || a.station.includes(dq) || a.commander.includes(dq)) : mingArmies),
+    [mingArmies, dq],
   );
   const selected = React.useMemo(
     () => mingArmies.find((a) => a.id === selectedArmyId) || null,
@@ -3652,11 +3666,11 @@ function RegionDrawer({
   onSelectRegion: (id: string) => void;
   onClose: () => void;
 }) {
-  const [q, setQ] = React.useState("");
+  const [q, dq, setQ] = useDebouncedState("");
   const mingRegions = React.useMemo(() => regions.filter((r) => (r.controlled_by || "ming") === "ming"), [regions]);
   const filtered = React.useMemo(
-    () => (q ? mingRegions.filter((r) => r.name.includes(q)) : mingRegions),
-    [mingRegions, q],
+    () => (dq ? mingRegions.filter((r) => r.name.includes(dq)) : mingRegions),
+    [mingRegions, dq],
   );
   const selected = React.useMemo(
     () => mingRegions.find((r) => r.id === selectedRegionId) || null,
@@ -3726,7 +3740,7 @@ function BuildingDrawer({
   onClose: () => void;
 }) {
   const [filterRegion, setFilterRegion] = React.useState("");
-  const [q, setQ] = React.useState("");
+  const [q, dq, setQ] = useDebouncedState("");
   const allBuildings = React.useMemo(() => {
     const rows: (Building & { regionName: string })[] = [];
     for (const node of mapNodes) {
@@ -3745,8 +3759,8 @@ function BuildingDrawer({
   const filtered = React.useMemo(
     () => allBuildings
       .filter((b) => !filterRegion || b.regionName === filterRegion)
-      .filter((b) => !q || b.name.includes(q) || b.category.includes(q)),
-    [allBuildings, filterRegion, q],
+      .filter((b) => !dq || b.name.includes(dq) || b.category.includes(dq)),
+    [allBuildings, filterRegion, dq],
   );
   return (
     <RightDrawer open={open} onClose={onClose} title="建筑" icon={<Landmark size={17} />} extraClass="right-drawer-building">
@@ -3792,16 +3806,16 @@ function EconomyDrawer({
   onClose: () => void;
 }) {
   const [tab, setTab] = React.useState<"国库" | "内库">("国库");
-  const [q, setQ] = React.useState("");
+  const [q, dq, setQ] = useDebouncedState("");
   const budget = state.budget[tab];
   const filteredBudget = React.useMemo(() => {
-    const matchItem = (name: string) => !q || name.includes(q);
+    const matchItem = (name: string) => !dq || name.includes(dq);
     return {
       income: budget.income.filter((item) => matchItem(item.name)),
       expense: budget.expense.filter((item) => matchItem(item.name)),
       movements: budget.movements.filter((m) => matchItem(m.category || m.reason)),
     };
-  }, [budget, q]);
+  }, [budget, dq]);
   return (
     <RightDrawer open={open} onClose={onClose} title="经济" icon={<ScrollText size={17} />} extraClass="right-drawer-economy">
       <div className="segmented right-drawer-segmented">
@@ -3879,7 +3893,7 @@ function AppointmentDrawer({
   onAbandonGoal: (goal: ConversationGoal) => Promise<void>;
   onClose: () => void;
 }) {
-  const [q, setQ] = React.useState("");
+  const [q, dq, setQ] = useDebouncedState("");
   const [notice, setNotice] = React.useState("");
   const [actionBusy, setActionBusy] = React.useState("");
   const [selectedName, setSelectedName] = React.useState("");
@@ -3939,7 +3953,7 @@ function AppointmentDrawer({
   const archiveHarem = archiveStats.harem;
   const archiveManaged = archiveStats.managed || mingMinisters.length;
   const filteredMinisters = React.useMemo(() => {
-    const query = q.trim();
+    const query = dq.trim();
     const filterHit = (m: Minister) => !query || m.name.includes(query) || (m.office || "").includes(query) || (m.office_type || "").includes(query) || (m.faction || "").includes(query) || (m.age_label || "").includes(query);
     const scopedHit = (m: Minister) => {
       if (scope === "在职") return m.status === "active";
@@ -3951,7 +3965,7 @@ function AppointmentDrawer({
       return true;
     };
     return mingMinisters.filter((m) => filterHit(m) && scopedHit(m));
-  }, [mingMinisters, q, scope]);
+  }, [mingMinisters, dq, scope]);
   React.useEffect(() => {
     if (selectedName && mingMinisters.some((m) => m.name === selectedName)) return;
     const preferred = activeMinisters[0]?.name || mingMinisters[0]?.name || "";
@@ -4391,7 +4405,7 @@ function OrganizationDrawer({
   onOpenChat: (minister: OrgPerson) => void;
   onClose: () => void;
 }) {
-  const [q, setQ] = React.useState("");
+  const [q, dq, setQ] = useDebouncedState("");
   const [selectedId, setSelectedId] = React.useState("");
   const [selectedCategory, setSelectedCategory] = React.useState("全部");
   const [viewMode, setViewMode] = React.useState<"institutions" | "vacancies" | "unassigned">("institutions");
@@ -4402,7 +4416,7 @@ function OrganizationDrawer({
   const [adding, setAdding] = React.useState(false);
   const institutions = organizations?.institutions || [];
   const unassigned = organizations?.unassigned || [];
-  const query = q.trim();
+  const query = dq.trim();
   const categories = React.useMemo(
     () => ["全部", ...Array.from(new Set(institutions.map((item) => item.category).filter(Boolean)))],
     [institutions],
@@ -4811,10 +4825,10 @@ function CourtDrawer({
   onUploadPortrait: (ministerName: string, file: File) => Promise<void>;
   onGeneratePortrait: (ministerName: string) => Promise<void>;
 }) {
-  const [q, setQ] = React.useState("");
+  const [q, dq, setQ] = useDebouncedState("");
   const titleId = React.useId();
   const { drawerRef, closeRef } = useDrawerFocus(open);
-  const searchQuery = q.trim();
+  const searchQuery = dq.trim();
   const filtered = React.useMemo(
     () => searchQuery
       ? ministers.filter((m) => m.name.includes(searchQuery) || (m.office || "").includes(searchQuery) || (m.office_type || "").includes(searchQuery) || (m.faction || "").includes(searchQuery))
@@ -4902,7 +4916,7 @@ function CourtDrawer({
         {ministerGroup === "人物志" ? (
           <CharacterArchive
             rows={archiveRows}
-            query={q}
+            query={dq}
             loading={characterIndexLoading}
             error={characterIndexError}
             characterByName={characterByName}
@@ -4941,6 +4955,7 @@ function CharacterArchive({
   onOpenChat: (minister: Minister) => void;
 }) {
   const [scope, setScope] = React.useState("全部");
+  const [visibleCount, setVisibleCount] = React.useState(80); // 分批渲染：避免一次渲染数百行
   const [selectedName, setSelectedName] = React.useState(rows[0]?.name || "");
   const [detail, setDetail] = React.useState<Minister | null>(null);
   const [loadingName, setLoadingName] = React.useState("");
@@ -4960,6 +4975,9 @@ function CharacterArchive({
       return true;
     });
   }, [query, rows, scope]);
+  React.useEffect(() => {
+    setVisibleCount(80); // 检索词/范围变化时回到首屏
+  }, [query, scope]);
   React.useEffect(() => {
     if (selectedName && filtered.some((row) => row.name === selectedName)) return;
     setSelectedName(filtered[0]?.name || "");
@@ -5068,7 +5086,7 @@ function CharacterArchive({
             ))}
           </div>
           <div className="character-archive-list">
-            {filtered.map((row) => {
+            {filtered.slice(0, visibleCount).map((row) => {
               const minister = characterByName.get(row.name);
               const callable = !!row.can_summon;
               return (
@@ -5099,6 +5117,14 @@ function CharacterArchive({
               );
             })}
             {!filtered.length ? <div className="empty-note">人物志无匹配记录。</div> : null}
+            {filtered.length > visibleCount ? (
+              <button
+                className="archive-load-more"
+                onClick={() => setVisibleCount((n) => n + 120)}
+              >
+                展开更多（余 {filtered.length - visibleCount} 人）
+              </button>
+            ) : null}
           </div>
         </aside>
         <div className="character-archive-detail">
@@ -5171,13 +5197,13 @@ function HaremDrawer({
   onGeneratePortrait: (ministerName: string) => Promise<void>;
   onAction: (name: string, action: "stabilize" | "treasury" | "appease" | "recommend") => Promise<string>;
 }) {
-  const [q, setQ] = React.useState("");
+  const [q, dq, setQ] = useDebouncedState("");
   const [actionName, setActionName] = React.useState("");
   const [notice, setNotice] = React.useState("");
   const [actionBusy, setActionBusy] = React.useState("");
   const titleId = React.useId();
   const { drawerRef, closeRef } = useDrawerFocus(open);
-  const filtered = q ? consorts.filter((c) => c.name.includes(q)) : consorts;
+  const filtered = dq ? consorts.filter((c) => c.name.includes(dq)) : consorts;
   const activeConsorts = consorts.filter((c) => c.status === "active");
   React.useEffect(() => {
     if (actionName && activeConsorts.some((c) => c.name === actionName)) return;
@@ -8213,7 +8239,7 @@ function ChatModal({
       </aside>
 
       <section className="modal-pane chat-main">
-        <div className="chat-log" ref={chatLogRef}>
+        <div className="chat-log" ref={chatLogRef} role="log" aria-live="polite" aria-atomic="false">
           {!displayMessages.length && !busy && !chatEffectNotices.length && !chatNotice && !error ? (
             <div className="chat-empty-state">
               <b>尚未开问</b>

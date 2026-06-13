@@ -1857,6 +1857,12 @@ select:focus-visible {
   border-bottom: 1px solid rgba(226, 180, 86, 0.14);
 }
 
+.archive-load-more {
+  margin: 8px auto 4px; padding: 6px 16px; cursor: pointer;
+  background: rgba(176, 138, 84, 0.16); border: 1px solid rgba(176, 138, 84, 0.4);
+  border-radius: 7px; color: inherit; font-size: 12.5px;
+}
+.archive-load-more:hover { background: rgba(176, 138, 84, 0.28); }
 .character-archive-list {
   flex: 1 1 auto;
   display: grid;
