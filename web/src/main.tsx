@@ -1,7 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { DeskDrawer, TimeBar, WatchDrawer } from "./upgrade";
-import { CouncilHub } from "./council";
+import { CouncilHub, FirstRunGuide } from "./council";
 import {
   Check,
   Crown,
@@ -2488,6 +2488,7 @@ function App() {
         onOpenMenu={() => setActiveModal("menu")}
       />
       <TimeBar settling={settling} onWorldChanged={() => { loadState().catch(() => {}); }} />
+      <FirstRunGuide />
       <CouncilHub
         refreshKey={worldVersion}
         nav={{

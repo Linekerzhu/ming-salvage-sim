@@ -11,8 +11,65 @@
  */
 
 import React from "react";
-import { Landmark, ScrollText, Eye, Gavel, Users, ChevronRight, ChevronDown } from "lucide-react";
+import { Landmark, ScrollText, Eye, Gavel, Users, ChevronRight, ChevronDown, X } from "lucide-react";
 import { api } from "./api/client";
+
+const FIRSTRUN_KEY = "ming.firstRunGuide.seen";
+
+/**
+ * 首次亲政导览：一次性浮层，讲清「你是谁 + 一回合怎么玩 + 爽点在哪」。
+ * 自管 localStorage，已看过则不渲染。直接挂在 game-shell，自门控。
+ */
+export function FirstRunGuide() {
+  const [seen, setSeen] = React.useState<boolean>(() => {
+    try {
+      return localStorage.getItem(FIRSTRUN_KEY) === "1";
+    } catch {
+      return true; // 读不到则不打扰
+    }
+  });
+  if (seen) return null;
+  const dismiss = () => {
+    try {
+      localStorage.setItem(FIRSTRUN_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    setSeen(true);
+  };
+  const steps = [
+    { icon: <ScrollText size={18} />, t: "批奏疏", d: "御案上奏疏纷至：请款、弹章、荐人、告变。准、驳、留中、发部议——每一笔批红都是表态，久压不批则奏疏淹没、君威受损。" },
+    { icon: <Users size={18} />, t: "召大臣", d: "朝堂召见大臣对谈定策、托付密令、查访风闻。言语即落子：你说的每句话都在改变朝局——这是本作的核心。" },
+    { icon: <Gavel size={18} />, t: "下圣旨", d: "拟诏颁旨。诏书不会即刻成真：经送达、承办、旬检定，会被拖延、截留、封驳——迟滞的官僚体系本身就是博弈对象。" },
+    { icon: <Eye size={18} />, t: "推时日·阅邸报", d: "推进时日，静观事态；月末邸报结算天下之变。账实未必相符（密查可揭穿瞒报），昔日之策亦会埋下祸根（裁驿→流寇）。史笔终将评判你。" },
+  ];
+  return (
+    <div className="firstrun-scrim" role="dialog" aria-modal="true" aria-label="亲政导览">
+      <div className="firstrun-card">
+        <button className="firstrun-close" onClick={dismiss} aria-label="关闭导览"><X size={18} /></button>
+        <h2 className="firstrun-title">崇祯元年·初登大宝</h2>
+        <p className="firstrun-lead">
+          你是刚刚即位的崇祯皇帝。内忧外患，积重难返。
+          每月为一回合，照此节奏理政——右上「中枢·今日朝政」会随时提示你<b>现在该做什么</b>。
+        </p>
+        <div className="firstrun-steps">
+          {steps.map((s, i) => (
+            <div key={s.t} className="firstrun-step">
+              <span className="firstrun-step-no">{i + 1}</span>
+              <span className="firstrun-step-icon">{s.icon}</span>
+              <span className="firstrun-step-body">
+                <b>{s.t}</b>
+                <span>{s.d}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="firstrun-foot">皇权是均衡之术，悲剧亦值得一玩。诸事不必尽善，但求无愧史笔。</p>
+        <button className="firstrun-start" onClick={dismiss}>始亲政</button>
+      </div>
+    </div>
+  );
+}
 
 type Stage = { id: string; title: string; brief: string } | null;
 type Goal = { id: string; title: string; hint: string; done: boolean };
