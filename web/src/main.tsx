@@ -5307,6 +5307,27 @@ function TopStatusBar({
   onOpenMenu: () => void;
 }) {
   const scoreKeys = ["民心", "皇威"];
+  // 月度变化反馈（爽点）：民心/皇威只在月末结算变动（不受旬税干扰），
+  // 跨月时显示本月施政对江山的增减，数秒后淡出。
+  const [deltas, setDeltas] = React.useState<Record<string, number>>({});
+  const baselineRef = React.useRef<Record<string, number>>(state.metrics);
+  const lastTurnRef = React.useRef(state.turn.turn);
+  React.useEffect(() => {
+    if (state.turn.turn === lastTurnRef.current) return;
+    const d: Record<string, number> = {};
+    for (const k of scoreKeys) {
+      const diff = (state.metrics[k] || 0) - (baselineRef.current[k] || 0);
+      if (diff) d[k] = diff;
+    }
+    lastTurnRef.current = state.turn.turn;
+    baselineRef.current = state.metrics;
+    if (Object.keys(d).length) {
+      setDeltas(d);
+      const t = setTimeout(() => setDeltas({}), 9000);
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.turn.turn, state.metrics]);
   return (
     <>
     <header className="status-bar" aria-label="国势状态栏">
@@ -5320,6 +5341,11 @@ function TopStatusBar({
         {scoreKeys.map((key) => (
           <span className={`status-pill ${scoreTone(state.metrics[key], false)}`} key={key}>
             {key} <b>{state.metrics[key]}</b>
+            {deltas[key] ? (
+              <span className={`status-delta ${deltas[key] > 0 ? "up" : "down"}`} aria-hidden="true">
+                {deltas[key] > 0 ? `▲${deltas[key]}` : `▼${Math.abs(deltas[key])}`}
+              </span>
+            ) : null}
           </span>
         ))}
       </div>
