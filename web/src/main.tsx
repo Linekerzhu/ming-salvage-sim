@@ -3556,6 +3556,7 @@ function RightDrawer({
   open,
   onClose,
   title,
+  subtitle,
   icon,
   children,
   extraClass,
@@ -3563,6 +3564,7 @@ function RightDrawer({
   open: boolean;
   onClose: () => void;
   title: string;
+  subtitle?: string;
   icon: React.ReactNode;
   children: React.ReactNode;
   extraClass?: string;
@@ -3586,6 +3588,7 @@ function RightDrawer({
           <div className="panel-title">
             {icon}
             <span id={titleId}>{title}</span>
+            {subtitle ? <span className="right-drawer-subtitle">{subtitle}</span> : null}
           </div>
           <button ref={closeRef} className="icon-button" aria-label="收起" onClick={onClose}><X size={16} /></button>
         </div>
@@ -3628,7 +3631,7 @@ function ArmyDrawer({
     return "";
   };
   return (
-    <RightDrawer open={open} onClose={onClose} title="军队" icon={<Swords size={17} />} extraClass="right-drawer-army">
+    <RightDrawer open={open} onClose={onClose} title="军队" subtitle="各镇军额·欠饷·士气；账面未必是实在兵" icon={<Swords size={17} />} extraClass="right-drawer-army">
       <div className="right-drawer-search">
         <input className="right-drawer-search-input" aria-label="搜索番号、驻地或统帅" placeholder="搜索番号/驻地/统帅…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
@@ -3714,7 +3717,7 @@ function RegionDrawer({
     return "";
   };
   return (
-    <RightDrawer open={open} onClose={onClose} title="省份" icon={<MapPinned size={17} />} extraClass="right-drawer-region">
+    <RightDrawer open={open} onClose={onClose} title="省份" subtitle="各省民心·动乱·税赋；动乱越高越易民变" icon={<MapPinned size={17} />} extraClass="right-drawer-region">
       <div className="right-drawer-search">
         <input className="right-drawer-search-input" aria-label="搜索省份名" placeholder="搜索省份名…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
@@ -3795,7 +3798,7 @@ function BuildingDrawer({
     [allBuildings, filterRegion, dq],
   );
   return (
-    <RightDrawer open={open} onClose={onClose} title="建筑" icon={<Landmark size={17} />} extraClass="right-drawer-building">
+    <RightDrawer open={open} onClose={onClose} title="建筑" subtitle="城防·仓廪·工坊的完好与产出" icon={<Landmark size={17} />} extraClass="right-drawer-building">
       {loading ? <div className="empty-note">正在载入建筑图册...</div> : null}
       {error ? <div className="empty-note">{error}</div> : null}
       <div className="right-drawer-search">
@@ -3849,7 +3852,7 @@ function EconomyDrawer({
     };
   }, [budget, dq]);
   return (
-    <RightDrawer open={open} onClose={onClose} title="经济" icon={<ScrollText size={17} />} extraClass="right-drawer-economy">
+    <RightDrawer open={open} onClose={onClose} title="经济" subtitle="国库/内库收支总账与赤字跑道" icon={<ScrollText size={17} />} extraClass="right-drawer-economy">
       <div className="segmented right-drawer-segmented">
         {(["国库", "内库"] as const).map((t) => (
           <button key={t} className={tab === t ? "active" : ""} onClick={() => setTab(t)}>{t}</button>
@@ -4193,7 +4196,7 @@ function AppointmentDrawer({
   };
   const canChatSelected = !!selectedOfficer && selectedOfficer.status === "active" && (selectedOfficer.power_id || "ming") === "ming";
   return (
-    <RightDrawer open={open} onClose={onClose} title="吏部考核" icon={<Star size={17} />} extraClass="right-drawer-appointment">
+    <RightDrawer open={open} onClose={onClose} title="吏部考核" subtitle="考核·起复征辟·罢黜·问责" icon={<Star size={17} />} extraClass="right-drawer-appointment">
       <div className="bureau-audit-shell">
         <section className="bureau-summary">
           <div className="bureau-summary-title">
@@ -4539,7 +4542,7 @@ function OrganizationDrawer({
     }
   };
   return (
-    <RightDrawer open={open} onClose={onClose} title="组织架构" icon={<Landmark size={17} />} extraClass="right-drawer-organization">
+    <RightDrawer open={open} onClose={onClose} title="组织架构" subtitle="机构·席位·空缺；缺位待补" icon={<Landmark size={17} />} extraClass="right-drawer-organization">
       <div className="org-command-strip">
         <div>
           <span>执行力</span>

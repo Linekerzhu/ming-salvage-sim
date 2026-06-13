@@ -271,12 +271,14 @@ function UpgradeDrawer({
   open,
   onClose,
   title,
+  subtitle,
   icon,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
+  subtitle?: string;
   icon: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -288,6 +290,7 @@ function UpgradeDrawer({
           <div className="panel-title">
             {icon}
             <span>{title}</span>
+            {subtitle ? <span className="upgrade-drawer-subtitle">{subtitle}</span> : null}
           </div>
           <button className="icon-button" aria-label="收起" onClick={onClose}>
             <X size={16} />
@@ -348,7 +351,7 @@ export function DeskDrawer({
   };
 
   return (
-    <UpgradeDrawer open={open} onClose={onClose} title="御案·批红" icon={<Scroll size={15} />}>
+    <UpgradeDrawer open={open} onClose={onClose} title="御案·批红" subtitle="奏疏纷至：准/驳/留中/发部议——久压则淹没" icon={<Scroll size={15} />}>
       {desk && (
         <>
           <div className="upgrade-desk-head">
@@ -561,7 +564,7 @@ export function WatchDrawer({
   const recent = directives.filter((d) => ["done", "aborted"].includes(d.status)).slice(0, 5);
 
   return (
-    <UpgradeDrawer open={open} onClose={onClose} title="司天台·朝局观测" icon={<Eye size={15} />}>
+    <UpgradeDrawer open={open} onClose={onClose} title="司天台·朝局观测" subtitle="预警仪表·在办旨意·账实矛盾·阶段诏题·史笔" icon={<Eye size={15} />}>
       {message && <div className="upgrade-desk-message">{message}</div>}
 
       {zx && (
