@@ -1,0 +1,266 @@
+// 移动端五标签 App 骨架：顶部状态条 + tab 视图 + 底部导航。
+import { useEffect, useRef, useState } from "react";
+import { GameDataProvider, useGame } from "./GameData";
+import { PersonProvider } from "./Person";
+import { Menu } from "./Menu";
+import { Guide, guideSeen, markGuideSeen } from "./Guide";
+import { exitToMenu, menuStatus, resolveDecision } from "./api";
+import type { Decision, Tab } from "./api";
+import { HomeView } from "./views/HomeView";
+import { DeskView } from "./views/DeskView";
+import { AudienceView } from "./views/AudienceView";
+import { EdictsView } from "./views/EdictsView";
+import { RealmView } from "./views/RealmView";
+
+const PERIOD_CN = ["", "正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "冬", "腊"];
+
+function TopBar({ go, onHelp }: { go: (t: Tab) => void; onHelp: () => void }) {
+  const { time, desk, advance } = useGame();
+  const [busy, setBusy] = useState(false);
+  const year = time?.year ?? 1627;
+  const month = time?.month ?? 10;
+  const day = time?.day_in_month ?? 1;
+  const shi = desk?.shi ?? 55;
+  const renshi = desk?.renshi_willingness ?? 60;
+  const att = desk?.attention_left ?? 0;
+  const attMax = desk?.attention_per_day ?? 12;
+
+  const onAdvance = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await advance(5, true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <header className="m-topbar">
+      <div className="m-topbar-row">
+        <button className="m-reign" onClick={() => go("home")} aria-label="回御前">
+          <span className="m-reign-era">崇祯{year - 1626 <= 1 ? "元" : year - 1626}年</span>
+          <span className="m-reign-date">{PERIOD_CN[month] || month}月·第{day}日</span>
+        </button>
+        <button className="m-advance" onClick={onAdvance} disabled={busy}>
+          {busy ? "推进中…" : "推时日 ›"}
+        </button>
+      </div>
+      <div className="m-gauges" onClick={onHelp} role="button" aria-label="国势释义">
+        <Gauge label="君威" value={shi} pct={shi} tone={shi < 25 ? "danger" : shi < 45 ? "warn" : "ok"} />
+        <Gauge label="任事" value={renshi} pct={renshi} tone={renshi <= 25 ? "danger" : renshi <= 45 ? "warn" : "ok"} />
+        <Gauge label="精力" value={att} max={attMax} pct={(att / Math.max(1, attMax)) * 100} noRise
+               tone={att <= 1 ? "danger" : att <= 3 ? "warn" : "ok"} />
+      </div>
+    </header>
+  );
+}
+
+function Gauge({ label, value, max, pct, tone, noRise }: { label: string; value: number; max?: number; pct: number; tone: string; noRise?: boolean }) {
+  // 数值上涨→金色脉冲：每一次正向变化都被即时看见（高频正反馈）。精力日耗日补，不脉冲。
+  const prev = useRef(value);
+  const [rise, setRise] = useState(false);
+  useEffect(() => {
+    if (!noRise && value > prev.current) {
+      setRise(true);
+      const t = setTimeout(() => setRise(false), 1100);
+      prev.current = value;
+      return () => clearTimeout(t);
+    }
+    prev.current = value;
+  }, [value, noRise]);
+  return (
+    <div className={`m-gauge m-gauge-${tone}${rise ? " is-rise" : ""}`}>
+      <div className="m-gauge-top">
+        <span className="m-gauge-label">{label}</span>
+        <span className="m-gauge-value">
+          {value}
+          {max != null && <span className="m-gauge-max">/{max}</span>}
+        </span>
+      </div>
+      <div className="m-gauge-track"><span className="m-gauge-fill" style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} /></div>
+    </div>
+  );
+}
+
+const TABS: Array<{ key: Tab; label: string; glyph: string }> = [
+  { key: "home", label: "御前", glyph: "御" },
+  { key: "desk", label: "御案", glyph: "案" },
+  { key: "audience", label: "召对", glyph: "召" },
+  { key: "edicts", label: "诏旨", glyph: "诏" },
+  { key: "realm", label: "天下", glyph: "天" },
+];
+
+function BottomNav({ active, go }: { active: Tab; go: (t: Tab) => void }) {
+  const { desk, lifecycle } = useGame();
+  const live = lifecycle.filter((d) => ["in_transit", "executing", "stalled"].includes(d.status)).length;
+  const badge: Partial<Record<Tab, number>> = {
+    desk: desk?.backlog || 0,
+    edicts: live,
+  };
+  return (
+    <nav className="m-bottomnav" role="tablist">
+      {TABS.map((t) => (
+        <button
+          key={t.key}
+          role="tab"
+          aria-selected={active === t.key}
+          className={`m-tab ${active === t.key ? "is-active" : ""}`}
+          onClick={() => go(t.key)}
+        >
+          <span className="m-tab-glyph">{t.glyph}</span>
+          <span className="m-tab-label">{t.label}</span>
+          {!!badge[t.key] && <span className="m-tab-badge">{badge[t.key]! > 99 ? "99+" : badge[t.key]}</span>}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function MetricFlash() {
+  const { metricFlash } = useGame();
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!metricFlash) return;
+    setShow(true);
+    const t = setTimeout(() => setShow(false), 3600);
+    return () => clearTimeout(t);
+  }, [metricFlash?.key]);
+  if (!metricFlash || !show) return null;
+  const entries = Object.entries(metricFlash.deltas);
+  if (!entries.length) return null;
+  // 净收益分（势/任事/民心权重更高）——足够大则升格为「捷报」大字高潮卡。
+  const W: Record<string, number> = { 君威: 3, 任事: 2.5, 民心: 1.5, 皇威: 3, 国库: 0.4, 内库: 0.4 };
+  const score = entries.reduce((s, [k, v]) => s + (W[k] ?? 1) * v, 0);
+  const triumph = score >= 9 && entries.some(([, v]) => v > 0);
+  return (
+    <div className={`m-flash${triumph ? " m-flash-triumph" : ""}`} key={metricFlash.key}>
+      {triumph && <span className="m-flash-hail">捷报</span>}
+      {entries.map(([k, v]) => (
+        <span key={k} className={`m-flash-item ${v > 0 ? "up" : "down"}`}>{k} {v > 0 ? "▲" : "▼"}{Math.abs(v)}</span>
+      ))}
+    </div>
+  );
+}
+
+// 诏题达成：本章方略告成时，朱金大字成就横幅自天而降，给一记响亮的正反馈。
+function MilestoneToast() {
+  const { milestone } = useGame();
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!milestone) return;
+    setShow(true);
+    const t = setTimeout(() => setShow(false), 5000);
+    return () => clearTimeout(t);
+  }, [milestone?.key]);
+  if (!milestone || !show) return null;
+  return (
+    <div className="m-milestone" key={milestone.key}>
+      <span className="m-milestone-seal">诏题<br />告成</span>
+      <div className="m-milestone-txt">
+        <span className="m-milestone-kicker">本章方略 · 达成</span>
+        <span className="m-milestone-title">{milestone.title}</span>
+        <span className="m-milestone-sub">君威已彰，史官记之（势 ＋）</span>
+      </div>
+    </div>
+  );
+}
+
+// 抉择事件（CK3 化 P2）：朝局张力弹出"请陛下裁断"，玩家落子→后果即时回写朝局。
+function DecisionModal() {
+  const { decision, refresh } = useGame();
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<{ choice: string; effect: string } | null>(null);
+  // 本地快照：落子后 refresh 会把 decision 置空，须保留以展示"已断"后果，玩家确认再消。
+  const [active, setActive] = useState<Decision | null>(null);
+  useEffect(() => {
+    if (decision) { setActive(decision); setDone(null); }
+  }, [decision?.id]);
+  if (!active) return null;
+  const pick = async (key: string) => {
+    if (busy || done) return;
+    setBusy(true);
+    try {
+      const r = await resolveDecision(key);
+      setDone({ choice: r.choice, effect: r.effect });
+      await refresh();
+    } finally { setBusy(false); }
+  };
+  return (
+    <div className="m-decision-backdrop">
+      <div className="m-decision">
+        <div className="m-decision-seal">裁<br />断</div>
+        <h2 className="m-decision-title">{active.title}</h2>
+        <p className="m-decision-narr">{active.narrative}</p>
+        {done ? (
+          <div className="m-decision-done">
+            <p className="m-decision-chosen">已断：{done.choice}</p>
+            <p className="m-decision-effect">{done.effect}</p>
+            <button className="m-decision-ack" onClick={() => { setActive(null); setDone(null); }}>朝局已动，继续</button>
+          </div>
+        ) : (
+          <div className="m-decision-choices">
+            {active.choices.map((c) => (
+              <button key={c.key} className="m-decision-choice" disabled={busy} onClick={() => pick(c.key)}>
+                <span className="m-decision-label">{c.label}</span>
+                {c.hint && <span className="m-decision-hint">{c.hint}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Shell({ onExitMenu }: { onExitMenu: () => void }) {
+  const [tab, setTab] = useState<Tab>("home");
+  const [guideOpen, setGuideOpen] = useState(false);
+  const { loading, error } = useGame();
+  useEffect(() => {
+    if (!guideSeen()) setGuideOpen(true);
+  }, []);
+  return (
+    <div className="m-app">
+      <TopBar go={setTab} onHelp={() => setGuideOpen(true)} />
+      <MetricFlash />
+      <MilestoneToast />
+      <main className="m-content" key={tab}>
+        {error && <div className="m-error">{error}</div>}
+        {loading && <div className="m-loading">正在召集朝局…</div>}
+        {!loading && tab === "home" && <HomeView go={setTab} />}
+        {!loading && tab === "desk" && <DeskView />}
+        {!loading && tab === "audience" && <AudienceView />}
+        {!loading && tab === "edicts" && <EdictsView />}
+        {!loading && tab === "realm" && <RealmView />}
+      </main>
+      <BottomNav active={tab} go={setTab} />
+      <DecisionModal />
+      {guideOpen && (
+        <Guide
+          onClose={() => { markGuideSeen(); setGuideOpen(false); }}
+          onExit={async () => { try { await exitToMenu(); } catch { /* ignore */ } onExitMenu(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+export function App() {
+  const [phase, setPhase] = useState<"boot" | "menu" | "game">("boot");
+  useEffect(() => {
+    menuStatus()
+      .then((s) => setPhase(s.has_running_game ? "game" : "menu"))
+      .catch(() => setPhase("menu"));
+  }, []);
+
+  if (phase === "boot") return <div className="m-boot">正召集朝局…</div>;
+  if (phase === "menu") return <Menu onEnter={() => setPhase("game")} />;
+  return (
+    <GameDataProvider>
+      <PersonProvider>
+        <Shell onExitMenu={() => setPhase("menu")} />
+      </PersonProvider>
+    </GameDataProvider>
+  );
+}
