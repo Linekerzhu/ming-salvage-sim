@@ -1,0 +1,351 @@
+"""即时复命管线回归（零 LLM）：
+  - 诏书办结 → tick 入队 edict_outcome；
+  - worker handler（llm_config=None 走模板）→ outcome_status='extracted' + 复命奏报落御案；
+  - handler 幂等（worker 重试不重复）；
+  - session.drain_pending_outcomes 主线程把暂存 delta 落库（metric/economy）+ 幂等不双算。
+"""
+
+import json
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
+from ming_sim import lifecycle, scheduler, timeflow
+from ming_sim.db import GameDB
+from ming_sim.models import LLMConfig
+from ming_sim.session import GameSession
+from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
+
+
+def _fresh(tmp: str):
+    db = GameDB(str(Path(tmp) / "t.db"))
+    db.seed_static_data()
+    state = db.load_state()
+    timeflow.ensure_active(db, state)
+    return db, state
+
+
+def _issue(db, state, text: str) -> int:
+    cur = db.conn.execute(
+        "INSERT INTO turn_directives (turn, year, period, text, source, status)"
+        " VALUES (?,?,?,?,?,?)",
+        (state.turn, state.year, state.period, text, "test", "confirmed"),
+    )
+    did = int(cur.lastrowid)
+    db.conn.commit()
+    rows = db.conn.execute("SELECT * FROM turn_directives WHERE id=?", (did,)).fetchall()
+    lifecycle.init_directive_lifecycles(db, state, rows, kv_int(db, KV_CURRENT_DAY, 1))
+    return did
+
+
+def _force_done(db, state, did: int, *, integrity_actual: int = 100) -> None:
+    db.conn.execute(
+        "UPDATE turn_directives SET integrity_actual=?, progress=99, "
+        "lifecycle_status='executing', lead_days=0 WHERE id=?", (integrity_actual, did))
+    db.conn.commit()
+    timeflow.advance_days(db, state, 1, stop_on_yellow=False)
+
+
+def _drain_all(db, llm_config=None) -> int:
+    done = 0
+    while True:
+        n = scheduler.process_pending(db, llm_config, limit=20)
+        done += n
+        if n == 0:
+            break
+    return done
+
+
+class EdictOutcomeHandlerTests(unittest.TestCase):
+    def test_done_enqueues_edict_outcome(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "着户部即拨辽东军饷三十万两，毋得稽延")
+            _force_done(db, state, did)
+            self.assertEqual(
+                str(db.conn.execute(
+                    "SELECT lifecycle_status FROM turn_directives WHERE id=?", (did,)
+                ).fetchone()["lifecycle_status"]), "done")
+            kinds = [str(r["kind"]) for r in db.conn.execute(
+                "SELECT kind FROM llm_jobs WHERE status='pending'").fetchall()]
+            self.assertIn("edict_outcome", kinds)
+            self.assertNotIn("settle_note", kinds)  # 已被 edict_outcome 取代
+
+    def test_handler_template_fallback_writes_memorial(self):
+        """llm_config=None → 模板复命：outcome_status=extracted、settle_note 有值、复命奏报入御案。"""
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "着户部即拨辽东军饷三十万两，毋得稽延")
+            _force_done(db, state, did)
+            _drain_all(db, llm_config=None)
+            row = db.conn.execute(
+                "SELECT outcome_status, outcome_delta, settle_note FROM turn_directives WHERE id=?",
+                (did,)).fetchone()
+            self.assertEqual(str(row["outcome_status"]), "extracted")
+            self.assertEqual(json.loads(row["outcome_delta"] or "{}"), {})  # 模板兜底无数值
+            self.assertTrue(str(row["settle_note"]))
+            mem = db.conn.execute(
+                "SELECT * FROM memorials WHERE kind='复命' AND ref_kind='directive' AND ref_id=?",
+                (str(did),)).fetchall()
+            self.assertEqual(len(mem), 1)
+            self.assertEqual(str(mem[0]["status"]), "pending")
+
+    def test_handler_idempotent(self):
+        """worker 重复消费同一诏书不重复落复命奏报、状态不回退。"""
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "祭告太庙，旌表忠烈")
+            _force_done(db, state, did)
+            from ming_sim.edict_outcome import handle_edict_outcome
+            handle_edict_outcome(db, None, {"directive_id": did})
+            handle_edict_outcome(db, None, {"directive_id": did})  # 再来一次
+            mem = db.conn.execute(
+                "SELECT COUNT(*) c FROM memorials WHERE kind='复命' AND ref_id=?",
+                (str(did),)).fetchone()["c"]
+            self.assertEqual(mem, 1)
+
+
+class DrainPendingOutcomesTests(unittest.TestCase):
+    def _session(self, tmp: str) -> GameSession:
+        cfg = LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model")
+        return GameSession(str(Path(tmp) / "g.db"), cfg, verify_llm=False)
+
+    def _stage_done(self, sess: GameSession, text: str, delta: dict) -> int:
+        cur = sess.db.conn.execute(
+            "INSERT INTO turn_directives (turn, year, period, text, source, status, "
+            "lifecycle_status, progress, integrity_actual, integrity_reported, "
+            "outcome_delta, outcome_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (sess.state.turn, sess.state.year, sess.state.period, text, "test", "confirmed",
+             "done", 100, 100, 100, json.dumps(delta, ensure_ascii=False), "extracted"),
+        )
+        sess.db.conn.commit()
+        return int(cur.lastrowid)
+
+    def test_drain_applies_metric_and_economy(self):
+        with TemporaryDirectory() as tmp:
+            sess = self._session(tmp)
+            try:
+                minxin0 = int(sess.state.metrics.get("民心", 0))
+                guoku0 = int(sess.state.metrics.get("国库", 0))
+                did = self._stage_done(sess, "着即拨陕西赈济银二十万两，平粜安置流民", {
+                    "metric_delta": {"民心": 4},
+                    "economy_moves": [{"account": "国库", "delta": -20,
+                                       "category": "赈济", "reason": "陕西平粜"}],
+                })
+                results = sess.drain_pending_outcomes()
+                self.assertEqual(len(results), 1)
+                self.assertEqual(int(results[0]["directive_id"]), did)
+                self.assertEqual(int(sess.state.metrics.get("民心", 0)), minxin0 + 4)
+                # 国库支出经手有损耗（record_issue_economy_move 既有行为），只断言确有支出
+                self.assertLess(int(sess.state.metrics.get("国库", 0)), guoku0)
+                self.assertEqual(str(sess.db.conn.execute(
+                    "SELECT outcome_status FROM turn_directives WHERE id=?", (did,)
+                ).fetchone()["outcome_status"]), "applied")
+            finally:
+                sess.close()
+
+    def test_drain_idempotent(self):
+        """再次 drain 不重复落 delta（已 applied 不再处理）。"""
+        with TemporaryDirectory() as tmp:
+            sess = self._session(tmp)
+            try:
+                self._stage_done(sess, "祭告太庙", {"metric_delta": {"皇威": 3}})
+                huangwei0 = int(sess.state.metrics.get("皇威", 0))
+                sess.drain_pending_outcomes()
+                after = int(sess.state.metrics.get("皇威", 0))
+                self.assertEqual(after, huangwei0 + 3)
+                # 再 drain：无 extracted 行，皇威不再变
+                self.assertEqual(sess.drain_pending_outcomes(), [])
+                self.assertEqual(int(sess.state.metrics.get("皇威", 0)), after)
+            finally:
+                sess.close()
+
+
+class IssueDecreeContinuousFlowTests(unittest.TestCase):
+    """端到端（零 LLM）：颁诏解耦(write+lifecycle，不月末结算) → 连续推进跨月不卡 →
+    诏书到期 worker 产复命 → drain 落库。"""
+
+    def _session(self, tmp: str) -> GameSession:
+        cfg = LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model")
+        return GameSession(str(Path(tmp) / "g.db"), cfg, verify_llm=False)
+
+    def test_issue_then_mature_then_drain(self):
+        with TemporaryDirectory() as tmp:
+            sess = self._session(tmp)
+            try:
+                # 一条 draft，提供 decree 文本避免拟诏 LLM
+                sess.db.conn.execute(
+                    "INSERT INTO turn_directives (turn, year, period, text, source, status)"
+                    " VALUES (?,?,?,?,?,?)",
+                    (sess.state.turn, sess.state.year, sess.state.period,
+                     "着即拨陕西赈济银二十万两，平粜安置流民", "test", "draft"))
+                sess.db.conn.commit()
+                sess.resolve_turn(decree="着即拨陕西赈济银二十万两，平粜安置流民")
+                # 入了生命周期、不终结回合（仍可亲政）
+                did = int(sess.db.conn.execute(
+                    "SELECT id FROM turn_directives WHERE lifecycle_status!='' ORDER BY id DESC LIMIT 1"
+                ).fetchone()["id"])
+                self.assertEqual(str(sess.state.turn_phase), "summoning")
+
+                # 强制办结 + 连续推进（验证不卡月末）
+                turn0 = sess.state.turn
+                _force_done(sess.db, sess.state, did)
+                self.assertEqual(str(sess.db.conn.execute(
+                    "SELECT lifecycle_status FROM turn_directives WHERE id=?", (did,)
+                ).fetchone()["lifecycle_status"]), "done")
+                # worker（模板）产复命 + 暂存
+                _drain_all(sess.db, llm_config=None)
+                # 复命奏报已落御案
+                self.assertEqual(sess.db.conn.execute(
+                    "SELECT COUNT(*) c FROM memorials WHERE kind='复命' AND ref_id=?",
+                    (str(did),)).fetchone()["c"], 1)
+                # drain 落库（模板 delta 为空，状态仍应转 applied）
+                sess.drain_pending_outcomes()
+                self.assertEqual(str(sess.db.conn.execute(
+                    "SELECT outcome_status FROM turn_directives WHERE id=?", (did,)
+                ).fetchone()["outcome_status"]), "applied")
+
+                # 连续推进跨月：turn 自增、不停在月末
+                guard = 0
+                while sess.state.turn == turn0 and guard < 80:
+                    guard += 1
+                    r = timeflow.advance_days(sess.db, sess.state, 5, stop_on_yellow=False)
+                    if r["advanced"] == 0:
+                        break
+                self.assertGreater(sess.state.turn, turn0)
+            finally:
+                sess.close()
+
+
+class OfficeChangeTests(unittest.TestCase):
+    """人事诏：office_changes 名字护栏 + drain 真正改职（连续时间下不再失效）。"""
+
+    def test_scope_delta_drops_unnamed_office_changes(self):
+        from ming_sim.edict_outcome import _scope_delta
+        ctx = {"directive": "起复孙承宗，任为蓟辽督师，督理关宁", "allowed_issue_ids": []}
+        delta = {"office_changes": [
+            {"name": "孙承宗", "new_office": "蓟辽督师"},   # 原文有 → 保留
+            {"name": "张三丰", "new_office": "户部尚书"},    # 原文无 → 丢弃（防幽灵建档）
+            {"name": "", "new_office": "x"},                  # 空名 → 丢弃
+        ]}
+        out = _scope_delta(delta, ctx)["office_changes"]
+        self.assertEqual([o["name"] for o in out], ["孙承宗"])
+
+    def test_drain_applies_office_change_for_active_minister(self):
+        cfg = LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model")
+        with TemporaryDirectory() as tmp:
+            sess = GameSession(str(Path(tmp) / "g.db"), cfg, verify_llm=False)
+            try:
+                # 取一名在朝大臣
+                row = sess.db.conn.execute(
+                    "SELECT name, office FROM characters WHERE status='active' AND power_id='ming' "
+                    "AND office_type NOT IN ('后宫') LIMIT 1").fetchone()
+                name = str(row["name"]); old_office = str(row["office"] or "")
+                new_office = "钦命专办大臣"
+                sess.db.conn.execute(
+                    "INSERT INTO turn_directives (turn, year, period, text, source, status, "
+                    "lifecycle_status, progress, integrity_actual, integrity_reported, outcome_delta, outcome_status) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (sess.state.turn, sess.state.year, sess.state.period, f"着{name}改任{new_office}",
+                     "test", "confirmed", "done", 100, 100, 100,
+                     json.dumps({"office_changes": [{"name": name, "new_office": new_office, "reason": "test"}]}),
+                     "extracted"))
+                sess.db.conn.commit()
+                sess.drain_pending_outcomes()
+                cur = str(sess.db.conn.execute(
+                    "SELECT office FROM characters WHERE name=?", (name,)).fetchone()["office"] or "")
+                self.assertEqual(cur, new_office, f"{name} 改职未生效（{old_office}→应 {new_office}，实 {cur}）")
+            finally:
+                sess.close()
+
+
+class StatusChangeTests(unittest.TestCase):
+    """罢黜/革职 via 诏：character_status_changes 名字+状态护栏 + drain 真正去职。"""
+
+    def test_scope_delta_guards_status_changes(self):
+        from ming_sim.edict_outcome import _scope_delta
+        ctx = {"directive": "革职兵部尚书崔呈秀，下狱论罪", "allowed_issue_ids": []}
+        delta = {"character_status_changes": [
+            {"name": "崔呈秀", "status": "imprisoned"},  # 原文有+合法 → 保留
+            {"name": "崔呈秀", "status": "banished"},     # 非法状态 → 丢
+            {"name": "李四", "status": "dead"},           # 原文无 → 丢
+        ]}
+        out = _scope_delta(delta, ctx)["character_status_changes"]
+        self.assertEqual(out, [{"name": "崔呈秀", "status": "imprisoned"}])
+
+    def test_drain_applies_status_change(self):
+        cfg = LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model")
+        with TemporaryDirectory() as tmp:
+            sess = GameSession(str(Path(tmp) / "g.db"), cfg, verify_llm=False)
+            try:
+                row = sess.db.conn.execute(
+                    "SELECT name FROM characters WHERE status='active' AND power_id='ming' "
+                    "AND office_type NOT IN ('后宫') LIMIT 1").fetchone()
+                name = str(row["name"])
+                sess.db.conn.execute(
+                    "INSERT INTO turn_directives (turn, year, period, text, source, status, "
+                    "lifecycle_status, progress, integrity_actual, integrity_reported, outcome_delta, outcome_status) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (sess.state.turn, sess.state.year, sess.state.period, f"革职{name}，下狱论罪",
+                     "test", "confirmed", "done", 100, 100, 100,
+                     json.dumps({"character_status_changes": [{"name": name, "status": "imprisoned", "reason": "test"}]}),
+                     "extracted"))
+                sess.db.conn.commit()
+                sess.drain_pending_outcomes()
+                cur = str(sess.db.conn.execute(
+                    "SELECT status FROM characters WHERE name=?", (name,)).fetchone()["status"])
+                self.assertEqual(cur, "imprisoned", f"{name} 罢黜未生效（应 imprisoned，实 {cur}）")
+            finally:
+                sess.close()
+
+
+class InformationalMemorialTests(unittest.TestCase):
+    """复命/捷报作「结果通知」：已阅免精力、到期静默归档、不计淹没问责、不压 backlog。"""
+
+    def test_ack_costs_no_attention(self):
+        from ming_sim import memorials
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = kv_int(db, KV_CURRENT_DAY, 1)
+            memorials.reset_attention_for_day(db, day)
+            before = memorials.attention_left(db)
+            mid = memorials.create_memorial(db, state, day=day, author_name="孙承宗", org="辽东经略",
+                                            kind="复命", urgency=2, summary="复命：起复授辽东经略")
+            r = memorials.decide_memorial(db, state, mid, "ack", day=day)
+            self.assertTrue(r["ok"])
+            self.assertEqual(memorials.attention_left(db), before)  # 免精力
+            self.assertEqual(str(db.conn.execute(
+                "SELECT status FROM memorials WHERE id=?", (mid,)).fetchone()["status"]), "approved")
+
+    def test_informational_silent_expire_no_penalty(self):
+        from ming_sim import memorials
+        from ming_sim.upgrade_schema import KV_RISK_AVERSION, kv_int as _kvi
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            mid = memorials.create_memorial(db, state, day=1, author_name="孙承宗", org="辽东经略",
+                                            kind="复命", urgency=2, summary="复命")
+            ra_before = _kvi(db, KV_RISK_AVERSION, 40)
+            events = memorials.memorials_daily_tick(db, state, day=60)  # shelved=59 >= deadline(40)
+            self.assertEqual(str(db.conn.execute(
+                "SELECT status FROM memorials WHERE id=?", (mid,)).fetchone()["status"]), "expired")
+            # 无「淹没」问责事件、RA 不因结果通知而升
+            self.assertFalse(any(e.get("kind") == "memorial_expired" and e.get("ref_id") == str(mid)
+                                 for e in events))
+            self.assertEqual(_kvi(db, KV_RISK_AVERSION, 40), ra_before)
+
+    def test_backlog_excludes_informational(self):
+        from ming_sim import memorials
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = kv_int(db, KV_CURRENT_DAY, 1)
+            memorials.create_memorial(db, state, day=day, author_name="某", org="户部",
+                                      kind="请款", urgency=2, summary="请款")
+            memorials.create_memorial(db, state, day=day, author_name="孙承宗", org="辽东",
+                                      kind="复命", urgency=2, summary="复命")
+            desk = memorials.desk_payload(db, state, day)
+            self.assertEqual(desk["backlog"], 1)       # 只算请款
+            self.assertEqual(desk.get("info_count"), 1)  # 复命另计
+
+
+if __name__ == "__main__":
+    unittest.main()

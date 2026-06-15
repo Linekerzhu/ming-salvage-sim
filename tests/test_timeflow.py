@@ -36,28 +36,31 @@ class TimeflowBasics(unittest.TestCase):
             self.assertEqual(status["day_in_month"], 1)
             self.assertFalse(status["await_decree"])
 
-    def test_advance_stops_at_month_end(self):
+    def test_advance_rolls_over_to_next_month(self):
+        """连续时间：推过第30日自动跨月（turn+1），不再硬停等颁诏。"""
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)
             timeflow.ensure_active(db, state)
-            result = timeflow.advance_days(db, state, 999, stop_on_yellow=False)
-            self.assertLessEqual(result["advanced"], DAYS_PER_MONTH - 1)
-            status = timeflow.time_status(db, state)
-            if result["stopped_by"] == "month_end":
-                self.assertTrue(status["await_decree"])
+            turn0 = state.turn
+            guard = 0
+            while state.turn == turn0 and guard < 80:
+                guard += 1
+                r = timeflow.advance_days(db, state, 5, stop_on_yellow=False)
+                if r["advanced"] == 0:
+                    break
+            self.assertEqual(state.turn, turn0 + 1)
+            self.assertFalse(timeflow.time_status(db, state)["await_decree"])
 
     def test_xun_fiscal_shares_sum_to_month(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)
             timeflow.ensure_active(db, state)
             before = int(state.metrics["国库"]) + int(state.metrics["内库"])
-            # 推到月末（忽略红黄停顿，硬推）
+            # 推到月末第30日（连续时间下到第30日才跨月，故停在 month_end 前不触发 rollover）
             month_end = state.turn * DAYS_PER_MONTH
             while kv_int(db, KV_CURRENT_DAY, 0) < month_end:
-                r = timeflow.advance_days(db, state, 999, stop_on_yellow=False)
-                if r["advanced"] == 0 and r["stopped_by"] != "month_end":
-                    break
-                if r["stopped_by"] == "month_end":
+                r = timeflow.advance_days(db, state, 1, stop_on_yellow=False)
+                if r["advanced"] == 0:
                     break
             # 三旬全部落账
             self.assertEqual(kv_int(db, "upgrade.month_xun_applied", 0), 3)

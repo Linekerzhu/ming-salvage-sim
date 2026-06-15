@@ -1728,6 +1728,18 @@ class GameDB:
                 )
         self._migrate_arrears_unit_to_silver(is_fresh_armies_seed)
         self.conn.commit()
+        # 活的宫廷（CK3 化 P1）：从 npc_network 关系 + 派系播种好感网络与个人私心。幂等。
+        try:
+            from ming_sim.court import seed_court
+            seed_court(self)
+        except Exception as exc:  # 播种失败不阻断开局（宫廷层优雅降级）
+            print(f"[WARN] 活的宫廷播种失败：{exc}")
+        # 性格特质（CK3 化 P4）：从 ability_logic + 品阶播种 character_traits。幂等。
+        try:
+            from ming_sim.traits import seed_traits
+            seed_traits(self)
+        except Exception as exc:
+            print(f"[WARN] 性格特质播种失败：{exc}")
 
     def _reconcile_character_office_types(self) -> int:
         """迁移旧档：修正 office 与 office_type 不一致的原创/非常设官位。"""

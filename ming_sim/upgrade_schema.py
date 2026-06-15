@@ -130,6 +130,34 @@ def ensure_upgrade_schema(db: "GameDB") -> None:
             reason TEXT NOT NULL DEFAULT ''
         );
         CREATE INDEX IF NOT EXISTS idx_belief_logs_day ON belief_logs(key, day);
+
+        -- 活的宫廷（CK3 化 P1）：官员之间的双向好感网络。opinion = a 对 b 的好感 -100..100。
+        CREATE TABLE IF NOT EXISTS relationships (
+            a_name TEXT NOT NULL,
+            b_name TEXT NOT NULL,
+            opinion INTEGER NOT NULL DEFAULT 0,
+            basis TEXT NOT NULL DEFAULT '',
+            updated_day INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (a_name, b_name)
+        );
+        CREATE INDEX IF NOT EXISTS idx_rel_a ON relationships(a_name, opinion);
+        -- 个人私心：每个在朝官员一条暗中野心，驱动其自主出招（保举党羽/弹劾政敌…）。
+        CREATE TABLE IF NOT EXISTS npc_agendas (
+            name TEXT PRIMARY KEY,
+            kind TEXT NOT NULL DEFAULT '',
+            title TEXT NOT NULL DEFAULT '',
+            target_name TEXT NOT NULL DEFAULT '',
+            intensity INTEGER NOT NULL DEFAULT 50,
+            status TEXT NOT NULL DEFAULT 'active'
+        );
+        -- 性格特质（CK3 化 P4）：从 ability_logic + 品阶推导，落库且驱动行为/批红权重。
+        CREATE TABLE IF NOT EXISTS character_traits (
+            name TEXT NOT NULL,
+            trait TEXT NOT NULL,
+            valence INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (name, trait)
+        );
+        CREATE INDEX IF NOT EXISTS idx_traits_name ON character_traits(name);
         """
     )
     # S2 指令生命周期列（turn_directives 增列）
@@ -147,6 +175,10 @@ def ensure_upgrade_schema(db: "GameDB") -> None:
         "integrity_reported": "INTEGER NOT NULL DEFAULT 100",  # 奏报执行率（玩家可见）
         "anomaly": "TEXT NOT NULL DEFAULT ''",             # 当前未处置异常 JSON
         "settle_note": "TEXT NOT NULL DEFAULT ''",         # 完成结算叙事摘要
+        # 即时复命（变集中反馈为即时）：诏书到期由 worker 产复命叙事+暂存数值 delta，
+        # 主线程 drain_pending_outcomes 落库。outcome_status: ''→extracted→applied。
+        "outcome_delta": "TEXT NOT NULL DEFAULT ''",       # worker 暂存的单诏抽取结果 JSON
+        "outcome_status": "TEXT NOT NULL DEFAULT ''",      # ''(未到期/旧档)|extracted|applied
     }.items():
         db.ensure_column("turn_directives", column, definition)
 
@@ -159,6 +191,12 @@ def ensure_upgrade_schema(db: "GameDB") -> None:
 
     # S7 派系扩展列
     db.ensure_column("factions", "heat", "INTEGER NOT NULL DEFAULT 20")  # 敌意度 0-100
+
+    # 地方割据（CK3 化 P7）：边镇/督抚的离心自专度 0-100（欠饷/势弱/不忠/拥兵自重驱动）。
+    db.ensure_column("armies", "autonomy", "INTEGER NOT NULL DEFAULT 0")
+
+    # NPC 持续私人目标（CK3 化 P8）：私心的累进度 0-100，满则成局（拜相/败露/坐大/自重）。
+    db.ensure_column("npc_agendas", "progress", "INTEGER NOT NULL DEFAULT 0")
 
     # 召对撤回的时间线闸门（审计修复 P1-3）：召对快照只覆盖业务表，不含 kv/奏疏/调度表；
     # 「召对→推进N天→撤回」会把执行中旨意回滚 N 天而日历不回滚。记快照日，跨日禁撤。

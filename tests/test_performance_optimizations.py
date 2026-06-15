@@ -125,20 +125,23 @@ class PerformanceOptimizationTests(unittest.TestCase):
         )
 
     def test_frontend_api_payload_decoding_has_module_boundary(self) -> None:
+        # 移动端重做后：app 代码经 web/src/mobile/api.ts 复用 api/client + payloads，
+        # 不在 app 内重写解码/SSE 逻辑。边界检查落到实际消费者 mobile/api.ts。
         root = Path(__file__).resolve().parents[1]
-        main_src = (root / "web" / "src" / "main.tsx").read_text(encoding="utf-8")
+        mobile_api_src = (root / "web" / "src" / "mobile" / "api.ts").read_text(encoding="utf-8")
         client_src = (root / "web" / "src" / "api" / "client.ts").read_text(encoding="utf-8")
         payloads_src = (root / "web" / "src" / "api" / "payloads.ts").read_text(encoding="utf-8")
 
-        self.assertIn('from "./api/client"', main_src)
-        self.assertIn('from "./api/payloads"', main_src)
+        self.assertIn('from "../api/client"', mobile_api_src)
+        self.assertIn('from "../api/payloads"', mobile_api_src)
         self.assertIn("export const api", client_src)
         self.assertIn("export const streamJsonSse", client_src)
         self.assertIn("export const normalizeGameState", payloads_src)
         self.assertIn("export const decodeMapNodes", payloads_src)
-        self.assertNotIn("const decodeRows =", main_src)
-        self.assertNotIn("const normalizeGameState =", main_src)
-        self.assertNotIn("const parseSseMessage =", main_src)
+        # app/mobile 层不得重新实现解码/SSE 原语
+        self.assertNotIn("const decodeRows =", mobile_api_src)
+        self.assertNotIn("const normalizeGameState =", mobile_api_src)
+        self.assertNotIn("const parseSseMessage =", mobile_api_src)
 
     def test_module_registry_defines_quasi_hot_plug_boundaries(self) -> None:
         specs = module_specs()

@@ -4594,6 +4594,11 @@ async def api_time_advance(body: TimeAdvanceRequest) -> Dict[str, Any]:
     days = max(1, min(30, int(body.days)))
     with _settlement_guard(game):
         result = timeflow.advance_days(game.db, game.state, days, stop_on_yellow=body.stop_on_yellow)
+        # 即时复命：把 worker 已产出的到期诏书结果落库（数值生效 + 判结局）。
+        try:
+            result["outcomes_applied"] = game.session.drain_pending_outcomes()
+        except Exception as exc:
+            _LOG.warning("drain_pending_outcomes 失败：%s", exc)
     return _response_with_state(game, result)
 
 
@@ -5089,6 +5094,39 @@ async def api_character_detail(character_name: str) -> Dict[str, Any]:
     )
 
 
+@app.get("/api/decision")
+async def api_decision() -> Dict[str, Any]:
+    """当前待决的抉择事件（CK3 化 P2）。无则 {decision: None}。"""
+    from ming_sim.court_events import pending_payload
+    game = get_game()
+    return _plain_payload({"decision": pending_payload(game.db)})
+
+
+@app.post("/api/decision/resolve")
+async def api_decision_resolve(body: Dict[str, Any]) -> Dict[str, Any]:
+    """玩家落子：应用所选后果，清待决。"""
+    from ming_sim import timeflow
+    from ming_sim.court_events import resolve_decision
+    game = get_game()
+    key = str((body or {}).get("choice") or "").strip()
+    with _settlement_guard(game):
+        day = timeflow.ensure_active(game.db, game.state)
+        result = resolve_decision(game.db, game.state, key, day=day)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=str(result.get("message")))
+    return _plain_payload(result)
+
+
+@app.get("/api/court/{character_name}")
+async def api_court(character_name: str) -> Dict[str, Any]:
+    """活的宫廷（CK3 化 P1）：某官员的私心 + 党羽 + 政敌（双向好感网络）。"""
+    from ming_sim.court import court_payload
+    game = get_game()
+    if character_name not in game.content.characters:
+        raise HTTPException(status_code=404, detail=f"未找到人物：{character_name}")
+    return _plain_payload(court_payload(game.db, character_name))
+
+
 @app.post("/api/favorites/{minister_name}")
 async def api_add_favorite(minister_name: str) -> Dict[str, Any]:
     game = get_game()
@@ -5135,6 +5173,40 @@ def _require_active_minister(minister_name: str, action_label: str = "召见") -
         label = _STATUS_LABEL_WEB.get(status, status)
         detail = f"{minister_name}{label}，无法{action_label}。" + (reason or "")
         raise HTTPException(status_code=409, detail=detail.strip())
+
+
+@app.get("/api/eunuch")
+async def api_eunuch() -> Dict[str, Any]:
+    """在任随侍太监（人治之门）：皇帝直接对话之人。无则 None（召对回退直选官员）。"""
+    from ming_sim.eunuch import eunuch_role_brief, get_attending_eunuch
+    game = get_game()
+    name = get_attending_eunuch(game.db)
+    if not name:
+        return {"eunuch": None}
+    character = game.session._character(name)
+    card = game.public_character(character)
+    return {"eunuch": card, "brief": eunuch_role_brief(name, card.get("office", "") if isinstance(card, dict) else "")}
+
+
+@app.get("/api/eunuch/candidates")
+async def api_eunuch_candidates() -> Dict[str, Any]:
+    """可任随侍者（宦官置顶；人皆可换）。"""
+    from ming_sim.eunuch import list_candidates
+    game = get_game()
+    return {"candidates": list_candidates(game.db)}
+
+
+@app.post("/api/eunuch/replace")
+async def api_eunuch_replace(body: Dict[str, Any]) -> Dict[str, Any]:
+    """换随侍太监。"""
+    from ming_sim.eunuch import set_attending_eunuch
+    game = get_game()
+    name = str((body or {}).get("name") or "").strip()
+    result = set_attending_eunuch(game.db, name)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=str(result.get("message")))
+    character = game.session._character(name)
+    return {"message": result["message"], "eunuch": game.public_character(character)}
 
 
 @app.get("/api/ministers/{minister_name}/chat")

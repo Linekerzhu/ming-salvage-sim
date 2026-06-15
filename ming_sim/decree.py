@@ -16,7 +16,6 @@ from ming_sim.agents import (
     create_agreement_reviewer_agent,
     create_chapter_memory_agent,
     create_decree_writer_agent,
-    create_ending_summary_agent,
     create_json_sanitizer_agent,
     create_score_extractor_module_agent,
     create_season_simulator_agent,
@@ -26,14 +25,15 @@ from ming_sim.agents import (
 from ming_sim.constants import ECONOMY_ACCOUNTS, TURN_UNIT
 from ming_sim.bureaucracy import secret_order_actor_assessment
 from ming_sim.causality import build_turn_causal_notes
-from ming_sim.context import ENDING_LABELS, ENDING_ONGOING, ENDING_TIMEOUT, victory_status
+from ming_sim.context import ENDING_LABELS
 from ming_sim.db import GameDB
 from ming_sim.dialogue_goals import review_conversation_goals
+from ming_sim.endings import TIMEOUT_TURN, evaluate_and_finalize
 from ming_sim.exceptions import LLMContractError, LLMUnavailable
 from ming_sim.issues import apply_issue_inertia_and_ongoing, apply_score_extraction, auto_trigger_seed_issues, clear_gated_legacies
 from ming_sim.llm_model import extract_agent_text, llm_unavailable_from_error
 from ming_sim.models import GameState, LLMConfig
-from ming_sim.memories import build_timeline, record_chapter_memory
+from ming_sim.memories import record_chapter_memory
 from ming_sim.simulation import (
     EXTRACTION_MODULES,
     build_simulator_payload,
@@ -42,10 +42,6 @@ from ming_sim.simulation import (
     simulate_season_with_payload,
 )
 from ming_sim.token_stats import tlog
-
-# 20 年自动结算：开局 1627.10（turn=1），每回合 +1 月。到 1647.10 = (1647-1627)*12 + 1 = 241 回合。
-# 满 240 回合（即第 240 个回合结算完，1647.09）仍未分胜负则强制 timeout 收尾。
-TIMEOUT_TURN = 240
 
 # 作弊控制台强制结算项的唯一标记前缀。只在 resolve_directives 拼一次（cheat 非空时），
 # extractor 看到它即知如何处理 → 规则内联在此，不进任何固定 prompt（避免污染缓存）。
@@ -621,30 +617,12 @@ def resolve_directives(
         db.record_log(state, f"帝国修正消除：{name}")
 
     # 8) 结局判定：叙事型（退位/自尽，applied 已带）→ 数值型（京畿失守）→ 到期型（20 年/240 回合）。
-    #    state.turn 此刻仍是刚结算完的本回合（next_period 之前）。
-    #    结局只触发一次：已 ended 的存档继续推进时不重判、不重生总评（省 token、不反复弹页）。
-    outcome = None
-    ended = False
-    ending_text = ""
-    if not state.ended:
-        outcome = applied.get("victory_status") or victory_status(db, state)
-        if (
-            isinstance(outcome, dict)
-            and outcome.get("status") == ENDING_ONGOING
-            and state.turn >= TIMEOUT_TURN
-        ):
-            outcome = {
-                "status": ENDING_TIMEOUT,
-                "summary": "崇祯在位二十载，朝局至此尘埃落定，是中兴、是苟延、还是衰亡，自有史评。",
-            }
-
-        ended = isinstance(outcome, dict) and outcome.get("status") != ENDING_ONGOING
-        if ended:
-            db.record_log(state, f"结局判定：{outcome.get('summary', '')}")
-            # 章节记忆（含本回合）已落库，国史编纂官读全程生成结局总评。
-            ending_text = _generate_ending_summary(db, state, llm_config, agno_db, outcome, _emit)
-            state.ended = True
-            state.ending_status = str(outcome.get("status") or "")
+    #    state.turn 此刻仍是刚结算完的本回合（next_period 之前）。判定/总评逻辑见 endings.py，
+    #    与即时复命 drain 共用同一入口；已 ended 的存档不重判（state.ended 闸门）。
+    _ending = evaluate_and_finalize(db, state, llm_config, agno_db, applied=applied, emit=_emit)
+    ended = _ending["ended"]
+    outcome = _ending["outcome"]
+    ending_text = _ending["ending_text"]
 
     db.mark_directives_issued(state)
     state.next_period()
@@ -661,72 +639,3 @@ def resolve_directives(
     adventure_section = f"\n\n{adventure_narrative}" if adventure_narrative else ""
     full_report = f"\n本{TURN_UNIT}颁布诏书：\n" + decree_text + "\n\n" + narrative + adventure_section + ending
     return full_report
-
-
-def _generate_ending_summary(
-    db: GameDB,
-    state: GameState,
-    llm_config: LLMConfig,
-    agno_db: SqliteDb,
-    outcome: Dict[str, object],
-    _emit: Callable[[str, str], None],
-) -> str:
-    """国史编纂官读全部章节记忆生成结局总评，落库 ending_summary（含逐回合时间线）。
-    LLM 失败时用章节拼保底总评。返回总评正文（也已落库）。"""
-    chapters = db.list_chapter_memories(upto_turn=state.turn)
-    timeline = build_timeline(db, upto_turn=state.turn)
-    summary_text = ""
-    try:
-        _emit("stage", "国史编纂结局总评")
-        ending_agent = create_ending_summary_agent(llm_config, agno_db)
-        payload = {
-            "ending": {"status": outcome.get("status"), "summary": outcome.get("summary")},
-            "chapters": chapters,
-            "final_state": {
-                "year": state.year, "period": state.period, "turn": state.turn,
-                "metrics": dict(state.metrics),
-            },
-        }
-        payload_json = json.dumps(payload, ensure_ascii=False, sort_keys=False)
-        tlog(f"[ending-summary/INPUT] chapters={len(chapters)} ({len(payload_json)}字)")
-        summary_text = run_agent_text(ending_agent, payload_json, tag="ending-summary").strip()
-        tlog(f"[ending-summary/OUTPUT] ({len(summary_text)}字)")
-    except Exception as exc:
-        tlog(f"[ending-summary] LLM 失败，走保底：{exc}")
-
-    if not summary_text:
-        bits = [str(outcome.get("summary") or "")]
-        for c in chapters[-6:]:
-            body = (c.get("body") or "").strip()
-            if body:
-                bits.append(f"{c['year']}年{c['period']}月：{body}")
-        summary_text = "\n".join(b for b in bits if b)
-
-    # 结局光谱（S12）：按中兴指数+任事意愿归档基调，喂史笔定笔调。
-    spectrum: Dict[str, str] = {}
-    try:
-        from ming_sim.zhongxing import spectrum_label
-        spectrum = spectrum_label(db, state, str(outcome.get("status") or ""))
-        db.kv_set("upgrade.ending_spectrum", json.dumps(spectrum, ensure_ascii=False))
-        summary_text = f"【结局归档：{spectrum['label']}】（中兴指数 {spectrum['zhongxing']}）\n" + summary_text
-        outcome["spectrum"] = spectrum
-    except Exception as exc:
-        tlog(f"[spectrum] 归档跳过：{exc}")
-
-    # 史笔立传（S11）：明史馆史官按实际作为定笔调，为这位崇祯作传。
-    try:
-        from ming_sim.shibi import generate_biography
-        _emit("stage", "明史馆立传")
-        biography = generate_biography(db, state, llm_config, outcome)
-        if biography:
-            summary_text = summary_text + "\n\n【明史·本纪】\n" + biography
-    except Exception as exc:
-        tlog(f"[shibi] 立传跳过：{exc}")
-
-    try:
-        db.save_ending_summary(
-            state, str(outcome.get("status") or ""), summary_text, timeline,
-        )
-    except Exception as exc:
-        tlog(f"[ending-summary] 落库失败：{exc}")
-    return summary_text

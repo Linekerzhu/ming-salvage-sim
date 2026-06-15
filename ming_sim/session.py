@@ -28,7 +28,8 @@ from ming_sim.context import (
 from ming_sim.db import GameDB, effective_stored_office_type, infer_assignment_office_type, normalize_office
 from ming_sim.decree import advance_without_edict, resolve_directives, write_decree_with_agno
 from ming_sim.dialogue_goals import PreparedDialogue, prepare_dialogue_context, record_dialogue_effects
-from ming_sim.issues import bind_content as _bind_issues
+from ming_sim.endings import evaluate_and_finalize
+from ming_sim.issues import apply_score_extraction, bind_content as _bind_issues
 from ming_sim.issues import sync_opening_legacies
 from ming_sim.hook_runner import HookRunner, build_default_hook_runner
 from ming_sim.llm_model import create_agno_db, extract_agent_text, verify_llm_available
@@ -738,6 +739,21 @@ class GameSession:
         draft_line = self.registry.build_draft_line() if self.registry is not None else ""
         if draft_line and draft_line != "无":
             augmented = f"【本{TURN_UNIT}已核定草案】{draft_line}\n\n{augmented}"
+        # 随侍太监枢纽：与在任随侍对话时注入其「随侍」身份简报（人治之门，可换人）。
+        try:
+            from ming_sim.eunuch import eunuch_role_brief, get_attending_eunuch
+            if character.name == get_attending_eunuch(self.db):
+                augmented = f"{eunuch_role_brief(character.name, character.office)}\n\n{augmented}"
+        except Exception:
+            pass
+        # 活的宫廷（CK3 化 P1）：注入该官员的私心与党羽/政敌，让其据此演绎而非给通用稳妥答案。
+        try:
+            from ming_sim.court import court_brief
+            cb = court_brief(self.db, character.name)
+            if cb:
+                augmented = f"{cb}\n\n{augmented}"
+        except Exception:
+            pass
         return augmented, dialogue_prep
 
     def record_dialogue_after_chat(
@@ -772,6 +788,21 @@ class GameSession:
         if self.registry is None:
             raise RuntimeError("GameSession.begin_turn() 未调用。")
         character = self._character(minister_name)
+        # 精力稀缺（注意力即时辰）：召见大臣每轮耗 1 精力——随侍太监常侍在侧，免费。
+        # 精力有限逼出取舍：皇帝不可能事事亲为，须把事托付给官僚体系（信任 vs 微操）。
+        try:
+            from ming_sim import memorials
+            from ming_sim.eunuch import get_attending_eunuch
+            from ming_sim.timeflow import ensure_active
+            if minister_name != get_attending_eunuch(self.db):
+                day = ensure_active(self.db, self.state)
+                memorials.reset_attention_for_day(self.db, day)
+                if not memorials.consume_attention(self.db, 1):
+                    return ChatTurnResult(answer=(
+                        "（内侍躬身近前，低声）陛下今日召对已多，精力难支。"
+                        "不如推迟时日、养息再议——朝中诸事，亦当托付臣工分理，陛下不必事事亲见。"))
+        except Exception:
+            pass
         # 控制指令（退下/换人/技能）由 CLI 层 parse_court_command 处理；
         # GameSession.chat 只负责与 agent 对话与 tool 截获。
         agent = self.registry.get(character)
@@ -1191,35 +1222,91 @@ class GameSession:
         return self.last_decree
 
     def resolve_turn(self, decree: str = "", on_event=None, cheat_directive: str = "") -> str:
-        """颁诏并推演本回合。要求无 pending 残留、≥1 条 draft。
+        """颁诏（连续时间）：写诏 + 入指令生命周期，不再月末集中结算。
+        诸旨各自到期由 lifecycle→edict_outcome 即时复命、drain_pending_outcomes 落库。
+        颁诏后继续亲政（可再颁诏、推时日），时间由 /api/time/advance 连续推进。
 
-        on_event(kind, data): 推演过程实时回调，透传给 resolve_directives。
-        cheat_directive: 作弊控制台强制结算项，一次性透传给 resolve_directives。
+        on_event(kind, data): 阶段/正文回调（兼容流式端点）。
+        cheat_directive: 旧月末强制结算项，连续时间下已无月末结算入口，忽略。
         """
         if self.pending_count() > 0:
             raise ValueError(f"尚有 {self.pending_count()} 道大臣拟旨待陛下核定（准/驳），不能颁诏。")
         directives = self.db.list_directives(self.state, statuses=("draft",))
         if not directives:
             raise ValueError("网页/CLI 端不允许跳过回合：至少一条草案才能颁诏。")
-        # 结算前先存一份：LLM 推演有可能崩，留个回滚锚点
+
+        def _emit(kind: str, data: str) -> None:
+            if on_event:
+                on_event(kind, data)
+
+        # 颁诏前存一份回滚锚点（拟诏 LLM 可能崩）
         self.auto_save("preresolve")
+        _emit("stage", "拟诏润色")
         decree_text = decree or self.last_decree or write_decree_with_agno(
             self.llm_config, self.agno_db, self.state, directives, db=self.db
         )
-        report = resolve_directives(
-            self.state, self.db, self.agno_db, self.llm_config,
-            directives, decree_text, deaths_this_turn=self.deaths_this_turn,
-            debuts_this_turn=self.debuts_this_turn,
-            on_event=on_event,
-            content=self.content, registry=self.registry,
-            cheat_directive=cheat_directive,
-        )
-        self.last_report = report
+        from ming_sim.timeflow import ensure_active
+        from ming_sim.lifecycle import init_directive_lifecycles
+        _emit("stage", "颁诏入流程")
+        day = ensure_active(self.db, self.state)
+        inited = init_directive_lifecycles(self.db, self.state, directives, day)
+        self.db.mark_directives_issued(self.state)
         self.last_decree = decree_text
-        # resolve_directives 已 next_period + save_state；阶段标 issued
-        self.state.turn_phase = TurnPhase.ISSUED.value
+        # 颁诏不终结回合：继续召见亲政（半即时单循环）
+        self.state.turn_phase = TurnPhase.SUMMONING.value
         self.db.save_state(self.state)
+
+        lines = [f"奉天承运皇帝，诏曰：\n{decree_text}\n"]
+        if inited:
+            lines.append("——诸旨已下，各有所司，候其到期复命：")
+            for it in inited:
+                lines.append(
+                    f"〔{str(it.get('category_name') or '')}〕主办 {it.get('assignee') or '—'}，"
+                    f"约第 {it.get('eta_day')} 日见分晓。")
+        else:
+            lines.append("（诸旨此前已在办，未有新入流程者。）")
+        report = "\n".join(lines)
+        _emit("text", report)
+        self.last_report = report
         return report
+
+    def drain_pending_outcomes(self) -> List[Dict[str, object]]:
+        """即时复命落库（主线程）：把 worker 暂存的单诏 delta 应用到 state/db。
+
+        worker（独立连接，无 GameState/content/registry）只产复命奏报 + 暂存 outcome_delta；
+        数值落库恒在此（持有 self.state/self.content/self.registry）。落 delta 后即判结局——
+        结局不再只在月末判。幂等：只处理 outcome_status='extracted' 的，落完置 applied。
+        返回 [{directive_id, applied}]。"""
+        rows = self.db.conn.execute(
+            "SELECT id, outcome_delta FROM turn_directives WHERE outcome_status='extracted' ORDER BY id"
+        ).fetchall()
+        results: List[Dict[str, object]] = []
+        for row in rows:
+            did = int(row["id"])
+            try:
+                delta = json.loads(row["outcome_delta"] or "{}")
+            except ValueError:
+                delta = {}
+            applied: Dict[str, object] = {}
+            if isinstance(delta, dict) and delta:
+                try:
+                    applied = apply_score_extraction(
+                        self.db, self.state, delta, content=self.content, registry=self.registry)
+                    self.state.clamp()
+                except Exception as exc:
+                    from ming_sim.token_stats import tlog
+                    tlog(f"[drain_outcome] 旨意#{did} 落 delta 失败，跳过：{exc}")
+            self.db.conn.execute(
+                "UPDATE turn_directives SET outcome_status='applied' WHERE id=?", (did,))
+            self.db.conn.commit()
+            self.db.save_state(self.state)
+            results.append({"directive_id": did, "applied": applied})
+        # 落了任何 delta 后判结局（叙事型/数值型/到期型；state.ended 闸门保证不重判）
+        if results:
+            ending = evaluate_and_finalize(self.db, self.state, self.llm_config, self.agno_db)
+            if ending["ended"]:
+                self.db.save_state(self.state)
+        return results
 
     def advance_without_decree(self) -> None:
         """CLI 退朝无草案：仅财政 tick + 推进。"""

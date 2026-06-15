@@ -157,7 +157,8 @@ def register_handler(kind: str, fn: Callable) -> None:
 
 def _load_extra_handlers() -> None:
     """惰性加载会自注册 handler 的模块（worker 线程可能先于主流程消费到这些任务）。"""
-    for module in ("ming_sim.memorials", "ming_sim.theater", "ming_sim.veil"):
+    for module in ("ming_sim.memorials", "ming_sim.theater", "ming_sim.veil",
+                   "ming_sim.edict_outcome"):
         try:
             __import__(module)
         except Exception:

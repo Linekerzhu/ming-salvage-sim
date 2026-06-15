@@ -1226,6 +1226,13 @@ def apply_score_extraction(
             status,
             reason,
         ))
+        # 活的宫廷涟漪：罢/狱/流/死牵动其党羽（怨怒）与政敌（称快）。
+        if status in {"dismissed", "imprisoned", "exiled", "dead"}:
+            try:
+                from ming_sim.court import ripple_personnel
+                ripple_personnel(db, name, "oust")
+            except Exception:
+                pass
 
     # 9b) character_power_changes：人物易主（降将/叛臣/归正）
     applied_power_changes: List[Dict[str, object]] = []
@@ -1459,6 +1466,15 @@ def apply_score_extraction(
                 "kind": "appoint",
                 "reason": f"建档失败（查重/字段不合）；原 status={cur_status or '不在册'}",
             })
+
+    # 活的宫廷涟漪：起复/擢升/任命（成功的 office_changes）令其人感念、党羽欣慰、政敌戒备。
+    try:
+        from ming_sim.court import ripple_personnel
+        for oc in applied_office_changes:
+            if not oc.get("rejected") and oc.get("name"):
+                ripple_personnel(db, str(oc["name"]), "favor")
+    except Exception:
+        pass
 
     # 11) secret_order_updates：推演写 active 密令副作用（泄漏/反弹）到 sim_note。结案不走这里。
     applied_secret_orders: List[Dict[str, object]] = []

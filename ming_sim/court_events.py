@@ -1,0 +1,444 @@
+"""抉择事件（CK3 化 P2）：朝局演化到某种张力，弹出一道「请陛下裁断」的抉择——
+2-4 个选项各有真实后果（势/任事/民心/派系/好感网涟漪），玩家从"被动看推演"变为"主动落子"。
+
+事件**涌现自活的宫廷**：宿敌互讦、孤忠蒙谤、朋党盈廷——触发条件读 court 的好感网与派系状态，
+后果亦回写好感网（ripple）。一次至多一道待决；同类事件 60 日内不重复（cooldown）。
+"""
+
+from __future__ import annotations
+
+import json
+from typing import Callable, Dict, List, Optional
+
+from ming_sim.db import GameDB
+from ming_sim.models import GameState
+from ming_sim import court
+from ming_sim.upgrade_schema import (
+    KV_RISK_AVERSION,
+    KV_SHI,
+    adjust_belief,
+)
+
+KV_PENDING = "upgrade.pending_decision"
+KV_COOLDOWN = "upgrade.decision_cooldowns"
+COOLDOWN_DAYS = 60
+
+
+# ── 效果执行（声明式：选项后果是数据，统一落库）─────────────────────────────
+
+def _apply_effect(db: GameDB, state: GameState, eff: Dict[str, object], day: int) -> str:
+    parts: List[str] = []
+    shi = int(eff.get("shi") or 0)
+    if shi:
+        adjust_belief(db, KV_SHI, shi, str(eff.get("log") or "抉择"), day=day)
+        parts.append(f"君威{'+' if shi > 0 else ''}{shi}")
+    renshi = int(eff.get("renshi") or 0)
+    if renshi:  # 任事意愿↑ ⇔ 风险厌恶↓
+        # 崇祯猜忌多疑 → 任事的负向波动被放大（崇祯陷阱加深），正向不变。
+        if renshi < 0:
+            try:
+                from ming_sim.traits import emperor_renshi_amplifier
+                renshi = int(round(renshi * emperor_renshi_amplifier(db)))
+            except ImportError:
+                pass
+        adjust_belief(db, KV_RISK_AVERSION, -renshi, str(eff.get("log") or "抉择"), day=day)
+        parts.append(f"任事{'+' if renshi > 0 else ''}{renshi}")
+    for k, v in (eff.get("metrics") or {}).items():
+        cur = int(state.metrics.get(k, 0))
+        state.metrics[k] = max(0, min(100, cur + int(v))) if k in ("民心", "皇威") else cur + int(v)
+        parts.append(f"{k}{'+' if int(v) > 0 else ''}{int(v)}")
+    fac = eff.get("faction") or {}
+    if fac:
+        db.adjust_factions(fac)
+        for fn, fv in fac.items():
+            sd = int(fv.get("satisfaction") or 0) if isinstance(fv, dict) else 0
+            if sd:
+                parts.append(f"{fn}满意{'+' if sd > 0 else ''}{sd}")
+    for op in (eff.get("opinion") or []):
+        court.adjust_opinion(db, str(op["a"]), str(op["b"]), int(op["delta"]),
+                             str(op.get("basis") or ""), day=day)
+    for rp in (eff.get("ripple") or []):
+        court.ripple_personnel(db, str(rp["name"]), str(rp.get("kind") or "oust"), day=day)
+    for ch in (eff.get("char") or []):
+        court._adjust_char(db, str(ch["name"]),
+                           emp_trust=int(ch.get("emp_trust") or 0),
+                           grievance=int(ch.get("grievance") or 0))
+    for am in (eff.get("army") or []):
+        sets, params = [], []
+        if "autonomy" in am:
+            sets.append("autonomy=MAX(0,MIN(100,autonomy+?))"); params.append(int(am["autonomy"]))
+        if "loyalty" in am:
+            sets.append("loyalty=MAX(0,MIN(100,loyalty+?))"); params.append(int(am["loyalty"]))
+        if "arrears" in am:
+            sets.append("arrears=MAX(0,arrears+?)"); params.append(int(am["arrears"]))
+        if sets:
+            db.conn.execute(f"UPDATE armies SET {', '.join(sets)} WHERE id=?", (*params, am["id"]))
+    ap = eff.get("appoint")
+    if ap and ap.get("name") and ap.get("office"):
+        db.conn.execute("UPDATE characters SET office=? WHERE name=? AND status='active'",
+                        (str(ap["office"]), str(ap["name"])))
+        court.ripple_personnel(db, str(ap["name"]), "favor", day=day)
+        parts.append(f"擢{ap['name']}")
+    db.conn.commit()
+    db.save_state(state)
+    if eff.get("log"):
+        db.record_log(state, str(eff["log"]))
+    return "；".join(parts) if parts else "圣意已决"
+
+
+# ── 触发条件助手 ──────────────────────────────────────────────────────────────
+
+def _deepest_rivalry(db: GameDB) -> Optional[Dict[str, object]]:
+    """宿敌互讦：当一封弹章把两个宿敌（opinion ≤ -55）的积怨摆上台面时触发——
+    抉择系于"事发"（弹章已上），而非开局的静态恩怨，故不会一推进就弹。"""
+    row = db.conn.execute(
+        "SELECT m.author_name AS a, m.ref_id AS b, r.opinion AS op, r.basis AS basis "
+        "FROM memorials m "
+        "JOIN relationships r ON r.a_name=m.author_name AND r.b_name=m.ref_id "
+        "JOIN characters ca ON ca.name=m.author_name AND ca.status='active' AND ca.power_id='ming' "
+        "JOIN characters cb ON cb.name=m.ref_id AND cb.status='active' AND cb.power_id='ming' "
+        "WHERE m.kind='弹章' AND m.status='pending' AND m.ref_kind='character' "
+        "AND r.opinion<=-55 ORDER BY r.opinion ASC LIMIT 1"
+    ).fetchone()
+    if row is None:
+        return None
+    a, b = str(row["a"]), str(row["b"])
+    oa = db.conn.execute("SELECT office, faction FROM characters WHERE name=?", (a,)).fetchone()
+    ob = db.conn.execute("SELECT office, faction FROM characters WHERE name=?", (b,)).fetchone()
+    return {"a": a, "b": b, "basis": str(row["basis"] or "夙怨"),
+            "a_office": str(oa["office"] or ""), "b_office": str(ob["office"] or ""),
+            "a_faction": str(oa["faction"] or ""), "b_faction": str(ob["faction"] or "")}
+
+
+def _slandered_loyal(db: GameDB) -> Optional[Dict[str, object]]:
+    """高节高忠却被政敌弹劾的孤臣：有在朝政敌 + 近期一封针对其的弹章。"""
+    row = db.conn.execute(
+        "SELECT m.author_name AS accuser, m.ref_id AS victim, m.id AS mid "
+        "FROM memorials m JOIN characters cv ON cv.name=m.ref_id "
+        "WHERE m.kind='弹章' AND m.status='pending' AND m.ref_kind='character' "
+        "AND cv.status='active' AND cv.power_id='ming' AND cv.integrity>=68 AND cv.loyalty>=65 "
+        "ORDER BY m.id DESC LIMIT 1"
+    ).fetchone()
+    if row is None:
+        return None
+    victim, accuser = str(row["victim"]), str(row["accuser"])
+    vo = db.conn.execute("SELECT office FROM characters WHERE name=?", (victim,)).fetchone()
+    return {"victim": victim, "accuser": accuser,
+            "victim_office": str(vo["office"] or "") if vo else "", "mid": int(row["mid"])}
+
+
+def _succession(db: GameDB) -> Optional[Dict[str, object]]:
+    """要职出缺（重臣病逝）：取候选三人——党羽续统 / 异党新进 / 不党能臣，请陛下简替。"""
+    from ming_sim.lifespan import pop_vacancy, vacancies
+    vs = vacancies(db)
+    if not vs:
+        return None
+    vac = vs[0]
+    office = str(vac.get("office") or "")
+    deceased = str(vac.get("deceased") or "")
+    dfac = str(vac.get("faction") or "")
+
+    def _pick(where: str, params: tuple) -> Optional[str]:
+        row = db.conn.execute(
+            "SELECT name FROM characters WHERE status='active' AND power_id='ming' "
+            "AND office_type!='后宫' AND name!=? " + where + " ORDER BY ability DESC LIMIT 1",
+            (deceased, *params)).fetchone()
+        return str(row["name"]) if row else None
+
+    cand: List[Dict[str, str]] = []
+    seen = set()
+    ally = court.allies_of(db, deceased, limit=1)
+    if ally and ally[0]["name"] not in seen:
+        cand.append({"name": ally[0]["name"], "flavor": "党羽续统（萧规曹随，本派得安）"}); seen.add(ally[0]["name"])
+    if dfac and dfac not in ("", "无", "中立"):
+        rn = _pick("AND faction!=? AND faction NOT IN ('无','中立')", (dfac,))
+        if rn and rn not in seen:
+            cand.append({"name": rn, "flavor": "异党新进（锐意任事，借机掺沙）"}); seen.add(rn)
+    neu = _pick("AND (faction='中立' OR faction='无')", ())
+    if neu and neu not in seen:
+        cand.append({"name": neu, "flavor": "不党能臣（持平无私，两不开罪）"}); seen.add(neu)
+    while len(cand) < 2:
+        extra = _pick("AND name NOT IN (%s)" % (",".join("?" * len(seen)) or "''"), tuple(seen))
+        if not extra or extra in seen:
+            break
+        cand.append({"name": extra, "flavor": "资深堪任"}); seen.add(extra)
+    if len(cand) < 2:
+        return None
+    pop_vacancy(db)  # 既已立为待决，从队列取出（待决本身即记录）
+    return {"office": office, "deceased": deceased, "candidates": cand[:3]}
+
+
+def _warlord(db: GameDB) -> Optional[Dict[str, object]]:
+    """封疆跋扈：某镇离心≥72 入队 → 请陛下裁断（加饷羁縻/削权裁抑/暂事姑息）。"""
+    from ming_sim.frontier import pop_warlord, warlord_queue
+    q = warlord_queue(db)
+    if not q:
+        return None
+    head = q[0]
+    # 校验该镇仍在且仍跋扈
+    row = db.conn.execute("SELECT autonomy, arrears, maintenance_per_turn FROM armies WHERE id=?",
+                          (head["army_id"],)).fetchone()
+    if row is None or int(row["autonomy"] or 0) < 60:
+        pop_warlord(db)
+        return None
+    pop_warlord(db)
+    return {"army_id": head["army_id"], "army": str(head["army"]),
+            "commander": str(head["commander"]), "autonomy": int(row["autonomy"]),
+            "arrears": int(row["arrears"] or 0)}
+
+
+def _packed_faction(db: GameDB) -> Optional[Dict[str, object]]:
+    """坐大的朋党：满意≥62 且 势力≥60 且 气焰≥45。"""
+    row = db.conn.execute(
+        "SELECT name, satisfaction, leverage, heat FROM factions "
+        "WHERE name NOT IN ('无','中立') AND satisfaction>=62 AND leverage>=60 AND heat>=45 "
+        "ORDER BY (satisfaction+leverage+heat) DESC LIMIT 1"
+    ).fetchone()
+    if row is None:
+        return None
+    return {"faction": str(row["name"]), "leverage": int(row["leverage"])}
+
+
+# ── 事件定义（涌现自活的宫廷）─────────────────────────────────────────────────
+
+def _succession_choices(ctx: Dict[str, object]) -> List[Dict[str, object]]:
+    """据候选动态生成选项：擢某人补缺 + 各自的派系/好感涟漪。"""
+    out = []
+    for cand in ctx.get("candidates") or []:
+        nm = str(cand["name"])
+        out.append({
+            "key": f"pick:{nm}",
+            "label": f"擢 {nm}（{cand['flavor']}）",
+            "hint": "简替要缺，受擢者感念效死，落选者各有心思",
+            "effect": (lambda c=ctx, n=nm: {
+                "shi": 1,
+                "appoint": {"name": n, "office": c["office"]},
+                "log": f"简{n}补{c['deceased']}遗缺（{c['office']}）。",
+            }),
+        })
+    return out
+
+
+def _defs() -> List[Dict[str, object]]:
+    return [
+        {
+            "id": "succession",
+            "priority": 35,
+            "when": _succession,
+            "title": lambda c: f"要缺简替：{c['deceased']}遗缺（{c['office']}）",
+            "narrative": lambda c: (
+                f"{c['deceased']}既殁，{c['office']}一缺旷悬，关乎枢机。"
+                f"廷推数人，皆有人援引、亦各有所图。陛下简谁补此要任？"),
+            "choices": _succession_choices,  # 动态：据候选生成
+        },
+        {
+            "id": "warlord",
+            "priority": 40,  # 封疆跋扈最紧急
+            "when": _warlord,
+            "title": lambda c: f"封疆跋扈：{c['army']}尾大不掉",
+            "narrative": lambda c: (
+                f"{c['army']}（{c['commander']}）拥兵自重、几不奉诏，欠饷积至{c['arrears']}万两，"
+                f"离心已极（自专{c['autonomy']}）。处置失当，恐成藩镇之祸。陛下何以制之？"),
+            "choices": [
+                {"key": "appease", "label": lambda c: "如数补饷、加官羁縻",
+                 "hint": "花钱买安：离心骤降、将帅感恩，然国库大耗、长其骄",
+                 "effect": lambda c: {"shi": -1, "metrics": {"国库": -max(8, c["arrears"])},
+                                      "army": [{"id": c["army_id"], "autonomy": -45, "loyalty": 12}],
+                                      "log": f"补{c['army']}欠饷、加官羁縻。"}},
+                {"key": "curb", "label": lambda c: "下诏切责、削权夺兵",
+                 "hint": "乾纲独断：成则立威慑藩，败则逼反（离心反弹、士气挫）",
+                 "effect": lambda c: ({"shi": 6, "army": [{"id": c["army_id"], "autonomy": -30, "loyalty": -8}],
+                                       "log": f"削{c['army']}之权，以儆跋扈。"}
+                                      if c["autonomy"] < 85 else
+                                      {"shi": -4, "renshi": -4,
+                                       "army": [{"id": c["army_id"], "autonomy": 10, "loyalty": -15}],
+                                       "metrics": {"民心": -2},
+                                       "log": f"切责{c['army']}，反激其变、几至称兵。"}),
+                 },
+                {"key": "tolerate", "label": lambda c: "暂事姑息、徐图后计",
+                 "hint": "拖：不花钱不担险，但纵其坐大、君威日替",
+                 "effect": lambda c: {"shi": -3,
+                                      "army": [{"id": c["army_id"], "autonomy": 5}],
+                                      "log": f"对{c['army']}暂事姑息。"}},
+            ],
+        },
+        {
+            "id": "rival_feud",
+            "priority": 30,
+            "when": _deepest_rivalry,
+            "title": lambda c: f"宿敌互讦：{c['a']} 与 {c['b']}",
+            "narrative": lambda c: (
+                f"{c['a_office']}{c['a']}与{c['b_office']}{c['b']}因「{c['basis']}」势同水火，"
+                f"连日交章互讦，各执一词、互指对方植党欺君。朝堂为之鼎沸，百官观望陛下如何裁断。"),
+            "choices": [
+                {"key": "side_a", "label": lambda c: f"偏袒{c['a']}，申斥{c['b']}",
+                 "hint": "压一方、抬一方——快刀，但寒了被压一方及其党羽的心",
+                 "effect": lambda c: {"shi": 2, "renshi": -3,
+                                      "ripple": [{"name": c["b"], "kind": "oust"}],
+                                      "char": [{"name": c["a"], "emp_trust": 6}],
+                                      "faction": ({c["b_faction"]: {"satisfaction": -4}} if c["b_faction"] not in ("", "无", "中立") else {}),
+                                      "log": f"廷争裁断：申斥{c['b']}、慰留{c['a']}。"}},
+                {"key": "side_b", "label": lambda c: f"偏袒{c['b']}，申斥{c['a']}",
+                 "hint": "反向落子，后果对称",
+                 "effect": lambda c: {"shi": 2, "renshi": -3,
+                                      "ripple": [{"name": c["a"], "kind": "oust"}],
+                                      "char": [{"name": c["b"], "emp_trust": 6}],
+                                      "faction": ({c["a_faction"]: {"satisfaction": -4}} if c["a_faction"] not in ("", "无", "中立") else {}),
+                                      "log": f"廷争裁断：申斥{c['a']}、慰留{c['b']}。"}},
+                {"key": "both", "label": lambda c: "各打五十大板，俱夺俸",
+                 "hint": "和稀泥也是表态：立威但两边都凉",
+                 "effect": lambda c: {"shi": 3, "renshi": -5,
+                                      "char": [{"name": c["a"], "grievance": 5}, {"name": c["b"], "grievance": 5}],
+                                      "log": f"廷争裁断：{c['a']}、{c['b']}各夺俸申饬。"}},
+                {"key": "ignore", "label": lambda c: "留中不发，由他们去",
+                 "hint": "回避＝纵容党争：失威、堕任事之心",
+                 "effect": lambda c: {"shi": -3, "renshi": -3,
+                                      "opinion": [{"a": c["a"], "b": c["b"], "delta": -8, "basis": c["basis"]}],
+                                      "log": f"{c['a']}与{c['b']}之争，留中不发。"}},
+            ],
+        },
+        {
+            "id": "loyal_slandered",
+            "priority": 25,
+            "when": _slandered_loyal,
+            "title": lambda c: f"孤忠蒙谤：{c['victim']} 遭弹劾",
+            "narrative": lambda c: (
+                f"{c['victim_office']}{c['victim']}素以清节孤忠著称，今为{c['accuser']}所劾，"
+                f"指其种种不法。然其平日操守，朝野共见。陛下信谁？"),
+            "choices": [
+                {"key": "protect", "label": lambda c: f"力保{c['victim']}，斥言官风闻",
+                 "hint": "护忠臣：得其死力与清流之心，但坐实『君护短』、政敌不平",
+                 "effect": lambda c: {"shi": 1, "renshi": 4,
+                                      "char": [{"name": c["victim"], "emp_trust": 10, "grievance": -6}],
+                                      "ripple": [{"name": c["accuser"], "kind": "oust"}],
+                                      "log": f"力保{c['victim']}，斥{c['accuser']}风闻言事。"}},
+                {"key": "investigate", "label": lambda c: "下廷议查核",
+                 "hint": "走程序：看似公允，却让孤臣寒心、任事者更怕出头",
+                 "effect": lambda c: {"renshi": -4,
+                                      "char": [{"name": c["victim"], "emp_trust": -6, "grievance": 6}],
+                                      "log": f"{c['victim']}被劾事，下廷议查核。"}},
+                {"key": "shelve", "label": lambda c: "留中，两不偏袒",
+                 "hint": "拖：暂稳，但忠臣见疑、谗者得计",
+                 "effect": lambda c: {"shi": -1,
+                                      "char": [{"name": c["victim"], "emp_trust": -3}],
+                                      "log": f"{c['victim']}被劾事留中。"}},
+            ],
+        },
+        {
+            "id": "faction_packing",
+            "priority": 20,
+            "when": _packed_faction,
+            "title": lambda c: f"朋党盈廷：{c['faction']} 坐大",
+            "narrative": lambda c: (
+                f"{c['faction']}近来气焰日炽，要害之地多其党羽，进退人物渐由其口。"
+                f"长此以往，恐成尾大不掉之势。陛下何以处之？"),
+            "choices": [
+                {"key": "curb", "label": lambda c: f"裁抑{c['faction']}，调离要津",
+                 "hint": "乾纲独断：长君威、削其势，但激其怨、短期任事跌",
+                 "effect": lambda c: {"shi": 4, "renshi": -4,
+                                      "faction": {c["faction"]: {"satisfaction": -10, "leverage": -8}},
+                                      "log": f"裁抑{c['faction']}，调离要津。"}},
+                {"key": "appease", "label": lambda c: f"暂加恩抚，徐图分化",
+                 "hint": "怀柔：稳其心、保任事，但纵其坐大、伤威",
+                 "effect": lambda c: {"shi": -2,
+                                      "faction": {c["faction"]: {"satisfaction": 5, "leverage": 3}},
+                                      "log": f"暂加恩抚于{c['faction']}。"}},
+                {"key": "balance", "label": lambda c: "掺沙子，引他党制衡",
+                 "hint": "以党制党：势稳，但党争更烈（民心微损）",
+                 "effect": lambda c: {"shi": 1,
+                                      "faction": {c["faction"]: {"satisfaction": -3}},
+                                      "metrics": {"民心": -1},
+                                      "log": f"引他党掺沙子，制衡{c['faction']}。"}},
+            ],
+        },
+    ]
+
+
+# ── 冷却 / 待决持久化 ─────────────────────────────────────────────────────────
+
+def _cooldowns(db: GameDB) -> Dict[str, int]:
+    try:
+        d = json.loads(db.kv_get(KV_COOLDOWN) or "{}")
+        return d if isinstance(d, dict) else {}
+    except ValueError:
+        return {}
+
+
+def _on_cooldown(db: GameDB, def_id: str, day: int) -> bool:
+    return (day - int(_cooldowns(db).get(def_id, -10**9))) < COOLDOWN_DAYS
+
+
+def get_pending(db: GameDB) -> Optional[Dict[str, object]]:
+    try:
+        d = json.loads(db.kv_get(KV_PENDING) or "")
+        return d if isinstance(d, dict) else None
+    except (ValueError, TypeError):
+        return None
+
+
+def _choices_of(d: Dict[str, object], ctx: Dict[str, object]) -> List[Dict[str, object]]:
+    """choices 可为静态 list 或 据 ctx 动态生成的 callable。"""
+    ch = d["choices"]
+    return ch(ctx) if callable(ch) else ch
+
+
+def _call(v, ctx):
+    """label/hint 可能是 fn(ctx)、无参 fn 或常量。统一求值。"""
+    if callable(v):
+        try:
+            return v(ctx)
+        except TypeError:
+            return v()
+    return v
+
+
+def pending_payload(db: GameDB) -> Optional[Dict[str, object]]:
+    """前端用：把待决事件按 ctx 渲染成 {id,title,narrative,choices:[{key,label,hint}]}。"""
+    p = get_pending(db)
+    if not p:
+        return None
+    ctx = p.get("ctx") or {}
+    d = next((x for x in _defs() if x["id"] == p.get("id")), None)
+    if d is None:
+        return None
+    return {
+        "id": d["id"],
+        "title": d["title"](ctx),
+        "narrative": d["narrative"](ctx),
+        "choices": [{"key": ch["key"], "label": _call(ch["label"], ctx), "hint": _call(ch.get("hint", ""), ctx)}
+                    for ch in _choices_of(d, ctx)],
+    }
+
+
+def evaluate_decisions(db: GameDB, state: GameState, day: int) -> Optional[Dict[str, object]]:
+    """无待决时，按优先级扫描触发；命中则置为待决并返回 payload。一次至多一道。"""
+    if get_pending(db):
+        return None
+    for d in sorted(_defs(), key=lambda x: -int(x["priority"])):
+        if _on_cooldown(db, str(d["id"]), day):
+            continue
+        ctx = d["when"](db)
+        if ctx:
+            db.kv_set(KV_PENDING, json.dumps({"id": d["id"], "ctx": ctx, "day": day}, ensure_ascii=False))
+            return pending_payload(db)
+    return None
+
+
+def resolve_decision(db: GameDB, state: GameState, choice_key: str, day: int) -> Dict[str, object]:
+    p = get_pending(db)
+    if not p:
+        return {"ok": False, "message": "当前无待决之事。"}
+    ctx = p.get("ctx") or {}
+    d = next((x for x in _defs() if x["id"] == p.get("id")), None)
+    if d is None:
+        db.kv_set(KV_PENDING, "")
+        return {"ok": False, "message": "待决事件已失效。"}
+    choice = next((c for c in _choices_of(d, ctx) if c["key"] == choice_key), None)
+    if choice is None:
+        return {"ok": False, "message": f"无此抉择：{choice_key}"}
+    summary = _apply_effect(db, state, choice["effect"](ctx), day)
+    cds = _cooldowns(db)
+    cds[str(d["id"])] = day
+    db.kv_set(KV_COOLDOWN, json.dumps(cds, ensure_ascii=False))
+    db.kv_set(KV_PENDING, "")
+    return {"ok": True, "title": d["title"](ctx), "choice": _call(choice["label"], ctx), "effect": summary}

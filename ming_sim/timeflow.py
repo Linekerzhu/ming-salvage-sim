@@ -105,7 +105,8 @@ def time_status(db: GameDB, state: GameState) -> Dict[str, object]:
         "turn": state.turn,
         "time_speed": kv_int(db, KV_TIME_SPEED, 1),
         "at_month_end": dim >= DAYS_PER_MONTH,
-        "await_decree": dim >= DAYS_PER_MONTH,
+        # 连续时间：月末不再硬停等颁诏（诏书逐条即时复命）。保留 at_month_end 仅供 UI 提示。
+        "await_decree": False,
     }
 
 
@@ -485,6 +486,25 @@ def _tick_day(db: GameDB, state: GameState, day: int) -> DayReport:
     except ImportError:
         pass
 
+    # 活的宫廷个人级出招（CK3 化 P1，逢 8/18/28 日）：私怨成弹章、朋党相荐。
+    try:
+        from ming_sim.court import court_moves_tick
+        for ev in court_moves_tick(db, state, day):
+            report.events.append(ev)
+    except ImportError:
+        pass
+
+    # 抉择事件（CK3 化 P2）：朝局张力到点弹一道"请陛下裁断"，必停（红）待玩家落子。
+    try:
+        from ming_sim.court_events import evaluate_decisions
+        decision = evaluate_decisions(db, state, day)
+        if decision:
+            report.add(LEVEL_RED, "decision", f"请陛下裁断：{decision['title']}",
+                       str(decision.get("narrative") or "")[:80],
+                       ref_kind="decision", ref_id=str(decision.get("id") or ""))
+    except ImportError:
+        pass
+
     # 调度表节点
     _pop_due_resolutions(db, state, day, report)
 
@@ -500,18 +520,66 @@ def _tick_day(db: GameDB, state: GameState, day: int) -> DayReport:
 
 def advance_days(db: GameDB, state: GameState, days: int, *,
                  stop_on_yellow: bool = True) -> Dict[str, object]:
-    """推进至多 days 天。月末（第30日）必停（等颁诏）；红事件必停；黄事件默认停。
+    """推进至多 days 天。连续时间：到月末第30日自动零-LLM 跨月（不再硬停等颁诏——
+    诏书逐条到期即时复命，月末不再集中结算）。红事件必停；黄事件默认停；跨月按黄停。
     返回 {advanced, reports, stopped_by, status}。"""
     ensure_active(db, state)
-    month_end = state.turn * DAYS_PER_MONTH
     reports: List[DayReport] = []
     stopped_by = ""
     advanced = 0
     for _ in range(max(0, int(days))):
         day = kv_int(db, KV_CURRENT_DAY, 0)
+        month_end = state.turn * DAYS_PER_MONTH
         if day >= month_end:
-            stopped_by = "month_end"
-            break
+            # 跨月：零-LLM 月度过渡（财政快进/issue 漂移/清帝国修正/next_period/开新月）。
+            rollover_month(db, state)
+            new_day = kv_int(db, KV_CURRENT_DAY, 0)
+            report = DayReport(day=new_day)
+            report.add(LEVEL_YELLOW, "month_rollover",
+                       f"入{state.year}年{state.period}月", "上月诸事按已发生了结，新月开始。")
+            # 王朝长河（CK3 化 P3）：月初按卒年/高龄令在朝官员自然凋零。
+            try:
+                from ming_sim.lifespan import mortality_tick
+                for ev in mortality_tick(db, state, new_day):
+                    report.events.append(ev)
+            except ImportError:
+                pass
+            # 派系流动（CK3 化 P5）：改换门庭 + 党内倾轧内耗。
+            try:
+                from ming_sim.faction_dynamics import defection_tick, strife_tick
+                for ev in defection_tick(db, state, new_day):
+                    report.events.append(ev)
+                strife_tick(db, state, new_day)
+            except ImportError:
+                pass
+            # 后宫自主（CK3 化 P6）：宠妃枕边风（荐人/进谗）+ 诸妃争宠。无妃则空转。
+            try:
+                from ming_sim.harem import harem_tick
+                for ev in harem_tick(db, state, new_day):
+                    report.events.append(ev)
+            except ImportError:
+                pass
+            # 地方割据（CK3 化 P7）：边镇离心（欠饷/势弱→阳奉阴违/截留/尾大不掉）。
+            try:
+                from ming_sim.frontier import autonomy_tick
+                for ev in autonomy_tick(db, state, new_day):
+                    report.events.append(ev)
+            except ImportError:
+                pass
+            # NPC 持续私人目标（CK3 化 P8）：私心逐月累进，满则成局兑现。
+            try:
+                from ming_sim.ambition import pursue_tick
+                for ev in pursue_tick(db, state, new_day):
+                    report.events.append(ev)
+            except ImportError:
+                pass
+            reports.append(report)
+            advanced += 1
+            _month_events_append(db, report.events)
+            if stop_on_yellow:
+                stopped_by = "month_rollover"
+                break
+            continue
         day += 1
         kv_set_int(db, KV_CURRENT_DAY, day)
         report = _tick_day(db, state, day)
@@ -525,15 +593,30 @@ def advance_days(db: GameDB, state: GameState, days: int, *,
         if stop_on_yellow and LEVEL_YELLOW in levels:
             stopped_by = "yellow"
             break
-        if day >= month_end:
-            stopped_by = "month_end"
-            break
     return {
         "advanced": advanced,
         "stopped_by": stopped_by,
         "reports": [{"day": r.day, "events": r.events} for r in reports],
         "status": time_status(db, state),
     }
+
+
+def rollover_month(db: GameDB, state: GameState) -> None:
+    """零-LLM 月度过渡（连续时间下到月末自动跑，替代旧的月末 LLM 大结算）：
+    快进未落旬份额 + 施加 issue 持续效果（危机消耗）+ 清除已解除的帝国修正 + 跨月开新月。
+    诏书效果不在此结算——它们各自到期由 edict_outcome/drain 即时落库。"""
+    from ming_sim.issues import apply_issue_inertia_and_ongoing, clear_gated_legacies
+    month_fixed_flows(db, state)
+    try:
+        apply_issue_inertia_and_ongoing(db, state, touched_ids=set())
+        for name in clear_gated_legacies(db, state):
+            db.record_log(state, f"帝国修正消除：{name}")
+    except Exception as exc:
+        from ming_sim.token_stats import tlog
+        tlog(f"[rollover] 持续效果结算异常，跳过：{exc}")
+    state.next_period()
+    db.save_state(state)
+    on_month_resolved(db, state)
 
 
 def _month_events_append(db: GameDB, events: List[Dict[str, object]]) -> None:

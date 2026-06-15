@@ -34,6 +34,7 @@ from ming_sim.upgrade_schema import (
 # 批红动作注意力消耗（每日 ATTENTION_PER_DAY=12 点；留中免费——这正是它的诱惑）
 ATTENTION_COSTS = {
     "approve": 1, "deny": 1, "refer": 1, "read": 2, "shelve": 0,
+    "ack": 0,  # 「已阅」结果通知（复命/捷报）：免精力，无后果
 }
 
 KV_LAST_ATTENTION_DAY = "upgrade.attention_day"
@@ -41,6 +42,10 @@ KV_LAST_ATTENTION_DAY = "upgrade.attention_day"
 # 奏疏淹没：弹章/告变/密揭按「急」算（越压不得）。单一真源——
 # 日 tick 淹没判定与御案倒计时倒数同此公式，禁止各自重算。
 EXPIRE_FORCED_URGENT_KINDS = ("弹章", "告变", "密揭")
+
+# 「结果通知」类奏报（诏书到期复命、捷报）：是既成结果而非待裁请求——
+# 读阅免精力、到期静默归档、不计淹没问责，不像请求那样堵塞御案、压迫任事意愿。
+INFORMATIONAL_KINDS = ("复命", "捷报")
 
 
 def expire_deadline_days(kind: str, urgency: int) -> int:
@@ -181,6 +186,16 @@ def memorials_daily_tick(db: GameDB, state: GameState, day: int) -> List[Dict[st
     for row in rows:
         shelved = int(day) - int(row["arrived_day"])
         deadline = expire_deadline_days(str(row["kind"]), int(row["urgency"] or 2))
+        # 结果通知：到期静默归档，无问责/怨气/淹没代价（不是奏而不答，是看过即可）。
+        if str(row["kind"]) in INFORMATIONAL_KINDS:
+            if shelved >= deadline:
+                db.conn.execute(
+                    "UPDATE memorials SET status='expired', shelved_days=?, decided_day=? WHERE id=?",
+                    (shelved, int(day), int(row["id"])))
+            else:
+                db.conn.execute("UPDATE memorials SET shelved_days=? WHERE id=?",
+                                (shelved, int(row["id"])))
+            continue
         if shelved >= deadline:
             # 淹没：出队 + 一次性后果。弹章淹没＝言路寒心（势/RA 一次性折损 + 同党记恨）。
             db.conn.execute("UPDATE memorials SET status='expired', shelved_days=?, decided_day=? WHERE id=?",
@@ -245,6 +260,12 @@ def decide_memorial(db: GameDB, state: GameState, memorial_id: int, action: str,
     author = str(row["author_name"] or "")
     kind = str(row["kind"])
     message = ""
+    if action == "ack":
+        # 已阅结果通知：免精力、无后果，仅归档。
+        db.conn.execute(
+            "UPDATE memorials SET status='approved', decided_day=? WHERE id=?", (int(day), mid))
+        db.conn.commit()
+        return {"ok": True, "message": "已阅。", "attention_left": attention_left(db)}
     if action == "approve":
         db.conn.execute(
             "UPDATE memorials SET status='approved', decided_day=?, decision_note=? WHERE id=?",
@@ -302,8 +323,12 @@ def decide_memorial(db: GameDB, state: GameState, memorial_id: int, action: str,
         db.conn.execute(
             "UPDATE memorials SET status='referred', decided_day=?, decision_note=? WHERE id=?",
             (int(day), note[:200], mid))
-        # 发部议 → 自动生成旨意草案，走正常拟诏/生命周期流程
-        draft = f"下部议：{str(row['summary'])}。{str(row['full_text'] or '')[:80]}着该衙门议奏施行。"
+        # 发部议 → 自动生成旨意草案，走正常拟诏/生命周期流程。
+        # 皇帝批语（note）作为上谕写入旨意，令内阁/司礼监照圣意落实。
+        batch = (note or "").strip()
+        draft = (f"下部议：{str(row['summary'])}。"
+                 + (f"上谕：{batch}。" if batch else f"{str(row['full_text'] or '')[:60]}")
+                 + "着该衙门遵旨议奏施行。")
         db.conn.execute(
             "INSERT INTO turn_directives (turn, year, period, text, source, status, notes)"
             " VALUES (?,?,?,?,?,?,?)",
@@ -491,10 +516,14 @@ def desk_payload(db: GameDB, state: GameState, day: int) -> Dict[str, object]:
         }
 
     ra = kv_int(db, KV_RISK_AVERSION, RISK_AVERSION_DEFAULT)
+    # backlog 只计「待裁请求」压力；结果通知（复命/捷报）另计 info_count，不压迫任事意愿。
+    request_backlog = sum(1 for r in rows if str(r["kind"]) not in INFORMATIONAL_KINDS)
+    info_count = sum(1 for r in rows if str(r["kind"]) in INFORMATIONAL_KINDS)
     return {
         "pending": [_row(r) for r in rows],
         "recent_decided": [_row(r) for r in decided],
-        "backlog": len(rows),
+        "backlog": request_backlog,
+        "info_count": info_count,
         "attention_left": attention_left(db),
         "attention_per_day": ATTENTION_PER_DAY,
         "shi": kv_int(db, KV_SHI, SHI_DEFAULT),

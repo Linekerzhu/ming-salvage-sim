@@ -465,7 +465,9 @@ def tick_directives(db: GameDB, state: GameState, day: int) -> List[Dict[str, ob
                            "title": f"〔{str(row2['text'] or '')[:24]}〕办结奏闻",
                            "detail": f"主办{row2['assignee']}奏称已遵旨办竣。",
                            "ref_kind": "directive", "ref_id": str(did), "day": day})
-            _enqueue(db, "settle_note", {"directive_id": did})
+            # 即时复命：办结即由 worker 产复命奏报+暂存数值 delta（替代旧 settle_note 纯文采），
+            # 主线程 session.drain_pending_outcomes 落库——变集中反馈为即时反馈。
+            _enqueue(db, "edict_outcome", {"directive_id": did})
     db.conn.commit()
     db.save_state(state)  # 缺口3 的民心折损改的是 GameState.metrics，须落库
     return events
