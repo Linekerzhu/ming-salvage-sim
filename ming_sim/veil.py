@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 from typing import Dict, List, Optional, Tuple
 
 from ming_sim.db import GameDB
@@ -328,6 +329,38 @@ _OFFICE_ENTITLEMENTS = {
     "锦衣卫": "缉事访单、诏狱案卷",
 }
 
+_EUNUCH_ROLE_RE = re.compile(r"太监|宦官|内官|司礼监|东厂|内廷|秉笔|掌印|随堂|御马监|御用监|尚膳监|内官监|御前")
+_MILITARY_ROLE_RE = re.compile(r"总兵|督师|经略|巡抚|提督|参将|副将|游击|边镇|辽东|关宁|宣大|蓟镇|兵备|将军")
+
+
+def _role_voice_brief(character: Character) -> str:
+    office = str(character.office or "")
+    office_type = str(character.office_type or "")
+    faction = str(character.faction or "")
+    blob = f"{office} {office_type} {faction}"
+    if _EUNUCH_ROLE_RE.search(blob):
+        return (
+            "【话语身份边界】你是内廷近侍/内臣，不是内阁大学士、六部尚书或边臣统帅。"
+            "可说：宫中传闻、御前所见、司礼监/内库/宫禁/传旨催办、替皇帝打听消息、传召某人。"
+            "不可说：像外朝宰辅一样总揽天下利害、直接裁断六部财政军政、凭空知道外朝密议或地方实情。"
+            "谈外朝大政时用“奴婢听闻”“此事须问内阁/该部”“若陛下要，奴婢可奉旨传问/催办”的近侍口吻；"
+            "除非皇帝明确问内廷执行、传旨、查访或内库宫禁事务，否则不要主动铺陈完整政策蓝图。"
+        )
+    if _MILITARY_ROLE_RE.search(blob):
+        return (
+            "【话语身份边界】你首先是军务/边地人物。多从军饷、兵心、地形、将令、战机和营伍实情说话；"
+            "对京中票拟、部院细账和党争内情只能说风闻，不要像京堂老臣一样评断所有朝政。"
+        )
+    if office_type in {"内阁", "户部", "兵部", "吏部", "都察院", "工部", "礼部", "锦衣卫"}:
+        return (
+            "【话语身份边界】你是有职掌边界的朝臣。可就本衙门、本派系、本职责深谈；"
+            "越出本职时必须标明是风闻、推测或须会同他衙，不要表现得无所不知。"
+        )
+    return (
+        "【话语身份边界】按你的现任差遣和社会身份说话。知道多少说多少；"
+        "不在职掌内的事以风闻、请查、请传相关人等方式回应，不要开天眼。"
+    )
+
 
 def build_info_scope_brief(db: GameDB, character: Character) -> str:
     """每个大臣 agent 的信息边界声明：身份应知 + 明确不知。欺骗与信息差由此涌现。"""
@@ -341,6 +374,7 @@ def build_info_scope_brief(db: GameDB, character: Character) -> str:
         entitled.append(f"你是{faction}中人，知道本派系的私下风向与同党处境。")
     lines = [
         "【信息边界（必须遵守的扮演铁律）】",
+        _role_voice_brief(character),
         f"你只知道你身份应知之事：{''.join(entitled) if entitled else '本职文书所及之事。'}",
         "此外你只知道公开邸报所载与道听途说的风闻。以下事项你一概不知，不得在言谈中表现出知情：",
         "其他衙门的内部账目细数；皇帝与他人的私下召对内容；不经你手的密令；",

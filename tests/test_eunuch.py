@@ -6,6 +6,8 @@ from tempfile import TemporaryDirectory
 
 from ming_sim import eunuch
 from ming_sim.db import GameDB
+from ming_sim.models import Character
+from ming_sim.veil import build_info_scope_brief
 
 
 def _fresh(tmp: str):
@@ -65,6 +67,31 @@ class EunuchHubTests(unittest.TestCase):
         brief = eunuch.eunuch_role_brief("王承恩", "内官监御前")
         self.assertIn("王承恩", brief)
         self.assertIn("随侍", brief)
+        self.assertIn("不是内阁大学士", brief)
+        self.assertIn("奴婢听闻", brief)
+
+    def test_info_scope_keeps_attendant_from_speaking_as_grand_secretary(self):
+        with TemporaryDirectory() as tmp:
+            db = _fresh(tmp)
+            character = Character(
+                name="王承恩",
+                office="内官监御前",
+                office_type="内廷",
+                faction="内廷",
+                aliases=[],
+                personal_skills=[],
+                loyalty=92,
+                ability=62,
+                integrity=70,
+                courage=66,
+                style="谨慎近侍",
+                power_id="ming",
+            )
+            brief = build_info_scope_brief(db, character)
+            self.assertIn("不是内阁大学士", brief)
+            self.assertIn("传旨催办", brief)
+            self.assertIn("须问内阁/该部", brief)
+            self.assertIn("不要主动铺陈完整政策蓝图", brief)
 
 
 if __name__ == "__main__":
