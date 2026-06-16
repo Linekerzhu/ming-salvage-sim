@@ -24,7 +24,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--model",
-        default=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+        default=os.environ.get("OPENAI_MODEL", "deepseek-v4-flash"),
         help="OpenAI-compatible model name（读 OPENAI_MODEL）",
     )
     parser.add_argument(

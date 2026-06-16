@@ -593,7 +593,7 @@ class WebGame:
         self.user_id = _safe_user_id(self.username) if self.username else ""
         db_path = _db_path_for_user(self.username)
         base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
-        model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+        model = os.environ.get("OPENAI_MODEL", "deepseek-v4-flash")
         api_key = os.environ.get("OPENAI_API_KEY", "")
         advanced_model = os.environ.get("OPENAI_ADVANCED_MODEL", "")
         advanced_base_url = os.environ.get("OPENAI_ADVANCED_BASE_URL", "")

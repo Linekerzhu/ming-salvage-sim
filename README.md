@@ -215,7 +215,7 @@ python3 main.py
 | --- | --- | --- | --- |
 | `OPENAI_API_KEY` | 是 | 无 | API Key |
 | `OPENAI_BASE_URL` | 否 | `https://api.openai.com/v1` | API 地址，推荐 `https://api.deepseek.com` |
-| `OPENAI_MODEL` | 否 | `gpt-4o-mini` | 模型名，推荐 `deepseek-v4-flash` |
+| `OPENAI_MODEL` | 否 | `deepseek-v4-flash` | 模型名，推荐 `deepseek-v4-flash` |
 | `MING_SIM_DB` | 否 | `data/ming_sim.db` | 存档数据库路径 |
 | `MING_SIM_SEED` | 否 | `7` | 随机种子 |
 | `MING_FOUNDATION_DB` | 否 | 自动探测 | NPC 数据基座（只读增强：人格/特质/人才池），缺失时自动降级 |
