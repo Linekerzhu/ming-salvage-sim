@@ -188,6 +188,10 @@ export const intrigueInvestigate = (name: string): Promise<InvestigateResult> =>
   api("/api/intrigue/investigate", { method: "POST", body: JSON.stringify({ name }) });
 export const intrigueCoerce = (name: string, mode: string): Promise<{ ok: boolean; mode?: string; message: string }> =>
   api("/api/intrigue/coerce", { method: "POST", body: JSON.stringify({ name, mode }) });
+export const intrigueFabricate = (name: string): Promise<{ ok: boolean; success?: boolean; imprisoned?: boolean; message: string }> =>
+  api("/api/intrigue/fabricate", { method: "POST", body: JSON.stringify({ name }) });
+export const intrigueDiscord = (a: string, b: string): Promise<{ ok: boolean; success?: boolean; message: string }> =>
+  api("/api/intrigue/discord", { method: "POST", body: JSON.stringify({ a, b }) });
 
 // 抉择事件（CK3 化 P2）：朝局张力弹出的"请陛下裁断"。
 export type DecisionChoice = { key: string; label: string; hint: string };

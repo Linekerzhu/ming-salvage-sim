@@ -117,6 +117,8 @@ EXCLUDED_WEB_PAYLOAD_ROUTES: Dict[str, str] = {
     "/api/eunuch/daipihong": "Directorate-of-Ceremonial vermilion-rescript toggle/status; eunuch-power payload.",
     "/api/intrigue/investigate": "Eastern-Depot probe to uncover a hook; intrigue-owned payload.",
     "/api/intrigue/coerce": "Coerce a minister via a held hook; intrigue-owned mutation.",
+    "/api/intrigue/fabricate": "Fabricate charges to jail a target; intrigue-owned mutation.",
+    "/api/intrigue/discord": "Sow discord between two ministers; intrigue-owned mutation.",
     "/api/court/{character_name}": "Living-court relations/agenda panel; court-owned payload.",
     "/api/decision": "Pending decision-event prompt; court-events-owned payload.",
     "/api/decision/resolve": "Decision-event resolution mutation; court-events-owned payload.",

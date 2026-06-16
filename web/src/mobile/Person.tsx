@@ -4,7 +4,7 @@ import { useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Portrait } from "./Portrait";
 import { PersonCtx } from "./personCtx";
-import { loadCharacter, loadCourt, intrigueInvestigate, intrigueCoerce } from "./api";
+import { loadCharacter, loadCourt, intrigueInvestigate, intrigueCoerce, intrigueFabricate, intrigueDiscord } from "./api";
 import type { CourtPayload } from "./api";
 
 const AGENDA_CN: Record<string, string> = {
@@ -43,6 +43,27 @@ function PersonSheet({ name, onClose }: { name: string; onClose: () => void }) {
       setIntrigueMsg(r.message || "");
       await loadCourt(name).then(setCourt).catch(() => {});
     } catch (e: any) { setIntrigueMsg(e?.message || "挟制未成。"); }
+    finally { setBusy(false); }
+  }
+  async function fabricate() {
+    if (busy) return;
+    setBusy(true); setIntrigueMsg("");
+    try {
+      const r = await intrigueFabricate(name);
+      setIntrigueMsg(r.message || "");
+      await loadCourt(name).then(setCourt).catch(() => {});
+    } catch (e: any) { setIntrigueMsg(e?.message || "构陷未成。"); }
+    finally { setBusy(false); }
+  }
+  async function discord() {
+    const ally = court?.allies?.[0]?.name;
+    if (busy || !ally) return;
+    setBusy(true); setIntrigueMsg("");
+    try {
+      const r = await intrigueDiscord(name, ally);
+      setIntrigueMsg(r.message || "");
+      await loadCourt(name).then(setCourt).catch(() => {});
+    } catch (e: any) { setIntrigueMsg(e?.message || "离间未成。"); }
     finally { setBusy(false); }
   }
   const skills: string[] = (c?.personal_skills || c?.skills || []).map((x: any) => typeof x === "string" ? x : x?.name).filter(Boolean);
@@ -154,6 +175,13 @@ function PersonSheet({ name, onClose }: { name: string; onClose: () => void }) {
                 <span className="m-hint" style={{ alignSelf: "center" }}>厂卫侦缉，发其阴私为把柄</span>
               </div>
             )}
+            <div className="m-intrigue-acts">
+              <button className="m-intrigue-btn is-danger" disabled={busy} onClick={fabricate}>罗织构陷·下诏狱</button>
+              {(court?.allies?.length ?? 0) > 0 && (
+                <button className="m-intrigue-btn" disabled={busy} onClick={discord}>离间其腹心（{court!.allies[0].name}）</button>
+              )}
+            </div>
+            <span className="m-hint">构陷凭空罗织：清誉高者难陷，陷之易暴露反噬。</span>
             {intrigueMsg && <p className="m-intrigue-msg">{intrigueMsg}</p>}
           </div>
         )}

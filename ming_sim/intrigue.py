@@ -257,6 +257,93 @@ def secrets_for(db: GameDB, name: str) -> Optional[Dict[str, object]]:
             "detail": str(row["detail"]), "severity": int(row["severity"]), "used": bool(row["used"])}
 
 
+def _is_pure(faction: str) -> bool:
+    return "东林" in str(faction or "") or "清流" in str(faction or "")
+
+
+def fabricate(db: GameDB, state: GameState, target: str, day: int, *,
+              rng: Optional[random.Random] = None) -> Dict[str, object]:
+    """罗织罪名构陷某人下诏狱（CK3 fabricate / 明季锻炼冤狱）。**与 P1 侦缉真把柄不同，此为凭空罗织。**
+    成败系于厂卫之势 vs 目标清誉——**清誉越高越难陷、且陷之易暴露反噬**（君威损、清流声援、权阉受挫）。
+    得逞→目标下诏狱(imprisoned)+伪造把柄+清流寒心、权阉益横；暴露→构陷不成、反伤君威。"""
+    ensure_schema(db)
+    from ming_sim import court
+    from ming_sim.upgrade_schema import KV_SHI, adjust_belief
+    target = (target or "").strip()
+    chief = dongchang_chief(db)
+    if chief is None:
+        return {"ok": False, "message": "无东厂可遣，无从锻炼罗织。"}
+    row = db.conn.execute(
+        "SELECT integrity, faction FROM characters WHERE name=? AND status='active' AND power_id='ming'",
+        (target,)).fetchone()
+    if row is None:
+        return {"ok": False, "message": "此人不在朝，无从构陷。"}
+    integrity = int(row["integrity"] or 50)
+    pure = _is_pure(str(row["faction"] or ""))
+    prestige = integrity + (12 if pure else 0)   # 清誉护身：高节者难陷、陷则易露
+    rng = rng or random.Random((int(day) * 0x2545F491 ^ hash(target)) & 0x7FFFFFFF)
+    margin = investigate_capability(db) - prestige + rng.randint(-20, 20)
+    if margin > 0:
+        # 罗织得逞 → 下诏狱
+        db.set_character_status(state, target, "imprisoned", f"东厂{chief}锻炼成狱（构陷）")
+        db.conn.execute(
+            "INSERT INTO secrets(holder, kind, detail, severity, known_to_crown, discovered_day, used) "
+            "VALUES (?,?,?,?,1,?,1)",
+            (target, "构陷", "厂卫锻炼之冤狱、罗织成罪（实无其事）", 72, int(day)))
+        try:
+            court.ripple_personnel(db, target, "oust", day=day)
+        except Exception:
+            pass
+        db.adjust_factions({EUNUCH_FACTION: {"leverage": 2, "satisfaction": 1}, "东林": {"satisfaction": -2}})
+        adjust_belief(db, KV_SHI, 1, "构陷立威（暴虐）", day=day)
+        state.metrics["民心"] = max(0, int(state.metrics.get("民心", 0)) - 1)
+        db.conn.commit()
+        db.save_state(state)
+        return {"ok": True, "success": True, "imprisoned": True, "chief": chief,
+                "message": (f"东厂{chief}罗织{target}成罪、锻炼下诏狱。冤狱既兴，"
+                            "清流为之夺气、权阉益横——以暴立威，恐失天下心。")}
+    # 暴露反噬
+    adjust_belief(db, KV_SHI, -3, "构陷暴露·反噬", day=day)
+    db.adjust_factions({"东林": {"satisfaction": 3}, EUNUCH_FACTION: {"satisfaction": -2}})
+    court._adjust_char(db, target, emp_trust=+6, grievance=-4)  # 蒙冤获同情、君心慰留
+    db.conn.commit()
+    db.save_state(state)
+    return {"ok": True, "success": False, "chief": chief,
+            "message": (f"罗织{target}事泄，物议哗然——清流交章声援，反伤君威。"
+                        f"{'高节者清誉素著，本难诬陷。' if pure else ''}构陷不成。")}
+
+
+def sow_discord(db: GameDB, state: GameState, a: str, b: str, day: int, *,
+                rng: Optional[random.Random] = None) -> Dict[str, object]:
+    """离间二人（三国志式反间）：挑其相疑、好感骤跌，党羽或由是离心。
+    **笃实忠正者（清廉且知忠）易窥破反间**，离间打折、反损君威。"""
+    ensure_schema(db)
+    from ming_sim import court
+    a, b = (a or "").strip(), (b or "").strip()
+    if not a or not b or a == b:
+        return {"ok": False, "message": "离间须指两人。"}
+    rows = {str(r["name"]): r for r in db.conn.execute(
+        "SELECT name, integrity, loyalty FROM characters WHERE name IN (?,?) AND status='active'",
+        (a, b)).fetchall()}
+    if a not in rows or b not in rows:
+        return {"ok": False, "message": "二人须皆在朝。"}
+    rng = rng or random.Random((int(day) * 0x27220A95 ^ hash(a + b)) & 0x7FFFFFFF)
+    resist = sum(int(rows[x]["integrity"] or 0) + int(rows[x]["loyalty"] or 0) for x in (a, b)) // 2
+    drop = -(22 + rng.randint(0, 20))
+    if resist >= 150 and rng.random() < 0.55:   # 皆笃实 → 窥破反间
+        from ming_sim.upgrade_schema import KV_SHI, adjust_belief
+        court.adjust_opinion(db, a, b, drop // 4, "离间(为所窥破)", day=day, reciprocal=True)
+        adjust_belief(db, KV_SHI, -1, "反间为忠正所窥破", day=day)
+        return {"ok": True, "success": False,
+                "message": f"{a}与{b}皆笃实之臣，反间之计为所窥破，二人不为所动——反损君威。"}
+    court.adjust_opinion(db, a, b, drop, "离间", day=day, reciprocal=True)
+    court._adjust_char(db, a, grievance=+3)
+    court._adjust_char(db, b, grievance=+3)
+    db.conn.commit()
+    return {"ok": True, "success": True,
+            "message": f"密遣反间，挑{a}与{b}相疑——二人由是生隙、彼此提防。"}
+
+
 def changwei_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:
     """月初：权阉炽盛时，东厂自发侦缉清流／持把柄挟制（活的宫廷，无需玩家操盘）。挂 rollover。
     仅在权阉之势盛（≥55）且东厂在时启动——主弱臣强，厂卫横行。"""

@@ -5379,6 +5379,39 @@ async def api_intrigue_coerce(body: Dict[str, Any]) -> Dict[str, Any]:
     return res
 
 
+@app.post("/api/intrigue/fabricate")
+async def api_intrigue_fabricate(body: Dict[str, Any]) -> Dict[str, Any]:
+    """罗织罪名构陷某人下诏狱（宫斗阴谋 P2）：清誉高难陷、陷则易暴露反噬。"""
+    from ming_sim.intrigue import fabricate
+    from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
+    game = get_game()
+    target = str((body or {}).get("name") or "").strip()
+    if not target:
+        raise HTTPException(status_code=400, detail="name 必填")
+    res = fabricate(game.db, game.state, target, kv_int(game.db, KV_CURRENT_DAY, 0))
+    if not res.get("ok"):
+        raise HTTPException(status_code=400, detail=str(res.get("message")))
+    return res
+
+
+@app.post("/api/intrigue/discord")
+async def api_intrigue_discord(body: Dict[str, Any]) -> Dict[str, Any]:
+    """离间二人（宫斗阴谋 P2）：挑其相疑；笃实忠正者识破、反损君威。"""
+    from ming_sim.intrigue import sow_discord
+    from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
+    game = get_game()
+    payload = body or {}
+    a = str(payload.get("a") or "").strip()
+    b = str(payload.get("b") or "").strip()
+    if not a or not b:
+        raise HTTPException(status_code=400, detail="a、b 必填")
+    res = sow_discord(game.db, game.state, a, b, kv_int(game.db, KV_CURRENT_DAY, 0))
+    if not res.get("ok"):
+        raise HTTPException(status_code=400, detail=str(res.get("message")))
+    game.db.save_state(game.state)
+    return res
+
+
 @app.get("/api/ministers/{minister_name}/chat")
 async def api_chat_history(minister_name: str) -> Dict[str, Any]:
     _require_active_minister(minister_name)
