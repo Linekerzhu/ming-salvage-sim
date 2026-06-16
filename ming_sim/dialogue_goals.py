@@ -98,7 +98,7 @@ def _dialogue_speech_profile(
         part for part in (str(user_text or ""), str(context_text or "")[:3000]) if part.strip()
     )
     try:
-        behavior = npc_dialogue_behavior_profile(character.name, text=profile_text)
+        behavior = npc_dialogue_behavior_profile(character.name, text=profile_text, character=character)
     except Exception:
         behavior = {}
     network = behavior.get("network_pressure") if isinstance(behavior.get("network_pressure"), dict) else {}

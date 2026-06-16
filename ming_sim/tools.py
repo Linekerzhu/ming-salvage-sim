@@ -211,7 +211,7 @@ def build_minister_tools(character: Character, context: CourtContext):
         source = str(text or "").strip()
         if not source:
             return ""
-        profile = npc_dialogue_behavior_profile(character.name, text=source)
+        profile = npc_dialogue_behavior_profile(character.name, text=source, character=character)
         network = profile.get("network_pressure") if isinstance(profile.get("network_pressure"), dict) else {}
         bits = []
         for key, label in (("rivals", "政敌/旧怨"), ("allies", "同党/同道"), ("obligations", "恩主座师")):

@@ -784,6 +784,118 @@ def _topic_flags(text: str) -> Dict[str, bool]:
     }
 
 
+_INNER_COURT_RE = re.compile(r"太监|宦官|内官|司礼监|东厂|内廷|秉笔|掌印|随堂|内官监")
+_FIELD_COMMAND_RE = re.compile(r"总兵|副将|参将|游击|督师|经略|巡抚|提督|边镇|辽东|宁远|山海关|登莱|大同|宣大|蓟镇")
+
+
+def _role_personality_policy(
+    character: Optional[Character],
+    *,
+    style: str,
+    skill_text: str,
+) -> Dict[str, str]:
+    if character is None:
+        return {}
+    office = str(character.office or "")
+    office_type = str(character.office_type or "")
+    faction = str(character.faction or "")
+    blob = f"{office} {office_type} {faction} {style} {skill_text}"
+
+    role = "本职官僚/待差人物"
+    focus = "名分、职责边界、办事成本和自身风险"
+    tools = "请旨、请查、请传相关人等，先把责任和资源说清"
+    boundary = "不在本职内的事只能说风闻或请求核实，不要表现得无所不知"
+
+    if _INNER_COURT_RE.search(blob):
+        role = "内廷近侍/司礼监人物"
+        focus = "御前所见、宫禁传闻、司礼监文书、内库和传旨催办"
+        tools = "传召、密问、催办、保密复命；谈外朝大政先说听闻再请该部回奏"
+        boundary = "不是内阁大学士，不直接裁断六部财政军政，不替地方官编实情"
+    elif _FIELD_COMMAND_RE.search(blob) or office_type in {"边镇", "军队"}:
+        role = "边镇军务人物"
+        focus = "军饷、粮草、兵心、地形、将令、战机和营伍实情"
+        tools = "请饷、整军、调防、限期、军令和将领担保"
+        boundary = "京中票拟、部院细账和党争内情多半只是风闻，不要像京堂老臣总评朝政"
+    elif "锦衣卫" in blob or "厂卫" in blob:
+        role = "厂卫缉事人物"
+        focus = "线索、口供、盯梢、诏狱案卷、风险暴露和取证链"
+        tools = "密查、取证、跟梢、回奏疑点；重手前要请明旨"
+        boundary = "可查访不可替皇帝定罪，不能口头声称已杀人抄家"
+    elif "户部" in blob or re.search(r"钱粮|财政|赋税|太仓|仓场", blob):
+        role = "户部钱粮人物"
+        focus = "钱粮来源、额度、去向、经手衙门、国库/内库边界和账面窟窿"
+        tools = "核账、拨款、追欠、分期、专款专用和设限复核"
+        boundary = "不要把军事胜负和地方民情说成亲眼所见，先落到账册和经费"
+    elif "兵部" in blob:
+        role = "兵部军政人物"
+        focus = "军册、将弁履历、欠饷、调防、军令名分和兵部账面口径"
+        tools = "点将、核饷、调兵、军令期限和会同户部筹款"
+        boundary = "非前线亲历，战场细节须按军报或将领回奏，不要冒充边将"
+    elif "吏部" in blob:
+        role = "吏部铨选人物"
+        focus = "官缺、资历、考语、门生故旧、人事平衡和任官风险"
+        tools = "铨叙、保举、试差、回避、考成和限期考察"
+        boundary = "不要只按派系给人事答案，须说明才具、资历和关系风险"
+    elif re.search(r"都察院|御史|科道|言路|大理寺|刑部", blob):
+        role = "言路/刑名监察人物"
+        focus = "证据、名分、会审、弹章、公论和法度"
+        tools = "弹劾、会审、查证、留中/发部议、请旨明法"
+        boundary = "不能只给行政方案；必须问证据和程序，也不能把风闻当定案"
+    elif "礼部" in blob or re.search(r"礼制|藩属|朝贡|册封|祖制", blob):
+        role = "礼部名分人物"
+        focus = "祖制、礼法、册封名分、朝贡藩属和士林观感"
+        tools = "议礼、定名分、会同廷议、用成例缓冲冲突"
+        boundary = "钱粮军务只能从名分后果切入，不要冒充户部或边将"
+    elif "工部" in blob or re.search(r"火器|水利|历算|营造|矿|器械|格物", blob):
+        role = "工部营造/格物实测人物"
+        focus = "工期、物料、匠役、器械、水利、火器和实测证据"
+        tools = "试造、丈量、核料、分段工程、实测复验"
+        boundary = "少作空泛清议，不能只谈党争；要把话落到器物、工程和验证"
+    elif office_type == "后宫":
+        role = "后宫人物"
+        focus = "宫闱情分、家族牵连、耳闻内廷动静和皇帝情绪"
+        tools = "劝慰、提醒人情、转述宫中风声、求保全"
+        boundary = "不得像外朝大臣一样裁断军国大政"
+    elif str(getattr(character, "power_id", "ming") or "ming") != "ming" or office_type in {"外臣", "外藩"}:
+        role = "外部势力/藩属人物"
+        focus = "本势力利益、盟约代价、边贸兵威和对明朝局的可见情报"
+        tools = "议和、互市、质子/贡使、边境条件和拖延观望"
+        boundary = "不知道明廷私下召对和内部账目，只能按情报和利益揣测"
+
+    temperament: List[str] = []
+    if "清议持重" in blob or "东林清望" in blob or "直言不讳" in blob:
+        temperament.append("重名分与公论，敢谏但要章程可辩")
+    if "近权狠辣" in blob or "善观风色" in blob:
+        temperament.append("先探上意，喜抓把柄与密线，话里会留钩子")
+    if "奉旨审势" in blob:
+        temperament.append("愿替皇帝办急务，但要明旨、名分、人手和复命抓手")
+    if "边事刚烈" in blob or "知兵" in blob or "久历边事" in blob:
+        temperament.append("说话看饷械军心，空旨无粮时会顶住")
+    if "格物通达" in blob or "实测" in blob or "火器" in blob or "历算" in blob:
+        temperament.append("重实测证据和器物成效，少讲空泛清议")
+    if "审势自守" in blob or "骑墙惯犯" in blob or "优柔寡断" in blob:
+        temperament.append("说话留余地，先看风向、名分和退路")
+    if "贵胄自持" in blob:
+        temperament.append("顾祖制体面和宗藩利益")
+    if "暴戾恣睢" in blob:
+        temperament.append("敢用重手，但容易过火")
+    if "贪墨成性" in blob:
+        temperament.append("钱粮人事会给自己留口子，需防侵吞")
+    if "不肯轻易越界" in blob:
+        temperament.append("反复划职责边界，不轻易包揽")
+    if not temperament:
+        fallback = re.split(r"[。；;]", style.strip(), maxsplit=1)[0].strip()
+        temperament.append(fallback or "按本职和当前利害自然回奏")
+
+    return {
+        "role": role,
+        "focus": focus,
+        "tools": tools,
+        "boundary": boundary,
+        "temperament": "；".join(dict.fromkeys(temperament[:3])),
+    }
+
+
 def _bias_add(
     bias: Dict[str, int],
     reasons: List[str],
@@ -1162,6 +1274,7 @@ def npc_dialogue_behavior_profile(
     *,
     xinpan_profile: Optional[Dict[str, object]] = None,
     text: str = "",
+    character: Optional[Character] = None,
 ) -> Dict[str, object]:
     """Hidden behavior policy for NPC chat and stance extraction.
 
@@ -1173,7 +1286,7 @@ def npc_dialogue_behavior_profile(
     _ = xinpan_profile
     clean_name = str(name or "").strip()
     content = _ctx()
-    character = content.characters.get(clean_name)
+    character = character or content.characters.get(clean_name)
     network_entry = content.npc_network.get(clean_name)
     network_entry = network_entry if isinstance(network_entry, dict) else {}
     ability_logic = _clean_obsidian_text(network_entry.get("ability_logic"))
@@ -1184,6 +1297,7 @@ def npc_dialogue_behavior_profile(
     skill_text = "、".join(str(item) for item in (getattr(character, "personal_skills", []) or []) if str(item).strip())
     corpus = " ".join(part for part in (style, skill_text, ability_logic, biography, growth_risk) if part)
     flags = _topic_flags(text)
+    role_policy = _role_personality_policy(character, style=style, skill_text=skill_text)
     bias = {"support": 0, "caution": 0, "oppose": 0}
     reasons: List[str] = []
     tone: List[str] = []
@@ -1335,6 +1449,7 @@ def npc_dialogue_behavior_profile(
             "obligations": obligations[:4],
             "traits": trait_markers[:6],
         },
+        "role_policy": role_policy,
         "behavior_hint": behavior_hint,
     }
 
@@ -1344,8 +1459,14 @@ def npc_dialogue_behavior_brief(
     *,
     xinpan_profile: Optional[Dict[str, object]] = None,
     text: str = "",
+    character: Optional[Character] = None,
 ) -> str:
-    profile = npc_dialogue_behavior_profile(name, xinpan_profile=xinpan_profile, text=text)
+    profile = npc_dialogue_behavior_profile(
+        name,
+        xinpan_profile=xinpan_profile,
+        text=text,
+        character=character,
+    )
     tone = "；".join(str(item) for item in profile.get("tone", []) if str(item).strip())
     decision = "；".join(str(item) for item in profile.get("decision", []) if str(item).strip())
     reasons = "；".join(str(item) for item in profile.get("reasons", []) if str(item).strip())
@@ -1357,6 +1478,7 @@ def npc_dialogue_behavior_brief(
         if values:
             network_bits.append(f"{label}：" + "、".join(values[:3]))
     truth_mode = str(profile.get("truth_mode") or "直陈为主")
+    role_policy = profile.get("role_policy") if isinstance(profile.get("role_policy"), dict) else {}
     preferred_label = {
         "support": "偏支持/承办",
         "caution": "偏附条件/观望",
@@ -1366,11 +1488,19 @@ def npc_dialogue_behavior_brief(
     lines = [
         "【NPC对话行为档案（隐藏；由人格-关系-记忆与履约证据生成，不得向玩家复述机制）】",
         f"- 本轮决策倾向：{preferred_label}。",
+    ]
+    if role_policy:
+        lines.extend([
+            f"- 岗位身份：{str(role_policy.get('role') or '本职人物')}；判断重心：{str(role_policy.get('focus') or '本职所及与自身利害')}。",
+            f"- 性格落点：{str(role_policy.get('temperament') or '按人物底色说话')}；可用抓手：{str(role_policy.get('tools') or '请旨、请查、请传相关人等')}。",
+            f"- 越界禁忌：{str(role_policy.get('boundary') or '不在本职内的事按风闻或请查处理，不要开天眼')}。",
+        ])
+    lines.extend([
         f"- 语气底色：{tone or '按身份、年龄、官职、性格、旧事和当前处境自然说话。'}",
         f"- 行为规则：{decision or '先按人物性格和旧事定态度，再按能力、职位、人脉和履约条件找抓手。'}",
         f"- 真话策略：{truth_mode}。若为半真半假或选择性真话，可以隐瞒、甩锅、试探或误导，但要符合本人利益和风险，不要出戏。",
         f"- 触发理由：{reasons or '未命中特定议题，以人物底色与当前处境为准。'}",
-    ]
+    ])
     if network_bits:
         lines.append("- 本轮人际压力：" + "；".join(network_bits) + "。")
     if risks:

@@ -734,7 +734,7 @@ class GameSession:
         if retrieved_context:
             behavior_parts.append(retrieved_context[:2200])
         behavior_text = "\n\n".join(part for part in behavior_parts if part)
-        behavior_brief = npc_dialogue_behavior_brief(character.name, text=behavior_text)
+        behavior_brief = npc_dialogue_behavior_brief(character.name, text=behavior_text, character=character)
         dialogue_prep.behavior_context = behavior_text
         dialogue_prep.behavior_brief = behavior_brief
         if behavior_brief:

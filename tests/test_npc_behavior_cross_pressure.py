@@ -8,6 +8,7 @@ from ming_sim.content import GameContent
 from ming_sim.context import (
     build_npc_monthly_followups,
     bind_content as bind_context,
+    npc_dialogue_behavior_brief,
     npc_dialogue_behavior_profile,
     npc_network_recommendations,
     npc_relation_perspective,
@@ -16,7 +17,7 @@ from ming_sim.db import GameDB
 from ming_sim.dialogue_audit import post_dialogue_audit, pre_dialogue_audit
 from ming_sim.dialogue_goals import record_dialogue_effects
 from ming_sim.issues import bind_content as bind_issues
-from ming_sim.models import CourtContext, GameState, LLMConfig
+from ming_sim.models import Character, CourtContext, GameState, LLMConfig
 from ming_sim.registry import (
     bind_content as bind_registry,
     build_monthly_followup_brief,
@@ -154,6 +155,60 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 set(profile["network_pressure"]["traits"])
             )
         )
+
+    def test_dialogue_behavior_brief_surfaces_distinct_role_and_temperament(self) -> None:
+        wang = npc_dialogue_behavior_brief("王承恩", text="辽东军饷短缺，卿怎么看？")
+        bi = npc_dialogue_behavior_brief("毕自严", text="辽东军饷短缺，卿怎么看？")
+        xu = npc_dialogue_behavior_brief("徐光启", text="火器水利与辽东军饷，卿怎么看？")
+        man = npc_dialogue_behavior_brief("满桂", text="辽东军饷短缺，卿怎么看？")
+
+        self.assertIn("岗位身份", wang)
+        self.assertIn("内廷近侍/司礼监人物", wang)
+        self.assertIn("传旨催办", wang)
+        self.assertIn("不是内阁大学士", wang)
+        self.assertIn("户部钱粮人物", bi)
+        self.assertIn("钱粮来源、额度、去向", bi)
+        self.assertIn("明旨、名分、人手和复命抓手", bi)
+        self.assertIn("工部营造/格物实测人物", xu)
+        self.assertIn("工期、物料、匠役", xu)
+        self.assertIn("实测证据", xu)
+        self.assertIn("边镇军务人物", man)
+        self.assertIn("军饷、粮草、兵心", man)
+        self.assertIn("空旨无粮", man)
+
+    def test_dialogue_behavior_profile_exposes_role_policy_for_systemic_checks(self) -> None:
+        wang = npc_dialogue_behavior_profile("王承恩", text="辽东军饷短缺，卿怎么看？")
+        bi = npc_dialogue_behavior_profile("毕自严", text="辽东军饷短缺，卿怎么看？")
+
+        self.assertEqual(wang["role_policy"]["role"], "内廷近侍/司礼监人物")
+        self.assertEqual(bi["role_policy"]["role"], "户部钱粮人物")
+        self.assertNotEqual(wang["role_policy"]["focus"], bi["role_policy"]["focus"])
+        self.assertNotEqual(wang["role_policy"]["boundary"], bi["role_policy"]["boundary"])
+
+    def test_runtime_character_gets_role_policy_from_job_and_style(self) -> None:
+        artisan = Character(
+            name="无名匠头",
+            office="御前临时召见工匠",
+            office_type="临时召见",
+            faction="未定",
+            aliases=[],
+            personal_skills=["火器试造"],
+            loyalty=50,
+            ability=62,
+            integrity=55,
+            courage=48,
+            style="格物通达。说话多从火器、水利和实测入手。",
+            power_id="ming",
+        )
+        brief = npc_dialogue_behavior_brief(
+            artisan.name,
+            text="火器试造迟迟无验，卿怎么看？",
+            character=artisan,
+        )
+
+        self.assertIn("工部营造/格物实测人物", brief)
+        self.assertIn("火器和实测证据", brief)
+        self.assertIn("试造、丈量、核料", brief)
 
     def test_dialogue_behavior_ignores_legacy_xinpan_input(self) -> None:
         baseline = npc_dialogue_behavior_profile(

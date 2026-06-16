@@ -492,11 +492,11 @@ def _behavior_source_text(payload: Dict[str, object], extra_text: str = "") -> s
 def _attach_behavior_context(payload: Dict[str, object], character: Character, *, text: str = "") -> None:
     source_text = _behavior_source_text(payload, text)
     try:
-        profile = npc_dialogue_behavior_profile(character.name, text=source_text)
+        profile = npc_dialogue_behavior_profile(character.name, text=source_text, character=character)
     except Exception:
         profile = {}
     try:
-        brief = npc_dialogue_behavior_brief(character.name, text=source_text)
+        brief = npc_dialogue_behavior_brief(character.name, text=source_text, character=character)
     except Exception:
         brief = ""
     payload["behavior_profile"] = profile if isinstance(profile, dict) else {}
