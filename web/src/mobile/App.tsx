@@ -1,10 +1,12 @@
 // 移动端五标签 App 骨架：顶部状态条 + tab 视图 + 底部导航。
 import { useEffect, useRef, useState } from "react";
+import type { FormEvent } from "react";
+import { formatApiError } from "../api/client";
 import { GameDataProvider, useGame } from "./GameData";
 import { PersonProvider } from "./Person";
 import { Menu } from "./Menu";
 import { Guide, guideSeen, markGuideSeen } from "./Guide";
-import { exitToMenu, menuStatus, resolveDecision } from "./api";
+import { authStatus, exitToMenu, login, menuStatus, register, resolveDecision } from "./api";
 import type { Decision, Tab } from "./api";
 import { HomeView } from "./views/HomeView";
 import { DeskView } from "./views/DeskView";
@@ -252,15 +254,131 @@ function Shell({ onExitMenu }: { onExitMenu: () => void }) {
   );
 }
 
+function AuthScreen({ onAuthed }: { onAuthed: () => Promise<void> }) {
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setErr("");
+    try {
+      if (mode === "login") {
+        await login(username, password);
+      } else {
+        await register(username, password, inviteCode);
+      }
+      await onAuthed();
+    } catch (e: any) {
+      setErr(formatApiError(e, mode === "login" ? "登录失败" : "注册失败"));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="m-menu m-auth">
+      <form className="m-menu-inner m-auth-panel" onSubmit={submit}>
+        <div className="m-menu-crest">明</div>
+        <h1 className="m-menu-title">奉诏入朝</h1>
+        <p className="m-menu-sub">各立案牍 · 各守进度</p>
+
+        <div className="m-auth-switch" role="tablist" aria-label="登录方式">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "login"}
+            className={mode === "login" ? "is-active" : ""}
+            onClick={() => { setMode("login"); setErr(""); }}
+          >
+            登录
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "register"}
+            className={mode === "register" ? "is-active" : ""}
+            onClick={() => { setMode("register"); setErr(""); }}
+          >
+            注册
+          </button>
+        </div>
+
+        {err && <div className="m-error">{err}</div>}
+
+        <label className="m-auth-field">
+          <span>用户名</span>
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoComplete="username"
+            autoFocus
+            required
+          />
+        </label>
+        <label className="m-auth-field">
+          <span>密码</span>
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
+            type="password"
+            required
+          />
+        </label>
+        {mode === "register" && (
+          <label className="m-auth-field">
+            <span>邀请码</span>
+            <input
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              autoComplete="one-time-code"
+              required
+            />
+          </label>
+        )}
+        <button className="m-menu-btn primary" type="submit" disabled={busy}>
+          {busy ? "验符中…" : mode === "login" ? "入宫" : "注册并入宫"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 export function App() {
-  const [phase, setPhase] = useState<"boot" | "menu" | "game">("boot");
+  const [phase, setPhase] = useState<"boot" | "auth" | "menu" | "game">("boot");
+
+  const enterAuthedArea = async () => {
+    try {
+      const s = await menuStatus();
+      setPhase(s.has_running_game ? "game" : "menu");
+    } catch (e: any) {
+      if (String(formatApiError(e, "")).includes("auth_required")) {
+        setPhase("auth");
+        return;
+      }
+      setPhase("menu");
+    }
+  };
+
   useEffect(() => {
-    menuStatus()
-      .then((s) => setPhase(s.has_running_game ? "game" : "menu"))
-      .catch(() => setPhase("menu"));
+    authStatus()
+      .then((me) => {
+        if (me.auth_enabled && !me.authenticated) {
+          setPhase("auth");
+          return;
+        }
+        void enterAuthedArea();
+      })
+      .catch(() => setPhase("auth"));
   }, []);
 
   if (phase === "boot") return <div className="m-boot">正召集朝局…</div>;
+  if (phase === "auth") return <AuthScreen onAuthed={enterAuthedArea} />;
   if (phase === "menu") return <Menu onEnter={() => setPhase("game")} />;
   return (
     <GameDataProvider>

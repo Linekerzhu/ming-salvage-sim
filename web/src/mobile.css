@@ -524,6 +524,21 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-menu-save { text-align: left; padding: 11px 13px; border-radius: 10px; background: rgba(0,0,0,.25); color: var(--paper); border: 1px solid var(--line); font-size: 0.9rem; }
 .m-menu-loading { color: #c9b487; padding: 18px 0; display: inline-flex; align-items: center; gap: 8px; }
 .m-guide-exit { display: block; width: 100%; margin-top: 12px; padding: 8px; color: var(--ink-soft); font-size: 0.82rem; text-decoration: underline; background: none; }
+.m-auth-panel { max-width: 390px; }
+.m-auth-switch {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 0 0 16px; padding: 4px;
+  border: 1px solid var(--gold-line); border-radius: 12px; background: rgba(0,0,0,.22);
+}
+.m-auth-switch button { min-height: 40px; border-radius: 9px; color: #c9b487; font-weight: 700; }
+.m-auth-switch button.is-active {
+  color: #21180c; background: linear-gradient(180deg, var(--gold), var(--gold-deep));
+}
+.m-auth-field { display: grid; gap: 6px; margin: 0 0 12px; color: #c9b487; text-align: left; font-size: 0.86rem; }
+.m-auth-field input {
+  width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid var(--gold-line); border-radius: 10px;
+  color: var(--paper); background: rgba(239,226,184,.08); font: inherit;
+}
+.m-auth-field input:focus { outline: none; border-color: rgba(200,162,74,.75); background: rgba(239,226,184,.13); }
 
 /* ── 天下舆图 ───────────────────────────────────────────────── */
 .m-mapcard { padding-bottom: 12px; }

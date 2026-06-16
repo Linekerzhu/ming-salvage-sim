@@ -105,6 +105,20 @@ export type MenuStatus = {
   saves?: Array<{ name?: string; label?: string; year?: number; period?: number; turn?: number }>;
   current_campaign?: string;
 };
+export type AuthStatus = {
+  auth_enabled: boolean;
+  authenticated: boolean;
+  username: string;
+  is_admin: boolean;
+};
+export const authStatus = () => api<AuthStatus>("/api/auth/me");
+export const login = (username: string, password: string) =>
+  api<AuthStatus>("/api/auth/login", { method: "POST", body: JSON.stringify({ username, password }) });
+export const register = (username: string, password: string, invite_code: string) =>
+  api<AuthStatus>("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ username, password, invite_code }),
+  });
 export const menuStatus = () => api<MenuStatus>("/api/menu/status");
 export const newGame = () => api<{ state: any }>("/api/menu/new_game", { method: "POST", body: "{}" });
 export const continueGame = () => api<{ state: any }>("/api/menu/continue", { method: "POST", body: "{}" });
