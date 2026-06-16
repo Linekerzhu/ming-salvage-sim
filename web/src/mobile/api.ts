@@ -42,6 +42,10 @@ export type DeskPayload = {
   attention_per_day: number;
   shi: number;
   renshi_willingness: number;
+  eunuch_power: number;
+  daipihong: boolean;
+  daipihong_keeper: string | null;
+  daipihong_keeper_upright: boolean;
   trap_hint: string;
 };
 
@@ -141,6 +145,16 @@ export const loadTime = async (): Promise<TimeStatus> => {
 
 export const loadDesk = (): Promise<DeskPayload> => api<DeskPayload>("/api/desk");
 
+// 司礼监代批红（宦官恶趣味 E1）：开＝御案积压由内廷廓清（省精力），代价＝权阉之势涨、阉党自固。
+export type DaipihongStatus = { on: boolean; eunuch_power: number; keeper: string | null; keeper_upright: boolean };
+export const loadDaipihong = (): Promise<DaipihongStatus> =>
+  api<DaipihongStatus>("/api/eunuch/daipihong");
+export const setDaipihong = (
+  on: boolean,
+  keeper?: string,
+): Promise<{ on: boolean; message: string; eunuch_power: number; keeper: string | null; keeper_upright: boolean }> =>
+  api("/api/eunuch/daipihong", { method: "POST", body: JSON.stringify(keeper ? { on, keeper } : { on }) });
+
 // 中兴气象（趋势仪表，非胜利条件）+ 当前阶段诏题（朔日刷新）。
 export type ZhongxingPayload = {
   current: { total: number; parts: Record<string, number> };
@@ -153,14 +167,27 @@ export const loadZhongxing = (): Promise<ZhongxingPayload> => api<ZhongxingPaylo
 // 活的宫廷：某官员的私心 + 党羽 + 政敌（双向好感网络）。
 export type CourtTie = { name: string; opinion: number; basis: string };
 export type CourtTrait = { key: string; valence: number; desc: string };
+export type CourtCastration = { bao_status: string; bao_label: string; forced: boolean; servility: number };
+export type CourtSecret = { kind: string; label: string; detail: string; severity: number; used: boolean };
 export type CourtPayload = {
   traits: CourtTrait[];
   agenda: { kind: string; title: string; target: string; intensity: number; status: string } | null;
   allies: CourtTie[];
   rivals: CourtTie[];
+  duishi?: string;
+  castration?: CourtCastration | null;
+  secret?: CourtSecret | null;
 };
 export const loadCourt = (name: string): Promise<CourtPayload> =>
   api<CourtPayload>(`/api/court/${encodeURIComponent(name)}`);
+
+// 宫斗阴谋：令东厂侦缉 / 凭把柄挟制。
+export type InvestigateResult = { ok: boolean; found: boolean; chief?: string; message: string;
+  secret?: { kind: string; detail: string; severity: number }; already?: boolean };
+export const intrigueInvestigate = (name: string): Promise<InvestigateResult> =>
+  api("/api/intrigue/investigate", { method: "POST", body: JSON.stringify({ name }) });
+export const intrigueCoerce = (name: string, mode: string): Promise<{ ok: boolean; mode?: string; message: string }> =>
+  api("/api/intrigue/coerce", { method: "POST", body: JSON.stringify({ name, mode }) });
 
 // 抉择事件（CK3 化 P2）：朝局张力弹出的"请陛下裁断"。
 export type DecisionChoice = { key: string; label: string; hint: string };

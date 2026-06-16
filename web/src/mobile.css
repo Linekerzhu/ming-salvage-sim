@@ -188,6 +188,48 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-desk-status { display: flex; justify-content: space-between; color: #c9b487; font-size: 0.88rem; padding: 0 4px 2px; }
 .m-desk-status b { color: var(--gold); }
 .m-trap-hint { background: rgba(158,52,41,.18); color: #e2a89c; border: 1px solid rgba(158,52,41,.4); border-radius: 10px; padding: 8px 12px; font-size: 0.84rem; }
+
+/* 司礼监代批红（宦官恶趣味 E1）：御案壅塞时的浮士德诱惑条 */
+.m-daipihong { background: rgba(0,0,0,.2); border: 1px solid var(--gold-line); border-radius: 10px; padding: 8px 10px; margin: 2px 0; }
+.m-daipihong.is-on { border-color: rgba(158,52,41,.55); background: rgba(158,52,41,.12); }
+.m-daipihong-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.m-daipihong-label { color: var(--paper); font-size: 0.92rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.m-daipihong-state { font-size: 0.72rem; padding: 1px 7px; border-radius: 8px; border: 1px solid currentColor; }
+.m-daipihong-state.t-warn { color: #e0b352; }
+.m-daipihong-state.t-calm { color: var(--ink-soft); }
+.m-daipihong-btn { background: linear-gradient(180deg, #b5863a, var(--gold-deep)); color: #1c130a; border: 1px solid var(--gold-line); border-radius: 8px; padding: 5px 12px; font-size: 0.84rem; font-weight: 700; }
+.m-daipihong.is-on .m-daipihong-btn { background: linear-gradient(180deg, #a93c30, #7e271d); color: var(--paper); }
+.m-daipihong-btn:disabled { opacity: .55; }
+.m-daipihong-meter { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+.m-daipihong-meter-label { color: #c9b487; font-size: 0.78rem; white-space: nowrap; }
+.m-daipihong-track { flex: 1; height: 6px; background: rgba(0,0,0,.34); border-radius: 3px; overflow: hidden; }
+.m-daipihong-fill { display: block; height: 100%; border-radius: 3px; transition: width .3s; }
+.m-daipihong-fill.t-ok { background: linear-gradient(90deg, var(--jade), var(--gold)); }
+.m-daipihong-fill.t-warn { background: linear-gradient(90deg, var(--gold-deep), #e0b352); }
+.m-daipihong-fill.t-danger { background: linear-gradient(90deg, #7e271d, var(--cinnabar)); }
+.m-daipihong-meter b.t-ok { color: var(--gold); }
+.m-daipihong-meter b.t-warn { color: #e0b352; }
+.m-daipihong-meter b.t-danger { color: #e58a7d; }
+.m-daipihong-note { color: var(--ink-soft); font-size: 0.76rem; margin: 6px 0 0; line-height: 1.45; }
+.m-daipihong.is-on .m-daipihong-note { color: #d8b9a8; }
+.m-daipihong-msg { color: var(--gold); font-size: 0.78rem; margin: 5px 0 0; }
+/* 委忠谨内臣代批红＝良性，淡金而非朱红警示 */
+.m-daipihong.is-upright { border-color: rgba(58,122,90,.5); background: rgba(58,122,90,.1); }
+.m-daipihong.is-upright .m-daipihong-btn { background: linear-gradient(180deg, #b5863a, var(--gold-deep)); color: #1c130a; }
+.m-daipihong.is-upright .m-daipihong-note { color: #bcd3c2; }
+.m-daipihong-keeper { display: flex; align-items: center; gap: 6px; margin-top: 7px; flex-wrap: wrap; }
+.m-daipihong-keeper-label { color: #c9b487; font-size: 0.78rem; }
+.m-daipihong-keeper b { color: var(--paper); font-size: 0.84rem; }
+.m-daipihong-disp { font-size: 0.72rem; padding: 1px 8px; border-radius: 8px; border: 1px solid currentColor; }
+.m-daipihong-disp.t-ok { color: var(--jade); }
+.m-daipihong-disp.t-warn { color: #e0b352; }
+.m-daipihong-pick { margin-left: auto; background: rgba(0,0,0,.28); color: var(--ink-soft); border: 1px solid var(--gold-line); border-radius: 8px; padding: 3px 10px; font-size: 0.76rem; }
+.m-daipihong-pick:disabled { opacity: .55; }
+.m-daipihong-cands { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; padding: 6px; background: rgba(0,0,0,.24); border-radius: 8px; }
+.m-daipihong-cand { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.03); border: 1px solid var(--gold-line); border-radius: 8px; padding: 5px 8px; text-align: left; }
+.m-daipihong-cand:disabled { opacity: .55; }
+.m-daipihong-cand-name { color: var(--paper); font-size: 0.84rem; font-weight: 600; }
+.m-daipihong-cand-office { color: var(--ink-soft); font-size: 0.74rem; margin-left: auto; }
 .m-memorial { padding: 0; overflow: hidden; border-left: 4px solid transparent; }
 .m-memorial.t-info { border-left-color: var(--jade); }
 .m-memorial.t-urgent { border-left-color: var(--cinnabar); }
@@ -686,6 +728,24 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-tie.is-rival { border-color: rgba(158,52,41,.5); background: rgba(158,52,41,.1); }
 .m-tie-name { font-size: .84rem; font-weight: 600; color: var(--ink, #3a2f1c); }
 .m-tie-basis { font-size: .72rem; color: var(--ink-soft, #8a7c5e); }
+.m-person-castration { margin: 4px 0 0; font-size: .82rem; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.m-person-castration .tv-good { color: #3c6b4e; font-weight: 600; }
+.m-person-castration .tv-bad { color: #8a2c22; font-weight: 600; }
+.m-person-castration .m-bao, .m-person-castration .m-serv { color: var(--ink-soft, #8a7c5e); }
+.m-person-duishi { margin: 6px 0 0; font-size: .82rem; color: var(--ink-soft, #8a7c5e); display: flex; align-items: center; gap: 6px; }
+.m-tie-inline { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px 2px 3px; border-radius: 999px;
+  border: 1px solid rgba(158,52,41,.45); background: rgba(158,52,41,.08); cursor: pointer; }
+.m-person-secret { margin: 4px 0 0; font-size: .82rem; display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.m-secret-tag { font-size: .76rem; font-weight: 700; color: #8a2c22; padding: 1px 8px; border-radius: 8px;
+  border: 1px solid rgba(158,52,41,.5); background: rgba(158,52,41,.1); }
+.m-secret-tag.is-used { opacity: .55; text-decoration: line-through; }
+.m-secret-detail { color: var(--ink-soft, #8a7c5e); }
+.m-intrigue-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.m-intrigue-btn { font-size: .8rem; padding: 4px 11px; border-radius: 8px; border: 1px solid var(--gold-line);
+  background: rgba(0,0,0,.22); color: var(--paper); }
+.m-intrigue-btn.is-danger { border-color: rgba(158,52,41,.55); color: #e58a7d; }
+.m-intrigue-btn:disabled { opacity: .5; }
+.m-intrigue-msg { margin: 6px 0 0; font-size: .8rem; color: var(--gold); line-height: 1.45; }
 .m-tie.is-ally .m-tie-basis { color: #4a8060; }
 .m-tie.is-rival .m-tie-basis { color: var(--cinnabar); }
 

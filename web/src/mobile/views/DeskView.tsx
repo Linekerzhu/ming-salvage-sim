@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useGame } from "../GameData";
 import { Portrait } from "../Portrait";
-import { decideMemorial } from "../api";
+import { decideMemorial, setDaipihong, loadEunuchCandidates } from "../api";
 import type { Memorial, MemorialAction } from "../api";
 import { OutcomeSummary } from "./EdictsView";
 
@@ -127,6 +127,114 @@ function MemorialCard({ m, issue, directive, onActed }: { m: Memorial; issue?: a
   );
 }
 
+// 司礼监代批红（E1）：御案壅塞时，可委内臣代行批红廓清积压（省精力）。
+// **善恶取决于委任者**——忠谨守分者据实拟行、弹章呈御览、权阉只微升；
+// 惯于弄权者留中劾阉、阉党自固、权阉日炽。委谁，由陛下定。
+function DaipihongBar() {
+  const { desk, refresh } = useGame();
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [picking, setPicking] = useState(false);
+  const [candidates, setCandidates] = useState<Array<{ name: string; office: string; is_eunuch: boolean }>>([]);
+  const on = !!desk?.daipihong;
+  const power = desk?.eunuch_power ?? 0;
+  const keeper = desk?.daipihong_keeper || null;
+  const upright = !!desk?.daipihong_keeper_upright;
+  const tone = power >= 75 ? "danger" : power >= 50 ? "warn" : "ok";
+
+  useEffect(() => {
+    if (!picking || candidates.length) return;
+    loadEunuchCandidates()
+      .then((r) => setCandidates((r.candidates || []).filter((c) => c.is_eunuch)))
+      .catch(() => {});
+  }, [picking, candidates.length]);
+
+  async function toggle() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await setDaipihong(!on);
+      setMsg(r.message || "");
+      await refresh();
+    } catch (e: any) {
+      setMsg(e?.message || "操作未成。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function commit(name: string) {
+    if (busy) return;
+    setBusy(true);
+    setPicking(false);
+    try {
+      // 委任并（重新）开启代批红，令新委任者即时生效。
+      const r = await setDaipihong(true, name);
+      setMsg(r.message || "");
+      await refresh();
+    } catch (e: any) {
+      setMsg(e?.message || "委任未成。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className={`m-daipihong ${on ? "is-on" : ""} ${on && upright ? "is-upright" : ""}`}>
+      <div className="m-daipihong-row">
+        <span className="m-daipihong-label">
+          司礼监代批红
+          <span className={`m-daipihong-state t-${on ? "warn" : "calm"}`}>{on ? "在行" : "未开"}</span>
+        </span>
+        <button className="m-daipihong-btn" onClick={toggle} disabled={busy}>
+          {on ? "收回批红权" : "命内廷代批"}
+        </button>
+      </div>
+      {keeper && (
+        <div className="m-daipihong-keeper">
+          <span className="m-daipihong-keeper-label">委任：</span>
+          <Portrait name={keeper} size={22} />
+          <b>{keeper}</b>
+          <span className={`m-daipihong-disp t-${upright ? "ok" : "warn"}`}>
+            {upright ? "忠谨守分" : "须警惕弄权"}
+          </span>
+          <button className="m-daipihong-pick" onClick={() => setPicking((v) => !v)} disabled={busy}>
+            {picking ? "取消" : "换委任者"}
+          </button>
+        </div>
+      )}
+      {picking && (
+        <div className="m-daipihong-cands">
+          {candidates.length === 0 ? (
+            <p className="m-hint" style={{ margin: "4px 0" }}>宫中并无可委之内臣。</p>
+          ) : (
+            candidates.map((c) => (
+              <button key={c.name} className="m-daipihong-cand" onClick={() => commit(c.name)} disabled={busy}>
+                <Portrait name={c.name} size={24} interactive={false} />
+                <span className="m-daipihong-cand-name">{c.name}</span>
+                <span className="m-daipihong-cand-office">{c.office}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+      <div className="m-daipihong-meter">
+        <span className="m-daipihong-meter-label">权阉之势</span>
+        <span className="m-daipihong-track"><span className={`m-daipihong-fill t-${tone}`} style={{ width: `${power}%` }} /></span>
+        <b className={`t-${tone}`}>{power}</b>
+      </div>
+      <p className="m-daipihong-note">
+        {on
+          ? upright
+            ? "委忠谨内臣代廓积压：寻常奏章据票拟据实拟行、弹章仍呈御览，权柄未旁落、言路不壅——然代行批红终非亲裁。"
+            : "此委任者惯于弄权：积压虽廓，然劾阉之疏被留中销折、阉党借势自固，权阉日盛——养虎须慎。"
+          : "御案壅塞时，可命内臣代批红廓清积压（省精力）。委忠谨者可期据实拟行；委权阉则恐养虎——委谁全在陛下。"}
+      </p>
+      {msg && <p className="m-daipihong-msg">{msg}</p>}
+    </div>
+  );
+}
+
 export function DeskView() {
   const { desk, state, lifecycle, refresh } = useGame();
   const pending = desk?.pending || [];
@@ -143,6 +251,7 @@ export function DeskView() {
         <span>御案待批 <b>{desk?.backlog ?? 0}</b></span>
         <span>今日精力 <b>{desk?.attention_left ?? 0}</b>/{desk?.attention_per_day ?? 12}</span>
       </div>
+      <DaipihongBar />
       {desk?.trap_hint && <div className="m-trap-hint">{desk.trap_hint}</div>}
       {sorted.length === 0 ? (
         <div className="m-empty m-card">

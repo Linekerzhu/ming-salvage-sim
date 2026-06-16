@@ -4,7 +4,7 @@ import { useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Portrait } from "./Portrait";
 import { PersonCtx } from "./personCtx";
-import { loadCharacter, loadCourt } from "./api";
+import { loadCharacter, loadCourt, intrigueInvestigate, intrigueCoerce } from "./api";
 import type { CourtPayload } from "./api";
 
 const AGENDA_CN: Record<string, string> = {
@@ -15,12 +15,36 @@ function PersonSheet({ name, onClose }: { name: string; onClose: () => void }) {
   const [c, setC] = useState<Record<string, any> | null>(null);
   const [court, setCourt] = useState<CourtPayload | null>(null);
   const [err, setErr] = useState(false);
+  const [intrigueMsg, setIntrigueMsg] = useState("");
+  const [busy, setBusy] = useState(false);
   const openPerson = useContext(PersonCtx);
   useEffect(() => {
-    setC(null); setErr(false); setCourt(null);
+    setC(null); setErr(false); setCourt(null); setIntrigueMsg(""); setBusy(false);
     loadCharacter(name).then((r) => setC(r.character)).catch(() => setErr(true));
     loadCourt(name).then(setCourt).catch(() => setCourt(null));
   }, [name]);
+  const isMing = !c || (c.power_id ? c.power_id === "ming" : true);
+  const isSelf = name === "崇祯" || c?.office_type === "君主";
+  async function probe() {
+    if (busy) return;
+    setBusy(true); setIntrigueMsg("");
+    try {
+      const r = await intrigueInvestigate(name);
+      setIntrigueMsg(r.message || "");
+      await loadCourt(name).then(setCourt).catch(() => {});
+    } catch (e: any) { setIntrigueMsg(e?.message || "侦缉未成。"); }
+    finally { setBusy(false); }
+  }
+  async function coerce(mode: string) {
+    if (busy) return;
+    setBusy(true); setIntrigueMsg("");
+    try {
+      const r = await intrigueCoerce(name, mode);
+      setIntrigueMsg(r.message || "");
+      await loadCourt(name).then(setCourt).catch(() => {});
+    } catch (e: any) { setIntrigueMsg(e?.message || "挟制未成。"); }
+    finally { setBusy(false); }
+  }
   const skills: string[] = (c?.personal_skills || c?.skills || []).map((x: any) => typeof x === "string" ? x : x?.name).filter(Boolean);
   return (
     <div className="m-sheet-backdrop" onClick={onClose}>
@@ -84,6 +108,53 @@ function PersonSheet({ name, onClose }: { name: string; onClose: () => void }) {
                 </button>
               ))}
             </div>
+          </div>
+        )}
+        {(court?.castration || court?.duishi) && (
+          <div className="m-person-block">
+            <span className="m-person-h">内廷 · 净身</span>
+            {court?.castration && (
+              <p className="m-person-castration">
+                <span className={court.castration.forced ? "tv-bad" : "tv-good"}>
+                  {court.castration.forced ? "强旨净身" : "自愿净身"}
+                </span>
+                {court.castration.bao_label && <span className="m-bao">· {court.castration.bao_label}</span>}
+                <span className="m-serv">· 奴性 {court.castration.servility}</span>
+              </p>
+            )}
+            {court?.duishi && (
+              <p className="m-person-duishi">
+                对食：
+                <button className="m-tie-inline" onClick={() => openPerson(court.duishi!)}>
+                  <Portrait name={court.duishi} size={22} interactive={false} />
+                  <span className="m-tie-name">{court.duishi}</span>
+                </button>
+              </p>
+            )}
+          </div>
+        )}
+        {isMing && !isSelf && (
+          <div className="m-person-block">
+            <span className="m-person-h">把柄 · 厂卫</span>
+            {court?.secret ? (
+              <>
+                <p className="m-person-secret">
+                  <span className={`m-secret-tag ${court.secret.used ? "is-used" : ""}`}>{court.secret.label}</span>
+                  <span className="m-secret-detail">{court.secret.detail}</span>
+                </p>
+                <div className="m-intrigue-acts">
+                  <button className="m-intrigue-btn" disabled={busy} onClick={() => coerce("submit")}>胁其输诚</button>
+                  <button className="m-intrigue-btn" disabled={busy} onClick={() => coerce("serve")}>胁迫听用</button>
+                  <button className="m-intrigue-btn is-danger" disabled={busy} onClick={() => coerce("retire")}>逼令致仕</button>
+                </div>
+              </>
+            ) : (
+              <div className="m-intrigue-acts">
+                <button className="m-intrigue-btn" disabled={busy} onClick={probe}>令东厂密查</button>
+                <span className="m-hint" style={{ alignSelf: "center" }}>厂卫侦缉，发其阴私为把柄</span>
+              </div>
+            )}
+            {intrigueMsg && <p className="m-intrigue-msg">{intrigueMsg}</p>}
           </div>
         )}
         {Array.isArray(c?.conversation_goals) && c.conversation_goals.length > 0 && (
