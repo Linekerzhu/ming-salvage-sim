@@ -42,6 +42,30 @@ class TimeflowBasics(unittest.TestCase):
             db, state = _fresh(tmp)
             timeflow.ensure_active(db, state)
             turn0 = state.turn
+            year0 = state.year
+            period0 = state.period
+            db.conn.execute(
+                """
+                INSERT INTO turn_directives
+                    (turn, year, period, text, source, status, lifecycle_status,
+                     progress, assignee, settle_note, outcome_status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    turn0,
+                    year0,
+                    period0,
+                    "敕曰：试办内书堂一所，着王承恩协办章程。",
+                    "test",
+                    "issued",
+                    "done",
+                    100,
+                    "王承恩",
+                    "臣王承恩谨奏：内书堂已于潭柘寺畔设学。",
+                    "applied",
+                ),
+            )
+            db.conn.commit()
             guard = 0
             while state.turn == turn0 and guard < 80:
                 guard += 1
@@ -50,6 +74,23 @@ class TimeflowBasics(unittest.TestCase):
                     break
             self.assertEqual(state.turn, turn0 + 1)
             self.assertFalse(timeflow.time_status(db, state)["await_decree"])
+            report = db.get_turn_report(turn0)
+            self.assertIn("内书堂", report)
+            self.assertIn("已复命", report)
+            extraction = db.get_turn_extraction(turn0)
+            self.assertIsNotNone(extraction)
+            self.assertEqual(extraction["extractor_input"], "zero_llm_continuous_rollover")
+            memory = db.conn.execute(
+                """
+                SELECT title, body, tags
+                FROM event_memories
+                WHERE event_type='chapter_summary' AND source_kind='turn_report' AND source_id=?
+                """,
+                (str(turn0),),
+            ).fetchone()
+            self.assertIsNotNone(memory)
+            self.assertIn("内书堂", memory["body"])
+            self.assertIn("王承恩", memory["tags"])
 
     def test_xun_fiscal_shares_sum_to_month(self):
         with TemporaryDirectory() as tmp:

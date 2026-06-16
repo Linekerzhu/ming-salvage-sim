@@ -14,6 +14,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from functools import lru_cache
 import hashlib
+import html
 import json
 import logging
 import os
@@ -5807,6 +5808,21 @@ def _static_portrait_exists(filename: str) -> bool:
     return bool(clean and clean in _static_portrait_filenames())
 
 
+def _find_static_portrait_file(filename: str) -> Optional[str]:
+    """Return a bundled/static portrait path, if present."""
+    clean = os.path.basename(str(filename or ""))
+    if not clean:
+        return None
+    for base in (
+        bundled_path("web", "public", "portraits"),
+        bundled_path("web", "dist", "portraits"),
+    ):
+        path = os.path.join(str(base), clean)
+        if os.path.isfile(path):
+            return path
+    return None
+
+
 @lru_cache(maxsize=16)
 def _static_portrait_ids_with_prefix(prefix: str) -> tuple[str, ...]:
     clean_prefix = os.path.basename(str(prefix or ""))
@@ -5827,6 +5843,81 @@ def _stable_static_portrait_id(prefix: str, key: str) -> str:
         return ""
     digest = hashlib.sha256(str(key or "").encode("utf-8")).hexdigest()
     return ids[int(digest[:8], 16) % len(ids)]
+
+
+def _fallback_portrait_svg(name: str, family: str) -> str:
+    """Deterministic SVG bust for characters without a painted portrait."""
+    seed = int(hashlib.sha256(f"{family}:{name}".encode("utf-8")).hexdigest()[:8], 16)
+    robe_palette = ["#243a4a", "#3e2e4c", "#31513e", "#55372d", "#42483a", "#2d4057"]
+    accent_palette = ["#b68a43", "#9d4d3f", "#6c8b5b", "#7b5ca5", "#a36a3b", "#587f9b"]
+    robe = robe_palette[seed % len(robe_palette)]
+    accent = accent_palette[(seed // 7) % len(accent_palette)]
+    face = "#d3a06c" if family == "minister" else "#d9a978"
+    hat = "#171717" if family == "minister" else "#2b1822"
+    label = html.escape(str(name or "未命名"), quote=True)
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="512" height="768" viewBox="0 0 512 768" role="img" aria-label="{label}">
+  <defs>
+    <radialGradient id="halo" cx="50%" cy="16%" r="58%">
+      <stop offset="0%" stop-color="#f1d89a" stop-opacity=".28"/>
+      <stop offset="100%" stop-color="#21170f" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="robe" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="{robe}"/>
+      <stop offset="100%" stop-color="#17130f"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="768" fill="#24180f"/>
+  <rect width="512" height="768" fill="url(#halo)"/>
+  <ellipse cx="256" cy="670" rx="172" ry="40" fill="#0d0a08" opacity=".38"/>
+  <path d="M126 720c12-182 55-314 130-314s118 132 130 314z" fill="url(#robe)"/>
+  <path d="M166 720c11-112 38-198 90-244 52 46 79 132 90 244z" fill="{accent}" opacity=".38"/>
+  <path d="M145 500c34-55 71-80 111-80s77 25 111 80c-34 22-70 33-111 33s-77-11-111-33z" fill="#16100d" opacity=".58"/>
+  <ellipse cx="256" cy="272" rx="91" ry="109" fill="{face}"/>
+  <path d="M178 250c18-64 56-96 78-96s60 32 78 96c-32-19-58-27-78-27s-46 8-78 27z" fill="#2b1b14" opacity=".34"/>
+  <path d="M181 185h150l-18-58H199z" fill="{hat}"/>
+  <rect x="207" y="98" width="98" height="52" rx="8" fill="{hat}"/>
+  <path d="M185 194c40 14 102 14 142 0" fill="none" stroke="{accent}" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="224" cy="275" r="7" fill="#2b1b14"/>
+  <circle cx="288" cy="275" r="7" fill="#2b1b14"/>
+  <path d="M232 327c18 10 30 10 48 0" fill="none" stroke="#54331f" stroke-width="6" stroke-linecap="round"/>
+  <path d="M220 352c22 24 50 24 72 0" fill="#2b1b14" opacity=".42"/>
+  <path d="M172 618c51 22 117 22 168 0" fill="none" stroke="#e0c27d" stroke-width="10" opacity=".28"/>
+</svg>"""
+
+
+@app.get("/portraits/{filename}")
+async def api_static_or_pool_portrait(filename: str) -> Response:
+    """Serve static portraits and deterministic pool fallbacks for missing names.
+
+    Mobile chat bubbles still request /portraits/minister_<name>.png directly.
+    Runtime-created or unpainted figures should get a face from the pool instead
+    of a 404 and a text-only badge.
+    """
+    clean = os.path.basename(str(filename or ""))
+    if not clean.endswith(".png"):
+        raise HTTPException(status_code=404, detail="立绘不存在")
+    path = _find_static_portrait_file(clean)
+    if path:
+        return FileResponse(path, media_type="image/png", headers={"Cache-Control": _STATIC_MEDIA_CACHE})
+
+    match = re.match(r"^(minister|consort)_(.+)\.png$", clean)
+    if match:
+        family, raw_name = match.groups()
+        pool_prefix = "minister_pool_" if family == "minister" else "consort_pool_"
+        fallback_id = _stable_static_portrait_id(pool_prefix, raw_name)
+        fallback_path = _find_static_portrait_file(f"{fallback_id}.png") if fallback_id else None
+        if fallback_path:
+            return FileResponse(
+                fallback_path,
+                media_type="image/png",
+                headers={"Cache-Control": _STATIC_MEDIA_CACHE, "X-Portrait-Fallback": fallback_id},
+            )
+        return Response(
+            content=_fallback_portrait_svg(raw_name, family),
+            media_type="image/svg+xml",
+            headers={"Cache-Control": _STATIC_MEDIA_CACHE, "X-Portrait-Fallback": "svg-bust"},
+        )
+    raise HTTPException(status_code=404, detail="立绘不存在")
 
 
 @app.get("/portraits/generated/{asset_id}.png")

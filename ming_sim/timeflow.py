@@ -16,6 +16,7 @@ current_day = (turn-1)*30 + 1，当月按新流程开月。
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
@@ -43,6 +44,13 @@ KV_MONTH_EVENTS = "upgrade.month_events"      # 当月日 tick 事件账（史�
 LEVEL_RED = "red"
 LEVEL_YELLOW = "yellow"
 LEVEL_BLUE = "blue"
+
+
+def _short(text: object, limit: int = 120) -> str:
+    raw = re.sub(r"\s+", " ", str(text or "").strip())
+    if len(raw) <= limit:
+        return raw
+    return raw[: max(1, limit - 1)] + "…"
 
 
 @dataclass
@@ -606,6 +614,7 @@ def rollover_month(db: GameDB, state: GameState) -> None:
     快进未落旬份额 + 施加 issue 持续效果（危机消耗）+ 清除已解除的帝国修正 + 跨月开新月。
     诏书效果不在此结算——它们各自到期由 edict_outcome/drain 即时落库。"""
     from ming_sim.issues import apply_issue_inertia_and_ongoing, clear_gated_legacies
+    month_events = month_event_log(db)
     month_fixed_flows(db, state)
     try:
         apply_issue_inertia_and_ongoing(db, state, touched_ids=set())
@@ -614,9 +623,198 @@ def rollover_month(db: GameDB, state: GameState) -> None:
     except Exception as exc:
         from ming_sim.token_stats import tlog
         tlog(f"[rollover] 持续效果结算异常，跳过：{exc}")
+    try:
+        record_rollover_chronicle(db, state, month_events=month_events)
+    except Exception as exc:
+        from ming_sim.token_stats import tlog
+        tlog(f"[rollover] 月录留痕异常，跳过：{exc}")
     state.next_period()
     db.save_state(state)
     on_month_resolved(db, state)
+
+
+def _directive_status_label(row) -> str:
+    status = str(row["lifecycle_status"] or "")
+    progress = int(row["progress"] or 0)
+    outcome = str(row["outcome_status"] or "")
+    if status == "done":
+        return "已复命" + ("，结果已落库" if outcome == "applied" else "")
+    if status == "executing":
+        return f"承办中{progress}%"
+    if status == "in_transit":
+        return f"送达中{progress}%"
+    if status == "stalled":
+        return f"停摆/封驳{progress}%"
+    return status or "已颁"
+
+
+def _chronicle_tags(directives: List[object], issues: List[object], events: List[Dict[str, object]]) -> List[str]:
+    tags: List[str] = ["月录", "连续时间"]
+    for row in directives:
+        for value in (row["assignee"], row["actor"]):
+            clean = str(value or "").strip()
+            if clean and clean not in tags:
+                tags.append(clean[:40])
+        for token in re.findall(r"[\u4e00-\u9fff]{2,4}", str(row["text"] or "")):
+            if token in {"内书堂", "锦衣卫", "司礼监", "户部亏空", "辽东", "陕西", "流寇", "海关"} and token not in tags:
+                tags.append(token)
+    for row in issues:
+        title = str(row["title"] or "").strip()
+        if title and title not in tags:
+            tags.append(title[:40])
+        issue_id = f"#{int(row['id'])}"
+        if issue_id not in tags:
+            tags.append(issue_id)
+    for event in events:
+        title = str(event.get("title") or "").strip()
+        if title and title not in tags:
+            tags.append(title[:40])
+    return tags[:16]
+
+
+def record_rollover_chronicle(
+    db: GameDB,
+    state: GameState,
+    *,
+    month_events: Optional[List[Dict[str, object]]] = None,
+) -> str:
+    """Persist a zero-LLM monthly chronicle for continuous-time rollover.
+
+    The old monthly LLM settlement wrote turn_reports, turn_extractions, and a
+    chapter memory. Continuous-time rollover is intentionally cheap, but without
+    this ledger NPCs and the history UI lose the shared facts of the month.
+    """
+    month_events = list(month_events or [])
+    directives = db.conn.execute(
+        """
+        SELECT id, actor, assignee, text, lifecycle_status, progress,
+               outcome_status, settle_note
+        FROM turn_directives
+        WHERE turn=? AND status='issued'
+        ORDER BY
+          CASE lifecycle_status
+            WHEN 'stalled' THEN 0
+            WHEN 'executing' THEN 1
+            WHEN 'in_transit' THEN 2
+            WHEN 'done' THEN 3
+            ELSE 4
+          END,
+          id DESC
+        LIMIT 24
+        """,
+        (int(state.turn),),
+    ).fetchall()
+    issues = db.conn.execute(
+        """
+        SELECT id, title, status, bar_value, phase, stage_text, last_advance_turn
+        FROM issues
+        WHERE status='active' OR last_advance_turn=?
+        ORDER BY
+          CASE status WHEN 'active' THEN 0 ELSE 1 END,
+          id
+        LIMIT 12
+        """,
+        (int(state.turn),),
+    ).fetchall()
+    logs = db.conn.execute(
+        """
+        SELECT message
+        FROM turn_logs
+        WHERE turn=?
+        ORDER BY id DESC
+        LIMIT 8
+        """,
+        (int(state.turn),),
+    ).fetchall()
+    memorial_counts = db.conn.execute(
+        """
+        SELECT status, COUNT(*) AS n
+        FROM memorials
+        WHERE arrived_day BETWEEN ? AND ?
+        GROUP BY status
+        """,
+        ((int(state.turn) - 1) * DAYS_PER_MONTH + 1, int(state.turn) * DAYS_PER_MONTH),
+    ).fetchall()
+    memorial_summary = "、".join(f"{row['status']}{int(row['n'])}" for row in memorial_counts) or "无新奏疏留档"
+
+    done = sum(1 for row in directives if str(row["lifecycle_status"] or "") == "done")
+    executing = sum(1 for row in directives if str(row["lifecycle_status"] or "") in {"executing", "in_transit"})
+    stalled = sum(1 for row in directives if str(row["lifecycle_status"] or "") == "stalled")
+    metrics = "、".join(f"{key}{int(state.metrics.get(key, 0))}" for key in ("国库", "内库", "民心", "皇威"))
+
+    lines = [
+        f"崇祯{state.year}年{state.period}月月录",
+        "",
+        f"本月御案追踪圣旨{len(directives)}道：已复命{done}道，仍在承办{executing}道，停摆{stalled}道。奏疏流转：{memorial_summary}。盘面：{metrics}。",
+    ]
+    if directives:
+        lines.append("")
+        lines.append("一、圣旨履约")
+        for row in directives[:10]:
+            assignee = str(row["assignee"] or row["actor"] or "未署主办")
+            line = (
+                f"- #{int(row['id'])} {assignee}：{_directive_status_label(row)}；"
+                f"{_short(row['text'], 92)}"
+            )
+            settle = _short(row["settle_note"], 88)
+            if settle:
+                line += f"；复命：{settle}"
+            lines.append(line)
+    if issues:
+        lines.append("")
+        lines.append("二、局势余波")
+        for row in issues[:8]:
+            stage = _short(row["stage_text"], 80)
+            lines.append(
+                f"- {row['title']}：{row['status']}，{row['phase']}，进度{int(row['bar_value'] or 0)}。{stage}"
+            )
+    notable_events = [e for e in month_events if e.get("level") in (LEVEL_RED, LEVEL_YELLOW)]
+    if notable_events or logs:
+        lines.append("")
+        lines.append("三、朝局留痕")
+        for event in notable_events[:8]:
+            detail = _short(event.get("detail"), 70)
+            suffix = f"：{detail}" if detail else ""
+            lines.append(f"- {event.get('title') or event.get('kind')}{suffix}")
+        for row in logs[:6]:
+            msg = _short(row["message"], 90)
+            if msg and all(msg not in line for line in lines):
+                lines.append(f"- {msg}")
+
+    report = "\n".join(lines).strip()
+    db.save_turn_report(state, report)
+    db.save_turn_extraction(
+        state,
+        decree_text="\n".join(_short(row["text"], 120) for row in directives[:12]),
+        narrative=report,
+        extractor_input="zero_llm_continuous_rollover",
+        extractor_output=json.dumps({
+            "rollover_chronicle": True,
+            "metrics": {key: int(state.metrics.get(key, 0)) for key in ("国库", "内库", "民心", "皇威")},
+            "directives": [
+                {
+                    "id": int(row["id"]),
+                    "assignee": str(row["assignee"] or row["actor"] or ""),
+                    "status": str(row["lifecycle_status"] or ""),
+                    "progress": int(row["progress"] or 0),
+                    "outcome_status": str(row["outcome_status"] or ""),
+                }
+                for row in directives
+            ],
+            "events": month_events[:20],
+        }, ensure_ascii=False),
+        causal_notes=[],
+    )
+    tags = _chronicle_tags(directives, issues, month_events)
+    body = " ".join(line.lstrip("- ") for line in lines if line and not line.startswith("崇祯"))[:420]
+    db.save_chapter_memory(
+        state,
+        title=f"崇祯{state.year}年{state.period}月月录",
+        body=body or report[:420],
+        tags=tags,
+    )
+    db.record_log(state, f"【月录】崇祯{state.year}年{state.period}月已归档，圣旨{len(directives)}道、奏疏流转{memorial_summary}。")
+    return report
 
 
 def _month_events_append(db: GameDB, events: List[Dict[str, object]]) -> None:

@@ -335,6 +335,16 @@ class WebMultiuserAuthTests(unittest.TestCase):
 
         self.assertEqual(orphaned, [])
 
+    def test_missing_named_portrait_uses_svg_bust_fallback(self) -> None:
+        client = TestClient(web_app.app)
+
+        response = client.get("/portraits/minister_缺图测试.png")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("image/svg+xml", response.headers.get("content-type", ""))
+        self.assertEqual(response.headers.get("x-portrait-fallback"), "svg-bust")
+        self.assertIn("<svg", response.text)
+
     def test_generated_portrait_error_keeps_static_fallback(self) -> None:
         old_web_verify = web_app.verify_llm_available
         old_session_verify = session_module.verify_llm_available
