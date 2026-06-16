@@ -3,6 +3,8 @@ import { loadChat, streamChat } from "./api";
 import { Portrait } from "./Portrait";
 import type { ChatMessage, ChatResponse, Suggestion } from "./api";
 
+const EMPTY_LOCAL_MESSAGES: ChatMessage[] = [];
+
 function cleanDisplayText(raw: string): string {
   return String(raw || "")
     .replace(/\*\*([^*]+)\*\*/g, "$1")
@@ -19,11 +21,13 @@ export function ChatPane({
   speakerLabel,
   onSummon,
   onWorldChanged,
+  localMessages = EMPTY_LOCAL_MESSAGES,
 }: {
   name: string;
   speakerLabel: string;
   onSummon?: (next: string) => void;
   onWorldChanged?: () => void;
+  localMessages?: ChatMessage[];
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -61,7 +65,7 @@ export function ChatPane({
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, streaming, busy]);
+  }, [messages, localMessages, streaming, busy]);
 
   const send = async (text: string) => {
     const msg = text.trim();
@@ -110,8 +114,8 @@ export function ChatPane({
   return (
     <div className="m-chat">
       <div className="m-chat-scroll" ref={scrollRef}>
-        {messages.length === 0 && !streaming && <p className="m-empty">尚未开问。</p>}
-        {messages.map((m, i) => (
+        {messages.length + localMessages.length === 0 && !streaming && <p className="m-empty">尚未开问。</p>}
+        {[...messages, ...localMessages].map((m, i) => (
           m.role === "user" ? (
             <div key={i} className="m-bubble is-emperor">
               <span className="m-bubble-who">朕</span>

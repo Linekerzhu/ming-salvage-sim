@@ -3,16 +3,20 @@ import { useGame } from "../GameData";
 import { ChatPane } from "../ChatPane";
 import { Portrait } from "../Portrait";
 import { loadEunuch, loadEunuchCandidates, replaceEunuch } from "../api";
-import type { PublicCharacter } from "../api";
+import type { ChatMessage, PublicCharacter } from "../api";
 
-// 召对·人治之门：皇帝只直接对话随侍太监；要见大臣，命随侍传召 → 大臣趋入奏对 → 命其退下。
+// 召对·人治之门：皇帝只直接对话随侍太监；要见大臣，命随侍传召 → 大臣趋入奏对 → 奏对完成，由随侍收尾。
 // 随侍是必经的门与顾问（进言荐人、过滤外朝），不可绕过直挑大臣。
 export function AudienceView({
   audience,
   onAudienceChange,
+  onAudienceComplete,
+  eunuchLocalMessages,
 }: {
   audience: string;
   onAudienceChange: (name: string) => void;
+  onAudienceComplete: (name: string) => void;
+  eunuchLocalMessages: ChatMessage[];
 }) {
   const { state, refresh } = useGame();
   const [eunuch, setEunuch] = useState<PublicCharacter | null | undefined>(undefined);
@@ -54,9 +58,9 @@ export function AudienceView({
               <span className="m-audience-role">奉召觐见</span>
             </div>
           </div>
-          <button className="m-mini m-mini-dismiss" onClick={() => onAudienceChange("")}>命其退下 ›</button>
+          <button className="m-mini m-mini-complete" onClick={() => onAudienceComplete(audience)}>奏对完成 ›</button>
         </div>
-        <div className="m-arrival">（{audience} 奉召趋入，叩见陛下。事毕，命其退下。）</div>
+        <div className="m-arrival">（{audience} 奉召趋入，正在御前奏对。奏对完成后，由随侍送其告退。）</div>
         <ChatPane key={audience} name={audience} speakerLabel={audience} onWorldChanged={refresh} />
       </div>
     );
@@ -95,6 +99,7 @@ export function AudienceView({
         speakerLabel={`${eunuch.name}·随侍`}
         onSummon={(next) => onAudienceChange(next)}
         onWorldChanged={refresh}
+        localMessages={eunuchLocalMessages}
       />
 
       {sheet && (

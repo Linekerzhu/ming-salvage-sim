@@ -7,7 +7,7 @@ import { PersonProvider } from "./Person";
 import { Menu } from "./Menu";
 import { Guide, guideSeen, markGuideSeen } from "./Guide";
 import { authStatus, exitToMenu, login, menuStatus, register, resolveDecision } from "./api";
-import type { Decision, Tab } from "./api";
+import type { ChatMessage, Decision, Tab } from "./api";
 import { HomeView } from "./views/HomeView";
 import { DeskView } from "./views/DeskView";
 import { AudienceView } from "./views/AudienceView";
@@ -225,7 +225,20 @@ function Shell({ onExitMenu }: { onExitMenu: () => void }) {
   const [tab, setTab] = useState<Tab>("home");
   const [guideOpen, setGuideOpen] = useState(false);
   const [audienceName, setAudienceName] = useState("");
+  const [eunuchLocalMessages, setEunuchLocalMessages] = useState<ChatMessage[]>([]);
   const { loading, error } = useGame();
+  const completeAudience = (minister: string) => {
+    const name = minister.trim();
+    if (!name) return;
+    setEunuchLocalMessages((messages) => [
+      ...messages,
+      {
+        role: "minister",
+        content: `奴婢回陛下，${name}大人已经告退，此番奏对已毕。陛下还有何吩咐？`,
+      },
+    ]);
+    setAudienceName("");
+  };
   useEffect(() => {
     if (!guideSeen()) setGuideOpen(true);
   }, []);
@@ -239,7 +252,14 @@ function Shell({ onExitMenu }: { onExitMenu: () => void }) {
         {loading && <div className="m-loading">正在召集朝局…</div>}
         {!loading && tab === "home" && <HomeView go={setTab} />}
         {!loading && tab === "desk" && <DeskView />}
-        {!loading && tab === "audience" && <AudienceView audience={audienceName} onAudienceChange={setAudienceName} />}
+        {!loading && tab === "audience" && (
+          <AudienceView
+            audience={audienceName}
+            onAudienceChange={setAudienceName}
+            onAudienceComplete={completeAudience}
+            eunuchLocalMessages={eunuchLocalMessages}
+          />
+        )}
         {!loading && tab === "edicts" && <EdictsView />}
         {!loading && tab === "realm" && <RealmView />}
       </main>
