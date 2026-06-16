@@ -12,7 +12,8 @@ from tempfile import TemporaryDirectory
 
 from ming_sim import lifecycle, scheduler, timeflow
 from ming_sim.db import GameDB
-from ming_sim.models import LLMConfig
+from ming_sim.models import Character, CourtContext, LLMConfig
+from ming_sim.registry import build_recent_directive_memory_brief
 from ming_sim.session import GameSession
 from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
 
@@ -197,6 +198,58 @@ class DrainPendingOutcomesTests(unittest.TestCase):
                 self.assertEqual(after, min(100, before + 12))
             finally:
                 sess.close()
+
+    def test_recent_done_directives_feed_npc_dialogue_context(self):
+        """连续时间制下，已复命圣旨应即时进入 NPC 召对事实，而非等月末章节记忆。"""
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            try:
+                db.conn.execute(
+                    """
+                    INSERT INTO turn_directives
+                        (turn, year, period, text, source, status, lifecycle_status,
+                         progress, assignee, settle_note, outcome_status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        1,
+                        1627,
+                        10,
+                        "敕曰：试办内书堂一所，着内官监御前王承恩协办章程。",
+                        "test",
+                        "issued",
+                        "done",
+                        100,
+                        "王承恩",
+                        "臣承恩谨奏：遵旨试办内书堂，已于京西潭柘寺畔择地设学，诸事就绪。",
+                        "applied",
+                    ),
+                )
+                db.conn.commit()
+                state.turn = 2
+                state.year = 1627
+                state.period = 11
+                character = Character(
+                    name="王承恩",
+                    office="内官监御前",
+                    office_type="内廷",
+                    faction="皇党",
+                    aliases=[],
+                    personal_skills=[],
+                    loyalty=80,
+                    ability=65,
+                    integrity=75,
+                    courage=70,
+                    style="谨慎",
+                    power_id="ming",
+                )
+                brief = build_recent_directive_memory_brief(character, CourtContext(state, db))
+                self.assertIn("内书堂", brief)
+                self.assertIn("已复命，结果已落库", brief)
+                self.assertIn("不得继续把已复命之事说成未办", brief)
+                self.assertIn("臣承恩谨奏", brief)
+            finally:
+                db.close()
 
     def test_drain_idempotent(self):
         """再次 drain 不重复落 delta（已 applied 不再处理）。"""

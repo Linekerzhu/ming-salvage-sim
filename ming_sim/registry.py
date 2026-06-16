@@ -305,6 +305,83 @@ def build_personal_chat_memory_brief(character: Character, context: CourtContext
     return "\n".join(lines)
 
 
+def build_recent_directive_memory_brief(character: Character, context: CourtContext) -> str:
+    """Recent decree lifecycle facts visible to every summoned NPC.
+
+    Continuous-time edicts can complete before the next monthly chapter memory is
+    written. This dynamic block keeps NPC dialogue aligned with the directive
+    ledger and overrides stale statements preserved in the agent/chat history.
+    """
+    try:
+        start_turn = max(1, int(context.state.turn) - 1)
+        rows = context.db.conn.execute(
+            """
+            SELECT id, turn, year, period, text, lifecycle_status, progress,
+                   assignee, settle_note, outcome_status, eta_day
+            FROM turn_directives
+            WHERE status = 'issued'
+              AND turn BETWEEN ? AND ?
+            ORDER BY
+              CASE WHEN assignee = ? THEN 0 ELSE 1 END,
+              CASE lifecycle_status
+                WHEN 'done' THEN 0
+                WHEN 'executing' THEN 1
+                WHEN 'in_transit' THEN 2
+                ELSE 3
+              END,
+              id DESC
+            LIMIT 18
+            """,
+            (start_turn, int(context.state.turn), character.name),
+        ).fetchall()
+    except Exception:
+        return ""
+    if not rows:
+        return ""
+
+    def compact(text: object, limit: int = 120) -> str:
+        raw = re.sub(r"\s+", " ", str(text or "").strip())
+        return raw if len(raw) <= limit else raw[: limit - 1] + "…"
+
+    status_label = {
+        "in_transit": "送达中",
+        "executing": "承办中",
+        "stalled": "封驳停摆",
+        "done": "已复命",
+        "aborted": "已收回",
+    }
+    lines = [
+        "【近期待办/已办圣旨事实（隐藏硬事实；优先于旧对话、旧印象和历史常识）】",
+        "这些来自朝廷文书与复命簿。若与你过去说过的话冲突，以本段为准；可承认旧话发生在早前，不得继续把已复命之事说成未办。",
+    ]
+    for row in rows:
+        status = str(row["lifecycle_status"] or "")
+        label = status_label.get(status, status or "已颁")
+        assignee = str(row["assignee"] or "未署主办")
+        progress = int(row["progress"] or 0)
+        if status == "done":
+            outcome_status = str(row["outcome_status"] or "")
+            suffix = "，结果已落库" if outcome_status == "applied" else ""
+            fact = f"{label}{suffix}"
+        elif status in {"executing", "in_transit", "stalled"}:
+            eta = int(row["eta_day"] or 0)
+            eta_text = f"，约第{eta}日见分晓" if eta else ""
+            fact = f"{label}{progress}%{eta_text}"
+        else:
+            fact = label
+        decree = compact(row["text"], 110)
+        settle = compact(row["settle_note"], 110)
+        line = (
+            f"- #{int(row['id'])}（{int(row['year'])}年{int(row['period'])}月）"
+            f"{fact}；主办：{assignee}；旨意：{decree}"
+        )
+        if settle:
+            line += f"；复命：{settle}"
+        lines.append(line)
+    lines.append("回答皇帝追问进度时，先按上述文书事实校准：已复命则说已办结果，在办则说仍在推进，未列入本段才按工具或现状另查。")
+    return "\n".join(lines)
+
+
 def build_stance_brief(character: Character, context: CourtContext) -> str:
     """本回合召对立场，提醒 Agent 接续自身承诺/保留。"""
     rows = context.db.list_minister_stances(

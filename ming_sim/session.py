@@ -43,6 +43,7 @@ from ming_sim.registry import (
     bind_content as _bind_registry,
     build_monthly_followup_brief,
     build_personal_chat_memory_brief,
+    build_recent_directive_memory_brief,
     build_secret_order_brief,
     build_stance_brief,
 )
@@ -682,6 +683,7 @@ class GameSession:
         )
         parts: List[str] = []
         for builder in (
+            build_recent_directive_memory_brief,
             build_monthly_followup_brief,
             build_secret_order_brief,
             build_stance_brief,
