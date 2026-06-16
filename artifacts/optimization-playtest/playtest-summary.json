@@ -1,0 +1,292 @@
+{
+  "ok": true,
+  "model": {
+    "base_url": "https://api.deepseek.com",
+    "model": "deepseek-v4-flash",
+    "has_api_key": true,
+    "max_tokens": 8000,
+    "timeout_seconds": 180,
+    "thinking_level": "",
+    "advanced_model": "",
+    "advanced_base_url": "",
+    "has_advanced_api_key": false,
+    "advanced_thinking_level": ""
+  },
+  "screenshots": [
+    "01-menu.png",
+    "02-guide.png",
+    "03-home.png",
+    "04-audience.png",
+    "05-biziyan.png",
+    "06-chat-after-draft.png",
+    "06-current-menu-or-home.png",
+    "07-current-edicts-pending.png",
+    "07-edicts-draft.png",
+    "08-current-edicts-approved.png",
+    "09-current-decree-editor.png",
+    "10-current-issued-live.png",
+    "11-current-home-outcome.png",
+    "12-current-desk-outcome.png",
+    "13-current-edicts-outcome.png",
+    "14-current-desktop-home.png",
+    "15-current-desktop-edicts.png",
+    "failure-latest.png",
+    "failure.png"
+  ],
+  "directive_count": 1,
+  "directives": [
+    {
+      "id": 1,
+      "text": "着毕自严即会同所司，就户部空虚，辽饷、民生两难。卿即拟一道稳妥旨意：先清核仓储与积欠，三日内给朕可执行章程，不许空言逐项核实办理；凡钱粮、兵马、地方承行，须列明数目、去向与期限。限五日内具奏初案，办竣即复命；若有窒碍，不得隐匿。",
+      "status": "done",
+      "category": "fiscal_allocation",
+      "progress": 100,
+      "assignee": "毕自严",
+      "start_day": 1,
+      "eta_day": 4,
+      "resistance": 0,
+      "chain": [
+        {
+          "role": "主办",
+          "name": "毕自严",
+          "office": "户部右侍郎",
+          "faction": "皇党"
+        },
+        {
+          "role": "承行",
+          "name": "",
+          "office": "户部"
+        },
+        {
+          "role": "地方",
+          "name": "",
+          "office": "beizhili"
+        }
+      ],
+      "reported_rate": 100,
+      "anomaly": "",
+      "settle_note": "臣毕自严谨奏：奉旨清核仓储积欠，已会同所司逐项核实。查得钱粮数目、兵马额饷及地方承行，俱已列明去向与期限。现拟章程具奏，三日内可呈御览。户部空虚，辽饷、民生两难，臣当竭力调剂，不敢隐匿窒碍。伏乞圣鉴。",
+      "outcome_status": "extracted",
+      "outcome_summary": [
+        {
+          "kind": "issue",
+          "label": "户部亏空 +30",
+          "tone": "good"
+        }
+      ]
+    }
+  ],
+  "desk_pending_count": 16,
+  "desk_kinds": [
+    {
+      "id": 7,
+      "kind": "弹章",
+      "summary": "倪元璐劾内阁大学士第4席王绍徽（党争敌对）",
+      "ref_kind": "character",
+      "ref_id": "王绍徽"
+    },
+    {
+      "id": 14,
+      "kind": "弹章",
+      "summary": "史可法劾御用监掌印张彝宪",
+      "ref_kind": "character",
+      "ref_id": "张彝宪"
+    },
+    {
+      "id": 1,
+      "kind": "陈情",
+      "summary": "吏部郎中第3席卢象升陈情",
+      "ref_kind": "",
+      "ref_id": ""
+    },
+    {
+      "id": 2,
+      "kind": "请款",
+      "summary": "兵部郎中第1席余大成请款",
+      "ref_kind": "",
+      "ref_id": ""
+    },
+    {
+      "id": 5,
+      "kind": "告变",
+      "summary": "艾万年据实奏闻地方利病",
+      "ref_kind": "",
+      "ref_id": ""
+    },
+    {
+      "id": 6,
+      "kind": "请旨",
+      "summary": "为「陕西流寇起」事请旨",
+      "ref_kind": "issue",
+      "ref_id": "3"
+    },
+    {
+      "id": 16,
+      "kind": "复命",
+      "summary": "复命：着毕自严即会同所司，就户部空虚，辽饷、民",
+      "ref_kind": "directive",
+      "ref_id": "1"
+    },
+    {
+      "id": 3,
+      "kind": "陈情",
+      "summary": "工部郎中第3席陈起新陈情",
+      "ref_kind": "",
+      "ref_id": ""
+    },
+    {
+      "id": 4,
+      "kind": "荐人",
+      "summary": "待铨马隐面荐人",
+      "ref_kind": "",
+      "ref_id": ""
+    },
+    {
+      "id": 8,
+      "kind": "请旨",
+      "summary": "为「陕西流寇起」事请旨",
+      "ref_kind": "issue",
+      "ref_id": "3"
+    },
+    {
+      "id": 9,
+      "kind": "荐人",
+      "summary": "户部郎中第3席张凤奇荐人",
+      "ref_kind": "",
+      "ref_id": ""
+    },
+    {
+      "id": 10,
+      "kind": "请旨",
+      "summary": "为「辽东索饷」事请旨",
+      "ref_kind": "issue",
+      "ref_id": "2"
+    },
+    {
+      "id": 11,
+      "kind": "陈情",
+      "summary": "为「户部亏空」事陈情",
+      "ref_kind": "issue",
+      "ref_id": "1"
+    },
+    {
+      "id": 12,
+      "kind": "请款",
+      "summary": "中军副总兵黄得功请款",
+      "ref_kind": "",
+      "ref_id": ""
+    },
+    {
+      "id": 13,
+      "kind": "陈情",
+      "summary": "监察御史第1席王肇坤陈情",
+      "ref_kind": "",
+      "ref_id": ""
+    },
+    {
+      "id": 15,
+      "kind": "陈情",
+      "summary": "广西布政使许鼎臣陈情",
+      "ref_kind": "",
+      "ref_id": ""
+    }
+  ],
+  "advanceLog": [
+    {
+      "i": 0,
+      "advanced": 1,
+      "stopped_by": "",
+      "outcomes_applied": []
+    },
+    {
+      "i": 1,
+      "advanced": 1,
+      "stopped_by": "",
+      "outcomes_applied": []
+    },
+    {
+      "i": 2,
+      "advanced": 1,
+      "stopped_by": "",
+      "outcomes_applied": []
+    },
+    {
+      "i": 3,
+      "advanced": 1,
+      "stopped_by": "",
+      "outcomes_applied": []
+    },
+    {
+      "i": 4,
+      "advanced": 1,
+      "stopped_by": "",
+      "outcomes_applied": []
+    },
+    {
+      "i": 5,
+      "advanced": 1,
+      "stopped_by": "",
+      "outcomes_applied": []
+    },
+    {
+      "i": 6,
+      "advanced": 1,
+      "stopped_by": "red",
+      "outcomes_applied": []
+    },
+    {
+      "i": 7,
+      "advanced": 1,
+      "stopped_by": "",
+      "outcomes_applied": []
+    },
+    {
+      "i": 8,
+      "advanced": 1,
+      "stopped_by": "",
+      "outcomes_applied": []
+    },
+    {
+      "i": 9,
+      "advanced": 1,
+      "stopped_by": "",
+      "outcomes_applied": []
+    },
+    {
+      "i": 10,
+      "advanced": 1,
+      "stopped_by": "",
+      "outcomes_applied": []
+    },
+    {
+      "i": 11,
+      "advanced": 1,
+      "stopped_by": "",
+      "outcomes_applied": []
+    },
+    {
+      "i": 12,
+      "advanced": 1,
+      "stopped_by": "",
+      "outcomes_applied": []
+    },
+    {
+      "i": 13,
+      "advanced": 1,
+      "stopped_by": "red",
+      "outcomes_applied": []
+    },
+    {
+      "i": 14,
+      "advanced": 1,
+      "stopped_by": "",
+      "outcomes_applied": []
+    }
+  ],
+  "metrics": {
+    "国库": 251,
+    "内库": 449,
+    "民心": 58,
+    "皇威": 20
+  }
+}
