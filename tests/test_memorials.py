@@ -7,6 +7,8 @@ from tempfile import TemporaryDirectory
 
 from ming_sim import memorials, timeflow
 from ming_sim.db import GameDB
+from ming_sim.models import Character, CourtContext
+from ming_sim.registry import build_recent_memorial_memory_brief
 from ming_sim.scheduler import process_pending
 from ming_sim.upgrade_schema import (
     ATTENTION_PER_DAY,
@@ -66,6 +68,33 @@ class FlowTests(unittest.TestCase):
             db.conn.commit()
             self.assertIsNone(memorials._random_official(db, random.Random(1), min_courage=90))
 
+    def test_issue_memorial_body_contains_case_facts(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            issue = db.conn.execute(
+                "SELECT id, title FROM issues WHERE status='active' ORDER BY id LIMIT 1"
+            ).fetchone()
+            db.conn.execute(
+                "UPDATE issues SET stage_text=?, severity=? WHERE id=?",
+                ("陕西驿卒聚啸，州县文报迟滞，粮道已受惊扰", 72, issue["id"]),
+            )
+            db.conn.commit()
+            mid = _mk_memorial(
+                db,
+                state,
+                day,
+                kind="请旨",
+                summary=f"为「{issue['title']}」事请旨",
+                ref_kind="issue",
+                ref_id=str(issue["id"]),
+            )
+            body = str(db.conn.execute(
+                "SELECT full_text FROM memorials WHERE id=?", (mid,)
+            ).fetchone()["full_text"])
+            self.assertIn(str(issue["title"]), body)
+            self.assertIn("陕西驿卒聚啸", body)
+            self.assertNotEqual(body, memorials._KIND_TEMPLATES["请旨"])
+
 
 class AttentionTests(unittest.TestCase):
     def test_attention_resets_daily_and_blocks_when_spent(self):
@@ -121,6 +150,40 @@ class DecideTests(unittest.TestCase):
             ).fetchone()["text"])
             self.assertNotIn("。。", text)
             self.assertIn("不得泛言。着该衙门", text)
+
+    def test_recent_memorial_decision_feeds_npc_context(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            memorials.reset_attention_for_day(db, day)
+            mid = _mk_memorial(
+                db,
+                state,
+                day,
+                kind="陈情",
+                author_name="韩爌",
+                org="武英殿大学士",
+                summary="韩爌陈海关设官利弊",
+                full_text="臣韩爌谨奏：海关设官须防胥吏侵渔，亦不可因噎废食。",
+            )
+            memorials.decide_memorial(db, state, mid, "refer", day=day, note="交户部礼部会商。")
+            character = Character(
+                name="韩爌",
+                office="武英殿大学士",
+                office_type="内阁",
+                faction="东林",
+                aliases=[],
+                personal_skills=[],
+                loyalty=70,
+                ability=75,
+                integrity=80,
+                courage=65,
+                style="持重",
+                power_id="ming",
+            )
+            brief = build_recent_memorial_memory_brief(character, CourtContext(state, db))
+            self.assertIn("已发部议", brief)
+            self.assertIn("海关设官须防胥吏侵渔", brief)
+            self.assertIn("交户部礼部会商", brief)
 
     def test_shelved_impeachment_drains_shi(self):
         with TemporaryDirectory() as tmp:

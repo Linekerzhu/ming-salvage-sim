@@ -382,6 +382,84 @@ def build_recent_directive_memory_brief(character: Character, context: CourtCont
     return "\n".join(lines)
 
 
+def build_recent_memorial_memory_brief(character: Character, context: CourtContext) -> str:
+    """Recent memorial facts for the current NPC.
+
+    Officials should remember whether their own memorials are still pending,
+    approved, denied, referred, or buried. Targets of impeachment/character
+    memorials also need a non-omniscient cue that the matter exists.
+    """
+    name = str(character.name or "").strip()
+    if not name:
+        return ""
+    like = f"%{name.replace('%', '').replace('_', '')}%"
+    try:
+        rows = context.db.conn.execute(
+            """
+            SELECT id, author_name, org, kind, summary, full_text, piaoni,
+                   piaoni_author, status, ref_kind, ref_id, decision_note,
+                   arrived_day, decided_day
+            FROM memorials
+            WHERE author_name = ?
+               OR (ref_kind = 'character' AND ref_id = ?)
+               OR summary LIKE ?
+               OR full_text LIKE ?
+            ORDER BY id DESC
+            LIMIT 10
+            """,
+            (name, name, like, like),
+        ).fetchall()
+    except Exception:
+        return ""
+    if not rows:
+        return ""
+
+    def compact(text: object, limit: int = 110) -> str:
+        raw = re.sub(r"\s+", " ", str(text or "").strip())
+        return raw if len(raw) <= limit else raw[: limit - 1] + "…"
+
+    status_label = {
+        "pending": "仍在御案待批",
+        "approved": "已照准/已阅",
+        "denied": "已被驳回",
+        "referred": "已发部议",
+        "expired": "久置后归档/淹没",
+        "shelved": "留中",
+    }
+    lines = [
+        "【近来奏疏/批红事实（隐藏；用于接续自身上疏和被劾事项）】",
+        "这些是御案簿记录。若皇帝问及奏疏去向，按此回答，不要只凭先前对话臆测。",
+    ]
+    own_count = 0
+    related_count = 0
+    for row in rows:
+        own = str(row["author_name"] or "") == name
+        if own:
+            if own_count >= 5:
+                continue
+            own_count += 1
+            prefix = "你所上"
+        else:
+            if related_count >= 3:
+                continue
+            related_count += 1
+            prefix = "与你有关"
+        status = status_label.get(str(row["status"] or ""), str(row["status"] or ""))
+        note = compact(row["decision_note"], 70)
+        note_text = f"；朱批：{note}" if note else ""
+        piaoni = compact(row["piaoni"], 80)
+        piaoni_text = f"；票拟：{piaoni}" if piaoni else ""
+        body = compact(row["full_text"], 100)
+        body_text = f"；原疏：{body}" if body else ""
+        lines.append(
+            f"- {prefix}#{int(row['id'])}{row['kind']}《{compact(row['summary'], 44)}》："
+            f"{status}{note_text}{body_text}{piaoni_text}"
+        )
+    if len(lines) == 2:
+        return ""
+    return "\n".join(lines)
+
+
 def build_stance_brief(character: Character, context: CourtContext) -> str:
     """本回合召对立场，提醒 Agent 接续自身承诺/保留。"""
     rows = context.db.list_minister_stances(

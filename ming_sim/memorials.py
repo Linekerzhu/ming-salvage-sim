@@ -100,12 +100,22 @@ def create_memorial(db: GameDB, state: Optional[GameState], *, day: int, author_
                     ref_kind: str = "", ref_id: str = "") -> int:
     """state 仅为调用方便保留，可传 None（worker 线程场景）。"""
     piaoni_author = _duty_grand_secretary(db)
+    body = full_text or compose_memorial_full_text(
+        db,
+        state,
+        author_name=author_name,
+        org=org,
+        kind=kind,
+        summary=summary,
+        ref_kind=ref_kind,
+        ref_id=ref_id,
+    )
     cur = db.conn.execute(
         """INSERT INTO memorials (author_name, org, kind, urgency, summary, full_text,
            piaoni, piaoni_author, arrived_day, status, ref_kind, ref_id)
            VALUES (?,?,?,?,?,?,?,?,?,'pending',?,?)""",
         (author_name, org, kind, max(1, min(3, int(urgency))), summary[:120],
-         full_text or _KIND_TEMPLATES.get(kind, ""),
+         body,
          _PIAONI_TEMPLATES.get(kind, "拟：知道了。"), piaoni_author,
          int(day), ref_kind, ref_id),
     )
@@ -143,6 +153,111 @@ def _sentence(text: str) -> str:
     if not clean:
         return ""
     return clean if clean[-1] in "。！？；" else f"{clean}。"
+
+
+def _issue_memorial_context(db: GameDB, ref_kind: str, ref_id: str) -> Dict[str, object]:
+    if str(ref_kind or "") != "issue" or not str(ref_id or "").strip():
+        return {}
+    row = db.conn.execute(
+        """
+        SELECT title, kind, bar_value, severity, stage_text,
+               bar_good_meaning, bar_bad_meaning, region_hint
+        FROM issues WHERE id=?
+        """,
+        (str(ref_id),),
+    ).fetchone()
+    if row is None:
+        return {}
+    region_name = ""
+    region_id = str(row["region_hint"] or "")
+    if region_id:
+        rr = db.conn.execute("SELECT name FROM regions WHERE id=?", (region_id,)).fetchone()
+        if rr is not None:
+            region_name = str(rr["name"] or "")
+    return {
+        "title": str(row["title"] or ""),
+        "kind": str(row["kind"] or ""),
+        "bar": int(row["bar_value"] or 0),
+        "severity": int(row["severity"] or 0),
+        "stage": str(row["stage_text"] or ""),
+        "good": str(row["bar_good_meaning"] or ""),
+        "bad": str(row["bar_bad_meaning"] or ""),
+        "region": region_name,
+    }
+
+
+def compose_memorial_full_text(
+    db: GameDB,
+    state: Optional[GameState],
+    *,
+    author_name: str,
+    org: str,
+    kind: str,
+    summary: str,
+    ref_kind: str = "",
+    ref_id: str = "",
+) -> str:
+    """Deterministic fallback memorial body with actual case facts.
+
+    LLM piaoni may arrive later, but the player's first read of a memorial should
+    already contain more than a title and stock formula. Keep this rules-only so
+    daily arrivals never block on model availability.
+    """
+    author = str(author_name or "").strip() or "臣"
+    office = str(org or "").strip()
+    issue = _issue_memorial_context(db, ref_kind, ref_id)
+    title = str(issue.get("title") or summary or "所奏之事").strip()
+    stage = str(issue.get("stage") or "").strip()
+    region = str(issue.get("region") or "").strip()
+    severity = int(issue.get("severity") or 0)
+    progress = int(issue.get("bar") or 0)
+    locus = f"{region}一带" if region else "地方"
+    identity = f"{office}{author}" if office and author not in office else author
+    if issue:
+        current = stage or f"{title}尚在变化，进度约{progress}/100，险情约{severity}/100"
+        if kind == "请旨":
+            return (
+                f"臣{identity}谨奏：臣等查得，{title}一事牵动{locus}，"
+                f"目下{current}。其间利害相杂，若专行一端，恐激成后患；若坐视不决，又恐事势滋蔓。"
+                "臣职分有限，不敢擅专，伏乞圣明裁定方略，俾各衙门有所遵循。"
+            )
+        if kind == "陈情":
+            return (
+                f"臣{identity}谨将{title}情形奏闻：{current}。"
+                f"臣所见，{locus}人心已受其扰，催科、兵饷、讼狱诸务皆有牵连。"
+                "臣不敢饰词报喜，惟愿陛下洞察其实，早定缓急。"
+            )
+        if kind == "告变":
+            return (
+                f"臣{identity}谨急奏：{title}事机骤紧，{current}。"
+                f"{locus}风声已动，若旬日之内不见朝廷处分，恐地方官吏各自观望。"
+                "伏乞速赐睿断，毋使小患酿成大变。"
+            )
+        if kind == "请款":
+            return (
+                f"臣{identity}谨奏：为办理{title}，所需钱粮已非本衙门常费所能支应。"
+                f"目下{current}。若无明拨款项，承办诸员必以经费无着为辞。"
+                "伏乞敕下户部核拨，俾事有实济。"
+            )
+    if kind == "荐人":
+        return (
+            f"臣{identity}谨奏：臣闻任事以得人为先。今因{summary}，"
+            "谨保举一员堪供驱策。其人虽未必无瑕，然才具尚可试用。"
+            "伏乞圣明裁择，若蒙采纳，臣愿具结保奏。"
+        )
+    if kind == "弹章":
+        return (
+            f"臣{identity}谨奏：臣职司风闻，不敢以私怨乱公论。今据所闻所见，"
+            f"{summary}，其中关节已有可核之迹。若任其迁延，恐上下相蒙。"
+            "伏乞敕下该衙门查明，毋使奸蠹幸免，亦毋使无辜受累。"
+        )
+    if kind == "请款":
+        return f"臣{identity}谨奏：{summary}。库藏虽艰，需用实急，伏乞酌拨钱粮，以济目前。"
+    if kind == "告变":
+        return f"臣{identity}谨急奏：{summary}。事机紧迫，臣不敢迟延，伏乞速赐处分。"
+    if kind == "陈情":
+        return f"臣{identity}谨奏：{summary}。臣所陈皆据目前情形，不敢粉饰，伏乞圣鉴。"
+    return _KIND_TEMPLATES.get(kind, "臣谨据实奏闻，伏乞圣鉴。")
 
 
 def memorials_daily_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:

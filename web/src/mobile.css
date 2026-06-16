@@ -205,9 +205,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-kind.k-请款 { background: var(--gold-deep); }
 .m-memorial-author { color: var(--ink-soft); font-size: 0.8rem; }
 .m-memorial-summary { margin: 0; font-size: 0.98rem; font-weight: 700; }
+.m-memorial-excerpt { margin: 5px 0 0; color: var(--ink-soft); font-size: 0.84rem; line-height: 1.45; }
 .m-badge-drown { flex: 0 0 auto; margin-left: auto; color: var(--cinnabar); font-size: 0.72rem; font-weight: 700; }
 .m-memorial-body { padding: 0 var(--pad) var(--pad); border-top: 1px solid var(--line); }
 .m-memorial-text { font-size: 0.92rem; white-space: pre-wrap; word-break: break-word; margin: 12px 0; }
+.m-zoushu { margin: 10px 0; padding: 10px 11px; border: 1px solid rgba(74,45,20,.22); border-radius: 8px;
+  background: rgba(42,31,18,.045); }
+.m-zoushu-head { display: block; color: var(--gold-deep); font-size: 0.76rem; font-weight: 700; }
+.m-zoushu .m-memorial-text { margin: 6px 0 0; line-height: 1.58; }
 .m-piaoni { background: rgba(42,31,18,.06); border-radius: 8px; padding: 8px 10px; font-size: 0.86rem; margin: 0 0 6px; }
 .m-piaoni-by { display: block; color: var(--gold-deep); font-size: 0.74rem; font-weight: 700; }
 

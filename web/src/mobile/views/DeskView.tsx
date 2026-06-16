@@ -21,6 +21,11 @@ function decreeGist(text: string): string {
   return t.length > 64 ? t.slice(0, 64) + "…" : t;
 }
 
+function textPreview(text: string, limit = 86): string {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  return clean.length > limit ? clean.slice(0, limit) + "…" : clean;
+}
+
 function MemorialCard({ m, issue, directive, onActed }: { m: Memorial; issue?: any; directive?: any; onActed: () => void }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -55,6 +60,7 @@ function MemorialCard({ m, issue, directive, onActed }: { m: Memorial; issue?: a
           {drowning && <span className="m-badge-drown">⚠ {m.days_to_expire}日淹没</span>}
         </div>
         <p className="m-memorial-summary">{m.summary}</p>
+        {!info && m.full_text && <p className="m-memorial-excerpt">{textPreview(m.full_text)}</p>}
         {info && directive?.outcome_summary?.length > 0 && <OutcomeSummary items={directive.outcome_summary} compact />}
       </button>
       {open && (
@@ -83,14 +89,19 @@ function MemorialCard({ m, issue, directive, onActed }: { m: Memorial; issue?: a
             </>
           ) : (
             <>
-              {/* 内阁票拟＝有立场的处置建议，是裁断的主要依据 */}
+              {m.full_text && (
+                <div className="m-zoushu">
+                  <span className="m-zoushu-head">奏疏原文 · {m.author || "佚名"}</span>
+                  <p className="m-memorial-text">{m.full_text}</p>
+                </div>
+              )}
+              {/* 内阁票拟＝有立场的处置建议，是裁断的重要参考，但不能盖过原疏 */}
               {m.piaoni && (
                 <div className="m-piaoni">
                   <span className="m-piaoni-by">{m.piaoni_author || "内阁"}票拟（建议处置）</span>
                   {m.piaoni}
                 </div>
               )}
-              {m.full_text && <p className="m-memorial-text muted">原疏：{m.full_text}</p>}
               <textarea
                 className="m-batch"
                 value={note}
