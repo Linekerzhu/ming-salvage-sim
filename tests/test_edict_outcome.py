@@ -443,6 +443,50 @@ class StatusChangeTests(unittest.TestCase):
                 sess.close()
 
 
+class CastrationByDecreeTests(unittest.TestCase):
+    """宫刑作刑罚 via 诏（E2b）：character_status_changes status=castrated → 强阉没入内廷。"""
+
+    def test_scope_delta_allows_castrated(self):
+        from ming_sim.edict_outcome import _scope_delta
+        ctx = {"directive": "着将贪墨之兵部主事王二处宫刑，发净军", "allowed_issue_ids": []}
+        delta = {"character_status_changes": [{"name": "王二", "status": "castrated"}]}
+        out = _scope_delta(delta, ctx)["character_status_changes"]
+        self.assertEqual(out, [{"name": "王二", "status": "castrated"}])
+
+    def test_drain_applies_castration(self):
+        from ming_sim import eunuch_lore as el
+        from ming_sim.eunuch import is_eunuch_like
+        cfg = LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model")
+        with TemporaryDirectory() as tmp:
+            sess = GameSession(str(Path(tmp) / "g.db"), cfg, verify_llm=False)
+            try:
+                row = sess.db.conn.execute(
+                    "SELECT name FROM characters WHERE status='active' AND power_id='ming' "
+                    "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
+                    "AND office NOT LIKE '%太监%' LIMIT 1").fetchone()
+                name = str(row["name"])
+                sess.db.conn.execute(
+                    "INSERT INTO turn_directives (turn, year, period, text, source, status, "
+                    "lifecycle_status, progress, integrity_actual, integrity_reported, outcome_delta, outcome_status) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (sess.state.turn, sess.state.year, sess.state.period, f"着将{name}处宫刑，没入内廷为奴",
+                     "test", "confirmed", "done", 100, 100, 100,
+                     json.dumps({"character_status_changes": [{"name": name, "status": "castrated", "reason": "贪墨"}]}),
+                     "extracted"))
+                sess.db.conn.commit()
+                sess.drain_pending_outcomes()
+                crow = sess.db.conn.execute(
+                    "SELECT status, office, office_type, faction FROM characters WHERE name=?", (name,)).fetchone()
+                self.assertEqual(str(crow["status"]), "active")               # 没入内廷仍在朝（为奴役）
+                self.assertTrue(is_eunuch_like(str(crow["office"]), str(crow["office_type"])))  # 已成内臣
+                lore = el.get_lore(sess.db, name)
+                self.assertIsNotNone(lore)
+                self.assertTrue(lore["forced"])                                # 强阉
+                self.assertEqual(lore["bao_status"], el.BAO_FORFEIT)           # 宝官没
+            finally:
+                sess.close()
+
+
 class InformationalMemorialTests(unittest.TestCase):
     """复命/捷报作「结果通知」：已阅免精力、到期静默归档、不计淹没问责、不压 backlog。"""
 

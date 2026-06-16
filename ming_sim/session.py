@@ -759,6 +759,14 @@ class GameSession:
                 augmented = f"{cb}\n\n{augmented}"
         except Exception:
             pass
+        # 净身·心相（E2a）：与净身者对话时注入其奴性表达与「宝」之心结（强阉扭曲/自愿恭谨）。
+        try:
+            from ming_sim.eunuch_lore import servility_brief
+            sb = servility_brief(self.db, character.name)
+            if sb:
+                augmented = f"{sb}\n\n{augmented}"
+        except Exception:
+            pass
         return augmented, dialogue_prep
 
     def record_dialogue_after_chat(

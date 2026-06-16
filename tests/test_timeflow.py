@@ -227,5 +227,44 @@ class BeliefTests(unittest.TestCase):
             self.assertEqual(len(rows), 2)
 
 
+class MinxinDriftTests(unittest.TestCase):
+    """民心月度向民生基线回归——破「建筑产出单向棘轮到 100」的死信号。"""
+
+    def test_minxin_drifts_down_from_peg_under_hardship(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = timeflow.ensure_active(db, state)
+            # 民心钉在 100，但地方动乱高、边军欠饷——基线应远低于 100。
+            state.metrics["民心"] = 100
+            db.conn.execute("UPDATE regions SET unrest=70 WHERE controlled_by='ming'")
+            db.conn.execute("UPDATE armies SET arrears=maintenance_per_turn*4 "
+                            "WHERE owner_power='ming' AND maintenance_per_turn>0")
+            db.conn.commit()
+            db.save_state(state)
+            timeflow._minxin_drift_to_baseline(db, state, day)
+            self.assertLess(state.metrics["民心"], 100)  # 不再钉顶
+            self.assertGreaterEqual(state.metrics["民心"], 0)
+
+    def test_minxin_direction_tracks_conditions(self):
+        # 同一中性起点：太平则升、灾乱则降——民心是反映治乱的活信号。
+        def drift_from(unrest, arrears_mult):
+            with TemporaryDirectory() as tmp:
+                db, state = _fresh(tmp)
+                day = timeflow.ensure_active(db, state)
+                state.metrics["民心"] = 55
+                db.conn.execute("UPDATE regions SET unrest=? WHERE controlled_by='ming'", (unrest,))
+                db.conn.execute("UPDATE armies SET arrears=maintenance_per_turn*? "
+                                "WHERE owner_power='ming' AND maintenance_per_turn>0", (arrears_mult,))
+                db.conn.commit()
+                db.save_state(state)
+                timeflow._minxin_drift_to_baseline(db, state, day)
+                return state.metrics["民心"]
+        peace = drift_from(8, 0)      # 太平：低动乱、足饷
+        crisis = drift_from(75, 5)    # 灾乱：高动乱、严重欠饷
+        self.assertGreater(peace, 55)   # 太平→民心回升
+        self.assertLess(crisis, 55)     # 灾乱→民心离散
+        self.assertGreater(peace, crisis)
+
+
 if __name__ == "__main__":
     unittest.main()

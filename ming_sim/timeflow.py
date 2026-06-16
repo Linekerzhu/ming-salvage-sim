@@ -137,6 +137,36 @@ def _flows_append(db: GameDB, entries: List[Dict[str, object]]) -> None:
     db.kv_set(KV_MONTH_FLOWS, json.dumps(existing, ensure_ascii=False))
 
 
+def _minxin_drift_to_baseline(db: GameDB, state: GameState, day: int) -> None:
+    """民心每月向民生基线缓慢回归（缺口 ~15%），打破「建筑产出单向棘轮到 100」。
+    基线由真实民生信号驱动：太平无赤字则高（民心可稳处高位），连月赤字/地方动乱/
+    边军欠饷则压低（民心随苦乐离散）。建筑产出仍推高民心，但被基线漂移counterbalance，
+    使民心成为反映治乱的活信号，而非一路冲顶的死变量。"""
+    try:
+        from ming_sim.upgrade_schema import KV_DEFICIT_STREAK
+        streak = kv_int(db, KV_DEFICIT_STREAK, 0)
+        row = db.conn.execute(
+            "SELECT AVG(unrest) AS u FROM regions WHERE controlled_by='ming'"
+        ).fetchone()
+        avg_unrest = float((row and row["u"]) or 35.0)
+        arow = db.conn.execute(
+            "SELECT AVG(CAST(arrears AS REAL)/MAX(1, maintenance_per_turn)) AS am "
+            "FROM armies WHERE owner_power='ming' AND maintenance_per_turn>0"
+        ).fetchone()
+        arrears_months = float((arow and arow["am"]) or 0.0)
+        # 基线：中性民生 62，按三大苦乐信号下拉，夹在 [12, 88]。
+        baseline = 62.0 - streak * 4.0 - max(0.0, avg_unrest - 25.0) * 0.5 - arrears_months * 2.5
+        baseline = max(12.0, min(88.0, baseline))
+        cur = int(state.metrics.get("民心", 50))
+        gap = baseline - cur
+        if abs(gap) >= 1:
+            step = max(1, round(abs(gap) * 0.15)) * (1 if gap > 0 else -1)
+            state.metrics["民心"] = max(0, min(100, cur + step))
+            db.save_state(state)
+    except Exception:
+        pass
+
+
 def _ensure_month_open(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:
     """开月：军饷/建筑整月结算 + 月初余额 + 当月通用定额缓存。幂等（按 turn 去重）。"""
     if kv_int(db, KV_MONTH_OPENED_TURN, 0) == state.turn:
@@ -201,10 +231,18 @@ def _ensure_month_open(db: GameDB, state: GameState, day: int) -> List[Dict[str,
     except Exception:
         pass
     try:
-        from ming_sim.memorials import reset_attention_for_day
+        from ming_sim.memorials import reset_attention_for_day, reset_drown_belief_caps
         reset_attention_for_day(db, day)
+        # 朔日重置「淹没/积压」对信念的月度伤害预算，与恒稳态回拉成对——
+        # 令势/任事在重压下稳定于低位均衡，而非单边棘轮到吸收态。
+        reset_drown_belief_caps(db)
     except ImportError:
         pass
+
+    # 民心向「民生基线」回归：原本只被建筑产出单向推高 → 棘轮钉死 100（失去信号）。
+    # 现每月向一个由真实民生信号（仓储赤字·地方动乱·边军欠饷）驱动的基线缓慢漂移——
+    # 太平则民心自高、苛政灾荒则民心渐离，使其反映苦乐而非一路冲顶。
+    _minxin_drift_to_baseline(db, state, day)
 
     # 兵额账实分离播种（S3，幂等）：兵部账面 vs 实在兵
     try:
@@ -564,6 +602,41 @@ def advance_days(db: GameDB, state: GameState, days: int, *,
             try:
                 from ming_sim.harem import harem_tick
                 for ev in harem_tick(db, state, new_day):
+                    report.events.append(ev)
+            except ImportError:
+                pass
+            # 对食（宦官后宫恶趣味 E2c）：内宠与权阉结对食、内外勾连自固、偶成丑闻。无妃则空转。
+            try:
+                from ming_sim.harem import duishi_tick
+                for ev in duishi_tick(db, state, new_day):
+                    report.events.append(ev)
+            except ImportError:
+                pass
+            # 权阉之势（宦官恶趣味 E1）：倚阉则张/亲政则落/君威弱则自盛 + 高权阉阉党自固。
+            try:
+                from ming_sim.eunuch_power import eunuch_power_tick
+                for ev in eunuch_power_tick(db, state, new_day):
+                    report.events.append(ev)
+            except ImportError:
+                pass
+            # 净身异闻（宦官恶趣味 E2a）：老宦官「还阳」传言 + 攒宝礼佛望来世全尸（迷信 flavor）。
+            try:
+                from ming_sim.eunuch_lore import reincarnation_tick
+                for ev in reincarnation_tick(db, state, new_day):
+                    report.events.append(ev)
+            except ImportError:
+                pass
+            # 民间募新宦官（宦官恶趣味 E2d）：灾年民困，良家子自宫求进入宫充内侍。
+            try:
+                from ming_sim.eunuch_lore import recruit_tick
+                for ev in recruit_tick(db, state, new_day):
+                    report.events.append(ev)
+            except ImportError:
+                pass
+            # 宫斗阴谋（P1）：权阉炽盛时东厂自发侦缉清流、罗织把柄（厂卫横行，活的宫廷）。
+            try:
+                from ming_sim.intrigue import changwei_tick
+                for ev in changwei_tick(db, state, new_day):
                     report.events.append(ev)
             except ImportError:
                 pass

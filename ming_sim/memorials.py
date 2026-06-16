@@ -47,6 +47,36 @@ EXPIRE_FORCED_URGENT_KINDS = ("弹章", "告变", "密揭")
 # 读阅免精力、到期静默归档、不计淹没问责，不像请求那样堵塞御案、压迫任事意愿。
 INFORMATIONAL_KINDS = ("复命", "捷报")
 
+# ── 淹没/积压对信念的月度伤害封顶 ─────────────────────────────────────────────
+# 病根（实玩实证）：奏疏积压无界（数十封/月淹没），每封固定 +1 RA / 弹章淹没 -3 势，
+# 几百次累加碾压恒稳态固定的 ±8 → RA 棘轮到 100、势触底到 0（恰是恒稳态明文要防的吸收态）。
+# 修法：把「来自淹没/积压」的信念反向伤害按月封顶，使其不超过恒稳态量级——
+# 奏而不答仍有代价（势/任事在低位均衡受压），但代价不再无限累积成吸收态。
+# 上限 < 恒稳态月回拉(~8)，故重压之下变量稳定在「痛苦但可被拉回」的低位，而非单边崩到 0/100。
+KV_MONTH_DROWN_RA = "upgrade.month_drown_ra"
+KV_MONTH_DROWN_SHI = "upgrade.month_drown_shi"
+DROWN_RA_CAP = 5     # 每月「淹没/积压」最多把 RA 推高 +5（恒稳态月回拉约 -8，故净回落）
+DROWN_SHI_CAP = 5    # 每月「弹章淹没/留中」最多把 势 压低 -5（恒稳态月回升约 +8，故净回升）
+
+
+def reset_drown_belief_caps(db: GameDB) -> None:
+    """朔日重置月度淹没/积压伤害预算（由 timeflow.rollover 调用）。"""
+    kv_set_int(db, KV_MONTH_DROWN_RA, 0)
+    kv_set_int(db, KV_MONTH_DROWN_SHI, 0)
+
+
+def _capped_drown_belief(db: GameDB, key: str, delta: int, reason: str, *,
+                         day: int, cap_key: str, cap_limit: int) -> None:
+    """对来自淹没/积压的信念伤害按月封顶；超出本月预算的部分不再施加。"""
+    used = kv_int(db, cap_key, 0)
+    room = cap_limit - used
+    if room <= 0:
+        return
+    mag = min(abs(delta), room)
+    applied = mag if delta > 0 else -mag
+    adjust_belief(db, key, applied, reason, day=day)
+    kv_set_int(db, cap_key, used + mag)
+
 
 def expire_deadline_days(kind: str, urgency: int) -> int:
     """奏疏自到案起多少日无人处置即「淹没」出队（urgency 越高越快）：u1→45 u2→40 u3→35。"""
@@ -267,8 +297,10 @@ def memorials_daily_tick(db: GameDB, state: GameState, day: int) -> List[Dict[st
     rng = random.Random(day * 7919 + state.turn)
     ra = kv_int(db, KV_RISK_AVERSION, RISK_AVERSION_DEFAULT)
 
-    # 1) 请旨/陈情流：基准 0.45 封/日 × (1 + RA/100)。RA=100 时翻倍——御案被淹。
-    arrival_rate = 0.45 * (1.0 + ra / 100.0)
+    # 1) 请旨/陈情流：基准 0.45 封/日 × (1 + min(RA,70)/100)。RA 放大流入是「崇祯陷阱
+    #    传导介质」（越问责越多人请旨观望），但封顶在 70 以掐断「流入→淹没→RA↑→流入」的
+    #    正反馈失控环——配合月度伤害封顶，避免御案流入随 RA 棘轮无限膨胀。
+    arrival_rate = 0.45 * (1.0 + min(ra, 70) / 100.0)
     if rng.random() < arrival_rate:
         author = _random_official(db, rng)
         if author is not None:
@@ -302,6 +334,14 @@ def memorials_daily_tick(db: GameDB, state: GameState, day: int) -> List[Dict[st
                            "detail": "勇于任事之臣主动言事——任事意愿尚存的迹象。",
                            "ref_kind": "memorial", "ref_id": str(mid), "day": day})
 
+    # 2.5) 司礼监代批红（宦官恶趣味 E1）：若启用，内廷掌印先代廓清积压——解御案壅塞，
+    #     但权阉日涨、阉党自固（劾阉之疏留中销折）。先于淹没结算，故被代批者不再走淹没扣势。
+    try:
+        from ming_sim.eunuch_power import daipihong_process
+        events.extend(daipihong_process(db, state, day))
+    except Exception:
+        pass
+
     # 3) 留中积压：每 10 日结一次怨账；弹章留中折势。逾期则淹没出队（一次性结算），
     #    使待奏队列与「弹章留中折势」均有界——奏而不答是有代价的，但代价不无限累积。
     rows = db.conn.execute("SELECT * FROM memorials WHERE status='pending'").fetchall()
@@ -328,14 +368,15 @@ def memorials_daily_tick(db: GameDB, state: GameState, day: int) -> List[Dict[st
                     "UPDATE characters SET grievance=MIN(100, grievance+6), "
                     "emp_trust=MAX(0, emp_trust-4) WHERE name=?", (author,))
             if str(row["kind"]) == "弹章":
-                adjust_belief(db, KV_SHI, -3, f"弹章淹没不报（#{row['id']}）", day=day)
+                _capped_drown_belief(db, KV_SHI, -3, f"弹章淹没不报（#{row['id']}）",
+                                     day=day, cap_key=KV_MONTH_DROWN_SHI, cap_limit=DROWN_SHI_CAP)
                 try:
                     from ming_sim.theater import adjust_faction_heat, faction_of
                     adjust_faction_heat(db, faction_of(db, author), +4, "弹章石沉大海")
                 except Exception:
                     pass
-            adjust_belief(db, KV_RISK_AVERSION, +1,
-                          f"奏疏淹没（{author}{row['kind']}）", day=day)
+            _capped_drown_belief(db, KV_RISK_AVERSION, +1, f"奏疏淹没（{author}{row['kind']}）",
+                                 day=day, cap_key=KV_MONTH_DROWN_RA, cap_limit=DROWN_RA_CAP)
             events.append({"level": LEVEL_YELLOW, "kind": "memorial_expired",
                            "title": f"奏疏淹没：{str(row['summary'])[:28]}",
                            "detail": "久奏不答，其人灰心，事亦不了了之——然臣心已寒。",
@@ -350,10 +391,12 @@ def memorials_daily_tick(db: GameDB, state: GameState, day: int) -> List[Dict[st
                     "UPDATE characters SET grievance=MIN(100, grievance+3) WHERE name=?",
                     (author,))
             if str(row["kind"]) == "弹章":
-                adjust_belief(db, KV_SHI, -2, f"弹章留中不发（#{row['id']}）", day=day)
+                _capped_drown_belief(db, KV_SHI, -2, f"弹章留中不发（#{row['id']}）",
+                                     day=day, cap_key=KV_MONTH_DROWN_SHI, cap_limit=DROWN_SHI_CAP)
             if shelved == 30:
-                adjust_belief(db, KV_RISK_AVERSION, +1,
-                              f"奏疏积压逾月（{row['author_name']}{row['kind']}）", day=day)
+                _capped_drown_belief(db, KV_RISK_AVERSION, +1,
+                                     f"奏疏积压逾月（{row['author_name']}{row['kind']}）",
+                                     day=day, cap_key=KV_MONTH_DROWN_RA, cap_limit=DROWN_RA_CAP)
                 events.append({"level": LEVEL_YELLOW, "kind": "memorial_overdue",
                                "title": f"奏疏积压逾月：{str(row['summary'])[:30]}",
                                "detail": "奏而不答，臣下渐生观望。",
@@ -649,6 +692,36 @@ def desk_payload(db: GameDB, state: GameState, day: int) -> Dict[str, object]:
         "attention_per_day": ATTENTION_PER_DAY,
         "shi": kv_int(db, KV_SHI, SHI_DEFAULT),
         "renshi_willingness": 100 - ra,
+        "eunuch_power": _eunuch_power_safe(db),
+        "daipihong": _daipihong_safe(db),
+        **_daipihong_keeper_safe(db),
         "trap_hint": ("百官观望，事事请旨，御案将溢——惩罚失败者愈狠，担责者愈少。"
                       if ra >= 60 else ""),
     }
+
+
+def _eunuch_power_safe(db: GameDB) -> int:
+    try:
+        from ming_sim.eunuch_power import get_eunuch_power
+        return get_eunuch_power(db)
+    except Exception:
+        return 0
+
+
+def _daipihong_safe(db: GameDB) -> bool:
+    try:
+        from ming_sim.eunuch_power import is_daipihong_on
+        return is_daipihong_on(db)
+    except Exception:
+        return False
+
+
+def _daipihong_keeper_safe(db: GameDB) -> dict:
+    """代批红委任者名 + 是否忠谨（前端 DaipihongBar 显委任者与忠谨/需警惕标）。"""
+    try:
+        from ming_sim.eunuch_power import daipihong_keeper, keeper_disposition
+        keeper = daipihong_keeper(db)
+        return {"daipihong_keeper": keeper,
+                "daipihong_keeper_upright": keeper_disposition(db, keeper) == "upright"}
+    except Exception:
+        return {"daipihong_keeper": None, "daipihong_keeper_upright": False}

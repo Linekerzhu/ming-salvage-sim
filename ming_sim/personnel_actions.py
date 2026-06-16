@@ -113,6 +113,13 @@ def convert_character_to_eunuch(
         old_row.get("faction", ""),
         force=force,
     )
+    # 净身「宝」之处置与奴性登记（E2a）：强阉＝宝官没·奴性扭曲；自愿＝宝自藏·奴性恭谨。
+    try:
+        from ming_sim.eunuch_lore import record_castration
+        from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
+        record_castration(db, clean_name, forced=force, day=kv_int(db, KV_CURRENT_DAY, 0))
+    except Exception:
+        pass
     return character, reactions
 
 

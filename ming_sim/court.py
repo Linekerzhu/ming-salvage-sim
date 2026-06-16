@@ -255,11 +255,35 @@ def court_payload(db: GameDB, name: str) -> Dict[str, object]:
         traits = traits_of(db, name)
     except ImportError:
         traits = []
+    duishi = ""
+    try:
+        from ming_sim.harem import duishi_partner
+        duishi = duishi_partner(db, name)
+    except Exception:
+        duishi = ""
+    castration = None
+    try:
+        from ming_sim.eunuch_lore import get_lore, _BAO_LABEL
+        lore = get_lore(db, name)
+        if lore:
+            castration = {"bao_status": lore["bao_status"], "bao_label": _BAO_LABEL.get(lore["bao_status"], ""),
+                          "forced": lore["forced"], "servility": lore["servility"]}
+    except Exception:
+        castration = None
+    secret = None
+    try:
+        from ming_sim.intrigue import secrets_for
+        secret = secrets_for(db, name)
+    except Exception:
+        secret = None
     return {
         "traits": traits,
         "agenda": agenda_of(db, name),
         "allies": allies_of(db, name, limit=4),
         "rivals": rivals_of(db, name, limit=4),
+        "duishi": duishi,
+        "castration": castration,
+        "secret": secret,
     }
 
 
@@ -372,6 +396,13 @@ def court_moves_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, o
         if rng.random() >= impeach_p:
             continue
         target = rv[0]
+        # 去重（实玩实证：御案常见多封逐字雷同的弹章劾同一目标）——
+        # 同一被劾者已有在案弹章（pending）时不再叠生，避免刷屏并减轻奏疏洪流。
+        dup = db.conn.execute(
+            "SELECT 1 FROM memorials WHERE kind='弹章' AND status='pending' "
+            "AND ref_kind='character' AND ref_id=? LIMIT 1", (str(target["name"]),)).fetchone()
+        if dup is not None:
+            continue
         trow = db.conn.execute("SELECT office FROM characters WHERE name=?", (target["name"],)).fetchone()
         toffice = str(trow["office"]) if trow else ""
         basis = target["basis"] or "夙怨"

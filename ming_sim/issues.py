@@ -1178,7 +1178,7 @@ def apply_score_extraction(
     # 9) character_status_changes：LLM 判定的既有大臣去向（罢/狱/流/致仕/死）
     applied_status_changes: List[Dict[str, object]] = []
     political_reactions: List[Dict[str, object]] = []
-    valid_status = {"dismissed", "imprisoned", "exiled", "retired", "dead", "offstage"}
+    valid_status = {"dismissed", "imprisoned", "exiled", "retired", "dead", "offstage", "castrated"}
     for item in extracted.get("character_status_changes") or []:
         if not isinstance(item, dict):
             continue
@@ -1205,6 +1205,33 @@ def apply_score_extraction(
             })
             continue
         old_row = character_political_row(db, name)
+        # 宫刑作刑罚（E2b）：没入内廷为奴（强阉）→ 宝官没·奴性扭曲（接 E2a）+ 外朝奇辱反弹 + 权阉微涨。
+        if status == "castrated":
+            if is_eunuch_office(old_row.get("office", ""), old_row.get("office_type", "")):
+                applied_status_changes.append({
+                    "name": name, "status": status, "rejected": True, "reason": "其人已是内臣"})
+                continue
+            try:
+                converted, reactions = convert_character_to_eunuch(
+                    db, state, content, name, force=True,
+                    source=reason[:60] or "诏处宫刑，没入内廷为奴", new_office="净军")
+                if registry is not None:
+                    registry.register(converted)
+                political_reactions.extend(reactions)
+                try:
+                    from ming_sim.eunuch_power import adjust_eunuch_power
+                    from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
+                    adjust_eunuch_power(db, 2, "诏处宫刑没入内廷", day=kv_int(db, KV_CURRENT_DAY, 0))
+                except Exception:
+                    pass
+                applied_status_changes.append({
+                    "name": name, "status": "castrated", "kind": "castration", "forced": True,
+                    "old_office": old_row.get("office", ""), "new_office": "净军",
+                    "reason": reason or "诏处宫刑，没入内廷为奴"})
+            except Exception as exc:
+                applied_status_changes.append({
+                    "name": name, "status": status, "rejected": True, "reason": f"宫刑落库失败：{exc}"})
+            continue
         try:
             db.set_character_status(state, name, status, reason)
         except Exception as exc:

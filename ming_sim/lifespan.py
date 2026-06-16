@@ -108,6 +108,14 @@ def mortality_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, obj
         deaths += 1
         detail = (f"{office}{name}{age_txt}，以{cause}卒于任上。"
                   + ("要缺出，亟须简替。" if _is_key_office(office) else "其缺由部院循例铨补。"))
+        # 净身者全尸执念（E2a）：无宝者不得全尸，党羽哀恸更深；有宝者凑全尸稍慰。
+        try:
+            from ming_sim.eunuch_lore import burial_lament_on_death
+            lament = burial_lament_on_death(db, state, name, day)
+            if lament:
+                detail += lament
+        except Exception:
+            pass
         events.append({
             "level": LEVEL_YELLOW, "kind": "obituary",
             "title": f"讣告：{name}{age_txt}",

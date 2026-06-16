@@ -74,20 +74,108 @@ def harem_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]
                 "ref_kind": "character", "ref_id": name, "day": day,
             }]
 
-    # 进谗：构陷其所恶的清流重臣（异党、高节者）。
+    # 进谗：构陷其所恶的清流重臣（异党、高节者）。有对食阉党撑腰则谗言更毒。
     target = db.conn.execute(
         "SELECT name, office FROM characters WHERE status='active' AND power_id='ming' "
         "AND office_type!='后宫' AND integrity>=68 AND faction!=? "
         "ORDER BY integrity DESC LIMIT 1", (faction or "中立",)).fetchone()
     if target:
-        court._adjust_char(db, str(target["name"]), emp_trust=-5, grievance=+4)
+        partner = duishi_partner(db, name)
+        bite = -7 if partner else -5
+        court._adjust_char(db, str(target["name"]), emp_trust=bite, grievance=+4)
         db.conn.commit()
-        db.record_log(state, f"【进谗】{name}于御前谗{target['name']}。")
+        backing = f"，内有对食{partner}于司礼监为之关说" if partner else ""
+        db.record_log(state, f"【进谗】{name}于御前谗{target['name']}{backing}。")
         return [{
             "level": LEVEL_YELLOW, "kind": "harem_move",
             "title": f"枕边进谗：{name}谮{target['name']}",
-            "detail": f"{name}于御前屡言{str(target['office'])}{target['name']}之短。"
+            "detail": f"{name}于御前屡言{str(target['office'])}{target['name']}之短{backing}。"
                       f"谗言入耳，君臣之间渐生芥蒂——清流恐为所中。",
             "ref_kind": "character", "ref_id": str(target["name"]), "day": day,
         }]
     return []
+
+
+# ── 对食（宦官后宫恶趣味 E2c）：内宠与权阉结为名义夫妻（魏忠贤×客氏式），内外勾连。──
+
+def duishi_partner(db: GameDB, name: str) -> str:
+    """某人的对食伴侣（relationships basis='对食'）；无则空。"""
+    row = db.conn.execute(
+        "SELECT CASE WHEN a_name=? THEN b_name ELSE a_name END AS p FROM relationships "
+        "WHERE basis='对食' AND (a_name=? OR b_name=?) LIMIT 1", (name, name, name)).fetchone()
+    return str(row["p"]) if row else ""
+
+
+def _eligible_court_eunuch(db: GameDB):
+    """可结对食的在朝权阉（优先司礼监/东厂等近御要津，未有对食者）。"""
+    from ming_sim.eunuch import is_eunuch_like
+    rows = db.conn.execute(
+        "SELECT name, office, office_type, faction FROM characters "
+        "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+        "ORDER BY (office LIKE '%司礼监%') DESC, (office LIKE '%东厂%') DESC, ability DESC").fetchall()
+    for r in rows:
+        if not is_eunuch_like(str(r["office"] or ""), str(r["office_type"] or "")):
+            continue
+        if duishi_partner(db, str(r["name"])):
+            continue
+        return r
+    return None
+
+
+def duishi_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:
+    """月初：内宠与权阉结对食 / 已成对食者内外勾连自固 / 偶被察觉成丑闻。挂 rollover。"""
+    from ming_sim.timeflow import LEVEL_YELLOW
+    from ming_sim import court
+    consorts = active_consorts(db)
+    if not consorts:
+        return []
+    rng = random.Random((int(day) * 0x27D4EB2F ^ 0x5A17) % (2 ** 31))
+    events: List[Dict[str, object]] = []
+
+    # 已成对食：内外勾连——权阉之势涨、本党得援、彼此情坚；低概率被御前察觉成丑闻。
+    pairs = db.conn.execute("SELECT a_name, b_name FROM relationships WHERE basis='对食'").fetchall()
+    for pr in pairs:
+        a, b = str(pr["a_name"]), str(pr["b_name"])
+        if db.get_character_status(a)[0] != "active" or db.get_character_status(b)[0] != "active":
+            db.conn.execute("DELETE FROM relationships WHERE basis='对食' AND a_name=? AND b_name=?", (a, b))
+            continue
+        try:
+            from ming_sim.eunuch_power import adjust_eunuch_power
+            adjust_eunuch_power(db, 1, "对食内外勾连", day=day)
+        except Exception:
+            pass
+        court.adjust_opinion(db, a, b, +3, "对食情坚", day=day)
+        if rng.random() < 0.18:  # 东窗事发
+            court._adjust_char(db, a, grievance=+5)
+            court._adjust_char(db, b, grievance=+5)
+            try:
+                from ming_sim.upgrade_schema import KV_SHI, adjust_belief
+                adjust_belief(db, KV_SHI, -1, "对食丑闻·宫禁失体", day=day)
+            except Exception:
+                pass
+            events.append({"level": LEVEL_YELLOW, "kind": "duishi_scandal",
+                           "title": f"宫闱丑闻：{a}与{b}对食事泄",
+                           "detail": f"{a}与{b}对食（结为夫妇）之事为外朝风闻，物议沸然，谓宫禁失体、内外交通。"
+                                     "君威为之微损，二人惶惧。",
+                           "ref_kind": "character", "ref_id": a, "day": day})
+    db.conn.commit()
+    if events:
+        return events
+
+    # 尚无对食且有内宠：得宠妃与近御权阉一拍即合，结为对食（约每数月一成）。
+    if pairs or rng.random() >= 0.35:
+        return events
+    fav = max(consorts, key=lambda c: c["charm"])
+    if duishi_partner(db, fav["name"]):
+        return events
+    eunuch = _eligible_court_eunuch(db)
+    if eunuch is None:
+        return events
+    en = str(eunuch["name"])
+    court.adjust_opinion(db, en, fav["name"], +28, "对食", day=day)  # basis 即标记对食关系
+    db.record_log(state, f"【对食】{en}与{fav['name']}结为对食。")
+    return [{"level": LEVEL_YELLOW, "kind": "duishi_form",
+             "title": f"内外勾连：{en}与{fav['name']}结对食",
+             "detail": f"司礼监{en}与{fav['name']}私结对食（宫中名义夫妇）。内宠得权阉为奥援、"
+                       f"权阉借枕席通宫闱——魏珰客氏之故事，恐复见于今日。",
+             "ref_kind": "character", "ref_id": en, "day": day}]

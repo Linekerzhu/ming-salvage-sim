@@ -639,6 +639,29 @@ CONSORT_POOL_IDENTITIES: Dict[int, str] = {
 }
 
 
+def _apply_caixuan_cost(context: "CourtContext", n: int) -> None:
+    """采选民女扰民（E2e）：每呈一名采女，括取良家、骚扰闾里——民心损、采选之地动荡。
+    采选愈众，民怨愈深。括取在最繁盛（人口多）的州县进行，扰动尤剧。"""
+    if n <= 0:
+        return
+    db, state = context.db, context.state
+    minxin_hit = min(8, 1 + n)             # 采选愈众，民心损愈重（封顶 8）
+    cur = int(state.metrics.get("民心", 0))
+    state.metrics["民心"] = max(0, cur - minxin_hit)
+    # 采选之地（取人口最盛的内地州县）动荡上升
+    row = db.conn.execute(
+        "SELECT id, name FROM regions WHERE kind!='外藩' ORDER BY population DESC LIMIT 1").fetchone()
+    region_txt = ""
+    if row:
+        db.conn.execute("UPDATE regions SET unrest=MIN(100, unrest+?) WHERE id=?",
+                        (min(10, 2 + n * 2), str(row["id"])))
+        region_txt = str(row["name"] or "")
+    db.conn.commit()
+    db.save_state(state)
+    db.record_log(state, f"【采选扰民】括取良家女{n}名入宫备选，闾里骚动"
+                         + (f"，{region_txt}尤甚" if region_txt else "") + f"，民心损{minxin_hit}。")
+
+
 def _make_select_consort_tool(context: CourtContext):
     """生成选妃呈名单 tool，挂在司礼监/礼部大臣上。
     秀女由 LLM 据预设立绘池的身份现场拟就，tool 落库为待选采女（status=candidate），
@@ -725,6 +748,11 @@ def _make_select_consort_tool(context: CourtContext):
             return ("（拟选的秀女或重名、或立绘编号非法/已占用，未能立为候选。"
                     f"当前可用立绘编号：{free}，请重拟。）")
 
+        # 采选民女的黑暗代价（E2e）：括取良家女、骚扰闾里——民心损、采选之地动荡、怨望。
+        try:
+            _apply_caixuan_cost(context, len(chosen))
+        except Exception:
+            pass
         lines = ["臣等已为陛下物色数名待选采女，恭呈御览："]
         for idx, (c, _pid) in enumerate(chosen, 1):
             tags = "、".join(c.personal_skills) if c.personal_skills else "—"

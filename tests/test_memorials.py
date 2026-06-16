@@ -195,6 +195,54 @@ class DecideTests(unittest.TestCase):
             self.assertLess(kv_int(db, KV_SHI, SHI_DEFAULT), shi0)
 
 
+class DrownCapTests(unittest.TestCase):
+    """淹没/积压对信念的月度伤害封顶——防死亡螺旋棘轮到 0/100 吸收态。"""
+
+    def test_monthly_drown_penalty_is_capped(self):
+        # 一个月内大量奏疏淹没，RA/势 的累计伤害不得超过月度封顶。
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            memorials.reset_drown_belief_caps(db)
+            # 造一批已逾淹没期的奏疏（混入弹章，触发势/RA 双伤害）。
+            for i in range(40):
+                kind = "弹章" if i % 2 == 0 else "请旨"
+                _mk_memorial(db, state, day, author_name=f"臣{i}", kind=kind, urgency=3)
+            db.conn.execute("UPDATE memorials SET arrived_day=? WHERE status='pending'",
+                            (day - 60,))
+            db.conn.commit()
+            shi0 = kv_int(db, KV_SHI, SHI_DEFAULT)
+            ra0 = kv_int(db, KV_RISK_AVERSION, RISK_AVERSION_DEFAULT)
+            memorials.memorials_daily_tick(db, state, day + 1)
+            shi_drop = shi0 - kv_int(db, KV_SHI, SHI_DEFAULT)
+            ra_rise = kv_int(db, KV_RISK_AVERSION, RISK_AVERSION_DEFAULT) - ra0
+            self.assertLessEqual(ra_rise, memorials.DROWN_RA_CAP)
+            self.assertLessEqual(shi_drop, memorials.DROWN_SHI_CAP)
+            # 但仍应有非零伤害（奏而不答有代价）。
+            self.assertGreater(ra_rise, 0)
+            self.assertGreater(shi_drop, 0)
+
+    def test_cap_resets_each_month(self):
+        # 朔日重置预算后，新月的淹没伤害可再次累积。
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            from ming_sim.memorials import KV_MONTH_DROWN_RA
+            kv_set_int(db, KV_MONTH_DROWN_RA, memorials.DROWN_RA_CAP)  # 预算已耗尽
+            _mk_memorial(db, state, day, kind="请旨", urgency=3)
+            db.conn.execute("UPDATE memorials SET arrived_day=? WHERE status='pending'",
+                            (day - 60,))
+            db.conn.commit()
+            ra0 = kv_int(db, KV_RISK_AVERSION, RISK_AVERSION_DEFAULT)
+            memorials.memorials_daily_tick(db, state, day + 1)  # 预算耗尽→不再加 RA
+            self.assertEqual(kv_int(db, KV_RISK_AVERSION, RISK_AVERSION_DEFAULT), ra0)
+            memorials.reset_drown_belief_caps(db)
+            _mk_memorial(db, state, day, author_name="王二", kind="请旨", urgency=3)
+            db.conn.execute("UPDATE memorials SET arrived_day=? WHERE status='pending'",
+                            (day - 60,))
+            db.conn.commit()
+            memorials.memorials_daily_tick(db, state, day + 2)  # 重置后可再加
+            self.assertGreater(kv_int(db, KV_RISK_AVERSION, RISK_AVERSION_DEFAULT), ra0)
+
+
 class TrapLeverTests(unittest.TestCase):
     def test_punish_raises_shi_and_ra(self):
         with TemporaryDirectory() as tmp:

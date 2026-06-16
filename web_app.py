@@ -5313,6 +5313,72 @@ async def api_eunuch_replace(body: Dict[str, Any]) -> Dict[str, Any]:
     return {"message": result["message"], "eunuch": game.public_character(character)}
 
 
+@app.get("/api/eunuch/daipihong")
+async def api_daipihong_status() -> Dict[str, Any]:
+    """代批红现状（E1）：开关 + 权阉之势 + 委任者 + 委任者是否忠谨。"""
+    from ming_sim.eunuch_power import (
+        daipihong_keeper, get_eunuch_power, is_daipihong_on, keeper_disposition)
+    game = get_game()
+    keeper = daipihong_keeper(game.db)
+    return {"on": is_daipihong_on(game.db), "eunuch_power": get_eunuch_power(game.db),
+            "keeper": keeper, "keeper_upright": keeper_disposition(game.db, keeper) == "upright"}
+
+
+@app.post("/api/eunuch/daipihong")
+async def api_daipihong_toggle(body: Dict[str, Any]) -> Dict[str, Any]:
+    """开/罢代批红，可同时改委任者（keeper）。善恶由委任者品性决定：
+    委忠谨内臣＝据实拟行、弹章呈御览；委权阉＝留中劾阉、阉党自固。"""
+    from ming_sim.eunuch_power import (
+        daipihong_keeper, set_daipihong, get_eunuch_power, keeper_disposition)
+    from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
+    game = get_game()
+    payload = body or {}
+    on = bool(payload.get("on"))
+    keeper_arg = payload.get("keeper")
+    result = set_daipihong(game.db, on, keeper=(str(keeper_arg) if keeper_arg else None),
+                           day=kv_int(game.db, KV_CURRENT_DAY, 0))
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=str(result.get("message")))
+    result["eunuch_power"] = get_eunuch_power(game.db)
+    k = daipihong_keeper(game.db)
+    result.setdefault("keeper", k)
+    result.setdefault("keeper_upright", keeper_disposition(game.db, k) == "upright")
+    return result
+
+
+@app.post("/api/intrigue/investigate")
+async def api_intrigue_investigate(body: Dict[str, Any]) -> Dict[str, Any]:
+    """令东厂侦缉某人，发掘把柄密呈御前（宫斗阴谋 P1）。"""
+    from ming_sim.intrigue import investigate
+    from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
+    game = get_game()
+    target = str((body or {}).get("name") or "").strip()
+    if not target:
+        raise HTTPException(status_code=400, detail="name 必填")
+    res = investigate(game.db, target, kv_int(game.db, KV_CURRENT_DAY, 0))
+    if not res.get("ok"):
+        raise HTTPException(status_code=400, detail=str(res.get("message")))
+    return res
+
+
+@app.post("/api/intrigue/coerce")
+async def api_intrigue_coerce(body: Dict[str, Any]) -> Dict[str, Any]:
+    """凭已握把柄挟制其人：submit 输诚归附 / retire 逼令致仕 / serve 胁迫听用（宫斗阴谋 P1）。"""
+    from ming_sim.intrigue import coerce_with_secret
+    from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
+    game = get_game()
+    payload = body or {}
+    holder = str(payload.get("name") or "").strip()
+    mode = str(payload.get("mode") or "serve").strip()
+    if not holder:
+        raise HTTPException(status_code=400, detail="name 必填")
+    res = coerce_with_secret(game.db, game.state, holder, mode, kv_int(game.db, KV_CURRENT_DAY, 0))
+    if not res.get("ok"):
+        raise HTTPException(status_code=400, detail=str(res.get("message")))
+    game.db.save_state(game.state)
+    return res
+
+
 @app.get("/api/ministers/{minister_name}/chat")
 async def api_chat_history(minister_name: str) -> Dict[str, Any]:
     _require_active_minister(minister_name)

@@ -1741,6 +1741,24 @@ class GameDB:
         except Exception as exc:
             print(f"[WARN] 性格特质播种失败：{exc}")
 
+        try:
+            from ming_sim.eunuch_power import seed_eunuch_power
+            seed_eunuch_power(self)
+        except Exception as exc:
+            print(f"[WARN] 权阉之势播种失败：{exc}")
+
+        try:
+            from ming_sim.eunuch_lore import seed_eunuch_lore
+            seed_eunuch_lore(self)
+        except Exception as exc:
+            print(f"[WARN] 净身记录播种失败：{exc}")
+
+        try:
+            from ming_sim.intrigue import seed_secrets
+            seed_secrets(self)
+        except Exception as exc:
+            print(f"[WARN] 把柄播种失败：{exc}")
+
     def _reconcile_character_office_types(self) -> int:
         """迁移旧档：修正 office 与 office_type 不一致的原创/非常设官位。"""
         rows = self.conn.execute(
