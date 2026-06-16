@@ -86,7 +86,7 @@ def faction_moves_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str,
 def _faction_member(db: GameDB, faction: str, rng: random.Random, *, min_courage: int = 0):
     rows = db.conn.execute(
         "SELECT name, office, courage FROM characters "
-        "WHERE status='active' AND faction=? AND office_type!='后宫' AND courage>=?",
+        "WHERE status='active' AND power_id='ming' AND faction=? AND office_type!='后宫' AND courage>=?",
         (faction, int(min_courage)),
     ).fetchall()
     return rng.choice(rows) if rows else None
@@ -95,7 +95,7 @@ def _faction_member(db: GameDB, faction: str, rng: random.Random, *, min_courage
 def _rival_target(db: GameDB, faction: str, rng: random.Random):
     rows = db.conn.execute(
         "SELECT name, office, faction FROM characters "
-        "WHERE status='active' AND faction!=? AND faction!='无' AND office_type!='后宫'",
+        "WHERE status='active' AND power_id='ming' AND faction!=? AND faction!='无' AND office_type!='后宫'",
         (faction,),
     ).fetchall()
     return rng.choice(rows) if rows else None

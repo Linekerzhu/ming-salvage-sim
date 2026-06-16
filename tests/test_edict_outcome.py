@@ -144,6 +144,60 @@ class DrainPendingOutcomesTests(unittest.TestCase):
             finally:
                 sess.close()
 
+    def test_extracted_economy_moves_apply_exact_without_legacy_drift(self):
+        """单诏抽取出的硬银数应按 JSON 精确落账，不再被月度遗产修正放大。"""
+        with TemporaryDirectory() as tmp:
+            sess = self._session(tmp)
+            try:
+                guoku0 = int(sess.state.metrics.get("国库", 0))
+                neiku0 = int(sess.state.metrics.get("内库", 0))
+                arrears0 = int(sess.db.conn.execute(
+                    "SELECT SUM(arrears) AS n FROM armies WHERE owner_power='ming'"
+                ).fetchone()["n"] or 0)
+                did = self._stage_done(sess, "拨国库四十五万两、内库五万两补饷", {
+                    "economy_moves": [
+                        {"account": "国库", "delta": -45, "category": "军饷",
+                         "reason": "硬数回归", "purpose": "补饷"},
+                        {"account": "内库", "delta": -5, "category": "借支",
+                         "reason": "硬数回归"},
+                    ],
+                })
+                results = sess.drain_pending_outcomes()
+                self.assertEqual(int(results[0]["directive_id"]), did)
+                self.assertEqual(int(sess.state.metrics.get("国库", 0)), guoku0 - 45)
+                self.assertEqual(int(sess.state.metrics.get("内库", 0)), neiku0 - 5)
+                arrears1 = int(sess.db.conn.execute(
+                    "SELECT SUM(arrears) AS n FROM armies WHERE owner_power='ming'"
+                ).fetchone()["n"] or 0)
+                self.assertEqual(arrears1, arrears0 - 45)
+                applied = results[0]["applied"]["economy_moves"]
+                self.assertTrue(any(m["account"] == "国库" and m["delta"] == -45 for m in applied), applied)
+                self.assertTrue(any(m["account"] == "内库" and m["delta"] == -5 for m in applied), applied)
+            finally:
+                sess.close()
+
+    def test_drain_accepts_legacy_issue_delta_key(self):
+        """即时复命旧字段 delta 也应推进局势，避免叙事说缓解但局势条不动。"""
+        with TemporaryDirectory() as tmp:
+            sess = self._session(tmp)
+            try:
+                issue = sess.db.conn.execute(
+                    "SELECT id, bar_value FROM issues WHERE status='active' ORDER BY id LIMIT 1"
+                ).fetchone()
+                issue_id = int(issue["id"])
+                before = int(issue["bar_value"])
+                self._stage_done(sess, "着户部核实钱粮，缓解当前急务", {
+                    "issue_advances": [{"issue_id": issue_id, "delta": 12, "reason": "复命旧字段"}],
+                })
+                results = sess.drain_pending_outcomes()
+                after = int(sess.db.conn.execute(
+                    "SELECT bar_value FROM issues WHERE id=?", (issue_id,)
+                ).fetchone()["bar_value"])
+                self.assertEqual(len(results), 1)
+                self.assertEqual(after, min(100, before + 12))
+            finally:
+                sess.close()
+
     def test_drain_idempotent(self):
         """再次 drain 不重复落 delta（已 applied 不再处理）。"""
         with TemporaryDirectory() as tmp:
@@ -216,6 +270,21 @@ class IssueDecreeContinuousFlowTests(unittest.TestCase):
             finally:
                 sess.close()
 
+    def test_resolve_turn_does_not_double_wrap_formal_decree(self):
+        with TemporaryDirectory() as tmp:
+            sess = self._session(tmp)
+            try:
+                sess.db.conn.execute(
+                    "INSERT INTO turn_directives (turn, year, period, text, source, status)"
+                    " VALUES (?,?,?,?,?,?)",
+                    (sess.state.turn, sess.state.year, sess.state.period,
+                     "着户部五日内核实辽饷", "test", "draft"))
+                sess.db.conn.commit()
+                report = sess.resolve_turn(decree="奉天承运皇帝诏曰：\n着户部五日内核实辽饷。")
+                self.assertEqual(report.count("奉天承运皇帝"), 1)
+            finally:
+                sess.close()
+
 
 class OfficeChangeTests(unittest.TestCase):
     """人事诏：office_changes 名字护栏 + drain 真正改职（连续时间下不再失效）。"""
@@ -230,6 +299,28 @@ class OfficeChangeTests(unittest.TestCase):
         ]}
         out = _scope_delta(delta, ctx)["office_changes"]
         self.assertEqual([o["name"] for o in out], ["孙承宗"])
+
+    def test_scope_delta_normalizes_hard_money_and_issue_delta(self):
+        from ming_sim.edict_outcome import _scope_delta
+        ctx = {
+            "directive": (
+                "户部右侍郎毕自严即日核实辽饷、京营、陕西赈济三项实欠，"
+                "从太仓存银支二十万两、两淮盐课截留十五万两、浒墅关等三关关税催解十万两、"
+                "内库借支五万两，合计五十万两，分拨辽东、京营、陕西。"
+            ),
+            "allowed_issue_ids": [1],
+        }
+        out = _scope_delta({
+            "economy_moves": [
+                {"account": "国库", "delta": -30, "category": "军饷", "reason": "模型少抽"},
+                {"account": "内库", "delta": -5, "category": "借支", "reason": "模型少抽"},
+            ],
+            "issue_advances": [{"issue_id": 1, "delta": 8, "reason": "旧字段"}],
+        }, ctx)
+        moves = out["economy_moves"]
+        self.assertEqual([(m["account"], m["delta"]) for m in moves], [("国库", -45), ("内库", -5)])
+        self.assertEqual(moves[0].get("purpose"), "补饷")
+        self.assertEqual(out["issue_advances"][0]["delta_bar"], 8)
 
     def test_drain_applies_office_change_for_active_minister(self):
         cfg = LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model")

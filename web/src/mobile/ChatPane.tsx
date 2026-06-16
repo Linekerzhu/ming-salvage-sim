@@ -3,6 +3,16 @@ import { loadChat, streamChat } from "./api";
 import { Portrait } from "./Portrait";
 import type { ChatMessage, ChatResponse, Suggestion } from "./api";
 
+function cleanDisplayText(raw: string): string {
+  return String(raw || "")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/__([^_]+)__/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^\s*#{1,4}\s+/gm, "")
+    .replace(/^\s*[-*]\s+/gm, "· ")
+    .trim();
+}
+
 // 复用于「随侍太监」与「被传召大臣」的对话气泡 UI。
 export function ChatPane({
   name,
@@ -112,7 +122,7 @@ export function ChatPane({
               <Portrait name={name} size={32} />
               <div className="m-bubble is-other">
                 <span className="m-bubble-who">{speakerLabel}</span>
-                <p className="m-bubble-text">{m.content}</p>
+                <p className="m-bubble-text">{cleanDisplayText(m.content)}</p>
               </div>
             </div>
           )
@@ -122,7 +132,7 @@ export function ChatPane({
             <Portrait name={name} size={32} />
             <div className="m-bubble is-other">
               <span className="m-bubble-who">{speakerLabel}</span>
-              <p className="m-bubble-text">{streaming}<span className="m-caret">▍</span></p>
+              <p className="m-bubble-text">{cleanDisplayText(streaming)}<span className="m-caret">▍</span></p>
             </div>
           </div>
         )}

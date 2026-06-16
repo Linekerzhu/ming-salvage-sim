@@ -3,6 +3,7 @@ import { useGame } from "../GameData";
 import { Portrait } from "../Portrait";
 import { loadEunuch } from "../api";
 import type { PublicCharacter, Tab } from "../api";
+import { OutcomeSummary } from "./EdictsView";
 
 const INFORMATIONAL_KINDS = ["复命", "捷报"];
 
@@ -16,6 +17,8 @@ export function HomeView({ go }: { go: (t: Tab) => void }) {
   const drowning = (desk?.pending || []).filter((m) => m.days_to_expire > 0 && m.days_to_expire <= 7).length;
   const fuming = lifecycle.filter((d) => d.status === "stalled" || (d.anomaly && d.anomaly !== "")).length;
   const live = lifecycle.filter((d) => ["in_transit", "executing"].includes(d.status)).length;
+  const directiveById: Record<string, any> = {};
+  for (const d of lifecycle || []) directiveById[String(d.id)] = d;
 
   const tasks: Array<{ urgent: boolean; text: string; cta: string; to: Tab }> = [];
   if (drowning > 0) tasks.push({ urgent: true, text: `${drowning} 封奏疏将淹没`, cta: "即刻批红", to: "desk" });
@@ -77,6 +80,9 @@ export function HomeView({ go }: { go: (t: Tab) => void }) {
             {replies.slice(0, 6).map((m) => (
               <li key={m.id} className="m-reply" onClick={() => go("desk")}>
                 <span className="m-reply-by">{m.author || "—"}复命</span>
+                {m.ref_kind === "directive" && directiveById[String(m.ref_id)]?.outcome_summary?.length > 0 && (
+                  <OutcomeSummary items={directiveById[String(m.ref_id)].outcome_summary} compact />
+                )}
                 <p className="m-reply-text">{m.full_text || m.summary}</p>
               </li>
             ))}

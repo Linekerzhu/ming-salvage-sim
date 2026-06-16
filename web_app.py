@@ -1183,11 +1183,15 @@ class WebGame:
         for row in rows:
             item = dict(row)
             last_delta: Dict[str, Any] = {}
-            try:
-                parsed = json.loads(str(item.get("last_delta_json") or "{}"))
-                last_delta = parsed if isinstance(parsed, dict) else {}
-            except Exception:
-                last_delta = {}
+            raw_last_delta = item.get("last_delta")
+            if isinstance(raw_last_delta, dict):
+                last_delta = raw_last_delta
+            else:
+                try:
+                    parsed = json.loads(str(item.get("last_delta_json") or "{}"))
+                    last_delta = parsed if isinstance(parsed, dict) else {}
+                except Exception:
+                    last_delta = {}
             item["public_hint"] = str(last_delta.get("public_hint") or "")
             try:
                 item["audit_confidence"] = int(last_delta.get("audit_confidence") or last_delta.get("confidence") or 0)
@@ -1197,6 +1201,7 @@ class WebGame:
             item.pop("conditions_json", None)
             item.pop("blockers_json", None)
             item.pop("last_delta_json", None)
+            item.pop("last_delta", None)
             item.pop("_rn", None)
             item["progress_label"] = f"{int(item.get('score') or 0)}%"
             pending = [
@@ -1571,6 +1576,88 @@ class WebGame:
             "source": "大臣拟旨",
             "actor": character.name,
             "notes": notes,
+        }
+
+    _DIRECTIVE_INTENT_RE = re.compile(r"(拟旨|拟诏|草案|旨意|谕旨|诏书|可直接颁布|下旨|颁布)")
+    _DIRECTIVE_NEG_RE = re.compile(r"(不要|不必|无需|别|勿|暂不).{0,8}(拟旨|拟诏|草案|旨意|谕旨|诏书|下旨|颁布)")
+
+    def _directive_intent(self, text: str) -> bool:
+        raw = str(text or "")
+        return bool(self._DIRECTIVE_INTENT_RE.search(raw)) and not bool(self._DIRECTIVE_NEG_RE.search(raw))
+
+    def _directive_subject(self, text: str) -> str:
+        subject = str(text or "").strip()
+        subject = re.sub(r"^拟旨如下[：:\s]*", "", subject)
+        subject = re.sub(r"^(请|烦请|劳烦)?(替朕|为朕)?(拟|拟定|草拟|起草|写)?(一道|一份)?(可直接颁布的)?(旨意|谕旨|诏书|草案)[：:\s，,]*", "", subject)
+        subject = re.sub(r"(请|烦请)?(替朕|为朕)?(拟|拟定|草拟|起草|写)(一道|一份)?(可直接颁布的)?(旨意|谕旨|诏书|草案)[：:\s，,]*", "", subject)
+        subject = re.sub(r"\s+", " ", subject).strip(" ：:，,。；;")
+        if len(subject) > 150:
+            subject = subject[:150].rstrip() + "…"
+        return subject
+
+    def _fallback_pending_directive(
+        self,
+        character: Character,
+        user_text: str,
+        answer: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Guarantee the player action loop when the minister argues but forgets to draft.
+
+        The minister's cautious reply remains intact; this only files a conservative
+        editable draft so the player can continue to confirmation/edict.
+        """
+        if not self._directive_intent(user_text):
+            return None
+        subject = self._directive_subject(user_text)
+        if len(subject) < 8:
+            return None
+        if len(subject) > 110:
+            core = subject
+        else:
+            core = f"就{subject}"
+        draft_text = (
+            f"着{character.name}即会同所司，{core}逐项核实办理；凡钱粮、兵马、地方承行，"
+            "须列明数目、去向与期限。限五日内具奏初案，办竣即复命；若有窒碍，不得隐匿。"
+        )
+        row = self.db.conn.execute(
+            """
+            SELECT id, text, status, source, notes, actor
+            FROM turn_directives
+            WHERE turn=? AND actor=? AND text=? AND status IN ('pending','draft')
+            ORDER BY id DESC LIMIT 1
+            """,
+            (int(self.state.turn), character.name, draft_text),
+        ).fetchone()
+        if row is not None:
+            return {
+                "id": int(row["id"]),
+                "text": str(row["text"] or draft_text),
+                "status": str(row["status"] or "pending"),
+                "source": str(row["source"] or "大臣拟旨"),
+                "actor": str(row["actor"] or character.name),
+                "notes": str(row["notes"] or ""),
+            }
+        proposed = self._record_pending_directive(character, draft_text)
+        if proposed:
+            proposed["fallback"] = True
+            proposed["notes"] = f"由{character.name}拟旨入档（保守草案；原奏对未直接成稿）"
+            self.db.conn.execute("UPDATE turn_directives SET notes=? WHERE id=?", (proposed["notes"], int(proposed["id"])))
+            self.db.conn.commit()
+        return proposed
+
+    def _proposed_from_dialogue_goal(self, dialogue_goal: Optional[Dict[str, Any]], character: Character) -> Optional[Dict[str, Any]]:
+        if not isinstance(dialogue_goal, dict):
+            return None
+        proposed = dialogue_goal.get("proposed_directive")
+        if not isinstance(proposed, dict) or not proposed.get("id") or not proposed.get("text"):
+            return None
+        return {
+            "id": int(proposed.get("id") or 0),
+            "text": str(proposed.get("text") or ""),
+            "status": str(proposed.get("status") or "pending"),
+            "source": str(proposed.get("source") or "大臣拟旨"),
+            "actor": str(proposed.get("actor") or character.name),
+            "notes": str(proposed.get("notes") or ""),
         }
 
     def map_nodes(
@@ -2855,7 +2942,10 @@ class WebGame:
             "secret_order_id": secret_order_id or 0,
             "secret_order_assignee": secret_order_assignee,
             "secret_order_effect": secret_order_effect or {},
-            "dialogue_goal": dialogue_goal or {},
+            "dialogue_goal": (
+                self._conversation_goal_payload_from_rows([dialogue_goal])[0]
+                if dialogue_goal else {}
+            ),
             "directives": [self.directive_payload(row) for row in self.directive_rows()],
             "pending_count": self.session.pending_count(),
             "suggestions": self.suggestions_for(character),
@@ -2868,6 +2958,7 @@ class WebGame:
         text = message.strip()
         if not text:
             raise HTTPException(status_code=400, detail="问话不能为空。")
+        character = self.session._character(minister_name)
         chat_turn_id = 0
         before_snapshot: Dict[str, Any] = {}
         history_before_len = len(self.chat_history.get(minister_name, []))
@@ -2903,6 +2994,10 @@ class WebGame:
         ):
             if portrait_name:
                 self.maybe_queue_portrait_generation(portrait_name, reason)
+        if proposed is None:
+            proposed = self._proposed_from_dialogue_goal(result.dialogue_goal, character)
+        if proposed is None:
+            proposed = self._fallback_pending_directive(character, text, result.answer)
         return self._chat_payload(
             minister_name, result.answer,
             court_action=result.court_action, next_minister=result.next_minister,
@@ -3048,7 +3143,12 @@ class WebGame:
                 answer,
                 dialogue_prep,
                 source_chat_turn_id=chat_turn_id,
+                directive_already_recorded=proposed is not None,
             )
+            if proposed is None:
+                proposed = self._proposed_from_dialogue_goal(dialogue_goal, character)
+            if proposed is None:
+                proposed = self._fallback_pending_directive(character, text, answer)
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
             for portrait_name, reason in (
                 (appointed, "吏部铨选"),
@@ -4384,6 +4484,7 @@ async def api_menu_status() -> Dict[str, Any]:
 async def api_menu_new_game() -> Dict[str, Any]:
     """开始新游戏：清主 DB → 新建 WebGame。"""
     username = _current_game_username()
+    _set_running_game_for_user(username, None)
     _ensure_game_capacity_for_user(username)
     try:
         game = WebGame(fresh=True, username=username)
@@ -4399,6 +4500,7 @@ async def api_menu_continue() -> Dict[str, Any]:
     username = _current_game_username()
     if not _has_main_db(_db_path_for_user(username)):
         raise HTTPException(status_code=404, detail="无上次进度可继续，请先新游戏或加载存档。")
+    _set_running_game_for_user(username, None)
     _ensure_game_capacity_for_user(username)
     try:
         game = WebGame(fresh=False, username=username)
@@ -4412,6 +4514,7 @@ async def api_menu_continue() -> Dict[str, Any]:
 async def api_menu_load_save(name: str) -> Dict[str, Any]:
     """从存档启动：先启动空 WebGame（fresh）→ 调 load_save 热替换主 DB。"""
     username = _current_game_username()
+    _set_running_game_for_user(username, None)
     _ensure_game_capacity_for_user(username)
     try:
         game = WebGame(fresh=False, username=username)  # 先有 session 才能 load_save
@@ -5947,6 +6050,11 @@ async def server_admin_page():
 @app.get("/server_admin")
 async def server_admin_page_alias():
     return HTMLResponse(_SERVER_ADMIN_HTML)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return Response(status_code=204)
 
 
 if os.path.isdir(WEB_DIST):

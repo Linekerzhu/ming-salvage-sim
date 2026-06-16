@@ -58,6 +58,8 @@ export type DirectiveLifecycle = {
   reported_rate: number;
   anomaly: string;
   settle_note: string;
+  outcome_status?: string;
+  outcome_summary?: Array<{ kind: string; label: string; tone: "good" | "bad" | "neutral" | string }>;
 };
 
 export type TickEvent = {

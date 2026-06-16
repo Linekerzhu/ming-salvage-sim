@@ -168,15 +168,21 @@ function MilestoneToast() {
 
 // 抉择事件（CK3 化 P2）：朝局张力弹出"请陛下裁断"，玩家落子→后果即时回写朝局。
 function DecisionModal() {
-  const { decision, refresh } = useGame();
+  const { decision, refresh, desk } = useGame();
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<{ choice: string; effect: string } | null>(null);
   // 本地快照：落子后 refresh 会把 decision 置空，须保留以展示"已断"后果，玩家确认再消。
   const [active, setActive] = useState<Decision | null>(null);
+  const hasUnreadOutcome = (desk?.pending || []).some((m: any) => m.kind === "复命" || m.kind === "捷报");
   useEffect(() => {
-    if (decision) { setActive(decision); setDone(null); }
-  }, [decision?.id]);
-  if (!active) return null;
+    if (!desk || hasUnreadOutcome) {
+      setActive(null);
+      setDone(null);
+      return;
+    }
+    if (decision && !hasUnreadOutcome) { setActive(decision); setDone(null); }
+  }, [desk, decision?.id, hasUnreadOutcome]);
+  if (!active || !desk || hasUnreadOutcome) return null;
   const pick = async (key: string) => {
     if (busy || done) return;
     setBusy(true);

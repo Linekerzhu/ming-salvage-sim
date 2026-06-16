@@ -60,6 +60,59 @@ class UpgradeApiSmokeTests(unittest.TestCase):
                     else:
                         os.environ[key] = value
 
+    def test_new_game_restarts_queue_worker_for_replaced_game(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            old_user_data_dir = web_app.user_data_dir
+            old_user_data_path = web_app.user_data_path
+            old_load_runtime_llm = web_app.load_runtime_llm
+            old_verify_llm = session_module.verify_llm_available
+            old_web_game = web_app.web_game
+            old_env = {k: os.environ.get(k)
+                       for k in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL")}
+
+            def user_data_dir() -> Path:
+                root.mkdir(parents=True, exist_ok=True)
+                return root
+
+            def user_data_path(*parts: str) -> str:
+                path = root.joinpath(*parts)
+                path.parent.mkdir(parents=True, exist_ok=True)
+                return str(path)
+
+            web_app.user_data_dir = user_data_dir
+            web_app.user_data_path = user_data_path
+            web_app.load_runtime_llm = lambda: {}
+            session_module.verify_llm_available = lambda _config: None
+            os.environ["OPENAI_API_KEY"] = "test-key"
+            os.environ["OPENAI_BASE_URL"] = "https://example.test/v1"
+            os.environ["OPENAI_MODEL"] = "test-model"
+            try:
+                web_app.web_game = web_app.WebGame(fresh=True)
+                db_path = web_app.web_game.db_path
+                from ming_sim.scheduler import _WORKERS
+                self.assertIn(db_path, _WORKERS)
+
+                client = TestClient(web_app.app)
+                r = client.post("/api/menu/new_game")
+                self.assertEqual(r.status_code, 200)
+                self.assertIsNotNone(web_app.web_game)
+                self.assertEqual(web_app.web_game.db_path, db_path)
+                self.assertIn(db_path, _WORKERS)
+                self.assertTrue(_WORKERS[db_path]._thread.is_alive())
+            finally:
+                web_app._set_running_game_for_user("", None)
+                web_app.web_game = old_web_game
+                web_app.user_data_dir = old_user_data_dir
+                web_app.user_data_path = old_user_data_path
+                web_app.load_runtime_llm = old_load_runtime_llm
+                session_module.verify_llm_available = old_verify_llm
+                for key, value in old_env.items():
+                    if value is None:
+                        os.environ.pop(key, None)
+                    else:
+                        os.environ[key] = value
+
     def test_all_semirealtime_routes(self):
         def run(game, client):
             # 时钟
@@ -126,6 +179,33 @@ class UpgradeApiSmokeTests(unittest.TestCase):
                 kind="请旨", urgency=2, summary="冒烟测试请旨")
             r = client.post(f"/api/desk/{mid}/decide", json={"action": "approve"})
             self.assertEqual(r.status_code, 200)
+
+        self._with_game(run)
+
+    def test_public_goal_payload_is_compact_and_favicon_is_clean(self):
+        def run(game, client):
+            payload = game._conversation_goal_payload_from_rows([{
+                "id": 1,
+                "minister_name": "毕自严",
+                "title": "核实财政草案",
+                "score": 0,
+                "conditions": [{"description": "明旨授权", "status": "pending"}],
+                "last_delta": {
+                    "audit": {"private_reason": "x" * 2000, "pre_audit": {"raw": "huge"}},
+                    "public_hint": "毕自严领旨。",
+                    "audit_confidence": 85,
+                    "audit_status": "recorded",
+                },
+                "last_delta_json": "{}",
+            }])[0]
+            self.assertNotIn("last_delta", payload)
+            self.assertNotIn("last_delta_json", payload)
+            self.assertEqual(payload["public_hint"], "毕自严领旨。")
+            self.assertEqual(payload["audit_confidence"], 85)
+            self.assertEqual(payload["pending_conditions"][0]["description"], "明旨授权")
+
+            r = client.get("/favicon.ico")
+            self.assertEqual(r.status_code, 204)
 
         self._with_game(run)
 

@@ -8,6 +8,7 @@ CLI 和 Web 各自只做 I/O 包装。
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
@@ -1256,7 +1257,11 @@ class GameSession:
         self.state.turn_phase = TurnPhase.SUMMONING.value
         self.db.save_state(self.state)
 
-        lines = [f"奉天承运皇帝，诏曰：\n{decree_text}\n"]
+        decree_body = str(decree_text or "").strip()
+        if re.match(r"^\s*奉天承运皇帝[，,、\s]*诏曰", decree_body):
+            lines = [f"{decree_body}\n"]
+        else:
+            lines = [f"奉天承运皇帝，诏曰：\n{decree_body}\n"]
         if inited:
             lines.append("——诸旨已下，各有所司，候其到期复命：")
             for it in inited:

@@ -53,6 +53,17 @@ class ClassifyTests(unittest.TestCase):
             self.assertGreater(plan["exec_days"], 5)
             self.assertGreaterEqual(plan["resistance"], 0)
 
+    def test_explicit_deadline_compresses_eta(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "户部即日核实辽饷、京营、陕西赈济三项实欠，限五日内具奏详细草案。")
+            row = db.conn.execute(
+                "SELECT start_day, lead_days, exec_days, eta_day FROM turn_directives WHERE id=?",
+                (did,),
+            ).fetchone()
+            self.assertEqual(int(row["eta_day"]) - int(row["start_day"]), 5)
+            self.assertEqual(int(row["lead_days"]) + int(row["exec_days"]), 5)
+
 
 class TickTests(unittest.TestCase):
     def test_transit_then_execute_then_done(self):
@@ -118,6 +129,32 @@ class TickTests(unittest.TestCase):
             item = [p for p in payload if p["id"] == did][0]
             self.assertNotIn("integrity_actual", item)
             self.assertEqual(item["reported_rate"], 100)
+
+    def test_lifecycle_payload_includes_player_outcome_summary(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            issue = db.conn.execute(
+                "SELECT id FROM issues WHERE status='active' ORDER BY id LIMIT 1"
+            ).fetchone()
+            issue_id = int(issue["id"])
+            did = _issue(db, state, "着户部即拨陕西赈济银二十万两，平粜安置流民")
+            db.conn.execute(
+                "UPDATE turn_directives SET lifecycle_status='done', outcome_status='applied', outcome_delta=? WHERE id=?",
+                (json.dumps({
+                    "metric_delta": {"民心": 3},
+                    "economy_moves": [{"account": "国库", "delta": -20, "category": "赈济", "reason": "测试"}],
+                    "region_delta": {"shaanxi": {"unrest": -4}},
+                    "issue_advances": [{"issue_id": issue_id, "delta_bar": 12, "reason": "测试"}],
+                }, ensure_ascii=False), did),
+            )
+            db.conn.commit()
+            item = [p for p in lifecycle.lifecycle_payload(db) if p["id"] == did][0]
+            labels = [str(x["label"]) for x in item["outcome_summary"]]
+            self.assertIn("民心 +3", labels)
+            self.assertIn("国库 -20万", labels)
+            self.assertTrue(any("陕西" in label and "动乱 -4" in label for label in labels), labels)
+            self.assertTrue(any("+12" in label for label in labels), labels)
+            self.assertNotIn("integrity_actual", item)
 
 
 class InterveneTests(unittest.TestCase):

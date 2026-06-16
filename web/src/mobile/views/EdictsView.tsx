@@ -23,6 +23,20 @@ const INTERVENE: Array<{ key: string; label: string; extra?: Record<string, unkn
   { key: "abort", label: "收回" },
 ];
 
+export function OutcomeSummary({ items, compact = false }: { items?: DirectiveLifecycle["outcome_summary"]; compact?: boolean }) {
+  if (!items?.length) return null;
+  return (
+    <div className={`m-outcome-strip${compact ? " is-compact" : ""}`} aria-label="复命结果摘要">
+      {!compact && <span className="m-outcome-head">结果</span>}
+      {items.map((it, i) => (
+        <span key={`${it.label}-${i}`} className={`m-outcome-chip tone-${it.tone || "neutral"}`}>
+          {it.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function DirectiveCard({ d, today, onActed, ministers }: {
   d: DirectiveLifecycle; today: number; onActed: () => void; ministers: any[];
 }) {
@@ -72,6 +86,7 @@ function DirectiveCard({ d, today, onActed, ministers }: {
       {live && (
         <div className="m-prog-track"><span className="m-prog-fill" style={{ width: `${d.progress}%` }} /></div>
       )}
+      <OutcomeSummary items={d.outcome_summary} />
       {d.settle_note && <p className="m-settle">{d.settle_note}</p>}
       {msg && <p className="m-intervene-msg">{msg}</p>}
       {live && (

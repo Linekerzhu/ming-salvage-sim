@@ -7041,6 +7041,7 @@ class GameDB:
         purpose: str | None = None,
         target_kind: str | None = None,
         target_id: str | None = None,
+        apply_legacy: bool = True,
     ) -> int:
         """记一笔经济流水到 economy_ledger，同步更新 metrics[account]。
 
@@ -7051,7 +7052,7 @@ class GameDB:
         再落账（base>=0 ×(1+net/100)，base<0 ×(1-net/100)）。修正折进本笔流水，不另立账行。
         category=='局势遗产' 时不再二次修正（避免自乘，且当前已无该类调用）。
         """
-        if category != "局势遗产":
+        if apply_legacy and category != "局势遗产":
             net_pct = int(self.legacy_modifiers(state).get(account, 0) or 0)  # type: ignore[arg-type]
             if net_pct:
                 delta = self.apply_legacy_pct(int(delta), net_pct)

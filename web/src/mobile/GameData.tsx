@@ -78,7 +78,8 @@ export function GameDataProvider({ children }: { children: ReactNode }) {
         loadZhongxing().catch(() => null),
         loadDecision().catch(() => ({ decision: null })),
       ]);
-      setDecision(dec?.decision ?? null);
+      const hasUnreadOutcome = (d?.pending || []).some((m: any) => m.kind === "复命" || m.kind === "捷报");
+      setDecision(hasUnreadOutcome ? null : (dec?.decision ?? null));
       if (s) { setState(s); metricsRef.current = (s.metrics || {}) as Record<string, number>; }
       if (t) setTime(t);
       if (d) {

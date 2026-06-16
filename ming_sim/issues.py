@@ -703,12 +703,17 @@ def apply_issue_tracker_output(
             issue_id = int(adv.get("issue_id"))
         except (TypeError, ValueError):
             continue
-        delta_bar = int(adv.get("delta_bar") or 0)
+        try:
+            delta_bar = int(adv.get("delta_bar", adv.get("delta", 0)) or 0)
+        except (TypeError, ValueError):
+            delta_bar = 0
         inertia_delta = int(adv.get("inertia_delta") or 0)
         stage_text = str(adv.get("stage_text") or "")[:120]
-        narrative = str(adv.get("narrative") or "")[:400]
+        narrative = str(adv.get("narrative") or adv.get("reason") or "")[:400]
         metric_delta_raw = adv.get("metric_delta") or {}
         applied_metrics = _apply_metric_dict(state, metric_delta_raw if isinstance(metric_delta_raw, dict) else {}, db=db)
+        old_row = db.conn.execute("SELECT bar_value FROM issues WHERE id=?", (issue_id,)).fetchone()
+        old_value = int(old_row["bar_value"]) if old_row is not None else None
         new_row = db.advance_issue(
             state, issue_id,
             trigger_kind="decree",
@@ -739,7 +744,7 @@ def apply_issue_tracker_output(
         applied_advances.append({
             "issue_id": issue_id,
             "title": new_row["title"],
-            "from_value": int(new_row["bar_value"]) - delta_bar,
+            "from_value": old_value if old_value is not None else int(new_row["bar_value"]) - delta_bar,
             "to_value": int(new_row["bar_value"]),
             "stage_text": new_row["stage_text"],
             "status": new_row["status"],

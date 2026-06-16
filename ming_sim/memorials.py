@@ -132,10 +132,17 @@ def _duty_grand_secretary(db: GameDB) -> str:
 def _random_official(db: GameDB, rng: random.Random, *, min_courage: int = 0):
     rows = db.conn.execute(
         "SELECT name, office, faction, courage FROM characters "
-        "WHERE status='active' AND office_type NOT IN ('后宫') AND courage>=? "
+        "WHERE status='active' AND power_id='ming' AND office_type NOT IN ('后宫') AND courage>=? "
         "ORDER BY name", (int(min_courage),),
     ).fetchall()
     return rng.choice(rows) if rows else None
+
+
+def _sentence(text: str) -> str:
+    clean = str(text or "").strip()
+    if not clean:
+        return ""
+    return clean if clean[-1] in "。！？；" else f"{clean}。"
 
 
 def memorials_daily_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:
@@ -326,9 +333,8 @@ def decide_memorial(db: GameDB, state: GameState, memorial_id: int, action: str,
         # 发部议 → 自动生成旨意草案，走正常拟诏/生命周期流程。
         # 皇帝批语（note）作为上谕写入旨意，令内阁/司礼监照圣意落实。
         batch = (note or "").strip()
-        draft = (f"下部议：{str(row['summary'])}。"
-                 + (f"上谕：{batch}。" if batch else f"{str(row['full_text'] or '')[:60]}")
-                 + "着该衙门遵旨议奏施行。")
+        body = f"上谕：{_sentence(batch)}" if batch else _sentence(str(row["full_text"] or "")[:60])
+        draft = f"下部议：{str(row['summary'])}。{body}着该衙门遵旨议奏施行。"
         db.conn.execute(
             "INSERT INTO turn_directives (turn, year, period, text, source, status, notes)"
             " VALUES (?,?,?,?,?,?,?)",

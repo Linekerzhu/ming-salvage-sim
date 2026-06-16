@@ -78,6 +78,54 @@ _CATEGORY_OFFICE = {
     "secret_investigation": "锦衣卫", "misc": "内阁",
 }
 
+_CN_NUM = {"零": 0, "〇": 0, "一": 1, "二": 2, "两": 2, "三": 3, "四": 4,
+           "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
+_CN_UNIT = {"十": 10, "百": 100}
+
+
+def _cn_number_to_int(raw: str) -> int:
+    text = str(raw or "").strip()
+    if not text:
+        return 0
+    if text.isdigit():
+        return int(text)
+    if text == "廿":
+        return 20
+    if text == "卅":
+        return 30
+    total = 0
+    number = 0
+    for ch in text:
+        if ch.isdigit():
+            number = number * 10 + int(ch)
+        elif ch in _CN_NUM:
+            number = _CN_NUM[ch]
+        elif ch in _CN_UNIT:
+            total += (number or 1) * _CN_UNIT[ch]
+            number = 0
+    return total + number
+
+
+def explicit_deadline_days(text: str) -> int:
+    """Parse clear decree deadlines such as "三日内" or "限五日内".
+
+    Returns 0 when no explicit day deadline is present. The lifecycle treats this
+    as a maximum duration from issue day, not as a reason to slow down naturally
+    faster directives.
+    """
+    decree = str(text or "")
+    patterns = [
+        rf"(?:限|限期|须于|務於|务于|于|於|在)?\s*([零〇一二两三四五六七八九十百廿卅\d]{{1,6}})\s*(?:日|天)\s*(?:内|以内|之内|为限)",
+        rf"(?:限|限期)\s*([零〇一二两三四五六七八九十百廿卅\d]{{1,6}})\s*(?:日|天)",
+    ]
+    found: List[int] = []
+    for pattern in patterns:
+        for match in re.finditer(pattern, decree):
+            days = _cn_number_to_int(match.group(1))
+            if 0 < days <= 120:
+                found.append(days)
+    return min(found) if found else 0
+
 
 def _detect_region(db: GameDB, text: str) -> str:
     rows = db.conn.execute("SELECT id, name FROM regions").fetchall()
@@ -175,6 +223,10 @@ def build_chain(db: GameDB, state: GameState, text: str, actor: str) -> Dict[str
     exec_days = max(2, round(int(category["base_days"]) * ability_factor * distance
                              * resistance_factor * float(foundation_mods.get("exec_factor") or 1.0)))
     lead_days = max(1, round(int(category["lead_days"]) * distance))
+    deadline_days = explicit_deadline_days(text)
+    if deadline_days and lead_days + exec_days > deadline_days:
+        lead_days = min(lead_days, max(0, deadline_days - 1))
+        exec_days = max(1, deadline_days - lead_days)
     chain = [
         {"role": "主办", "name": assignee, "office": str(arow["office"]) if arow else "",
          "faction": str(arow["faction"]) if arow else ""},
@@ -193,6 +245,7 @@ def build_chain(db: GameDB, state: GameState, text: str, actor: str) -> Dict[str
         "assignee": assignee,
         "lead_days": lead_days,
         "exec_days": exec_days,
+        "explicit_deadline_days": deadline_days,
         "resistance": resistance,
         "chain": chain,
         "check_risk": check_risk,
@@ -224,6 +277,7 @@ def init_directive_lifecycles(db: GameDB, state: GameState, directives, day: int
              int(day), eta, plan["assignee"],
              json.dumps({"chain": plan["chain"], "region_id": plan["region_id"],
                          "resistance": plan["resistance"],
+                         "explicit_deadline_days": int(plan.get("explicit_deadline_days") or 0),
                          "check_risk": plan["check_risk"],
                          "trait_score": int(plan.get("trait_score") or 0),
                          "trait_notes": plan.get("trait_notes") or [],
@@ -251,6 +305,92 @@ def _chain_meta(row) -> Dict[str, object]:
 def _save_chain_meta(db: GameDB, did: int, meta: Dict[str, object]) -> None:
     db.conn.execute("UPDATE turn_directives SET chain=? WHERE id=?",
                     (json.dumps(meta, ensure_ascii=False), did))
+
+
+def _json_dict(raw: object) -> Dict[str, object]:
+    try:
+        data = json.loads(str(raw or "{}"))
+    except (TypeError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _signed(value: object, suffix: str = "") -> str:
+    try:
+        n = int(value or 0)
+    except (TypeError, ValueError):
+        n = 0
+    if n == 0:
+        return ""
+    return f"{'+' if n > 0 else ''}{n}{suffix}"
+
+
+def _outcome_tone(kind: str, value: object) -> str:
+    try:
+        n = int(value or 0)
+    except (TypeError, ValueError):
+        n = 0
+    if kind in {"unrest"}:
+        return "good" if n < 0 else "bad"
+    if kind in {"issue"}:
+        return "good" if n > 0 else "bad"
+    return "good" if n > 0 else "bad"
+
+
+def _outcome_summary(db: GameDB, delta: Dict[str, object], *, limit: int = 8) -> List[Dict[str, object]]:
+    """Small player-facing chips for a directive outcome.
+
+    This exposes visible world changes, not the hidden actual/report integrity split.
+    """
+    chips: List[Dict[str, object]] = []
+    metric_delta = delta.get("metric_delta")
+    if isinstance(metric_delta, dict):
+        for key, value in metric_delta.items():
+            label = _signed(value)
+            if label:
+                chips.append({"kind": "metric", "label": f"{key} {label}", "tone": _outcome_tone("metric", value)})
+
+    for move in delta.get("economy_moves") or []:
+        if not isinstance(move, dict):
+            continue
+        account = str(move.get("account") or "").strip()
+        label = _signed(move.get("delta"), "万")
+        if account and label:
+            chips.append({"kind": "economy", "label": f"{account} {label}", "tone": _outcome_tone("economy", move.get("delta"))})
+
+    region_delta = delta.get("region_delta")
+    if isinstance(region_delta, dict):
+        for region_id, values in region_delta.items():
+            if not isinstance(values, dict):
+                continue
+            unrest = _signed(values.get("unrest"))
+            if not unrest:
+                continue
+            row = db.conn.execute("SELECT name FROM regions WHERE id=?", (str(region_id),)).fetchone()
+            name = str(row["name"] or region_id) if row else str(region_id)
+            chips.append({"kind": "region", "label": f"{name}动乱 {unrest}", "tone": _outcome_tone("unrest", values.get("unrest"))})
+
+    for item in delta.get("issue_advances") or []:
+        if not isinstance(item, dict):
+            continue
+        value = item.get("delta_bar", item.get("delta"))
+        label = _signed(value)
+        if not label:
+            continue
+        issue_id = int(item.get("issue_id") or 0)
+        row = db.conn.execute("SELECT title FROM issues WHERE id=?", (issue_id,)).fetchone() if issue_id else None
+        title = str(row["title"] or f"局势#{issue_id}") if row else f"局势#{issue_id}"
+        chips.append({"kind": "issue", "label": f"{title} {label}", "tone": _outcome_tone("issue", value)})
+
+    for item in delta.get("office_changes") or []:
+        if isinstance(item, dict) and item.get("name") and item.get("new_office"):
+            chips.append({"kind": "office", "label": f"{item.get('name')}授{item.get('new_office')}", "tone": "good"})
+
+    for item in delta.get("character_status_changes") or []:
+        if isinstance(item, dict) and item.get("name") and item.get("status"):
+            chips.append({"kind": "person", "label": f"{item.get('name')} {item.get('status')}", "tone": "bad"})
+
+    return chips[:limit]
 
 
 def _execution_score(db: GameDB, row, meta: Dict[str, object]) -> int:
@@ -567,7 +707,8 @@ def intervene(db: GameDB, state: GameState, directive_id: int, action: str,
 def lifecycle_payload(db: GameDB, *, include_done: bool = True, limit: int = 40) -> List[Dict[str, object]]:
     """前端指令进度面板。注意：integrity 只暴露 reported（账面），actual 不出 API（S3）。"""
     sql = ("SELECT id, text, lifecycle_status, category, progress, lead_days, exec_days, "
-           "start_day, eta_day, assignee, chain, integrity_reported, anomaly, settle_note "
+           "start_day, eta_day, assignee, chain, integrity_reported, anomaly, settle_note, "
+           "outcome_delta, outcome_status "
            "FROM turn_directives WHERE lifecycle_status!=''")
     if not include_done:
         sql += " AND lifecycle_status IN ('in_transit','executing','stalled')"
@@ -589,6 +730,8 @@ def lifecycle_payload(db: GameDB, *, include_done: bool = True, limit: int = 40)
             "reported_rate": int(row["integrity_reported"]),
             "anomaly": str(row["anomaly"] or ""),
             "settle_note": str(row["settle_note"] or ""),
+            "outcome_status": str(row["outcome_status"] or ""),
+            "outcome_summary": _outcome_summary(db, _json_dict(row["outcome_delta"])),
         })
     return out
 

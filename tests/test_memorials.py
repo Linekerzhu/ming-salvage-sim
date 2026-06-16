@@ -1,6 +1,7 @@
 """M3 御案与崇祯陷阱测试：奏疏流、注意力、批红、留中后果、RA 双杠杆。零 LLM。"""
 
 import unittest
+import random
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -57,6 +58,14 @@ class FlowTests(unittest.TestCase):
             # RA=100 → 主动奏报概率 0.18*(1-100/150)=0.06；RA=0 → 0.18。只验公式方向：
             self.assertLess(0.18 * (1 - 100 / 150), 0.18 * (1 - 0 / 150))
 
+    def test_random_official_excludes_foreign_powers(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            db.conn.execute("UPDATE characters SET courage=0 WHERE power_id='ming'")
+            db.conn.execute("UPDATE characters SET courage=100 WHERE power_id!='ming'")
+            db.conn.commit()
+            self.assertIsNone(memorials._random_official(db, random.Random(1), min_courage=90))
+
 
 class AttentionTests(unittest.TestCase):
     def test_attention_resets_daily_and_blocks_when_spent(self):
@@ -99,6 +108,19 @@ class DecideTests(unittest.TestCase):
                 "SELECT * FROM turn_directives WHERE source='memorial_refer'").fetchone()
             self.assertIsNotNone(row)
             self.assertIn("陕西赈银", str(row["text"]))
+
+    def test_refer_does_not_duplicate_sentence_punctuation(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            memorials.reset_attention_for_day(db, day)
+            mid = _mk_memorial(db, state, day, kind="陈情", summary="江西监军陈情")
+            memorials.decide_memorial(db, state, mid, "refer", day=day,
+                                      note="三日内具可行办法，不得泛言。")
+            text = str(db.conn.execute(
+                "SELECT text FROM turn_directives WHERE source='memorial_refer'"
+            ).fetchone()["text"])
+            self.assertNotIn("。。", text)
+            self.assertIn("不得泛言。着该衙门", text)
 
     def test_shelved_impeachment_drains_shi(self):
         with TemporaryDirectory() as tmp:

@@ -255,6 +255,7 @@ def _auto_pay_arrears_by_priority(
             state, account, -pay, category,
             f"{reason}（按优先级分给{name}{pay}万两）",
             purpose="补饷", target_kind="army", target_id=army_id,
+            apply_legacy=False,
         )
         if not actual:
             continue
@@ -338,6 +339,7 @@ def _apply_economy_list(
             actual = db.record_issue_economy_move(
                 state, account, -actual_pay, category, reason,
                 purpose="补饷", target_kind="army", target_id=str(row["id"]),
+                apply_legacy=False,
             )
             if actual:
                 # 同步减 arrears
@@ -362,6 +364,7 @@ def _apply_economy_list(
             state, account, delta, category, reason,
             purpose=purpose or "其它" if delta < 0 else None,
             target_kind=None, target_id=None,
+            apply_legacy=False,
         )
         if actual:
             applied.append({"account": account, "delta": actual, "reason": reason})

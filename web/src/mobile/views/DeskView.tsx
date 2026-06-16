@@ -3,6 +3,7 @@ import { useGame } from "../GameData";
 import { Portrait } from "../Portrait";
 import { decideMemorial } from "../api";
 import type { Memorial, MemorialAction } from "../api";
+import { OutcomeSummary } from "./EdictsView";
 
 const ACTIONS: Array<{ key: MemorialAction; label: string; hint: string }> = [
   { key: "approve", label: "照准", hint: "依奏施行" },
@@ -54,6 +55,7 @@ function MemorialCard({ m, issue, directive, onActed }: { m: Memorial; issue?: a
           {drowning && <span className="m-badge-drown">⚠ {m.days_to_expire}日淹没</span>}
         </div>
         <p className="m-memorial-summary">{m.summary}</p>
+        {info && directive?.outcome_summary?.length > 0 && <OutcomeSummary items={directive.outcome_summary} compact />}
       </button>
       {open && (
         <div className="m-memorial-body">
@@ -76,6 +78,7 @@ function MemorialCard({ m, issue, directive, onActed }: { m: Memorial; issue?: a
                   <span className="m-mem-cause-arrow">奉旨复命 ↓</span>
                 </div>
               )}
+              {directive?.outcome_summary?.length > 0 && <OutcomeSummary items={directive.outcome_summary} />}
               {m.full_text && <p className="m-memorial-text">{m.full_text}</p>}
             </>
           ) : (
