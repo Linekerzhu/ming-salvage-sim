@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 from ming_sim import eunuch
 from ming_sim.db import GameDB
 from ming_sim.models import Character
+from ming_sim.registry import persona_self_address_rule
 from ming_sim.veil import build_info_scope_brief
 
 
@@ -69,6 +70,29 @@ class EunuchHubTests(unittest.TestCase):
         self.assertIn("随侍", brief)
         self.assertIn("不是内阁大学士", brief)
         self.assertIn("奴婢听闻", brief)
+        self.assertIn("不得自称「臣」", brief)
+        self.assertIn("贴身内侍", brief)
+
+    def test_inner_court_self_address_overrides_generic_examples(self):
+        character = Character(
+            name="王承恩",
+            office="内官监御前",
+            office_type="内廷",
+            faction="内廷",
+            aliases=[],
+            personal_skills=[],
+            loyalty=92,
+            ability=62,
+            integrity=70,
+            courage=66,
+            style="谨慎近侍",
+            power_id="ming",
+        )
+        rule = persona_self_address_rule(character)
+        self.assertIn("奴婢", rule)
+        self.assertIn("高于所有通用示例", rule)
+        self.assertIn("臣领旨", rule)
+        self.assertIn("奴婢领旨", rule)
 
     def test_info_scope_keeps_attendant_from_speaking_as_grand_secretary(self):
         with TemporaryDirectory() as tmp:

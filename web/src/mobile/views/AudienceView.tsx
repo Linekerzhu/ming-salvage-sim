@@ -7,10 +7,15 @@ import type { PublicCharacter } from "../api";
 
 // 召对·人治之门：皇帝只直接对话随侍太监；要见大臣，命随侍传召 → 大臣趋入奏对 → 命其退下。
 // 随侍是必经的门与顾问（进言荐人、过滤外朝），不可绕过直挑大臣。
-export function AudienceView() {
+export function AudienceView({
+  audience,
+  onAudienceChange,
+}: {
+  audience: string;
+  onAudienceChange: (name: string) => void;
+}) {
   const { state, refresh } = useGame();
   const [eunuch, setEunuch] = useState<PublicCharacter | null | undefined>(undefined);
-  const [audience, setAudience] = useState<string>(""); // "" = 与随侍；否则=正在奏对的大臣名
   const [sheet, setSheet] = useState<"" | "summon" | "replace">("");
   const [candidates, setCandidates] = useState<Array<{ name: string; office: string; is_eunuch: boolean }>>([]);
 
@@ -49,7 +54,7 @@ export function AudienceView() {
               <span className="m-audience-role">奉召觐见</span>
             </div>
           </div>
-          <button className="m-mini m-mini-dismiss" onClick={() => setAudience("")}>命其退下 ›</button>
+          <button className="m-mini m-mini-dismiss" onClick={() => onAudienceChange("")}>命其退下 ›</button>
         </div>
         <div className="m-arrival">（{audience} 奉召趋入，叩见陛下。事毕，命其退下。）</div>
         <ChatPane key={audience} name={audience} speakerLabel={audience} onWorldChanged={refresh} />
@@ -88,7 +93,7 @@ export function AudienceView() {
         key={`eunuch:${eunuch.name}`}
         name={eunuch.name}
         speakerLabel={`${eunuch.name}·随侍`}
-        onSummon={(next) => setAudience(next)}
+        onSummon={(next) => onAudienceChange(next)}
         onWorldChanged={refresh}
       />
 
@@ -104,7 +109,7 @@ export function AudienceView() {
                 <>
                   <p className="m-hint" style={{ margin: "0 4px 8px" }}>随侍领命传召，大臣须臾趋入御前。</p>
                   {ministers.map((m) => (
-                    <button key={m.name} className="m-sheet-row m-sheet-row-face" onClick={() => { setAudience(m.name); setSheet(""); }}>
+                    <button key={m.name} className="m-sheet-row m-sheet-row-face" onClick={() => { onAudienceChange(m.name); setSheet(""); }}>
                       <Portrait name={m.name} size={36} interactive={false} />
                       <div className="m-sheet-row-id">
                         <span className="m-row-name">{m.name}</span>

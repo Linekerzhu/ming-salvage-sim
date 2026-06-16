@@ -224,6 +224,7 @@ function DecisionModal() {
 function Shell({ onExitMenu }: { onExitMenu: () => void }) {
   const [tab, setTab] = useState<Tab>("home");
   const [guideOpen, setGuideOpen] = useState(false);
+  const [audienceName, setAudienceName] = useState("");
   const { loading, error } = useGame();
   useEffect(() => {
     if (!guideSeen()) setGuideOpen(true);
@@ -238,7 +239,7 @@ function Shell({ onExitMenu }: { onExitMenu: () => void }) {
         {loading && <div className="m-loading">正在召集朝局…</div>}
         {!loading && tab === "home" && <HomeView go={setTab} />}
         {!loading && tab === "desk" && <DeskView />}
-        {!loading && tab === "audience" && <AudienceView />}
+        {!loading && tab === "audience" && <AudienceView audience={audienceName} onAudienceChange={setAudienceName} />}
         {!loading && tab === "edicts" && <EdictsView />}
         {!loading && tab === "realm" && <RealmView />}
       </main>

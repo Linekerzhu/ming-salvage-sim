@@ -165,6 +165,9 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
         self.assertIn("岗位身份", wang)
         self.assertIn("内廷近侍/司礼监人物", wang)
         self.assertIn("传旨催办", wang)
+        self.assertIn("自称奴婢", wang)
+        self.assertIn("禁用「臣/微臣/愚臣」", wang)
+        self.assertIn("贴身内侍口吻", wang)
         self.assertIn("不是内阁大学士", wang)
         self.assertIn("户部钱粮人物", bi)
         self.assertIn("钱粮来源、额度、去向", bi)
@@ -184,6 +187,8 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
         self.assertEqual(bi["role_policy"]["role"], "户部钱粮人物")
         self.assertNotEqual(wang["role_policy"]["focus"], bi["role_policy"]["focus"])
         self.assertNotEqual(wang["role_policy"]["boundary"], bi["role_policy"]["boundary"])
+        self.assertIn("自称奴婢", wang["role_policy"]["boundary"])
+        self.assertIn("贴身内侍口吻", wang["role_policy"]["temperament"])
 
     def test_runtime_character_gets_role_policy_from_job_and_style(self) -> None:
         artisan = Character(

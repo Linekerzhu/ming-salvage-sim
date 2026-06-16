@@ -307,7 +307,7 @@ def evaluate_negotiation(
     if "旧事牵引" in risk_tags:
         score += 2
 
-    explicit_commitment = bool(re.search(r"臣愿|奴才愿|小的愿|愿为陛下|臣领旨|遵旨|愿领|愿奉旨|愿听圣裁|敢不奉行|臣当奉行|臣愿担此", answer))
+    explicit_commitment = bool(re.search(r"臣愿|奴婢愿|奴才愿|小的愿|愿为陛下|臣领旨|奴婢领旨|奴才领旨|遵旨|愿领|愿奉旨|愿听圣裁|敢不奉行|臣当奉行|臣愿担此|奴婢愿办|奴婢愿替陛下", answer))
     explicit_castration = bool(re.search(r"臣愿净身|愿净身|自愿净身|愿入内廷|愿入宫禁|愿为内臣|愿作内臣|愿受此身", answer))
     explicit_emancipation = bool(re.search(r"愿脱籍|愿转民籍|愿还民|愿还为民|愿出宫为民|愿归民籍|愿作百姓|愿为百姓|谢恩还民", answer))
     hard_oppose = bool(re.search(r"万不可|断不可|绝不可|臣不敢从|臣不敢奉诏|不能从|不能奉行|难以奉行|不愿奉行|恕难奉行|收回成命", answer))

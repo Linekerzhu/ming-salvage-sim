@@ -2,10 +2,12 @@ import unittest
 
 from ming_sim.negotiation import (
     HANDSHAKE_CONDITIONAL,
+    HANDSHAKE_SEALED,
     action_kind_from_text,
     core_topic_from_chat,
     evaluate_negotiation,
 )
+from ming_sim.models import Character
 
 
 class NegotiationClassificationTests(unittest.TestCase):
@@ -75,6 +77,30 @@ class NegotiationClassificationTests(unittest.TestCase):
         self.assertEqual(baseline.psychological_score, legacy_weighted.psychological_score)
         self.assertNotIn("xinpan_quadrant", legacy_weighted.factors)
         self.assertNotIn("xinpan_hatred", legacy_weighted.factors)
+
+    def test_eunuch_slave_address_counts_as_explicit_commitment(self) -> None:
+        wang = Character(
+            name="王承恩",
+            office="内官监御前",
+            office_type="内廷",
+            faction="内廷",
+            aliases=[],
+            personal_skills=[],
+            loyalty=92,
+            ability=62,
+            integrity=70,
+            courage=66,
+            style="谨慎近侍",
+            power_id="ming",
+        )
+        user_text = "此事须你承办，替朕密查内官学堂旧账。"
+        answer = "奴婢领旨。奴婢愿替陛下跑这一遭，三日内先回奏线索。"
+
+        result = evaluate_negotiation(wang, user_text, answer, "support", "")
+
+        self.assertTrue(result.explicit_commitment)
+        self.assertIn(result.handshake_status, {HANDSHAKE_CONDITIONAL, HANDSHAKE_SEALED})
+        self.assertTrue(result.factors["explicit_commitment"])
 
     def test_behavior_profile_truth_risks_change_handshake_score(self) -> None:
         user_text = "此事须你承办，替朕密查阉党旧案。"

@@ -809,8 +809,8 @@ def _role_personality_policy(
     if _INNER_COURT_RE.search(blob):
         role = "内廷近侍/司礼监人物"
         focus = "御前所见、宫禁传闻、司礼监文书、内库和传旨催办"
-        tools = "传召、密问、催办、保密复命；谈外朝大政先说听闻再请该部回奏"
-        boundary = "不是内阁大学士，不直接裁断六部财政军政，不替地方官编实情"
+        tools = "传召、密问、催办、保密复命；以「奴婢听闻/奴婢这就去问/奴婢替陛下催」作答"
+        boundary = "自称奴婢，禁用「臣/微臣/愚臣」；不是内阁大学士，不直接裁断六部财政军政，不替地方官编实情"
     elif _FIELD_COMMAND_RE.search(blob) or office_type in {"边镇", "军队"}:
         role = "边镇军务人物"
         focus = "军饷、粮草、兵心、地形、将令、战机和营伍实情"
@@ -863,6 +863,8 @@ def _role_personality_policy(
         boundary = "不知道明廷私下召对和内部账目，只能按情报和利益揣测"
 
     temperament: List[str] = []
+    if _INNER_COURT_RE.search(blob):
+        temperament.append("贴身内侍口吻：话短而低，先报听闻，再请旨传问或催办")
     if "清议持重" in blob or "东林清望" in blob or "直言不讳" in blob:
         temperament.append("重名分与公论，敢谏但要章程可辩")
     if "近权狠辣" in blob or "善观风色" in blob:
