@@ -6,10 +6,13 @@ import { Portrait } from "./Portrait";
 import { PersonCtx } from "./personCtx";
 import { loadCharacter, loadCourt, intrigueInvestigate, intrigueCoerce, intrigueFabricate, intrigueDiscord } from "./api";
 import type { CourtPayload } from "./api";
+import { useGame } from "./GameData";
 
 const AGENDA_CN: Record<string, string> = {
   climb: "进取", protect: "护党", revenge: "夙怨", enrich: "自肥", survive: "自保", entrench: "自重",
 };
+
+type ImpactTag = { label: string; tone?: "good" | "warn" | "bad" | "info" };
 
 function servilityTone(value?: number): string {
   const v = Number(value ?? 0);
@@ -19,58 +22,113 @@ function servilityTone(value?: number): string {
   return "外顺内拗";
 }
 
+function summarizeImpacts(
+  beforeC: Record<string, any> | null,
+  beforeCourt: CourtPayload | null,
+  nextC: Record<string, any> | null,
+  nextCourt: CourtPayload | null,
+): ImpactTag[] {
+  const out: ImpactTag[] = [];
+  const add = (label: string, tone: ImpactTag["tone"] = "info") => {
+    if (label && !out.some((tag) => tag.label === label)) out.push({ label, tone });
+  };
+  if (beforeC && nextC) {
+    if (beforeC.status_label !== nextC.status_label) {
+      add(`状态 ${beforeC.status_label || beforeC.status || "旧"}→${nextC.status_label || nextC.status || "新"}`, nextC.status === "active" ? "info" : "bad");
+    }
+    if (beforeC.office !== nextC.office) add(`官职 ${shortText(beforeC.office)}→${shortText(nextC.office)}`, "warn");
+    if (beforeC.faction !== nextC.faction) add(`派系 ${beforeC.faction || "无"}→${nextC.faction || "无"}`, nextC.faction === "皇党" ? "good" : "warn");
+  }
+  if (beforeCourt?.secret && nextCourt?.secret && !beforeCourt.secret.used && nextCourt.secret.used) add("把柄已用", "warn");
+  if (!beforeCourt?.secret && nextCourt?.secret) add("把柄在手", "good");
+  if (beforeCourt && nextCourt && tieSignature(beforeCourt) !== tieSignature(nextCourt)) add("关系已扰动", "warn");
+  if (!out.length) add("盘面已刷新", "info");
+  return out.slice(0, 4);
+}
+
+function tieSignature(court: CourtPayload): string {
+  const allies = (court.allies || []).map((t) => `${t.name}:${t.opinion}:${t.basis}`).join("|");
+  const rivals = (court.rivals || []).map((t) => `${t.name}:${t.opinion}:${t.basis}`).join("|");
+  return `${allies}::${rivals}`;
+}
+
+function shortText(value: unknown): string {
+  const text = String(value || "无");
+  return text.length > 8 ? `${text.slice(0, 8)}…` : text;
+}
+
 function PersonSheet({ name, onClose }: { name: string; onClose: () => void }) {
   const [c, setC] = useState<Record<string, any> | null>(null);
   const [court, setCourt] = useState<CourtPayload | null>(null);
   const [err, setErr] = useState(false);
   const [intrigueMsg, setIntrigueMsg] = useState("");
+  const [impactTags, setImpactTags] = useState<ImpactTag[]>([]);
   const [busy, setBusy] = useState(false);
   const openPerson = useContext(PersonCtx);
+  const { refresh } = useGame();
   useEffect(() => {
-    setC(null); setErr(false); setCourt(null); setIntrigueMsg(""); setBusy(false);
+    setC(null); setErr(false); setCourt(null); setIntrigueMsg(""); setImpactTags([]); setBusy(false);
     loadCharacter(name).then((r) => setC(r.character)).catch(() => setErr(true));
     loadCourt(name).then(setCourt).catch(() => setCourt(null));
   }, [name]);
   const isMing = !c || (c.power_id ? c.power_id === "ming" : true);
   const isSelf = name === "崇祯" || c?.office_type === "君主";
+  async function reloadAfterAction(beforeC: Record<string, any> | null, beforeCourt: CourtPayload | null) {
+    const [nextCharacter, nextCourt] = await Promise.all([
+      loadCharacter(name).then((r) => { setErr(false); return r.character; }).catch(() => { setErr(true); return null; }),
+      loadCourt(name).catch(() => null),
+      refresh().catch(() => null),
+    ]);
+    setC(nextCharacter);
+    setCourt(nextCourt);
+    setImpactTags(summarizeImpacts(beforeC, beforeCourt, nextCharacter, nextCourt));
+  }
   async function probe() {
     if (busy) return;
+    const beforeC = c;
+    const beforeCourt = court;
     setBusy(true); setIntrigueMsg("");
     try {
       const r = await intrigueInvestigate(name);
       setIntrigueMsg(r.message || "");
-      await loadCourt(name).then(setCourt).catch(() => {});
+      await reloadAfterAction(beforeC, beforeCourt);
     } catch (e: any) { setIntrigueMsg(e?.message || "侦缉未成。"); }
     finally { setBusy(false); }
   }
   async function coerce(mode: string) {
     if (busy) return;
+    const beforeC = c;
+    const beforeCourt = court;
     setBusy(true); setIntrigueMsg("");
     try {
       const r = await intrigueCoerce(name, mode);
       setIntrigueMsg(r.message || "");
-      await loadCourt(name).then(setCourt).catch(() => {});
+      await reloadAfterAction(beforeC, beforeCourt);
     } catch (e: any) { setIntrigueMsg(e?.message || "挟制未成。"); }
     finally { setBusy(false); }
   }
   async function fabricate() {
     if (busy) return;
+    const beforeC = c;
+    const beforeCourt = court;
     setBusy(true); setIntrigueMsg("");
     try {
       const r = await intrigueFabricate(name);
       setIntrigueMsg(r.message || "");
-      await loadCourt(name).then(setCourt).catch(() => {});
+      await reloadAfterAction(beforeC, beforeCourt);
     } catch (e: any) { setIntrigueMsg(e?.message || "构陷未成。"); }
     finally { setBusy(false); }
   }
   async function discord() {
     const ally = court?.allies?.[0]?.name;
     if (busy || !ally) return;
+    const beforeC = c;
+    const beforeCourt = court;
     setBusy(true); setIntrigueMsg("");
     try {
       const r = await intrigueDiscord(name, ally);
       setIntrigueMsg(r.message || "");
-      await loadCourt(name).then(setCourt).catch(() => {});
+      await reloadAfterAction(beforeC, beforeCourt);
     } catch (e: any) { setIntrigueMsg(e?.message || "离间未成。"); }
     finally { setBusy(false); }
   }
@@ -87,6 +145,17 @@ function PersonSheet({ name, onClose }: { name: string; onClose: () => void }) {
           </div>
           <button className="m-mini" onClick={onClose}>关</button>
         </div>
+        {intrigueMsg && (
+          <div className="m-person-outcome m-intrigue-msg">
+            <span className="m-person-outcome-kicker">事已行</span>
+            <span className="m-person-outcome-text">{intrigueMsg}</span>
+            {impactTags.length > 0 && (
+              <span className="m-impact-tags">
+                {impactTags.map((tag, i) => <span key={i} className={`m-impact-tag tone-${tag.tone || "info"}`}>{tag.label}</span>)}
+              </span>
+            )}
+          </div>
+        )}
         {err && <p className="m-empty">查无此人详档。</p>}
         {c?.style && (
           <div className="m-person-block">
@@ -190,7 +259,6 @@ function PersonSheet({ name, onClose }: { name: string; onClose: () => void }) {
               )}
             </div>
             <span className="m-hint">构陷凭空罗织：清誉高者难陷，陷之易暴露反噬。</span>
-            {intrigueMsg && <p className="m-intrigue-msg">{intrigueMsg}</p>}
           </div>
         )}
         {Array.isArray(c?.conversation_goals) && c.conversation_goals.length > 0 && (

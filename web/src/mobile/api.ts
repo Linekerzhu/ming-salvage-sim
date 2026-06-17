@@ -179,6 +179,18 @@ export type PlaystyleBriefCard = {
   ref_kind?: string;
   ref_id?: string;
 };
+export type AudienceLead = {
+  kind: string;
+  title: string;
+  detail: string;
+  tone?: string;
+  actor?: string;
+  target?: string;
+  meta?: string;
+  ref_kind?: string;
+  ref_id?: string;
+  prompts?: Suggestion[];
+};
 export const loadPlaystyleBrief = (limit = 5): Promise<{ cards: PlaystyleBriefCard[]; limit: number }> =>
   api<{ cards: PlaystyleBriefCard[]; limit: number }>(`/api/playstyle/brief?limit=${encodeURIComponent(String(limit))}`);
 

@@ -3,7 +3,8 @@ import { useGame } from "../GameData";
 import { ChatPane } from "../ChatPane";
 import { Portrait } from "../Portrait";
 import { loadEunuch, loadEunuchCandidates, replaceEunuch } from "../api";
-import type { ChatMessage, PublicCharacter } from "../api";
+import type { AudienceLead, ChatMessage, PublicCharacter } from "../api";
+import { usePerson } from "../personCtx";
 
 // 召对·人治之门：皇帝只直接对话随侍太监；要见大臣，命随侍传召 → 大臣趋入奏对 → 奏对完成，由随侍收尾。
 // 随侍是必经的门与顾问（进言荐人、过滤外朝），不可绕过直挑大臣。
@@ -12,13 +13,16 @@ export function AudienceView({
   onAudienceChange,
   onAudienceComplete,
   eunuchLocalMessages,
+  audienceLead,
 }: {
   audience: string;
   onAudienceChange: (name: string) => void;
   onAudienceComplete: (name: string) => void;
   eunuchLocalMessages: ChatMessage[];
+  audienceLead?: AudienceLead | null;
 }) {
   const { state, refresh } = useGame();
+  const openPerson = usePerson();
   const [eunuch, setEunuch] = useState<PublicCharacter | null | undefined>(undefined);
   const [sheet, setSheet] = useState<"" | "summon" | "replace">("");
   const [candidates, setCandidates] = useState<Array<{ name: string; office: string; is_eunuch: boolean }>>([]);
@@ -48,6 +52,7 @@ export function AudienceView({
 
   // ── 奏对模式：与被传召的大臣（明确的趋入→奏对→退下）──
   if (audience) {
+    const activeLead = audienceLead && (!audienceLead.actor || audienceLead.actor === audience) ? audienceLead : null;
     return (
       <div className="m-audience-full">
         <div className="m-audience-bar">
@@ -58,10 +63,32 @@ export function AudienceView({
               <span className="m-audience-role">奉召觐见</span>
             </div>
           </div>
-          <button className="m-mini m-mini-complete" onClick={() => onAudienceComplete(audience)}>奏对完成 ›</button>
+          <div className="m-audience-acts">
+            <button className="m-mini" onClick={() => openPerson(audience)}>查此人</button>
+            <button className="m-mini m-mini-complete" onClick={() => onAudienceComplete(audience)}>奏对完成 ›</button>
+          </div>
         </div>
         <div className="m-arrival">（{audience} 奉召趋入，正在御前奏对。奏对完成后，由随侍送其告退。）</div>
-        <ChatPane key={audience} name={audience} speakerLabel={audience} onWorldChanged={refresh} />
+        {activeLead && (
+          <div className={`m-audience-lead tone-${activeLead.tone || "info"}`}>
+            <div className="m-audience-lead-head">
+              <span className="m-audience-lead-kicker">本次召对</span>
+              {activeLead.meta && <span className="m-audience-lead-meta">{activeLead.meta}</span>}
+            </div>
+            <div className="m-audience-lead-title">{activeLead.title}</div>
+            <div className="m-audience-lead-detail">{activeLead.detail}</div>
+            {activeLead.target && (
+              <button className="m-lead-link" onClick={() => openPerson(activeLead.target!)}>查{activeLead.target}</button>
+            )}
+          </div>
+        )}
+        <ChatPane
+          key={audience}
+          name={audience}
+          speakerLabel={audience}
+          onWorldChanged={refresh}
+          leadSuggestions={activeLead?.prompts || []}
+        />
       </div>
     );
   }

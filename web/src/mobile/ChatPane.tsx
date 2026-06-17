@@ -22,12 +22,14 @@ export function ChatPane({
   onSummon,
   onWorldChanged,
   localMessages = EMPTY_LOCAL_MESSAGES,
+  leadSuggestions = [],
 }: {
   name: string;
   speakerLabel: string;
   onSummon?: (next: string) => void;
   onWorldChanged?: () => void;
   localMessages?: ChatMessage[];
+  leadSuggestions?: Suggestion[];
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -37,6 +39,7 @@ export function ChatPane({
   const [notice, setNotice] = useState("");
   const [win, setWin] = useState<{ glyph: string; title: string; sub: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!win) return;
@@ -66,6 +69,13 @@ export function ChatPane({
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, localMessages, streaming, busy]);
+
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(120, Math.max(44, el.scrollHeight))}px`;
+  }, [input]);
 
   const send = async (text: string) => {
     const msg = text.trim();
@@ -110,6 +120,10 @@ export function ChatPane({
     if (s.prefix) setInput(s.text);
     else void send(s.text);
   };
+  const visibleSuggestions = [
+    ...leadSuggestions,
+    ...suggestions.filter((s) => !leadSuggestions.some((lead) => lead.label === s.label || lead.text === s.text)),
+  ].slice(0, 6);
 
   return (
     <div className="m-chat">
@@ -159,9 +173,9 @@ export function ChatPane({
       )}
       {notice && <div className="m-chat-notice">{notice}</div>}
 
-      {suggestions.length > 0 && (
+      {visibleSuggestions.length > 0 && (
         <div className="m-suggestions">
-          {suggestions.map((s, i) => (
+          {visibleSuggestions.map((s, i) => (
             <button key={i} className="m-sugg" disabled={busy} onClick={() => onSuggestion(s)}>
               {s.label}
             </button>
@@ -171,6 +185,7 @@ export function ChatPane({
 
       <div className="m-chat-input">
         <textarea
+          ref={inputRef}
           value={input}
           rows={1}
           placeholder={`与${speakerLabel}说…`}

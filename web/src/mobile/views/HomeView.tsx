@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { useGame } from "../GameData";
 import { Portrait } from "../Portrait";
 import { loadEunuch, loadPlaystyleBrief } from "../api";
-import type { PlaystyleBriefCard, PublicCharacter, Tab } from "../api";
+import type { AudienceLead, PlaystyleBriefCard, PublicCharacter, Suggestion, Tab } from "../api";
 import { OutcomeSummary } from "./EdictsView";
 
 const INFORMATIONAL_KINDS = ["复命", "捷报"];
 const BRIEF_TABS: Tab[] = ["home", "desk", "audience", "edicts", "realm"];
 
-export function HomeView({ go }: { go: (t: Tab) => void }) {
+export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: string, lead?: AudienceLead) => void }) {
   const { desk, lifecycle, recentEvents, zhongxing, worldVersion } = useGame();
   const [eunuch, setEunuch] = useState<PublicCharacter | null>(null);
   const [briefCards, setBriefCards] = useState<PlaystyleBriefCard[]>([]);
@@ -31,6 +31,14 @@ export function HomeView({ go }: { go: (t: Tab) => void }) {
   if ((desk?.backlog || 0) > 0) tasks.push({ urgent: false, text: `御案待批 ${desk?.backlog} 封`, cta: "批红", to: "desk" });
   if (live > 0) tasks.push({ urgent: false, text: `在办旨意 ${live} 道`, cta: "看进度", to: "edicts" });
   if (tasks.length === 0) tasks.push({ urgent: false, text: "朝局暂安，可召大臣问对", cta: "召对", to: "audience" });
+  const openBrief = (card: PlaystyleBriefCard) => {
+    const to = BRIEF_TABS.includes(card.tab) ? card.tab : "audience";
+    if (to === "audience" && card.actor) {
+      summon(card.actor, audienceLeadFromBrief(card));
+      return;
+    }
+    go(to);
+  };
 
   return (
     <div className="m-view m-home">
@@ -62,10 +70,9 @@ export function HomeView({ go }: { go: (t: Tab) => void }) {
           <h2 className="m-card-title">朝局风向</h2>
           <ul className="m-brief-list">
             {briefCards.map((card, i) => {
-              const to = BRIEF_TABS.includes(card.tab) ? card.tab : "audience";
               return (
                 <li key={`${card.kind}-${card.ref_id || i}`} className={`m-brief-card tone-${card.tone || "info"}`}>
-                  <button className="m-brief-main" onClick={() => go(to)}>
+                  <button className="m-brief-main" onClick={() => openBrief(card)}>
                     {card.actor ? <Portrait name={card.actor} size={34} /> : <span className="m-brief-mark">{kindMark(card.kind)}</span>}
                     <span className="m-brief-body">
                       <span className="m-brief-head">
@@ -75,7 +82,7 @@ export function HomeView({ go }: { go: (t: Tab) => void }) {
                       <span className="m-brief-detail">{card.detail}</span>
                     </span>
                   </button>
-                  <button className="m-chip m-brief-cta" onClick={() => go(to)}>{card.cta || "处置"} ›</button>
+                  <button className="m-chip m-brief-cta" onClick={() => openBrief(card)}>{card.cta || "处置"} ›</button>
                 </li>
               );
             })}
@@ -148,4 +155,53 @@ function kindMark(kind: string): string {
   if (kind === "hook") return "柄";
   if (kind === "rivalry") return "怨";
   return "机";
+}
+
+function audienceLeadFromBrief(card: PlaystyleBriefCard): AudienceLead {
+  return {
+    kind: card.kind,
+    title: card.title,
+    detail: card.detail,
+    tone: card.tone,
+    actor: card.actor,
+    target: card.target,
+    meta: card.meta,
+    ref_kind: card.ref_kind,
+    ref_id: card.ref_id,
+    prompts: briefPrompts(card),
+  };
+}
+
+function briefPrompts(card: PlaystyleBriefCard): Suggestion[] {
+  const actor = card.actor || "你";
+  const target = card.target || "他人";
+  const topic = briefTopic(card.title);
+  if (card.kind === "hook") {
+    return [
+      { label: "试探把柄", text: `朕听到一些关于你的风闻。你若还愿替朕任事，今日就把话说明白。`, prefix: true },
+      { label: "换取效忠", text: `此事朕可以暂不发作，但你须给朕一个可验的交代。你能办成什么？`, prefix: true },
+    ];
+  }
+  if (card.kind === "rivalry") {
+    return [
+      { label: "追问旧怨", text: `朕闻你与${target}嫌隙已深。今日召你，是要听实话：此怨从何而起？`, prefix: true },
+      { label: "逼其表态", text: `若朕令你暂收锋芒，同${target}共办一事，你肯不肯？条件是什么？`, prefix: true },
+    ];
+  }
+  if (card.kind === "agenda") {
+    return [
+      { label: "追问私心", text: `朕闻你近来有「${topic}」之势。你自己说，是为国任事，还是另有所图？`, prefix: true },
+      { label: "令其交账", text: `若朕现在用你办事，你准备如何避嫌、如何交账？`, prefix: true },
+      { label: "问党援钱粮", text: `此事牵动谁的党援和钱粮？把实话说清楚。`, prefix: true },
+    ];
+  }
+  return [
+    { label: "问根由", text: `朕今日召${actor}来，正为这桩风向。你先把根由、风险、可用之处说清楚。`, prefix: true },
+  ];
+}
+
+function briefTopic(title: string): string {
+  const text = String(title || "").trim();
+  const parts = text.split("：");
+  return (parts[parts.length - 1] || text || "此事").trim();
 }

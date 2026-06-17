@@ -7,7 +7,7 @@ import { PersonProvider } from "./Person";
 import { Menu } from "./Menu";
 import { Guide, guideSeen, markGuideSeen } from "./Guide";
 import { authStatus, exitToMenu, login, menuStatus, register, resolveDecision } from "./api";
-import type { ChatMessage, Decision, Tab } from "./api";
+import type { AudienceLead, ChatMessage, Decision, Tab } from "./api";
 import { HomeView } from "./views/HomeView";
 import { DeskView } from "./views/DeskView";
 import { AudienceView } from "./views/AudienceView";
@@ -225,8 +225,16 @@ function Shell({ onExitMenu }: { onExitMenu: () => void }) {
   const [tab, setTab] = useState<Tab>("home");
   const [guideOpen, setGuideOpen] = useState(false);
   const [audienceName, setAudienceName] = useState("");
+  const [audienceLead, setAudienceLead] = useState<AudienceLead | null>(null);
   const [eunuchLocalMessages, setEunuchLocalMessages] = useState<ChatMessage[]>([]);
   const { loading, error } = useGame();
+  const summonAudience = (minister: string, lead?: AudienceLead) => {
+    const name = minister.trim();
+    if (!name) return;
+    setAudienceName(name);
+    setAudienceLead(lead || null);
+    setTab("audience");
+  };
   const completeAudience = (minister: string) => {
     const name = minister.trim();
     if (!name) return;
@@ -238,6 +246,7 @@ function Shell({ onExitMenu }: { onExitMenu: () => void }) {
       },
     ]);
     setAudienceName("");
+    setAudienceLead(null);
   };
   useEffect(() => {
     if (!guideSeen()) setGuideOpen(true);
@@ -250,14 +259,15 @@ function Shell({ onExitMenu }: { onExitMenu: () => void }) {
       <main className="m-content" key={tab}>
         {error && <div className="m-error">{error}</div>}
         {loading && <div className="m-loading">正在召集朝局…</div>}
-        {!loading && tab === "home" && <HomeView go={setTab} />}
+        {!loading && tab === "home" && <HomeView go={setTab} summon={summonAudience} />}
         {!loading && tab === "desk" && <DeskView />}
         {!loading && tab === "audience" && (
           <AudienceView
             audience={audienceName}
-            onAudienceChange={setAudienceName}
+            onAudienceChange={(name) => { setAudienceName(name); setAudienceLead(null); }}
             onAudienceComplete={completeAudience}
             eunuchLocalMessages={eunuchLocalMessages}
+            audienceLead={audienceLead}
           />
         )}
         {!loading && tab === "edicts" && <EdictsView />}
