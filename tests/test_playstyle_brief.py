@@ -109,6 +109,9 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertTrue(all(c["kind"] == "hook" for c in payload["cards"]))
             buckets = {str(b["kind"]): b for b in payload["buckets"]}
             self.assertGreaterEqual(buckets["hook"]["total"], 3)
+            ranks = {str(r["level"]): r for r in payload["ranks"]}
+            self.assertGreaterEqual(ranks["danger"]["count"], 3)
+            self.assertEqual(ranks["danger"]["label"], "危局")
 
     def test_pending_decision_card_surfaces_stakes(self):
         with TemporaryDirectory() as tmp:

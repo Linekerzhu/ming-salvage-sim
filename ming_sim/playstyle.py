@@ -88,6 +88,7 @@ def briefing_payload(
         "total": len(filtered),
         "hidden": max(0, len(filtered) - len(cards)),
         "buckets": _brief_kind_buckets(candidates, overview_cards),
+        "ranks": _brief_rank_counts(filtered),
     }
 
 
@@ -190,6 +191,33 @@ def _brief_kind_buckets(candidates: List[BriefCard], selected: List[BriefCard]) 
             }
         )
     return buckets
+
+
+def _brief_rank_counts(cards: List[BriefCard]) -> List[Dict[str, object]]:
+    """Summarize the urgency spread for the current strategic-brief view."""
+
+    counts = {"danger": 0, "warn": 0, "info": 0}
+    for card in cards:
+        try:
+            urgency = int(card.get("urgency") or 0)
+        except (TypeError, ValueError):
+            urgency = 0
+        if urgency >= 90:
+            counts["danger"] += 1
+        elif urgency >= 78:
+            counts["warn"] += 1
+        elif urgency >= 65:
+            counts["info"] += 1
+    labels = {
+        "danger": "危局",
+        "warn": "急务",
+        "info": "要事",
+    }
+    return [
+        {"level": level, "label": labels[level], "count": count}
+        for level, count in counts.items()
+        if count > 0
+    ]
 
 
 def _card(

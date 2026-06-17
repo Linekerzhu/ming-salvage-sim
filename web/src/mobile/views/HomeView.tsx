@@ -16,6 +16,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   const [briefCards, setBriefCards] = useState<PlaystyleBriefCard[]>([]);
   const [briefCount, setBriefCount] = useState({ shown: 0, total: 0, hidden: 0 });
   const [briefBuckets, setBriefBuckets] = useState<Array<{ kind: string; label: string; shown: number; total: number; hidden: number }>>([]);
+  const [briefRanks, setBriefRanks] = useState<Array<{ level: string; label: string; count: number }>>([]);
   const [briefLimit, setBriefLimit] = useState(5);
   const [briefKind, setBriefKind] = useState("");
   useEffect(() => {
@@ -26,6 +27,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
       .then((r) => {
         const cards = r.cards || [];
         const buckets = (r.buckets || []).filter((b) => Number(b.total || 0) > 0);
+        const ranks = (r.ranks || []).filter((rank) => Number(rank.count || 0) > 0);
         setBriefCards(cards);
         setBriefCount({
           shown: Number(r.shown ?? cards.length),
@@ -33,12 +35,14 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
           hidden: Number(r.hidden ?? 0),
         });
         setBriefBuckets(buckets);
+        setBriefRanks(ranks);
         if (briefKind && !buckets.some((b) => b.kind === briefKind)) setBriefKind("");
       })
       .catch(() => {
         setBriefCards([]);
         setBriefCount({ shown: 0, total: 0, hidden: 0 });
         setBriefBuckets([]);
+        setBriefRanks([]);
       });
   }, [worldVersion, briefLimit, briefKind]);
   const replies = (desk?.pending || []).filter((m) => INFORMATIONAL_KINDS.includes(m.kind));
@@ -132,6 +136,15 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                 </button>
               )}
             </h2>
+            {briefRanks.length > 0 && (
+              <div className="m-brief-ranks" aria-label="朝局危急分布">
+                {briefRanks.map((rank) => (
+                  <span key={rank.level} className={`m-brief-rank level-${rank.level}`}>
+                    {rank.label}<b>{rank.count}</b>
+                  </span>
+                ))}
+              </div>
+            )}
             {briefBuckets.length > 0 && (
               <div className="m-brief-buckets" aria-label="朝局系统构成">
                 <button

@@ -215,6 +215,22 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .m-brief-bucket.is-active b { color: #fff4d2; }
 .m-brief-bucket:active { transform: scale(.97); }
+.m-brief-ranks { display: flex; flex-wrap: wrap; gap: 4px; }
+.m-brief-rank {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 22px; padding: 2px 8px;
+  border-radius: 7px; font-size: .68rem; font-weight: 900; color: var(--ink-soft);
+  background: rgba(42,31,18,.045); border: 1px solid rgba(74,45,20,.1);
+}
+.m-brief-rank b { font-size: .72rem; }
+.m-brief-rank.level-danger {
+  color: #fff1de; background: linear-gradient(180deg, #a94033, #7e271d); border-color: rgba(158,52,41,.45);
+}
+.m-brief-rank.level-warn {
+  color: #3a270e; background: rgba(181,134,58,.2); border-color: rgba(181,134,58,.34);
+}
+.m-brief-rank.level-info {
+  color: #375247; background: rgba(73,122,97,.12); border-color: rgba(73,122,97,.2);
+}
 .m-brief-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .m-brief-card {
   display: flex; flex-direction: column; align-items: stretch; gap: 7px; padding: 9px 0;

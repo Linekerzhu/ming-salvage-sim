@@ -205,6 +205,7 @@ export type PlaystyleBriefPayload = {
   total?: number;
   hidden?: number;
   buckets?: Array<{ kind: string; label: string; shown: number; total: number; hidden: number }>;
+  ranks?: Array<{ level: "danger" | "warn" | "info" | string; label: string; count: number }>;
 };
 export type AudienceLead = {
   kind: string;
