@@ -8,6 +8,7 @@ import { OutcomeSummary } from "./EdictsView";
 
 const INFORMATIONAL_KINDS = ["复命", "捷报"];
 const BRIEF_TABS: Tab[] = ["home", "desk", "audience", "edicts", "realm"];
+type BriefBucket = { kind: string; label: string; shown: number; total: number; hidden: number; rank_level?: string; rank_label?: string; rank_count?: number };
 
 export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: string, lead?: AudienceLead) => void }) {
   const { state, desk, lifecycle, recentEvents, zhongxing, worldVersion } = useGame();
@@ -15,7 +16,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   const [eunuch, setEunuch] = useState<PublicCharacter | null>(null);
   const [briefCards, setBriefCards] = useState<PlaystyleBriefCard[]>([]);
   const [briefCount, setBriefCount] = useState({ shown: 0, total: 0, hidden: 0 });
-  const [briefBuckets, setBriefBuckets] = useState<Array<{ kind: string; label: string; shown: number; total: number; hidden: number }>>([]);
+  const [briefBuckets, setBriefBuckets] = useState<BriefBucket[]>([]);
   const [briefRanks, setBriefRanks] = useState<Array<{ level: string; label: string; count: number }>>([]);
   const [briefLimit, setBriefLimit] = useState(5);
   const [briefKind, setBriefKind] = useState("");
@@ -164,6 +165,11 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                     onClick={() => chooseBriefKind(bucket.kind)}
                   >
                     {bucket.label}
+                    {bucket.rank_label && Number(bucket.rank_count || 0) > 0 && (
+                      <span className={`m-brief-bucket-rank level-${bucket.rank_level || "info"}`}>
+                        {bucket.rank_label}{bucket.rank_count}
+                      </span>
+                    )}
                     <b>{bucket.hidden > 0 ? `${bucket.shown}/${bucket.total}` : bucket.total}</b>
                   </button>
                 ))}

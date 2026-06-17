@@ -215,6 +215,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .m-brief-bucket.is-active b { color: #fff4d2; }
 .m-brief-bucket:active { transform: scale(.97); }
+.m-brief-bucket-rank {
+  display: inline-flex; align-items: center; min-height: 16px; padding: 0 4px;
+  border-radius: 5px; font-size: .62rem; font-weight: 900;
+  color: var(--ink-soft); background: rgba(42,31,18,.06);
+}
+.m-brief-bucket-rank.level-danger { color: #fff1de; background: #8b2d24; }
+.m-brief-bucket-rank.level-warn { color: #3a270e; background: rgba(181,134,58,.24); }
+.m-brief-bucket-rank.level-info { color: #375247; background: rgba(73,122,97,.14); }
+.m-brief-bucket.is-active .m-brief-bucket-rank {
+  color: #fff4d2; background: rgba(255,244,210,.18);
+}
 .m-brief-ranks { display: flex; flex-wrap: wrap; gap: 4px; }
 .m-brief-rank {
   display: inline-flex; align-items: center; gap: 4px; min-height: 22px; padding: 2px 8px;

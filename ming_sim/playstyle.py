@@ -46,6 +46,18 @@ _KIND_LABELS = {
     "hook": "把柄",
 }
 
+_RANK_LABELS = {
+    "danger": "危局",
+    "warn": "急务",
+    "info": "要事",
+}
+
+_RANK_BADGES = {
+    "danger": "危",
+    "warn": "急",
+    "info": "要",
+}
+
 _AGENDA_LABELS = {
     "climb": "进取求用",
     "enrich": "自肥敛财",
@@ -165,10 +177,12 @@ def _brief_kind_buckets(candidates: List[BriefCard], selected: List[BriefCard]) 
 
     totals: Dict[str, int] = {}
     shown: Dict[str, int] = {}
+    by_kind: Dict[str, List[BriefCard]] = {}
     for card in candidates:
         kind = str(card.get("kind") or "")
         if kind:
             totals[kind] = totals.get(kind, 0) + 1
+            by_kind.setdefault(kind, []).append(card)
     for card in selected:
         kind = str(card.get("kind") or "")
         if kind:
@@ -181,21 +195,39 @@ def _brief_kind_buckets(candidates: List[BriefCard], selected: List[BriefCard]) 
     for kind in sorted(totals, key=sort_key):
         total = totals[kind]
         visible = shown.get(kind, 0)
-        buckets.append(
-            {
-                "kind": kind,
-                "label": _KIND_LABELS.get(kind, "机变"),
-                "shown": visible,
-                "total": total,
-                "hidden": max(0, total - visible),
-            }
-        )
+        bucket: Dict[str, object] = {
+            "kind": kind,
+            "label": _KIND_LABELS.get(kind, "机变"),
+            "shown": visible,
+            "total": total,
+            "hidden": max(0, total - visible),
+        }
+        bucket.update(_brief_top_rank(by_kind.get(kind, [])))
+        buckets.append(bucket)
     return buckets
 
 
 def _brief_rank_counts(cards: List[BriefCard]) -> List[Dict[str, object]]:
     """Summarize the urgency spread for the current strategic-brief view."""
 
+    counts = _brief_rank_count_map(cards)
+    return [
+        {"level": level, "label": _RANK_LABELS[level], "count": count}
+        for level, count in counts.items()
+        if count > 0
+    ]
+
+
+def _brief_top_rank(cards: List[BriefCard]) -> Dict[str, object]:
+    counts = _brief_rank_count_map(cards)
+    for level in ("danger", "warn", "info"):
+        count = counts.get(level, 0)
+        if count > 0:
+            return {"rank_level": level, "rank_label": _RANK_BADGES[level], "rank_count": count}
+    return {}
+
+
+def _brief_rank_count_map(cards: List[BriefCard]) -> Dict[str, int]:
     counts = {"danger": 0, "warn": 0, "info": 0}
     for card in cards:
         try:
@@ -208,16 +240,7 @@ def _brief_rank_counts(cards: List[BriefCard]) -> List[Dict[str, object]]:
             counts["warn"] += 1
         elif urgency >= 65:
             counts["info"] += 1
-    labels = {
-        "danger": "危局",
-        "warn": "急务",
-        "info": "要事",
-    }
-    return [
-        {"level": level, "label": labels[level], "count": count}
-        for level, count in counts.items()
-        if count > 0
-    ]
+    return counts
 
 
 def _card(

@@ -80,6 +80,9 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertEqual(buckets["hook"]["shown"], 1)
             self.assertGreaterEqual(buckets["hook"]["total"], 3)
             self.assertEqual(buckets["hook"]["hidden"], int(buckets["hook"]["total"]) - 1)
+            self.assertEqual(buckets["hook"]["rank_level"], "danger")
+            self.assertEqual(buckets["hook"]["rank_label"], "危")
+            self.assertGreaterEqual(buckets["hook"]["rank_count"], 3)
 
     def test_brief_payload_filters_cards_by_system_kind(self):
         with TemporaryDirectory() as tmp:
