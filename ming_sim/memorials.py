@@ -615,12 +615,36 @@ def punish_official(db: GameDB, state: GameState, name: str, severity: str,
 
 _BACK_KINDS = {
     "shoulder": {"ra": -8, "shi": -4, "label": "公开担责", "trust": +15,
+                 "faction_sat": +4, "faction_heat": -6,
                  "note": "上谕引咎：『此朕之过，非该臣之罪。』"},
     "comfort":  {"ra": -5, "shi": 0, "label": "抚恤褒奖", "trust": +10,
+                 "faction_sat": +2, "faction_heat": -3,
                  "note": "赐金抚恤，荫其子弟。"},
     "reuse":    {"ra": -10, "shi": -2, "label": "败后复用", "trust": +20,
+                 "faction_sat": +5, "faction_heat": -5,
                  "note": "败军之将弃而复用，朝野侧目，然任事者知上不弃人。"},
 }
+
+
+def _back_faction_effects(db: GameDB, name: str, spec: Dict[str, object]) -> List[Dict[str, str]]:
+    try:
+        from ming_sim.theater import adjust_faction_heat, faction_of
+        faction = faction_of(db, name)
+    except Exception:
+        return []
+    if not faction or faction in ("无", "中立"):
+        return []
+
+    effects: List[Dict[str, str]] = []
+    sat_delta = int(spec.get("faction_sat") or 0)
+    heat_delta = int(spec.get("faction_heat") or 0)
+    if sat_delta:
+        db.adjust_factions({faction: {"satisfaction": sat_delta}})
+        effects.append({"kind": "faction", "label": f"{faction}满意 {sat_delta:+d}", "tone": "good"})
+    if heat_delta:
+        adjust_faction_heat(db, faction, heat_delta, f"{spec['label']}{name}")
+        effects.append({"kind": "faction", "label": f"{faction}热度 {heat_delta:+d}", "tone": "good"})
+    return effects
 
 
 def back_official(db: GameDB, state: GameState, name: str, kind: str,
@@ -650,6 +674,7 @@ def back_official(db: GameDB, state: GameState, name: str, kind: str,
         "UPDATE characters SET grievance=MAX(0, grievance-15), emp_trust=MIN(100, emp_trust+?) WHERE name=?",
         (int(spec["trust"]), name))
     effects.append({"kind": "court", "label": f"{name}信任 +{int(spec['trust'])}", "tone": "good"})
+    effects.extend(_back_faction_effects(db, name, spec))
     if kind == "reuse" and str(row["status"]) in ("imprisoned", "dismissed"):
         db.conn.execute(
             "UPDATE characters SET status='active', status_reason='败后复用', status_changed_turn=? WHERE name=?",

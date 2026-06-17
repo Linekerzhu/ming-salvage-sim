@@ -313,6 +313,30 @@ class TrapLeverTests(unittest.TestCase):
                 "SELECT status FROM characters WHERE name='韩爌'").fetchone()
             self.assertEqual(str(row["status"]), "active")
 
+    def test_back_official_soothes_target_faction(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            faction = str(db.conn.execute(
+                "SELECT faction FROM characters WHERE name='韩爌'"
+            ).fetchone()["faction"])
+            db.conn.execute(
+                "UPDATE factions SET satisfaction=?, heat=? WHERE name=?",
+                (35, 50, faction),
+            )
+            db.conn.commit()
+
+            r = memorials.back_official(db, state, "韩爌", "shoulder", day=day)
+
+            self.assertTrue(r["ok"])
+            row = db.conn.execute(
+                "SELECT satisfaction, heat FROM factions WHERE name=?", (faction,)
+            ).fetchone()
+            self.assertEqual(int(row["satisfaction"]), 39)
+            self.assertEqual(int(row["heat"]), 44)
+            labels = [str(e["label"]) for e in r["effects"]]
+            self.assertIn(f"{faction}满意 +4", labels)
+            self.assertIn(f"{faction}热度 -6", labels)
+
     def test_execute_kills(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)
