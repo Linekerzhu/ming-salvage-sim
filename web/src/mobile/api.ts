@@ -183,7 +183,18 @@ export const loadZhongxing = (): Promise<ZhongxingPayload> => api<ZhongxingPaylo
 
 // 朝局风向：零 LLM 的玩法雷达，把暗线局势转成首页可点击钩子。
 export type PlaystyleBriefCard = {
-  kind: "decision" | "agenda" | "rivalry" | "army" | "faction" | "hook" | string;
+  kind:
+    | "decision"
+    | "agenda"
+    | "rivalry"
+    | "army"
+    | "faction"
+    | "hook"
+    | "directive_blocker"
+    | "directive_followup"
+    | "trap"
+    | "trap_remedy"
+    | string;
   title: string;
   detail: string;
   urgency: number;

@@ -26,18 +26,20 @@ _KIND_PRIORITY = {
     "decision": 0,
     "trap": 1,
     "directive_blocker": 2,
-    "trap_remedy": 3,
-    "army": 4,
-    "faction": 5,
-    "agenda": 6,
-    "rivalry": 7,
-    "hook": 8,
+    "directive_followup": 3,
+    "trap_remedy": 4,
+    "army": 5,
+    "faction": 6,
+    "agenda": 7,
+    "rivalry": 8,
+    "hook": 9,
 }
 
 _KIND_LABELS = {
     "decision": "裁断",
     "trap": "御案",
     "directive_blocker": "诏旨",
+    "directive_followup": "复命",
     "trap_remedy": "担责",
     "army": "军镇",
     "faction": "派系",
@@ -119,6 +121,7 @@ def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[
     _trap_cards(db, state, cards)
     _trap_remedy_cards(db, state, cards)
     _directive_blocker_cards(db, cards)
+    _directive_followup_cards(db, state, cards)
     _agenda_cards(db, cards)
     _rivalry_cards(db, cards)
     _army_cards(db, cards)
@@ -677,6 +680,105 @@ def _blocker_action_covers_clue(meta: Dict[str, object], label: str, clue_day: i
     return action_day >= max(0, int(clue_day or 0))
 
 
+def _directive_followup_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard]) -> None:
+    """Surface completed decrees that deserve a player follow-up conversation."""
+
+    if not _table_exists(db, "turn_directives") or not _table_exists(db, "characters"):
+        return
+    current_turn = int(getattr(state, "turn", 0) or 0)
+    if current_turn <= 0:
+        try:
+            row = db.conn.execute("SELECT turn FROM game_state WHERE id=1").fetchone()
+            current_turn = int(row["turn"] or 0) if row else 0
+        except sqlite3.Error:
+            current_turn = 0
+    recent_turn = max(1, current_turn - 2) if current_turn > 0 else 1
+    rows = _safe_fetchall(
+        db,
+        """
+        SELECT d.id, d.turn, d.text, d.assignee, d.progress, d.integrity_actual,
+               d.integrity_reported, d.settle_note, d.outcome_status,
+               c.office, c.status AS character_status
+        FROM turn_directives d
+        LEFT JOIN characters c ON c.name=d.assignee
+        WHERE d.status='issued'
+          AND d.lifecycle_status='done'
+          AND d.turn>=?
+          AND COALESCE(d.assignee, '')!=''
+          AND COALESCE(c.status, 'active')='active'
+        ORDER BY
+          CASE WHEN d.outcome_status='applied' THEN 0 ELSE 1 END,
+          d.id DESC
+        LIMIT 10
+        """,
+        (recent_turn,),
+    )
+    count = 0
+    for row in rows:
+        assignee = str(row["assignee"] or "").strip()
+        if not assignee:
+            continue
+        did = int(row["id"] or 0)
+        directive = _short_text(str(row["text"] or ""), 34)
+        settle = _short_text(str(row["settle_note"] or ""), 60)
+        actual = _clamp_int(row["integrity_actual"], 0, 100)
+        reported = _clamp_int(row["integrity_reported"], 0, 100)
+        gap = max(0, reported - actual)
+        applied = str(row["outcome_status"] or "") == "applied"
+        office = _short_office(str(row["office"] or ""))
+
+        if gap >= 18 or actual < 65:
+            title = f"复命需追问：{assignee}"
+            detail = (
+                f"{office}{assignee}已回奏「{directive}」，但奏报 {reported}%、实绩 {actual}%。"
+                "可当面问水分、追责或换下一手。"
+            )
+            urgency = 84 + min(12, gap // 3) + max(0, 65 - actual) // 4
+            tone = "danger" if actual < 55 or gap >= 28 else "warn"
+            meta = f"实{actual}/奏{reported}"
+        else:
+            title = f"复命后续：{assignee}"
+            detail = (
+                f"{office}{assignee}已办结「{directive}」。"
+                "此时召来问成效、赏罚分明或顺势续下一道旨意，能把一次执行变成政治资本。"
+            )
+            urgency = 70 + min(12, actual // 10) + (4 if applied else 0)
+            tone = "info" if actual >= 80 else "warn"
+            meta = f"完成{actual}%"
+        if settle:
+            detail += f"复命摘录：{settle}。"
+
+        effects = [
+            {"kind": "directive_done", "label": "已复命", "tone": "good" if actual >= 75 else "neutral"},
+            {"kind": "directive_actual", "label": f"实绩 {actual}%", "tone": "good" if actual >= 80 else "bad" if actual < 65 else "neutral"},
+            {"kind": "directive_reported", "label": f"奏报 {reported}%", "tone": "bad" if gap >= 18 else "neutral"},
+        ]
+        if gap >= 12:
+            effects.append({"kind": "report_gap", "label": f"水分 {gap}", "tone": "bad"})
+        if applied:
+            effects.append({"kind": "outcome_applied", "label": "结果落库", "tone": "good"})
+
+        cards.append(
+            _card(
+                kind="directive_followup",
+                title=title,
+                detail=detail,
+                urgency=urgency,
+                tone=tone,
+                cta="召主办",
+                tab=_TAB_AUDIENCE,
+                actor=assignee,
+                meta=meta,
+                ref_kind="directive",
+                ref_id=str(did),
+                effects=effects,
+            )
+        )
+        count += 1
+        if count >= 2:
+            break
+
+
 def _agenda_cards(db: GameDB, cards: List[BriefCard]) -> None:
     if not _table_exists(db, "npc_agendas") or not _has_column(db, "npc_agendas", "progress"):
         return
@@ -984,6 +1086,14 @@ def _short_text(text: str, limit: int) -> str:
     if len(clean) <= limit:
         return clean
     return clean[:limit] + "…"
+
+
+def _clamp_int(value: object, low: int, high: int) -> int:
+    try:
+        num = int(value or 0)
+    except (TypeError, ValueError):
+        num = low
+    return max(low, min(high, num))
 
 
 def _faction_representative(db: GameDB, faction: str) -> str:

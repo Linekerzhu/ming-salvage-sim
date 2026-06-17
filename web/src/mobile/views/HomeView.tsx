@@ -247,6 +247,14 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                         {card.actor && <button className="m-brief-action" onClick={() => inspect(card.actor)}>查{shortName(card.actor)}</button>}
                         {card.target && <button className="m-brief-action" onClick={() => inspect(card.target)}>查主办</button>}
                       </>
+                    ) : card.kind === "directive_followup" ? (
+                      <>
+                        {canSummon(card.actor, activeMinisters) && (
+                          <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, "")}>召主办</button>
+                        )}
+                        <button className="m-brief-action primary" onClick={() => go("edicts")}>看诏旨›</button>
+                        {card.actor && <button className="m-brief-action" onClick={() => inspect(card.actor)}>查主办</button>}
+                      </>
                     ) : card.kind === "trap_remedy" && card.actor ? (
                       <>
                         <button className="m-brief-action primary" onClick={() => inspect(card.actor, "back")}>去买单›</button>
@@ -419,6 +427,13 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
       { label: "问掣肘", text: `朕闻${counterpart || "主办官"}承办此旨时受你牵制。你当面说清楚：是何缘故？`, prefix: true },
       { label: "令其配合", text: `此旨是朕亲下，你若有异议当奏明，不得暗中掣肘。你能如何配合办成？`, prefix: true },
       { label: "查其私心", text: `你阻此旨，是为公议，还是另有所图？把你背后的党援、人情和钱粮说清楚。`, prefix: true },
+    ];
+  }
+  if (card.kind === "directive_followup") {
+    return [
+      { label: "问成效", text: `朕看了你的复命。此旨究竟办成到哪一步，哪里是真功，哪里只是奏报口径？`, prefix: true },
+      { label: "论赏罚", text: `这桩差事既已复命，朕要定赏罚。你自己说：该奖谁，该问谁，下一步还缺什么？`, prefix: true },
+      { label: "续下一手", text: `若朕要顺着这桩成果再下一道旨，你以为应接着办什么，交给谁办，限期几日？`, prefix: true },
     ];
   }
   if (card.kind === "agenda") {

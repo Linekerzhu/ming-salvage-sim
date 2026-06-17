@@ -171,6 +171,90 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("牵动任事", labels)
             self.assertIn("信怨变化", labels)
 
+    def test_done_directive_creates_followup_brief_card(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            name = _active_minister(db)
+            db.conn.execute(
+                """
+                INSERT INTO turn_directives
+                    (turn, year, period, text, source, status, lifecycle_status,
+                     progress, assignee, integrity_actual, integrity_reported,
+                     settle_note, outcome_status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    state.turn,
+                    state.year,
+                    state.period,
+                    "敕曰：着户部清核辽饷旧账，三日内具册以闻。",
+                    "test",
+                    "issued",
+                    "done",
+                    100,
+                    name,
+                    88,
+                    92,
+                    "臣谨奏：辽饷旧账已清出大概。",
+                    "applied",
+                ),
+            )
+            db.conn.commit()
+
+            payload = briefing_payload(db, state, limit=5, kind="directive_followup")
+            self.assertEqual(payload["filter"], "directive_followup")
+            self.assertGreaterEqual(payload["total"], 1)
+            card = payload["cards"][0]
+            self.assertEqual(card["kind"], "directive_followup")
+            self.assertEqual(card["actor"], name)
+            self.assertEqual(card["tab"], "audience")
+            self.assertEqual(card["cta"], "召主办")
+            self.assertIn("复命后续", card["title"])
+            labels = [str(e["label"]) for e in card["effects"]]
+            self.assertIn("已复命", labels)
+            self.assertIn("结果落库", labels)
+            buckets = {str(b["kind"]): b for b in payload["buckets"]}
+            self.assertEqual(buckets["directive_followup"]["label"], "复命")
+
+    def test_done_directive_with_report_gap_is_urgent_followup(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            name = _active_minister(db)
+            db.conn.execute(
+                """
+                INSERT INTO turn_directives
+                    (turn, year, period, text, source, status, lifecycle_status,
+                     progress, assignee, integrity_actual, integrity_reported,
+                     settle_note, outcome_status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    state.turn,
+                    state.year,
+                    state.period,
+                    "敕曰：着兵部整顿京营欠饷，毋得稽延。",
+                    "test",
+                    "issued",
+                    "done",
+                    100,
+                    name,
+                    52,
+                    91,
+                    "臣谨奏：京营诸事大体就绪。",
+                    "extracted",
+                ),
+            )
+            db.conn.commit()
+
+            cards = briefing_cards(db, state, limit=8)
+            card = next(c for c in cards if c["kind"] == "directive_followup")
+            self.assertEqual(card["tone"], "danger")
+            self.assertIn("复命需追问", card["title"])
+            self.assertGreaterEqual(int(card["urgency"]), 90)
+            labels = [str(e["label"]) for e in card["effects"]]
+            self.assertIn("水分 39", labels)
+            self.assertIn("实绩 52%", labels)
+
     def test_agenda_near_maturity_becomes_audience_hook(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)
