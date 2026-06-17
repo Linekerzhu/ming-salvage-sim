@@ -103,6 +103,10 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertEqual(army_card["tab"], "realm")
             self.assertIn("离心", str(army_card["title"]) + str(army_card["detail"]))
             self.assertEqual(army_card["tone"], "danger")
+            labels = [str(e["label"]) for e in army_card["effects"]]
+            self.assertIn("离心 76", labels)
+            self.assertIn("欠饷 4.0月", labels)
+            self.assertIn("无监军制衡", labels)
 
     def test_known_secret_becomes_hook_card(self):
         with TemporaryDirectory() as tmp:
@@ -153,6 +157,10 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertEqual(str(representative["status"]), "active")
             self.assertEqual(str(representative["power_id"]), "ming")
             self.assertIn(faction, str(faction_card["title"]))
+            labels = [str(e["label"]) for e in faction_card["effects"]]
+            self.assertIn("势力 92", labels)
+            self.assertIn("怨气 82", labels)
+            self.assertTrue(any(label.startswith("代表 ") for label in labels), labels)
 
     def test_high_risk_aversion_becomes_trap_card(self):
         with TemporaryDirectory() as tmp:

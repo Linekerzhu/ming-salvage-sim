@@ -593,10 +593,21 @@ def _army_cards(db: GameDB, cards: List[BriefCard]) -> None:
         army = str(row["name"])
         commander = str(row["commander"] or "")
         autonomy = int(row["autonomy"] or 0)
+        loyalty = int(row["loyalty"] or 0)
         maint = max(1, int(row["maintenance_per_turn"] or 1))
         arrears_months = int(row["arrears"] or 0) / maint
         supervisor = str(row["supervisor"] or "")
         hook = "已有监军钳制" if supervisor else "尚无近身制衡"
+        effects = [
+            {"kind": "army_autonomy", "label": f"离心 {autonomy}", "tone": "bad" if autonomy >= 65 else "neutral"},
+            {"kind": "army_arrears", "label": f"欠饷 {arrears_months:.1f}月", "tone": "bad" if arrears_months >= 3 else "neutral"},
+        ]
+        if loyalty <= 45:
+            effects.append({"kind": "army_loyalty", "label": f"军心 {loyalty}", "tone": "bad"})
+        effects.append(
+            {"kind": "supervisor", "label": f"{supervisor}监军" if supervisor else "无监军制衡",
+             "tone": "good" if supervisor else "bad"}
+        )
         if autonomy >= 35:
             title = f"{army}离心渐重"
             detail = (
@@ -624,6 +635,7 @@ def _army_cards(db: GameDB, cards: List[BriefCard]) -> None:
                 meta=meta,
                 ref_kind="army",
                 ref_id=str(row["id"]),
+                effects=effects,
             )
         )
         if len([c for c in cards if c.get("kind") == "army"]) >= 2:
@@ -652,6 +664,14 @@ def _faction_cards(db: GameDB, cards: List[BriefCard]) -> None:
         lev = int(row["leverage"] or 0)
         heat = int(row["heat"] or 0)
         representative = _faction_representative(db, name)
+        effects = [
+            {"kind": "faction_leverage", "label": f"势力 {lev}", "tone": "bad" if lev >= 68 else "neutral"},
+            {"kind": "faction_grievance", "label": f"怨气 {100 - sat}", "tone": "bad" if sat <= 28 else "neutral"},
+        ]
+        if heat >= 45:
+            effects.append({"kind": "faction_heat", "label": f"党争热度 {heat}", "tone": "bad" if heat >= 62 else "neutral"})
+        if representative:
+            effects.append({"kind": "representative", "label": f"代表 {representative}", "tone": "neutral"})
         if lev >= 70 and sat <= 35:
             title = f"{name}势大而不满"
             detail = f"{name}势力 {lev}、满意 {sat}，一旦有人串联，朝争会变成逼宫式要价。"
@@ -685,6 +705,7 @@ def _faction_cards(db: GameDB, cards: List[BriefCard]) -> None:
                 meta=f"势{lev}/怨{100 - sat}",
                 ref_kind="faction",
                 ref_id=name,
+                effects=effects,
             )
         )
 
