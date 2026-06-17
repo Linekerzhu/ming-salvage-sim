@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 from ming_sim import court, court_events, lifecycle, memorials, timeflow
 from ming_sim.db import GameDB
 from ming_sim.intrigue import ensure_schema as ensure_secret_schema
-from ming_sim.playstyle import _select_brief_cards, briefing_cards, briefing_payload
+from ming_sim.playstyle import _brief_kind_buckets, _select_brief_cards, briefing_cards, briefing_payload
 from ming_sim.upgrade_schema import KV_CURRENT_DAY, KV_RISK_AVERSION, kv_set_int
 
 
@@ -31,6 +31,21 @@ def _active_minister(db: GameDB) -> str:
 
 
 class PlaystyleBriefTests(unittest.TestCase):
+    def test_brief_buckets_are_sorted_by_top_urgency(self):
+        candidates = [
+            {"kind": "faction", "title": "党争升温", "urgency": 72},
+            {"kind": "army", "title": "边镇离心", "urgency": 84},
+            {"kind": "hook", "title": "大案把柄", "urgency": 96},
+            {"kind": "faction", "title": "党援串联", "urgency": 91},
+        ]
+
+        buckets = _brief_kind_buckets(candidates, selected=candidates[:2])
+
+        self.assertEqual([b["kind"] for b in buckets], ["hook", "faction", "army"])
+        self.assertEqual(buckets[0]["top_urgency"], 96)
+        self.assertEqual(buckets[1]["rank_label"], "危")
+        self.assertEqual(buckets[1]["rank_count"], 1)
+
     def test_brief_selection_preserves_system_diversity(self):
         cards = [
             {"kind": "hook", "title": "把柄甲", "urgency": 100},

@@ -210,6 +210,7 @@ export type PlaystyleBriefPayload = {
     shown: number;
     total: number;
     hidden: number;
+    top_urgency?: number;
     rank_level?: "danger" | "warn" | "info" | string;
     rank_label?: string;
     rank_count?: number;

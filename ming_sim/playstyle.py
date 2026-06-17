@@ -188,8 +188,13 @@ def _brief_kind_buckets(candidates: List[BriefCard], selected: List[BriefCard]) 
         if kind:
             shown[kind] = shown.get(kind, 0) + 1
 
+    top_urgency = {
+        kind: max((_brief_urgency(card) for card in kind_cards), default=0)
+        for kind, kind_cards in by_kind.items()
+    }
+
     def sort_key(kind: str) -> tuple:
-        return (_KIND_PRIORITY.get(kind, 50), kind)
+        return (-top_urgency.get(kind, 0), _KIND_PRIORITY.get(kind, 50), kind)
 
     buckets: List[Dict[str, object]] = []
     for kind in sorted(totals, key=sort_key):
@@ -201,6 +206,7 @@ def _brief_kind_buckets(candidates: List[BriefCard], selected: List[BriefCard]) 
             "shown": visible,
             "total": total,
             "hidden": max(0, total - visible),
+            "top_urgency": top_urgency.get(kind, 0),
         }
         bucket.update(_brief_top_rank(by_kind.get(kind, [])))
         buckets.append(bucket)
@@ -230,10 +236,7 @@ def _brief_top_rank(cards: List[BriefCard]) -> Dict[str, object]:
 def _brief_rank_count_map(cards: List[BriefCard]) -> Dict[str, int]:
     counts = {"danger": 0, "warn": 0, "info": 0}
     for card in cards:
-        try:
-            urgency = int(card.get("urgency") or 0)
-        except (TypeError, ValueError):
-            urgency = 0
+        urgency = _brief_urgency(card)
         if urgency >= 90:
             counts["danger"] += 1
         elif urgency >= 78:
@@ -241,6 +244,13 @@ def _brief_rank_count_map(cards: List[BriefCard]) -> Dict[str, int]:
         elif urgency >= 65:
             counts["info"] += 1
     return counts
+
+
+def _brief_urgency(card: BriefCard) -> int:
+    try:
+        return max(0, min(100, int(card.get("urgency") or 0)))
+    except (TypeError, ValueError):
+        return 0
 
 
 def _card(
