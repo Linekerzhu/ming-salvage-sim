@@ -56,6 +56,8 @@ def briefing_cards(db: GameDB, state: Optional[GameState] = None, *, limit: int 
 
     cards: List[BriefCard] = []
     _pending_decision_cards(db, cards)
+    _trap_cards(db, state, cards)
+    _trap_remedy_cards(db, cards)
     _directive_blocker_cards(db, cards)
     _agenda_cards(db, cards)
     _rivalry_cards(db, cards)
@@ -124,6 +126,176 @@ def _pending_decision_cards(db: GameDB, cards: List[BriefCard]) -> None:
             meta="待决",
             ref_kind="decision",
             ref_id=str(decision.get("id") or ""),
+        )
+    )
+
+
+def _trap_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard]) -> None:
+    """Surface the Chongzhen trap as an actionable desk-management hook."""
+
+    if not _table_exists(db, "memorials"):
+        return
+    try:
+        from ming_sim.memorials import INFORMATIONAL_KINDS, attention_left, expire_deadline_days
+        from ming_sim.upgrade_schema import KV_RISK_AVERSION, RISK_AVERSION_DEFAULT, get_current_day, kv_int
+    except Exception:
+        return
+
+    day = get_current_day(db, getattr(state, "turn", 0) if state is not None else 0)
+    rows = _safe_fetchall(
+        db,
+        """
+        SELECT id, kind, urgency, summary, arrived_day, shelved_days
+        FROM memorials
+        WHERE status='pending'
+        ORDER BY urgency DESC, arrived_day ASC
+        LIMIT 80
+        """,
+    )
+    request_rows = [r for r in rows if str(r["kind"]) not in INFORMATIONAL_KINDS]
+    backlog = len(request_rows)
+    urgent = 0
+    oldest = 0
+    for row in request_rows:
+        shelved = max(int(row["shelved_days"] or 0), int(day) - int(row["arrived_day"] or day))
+        oldest = max(oldest, shelved)
+        left = max(0, expire_deadline_days(str(row["kind"]), int(row["urgency"] or 2)) - shelved)
+        if 0 < left <= 7:
+            urgent += 1
+
+    ra = kv_int(db, KV_RISK_AVERSION, RISK_AVERSION_DEFAULT)
+    renshi = max(0, min(100, 100 - ra))
+    att = max(0, int(attention_left(db)))
+    overloaded = backlog >= max(6, att + 4)
+    crisis = urgent > 0 or (overloaded and renshi <= 45)
+    chilling = renshi <= 35
+    if not (crisis or chilling or overloaded):
+        return
+
+    if crisis:
+        title = "御案壅塞，百官更怯任事"
+        hazard = (
+            f"{urgent} 封七日内将淹没"
+            if urgent > 0
+            else "积压已超过今日处理能力"
+        )
+        detail = (
+            f"待裁奏疏 {backlog} 封，今日精力余 {att}。"
+            f"{hazard}；奏而不答会让臣下继续请旨观望。"
+        )
+        urgency = 84 + urgent * 5 + max(0, backlog - att)
+        tone = "danger"
+    elif chilling:
+        title = "百官避事成风"
+        detail = (
+            f"任事意愿仅 {renshi}。问责越重，越多人把难题推回御案；"
+            "此时为忠臣买单或采纳直言，反而是破局手段。"
+        )
+        urgency = 78 + max(0, 35 - renshi)
+        tone = "danger" if renshi <= 25 else "warn"
+    else:
+        title = "御案开始压住朝局"
+        detail = (
+            f"待裁奏疏 {backlog} 封，今日精力余 {att}，最久已压 {oldest} 日。"
+            "先批急疏、少留中，才能避免小事滚成群臣观望。"
+        )
+        urgency = 70 + max(0, backlog - att)
+        tone = "warn"
+
+    cards.append(
+        _card(
+            kind="trap",
+            title=title,
+            detail=detail,
+            urgency=urgency,
+            tone=tone,
+            cta="看御案",
+            tab=_TAB_DESK,
+            meta=f"任事{renshi}/待{backlog}",
+            ref_kind="belief",
+            ref_id="risk_aversion",
+        )
+    )
+
+
+def _trap_remedy_cards(db: GameDB, cards: List[BriefCard]) -> None:
+    """Offer a concrete official to back when the court has become fear-bound."""
+
+    if not _table_exists(db, "characters"):
+        return
+    try:
+        from ming_sim.upgrade_schema import KV_RISK_AVERSION, RISK_AVERSION_DEFAULT, kv_int
+    except Exception:
+        return
+    ra = kv_int(db, KV_RISK_AVERSION, RISK_AVERSION_DEFAULT)
+    if ra < 58:
+        return
+    row = db.conn.execute(
+        """
+        SELECT name, office, status, status_reason, ability, integrity, courage, emp_trust, grievance
+        FROM characters
+        WHERE power_id='ming'
+          AND office_type!='后宫'
+          AND status IN ('imprisoned','dismissed','active')
+          AND name!='崇祯'
+          AND (
+            status IN ('imprisoned','dismissed')
+            OR grievance>=58
+            OR emp_trust<=36
+          )
+        ORDER BY
+          CASE WHEN status IN ('imprisoned','dismissed') THEN 0 ELSE 1 END,
+          ability + integrity + courage DESC,
+          grievance DESC,
+          emp_trust ASC
+        LIMIT 1
+        """
+    ).fetchone()
+    if row is None:
+        return
+    name = str(row["name"])
+    status = str(row["status"] or "")
+    office = _short_office(str(row["office"] or ""))
+    reason = str(row["status_reason"] or "").strip()
+    if status == "imprisoned":
+        title = f"破局人选：复用{name}"
+        detail = (
+            f"{office}{name}仍在狱中。任事意愿低迷时，败后复用会折损一时威势，"
+            "却能让敢任事者知道皇帝不只会问罪。"
+        )
+        cta = "查此人"
+        meta = "可复用"
+    elif status == "dismissed":
+        title = f"破局人选：起复{name}"
+        detail = (
+            f"{office}{name}已罢。若旧案并非奸恶，公开复用是一记反直觉落子："
+            "短期惹议，长期回暖任事。"
+        )
+        cta = "查此人"
+        meta = "可起复"
+    else:
+        title = f"破局人选：替{name}担责"
+        detail = (
+            f"{office}{name}怨气重、信任低。公开担责或抚恤褒奖，会损一点君威，"
+            "但能打断人人自保、事事请旨的循环。"
+        )
+        cta = "查此人"
+        meta = "可买单"
+    if reason:
+        detail += f"旧因：{_short_text(reason, 32)}。"
+    cards.append(
+        _card(
+            kind="trap_remedy",
+            title=title,
+            detail=detail,
+            urgency=78 + min(18, max(0, ra - 58) // 2),
+            tone="warn",
+            cta=cta,
+            tab=_TAB_DESK,
+            actor=name,
+            meta=meta,
+            ref_kind="character",
+            ref_id=name,
         )
     )
 

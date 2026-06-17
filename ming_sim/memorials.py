@@ -637,23 +637,80 @@ def back_official(db: GameDB, state: GameState, name: str, kind: str,
             state, "内库", -int(cost), "抚恤买单", f"{spec['label']}{name}")
         if not actual:
             return {"ok": False, "message": "内库不敷。"}
+    effects = [
+        {"kind": "belief", "label": f"任事 +{abs(int(spec['ra']))}", "tone": "good"},
+    ]
     adjust_belief(db, KV_RISK_AVERSION, spec["ra"], f"{spec['label']}{name}", day=day)
     if spec["shi"]:
         adjust_belief(db, KV_SHI, spec["shi"], f"{spec['label']}{name}（示弱）", day=day)
+        effects.append({"kind": "belief", "label": f"势 {int(spec['shi']):+d}", "tone": "bad"})
+    if cost > 0:
+        effects.append({"kind": "treasury", "label": f"内库 -{int(cost)}", "tone": "bad"})
     db.conn.execute(
         "UPDATE characters SET grievance=MAX(0, grievance-15), emp_trust=MIN(100, emp_trust+?) WHERE name=?",
         (int(spec["trust"]), name))
+    effects.append({"kind": "court", "label": f"{name}信任 +{int(spec['trust'])}", "tone": "good"})
     if kind == "reuse" and str(row["status"]) in ("imprisoned", "dismissed"):
         db.conn.execute(
             "UPDATE characters SET status='active', status_reason='败后复用', status_changed_turn=? WHERE name=?",
             (state.turn, name))
+        effects.append({"kind": "court", "label": "复归在朝", "tone": "good"})
     db.record_log(state, f"【买单】{spec['label']}{name}。{spec['note']}")
     db.conn.commit()
     db.save_state(state)
-    return {"ok": True, "message": f"{spec['label']}{name}。{spec['note']}（任事意愿回暖{abs(spec['ra'])}）"}
+    return {
+        "ok": True,
+        "message": f"{spec['label']}{name}。{spec['note']}（任事意愿回暖{abs(spec['ra'])}）",
+        "effects": effects,
+    }
 
 
 # ── 查询 ─────────────────────────────────────────────────────────────────────
+
+def _preview_effect(label: str, tone: str = "neutral", kind: str = "belief") -> Dict[str, str]:
+    return {"kind": kind, "label": label, "tone": tone}
+
+
+def _memorial_action_effects(row, days_to_expire: int) -> Dict[str, List[Dict[str, str]]]:
+    """Predict player-facing consequences for desk actions.
+
+    The actual state changes still live in decide_memorial; this only makes the
+    known rule-layer tradeoffs visible before the player clicks.
+    """
+
+    kind = str(row["kind"])
+    if kind in INFORMATIONAL_KINDS:
+        return {"ack": [_preview_effect("已阅归档"), _preview_effect("精力 0", "good", "attention")]}
+
+    approve = [_preview_effect("精力 -1", "bad", "attention")]
+    refer = [_preview_effect("精力 -1", "bad", "attention"), _preview_effect("生成旨意草案", "good", "directive")]
+    deny = [_preview_effect("精力 -1", "bad", "attention")]
+    shelve = [_preview_effect("精力 0", "good", "attention")]
+
+    if kind in ("告变", "陈情"):
+        approve.append(_preview_effect("任事 +1", "good"))
+    if kind == "告变":
+        deny.append(_preview_effect("任事 -2", "bad"))
+    elif kind == "弹章":
+        if str(row["ref_kind"]) == "character" and str(row["ref_id"]):
+            approve.append(_preview_effect("任事 -2", "bad"))
+            approve.append(_preview_effect("牵动党争", "bad", "faction"))
+        deny.append(_preview_effect("劾党生怨", "bad", "faction"))
+        shelve.append(_preview_effect("久压折势", "bad"))
+    elif kind == "荐人" and str(row["ref_kind"]) == "foundation_npc" and str(row["ref_id"]):
+        approve.append(_preview_effect("征入朝", "good", "court"))
+    elif kind == "请款":
+        refer.append(_preview_effect("交部核拨", "good", "directive"))
+
+    if kind not in ("告变", "弹章"):
+        deny.append(_preview_effect("上疏人怨", "bad", "court"))
+    if days_to_expire > 0 and days_to_expire <= 7:
+        shelve.append(_preview_effect("临期淹没", "bad"))
+    else:
+        shelve.append(_preview_effect("久压增观望", "bad"))
+
+    return {"approve": approve, "refer": refer, "deny": deny, "shelve": shelve}
+
 
 def desk_payload(db: GameDB, state: GameState, day: int) -> Dict[str, object]:
     rows = db.conn.execute(
@@ -677,6 +734,7 @@ def desk_payload(db: GameDB, state: GameState, day: int) -> Dict[str, object]:
             "arrived_day": int(r["arrived_day"]), "shelved_days": int(r["shelved_days"]),
             "status": str(r["status"]), "ref_kind": str(r["ref_kind"]), "ref_id": str(r["ref_id"]),
             "days_to_expire": days_to_expire,
+            "action_effects": _memorial_action_effects(r, days_to_expire),
         }
 
     ra = kv_int(db, KV_RISK_AVERSION, RISK_AVERSION_DEFAULT)

@@ -39,6 +39,10 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   if (live > 0) tasks.push({ urgent: false, text: `在办旨意 ${live} 道`, cta: "看进度", to: "edicts" });
   if (tasks.length === 0) tasks.push({ urgent: false, text: "朝局暂安，可召大臣问对", cta: "召对", to: "audience" });
   const openBrief = (card: PlaystyleBriefCard) => {
+    if (card.kind === "trap_remedy" && card.actor) {
+      inspect(card.actor, "back");
+      return;
+    }
     const to = BRIEF_TABS.includes(card.tab) ? card.tab : "audience";
     if (to === "audience" && card.actor) {
       summonFromBrief(card, card.actor, card.target || "");
@@ -51,7 +55,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
     if (!name) return;
     summon(name, audienceLeadFromBrief(card, name, target));
   };
-  const inspect = (name?: string, focus?: "intrigue") => {
+  const inspect = (name?: string, focus?: "intrigue" | "back") => {
     const who = String(name || "").trim();
     if (who) openPerson(focus ? { name: who, focus } : who);
   };
@@ -114,6 +118,14 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                         )}
                         {card.actor && <button className="m-brief-action" onClick={() => inspect(card.actor)}>查{shortName(card.actor)}</button>}
                         {card.target && <button className="m-brief-action" onClick={() => inspect(card.target)}>查主办</button>}
+                      </>
+                    ) : card.kind === "trap_remedy" && card.actor ? (
+                      <>
+                        <button className="m-brief-action primary" onClick={() => inspect(card.actor, "back")}>去买单›</button>
+                        {canSummon(card.actor, activeMinisters) && (
+                          <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, "")}>召来问对</button>
+                        )}
+                        <button className="m-brief-action" onClick={() => go("desk")}>看御案</button>
                       </>
                     ) : card.kind === "hook" && card.actor ? (
                       <>
@@ -228,6 +240,8 @@ function kindMark(kind: string): string {
   if (kind === "hook") return "柄";
   if (kind === "rivalry") return "怨";
   if (kind === "directive_blocker") return "阻";
+  if (kind === "trap") return "任";
+  if (kind === "trap_remedy") return "担";
   return "机";
 }
 
@@ -274,6 +288,12 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
       { label: "追问私心", text: `朕闻你近来有「${topic}」之势。你自己说，是为国任事，还是另有所图？`, prefix: true },
       { label: "令其交账", text: `若朕现在用你办事，你准备如何避嫌、如何交账？`, prefix: true },
       { label: "问党援钱粮", text: `此事牵动谁的党援和钱粮？把实话说清楚。`, prefix: true },
+    ];
+  }
+  if (card.kind === "trap_remedy") {
+    return [
+      { label: "问旧案", text: `朕今日问你旧事：当日办坏，是才力不逮、钱粮掣肘，还是有人借题问罪？`, prefix: true },
+      { label: "试复用", text: `若朕替你担一点罪、再给你一件差遣，你敢不敢重新任事？你要什么条件？`, prefix: true },
     ];
   }
   if (card.kind === "army") {

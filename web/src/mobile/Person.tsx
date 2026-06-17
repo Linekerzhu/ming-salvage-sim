@@ -5,8 +5,8 @@ import type { ReactNode } from "react";
 import { Portrait } from "./Portrait";
 import type { PersonFocus, PersonOpen } from "./personCtx";
 import { PersonCtx } from "./personCtx";
-import { loadCharacter, loadCourt, intrigueInvestigate, intrigueCoerce, intrigueFabricate, intrigueDiscord } from "./api";
-import type { CourtPayload } from "./api";
+import { loadCharacter, loadCourt, intrigueInvestigate, intrigueCoerce, intrigueFabricate, intrigueDiscord, courtBack } from "./api";
+import type { CourtBackKind, CourtPayload } from "./api";
 import { useGame } from "./GameData";
 
 const AGENDA_CN: Record<string, string> = {
@@ -47,6 +47,16 @@ function summarizeImpacts(
   return out.slice(0, 4);
 }
 
+function impactTagsFromEffects(items?: Array<{ label: string; tone?: string }>): ImpactTag[] {
+  return (items || [])
+    .filter((item) => item.label)
+    .slice(0, 5)
+    .map((item) => ({
+      label: item.label,
+      tone: item.tone === "good" || item.tone === "bad" || item.tone === "warn" ? item.tone : "info",
+    }));
+}
+
 function tieSignature(court: CourtPayload): string {
   const allies = (court.allies || []).map((t) => `${t.name}:${t.opinion}:${t.basis}`).join("|");
   const rivals = (court.rivals || []).map((t) => `${t.name}:${t.opinion}:${t.basis}`).join("|");
@@ -66,6 +76,7 @@ function PersonSheet({ name, focus, onClose }: { name: string; focus?: PersonFoc
   const [impactTags, setImpactTags] = useState<ImpactTag[]>([]);
   const [busy, setBusy] = useState(false);
   const intrigueRef = useRef<HTMLDivElement | null>(null);
+  const backRef = useRef<HTMLDivElement | null>(null);
   const openPerson = useContext(PersonCtx);
   const { refresh } = useGame();
   useEffect(() => {
@@ -80,6 +91,13 @@ function PersonSheet({ name, focus, onClose }: { name: string; focus?: PersonFoc
     }, 80);
     return () => window.clearTimeout(t);
   }, [focus, c, court, name]);
+  useEffect(() => {
+    if (focus !== "back" || !c) return;
+    const t = window.setTimeout(() => {
+      backRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [focus, c, name]);
   const isMing = !c || (c.power_id ? c.power_id === "ming" : true);
   const isSelf = name === "崇祯" || c?.office_type === "君主";
   async function reloadAfterAction(beforeC: Record<string, any> | null, beforeCourt: CourtPayload | null) {
@@ -141,7 +159,23 @@ function PersonSheet({ name, focus, onClose }: { name: string; focus?: PersonFoc
     } catch (e: any) { setIntrigueMsg(e?.message || "离间未成。"); }
     finally { setBusy(false); }
   }
+  async function back(kind: CourtBackKind) {
+    if (busy) return;
+    const beforeC = c;
+    const beforeCourt = court;
+    setBusy(true); setIntrigueMsg("");
+    try {
+      const r = await courtBack(name, kind);
+      setIntrigueMsg(r.message || "");
+      await reloadAfterAction(beforeC, beforeCourt);
+      const tags = impactTagsFromEffects(r.effects);
+      if (tags.length) setImpactTags(tags);
+    } catch (e: any) { setIntrigueMsg(e?.message || "买单未成。"); }
+    finally { setBusy(false); }
+  }
   const skills: string[] = (c?.personal_skills || c?.skills || []).map((x: any) => typeof x === "string" ? x : x?.name).filter(Boolean);
+  const canBack = !!c && isMing && !isSelf && ["active", "imprisoned", "dismissed"].includes(String(c.status || ""));
+  const canReuse = !!c && ["imprisoned", "dismissed"].includes(String(c.status || ""));
   return (
     <div className="m-sheet-backdrop" onClick={onClose}>
       <div className="m-sheet m-person" onClick={(e) => e.stopPropagation()}>
@@ -194,6 +228,25 @@ function PersonSheet({ name, focus, onClose }: { name: string; focus?: PersonFoc
           <div className="m-person-block">
             <span className="m-person-h">私心 <span className="m-agenda-tag">{AGENDA_CN[court.agenda.kind] || ""}</span></span>
             <p className="m-person-agenda">{court.agenda.title}</p>
+          </div>
+        )}
+        {canBack && (
+          <div className="m-person-block" ref={backRef}>
+            <span className="m-person-h">任事杠杆</span>
+            <p className="m-hint" style={{ marginBottom: 8 }}>为失败或失意之臣买单：短期折势或惹议，长期回暖百官任事意愿。</p>
+            <div className="m-intrigue-acts">
+              <button className="m-intrigue-btn" disabled={busy} onClick={() => back("shoulder")}>
+                公开担责 <span className="m-effect-chip tone-good">任事+8</span><span className="m-effect-chip tone-bad">势-4</span>
+              </button>
+              <button className="m-intrigue-btn" disabled={busy} onClick={() => back("comfort")}>
+                抚恤褒奖 <span className="m-effect-chip tone-good">任事+5</span>
+              </button>
+              {canReuse && (
+                <button className="m-intrigue-btn" disabled={busy} onClick={() => back("reuse")}>
+                  败后复用 <span className="m-effect-chip tone-good">任事+10</span><span className="m-effect-chip tone-bad">势-2</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
         {((court?.allies?.length ?? 0) > 0 || (court?.rivals?.length ?? 0) > 0) && (

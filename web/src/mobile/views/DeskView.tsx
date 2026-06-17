@@ -26,6 +26,17 @@ function textPreview(text: string, limit = 86): string {
   return clean.length > limit ? clean.slice(0, limit) + "…" : clean;
 }
 
+function ActionPreview({ items }: { items?: Array<{ label: string; tone?: string }> }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <span className="m-effect-preview" aria-label="批红预期影响">
+      {items.slice(0, 3).map((it, i) => (
+        <span key={`${it.label}-${i}`} className={`m-effect-chip tone-${it.tone || "neutral"}`}>{it.label}</span>
+      ))}
+    </span>
+  );
+}
+
 function MemorialCard({ m, issue, directive, onActed }: { m: Memorial; issue?: any; directive?: any; onActed: () => void }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -113,12 +124,19 @@ function MemorialCard({ m, issue, directive, onActed }: { m: Memorial; issue?: a
           )}
           <div className="m-actions m-actions-wrap">
             {info ? (
-              <button className="m-btn" disabled={busy} onClick={() => act("ack")}>已阅（免精力）</button>
-            ) : ACTIONS.map((a) => (
-              <button key={a.key} className="m-btn" disabled={busy} onClick={() => act(a.key)} title={a.hint}>
-                {a.label}
+              <button className="m-btn has-preview" disabled={busy} onClick={() => act("ack")}>
+                <span>已阅</span>
+                <ActionPreview items={m.action_effects?.ack} />
               </button>
-            ))}
+            ) : ACTIONS.map((a) => {
+              const effects = m.action_effects?.[a.key] || [];
+              return (
+                <button key={a.key} className={`m-btn ${effects.length ? "has-preview" : ""}`} disabled={busy} onClick={() => act(a.key)} title={a.hint}>
+                  <span>{a.label}</span>
+                  <ActionPreview items={effects} />
+                </button>
+              );
+            })}
           </div>
           {!info && <p className="m-mem-tip">发部议＝按你的批语生成旨意，颁诏后交内阁/司礼监落实，到期复命。</p>}
         </div>

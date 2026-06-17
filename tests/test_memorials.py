@@ -151,6 +151,46 @@ class DecideTests(unittest.TestCase):
             self.assertNotIn("。。", text)
             self.assertIn("不得泛言。着该衙门", text)
 
+    def test_desk_payload_previews_trap_effects_for_actions(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            memorials.reset_attention_for_day(db, day)
+            _mk_memorial(db, state, day, kind="告变", author_name="史可法", urgency=3)
+
+            payload = memorials.desk_payload(db, state, day)
+            item = next(m for m in payload["pending"] if m["kind"] == "告变")
+            effects = item["action_effects"]
+            approve_labels = [e["label"] for e in effects["approve"]]
+            deny_labels = [e["label"] for e in effects["deny"]]
+            shelve_labels = [e["label"] for e in effects["shelve"]]
+            self.assertIn("任事 +1", approve_labels)
+            self.assertIn("任事 -2", deny_labels)
+            self.assertIn("精力 0", shelve_labels)
+
+    def test_desk_payload_previews_impeachment_and_late_shelve_costs(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            mid = _mk_memorial(
+                db,
+                state,
+                day,
+                kind="弹章",
+                urgency=3,
+                ref_kind="character",
+                ref_id="韩爌",
+            )
+            deadline = memorials.expire_deadline_days("弹章", 3)
+            late_day = day + deadline - 3
+
+            payload = memorials.desk_payload(db, state, late_day)
+            item = next(m for m in payload["pending"] if int(m["id"]) == mid)
+            effects = item["action_effects"]
+            approve_labels = [e["label"] for e in effects["approve"]]
+            shelve_labels = [e["label"] for e in effects["shelve"]]
+            self.assertIn("任事 -2", approve_labels)
+            self.assertIn("牵动党争", approve_labels)
+            self.assertIn("临期淹没", shelve_labels)
+
     def test_recent_memorial_decision_feeds_npc_context(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)
@@ -264,6 +304,10 @@ class TrapLeverTests(unittest.TestCase):
             ra_mid = kv_int(db, KV_RISK_AVERSION, 0)
             r = memorials.back_official(db, state, "韩爌", "reuse", day=day)
             self.assertTrue(r["ok"])
+            labels = [str(e["label"]) for e in r["effects"]]
+            self.assertIn("任事 +10", labels)
+            self.assertIn("势 -2", labels)
+            self.assertIn("复归在朝", labels)
             self.assertLess(kv_int(db, KV_RISK_AVERSION, 0), ra_mid)
             row = db.conn.execute(
                 "SELECT status FROM characters WHERE name='韩爌'").fetchone()

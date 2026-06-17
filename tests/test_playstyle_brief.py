@@ -5,10 +5,11 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from ming_sim import lifecycle, timeflow
+from ming_sim import lifecycle, memorials, timeflow
 from ming_sim.db import GameDB
 from ming_sim.intrigue import ensure_schema as ensure_secret_schema
 from ming_sim.playstyle import briefing_cards, briefing_payload
+from ming_sim.upgrade_schema import KV_CURRENT_DAY, KV_RISK_AVERSION, kv_set_int
 
 
 def _fresh(tmp: str):
@@ -116,6 +117,60 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertEqual(str(representative["status"]), "active")
             self.assertEqual(str(representative["power_id"]), "ming")
             self.assertIn(faction, str(faction_card["title"]))
+
+    def test_high_risk_aversion_becomes_trap_card(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            kv_set_int(db, KV_RISK_AVERSION, 72)
+
+            cards = briefing_cards(db, state, limit=8)
+            trap = next(c for c in cards if c["kind"] == "trap")
+            self.assertEqual(trap["tab"], "desk")
+            self.assertEqual(trap["ref_kind"], "belief")
+            self.assertIn("百官避事", str(trap["title"]))
+            self.assertIn("任事28", str(trap["meta"]))
+            self.assertIn("买单", str(trap["detail"]))
+
+    def test_punished_official_becomes_trap_remedy_card(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            result = memorials.punish_official(db, state, "韩爌", "heavy", day=1, reason="试问责")
+            self.assertTrue(result["ok"], result)
+            kv_set_int(db, KV_RISK_AVERSION, 70)
+
+            cards = briefing_cards(db, state, limit=8)
+            remedy = next(c for c in cards if c["kind"] == "trap_remedy")
+            self.assertEqual(remedy["actor"], "韩爌")
+            self.assertEqual(remedy["ref_kind"], "character")
+            self.assertEqual(remedy["ref_id"], "韩爌")
+            self.assertIn("复用", str(remedy["title"]) + str(remedy["detail"]))
+            self.assertIn("可复用", str(remedy["meta"]))
+
+    def test_overdue_memorials_become_trap_card(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            kv_set_int(db, KV_CURRENT_DAY, 45)
+            for idx in range(8):
+                memorials.create_memorial(
+                    db,
+                    state,
+                    day=1,
+                    author_name="韩爌",
+                    org="内阁",
+                    kind="弹章" if idx == 0 else "请旨",
+                    urgency=3,
+                    summary=f"请裁积压事务{idx}",
+                )
+            db.conn.execute("UPDATE memorials SET arrived_day=15 WHERE status='pending'")
+            db.conn.commit()
+
+            cards = briefing_cards(db, state, limit=8)
+            trap = next(c for c in cards if c["kind"] == "trap")
+            self.assertEqual(trap["tab"], "desk")
+            self.assertEqual(trap["tone"], "danger")
+            self.assertIn("御案壅塞", str(trap["title"]))
+            self.assertIn("七日内将淹没", str(trap["detail"]))
+            self.assertIn("待8", str(trap["meta"]))
 
     def test_directive_blocker_becomes_edicts_hook(self):
         with TemporaryDirectory() as tmp:

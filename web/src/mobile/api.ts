@@ -32,6 +32,7 @@ export type Memorial = {
   ref_kind: string;
   ref_id: string;
   days_to_expire: number;
+  action_effects?: Record<string, Array<{ kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string }>>;
 };
 
 export type DeskPayload = {
@@ -276,6 +277,13 @@ export const advanceTime = (days: number, stopOnYellow = true): Promise<AdvanceR
 export type MemorialAction = "approve" | "deny" | "shelve" | "refer" | "ack";
 export const decideMemorial = (id: number, action: MemorialAction, note = ""): Promise<{ message: string; desk?: DeskPayload }> =>
   api(`/api/desk/${id}/decide`, { method: "POST", body: JSON.stringify({ action, note }) });
+
+export type CourtBackKind = "shoulder" | "comfort" | "reuse";
+export const courtBack = (name: string, kind: CourtBackKind, cost = 0): Promise<{
+  message: string;
+  effects?: Array<{ kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string }>;
+}> =>
+  api("/api/court/back", { method: "POST", body: JSON.stringify({ name, kind, cost }) });
 
 // 旨意草案 CRUD + 核定
 export const createDirective = (text: string) =>
