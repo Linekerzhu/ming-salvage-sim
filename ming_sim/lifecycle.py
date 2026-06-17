@@ -428,6 +428,61 @@ def _remember_blocker_clue(meta: Dict[str, object], clue: Dict[str, object], *, 
     return saved
 
 
+def _blocker_clue(meta: Dict[str, object]) -> Dict[str, object]:
+    clue = meta.get("blocker_clue")
+    return clue if isinstance(clue, dict) else {}
+
+
+def _blocker_label(clue: Dict[str, object]) -> str:
+    return str(clue.get("name") or clue.get("label") or "").strip()
+
+
+def _blocker_faction(db: GameDB, clue: Dict[str, object]) -> str:
+    kind = str(clue.get("kind") or "")
+    label = _blocker_label(clue)
+    if not label:
+        return ""
+    if kind == "person":
+        row = db.conn.execute("SELECT faction FROM characters WHERE name=?", (label,)).fetchone()
+        return str(row["faction"] or "").strip() if row else ""
+    if kind == "faction":
+        row = db.conn.execute("SELECT name FROM factions WHERE name=?", (label,)).fetchone()
+        return str(row["name"] or "").strip() if row else ""
+    if label in ("司礼监", "东厂", "锦衣卫"):
+        return "阉党"
+    return ""
+
+
+def _remember_blocker_action(
+    meta: Dict[str, object],
+    *,
+    action: str,
+    label: str,
+    day: int,
+    progress_delta: int,
+    resistance_delta: int,
+) -> None:
+    meta["last_blocker_action"] = {
+        "action": action,
+        "label": label,
+        "day": int(day),
+        "progress_delta": int(progress_delta),
+        "resistance_delta": int(resistance_delta),
+    }
+
+
+def _effect(label: str, tone: str = "neutral", kind: str = "intervention") -> Dict[str, object]:
+    return {"kind": kind, "label": label, "tone": tone}
+
+
+def _delta_label(name: str, value: int, *, good_positive: bool = True) -> Dict[str, object]:
+    signed = f"{'+' if value > 0 else ''}{int(value)}"
+    tone = "neutral"
+    if value:
+        tone = "good" if (value > 0) == good_positive else "bad"
+    return _effect(f"{name} {signed}", tone)
+
+
 def apply_directive_audience_pressure(
     db: GameDB,
     state: GameState,
@@ -847,15 +902,23 @@ def tick_directives(db: GameDB, state: GameState, day: int) -> List[Dict[str, ob
 
 def intervene(db: GameDB, state: GameState, directive_id: int, action: str,
               *, day: int, new_assignee: str = "", fund: int = 0) -> Dict[str, object]:
-    """催办 cuiban / 换人 reassign / 加拨 fund / 收回成命 abort。"""
+    """执行中旨意干预。
+
+    常规：催办 cuiban / 换人 reassign / 加拨 fund / 独断 ducai / 收回 abort。
+    阻力线索：协调 bargain_blocker / 申饬 pressure_blocker。
+    """
     row = db.conn.execute("SELECT * FROM turn_directives WHERE id=?", (int(directive_id),)).fetchone()
     if row is None or str(row["lifecycle_status"]) not in LIVE_STATUSES:
         return {"ok": False, "message": "该旨意不在执行中。"}
     did = int(row["id"])
     meta = _chain_meta(row)
     assignee = str(row["assignee"] or "")
+    before_progress = int(row["progress"] or 0)
+    before_resistance = int(meta.get("resistance") or 0)
+    effects: List[Dict[str, object]] = []
 
     if action == "cuiban":
+        progress_delta = min(100, before_progress + 8) - before_progress
         db.conn.execute(
             "UPDATE turn_directives SET lifecycle_status='executing', "
             "progress=MIN(100, progress+8), exec_days=MAX(2, exec_days-4), anomaly='' WHERE id=?",
@@ -864,10 +927,17 @@ def intervene(db: GameDB, state: GameState, directive_id: int, action: str,
             db.conn.execute(
                 "UPDATE characters SET grievance=MIN(100, grievance+5) WHERE name=?", (assignee,))
         adjust_belief(db, KV_RISK_AVERSION, +1, f"严旨催办#{did}", day=day)
+        effects = [
+            _delta_label("进度", progress_delta),
+            _effect("工期 -4", "good"),
+            _effect("主办怨气 +5", "bad"),
+            _effect("任事观望 +1", "bad"),
+        ]
         msg = f"严旨切责，{assignee}惶恐加紧办理（进度+，主办怨气+，百官观望+）。"
     elif action == "reassign":
         if not new_assignee or _char_row(db, new_assignee) is None:
             return {"ok": False, "message": "须指定在朝官员接办。"}
+        progress_delta = max(0, before_progress - 15) - before_progress
         if assignee:
             db.conn.execute(
                 "UPDATE characters SET grievance=MIN(100, grievance+10) WHERE name=?", (assignee,))
@@ -892,6 +962,11 @@ def intervene(db: GameDB, state: GameState, directive_id: int, action: str,
             "UPDATE turn_directives SET assignee=?, lifecycle_status='executing', "
             "progress=MAX(0, progress-15), anomaly='' WHERE id=?",
             (new_assignee, did))
+        effects = [
+            _effect(f"主办改派 {new_assignee}", "neutral"),
+            _delta_label("进度", progress_delta),
+            _effect(f"{assignee or '原主办'}怨气 +10", "bad"),
+        ]
         msg = f"改命{new_assignee}接办（交接折损进度，原主办{assignee}怨望）。"
     elif action == "fund":
         amount = max(1, min(200, int(fund or 10)))
@@ -899,18 +974,26 @@ def intervene(db: GameDB, state: GameState, directive_id: int, action: str,
             state, "国库", -amount, "加拨办差", f"加拨旨意#{did}经费{amount}万两")
         if not actual:
             return {"ok": False, "message": "国库不敷，拨不出银子。"}
+        progress_delta = min(100, before_progress + 5) - before_progress
         meta["score_bonus"] = int(meta.get("score_bonus") or 0) + 12
         meta["resistance"] = max(0, int(meta.get("resistance") or 0) - 10)
         _save_chain_meta(db, did, meta)
         db.conn.execute(
             "UPDATE turn_directives SET lifecycle_status='executing', "
             "progress=MIN(100, progress+5), anomaly='' WHERE id=?", (did,))
+        effects = [
+            _delta_label("进度", progress_delta),
+            _delta_label("阻力", int(meta.get("resistance") or 0) - before_resistance, good_positive=False),
+            _effect("检定 +12", "good"),
+            _effect(f"国库 {actual}万", "bad"),
+        ]
         msg = f"加拨{abs(actual)}万两疏通办差（阻力-，检定+）。"
     elif action == "ducai":
         # 乾纲独断（S6）：势>70 解锁——绕过部议强推，但独断与寒心连动（RA+3）
         from ming_sim.theater import can_ducai
         if not can_ducai(db):
             return {"ok": False, "message": "君威未隆（势不足七十），独断之旨出不了午门。"}
+        progress_delta = min(100, before_progress + 25) - before_progress
         meta["score_bonus"] = int(meta.get("score_bonus") or 0) + 20
         meta["resistance"] = max(0, int(meta.get("resistance") or 0) - 20)
         _save_chain_meta(db, did, meta)
@@ -918,21 +1001,222 @@ def intervene(db: GameDB, state: GameState, directive_id: int, action: str,
             "UPDATE turn_directives SET lifecycle_status='executing', "
             "progress=MIN(100, progress+25), anomaly='' WHERE id=?", (did,))
         adjust_belief(db, KV_RISK_AVERSION, +3, f"乾纲独断强推#{did}", day=day)
+        effects = [
+            _delta_label("进度", progress_delta),
+            _delta_label("阻力", int(meta.get("resistance") or 0) - before_resistance, good_positive=False),
+            _effect("检定 +20", "good"),
+            _effect("任事观望 +3", "bad"),
+        ]
         msg = "中旨直下，绕开部议封驳，所司不敢复言（进度+25，阻力-20）。然独断日久，任事之心日灰（百官观望+3）。"
+    elif action in ("bargain_blocker", "pressure_blocker"):
+        clue = _blocker_clue(meta)
+        label = _blocker_label(clue)
+        if not label:
+            return {"ok": False, "message": "尚无可处置的阻力线索。"}
+        kind = str(clue.get("kind") or "")
+        faction = _blocker_faction(db, clue)
+        if action == "bargain_blocker":
+            progress_delta, resistance_delta, score_delta = 6, -12, 6
+            actual_progress_delta = min(99, before_progress + progress_delta) - before_progress
+            meta["resistance"] = max(0, int(meta.get("resistance") or 0) + resistance_delta)
+            meta["score_bonus"] = int(meta.get("score_bonus") or 0) + score_delta
+            _remember_blocker_action(
+                meta, action=action, label=label, day=day,
+                progress_delta=progress_delta, resistance_delta=resistance_delta,
+            )
+            _save_chain_meta(db, did, meta)
+            db.conn.execute(
+                "UPDATE turn_directives SET lifecycle_status='executing', "
+                "progress=MIN(99, progress+?), anomaly='' WHERE id=?",
+                (progress_delta, did),
+            )
+            if kind == "person":
+                try:
+                    from ming_sim import court
+                    court._adjust_char(db, label, emp_trust=+3, grievance=-5)
+                    if assignee and assignee != label:
+                        court.adjust_opinion(db, label, assignee, +8, "御前协调办差", day=day, reciprocal=False)
+                        court.adjust_opinion(db, assignee, label, +4, "御前协调办差", day=day, reciprocal=False)
+                except Exception:
+                    pass
+            if faction and faction not in ("无", "中立"):
+                db.adjust_factions({faction: {"satisfaction": 2, "leverage": 2}})
+            effects = [
+                _delta_label("进度", actual_progress_delta),
+                _delta_label("阻力", int(meta.get("resistance") or 0) - before_resistance, good_positive=False),
+                _effect("检定 +6", "good"),
+                _effect(f"{label}怨气 -5", "good") if kind == "person" else _effect(f"{label}配合", "good"),
+            ]
+            if faction and faction not in ("无", "中立"):
+                effects.append(_effect(f"{faction}势力 +2", "bad"))
+            msg = f"御前协调{label}配合办差（进度+{progress_delta}，阻力{resistance_delta}）。对方得了名分与转圜，相关势力满意与势力小涨。"
+        else:
+            progress_delta, resistance_delta, score_delta = 10, -15, 4
+            actual_progress_delta = min(99, before_progress + progress_delta) - before_progress
+            meta["resistance"] = max(0, int(meta.get("resistance") or 0) + resistance_delta)
+            meta["score_bonus"] = int(meta.get("score_bonus") or 0) + score_delta
+            _remember_blocker_action(
+                meta, action=action, label=label, day=day,
+                progress_delta=progress_delta, resistance_delta=resistance_delta,
+            )
+            _save_chain_meta(db, did, meta)
+            db.conn.execute(
+                "UPDATE turn_directives SET lifecycle_status='executing', "
+                "progress=MIN(99, progress+?), anomaly='' WHERE id=?",
+                (progress_delta, did),
+            )
+            if kind == "person":
+                try:
+                    from ming_sim import court
+                    court._adjust_char(db, label, emp_trust=-4, grievance=+9)
+                    if assignee and assignee != label:
+                        court.adjust_opinion(db, label, assignee, -12, "御前申饬逼令配合", day=day, reciprocal=False)
+                        court._adjust_char(db, assignee, emp_trust=+2, grievance=-2)
+                except Exception:
+                    pass
+            if faction and faction not in ("无", "中立"):
+                db.adjust_factions({faction: {"satisfaction": -3, "leverage": -2}})
+            adjust_belief(db, KV_SHI, +1, f"申饬旨意#{did}阻力：{label}", day=day)
+            adjust_belief(db, KV_RISK_AVERSION, +2, f"御前申饬旨意#{did}阻力：{label}", day=day)
+            effects = [
+                _delta_label("进度", actual_progress_delta),
+                _delta_label("阻力", int(meta.get("resistance") or 0) - before_resistance, good_positive=False),
+                _effect("势 +1", "good"),
+                _effect("任事观望 +2", "bad"),
+                _effect(f"{label}怨气 +9", "bad") if kind == "person" else _effect(f"{label}受压", "bad"),
+            ]
+            if faction and faction not in ("无", "中立"):
+                effects.append(_effect(f"{faction}满意 -3", "bad"))
+            msg = f"当廷申饬{label}，逼其不得再阻（进度+{progress_delta}，阻力{resistance_delta}，势+）。但被压者怨气与百官观望上升。"
     elif action == "abort":
         db.conn.execute(
             "UPDATE turn_directives SET lifecycle_status='aborted', anomaly='' WHERE id=?", (did,))
         adjust_belief(db, KV_SHI, -3, f"收回成命#{did}（朝令夕改）", day=day)
         adjust_belief(db, KV_RISK_AVERSION, +2, f"旨意#{did}半途而废", day=day)
+        effects = [
+            _effect("旨意收回", "neutral"),
+            _effect("势 -3", "bad"),
+            _effect("任事观望 +2", "bad"),
+        ]
         msg = "收回成命。诏令反复，势有所损，百官益发观望。"
     else:
         return {"ok": False, "message": f"未知处置：{action}"}
     db.conn.commit()
     db.save_state(state)
-    return {"ok": True, "message": msg}
+    return {"ok": True, "message": msg, "effects": effects}
 
 
 # ── 查询与推演注入 ───────────────────────────────────────────────────────────
+
+def _intervention_option(
+    action: str,
+    label: str,
+    effects: List[Dict[str, object]],
+    *,
+    tone: str = "neutral",
+    disabled_reason: str = "",
+) -> Dict[str, object]:
+    item: Dict[str, object] = {
+        "action": action,
+        "label": label,
+        "tone": tone,
+        "effects": effects,
+    }
+    if disabled_reason:
+        item["disabled"] = True
+        item["disabled_reason"] = disabled_reason
+    return item
+
+
+def _intervention_options(db: GameDB, row, meta: Dict[str, object]) -> List[Dict[str, object]]:
+    if str(row["lifecycle_status"] or "") not in LIVE_STATUSES:
+        return []
+    progress = int(row["progress"] or 0)
+    resistance = int(meta.get("resistance") or 0)
+    assignee = str(row["assignee"] or "")
+    options = [
+        _intervention_option(
+            "cuiban", "催办",
+            [
+                _delta_label("进度", min(100, progress + 8) - progress),
+                _effect("工期 -4", "good"),
+                _effect("主办怨气 +5", "bad"),
+                _effect("任事观望 +1", "bad"),
+            ],
+            tone="warn",
+        ),
+        _intervention_option(
+            "fund", "加拨",
+            [
+                _delta_label("进度", min(100, progress + 5) - progress),
+                _delta_label("阻力", max(0, resistance - 10) - resistance, good_positive=False),
+                _effect("检定 +12", "good"),
+                _effect("国库 -10万", "bad"),
+            ],
+            tone="info",
+        ),
+        _intervention_option(
+            "ducai", "独断",
+            [
+                _delta_label("进度", min(100, progress + 25) - progress),
+                _delta_label("阻力", max(0, resistance - 20) - resistance, good_positive=False),
+                _effect("检定 +20", "good"),
+                _effect("任事观望 +3", "bad"),
+            ],
+            tone="danger",
+            disabled_reason="" if _can_ducai_for_preview(db) else "势不足七十",
+        ),
+        _intervention_option(
+            "abort", "收回",
+            [_effect("旨意收回", "neutral"), _effect("势 -3", "bad"), _effect("任事观望 +2", "bad")],
+            tone="danger",
+        ),
+    ]
+
+    clue = _blocker_clue(meta)
+    label = _blocker_label(clue)
+    if label:
+        kind = str(clue.get("kind") or "")
+        faction = _blocker_faction(db, clue)
+        bargain_effects = [
+            _delta_label("进度", min(99, progress + 6) - progress),
+            _delta_label("阻力", max(0, resistance - 12) - resistance, good_positive=False),
+            _effect("检定 +6", "good"),
+            _effect(f"{label}怨气 -5", "good") if kind == "person" else _effect(f"{label}配合", "good"),
+        ]
+        if faction and faction not in ("无", "中立"):
+            bargain_effects.append(_effect(f"{faction}势力 +2", "bad"))
+        options.append(_intervention_option("bargain_blocker", "协调阻力", bargain_effects, tone="warn"))
+
+        pressure_effects = [
+            _delta_label("进度", min(99, progress + 10) - progress),
+            _delta_label("阻力", max(0, resistance - 15) - resistance, good_positive=False),
+            _effect("势 +1", "good"),
+            _effect("任事观望 +2", "bad"),
+            _effect(f"{label}怨气 +9", "bad") if kind == "person" else _effect(f"{label}受压", "bad"),
+        ]
+        if faction and faction not in ("无", "中立"):
+            pressure_effects.append(_effect(f"{faction}满意 -3", "bad"))
+        options.append(_intervention_option("pressure_blocker", "申饬阻力", pressure_effects, tone="danger"))
+
+    if assignee:
+        options.append(
+            _intervention_option(
+                "reassign", "换人",
+                [_effect("须择新主办", "neutral"), _delta_label("进度", max(0, progress - 15) - progress), _effect(f"{assignee}怨气 +10", "bad")],
+                tone="warn",
+            )
+        )
+    return options
+
+
+def _can_ducai_for_preview(db: GameDB) -> bool:
+    try:
+        from ming_sim.theater import can_ducai
+        return bool(can_ducai(db))
+    except Exception:
+        return False
+
 
 def lifecycle_payload(db: GameDB, *, include_done: bool = True, limit: int = 40) -> List[Dict[str, object]]:
     """前端指令进度面板。注意：integrity 只暴露 reported（账面），actual 不出 API（S3）。"""
@@ -958,11 +1242,13 @@ def lifecycle_payload(db: GameDB, *, include_done: bool = True, limit: int = 40)
             "resistance": int(meta.get("resistance") or 0),
             "chain": meta.get("chain") or [],
             "blocker_clue": meta.get("blocker_clue") if isinstance(meta.get("blocker_clue"), dict) else {},
+            "blocker_action": meta.get("last_blocker_action") if isinstance(meta.get("last_blocker_action"), dict) else {},
             "reported_rate": int(row["integrity_reported"]),
             "anomaly": str(row["anomaly"] or ""),
             "settle_note": str(row["settle_note"] or ""),
             "outcome_status": str(row["outcome_status"] or ""),
             "outcome_summary": _outcome_summary(db, _json_dict(row["outcome_delta"])),
+            "intervention_options": _intervention_options(db, row, meta),
         })
     return out
 

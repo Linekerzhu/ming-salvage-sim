@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from ming_sim import lifecycle, timeflow
+from ming_sim import court, lifecycle, timeflow
 from ming_sim.db import GameDB
 from ming_sim.scheduler import process_pending
 from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
@@ -250,6 +250,7 @@ class TickTests(unittest.TestCase):
             self.assertEqual(effect["blocker_clue"]["kind"], "person")
             self.assertEqual(effect["blocker_clue"]["name"], "温体仁")
             self.assertEqual(item["blocker_clue"]["name"], "温体仁")
+            self.assertEqual(item["blocker_action"], {})
             self.assertIn("线索：温体仁", effect["message"])
 
     def test_directive_audience_pressure_records_org_blocker_when_no_person(self):
@@ -300,6 +301,29 @@ class InterveneTests(unittest.TestCase):
         db.conn.commit()
         return did
 
+    def _blocked_by_wen(self, db, state) -> int:
+        did = _issue(db, state, "令袁崇焕整顿辽东军饷。")
+        db.conn.execute(
+            "UPDATE turn_directives SET assignee=?, lifecycle_status='stalled', progress=40, anomaly=?, chain=? WHERE id=?",
+            (
+                "袁崇焕",
+                json.dumps({"kind": "block"}, ensure_ascii=False),
+                json.dumps({
+                    "resistance": 45,
+                    "chain": [],
+                    "blocker_clue": {
+                        "kind": "person",
+                        "name": "温体仁",
+                        "label": "温体仁",
+                        "detail": "礼部侍郎 · 东林",
+                    },
+                }, ensure_ascii=False),
+                did,
+            ),
+        )
+        db.conn.commit()
+        return did
+
     def test_cuiban_unstalls_and_costs(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)
@@ -335,6 +359,11 @@ class InterveneTests(unittest.TestCase):
             result = lifecycle.intervene(db, state, did, "fund", day=10, fund=20)
             self.assertTrue(result["ok"])
             self.assertEqual(int(state.metrics["国库"]), before - 20)
+            labels = [str(x["label"]) for x in result["effects"]]
+            self.assertIn("进度 +5", labels)
+            self.assertIn("阻力 -10", labels)
+            self.assertIn("检定 +12", labels)
+            self.assertTrue(any(label.startswith("国库 -") for label in labels), labels)
 
     def test_reassign_requires_valid_minister(self):
         with TemporaryDirectory() as tmp:
@@ -347,6 +376,136 @@ class InterveneTests(unittest.TestCase):
             ).fetchone()["name"]
             ok = lifecycle.intervene(db, state, did, "reassign", day=10, new_assignee=someone)
             self.assertTrue(ok["ok"])
+
+    def test_bargain_blocker_trades_progress_for_faction_leverage(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = self._blocked_by_wen(db, state)
+            before = db.conn.execute(
+                "SELECT emp_trust, grievance, faction FROM characters WHERE name='温体仁'"
+            ).fetchone()
+            faction = str(before["faction"] or "")
+            f0 = db.conn.execute(
+                "SELECT satisfaction, leverage FROM factions WHERE name=?", (faction,)
+            ).fetchone()
+            opinion0 = court.get_opinion(db, "温体仁", "袁崇焕")
+            result = lifecycle.intervene(db, state, did, "bargain_blocker", day=10)
+            self.assertTrue(result["ok"], result)
+            row = db.conn.execute(
+                "SELECT lifecycle_status, progress, anomaly, chain FROM turn_directives WHERE id=?", (did,)
+            ).fetchone()
+            after = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name='温体仁'"
+            ).fetchone()
+            meta = json.loads(row["chain"])
+            self.assertEqual(str(row["lifecycle_status"]), "executing")
+            self.assertEqual(int(row["progress"]), 46)
+            self.assertEqual(str(row["anomaly"] or ""), "")
+            self.assertEqual(int(meta["resistance"]), 33)
+            self.assertEqual(meta["last_blocker_action"]["action"], "bargain_blocker")
+            item = [p for p in lifecycle.lifecycle_payload(db) if p["id"] == did][0]
+            self.assertEqual(item["blocker_action"]["action"], "bargain_blocker")
+            self.assertEqual(item["blocker_action"]["label"], "温体仁")
+            self.assertEqual(int(after["emp_trust"]), min(100, int(before["emp_trust"]) + 3))
+            self.assertEqual(int(after["grievance"]), max(0, int(before["grievance"]) - 5))
+            self.assertEqual(court.get_opinion(db, "温体仁", "袁崇焕"), opinion0 + 8)
+            labels = [str(x["label"]) for x in result["effects"]]
+            self.assertIn("进度 +6", labels)
+            self.assertIn("阻力 -12", labels)
+            self.assertIn("检定 +6", labels)
+            self.assertIn("温体仁怨气 -5", labels)
+            if f0:
+                f1 = db.conn.execute(
+                    "SELECT satisfaction, leverage FROM factions WHERE name=?", (faction,)
+                ).fetchone()
+                self.assertEqual(int(f1["satisfaction"]), min(100, int(f0["satisfaction"]) + 2))
+                self.assertEqual(int(f1["leverage"]), min(100, int(f0["leverage"]) + 2))
+                self.assertIn(f"{faction}势力 +2", labels)
+
+    def test_pressure_blocker_pushes_harder_but_raises_risk_aversion(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = self._blocked_by_wen(db, state)
+            before = db.conn.execute(
+                "SELECT emp_trust, grievance, faction FROM characters WHERE name='温体仁'"
+            ).fetchone()
+            faction = str(before["faction"] or "")
+            f0 = db.conn.execute(
+                "SELECT satisfaction, leverage FROM factions WHERE name=?", (faction,)
+            ).fetchone()
+            opinion0 = court.get_opinion(db, "温体仁", "袁崇焕")
+            result = lifecycle.intervene(db, state, did, "pressure_blocker", day=10)
+            self.assertTrue(result["ok"], result)
+            row = db.conn.execute(
+                "SELECT lifecycle_status, progress, anomaly, chain FROM turn_directives WHERE id=?", (did,)
+            ).fetchone()
+            after = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name='温体仁'"
+            ).fetchone()
+            meta = json.loads(row["chain"])
+            self.assertEqual(str(row["lifecycle_status"]), "executing")
+            self.assertEqual(int(row["progress"]), 50)
+            self.assertEqual(str(row["anomaly"] or ""), "")
+            self.assertEqual(int(meta["resistance"]), 30)
+            self.assertEqual(meta["last_blocker_action"]["action"], "pressure_blocker")
+            item = [p for p in lifecycle.lifecycle_payload(db) if p["id"] == did][0]
+            self.assertEqual(item["blocker_action"]["action"], "pressure_blocker")
+            self.assertEqual(item["blocker_action"]["label"], "温体仁")
+            self.assertEqual(int(after["emp_trust"]), max(0, int(before["emp_trust"]) - 4))
+            self.assertEqual(int(after["grievance"]), min(100, int(before["grievance"]) + 9))
+            self.assertEqual(court.get_opinion(db, "温体仁", "袁崇焕"), opinion0 - 12)
+            labels = [str(x["label"]) for x in result["effects"]]
+            self.assertIn("进度 +10", labels)
+            self.assertIn("阻力 -15", labels)
+            self.assertIn("势 +1", labels)
+            self.assertIn("任事观望 +2", labels)
+            self.assertIn("温体仁怨气 +9", labels)
+            if f0:
+                f1 = db.conn.execute(
+                    "SELECT satisfaction, leverage FROM factions WHERE name=?", (faction,)
+                ).fetchone()
+                self.assertEqual(int(f1["satisfaction"]), max(0, int(f0["satisfaction"]) - 3))
+                self.assertEqual(int(f1["leverage"]), max(0, int(f0["leverage"]) - 2))
+                self.assertIn(f"{faction}满意 -3", labels)
+            logs = db.conn.execute(
+                "SELECT key FROM belief_logs WHERE day=10 ORDER BY id"
+            ).fetchall()
+            self.assertIn("shi", [str(r["key"]) for r in logs])
+            self.assertIn("risk_aversion", [str(r["key"]) for r in logs])
+
+    def test_blocker_action_requires_known_clue(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = self._stalled_directive(db, state)
+            result = lifecycle.intervene(db, state, did, "pressure_blocker", day=10)
+            self.assertFalse(result["ok"])
+            self.assertIn("阻力线索", result["message"])
+
+    def test_lifecycle_payload_includes_intervention_previews(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = self._blocked_by_wen(db, state)
+            item = [p for p in lifecycle.lifecycle_payload(db) if p["id"] == did][0]
+            options = {str(o["action"]): o for o in item["intervention_options"]}
+            self.assertIn("cuiban", options)
+            self.assertIn("fund", options)
+            self.assertIn("ducai", options)
+            self.assertIn("bargain_blocker", options)
+            self.assertIn("pressure_blocker", options)
+            self.assertIn("reassign", options)
+
+            bargain_labels = [str(x["label"]) for x in options["bargain_blocker"]["effects"]]
+            pressure_labels = [str(x["label"]) for x in options["pressure_blocker"]["effects"]]
+            fund_labels = [str(x["label"]) for x in options["fund"]["effects"]]
+            self.assertIn("进度 +6", bargain_labels)
+            self.assertIn("阻力 -12", bargain_labels)
+            self.assertIn("温体仁怨气 -5", bargain_labels)
+            self.assertIn("进度 +10", pressure_labels)
+            self.assertIn("任事观望 +2", pressure_labels)
+            self.assertIn("温体仁怨气 +9", pressure_labels)
+            self.assertIn("国库 -10万", fund_labels)
+            if options["ducai"].get("disabled"):
+                self.assertIn("势不足", str(options["ducai"].get("disabled_reason") or ""))
 
 
 class DeterminismTests(unittest.TestCase):

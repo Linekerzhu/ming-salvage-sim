@@ -1,10 +1,11 @@
 """Strategic briefing cards surface existing gameplay hooks without LLM calls."""
 
+import json
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from ming_sim import timeflow
+from ming_sim import lifecycle, timeflow
 from ming_sim.db import GameDB
 from ming_sim.intrigue import ensure_schema as ensure_secret_schema
 from ming_sim.playstyle import briefing_cards, briefing_payload
@@ -115,6 +116,114 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertEqual(str(representative["status"]), "active")
             self.assertEqual(str(representative["power_id"]), "ming")
             self.assertIn(faction, str(faction_card["title"]))
+
+    def test_directive_blocker_becomes_edicts_hook(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            cur = db.conn.execute(
+                "INSERT INTO turn_directives (turn, year, period, text, source, status, actor) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (
+                    state.turn,
+                    state.year,
+                    state.period,
+                    "令袁崇焕整顿辽东军饷，十日内具奏欠饷实数与裁汰方案。",
+                    "test",
+                    "confirmed",
+                    "",
+                ),
+            )
+            did = int(cur.lastrowid)
+            chain = {
+                "resistance": 45,
+                "chain": [],
+                "blocker_clue": {
+                    "kind": "person",
+                    "name": "温体仁",
+                    "label": "温体仁",
+                    "detail": "礼部侍郎 · 东林",
+                },
+            }
+            db.conn.execute(
+                """
+                UPDATE turn_directives
+                SET assignee=?, lifecycle_status='stalled', category='military_ops',
+                    progress=40, lead_days=0, exec_days=10, start_day=1, eta_day=11,
+                    chain=?, anomaly=?
+                WHERE id=?
+                """,
+                (
+                    "袁崇焕",
+                    json.dumps(chain, ensure_ascii=False),
+                    json.dumps({"kind": "block"}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            db.conn.commit()
+
+            cards = briefing_cards(db, state, limit=8)
+            blocker = next(c for c in cards if c["kind"] == "directive_blocker")
+            self.assertEqual(blocker["tab"], "edicts")
+            self.assertEqual(blocker["actor"], "温体仁")
+            self.assertEqual(blocker["target"], "袁崇焕")
+            self.assertEqual(blocker["ref_kind"], "directive")
+            self.assertEqual(blocker["ref_id"], str(did))
+            self.assertEqual(blocker["tone"], "danger")
+            self.assertIn("卡住旨意", str(blocker["title"]))
+            self.assertIn("召问阻力", str(blocker["detail"]))
+            self.assertGreaterEqual(int(blocker["urgency"]), 90)
+
+    def test_handled_directive_blocker_drops_from_home_brief(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            cur = db.conn.execute(
+                "INSERT INTO turn_directives (turn, year, period, text, source, status, actor) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (
+                    state.turn,
+                    state.year,
+                    state.period,
+                    "令袁崇焕整顿辽东军饷。",
+                    "test",
+                    "confirmed",
+                    "",
+                ),
+            )
+            did = int(cur.lastrowid)
+            chain = {
+                "resistance": 45,
+                "chain": [],
+                "blocker_clue": {
+                    "kind": "person",
+                    "name": "温体仁",
+                    "label": "温体仁",
+                    "detail": "礼部侍郎 · 东林",
+                    "day": 1,
+                },
+            }
+            db.conn.execute(
+                """
+                UPDATE turn_directives
+                SET assignee=?, lifecycle_status='stalled', progress=40, chain=?, anomaly=?
+                WHERE id=?
+                """,
+                (
+                    "袁崇焕",
+                    json.dumps(chain, ensure_ascii=False),
+                    json.dumps({"kind": "block"}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            db.conn.commit()
+            self.assertTrue(any(c["kind"] == "directive_blocker" for c in briefing_cards(db, state, limit=8)))
+
+            result = lifecycle.intervene(db, state, did, "pressure_blocker", day=2)
+            self.assertTrue(result["ok"], result)
+            cards = briefing_cards(db, state, limit=8)
+            self.assertFalse(
+                any(c["kind"] == "directive_blocker" and c["ref_id"] == str(did) for c in cards),
+                cards,
+            )
 
 
 if __name__ == "__main__":

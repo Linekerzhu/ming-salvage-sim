@@ -9,7 +9,7 @@ import {
   rejectDirective,
   writeDecree,
 } from "../api";
-import type { AudienceLead, DirectiveLifecycle, Suggestion } from "../api";
+import type { AudienceLead, DirectiveLifecycle, InterventionEffect, Suggestion } from "../api";
 import { usePerson } from "../personCtx";
 
 const STATUS_CN: Record<string, string> = {
@@ -25,6 +25,7 @@ const INTERVENE: Array<{ key: string; label: string; extra?: Record<string, unkn
 ];
 
 type SummonAudience = (name: string, lead?: AudienceLead) => void;
+type InterventionOption = NonNullable<DirectiveLifecycle["intervention_options"]>[number];
 
 export function OutcomeSummary({ items, compact = false }: { items?: DirectiveLifecycle["outcome_summary"]; compact?: boolean }) {
   if (!items?.length) return null;
@@ -40,12 +41,39 @@ export function OutcomeSummary({ items, compact = false }: { items?: DirectiveLi
   );
 }
 
+function InterventionEffects({ items }: { items: InterventionEffect[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="m-outcome-strip is-compact m-intervention-effects" aria-label="处置影响">
+      <span className="m-outcome-head">处置</span>
+      {items.map((it, i) => (
+        <span key={`${it.label}-${i}`} className={`m-outcome-chip tone-${it.tone || "neutral"}`}>
+          {it.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function EffectPreview({ option }: { option?: InterventionOption }) {
+  const items = option?.effects || [];
+  if (!items.length) return null;
+  return (
+    <span className="m-effect-preview" aria-label={`${option?.label || "处置"}预期影响`}>
+      {items.slice(0, 3).map((it, i) => (
+        <span key={`${it.label}-${i}`} className={`m-effect-chip tone-${it.tone || "neutral"}`}>{it.label}</span>
+      ))}
+    </span>
+  );
+}
+
 function DirectiveCard({ d, today, onActed, ministers, activeMinisters, summon }: {
   d: DirectiveLifecycle; today: number; onActed: () => void; ministers: any[]; activeMinisters: Set<string>; summon?: SummonAudience;
 }) {
   const openPerson = usePerson();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [effects, setEffects] = useState<InterventionEffect[]>([]);
   const [open, setOpen] = useState(false);
   const [picking, setPicking] = useState(false);
   const eta = d.eta_day - today;
@@ -60,16 +88,21 @@ function DirectiveCard({ d, today, onActed, ministers, activeMinisters, summon }
   const clue = d.blocker_clue || {};
   const clueName = String(clue.name || clue.label || "").trim();
   const canSummonClue = live && clue.kind === "person" && clueName && activeMinisters.has(clueName) && !!summon;
+  const optionsByAction = new Map((d.intervention_options || []).map((opt) => [opt.action, opt]));
+  const blockerAction = blockerActionLabel(d.blocker_action);
 
   const act = async (action: string, extra?: Record<string, unknown>) => {
     if (busy) return;
     setBusy(true);
+    setEffects([]);
     try {
       const r = await interveneDirective(d.id, action, extra || {});
       setMsg(r.message || "");
+      setEffects(r.effects || []);
       onActed();
     } catch (e: any) {
       setMsg(String(e?.message || e || "处置失败"));
+      setEffects([]);
     } finally {
       setBusy(false);
     }
@@ -109,7 +142,20 @@ function DirectiveCard({ d, today, onActed, ministers, activeMinisters, summon }
           <div className="m-blocker-copy">
             <span className="m-blocker-k">阻力线索</span>
             <span className="m-blocker-v">{clueName}{clue.detail ? ` · ${clue.detail}` : ""}</span>
+            {blockerAction && <span className="m-blocker-done">{blockerAction}</span>}
           </div>
+          {live && (
+            <>
+              <button className="m-directive-act has-preview" disabled={busy || !!optionsByAction.get("bargain_blocker")?.disabled} onClick={() => act("bargain_blocker")}>
+                <span>协调阻力</span>
+                <EffectPreview option={optionsByAction.get("bargain_blocker")} />
+              </button>
+              <button className="m-directive-act danger has-preview" disabled={busy || !!optionsByAction.get("pressure_blocker")?.disabled} onClick={() => act("pressure_blocker")}>
+                <span>申饬阻力</span>
+                <EffectPreview option={optionsByAction.get("pressure_blocker")} />
+              </button>
+            </>
+          )}
           {canSummonClue && (
             <button className="m-directive-act primary" onClick={() => summon!(clueName, blockerAudienceLead(d, clueName))}>
               召问阻力
@@ -127,6 +173,7 @@ function DirectiveCard({ d, today, onActed, ministers, activeMinisters, summon }
       )}
       <OutcomeSummary items={d.outcome_summary} />
       {d.settle_note && <p className="m-settle">{d.settle_note}</p>}
+      <InterventionEffects items={effects} />
       {msg && <p className="m-intervene-msg">{msg}</p>}
       {live && (
         <>
@@ -137,12 +184,20 @@ function DirectiveCard({ d, today, onActed, ministers, activeMinisters, summon }
             <>
               <div className="m-actions m-actions-wrap">
                 {INTERVENE.map((a) => (
-                  <button key={a.key} className="m-btn" disabled={busy} onClick={() => act(a.key, a.extra)}>
-                    {a.label}
+                  <button
+                    key={a.key}
+                    className="m-btn has-preview"
+                    disabled={busy || !!optionsByAction.get(a.key)?.disabled}
+                    title={optionsByAction.get(a.key)?.disabled_reason || ""}
+                    onClick={() => act(a.key, a.extra)}
+                  >
+                    <span>{a.label}</span>
+                    <EffectPreview option={optionsByAction.get(a.key)} />
                   </button>
                 ))}
-                <button className="m-btn" disabled={busy} onClick={() => setPicking((v) => !v)}>
-                  {picking ? "取消换人" : "换人"}
+                <button className="m-btn has-preview" disabled={busy} onClick={() => setPicking((v) => !v)}>
+                  <span>{picking ? "取消换人" : "换人"}</span>
+                  {!picking && <EffectPreview option={optionsByAction.get("reassign")} />}
                 </button>
               </div>
               {picking && (
@@ -238,6 +293,14 @@ function blockerAudienceLead(d: DirectiveLifecycle, blocker: string): AudienceLe
       { label: "查其私心", text: `你阻此旨，是为公议，还是另有所图？把你背后的党援、人情和钱粮说清楚。`, prefix: true },
     ],
   };
+}
+
+function blockerActionLabel(raw?: DirectiveLifecycle["blocker_action"]): string {
+  if (!raw?.action || !raw?.label) return "";
+  const verb = raw.action === "pressure_blocker" ? "已申饬"
+    : raw.action === "bargain_blocker" ? "已协调" : "已处置";
+  const day = Number(raw.day || 0) > 0 ? ` · 第${raw.day}日` : "";
+  return `${verb}${raw.label}${day}`;
 }
 
 function shortDirectiveText(text: string, limit: number): string {

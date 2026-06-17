@@ -60,11 +60,26 @@ export type DirectiveLifecycle = {
   eta_day: number;
   resistance: number;
   blocker_clue?: { kind?: string; name?: string; label?: string; detail?: string; source_minister?: string; day?: number };
+  blocker_action?: {
+    action?: string;
+    label?: string;
+    day?: number;
+    progress_delta?: number;
+    resistance_delta?: number;
+  };
   reported_rate: number;
   anomaly: string;
   settle_note: string;
   outcome_status?: string;
   outcome_summary?: Array<{ kind: string; label: string; tone: "good" | "bad" | "neutral" | string }>;
+  intervention_options?: Array<{
+    action: string;
+    label: string;
+    tone?: string;
+    disabled?: boolean;
+    disabled_reason?: string;
+    effects?: Array<{ kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string }>;
+  }>;
 };
 
 export type TickEvent = {
@@ -273,8 +288,9 @@ export const confirmDirective = (id: number) =>
   api<{ directives: any[]; pending_count: number }>(`/api/directives/${id}/confirm`, { method: "POST" });
 export const rejectDirective = (id: number) =>
   api<{ directives: any[]; pending_count: number }>(`/api/directives/${id}/reject`, { method: "POST" });
+export type InterventionEffect = { kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string };
 export const interveneDirective = (id: number, action: string, extra: Record<string, unknown> = {}) =>
-  api<{ message: string; directives: DirectiveLifecycle[] }>(`/api/directives/${id}/intervene`, {
+  api<{ message: string; effects?: InterventionEffect[]; directives: DirectiveLifecycle[] }>(`/api/directives/${id}/intervene`, {
     method: "POST",
     body: JSON.stringify({ action, ...extra }),
   });

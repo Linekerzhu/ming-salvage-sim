@@ -8,6 +8,7 @@ The goal is to make the living-world layer legible without calling the LLM.
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from typing import Dict, List, Optional
 
@@ -19,6 +20,7 @@ BriefCard = Dict[str, object]
 _TAB_AUDIENCE = "audience"
 _TAB_REALM = "realm"
 _TAB_DESK = "desk"
+_TAB_EDICTS = "edicts"
 
 _AGENDA_LABELS = {
     "climb": "进取求用",
@@ -54,6 +56,7 @@ def briefing_cards(db: GameDB, state: Optional[GameState] = None, *, limit: int 
 
     cards: List[BriefCard] = []
     _pending_decision_cards(db, cards)
+    _directive_blocker_cards(db, cards)
     _agenda_cards(db, cards)
     _rivalry_cards(db, cards)
     _army_cards(db, cards)
@@ -123,6 +126,81 @@ def _pending_decision_cards(db: GameDB, cards: List[BriefCard]) -> None:
             ref_id=str(decision.get("id") or ""),
         )
     )
+
+
+def _directive_blocker_cards(db: GameDB, cards: List[BriefCard]) -> None:
+    """Expose known decree blockers as high-value strategic hooks."""
+
+    if not _table_exists(db, "turn_directives"):
+        return
+    rows = _safe_fetchall(
+        db,
+        """
+        SELECT id, text, lifecycle_status, progress, assignee, chain, anomaly
+        FROM turn_directives
+        WHERE lifecycle_status IN ('in_transit','executing','stalled')
+        ORDER BY
+          CASE WHEN lifecycle_status='stalled' THEN 0 ELSE 1 END,
+          id DESC
+        LIMIT 24
+        """,
+    )
+    count = 0
+    for row in rows:
+        meta = _json_dict(row["chain"])
+        clue = meta.get("blocker_clue")
+        if not isinstance(clue, dict):
+            continue
+        label = str(clue.get("name") or clue.get("label") or "").strip()
+        if not label:
+            continue
+        if _blocker_action_covers_clue(meta, label, int(clue.get("day") or 0)):
+            continue
+        did = int(row["id"])
+        status = str(row["lifecycle_status"] or "")
+        stalled = status == "stalled"
+        progress = int(row["progress"] or 0)
+        assignee = str(row["assignee"] or "")
+        directive = _short_text(str(row["text"] or ""), 30)
+        title = f"{label}牵制旨意" if not stalled else f"{label}卡住旨意"
+        detail = (
+            f"{assignee or '主办官'}承办「{directive}」受{label}掣肘，"
+            f"当前进度 {progress}%。可召问阻力，也可在诏旨中协调或申饬。"
+        )
+        if clue.get("detail"):
+            detail += f"线索：{clue.get('detail')}。"
+        cards.append(
+            _card(
+                kind="directive_blocker",
+                title=title,
+                detail=detail,
+                urgency=(96 if stalled else 82) + min(12, max(0, 70 - progress) // 6),
+                tone="danger" if stalled else "warn",
+                cta="处置旨意",
+                tab=_TAB_EDICTS,
+                actor=label if str(clue.get("kind") or "") == "person" else "",
+                target=assignee,
+                meta=f"{progress}%",
+                ref_kind="directive",
+                ref_id=str(did),
+            )
+        )
+        count += 1
+        if count >= 2:
+            break
+
+
+def _blocker_action_covers_clue(meta: Dict[str, object], label: str, clue_day: int) -> bool:
+    action = meta.get("last_blocker_action")
+    if not isinstance(action, dict):
+        return False
+    if str(action.get("label") or "").strip() != str(label or "").strip():
+        return False
+    try:
+        action_day = int(action.get("day") or 0)
+    except (TypeError, ValueError):
+        action_day = 0
+    return action_day >= max(0, int(clue_day or 0))
 
 
 def _agenda_cards(db: GameDB, cards: List[BriefCard]) -> None:
@@ -384,6 +462,13 @@ def _short_office(office: str) -> str:
     return office[:8]
 
 
+def _short_text(text: str, limit: int) -> str:
+    clean = " ".join(str(text or "").split())
+    if len(clean) <= limit:
+        return clean
+    return clean[:limit] + "…"
+
+
 def _faction_representative(db: GameDB, faction: str) -> str:
     """Pick one visible courtier who can embody an abstract faction pressure card."""
 
@@ -420,6 +505,14 @@ def _safe_fetchall(db: GameDB, sql: str, params: tuple = ()) -> List[sqlite3.Row
         return list(db.conn.execute(sql, params).fetchall())
     except sqlite3.Error:
         return []
+
+
+def _json_dict(raw: object) -> Dict[str, object]:
+    try:
+        data = json.loads(str(raw or "{}"))
+    except (TypeError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def _table_exists(db: GameDB, name: str) -> bool:

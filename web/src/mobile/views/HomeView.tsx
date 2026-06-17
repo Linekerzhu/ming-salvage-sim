@@ -106,6 +106,15 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                         <button className="m-brief-action" onClick={() => inspect(card.actor)}>查{shortName(card.actor)}</button>
                         <button className="m-brief-action" onClick={() => inspect(card.target)}>查{shortName(card.target)}</button>
                       </>
+                    ) : card.kind === "directive_blocker" ? (
+                      <>
+                        <button className="m-brief-action primary" onClick={() => go("edicts")}>处置旨意›</button>
+                        {canSummon(card.actor, activeMinisters) && (
+                          <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, card.target || "")}>召问阻力</button>
+                        )}
+                        {card.actor && <button className="m-brief-action" onClick={() => inspect(card.actor)}>查{shortName(card.actor)}</button>}
+                        {card.target && <button className="m-brief-action" onClick={() => inspect(card.target)}>查主办</button>}
+                      </>
                     ) : card.kind === "hook" && card.actor ? (
                       <>
                         <button className="m-brief-action primary" onClick={() => inspect(card.actor, "intrigue")}>用把柄</button>
@@ -218,6 +227,7 @@ function kindMark(kind: string): string {
   if (kind === "faction") return "党";
   if (kind === "hook") return "柄";
   if (kind === "rivalry") return "怨";
+  if (kind === "directive_blocker") return "阻";
   return "机";
 }
 
@@ -250,6 +260,13 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
     return [
       { label: "追问旧怨", text: `朕闻你与${counterpart}嫌隙已深。今日召你，是要听实话：此怨从何而起？`, prefix: true },
       { label: "逼其表态", text: `若朕令你暂收锋芒，同${counterpart}共办一事，你肯不肯？条件是什么？`, prefix: true },
+    ];
+  }
+  if (card.kind === "directive_blocker") {
+    return [
+      { label: "问掣肘", text: `朕闻${counterpart || "主办官"}承办此旨时受你牵制。你当面说清楚：是何缘故？`, prefix: true },
+      { label: "令其配合", text: `此旨是朕亲下，你若有异议当奏明，不得暗中掣肘。你能如何配合办成？`, prefix: true },
+      { label: "查其私心", text: `你阻此旨，是为公议，还是另有所图？把你背后的党援、人情和钱粮说清楚。`, prefix: true },
     ];
   }
   if (card.kind === "agenda") {

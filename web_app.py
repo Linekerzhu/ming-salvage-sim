@@ -551,7 +551,7 @@ class TimeSpeedRequest(BaseModel):
 
 
 class DirectiveInterveneRequest(BaseModel):
-    action: str  # cuiban|reassign|fund|abort
+    action: str  # cuiban|reassign|fund|ducai|abort|bargain_blocker|pressure_blocker
     new_assignee: str = ""
     fund: int = 0
 
@@ -4845,7 +4845,7 @@ async def api_directive_lifecycle() -> Dict[str, Any]:
 
 @app.post("/api/directives/{directive_id}/intervene")
 async def api_directive_intervene(directive_id: int, body: DirectiveInterveneRequest) -> Dict[str, Any]:
-    """执行中旨意的中途干预：催办/换人/加拨/收回成命。"""
+    """执行中旨意的中途干预：催办/换人/加拨/独断/阻力处置/收回成命。"""
     from ming_sim import timeflow
     from ming_sim.lifecycle import intervene, lifecycle_payload
     game = get_game()
@@ -4857,6 +4857,7 @@ async def api_directive_intervene(directive_id: int, body: DirectiveInterveneReq
         raise HTTPException(status_code=400, detail=str(result.get("message")))
     return _response_with_state(game, {
         "message": result["message"],
+        "effects": result.get("effects") or [],
         "directives": lifecycle_payload(game.db),
     })
 
