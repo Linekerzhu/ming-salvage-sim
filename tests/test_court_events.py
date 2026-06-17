@@ -80,6 +80,9 @@ class ResolveTests(unittest.TestCase):
             res = court_events.resolve_decision(db, state, "both", day=day)
             self.assertTrue(res["ok"])
             self.assertIn("君威", res["effect"])  # both 选项含 shi+3
+            labels = [e["label"] for e in res["effects"]]
+            self.assertIn("君威 +3", labels)
+            self.assertIn("任事 -5", labels)
             self.assertGreater(kv_int(db, KV_SHI, 55), shi_before, "各打五十大板立威，君威应升")
             self.assertIsNone(court_events.get_pending(db), "落子后待决应清空")
 

@@ -728,9 +728,17 @@ def resolve_decision(db: GameDB, state: GameState, choice_key: str, day: int) ->
     choice = next((c for c in _choices_of(d, ctx) if c["key"] == choice_key), None)
     if choice is None:
         return {"ok": False, "message": f"无此抉择：{choice_key}"}
-    summary = _apply_effect(db, state, choice["effect"](ctx), day)
+    effect = _call(choice["effect"], ctx)
+    effects = _preview_effects(effect)
+    summary = _apply_effect(db, state, effect, day)
     cds = _cooldowns(db)
     cds[str(d["id"])] = day
     db.kv_set(KV_COOLDOWN, json.dumps(cds, ensure_ascii=False))
     db.kv_set(KV_PENDING, "")
-    return {"ok": True, "title": d["title"](ctx), "choice": _call(choice["label"], ctx), "effect": summary}
+    return {
+        "ok": True,
+        "title": d["title"](ctx),
+        "choice": _call(choice["label"], ctx),
+        "effect": summary,
+        "effects": effects,
+    }

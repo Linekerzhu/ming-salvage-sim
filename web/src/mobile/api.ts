@@ -269,7 +269,7 @@ export type Decision = { id: string; title: string; narrative: string; choices: 
 export const loadDecision = (): Promise<{ decision: Decision | null }> =>
   api<{ decision: Decision | null }>("/api/decision");
 export const resolveDecision = (choice: string) =>
-  api<{ title: string; choice: string; effect: string }>("/api/decision/resolve", {
+  api<{ title: string; choice: string; effect: string; effects?: ImpactEffect[] }>("/api/decision/resolve", {
     method: "POST", body: JSON.stringify({ choice }),
   });
 

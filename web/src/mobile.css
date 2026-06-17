@@ -930,6 +930,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-decision-effects { justify-content: flex-start; margin-top: 4px; gap: 4px; }
 .m-decision-effects .m-effect-chip { font-size: .66rem; padding: 2px 6px; }
 .m-decision-done { text-align: center; padding: 10px 0 4px; animation: m-fade-in .35s ease; }
+.m-decision-done .m-decision-effects { justify-content: center; margin-top: 8px; }
 .m-decision-chosen { margin: 0; font-size: 1.05rem; font-weight: 800; color: #5a1e16; }
 .m-decision-effect { margin: 8px 0 0; font-size: .95rem; font-weight: 700; color: var(--gold-deep);
   letter-spacing: 0; }

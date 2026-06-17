@@ -184,7 +184,7 @@ function DecisionEffectChips({ items }: { items?: ImpactEffect[] }) {
 function DecisionModal() {
   const { decision, refresh, desk } = useGame();
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<{ choice: string; effect: string } | null>(null);
+  const [done, setDone] = useState<{ choice: string; effect: string; effects?: ImpactEffect[] } | null>(null);
   // 本地快照：落子后 refresh 会把 decision 置空，须保留以展示"已断"后果，玩家确认再消。
   const [active, setActive] = useState<Decision | null>(null);
   const hasUnreadOutcome = (desk?.pending || []).some((m: any) => m.kind === "复命" || m.kind === "捷报");
@@ -202,7 +202,7 @@ function DecisionModal() {
     setBusy(true);
     try {
       const r = await resolveDecision(key);
-      setDone({ choice: r.choice, effect: r.effect });
+      setDone({ choice: r.choice, effect: r.effect, effects: r.effects });
       await refresh();
     } finally { setBusy(false); }
   };
@@ -216,6 +216,7 @@ function DecisionModal() {
           <div className="m-decision-done">
             <p className="m-decision-chosen">已断：{done.choice}</p>
             <p className="m-decision-effect">{done.effect}</p>
+            <DecisionEffectChips items={done.effects} />
             <button className="m-decision-ack" onClick={() => { setActive(null); setDone(null); }}>朝局已动，继续</button>
           </div>
         ) : (
