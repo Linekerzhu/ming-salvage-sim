@@ -264,6 +264,16 @@ def _trap_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard]) 
         urgency = 70 + max(0, backlog - att)
         tone = "warn"
 
+    effects = [
+        {"kind": "renshi", "label": f"任事 {renshi}", "tone": "bad" if renshi <= 35 else "neutral"},
+        {"kind": "backlog", "label": f"待裁 {backlog}", "tone": "bad" if overloaded or backlog >= 6 else "neutral"},
+        {"kind": "attention", "label": f"精力 {att}", "tone": "bad" if att <= 2 else "neutral"},
+    ]
+    if urgent:
+        effects.append({"kind": "deadline", "label": f"将淹没 {urgent}", "tone": "bad"})
+    if oldest:
+        effects.append({"kind": "shelved", "label": f"最久 {oldest}日", "tone": "bad" if oldest >= 20 else "neutral"})
+
     cards.append(
         _card(
             kind="trap",
@@ -276,6 +286,7 @@ def _trap_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard]) 
             meta=f"任事{renshi}/待{backlog}",
             ref_kind="belief",
             ref_id="risk_aversion",
+            effects=effects,
         )
     )
 

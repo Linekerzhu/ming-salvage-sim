@@ -310,6 +310,10 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("御案壅塞", str(trap["title"]))
             self.assertIn("七日内将淹没", str(trap["detail"]))
             self.assertIn("待8", str(trap["meta"]))
+            labels = [str(e["label"]) for e in trap["effects"]]
+            self.assertIn("待裁 8", labels)
+            self.assertIn("将淹没 8", labels)
+            self.assertIn("最久 30日", labels)
 
     def test_directive_blocker_becomes_edicts_hook(self):
         with TemporaryDirectory() as tmp:
