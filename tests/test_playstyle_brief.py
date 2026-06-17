@@ -146,6 +146,33 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("复用", str(remedy["title"]) + str(remedy["detail"]))
             self.assertIn("可复用", str(remedy["meta"]))
 
+    def test_recently_backed_official_drops_from_trap_remedy(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            db.conn.execute(
+                "UPDATE characters SET status='active', emp_trust=65, grievance=20 "
+                "WHERE power_id='ming' AND office_type!='后宫'"
+            )
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=20, grievance=70 WHERE name='韩爌'"
+            )
+            db.conn.commit()
+            kv_set_int(db, KV_RISK_AVERSION, 70)
+
+            cards = briefing_cards(db, state, limit=8)
+            remedy = next(c for c in cards if c["kind"] == "trap_remedy")
+            self.assertEqual(remedy["actor"], "韩爌")
+
+            result = memorials.back_official(db, state, "韩爌", "shoulder", day=1)
+            self.assertTrue(result["ok"], result)
+            kv_set_int(db, KV_RISK_AVERSION, 70)
+
+            cards = briefing_cards(db, state, limit=8)
+            self.assertFalse(
+                any(c["kind"] == "trap_remedy" and c["actor"] == "韩爌" for c in cards),
+                cards,
+            )
+
     def test_overdue_memorials_become_trap_card(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)

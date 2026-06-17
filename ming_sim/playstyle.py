@@ -57,7 +57,7 @@ def briefing_cards(db: GameDB, state: Optional[GameState] = None, *, limit: int 
     cards: List[BriefCard] = []
     _pending_decision_cards(db, cards)
     _trap_cards(db, state, cards)
-    _trap_remedy_cards(db, cards)
+    _trap_remedy_cards(db, state, cards)
     _directive_blocker_cards(db, cards)
     _agenda_cards(db, cards)
     _rivalry_cards(db, cards)
@@ -218,7 +218,7 @@ def _trap_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard]) 
     )
 
 
-def _trap_remedy_cards(db: GameDB, cards: List[BriefCard]) -> None:
+def _trap_remedy_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard]) -> None:
     """Offer a concrete official to back when the court has become fear-bound."""
 
     if not _table_exists(db, "characters"):
@@ -230,7 +230,7 @@ def _trap_remedy_cards(db: GameDB, cards: List[BriefCard]) -> None:
     ra = kv_int(db, KV_RISK_AVERSION, RISK_AVERSION_DEFAULT)
     if ra < 58:
         return
-    row = db.conn.execute(
+    rows = db.conn.execute(
         """
         SELECT name, office, status, status_reason, ability, integrity, courage, emp_trust, grievance
         FROM characters
@@ -248,9 +248,14 @@ def _trap_remedy_cards(db: GameDB, cards: List[BriefCard]) -> None:
           ability + integrity + courage DESC,
           grievance DESC,
           emp_trust ASC
-        LIMIT 1
+        LIMIT 8
         """
-    ).fetchone()
+    ).fetchall()
+    row = None
+    for cand in rows:
+        if not _recently_backed_official(db, state, str(cand["name"])):
+            row = cand
+            break
     if row is None:
         return
     name = str(row["name"])
@@ -298,6 +303,33 @@ def _trap_remedy_cards(db: GameDB, cards: List[BriefCard]) -> None:
             ref_id=name,
         )
     )
+
+
+def _recently_backed_official(db: GameDB, state: Optional[GameState], name: str) -> bool:
+    """Avoid repeating a back-this-official recommendation right after action."""
+
+    if not name or not _table_exists(db, "turn_logs"):
+        return False
+    current_turn = int(getattr(state, "turn", 0) or 0)
+    if current_turn <= 0:
+        try:
+            row = db.conn.execute("SELECT turn FROM game_state WHERE id=1").fetchone()
+            current_turn = int(row["turn"] or 0) if row else 0
+        except sqlite3.Error:
+            current_turn = 0
+    rows = _safe_fetchall(
+        db,
+        """
+        SELECT 1
+        FROM turn_logs
+        WHERE turn>=?
+          AND message LIKE '【买单】%'
+          AND message LIKE ?
+        LIMIT 1
+        """,
+        (max(1, current_turn - 1), f"%{name}%"),
+    )
+    return bool(rows)
 
 
 def _directive_blocker_cards(db: GameDB, cards: List[BriefCard]) -> None:
