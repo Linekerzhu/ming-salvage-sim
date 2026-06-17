@@ -615,13 +615,13 @@ def punish_official(db: GameDB, state: GameState, name: str, severity: str,
 
 _BACK_KINDS = {
     "shoulder": {"ra": -8, "shi": -4, "label": "公开担责", "trust": +15,
-                 "faction_sat": +4, "faction_heat": -6,
+                 "faction_sat": +4, "faction_heat": -6, "rival_sat": -2, "rival_heat": +3,
                  "note": "上谕引咎：『此朕之过，非该臣之罪。』"},
     "comfort":  {"ra": -5, "shi": 0, "label": "抚恤褒奖", "trust": +10,
-                 "faction_sat": +2, "faction_heat": -3,
+                 "faction_sat": +2, "faction_heat": -3, "rival_sat": -1, "rival_heat": +1,
                  "note": "赐金抚恤，荫其子弟。"},
     "reuse":    {"ra": -10, "shi": -2, "label": "败后复用", "trust": +20,
-                 "faction_sat": +5, "faction_heat": -5,
+                 "faction_sat": +5, "faction_heat": -5, "rival_sat": -3, "rival_heat": +4,
                  "note": "败军之将弃而复用，朝野侧目，然任事者知上不弃人。"},
 }
 
@@ -629,6 +629,7 @@ _BACK_KINDS = {
 def _back_faction_effects(db: GameDB, name: str, spec: Dict[str, object]) -> List[Dict[str, str]]:
     try:
         from ming_sim.theater import adjust_faction_heat, faction_of
+        from ming_sim.political_reactions import rival_faction
         faction = faction_of(db, name)
     except Exception:
         return []
@@ -644,6 +645,16 @@ def _back_faction_effects(db: GameDB, name: str, spec: Dict[str, object]) -> Lis
     if heat_delta:
         adjust_faction_heat(db, faction, heat_delta, f"{spec['label']}{name}")
         effects.append({"kind": "faction", "label": f"{faction}热度 {heat_delta:+d}", "tone": "good"})
+    rival = rival_faction(db, faction)
+    if rival:
+        rival_sat = int(spec.get("rival_sat") or 0)
+        rival_heat = int(spec.get("rival_heat") or 0)
+        if rival_sat:
+            db.adjust_factions({rival: {"satisfaction": rival_sat}})
+            effects.append({"kind": "faction", "label": f"{rival}满意 {rival_sat:+d}", "tone": "bad"})
+        if rival_heat:
+            adjust_faction_heat(db, rival, rival_heat, f"{spec['label']}{name}（敌派受激）")
+            effects.append({"kind": "faction", "label": f"{rival}热度 {rival_heat:+d}", "tone": "bad"})
     return effects
 
 

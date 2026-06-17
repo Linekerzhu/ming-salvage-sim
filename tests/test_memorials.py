@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 from ming_sim import memorials, timeflow
 from ming_sim.db import GameDB
 from ming_sim.models import Character, CourtContext
+from ming_sim.political_reactions import rival_faction
 from ming_sim.registry import build_recent_memorial_memory_brief
 from ming_sim.scheduler import process_pending
 from ming_sim.upgrade_schema import (
@@ -319,9 +320,14 @@ class TrapLeverTests(unittest.TestCase):
             faction = str(db.conn.execute(
                 "SELECT faction FROM characters WHERE name='韩爌'"
             ).fetchone()["faction"])
+            rival = rival_faction(db, faction)
             db.conn.execute(
                 "UPDATE factions SET satisfaction=?, heat=? WHERE name=?",
                 (35, 50, faction),
+            )
+            db.conn.execute(
+                "UPDATE factions SET satisfaction=?, heat=? WHERE name=?",
+                (55, 20, rival),
             )
             db.conn.commit()
 
@@ -333,9 +339,16 @@ class TrapLeverTests(unittest.TestCase):
             ).fetchone()
             self.assertEqual(int(row["satisfaction"]), 39)
             self.assertEqual(int(row["heat"]), 44)
+            rival_row = db.conn.execute(
+                "SELECT satisfaction, heat FROM factions WHERE name=?", (rival,)
+            ).fetchone()
+            self.assertEqual(int(rival_row["satisfaction"]), 53)
+            self.assertEqual(int(rival_row["heat"]), 23)
             labels = [str(e["label"]) for e in r["effects"]]
             self.assertIn(f"{faction}满意 +4", labels)
             self.assertIn(f"{faction}热度 -6", labels)
+            self.assertIn(f"{rival}满意 -2", labels)
+            self.assertIn(f"{rival}热度 +3", labels)
 
     def test_execute_kills(self):
         with TemporaryDirectory() as tmp:
