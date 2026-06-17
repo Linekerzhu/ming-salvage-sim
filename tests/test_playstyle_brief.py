@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 from ming_sim import court, court_events, lifecycle, memorials, timeflow
 from ming_sim.db import GameDB
 from ming_sim.intrigue import ensure_schema as ensure_secret_schema
-from ming_sim.playstyle import briefing_cards, briefing_payload
+from ming_sim.playstyle import _select_brief_cards, briefing_cards, briefing_payload
 from ming_sim.upgrade_schema import KV_CURRENT_DAY, KV_RISK_AVERSION, kv_set_int
 
 
@@ -31,6 +31,23 @@ def _active_minister(db: GameDB) -> str:
 
 
 class PlaystyleBriefTests(unittest.TestCase):
+    def test_brief_selection_preserves_system_diversity(self):
+        cards = [
+            {"kind": "hook", "title": "把柄甲", "urgency": 100},
+            {"kind": "hook", "title": "把柄乙", "urgency": 99},
+            {"kind": "hook", "title": "把柄丙", "urgency": 98},
+            {"kind": "army", "title": "辽镇离心", "urgency": 96},
+            {"kind": "faction", "title": "东林坐大", "urgency": 95},
+            {"kind": "decision", "title": "请陛下裁断", "urgency": 100},
+        ]
+
+        picked = _select_brief_cards(cards, limit=4)
+        kinds = [str(c["kind"]) for c in picked]
+        self.assertEqual(kinds[0], "decision")
+        self.assertIn("army", kinds)
+        self.assertIn("faction", kinds)
+        self.assertLessEqual(kinds.count("hook"), 1)
+
     def test_pending_decision_card_surfaces_stakes(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)

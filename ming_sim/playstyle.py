@@ -22,6 +22,18 @@ _TAB_REALM = "realm"
 _TAB_DESK = "desk"
 _TAB_EDICTS = "edicts"
 
+_KIND_PRIORITY = {
+    "decision": 0,
+    "trap": 1,
+    "directive_blocker": 2,
+    "trap_remedy": 3,
+    "army": 4,
+    "faction": 5,
+    "agenda": 6,
+    "rivalry": 7,
+    "hook": 8,
+}
+
 _AGENDA_LABELS = {
     "climb": "进取求用",
     "enrich": "自肥敛财",
@@ -64,14 +76,53 @@ def briefing_cards(db: GameDB, state: Optional[GameState] = None, *, limit: int 
     _army_cards(db, cards)
     _faction_cards(db, cards)
     _secret_cards(db, cards)
-    cards.sort(
-        key=lambda c: (
-            -int(c.get("urgency") or 0),
-            str(c.get("kind") or ""),
-            str(c.get("title") or ""),
-        )
+    return _select_brief_cards(cards, limit)
+
+
+def _card_rank(card: BriefCard) -> tuple:
+    return (
+        -int(card.get("urgency") or 0),
+        _KIND_PRIORITY.get(str(card.get("kind") or ""), 50),
+        str(card.get("title") or ""),
     )
-    return cards[: max(1, min(8, int(limit or 5)))]
+
+
+def _select_brief_cards(cards: List[BriefCard], limit: int = 5) -> List[BriefCard]:
+    """Pick a compact outliner: urgent first, but keep multiple gameplay systems visible."""
+
+    safe_limit = max(1, min(8, int(limit or 5)))
+    ranked = sorted(enumerate(cards), key=lambda item: _card_rank(item[1]))
+    selected: List[int] = []
+    per_kind: Dict[str, int] = {}
+
+    def add(idx: int, card: BriefCard) -> None:
+        selected.append(idx)
+        kind = str(card.get("kind") or "")
+        per_kind[kind] = per_kind.get(kind, 0) + 1
+
+    for idx, card in ranked:
+        kind = str(card.get("kind") or "")
+        if per_kind.get(kind, 0) == 0:
+            add(idx, card)
+            if len(selected) >= safe_limit:
+                return [cards[i] for i in selected]
+
+    for idx, card in ranked:
+        if idx in selected:
+            continue
+        kind = str(card.get("kind") or "")
+        if per_kind.get(kind, 0) >= 2:
+            continue
+        add(idx, card)
+        if len(selected) >= safe_limit:
+            return [cards[i] for i in selected]
+
+    for idx, card in ranked:
+        if idx not in selected:
+            add(idx, card)
+            if len(selected) >= safe_limit:
+                break
+    return [cards[i] for i in selected]
 
 
 def _card(
