@@ -16,7 +16,9 @@ from ming_sim import court
 from ming_sim.upgrade_schema import (
     KV_RISK_AVERSION,
     KV_SHI,
+    SHI_DEFAULT,
     adjust_belief,
+    kv_int,
 )
 
 KV_PENDING = "upgrade.pending_decision"
@@ -79,6 +81,27 @@ def _apply_effect(db: GameDB, state: GameState, eff: Dict[str, object], day: int
                         (str(ap["office"]), str(ap["name"])))
         court.ripple_personnel(db, str(ap["name"]), "favor", day=day)
         parts.append(f"擢{ap['name']}")
+    ep = int(eff.get("eunuch_power") or 0)
+    if ep:
+        try:
+            from ming_sim.eunuch_power import adjust_eunuch_power
+            adjust_eunuch_power(db, ep, str(eff.get("log") or "阉祸抉择"), day=day)
+            parts.append(f"权阉{'+' if ep > 0 else ''}{ep}")
+        except Exception:
+            pass
+    for st in (eff.get("status") or []):
+        try:
+            db.set_character_status(state, str(st["name"]), str(st["status"]), str(st.get("reason") or ""))
+            if str(st["status"]) in ("dismissed", "imprisoned", "exiled", "dead"):
+                court.ripple_personnel(db, str(st["name"]), "oust", day=day)
+        except Exception:
+            pass
+    if eff.get("daipihong_off"):
+        try:
+            from ming_sim.eunuch_power import set_daipihong
+            set_daipihong(db, False, day=day)
+        except Exception:
+            pass
     db.conn.commit()
     db.save_state(state)
     if eff.get("log"):
@@ -125,6 +148,32 @@ def _slandered_loyal(db: GameDB) -> Optional[Dict[str, object]]:
     vo = db.conn.execute("SELECT office FROM characters WHERE name=?", (victim,)).fetchone()
     return {"victim": victim, "accuser": accuser,
             "victim_office": str(vo["office"] or "") if vo else "", "mid": int(row["mid"])}
+
+
+def _eunuch_crisis(db: GameDB) -> Optional[Dict[str, object]]:
+    """阉祸危机（宦官恶趣味 E3）：权阉之势炽极（≥75）、主弱臣强——司礼监东厂权倾朝野，
+    内外勾连、把柄在手、阉党盈廷。请陛下裁断：翦除？隐忍？抑或索性倚为腹心（天启故事）？"""
+    try:
+        from ming_sim.eunuch_power import get_eunuch_power
+        power = get_eunuch_power(db)
+    except Exception:
+        return None
+    if power < 75:
+        return None
+    try:
+        from ming_sim.intrigue import dongchang_chief
+        chief = dongchang_chief(db)
+    except Exception:
+        chief = None
+    if chief is None:
+        return None
+    row = db.conn.execute("SELECT office FROM characters WHERE name=?", (chief,)).fetchone()
+    # 阉党党羽数（在朝）——示其盘根
+    packed = db.conn.execute(
+        "SELECT COUNT(*) c FROM characters WHERE status='active' AND power_id='ming' "
+        "AND faction='阉党'").fetchone()["c"]
+    return {"eunuch": chief, "power": int(power), "shi": kv_int(db, KV_SHI, SHI_DEFAULT),
+            "office": str(row["office"] or "") if row else "司礼监", "packed": int(packed)}
 
 
 def _succession(db: GameDB) -> Optional[Dict[str, object]]:
@@ -221,6 +270,46 @@ def _succession_choices(ctx: Dict[str, object]) -> List[Dict[str, object]]:
 
 def _defs() -> List[Dict[str, object]]:
     return [
+        {
+            "id": "eunuch_crisis",
+            "priority": 45,  # 阉祸危及社稷，最优先
+            "when": _eunuch_crisis,
+            "title": lambda c: f"阉祸临头：{c['eunuch']}权倾朝野",
+            "narrative": lambda c: (
+                f"{c['office']}{c['eunuch']}秉权阉之势已极（{c['power']}），司礼监代批红、东厂操诏狱，"
+                f"阉党盘踞要津{c['packed']}人，内外勾连、把柄在手，进退人物渐由其口——主弱臣强，俨然魏珰再世。"
+                "再不裁处，恐成阉祸、社稷为其所窃。陛下何以决之？"),
+            "choices": [
+                {"key": "purge", "label": lambda c: f"乾纲独断，翦除阉党、下{c['eunuch']}诏狱",
+                 "hint": "雷霆除奸：快意立威、权阉土崩、清流额手——然君威未立则仓促，阉党狗急、政局动荡",
+                 "effect": lambda c: ({"shi": 8, "renshi": 6, "eunuch_power": -50,
+                                       "status": [{"name": c["eunuch"], "status": "imprisoned", "reason": "翦除阉党、下诏狱"}],
+                                       "faction": {"阉党": {"leverage": -28, "satisfaction": -22},
+                                                   "东林": {"satisfaction": 12, "leverage": 8}},
+                                       "metrics": {"民心": 5, "皇威": 6},
+                                       "daipihong_off": True,
+                                       "log": f"乾纲独断，翦除阉党、下{c['eunuch']}诏狱。"}
+                                      if c["shi"] >= 45 else
+                                      {"shi": -4, "renshi": -3, "eunuch_power": -25,
+                                       "status": [{"name": c["eunuch"], "status": "imprisoned", "reason": "翦除阉党（仓促）"}],
+                                       "faction": {"阉党": {"leverage": -12, "satisfaction": -15}},
+                                       "metrics": {"民心": -3, "皇威": -2},
+                                       "daipihong_off": True,
+                                       "log": f"君威未立而仓促除阉，{c['eunuch']}虽下狱，阉党狗急、政局为之动荡。"})},
+                {"key": "endure", "label": lambda c: "隐忍周旋，徐图分化其党",
+                 "hint": "不动声色：低风险、略抑权阉，但不除根——隐患仍在，恐复炽",
+                 "effect": lambda c: {"shi": -1, "eunuch_power": -12,
+                                      "faction": {"阉党": {"satisfaction": -3}},
+                                      "log": f"暂示优容，徐图分化{c['eunuch']}之党。"}},
+                {"key": "rely", "label": lambda c: f"索性倚{c['eunuch']}为腹心理政",
+                 "hint": "天启故事：省心、阉党效死，然权阉冲顶、东林夺气——主弱臣强，阉祸长蚀国本",
+                 "effect": lambda c: {"shi": 2, "renshi": -6, "eunuch_power": 12,
+                                      "faction": {"阉党": {"leverage": 12, "satisfaction": 10},
+                                                  "东林": {"satisfaction": -10, "leverage": -8}},
+                                      "metrics": {"民心": -4},
+                                      "log": f"索性倚{c['eunuch']}理政，阉党益横、东林夺气——阉祸成。"}},
+            ],
+        },
         {
             "id": "succession",
             "priority": 35,
