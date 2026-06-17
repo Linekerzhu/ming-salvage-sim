@@ -209,6 +209,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-brief-bucket.has-hidden {
   color: #5d4121; background: rgba(181,134,58,.11); border-color: rgba(181,134,58,.22);
 }
+.m-brief-bucket.is-active {
+  color: #fff4d2; background: linear-gradient(180deg, #9f6f2c, #6e4519);
+  border-color: rgba(58,35,12,.38);
+}
+.m-brief-bucket.is-active b { color: #fff4d2; }
+.m-brief-bucket:active { transform: scale(.97); }
 .m-brief-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .m-brief-card {
   display: flex; flex-direction: column; align-items: stretch; gap: 7px; padding: 9px 0;

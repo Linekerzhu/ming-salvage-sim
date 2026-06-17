@@ -5042,11 +5042,11 @@ async def api_zhongxing() -> Dict[str, Any]:
 
 
 @app.get("/api/playstyle/brief")
-async def api_playstyle_brief(limit: int = 5) -> Dict[str, Any]:
+async def api_playstyle_brief(limit: int = 5, kind: str = "") -> Dict[str, Any]:
     """朝局风向：把私心、党争、军镇、把柄转为首页可行动玩法钩子。"""
     from ming_sim.playstyle import briefing_payload
     game = get_game()
-    return _plain_payload(briefing_payload(game.db, game.state, limit=limit))
+    return _plain_payload(briefing_payload(game.db, game.state, limit=limit, kind=kind))
 
 
 @app.get("/api/beliefs")

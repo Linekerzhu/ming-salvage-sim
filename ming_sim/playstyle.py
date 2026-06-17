@@ -65,19 +65,29 @@ _AGENDA_HINTS = {
 }
 
 
-def briefing_payload(db: GameDB, state: Optional[GameState] = None, *, limit: int = 5) -> Dict[str, object]:
+def briefing_payload(
+    db: GameDB,
+    state: Optional[GameState] = None,
+    *,
+    limit: int = 5,
+    kind: str = "",
+) -> Dict[str, object]:
     """Return a stable API payload for the home-screen strategic briefing."""
 
     safe_limit = max(1, min(8, int(limit or 5)))
+    safe_kind = str(kind or "").strip()
     candidates = _briefing_candidates(db, state)
-    cards = _select_brief_cards(candidates, limit=safe_limit)
+    filtered = [c for c in candidates if str(c.get("kind") or "") == safe_kind] if safe_kind in _KIND_LABELS else candidates
+    cards = _select_brief_cards(filtered, limit=safe_limit)
+    overview_cards = _select_brief_cards(candidates, limit=safe_limit)
     return {
         "cards": cards,
         "limit": safe_limit,
+        "filter": safe_kind if safe_kind in _KIND_LABELS else "",
         "shown": len(cards),
-        "total": len(candidates),
-        "hidden": max(0, len(candidates) - len(cards)),
-        "buckets": _brief_kind_buckets(candidates, cards),
+        "total": len(filtered),
+        "hidden": max(0, len(filtered) - len(cards)),
+        "buckets": _brief_kind_buckets(candidates, overview_cards),
     }
 
 

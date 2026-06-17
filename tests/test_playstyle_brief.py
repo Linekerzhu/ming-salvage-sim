@@ -81,6 +81,35 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertGreaterEqual(buckets["hook"]["total"], 3)
             self.assertEqual(buckets["hook"]["hidden"], int(buckets["hook"]["total"]) - 1)
 
+    def test_brief_payload_filters_cards_by_system_kind(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            ensure_secret_schema(db)
+            db.conn.execute("DELETE FROM secrets")
+            names = [
+                str(r["name"]) for r in db.conn.execute(
+                    "SELECT name FROM characters "
+                    "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                    "ORDER BY ability DESC LIMIT 3"
+                ).fetchall()
+            ]
+            for i, name in enumerate(names):
+                db.conn.execute(
+                    "INSERT INTO secrets(holder, kind, detail, severity, known_to_crown, used) "
+                    "VALUES (?, '贪墨', '收受边饷回扣', ?, 1, 0)",
+                    (name, 85 - i),
+                )
+            db.conn.commit()
+
+            payload = briefing_payload(db, state, limit=2, kind="hook")
+            self.assertEqual(payload["filter"], "hook")
+            self.assertEqual(payload["shown"], 2)
+            self.assertGreaterEqual(payload["total"], 3)
+            self.assertEqual(payload["hidden"], int(payload["total"]) - 2)
+            self.assertTrue(all(c["kind"] == "hook" for c in payload["cards"]))
+            buckets = {str(b["kind"]): b for b in payload["buckets"]}
+            self.assertGreaterEqual(buckets["hook"]["total"], 3)
+
     def test_pending_decision_card_surfaces_stakes(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)

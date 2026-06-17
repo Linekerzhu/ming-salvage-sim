@@ -200,6 +200,7 @@ export type PlaystyleBriefCard = {
 export type PlaystyleBriefPayload = {
   cards: PlaystyleBriefCard[];
   limit: number;
+  filter?: string;
   shown?: number;
   total?: number;
   hidden?: number;
@@ -226,8 +227,11 @@ export type ChatContext = {
   title?: string;
   meta?: string;
 };
-export const loadPlaystyleBrief = (limit = 5): Promise<PlaystyleBriefPayload> =>
-  api<PlaystyleBriefPayload>(`/api/playstyle/brief?limit=${encodeURIComponent(String(limit))}`);
+export const loadPlaystyleBrief = (limit = 5, kind = ""): Promise<PlaystyleBriefPayload> => {
+  const qs = new URLSearchParams({ limit: String(limit) });
+  if (kind) qs.set("kind", kind);
+  return api<PlaystyleBriefPayload>(`/api/playstyle/brief?${qs.toString()}`);
+};
 
 // 活的宫廷：某官员的私心 + 党羽 + 政敌（双向好感网络）。
 export type CourtTie = { name: string; opinion: number; basis: string };

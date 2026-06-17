@@ -17,27 +17,30 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   const [briefCount, setBriefCount] = useState({ shown: 0, total: 0, hidden: 0 });
   const [briefBuckets, setBriefBuckets] = useState<Array<{ kind: string; label: string; shown: number; total: number; hidden: number }>>([]);
   const [briefLimit, setBriefLimit] = useState(5);
+  const [briefKind, setBriefKind] = useState("");
   useEffect(() => {
     loadEunuch().then((r) => setEunuch(r.eunuch)).catch(() => setEunuch(null));
   }, []);
   useEffect(() => {
-    loadPlaystyleBrief(briefLimit)
+    loadPlaystyleBrief(briefLimit, briefKind)
       .then((r) => {
         const cards = r.cards || [];
+        const buckets = (r.buckets || []).filter((b) => Number(b.total || 0) > 0);
         setBriefCards(cards);
         setBriefCount({
           shown: Number(r.shown ?? cards.length),
           total: Number(r.total ?? cards.length),
           hidden: Number(r.hidden ?? 0),
         });
-        setBriefBuckets((r.buckets || []).filter((b) => Number(b.total || 0) > 0));
+        setBriefBuckets(buckets);
+        if (briefKind && !buckets.some((b) => b.kind === briefKind)) setBriefKind("");
       })
       .catch(() => {
         setBriefCards([]);
         setBriefCount({ shown: 0, total: 0, hidden: 0 });
         setBriefBuckets([]);
       });
-  }, [worldVersion, briefLimit]);
+  }, [worldVersion, briefLimit, briefKind]);
   const replies = (desk?.pending || []).filter((m) => INFORMATIONAL_KINDS.includes(m.kind));
   const drowning = (desk?.pending || []).filter((m) => m.days_to_expire > 0 && m.days_to_expire <= 7).length;
   const fuming = lifecycle.filter((d) => d.status === "stalled" || (d.anomaly && d.anomaly !== "")).length;
@@ -79,6 +82,12 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   };
   const canExpandBrief = briefLimit < 8 && briefCount.hidden > 0;
   const canCollapseBrief = briefLimit > 5 && briefCount.total > 5;
+  const activeBriefBucket = briefBuckets.find((b) => b.kind === briefKind);
+  const allBriefTotal = briefBuckets.reduce((sum, b) => sum + Number(b.total || 0), 0);
+  const chooseBriefKind = (kind: string) => {
+    setBriefKind((current) => (current === kind ? "" : kind));
+    setBriefLimit(5);
+  };
 
   return (
     <div className="m-view m-home">
@@ -109,7 +118,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
         <section className="m-card m-brief">
           <header className="m-brief-header">
             <h2 className="m-card-title m-brief-titlebar">
-              朝局风向
+              朝局风向{activeBriefBucket ? ` · ${activeBriefBucket.label}` : ""}
               {briefCount.hidden > 0 && (
                 <span className="m-brief-count">{briefCount.shown}/{briefCount.total}</span>
               )}
@@ -125,11 +134,25 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
             </h2>
             {briefBuckets.length > 0 && (
               <div className="m-brief-buckets" aria-label="朝局系统构成">
+                <button
+                  type="button"
+                  className={`m-brief-bucket ${!briefKind ? "is-active" : ""}`}
+                  aria-pressed={!briefKind}
+                  onClick={() => chooseBriefKind("")}
+                >
+                  全局<b>{allBriefTotal}</b>
+                </button>
                 {briefBuckets.map((bucket) => (
-                  <span key={bucket.kind} className={`m-brief-bucket ${bucket.hidden > 0 ? "has-hidden" : ""}`}>
+                  <button
+                    key={bucket.kind}
+                    type="button"
+                    className={`m-brief-bucket ${bucket.hidden > 0 ? "has-hidden" : ""} ${briefKind === bucket.kind ? "is-active" : ""}`}
+                    aria-pressed={briefKind === bucket.kind}
+                    onClick={() => chooseBriefKind(bucket.kind)}
+                  >
                     {bucket.label}
                     <b>{bucket.hidden > 0 ? `${bucket.shown}/${bucket.total}` : bucket.total}</b>
-                  </span>
+                  </button>
                 ))}
               </div>
             )}
