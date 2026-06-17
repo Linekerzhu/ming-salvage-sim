@@ -501,10 +501,19 @@ def _agenda_cards(db: GameDB, cards: List[BriefCard]) -> None:
         name = str(row["name"])
         kind = str(row["kind"] or "")
         office = _short_office(str(row["office"] or ""))
+        faction = str(row["faction"] or "")
         progress = int(row["progress"] or 0)
         intensity = int(row["intensity"] or 50)
         label = _AGENDA_LABELS.get(kind, str(row["title"] or "私心将成"))
         prefix = "将成局" if progress >= 85 else "有苗头"
+        risky = kind in {"enrich", "protect", "entrench", "revenge"}
+        effects = [
+            {"kind": "agenda_progress", "label": f"进度 {progress}%", "tone": "bad" if progress >= 85 else "neutral"},
+            {"kind": "agenda_intensity", "label": f"强度 {intensity}", "tone": "bad" if intensity >= 75 else "neutral"},
+            {"kind": "agenda_kind", "label": label, "tone": "bad" if risky else "neutral"},
+        ]
+        if faction and faction not in {"无", "中立"}:
+            effects.append({"kind": "faction", "label": faction, "tone": "neutral"})
         cards.append(
             _card(
                 kind="agenda",
@@ -519,6 +528,7 @@ def _agenda_cards(db: GameDB, cards: List[BriefCard]) -> None:
                 meta=f"{progress}%",
                 ref_kind="character",
                 ref_id=name,
+                effects=effects,
             )
         )
 
@@ -555,6 +565,11 @@ def _rivalry_cards(db: GameDB, cards: List[BriefCard]) -> None:
         seen.add(key)
         opinion = int(row["opinion"] or 0)
         basis = str(row["basis"] or "旧怨")
+        effects = [
+            {"kind": "opinion", "label": f"关系 {opinion}", "tone": "bad"},
+            {"kind": "rivalry_basis", "label": basis, "tone": "neutral"},
+            {"kind": "rivalry", "label": "可借力/可失控", "tone": "bad"},
+        ]
         cards.append(
             _card(
                 kind="rivalry",
@@ -569,6 +584,7 @@ def _rivalry_cards(db: GameDB, cards: List[BriefCard]) -> None:
                 meta=str(opinion),
                 ref_kind="relationship",
                 ref_id=f"{a}:{b}",
+                effects=effects,
             )
         )
         if len([c for c in cards if c.get("kind") == "rivalry"]) >= 2:

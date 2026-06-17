@@ -84,6 +84,34 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertEqual(agenda["tab"], "audience")
             self.assertIn("自肥", str(agenda["title"]))
             self.assertGreaterEqual(int(agenda["urgency"]), 90)
+            labels = [str(e["label"]) for e in agenda["effects"]]
+            self.assertIn("进度 91%", labels)
+            self.assertIn("强度 92", labels)
+            self.assertIn("自肥敛财", labels)
+
+    def test_rivalry_card_surfaces_opinion_and_basis(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            names = [
+                str(r["name"]) for r in db.conn.execute(
+                    "SELECT name FROM characters "
+                    "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                    "LIMIT 2"
+                ).fetchall()
+            ]
+            a, b = names
+            court._set_opinion(db, a, b, -80, "夙仇", 1)
+            court._set_opinion(db, b, a, -80, "夙仇", 1)
+            db.conn.commit()
+
+            cards = briefing_cards(db, state, limit=8)
+            rivalry = next(c for c in cards if c["kind"] == "rivalry" and c["actor"] == a)
+            self.assertEqual(rivalry["tab"], "audience")
+            self.assertEqual(rivalry["target"], b)
+            labels = [str(e["label"]) for e in rivalry["effects"]]
+            self.assertIn("关系 -80", labels)
+            self.assertIn("夙仇", labels)
+            self.assertIn("可借力/可失控", labels)
 
     def test_army_autonomy_becomes_realm_hook(self):
         with TemporaryDirectory() as tmp:
