@@ -193,6 +193,31 @@ class TickTests(unittest.TestCase):
             self.assertIn("不得说成不知道", brief)
             self.assertEqual(lifecycle.directive_chat_context_brief(db, "韩爌", did), "")
 
+    def test_done_directive_chat_context_becomes_followup_prompt(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "令袁崇焕整顿辽东军饷，十日内具奏欠饷实数与裁汰方案。")
+            db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='done', "
+                "progress=100, integrity_reported=88, settle_note=?, outcome_status='applied' WHERE id=?",
+                (
+                    "袁崇焕",
+                    "臣谨奏：辽东军饷已清出大概，欠饷册可呈御览。",
+                    did,
+                ),
+            )
+            db.conn.commit()
+
+            brief = lifecycle.directive_chat_context_brief(db, "袁崇焕", did)
+
+            self.assertIn("复命后追问", brief)
+            self.assertIn("当前状态：已复命", brief)
+            self.assertIn("最近复命/处置摘录", brief)
+            self.assertIn("不得继续说成未办", brief)
+            self.assertIn("奏报口径是否有水分", brief)
+            self.assertIn("下一步可续办", brief)
+            self.assertEqual(lifecycle.directive_chat_context_brief(db, "韩爌", did), "")
+
     def test_directive_audience_pressure_moves_live_directive(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)

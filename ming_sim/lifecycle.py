@@ -354,8 +354,9 @@ def directive_chat_context_brief(db: GameDB, minister_name: str, directive_id: o
     resistance = int(item.get("resistance") or 0)
     text = str(item.get("text") or "").strip()
     eta = int(item.get("eta_day") or 0)
+    is_done = status == "done"
     lines = [
-        "【本次召对事项：追问在办旨意】",
+        "【本次召对事项：复命后追问】" if is_done else "【本次召对事项：追问在办旨意】",
         f"旨意#{did}：{text}",
         f"主办官：{assignee or minister_name}；当前状态：{status_cn}；账面进度：{progress}%；奏报执行率：{reported}%；阻力估计：{resistance}。",
     ]
@@ -366,10 +367,17 @@ def directive_chat_context_brief(db: GameDB, minister_name: str, directive_id: o
     settle_note = str(item.get("settle_note") or "").strip()
     if settle_note:
         lines.append(f"最近复命/处置摘录：{settle_note[:180]}")
-    lines.append(
-        "回答规则：你必须承认这道旨意与自己有关；不得说成不知道、未接办或全无进展。"
-        "按你的身份、能力、派系与私心交代真实阻力，可请款、请换人、推责、认责或给出可验期限。"
-    )
+    if is_done:
+        lines.append(
+            "回答规则：你必须承认这道旨意已经复命；不得继续说成未办、未接办或全无进展。"
+            "这是复命后的御前追问：按你的身份与私心说明成效、奏报口径是否有水分、谁有功谁有过、"
+            "余波风险和下一步可续办之事；可请赏、请罪、推责或请求另下一道旨意，但不要把已复命之事重置成在办。"
+        )
+    else:
+        lines.append(
+            "回答规则：你必须承认这道旨意与自己有关；不得说成不知道、未接办或全无进展。"
+            "按你的身份、能力、派系与私心交代真实阻力，可请款、请换人、推责、认责或给出可验期限。"
+        )
     return "\n".join(lines)
 
 
