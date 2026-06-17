@@ -57,14 +57,25 @@ def briefing_payload(db: GameDB, state: Optional[GameState] = None, *, limit: in
     """Return a stable API payload for the home-screen strategic briefing."""
 
     safe_limit = max(1, min(8, int(limit or 5)))
+    candidates = _briefing_candidates(db, state)
+    cards = _select_brief_cards(candidates, limit=safe_limit)
     return {
-        "cards": briefing_cards(db, state, limit=safe_limit),
+        "cards": cards,
         "limit": safe_limit,
+        "shown": len(cards),
+        "total": len(candidates),
+        "hidden": max(0, len(candidates) - len(cards)),
     }
 
 
 def briefing_cards(db: GameDB, state: Optional[GameState] = None, *, limit: int = 5) -> List[BriefCard]:
     """Collect and rank actionable hooks from existing simulation tables."""
+
+    return _select_brief_cards(_briefing_candidates(db, state), limit)
+
+
+def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[BriefCard]:
+    """Collect all actionable hooks before the home-screen outliner chooses a subset."""
 
     cards: List[BriefCard] = []
     _pending_decision_cards(db, cards)
@@ -76,7 +87,7 @@ def briefing_cards(db: GameDB, state: Optional[GameState] = None, *, limit: int 
     _army_cards(db, cards)
     _faction_cards(db, cards)
     _secret_cards(db, cards)
-    return _select_brief_cards(cards, limit)
+    return cards
 
 
 def _card_rank(card: BriefCard) -> tuple:

@@ -14,11 +14,25 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   const openPerson = usePerson();
   const [eunuch, setEunuch] = useState<PublicCharacter | null>(null);
   const [briefCards, setBriefCards] = useState<PlaystyleBriefCard[]>([]);
+  const [briefCount, setBriefCount] = useState({ shown: 0, total: 0, hidden: 0 });
   useEffect(() => {
     loadEunuch().then((r) => setEunuch(r.eunuch)).catch(() => setEunuch(null));
   }, []);
   useEffect(() => {
-    loadPlaystyleBrief(5).then((r) => setBriefCards(r.cards || [])).catch(() => setBriefCards([]));
+    loadPlaystyleBrief(5)
+      .then((r) => {
+        const cards = r.cards || [];
+        setBriefCards(cards);
+        setBriefCount({
+          shown: Number(r.shown ?? cards.length),
+          total: Number(r.total ?? cards.length),
+          hidden: Number(r.hidden ?? 0),
+        });
+      })
+      .catch(() => {
+        setBriefCards([]);
+        setBriefCount({ shown: 0, total: 0, hidden: 0 });
+      });
   }, [worldVersion]);
   const replies = (desk?.pending || []).filter((m) => INFORMATIONAL_KINDS.includes(m.kind));
   const drowning = (desk?.pending || []).filter((m) => m.days_to_expire > 0 && m.days_to_expire <= 7).length;
@@ -87,7 +101,12 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
 
       {briefCards.length > 0 && (
         <section className="m-card m-brief">
-          <h2 className="m-card-title">朝局风向</h2>
+          <h2 className="m-card-title m-brief-titlebar">
+            朝局风向
+            {briefCount.hidden > 0 && (
+              <span className="m-brief-count">{briefCount.shown}/{briefCount.total}</span>
+            )}
+          </h2>
           <ul className="m-brief-list">
             {briefCards.map((card, i) => {
               return (

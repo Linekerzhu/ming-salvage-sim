@@ -186,6 +186,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 /* 朝局风向：把隐藏局势变成可点击玩法钩子 */
 .m-brief { border-left: 4px solid var(--gold-deep); }
+.m-brief-titlebar { display: flex; align-items: center; gap: 8px; }
+.m-brief-count {
+  display: inline-flex; align-items: center; min-height: 18px; padding: 1px 7px; border-radius: 999px;
+  font-size: .7rem; font-weight: 800; color: var(--ink-soft);
+  background: rgba(42,31,18,.07); border: 1px solid rgba(74,45,20,.12);
+}
 .m-brief-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .m-brief-card {
   display: flex; flex-direction: column; align-items: stretch; gap: 7px; padding: 9px 0;
