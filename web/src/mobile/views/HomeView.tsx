@@ -92,6 +92,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   const canCollapseBrief = briefLimit > 5 && briefCount.total > 5;
   const activeBriefBucket = briefBuckets.find((b) => b.kind === briefKind);
   const allBriefTotal = briefBuckets.reduce((sum, b) => sum + Number(b.total || 0), 0);
+  const leadUrgency = briefLead ? briefUrgency(briefLead.urgency) : null;
   const chooseBriefKind = (kind: string) => {
     setBriefKind((current) => (current === kind ? "" : kind));
     setBriefLimit(5);
@@ -151,9 +152,23 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
             )}
             {briefLead && (
               <button type="button" className="m-brief-lead" onClick={() => openBrief(briefLead)}>
-                <span>首要</span>
-                <b>{briefLead.title}</b>
-                <em>{briefLead.cta || "处置"}›</em>
+                <span className="m-brief-lead-main">
+                  <span className="m-brief-lead-kicker">首要</span>
+                  {leadUrgency && (
+                    <span className={`m-brief-lead-rank level-${leadUrgency.level}`}>{leadUrgency.label}{leadUrgency.score}</span>
+                  )}
+                  <b>{briefLead.title}</b>
+                  <em>{briefLead.cta || "处置"}›</em>
+                </span>
+                {briefLead.effects?.length ? (
+                  <span className="m-brief-lead-effects" aria-label="首要影响">
+                    {briefLead.effects.slice(0, 2).map((it, idx) => (
+                      <span key={`${it.label}-${idx}`} className={`m-effect-chip tone-${it.tone || "neutral"}`}>
+                        {it.label}
+                      </span>
+                    ))}
+                  </span>
+                ) : null}
               </button>
             )}
             {briefBuckets.length > 0 && (
