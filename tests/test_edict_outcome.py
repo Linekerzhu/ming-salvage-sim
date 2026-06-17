@@ -274,6 +274,135 @@ class DrainPendingOutcomesTests(unittest.TestCase):
             finally:
                 db.close()
 
+    def test_related_done_directive_stays_visible_beyond_news_window(self):
+        """承办人/被点名者的已办圣旨，跨过短期新闻窗口后仍应进入召对事实。"""
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            try:
+                db.conn.execute(
+                    """
+                    INSERT INTO turn_directives
+                        (turn, year, period, text, source, status, lifecycle_status,
+                         progress, assignee, settle_note, outcome_status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        1,
+                        1627,
+                        10,
+                        "敕曰：试办内书堂一所，着内官监御前王承恩协办章程。",
+                        "test",
+                        "issued",
+                        "done",
+                        100,
+                        "王承恩",
+                        "奴婢承恩谨奏：内书堂已开讲。",
+                        "applied",
+                    ),
+                )
+                db.conn.execute(
+                    """
+                    INSERT INTO turn_directives
+                        (turn, year, period, text, source, status, lifecycle_status,
+                         progress, assignee, settle_note, outcome_status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        1,
+                        1627,
+                        10,
+                        "敕曰：祭告太庙，遣礼部择日行礼。",
+                        "test",
+                        "issued",
+                        "done",
+                        100,
+                        "韩爌",
+                        "臣谨奏：太庙礼成。",
+                        "applied",
+                    ),
+                )
+                db.conn.commit()
+                state.turn = 5
+                state.year = 1628
+                state.period = 2
+                character = Character(
+                    name="王承恩",
+                    office="内官监御前",
+                    office_type="内廷",
+                    faction="皇党",
+                    aliases=[],
+                    personal_skills=[],
+                    loyalty=80,
+                    ability=65,
+                    integrity=75,
+                    courage=70,
+                    style="谨慎",
+                    power_id="ming",
+                )
+
+                brief = build_recent_directive_memory_brief(character, CourtContext(state, db))
+
+                self.assertIn("与你直接相关", brief)
+                self.assertIn("内书堂", brief)
+                self.assertIn("已复命，结果已落库", brief)
+                self.assertIn("不得继续把已复命之事说成未办", brief)
+                self.assertNotIn("祭告太庙", brief)
+            finally:
+                db.close()
+
+    def test_office_related_done_directive_enters_peer_context(self):
+        """非承办人但同衙门相关的已办圣旨，应以职掌相关事实进入召对。"""
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            try:
+                db.conn.execute(
+                    """
+                    INSERT INTO turn_directives
+                        (turn, year, period, text, source, status, lifecycle_status,
+                         progress, assignee, settle_note, outcome_status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        1,
+                        1627,
+                        10,
+                        "敕曰：着户部清核辽饷旧账，三日内具册以闻。",
+                        "test",
+                        "issued",
+                        "done",
+                        100,
+                        "毕自严",
+                        "臣谨奏：户部辽饷旧账已清出大概。",
+                        "applied",
+                    ),
+                )
+                db.conn.commit()
+                state.turn = 5
+                state.year = 1628
+                state.period = 2
+                character = Character(
+                    name="户部司官",
+                    office="户部郎中",
+                    office_type="户部",
+                    faction="无",
+                    aliases=[],
+                    personal_skills=["核账"],
+                    loyalty=55,
+                    ability=60,
+                    integrity=62,
+                    courage=45,
+                    style="谨慎守职",
+                    power_id="ming",
+                )
+
+                brief = build_recent_directive_memory_brief(character, CourtContext(state, db))
+
+                self.assertIn("与你职掌相关", brief)
+                self.assertIn("户部清核辽饷", brief)
+                self.assertIn("臣谨奏：户部辽饷旧账已清出大概", brief)
+            finally:
+                db.close()
+
     def test_directive_audience_context_enters_chat_prompt(self):
         """从诏旨召主办时，具体旨意上下文应进入本轮 NPC prompt。"""
         with TemporaryDirectory() as tmp:

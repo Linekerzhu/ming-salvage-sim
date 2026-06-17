@@ -313,9 +313,13 @@ def build_recent_directive_memory_brief(character: Character, context: CourtCont
     Continuous-time edicts can complete before the next monthly chapter memory is
     written. This dynamic block keeps NPC dialogue aligned with the directive
     ledger and overrides stale statements preserved in the agent/chat history.
+    Directly related facts stay visible longer than general court news so a
+    minister cannot forget their own fulfilled decree after the short news window.
     """
     try:
-        start_turn = max(1, int(context.state.turn) - 1)
+        current_turn = int(context.state.turn)
+        recent_start_turn = max(1, current_turn - 1)
+        related_start_turn = max(1, current_turn - 5)
         rows = context.db.conn.execute(
             """
             SELECT id, turn, year, period, text, lifecycle_status, progress,
@@ -323,18 +327,10 @@ def build_recent_directive_memory_brief(character: Character, context: CourtCont
             FROM turn_directives
             WHERE status = 'issued'
               AND turn BETWEEN ? AND ?
-            ORDER BY
-              CASE WHEN assignee = ? THEN 0 ELSE 1 END,
-              CASE lifecycle_status
-                WHEN 'done' THEN 0
-                WHEN 'executing' THEN 1
-                WHEN 'in_transit' THEN 2
-                ELSE 3
-              END,
-              id DESC
-            LIMIT 18
+            ORDER BY id DESC
+            LIMIT 80
             """,
-            (start_turn, int(context.state.turn), character.name),
+            (related_start_turn, current_turn),
         ).fetchall()
     except Exception:
         return ""
@@ -352,11 +348,58 @@ def build_recent_directive_memory_brief(character: Character, context: CourtCont
         "done": "已复命",
         "aborted": "已收回",
     }
+    name_terms = [
+        str(character.name or "").strip(),
+        *[str(alias).strip() for alias in (character.aliases or [])],
+    ]
+    name_terms = [term for term in dict.fromkeys(name_terms) if term]
+    office_blob = f"{character.office or ''} {character.office_type or ''} {character.faction or ''}"
+    office_terms = [
+        term for term in (
+            "内阁", "户部", "兵部", "吏部", "礼部", "工部", "都察院", "刑部",
+            "司礼监", "东厂", "锦衣卫", "内官监", "御马监", "内廷", "内库",
+            "辽东", "关宁", "京营", "登莱", "宣大", "蓟镇", "边镇",
+        )
+        if term in office_blob
+    ]
+
+    selected: List[tuple[int, int, object, str]] = []
+    for row in rows:
+        assignee = str(row["assignee"] or "").strip()
+        text_blob = " ".join(
+            str(part or "")
+            for part in (row["text"], row["settle_note"], assignee)
+        )
+        directly_related = bool(assignee and assignee == character.name) or any(
+            term and term in text_blob for term in name_terms
+        )
+        office_related = bool(office_terms) and any(term in text_blob for term in office_terms)
+        recent_public = int(row["turn"] or 0) >= recent_start_turn
+        if not (directly_related or office_related or recent_public):
+            continue
+        if directly_related:
+            reason = "与你直接相关"
+            relevance_rank = 0
+        elif office_related:
+            reason = "与你职掌相关"
+            relevance_rank = 1
+        else:
+            reason = "朝廷公知近事"
+            relevance_rank = 2
+        status = str(row["lifecycle_status"] or "")
+        status_rank = {"done": 0, "executing": 1, "in_transit": 2, "stalled": 3}.get(status, 4)
+        selected.append((relevance_rank, status_rank, row, reason))
+    if not selected:
+        return ""
+    selected.sort(key=lambda item: (item[0], item[1], -int(item[2]["id"] or 0)))
+    selected = selected[:18]
+
     lines = [
         "【近期待办/已办圣旨事实（隐藏硬事实；优先于旧对话、旧印象和历史常识）】",
-        "这些来自朝廷文书与复命簿。若与你过去说过的话冲突，以本段为准；可承认旧话发生在早前，不得继续把已复命之事说成未办。",
+        "这些来自朝廷文书、复命簿与衙门风闻。与你直接相关/职掌相关者可作为确知；朝廷公知近事只按文书或风闻口径说。",
+        "若与你过去说过的话冲突，以本段为准；可承认旧话发生在早前，不得继续把已复命之事说成未办。",
     ]
-    for row in rows:
+    for _, _, row, reason in selected:
         status = str(row["lifecycle_status"] or "")
         label = status_label.get(status, status or "已颁")
         assignee = str(row["assignee"] or "未署主办")
@@ -374,13 +417,13 @@ def build_recent_directive_memory_brief(character: Character, context: CourtCont
         decree = compact(row["text"], 110)
         settle = compact(row["settle_note"], 110)
         line = (
-            f"- #{int(row['id'])}（{int(row['year'])}年{int(row['period'])}月）"
+            f"- [{reason}] #{int(row['id'])}（{int(row['year'])}年{int(row['period'])}月）"
             f"{fact}；主办：{assignee}；旨意：{decree}"
         )
         if settle:
             line += f"；复命：{settle}"
         lines.append(line)
-    lines.append("回答皇帝追问进度时，先按上述文书事实校准：已复命则说已办结果，在办则说仍在推进，未列入本段才按工具或现状另查。")
+    lines.append("回答皇帝追问进度时，先按上述文书事实校准：已复命则说已办结果，在办则说仍在推进；未列入本段才按工具或现状另查。")
     return "\n".join(lines)
 
 
