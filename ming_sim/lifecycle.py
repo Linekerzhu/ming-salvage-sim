@@ -23,6 +23,7 @@ from ming_sim.models import GameState
 from ming_sim.paths import bundled_path
 from ming_sim.timeflow import LEVEL_BLUE, LEVEL_RED, LEVEL_YELLOW
 from ming_sim.upgrade_schema import (
+    KV_CURRENT_DAY,
     KV_RISK_AVERSION,
     KV_SHI,
     RISK_AVERSION_DEFAULT,
@@ -297,9 +298,10 @@ def init_directive_lifecycles(db: GameDB, state: GameState, directives, day: int
 
 def _chain_meta(row) -> Dict[str, object]:
     try:
-        return json.loads(row["chain"] or "{}")
+        data = json.loads(row["chain"] or "{}")
     except ValueError:
         return {}
+    return data if isinstance(data, dict) else {}
 
 
 def _save_chain_meta(db: GameDB, did: int, meta: Dict[str, object]) -> None:
@@ -313,6 +315,234 @@ def _json_dict(raw: object) -> Dict[str, object]:
     except (TypeError, ValueError):
         return {}
     return data if isinstance(data, dict) else {}
+
+
+def _anomaly_label(raw: object) -> str:
+    kind = str(_json_dict(raw).get("kind") or "")
+    return {"block": "封驳抗命", "delay": "迟滞拖延", "surprise": "实情有变"}.get(kind, "")
+
+
+def directive_chat_context_brief(db: GameDB, minister_name: str, directive_id: object) -> str:
+    """Build a trusted server-side brief for an audience about one directive."""
+    try:
+        did = int(str(directive_id or "0"))
+    except (TypeError, ValueError):
+        return ""
+    if did <= 0:
+        return ""
+    item = next(
+        (row for row in lifecycle_payload(db, include_done=True, limit=120)
+         if int(row.get("id") or 0) == did),
+        None,
+    )
+    if not item:
+        return ""
+    assignee = str(item.get("assignee") or "").strip()
+    if assignee and assignee != minister_name:
+        return ""
+    status = str(item.get("status") or "")
+    status_cn = {
+        "in_transit": "送达中",
+        "executing": "承办中",
+        "stalled": "封驳停摆",
+        "done": "已复命",
+        "aborted": "已收回",
+    }.get(status, status or "未知")
+    anomaly = _anomaly_label(item.get("anomaly") or "")
+    progress = int(item.get("progress") or 0)
+    reported = int(item.get("reported_rate") or 0)
+    resistance = int(item.get("resistance") or 0)
+    text = str(item.get("text") or "").strip()
+    eta = int(item.get("eta_day") or 0)
+    lines = [
+        "【本次召对事项：追问在办旨意】",
+        f"旨意#{did}：{text}",
+        f"主办官：{assignee or minister_name}；当前状态：{status_cn}；账面进度：{progress}%；奏报执行率：{reported}%；阻力估计：{resistance}。",
+    ]
+    if eta > 0:
+        lines.append(f"预计见分晓日：第{eta}日。")
+    if anomaly:
+        lines.append(f"当前异常：{anomaly}。")
+    settle_note = str(item.get("settle_note") or "").strip()
+    if settle_note:
+        lines.append(f"最近复命/处置摘录：{settle_note[:180]}")
+    lines.append(
+        "回答规则：你必须承认这道旨意与自己有关；不得说成不知道、未接办或全无进展。"
+        "按你的身份、能力、派系与私心交代真实阻力，可请款、请换人、推责、认责或给出可验期限。"
+    )
+    return "\n".join(lines)
+
+
+def _has_any(text: str, terms: tuple[str, ...]) -> bool:
+    return any(term in text for term in terms)
+
+
+def _extract_blocker_clue(db: GameDB, answer: str, assignee: str) -> Dict[str, object]:
+    text = str(answer or "")
+    if not text:
+        return {}
+    try:
+        rows = db.conn.execute(
+            """
+            SELECT name, office, faction
+            FROM characters
+            WHERE status='active' AND name != ?
+            ORDER BY length(name) DESC
+            """,
+            (assignee,),
+        ).fetchall()
+        for row in rows:
+            name = str(row["name"] or "").strip()
+            if name and name in text:
+                detail = " · ".join(part for part in (str(row["office"] or ""), str(row["faction"] or "")) if part)
+                return {"kind": "person", "name": name, "label": name, "detail": detail}
+    except Exception:
+        pass
+    try:
+        factions = [
+            str(row["faction"] or "").strip()
+            for row in db.conn.execute(
+                "SELECT DISTINCT faction FROM characters WHERE status='active' AND faction!='' ORDER BY length(faction) DESC"
+            ).fetchall()
+        ]
+        for faction in factions:
+            if faction and faction in text:
+                return {"kind": "faction", "label": faction, "detail": "派系掣肘"}
+    except Exception:
+        pass
+    for org in ("户部", "兵部", "吏部", "礼部", "工部", "都察院", "内阁", "司礼监", "东厂", "锦衣卫", "关宁军", "京营"):
+        if org in text:
+            return {"kind": "org", "label": org, "detail": "衙门阻力"}
+    if _has_any(text, ("钱粮", "军饷", "粮饷", "拨银", "加拨")):
+        return {"kind": "resource", "label": "钱粮", "detail": "资源阻力"}
+    return {}
+
+
+def _remember_blocker_clue(meta: Dict[str, object], clue: Dict[str, object], *, minister_name: str, day: int) -> Dict[str, object]:
+    if not clue:
+        return {}
+    saved = dict(clue)
+    saved["source_minister"] = minister_name
+    saved["day"] = int(day)
+    meta["blocker_clue"] = saved
+    return saved
+
+
+def apply_directive_audience_pressure(
+    db: GameDB,
+    state: GameState,
+    minister_name: str,
+    directive_id: object,
+    user_text: str,
+    answer: str,
+) -> Dict[str, object]:
+    """Small deterministic lifecycle nudge from questioning an assignee in audience.
+
+    This is intentionally weaker than explicit intervention actions. It turns
+    roleplay into visible state movement without letting one conversation skip
+    the execution lifecycle.
+    """
+    try:
+        did = int(str(directive_id or "0"))
+    except (TypeError, ValueError):
+        return {}
+    row = db.conn.execute("SELECT * FROM turn_directives WHERE id=?", (did,)).fetchone()
+    if row is None or str(row["lifecycle_status"]) not in LIVE_STATUSES:
+        return {}
+    assignee = str(row["assignee"] or "").strip()
+    if assignee and assignee != minister_name:
+        return {}
+
+    combined = f"{user_text}\n{answer}"
+    if not _has_any(combined, ("进度", "实数", "几分", "阻力", "停滞", "掣肘", "期限", "催", "责", "交账", "复命")):
+        return {}
+
+    evade = _has_any(answer, ("不知", "未闻", "非臣", "不归臣", "无从", "不能", "不敢", "难以", "未接"))
+    support = _has_any(answer, ("请拨", "加拨", "拨银", "钱粮", "军饷", "粮饷", "人手", "会同", "监军", "部议"))
+    commit = _has_any(answer, ("遵旨", "谨遵", "臣当", "臣即", "即日", "立刻", "具奏", "清册", "交账", "担责", "限日", "三日", "五日", "十日"))
+    forceful = _has_any(user_text, ("进度", "实数", "几分", "阻力", "停滞", "责", "期限"))
+    day = kv_int(db, KV_CURRENT_DAY, 1)
+    meta = _chain_meta(row)
+    status = str(row["lifecycle_status"] or "")
+    anomaly = _anomaly_label(row["anomaly"] or "")
+    blocker_clue = _extract_blocker_clue(db, answer, assignee or minister_name)
+
+    if evade and not commit:
+        if assignee:
+            db.conn.execute("UPDATE characters SET grievance=MIN(100, grievance+3) WHERE name=?", (assignee,))
+        adjust_belief(db, KV_RISK_AVERSION, +1, f"召对追问旨意#{did}避重就轻", day=day)
+        db.conn.commit()
+        return {
+            "directive_id": did,
+            "kind": "evasive",
+            "title": "旨意未动",
+            "message": f"{minister_name}避重就轻，旨意进展未见松动（主办怨气+，任事观望+）。",
+            "progress_delta": 0,
+            "resistance_delta": 0,
+        }
+
+    if support and not commit:
+        db.conn.execute(
+            "UPDATE turn_directives SET progress=MIN(99, progress+2) WHERE id=?",
+            (did,),
+        )
+        meta["last_audience_pressure"] = {"kind": "needs_support", "minister": minister_name, "day": day}
+        saved_clue = _remember_blocker_clue(meta, blocker_clue, minister_name=minister_name, day=day)
+        _save_chain_meta(db, did, meta)
+        db.conn.commit()
+        clue_text = f"，线索：{saved_clue.get('label')}" if saved_clue else ""
+        return {
+            "directive_id": did,
+            "kind": "needs_support",
+            "title": "阻力露底",
+            "message": f"{minister_name}把阻力摊到御前，旨意稍有眉目（进度+2，仍待加拨或换人处置{clue_text}）。",
+            "progress_delta": 2,
+            "resistance_delta": 0,
+            "suggested_action": "fund",
+            "blocker_clue": saved_clue,
+        }
+
+    progress_delta = 6 if forceful else 4
+    if status == "stalled":
+        progress_delta = max(4, progress_delta - 1)
+    resistance_delta = -5 if forceful else -3
+    exec_delta = -2 if forceful else -1
+    current_progress = int(row["progress"] or 0)
+    new_progress = min(99, max(current_progress, current_progress + progress_delta))
+    meta["resistance"] = max(0, int(meta.get("resistance") or 0) + resistance_delta)
+    meta["last_audience_pressure"] = {
+        "kind": "pressed",
+        "minister": minister_name,
+        "day": day,
+        "progress_delta": new_progress - current_progress,
+        "resistance_delta": resistance_delta,
+    }
+    saved_clue = _remember_blocker_clue(meta, blocker_clue, minister_name=minister_name, day=day)
+    _save_chain_meta(db, did, meta)
+    db.conn.execute(
+        "UPDATE turn_directives SET lifecycle_status='executing', progress=?, "
+        "exec_days=MAX(2, exec_days+?), eta_day=MAX(start_day+lead_days+2, eta_day+?), "
+        "anomaly='' WHERE id=?",
+        (new_progress, exec_delta, exec_delta, did),
+    )
+    if assignee:
+        db.conn.execute("UPDATE characters SET grievance=MIN(100, grievance+2) WHERE name=?", (assignee,))
+    if _has_any(user_text, ("责", "停滞", "问罪")):
+        adjust_belief(db, KV_RISK_AVERSION, +1, f"御前责问旨意#{did}", day=day)
+    db.conn.commit()
+    moved = new_progress - current_progress
+    cleared = f"，{anomaly}已压下" if anomaly else ""
+    clue_text = f"，线索：{saved_clue.get('label')}" if saved_clue else ""
+    return {
+        "directive_id": did,
+        "kind": "pressed",
+        "title": "旨意有动",
+        "message": f"御前追问压实了{minister_name}的差使（进度+{moved}，阻力{resistance_delta}{cleared}{clue_text}）。",
+        "progress_delta": moved,
+        "resistance_delta": resistance_delta,
+        "cleared_anomaly": bool(anomaly),
+        "blocker_clue": saved_clue,
+    }
 
 
 def _signed(value: object, suffix: str = "") -> str:
@@ -727,6 +957,7 @@ def lifecycle_payload(db: GameDB, *, include_done: bool = True, limit: int = 40)
             "eta_day": int(row["eta_day"]),
             "resistance": int(meta.get("resistance") or 0),
             "chain": meta.get("chain") or [],
+            "blocker_clue": meta.get("blocker_clue") if isinstance(meta.get("blocker_clue"), dict) else {},
             "reported_rate": int(row["integrity_reported"]),
             "anomaly": str(row["anomaly"] or ""),
             "settle_note": str(row["settle_note"] or ""),

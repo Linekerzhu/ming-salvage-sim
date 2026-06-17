@@ -322,6 +322,29 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-eta { font-size: 0.8rem; color: var(--gold-deep); font-weight: 700; }
 .m-directive-text { font-size: 0.95rem; margin: 0 0 8px; }
 .m-directive-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.82rem; color: var(--ink-soft); }
+.m-directive-acts {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 7px;
+  margin-top: 8px;
+}
+.m-directive-act {
+  flex: 0 1 auto; min-height: 34px; border-radius: 8px; padding: 6px 11px;
+  border: 1px solid rgba(74,45,20,.2); background: rgba(42,31,18,.045);
+  color: var(--ink); font-size: 0.8rem; font-weight: 700;
+}
+.m-directive-act.primary {
+  border-color: rgba(181,134,58,.55);
+  background: linear-gradient(180deg, rgba(181,134,58,.22), rgba(181,134,58,.12));
+  color: var(--gold-deep);
+}
+.m-directive-muted { font-size: 0.78rem; color: var(--ink-soft); }
+.m-blocker-clue {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 7px;
+  margin-top: 9px; padding: 8px 9px; border: 1px dashed rgba(158,52,41,.34);
+  border-radius: 9px; background: rgba(158,52,41,.055);
+}
+.m-blocker-copy { flex: 1 1 150px; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.m-blocker-k { color: var(--cinnabar); font-size: 0.72rem; font-weight: 800; }
+.m-blocker-v { color: var(--ink); font-size: 0.82rem; font-weight: 700; word-break: break-word; }
 .m-prog { display: flex; align-items: center; gap: 6px; flex: 1; max-width: 160px; }
 .m-prog-bar { height: 6px; background: var(--gold-deep); border-radius: 3px; display: block; }
 .m-prog { position: relative; }

@@ -270,7 +270,7 @@ function Shell({ onExitMenu }: { onExitMenu: () => void }) {
             audienceLead={audienceLead}
           />
         )}
-        {!loading && tab === "edicts" && <EdictsView />}
+        {!loading && tab === "edicts" && <EdictsView summon={summonAudience} />}
         {!loading && tab === "realm" && <RealmView />}
       </main>
       <BottomNav active={tab} go={setTab} />

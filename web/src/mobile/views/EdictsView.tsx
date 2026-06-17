@@ -9,7 +9,8 @@ import {
   rejectDirective,
   writeDecree,
 } from "../api";
-import type { DirectiveLifecycle } from "../api";
+import type { AudienceLead, DirectiveLifecycle, Suggestion } from "../api";
+import { usePerson } from "../personCtx";
 
 const STATUS_CN: Record<string, string> = {
   in_transit: "送达中", executing: "承办中", stalled: "封驳停摆", done: "已复命", aborted: "已收回",
@@ -22,6 +23,8 @@ const INTERVENE: Array<{ key: string; label: string; extra?: Record<string, unkn
   { key: "ducai", label: "独断" },
   { key: "abort", label: "收回" },
 ];
+
+type SummonAudience = (name: string, lead?: AudienceLead) => void;
 
 export function OutcomeSummary({ items, compact = false }: { items?: DirectiveLifecycle["outcome_summary"]; compact?: boolean }) {
   if (!items?.length) return null;
@@ -37,9 +40,10 @@ export function OutcomeSummary({ items, compact = false }: { items?: DirectiveLi
   );
 }
 
-function DirectiveCard({ d, today, onActed, ministers }: {
-  d: DirectiveLifecycle; today: number; onActed: () => void; ministers: any[];
+function DirectiveCard({ d, today, onActed, ministers, activeMinisters, summon }: {
+  d: DirectiveLifecycle; today: number; onActed: () => void; ministers: any[]; activeMinisters: Set<string>; summon?: SummonAudience;
 }) {
+  const openPerson = usePerson();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [open, setOpen] = useState(false);
@@ -49,11 +53,13 @@ function DirectiveCard({ d, today, onActed, ministers }: {
   const tone = d.status === "stalled" ? "t-urgent" : d.status === "done" ? "t-info"
     : d.status === "executing" ? "t-warn" : d.status === "aborted" ? "t-calm" : "t-calm";
   const overdue = live && d.eta_day > 0 && eta < 0;
-  let anomalyLabel = "";
-  try {
-    const k = (JSON.parse(d.anomaly || "{}") || {}).kind;
-    anomalyLabel = { block: "封驳抗命", delay: "迟滞拖延", surprise: "实情有变" }[k as string] || "";
-  } catch { /* ignore */ }
+  const anomalyLabel = directiveAnomalyLabel(d.anomaly);
+  const assignee = String(d.assignee || "").trim();
+  const canReachAssignee = !!assignee && activeMinisters.has(assignee);
+  const canSummonAssignee = live && canReachAssignee && !!summon;
+  const clue = d.blocker_clue || {};
+  const clueName = String(clue.name || clue.label || "").trim();
+  const canSummonClue = live && clue.kind === "person" && clueName && activeMinisters.has(clueName) && !!summon;
 
   const act = async (action: string, extra?: Record<string, unknown>) => {
     if (busy) return;
@@ -83,6 +89,39 @@ function DirectiveCard({ d, today, onActed, ministers }: {
         <span>主办 {d.assignee || "—"}</span>
         {live && <span className="m-prog-pct">{d.progress}%</span>}
       </div>
+      {assignee && (
+        <div className="m-directive-acts" aria-label="主办官动作">
+          {canSummonAssignee && (
+            <button className="m-directive-act primary" onClick={() => summon!(assignee, directiveAudienceLead(d, today))}>
+              召主办
+            </button>
+          )}
+          {canReachAssignee && (
+            <button className="m-directive-act" onClick={() => openPerson(assignee)}>
+              查主办
+            </button>
+          )}
+          {!canReachAssignee && <span className="m-directive-muted">主办暂不可召</span>}
+        </div>
+      )}
+      {clueName && (
+        <div className="m-blocker-clue">
+          <div className="m-blocker-copy">
+            <span className="m-blocker-k">阻力线索</span>
+            <span className="m-blocker-v">{clueName}{clue.detail ? ` · ${clue.detail}` : ""}</span>
+          </div>
+          {canSummonClue && (
+            <button className="m-directive-act primary" onClick={() => summon!(clueName, blockerAudienceLead(d, clueName))}>
+              召问阻力
+            </button>
+          )}
+          {clue.kind === "person" && clueName && (
+            <button className="m-directive-act" onClick={() => openPerson(clueName)}>
+              查此人
+            </button>
+          )}
+        </div>
+      )}
       {live && (
         <div className="m-prog-track"><span className="m-prog-fill" style={{ width: `${d.progress}%` }} /></div>
       )}
@@ -136,6 +175,74 @@ function DirectiveCard({ d, today, onActed, ministers }: {
       )}
     </div>
   );
+}
+
+function directiveAnomalyLabel(raw?: string): string {
+  try {
+    const k = (JSON.parse(raw || "{}") || {}).kind;
+    return { block: "封驳抗命", delay: "迟滞拖延", surprise: "实情有变" }[k as string] || "";
+  } catch {
+    return "";
+  }
+}
+
+function directiveAudienceLead(d: DirectiveLifecycle, today: number): AudienceLead {
+  const statusLabel = STATUS_CN[d.status] || d.status;
+  const progress = Math.max(0, Math.min(100, Number(d.progress || 0)));
+  const anomaly = directiveAnomalyLabel(d.anomaly);
+  const eta = Number(d.eta_day || 0) - today;
+  const etaText = Number(d.eta_day || 0) > 0 ? (eta < 0 ? `逾期 ${-eta} 日` : `余 ${eta} 日`) : "未定期";
+  return {
+    kind: "directive",
+    title: d.status === "stalled" ? "旨意停摆，召主办问罪" : "追问在办旨意",
+    detail: `${statusLabel} · ${progress}% · ${shortDirectiveText(d.text, 54)}`,
+    tone: d.status === "stalled" ? "danger" : "warn",
+    actor: d.assignee,
+    meta: anomaly || etaText,
+    ref_kind: "directive",
+    ref_id: String(d.id),
+    prompts: directivePrompts(d, anomaly),
+  };
+}
+
+function directivePrompts(d: DirectiveLifecycle, anomaly: string): Suggestion[] {
+  const text = shortDirectiveText(d.text, 34);
+  const prompts: Suggestion[] = [
+    { label: "问进度", text: `朕交你承办的「${text}」，眼下到底办到几分？把实数奏来。`, prefix: true },
+    { label: "问阻力", text: `此旨阻力在何处？是谁不肯配合，是钱粮、人手，还是你自己畏难？`, prefix: true },
+  ];
+  if (d.status === "stalled" || anomaly) {
+    prompts.push({ label: "责停滞", text: `此旨已经${anomaly || "停滞"}，朕今日要听实话：你该担什么责，又要朕如何裁断？`, prefix: true });
+  } else {
+    prompts.push({ label: "限复命", text: `朕再给你一个期限。几日之内能有可验回音？若不能，你荐谁接办？`, prefix: true });
+  }
+  return prompts;
+}
+
+function blockerAudienceLead(d: DirectiveLifecycle, blocker: string): AudienceLead {
+  const assignee = d.assignee || "主办";
+  const text = shortDirectiveText(d.text, 34);
+  return {
+    kind: "directive_blocker",
+    title: "追问旨意阻力",
+    detail: `${assignee}称此旨受${blocker}牵制：${text}`,
+    tone: "danger",
+    actor: blocker,
+    target: assignee,
+    meta: "阻力线索",
+    ref_kind: "directive",
+    ref_id: String(d.id),
+    prompts: [
+      { label: "问掣肘", text: `朕闻${assignee}承办「${text}」时受你牵制。你当面说清楚：是何缘故？`, prefix: true },
+      { label: "令其配合", text: `此旨是朕亲下，你若有异议当奏明，不得暗中掣肘。你能如何配合${assignee}办成？`, prefix: true },
+      { label: "查其私心", text: `你阻此旨，是为公议，还是另有所图？把你背后的党援、人情和钱粮说清楚。`, prefix: true },
+    ],
+  };
+}
+
+function shortDirectiveText(text: string, limit: number): string {
+  const clean = String(text || "此旨").replace(/\s+/g, " ").trim();
+  return clean.length > limit ? `${clean.slice(0, limit)}…` : clean;
 }
 
 function Composer({ onDone }: { onDone: () => void }) {
@@ -195,10 +302,11 @@ function Composer({ onDone }: { onDone: () => void }) {
   );
 }
 
-export function EdictsView() {
+export function EdictsView({ summon }: { summon?: SummonAudience }) {
   const { lifecycle, time, state, refresh } = useGame();
   const today = time?.current_day ?? 0;
   const ministers = (state?.ministers || []).filter((m: any) => m.status === "active");
+  const activeMinisters = new Set(ministers.map((m: any) => String(m.name || "")).filter(Boolean));
   const live = lifecycle.filter((d) => ["in_transit", "executing", "stalled"].includes(d.status));
   const done = lifecycle.filter((d) => d.status === "done").slice(0, 12);
   const drafts = (state?.directives || []).filter((x: any) => x.status === "draft" || x.status === "pending");
@@ -245,13 +353,33 @@ export function EdictsView() {
       {live.length === 0 ? (
         <p className="m-empty m-card">并无在办旨意。</p>
       ) : (
-        live.map((d) => <DirectiveCard key={d.id} d={d} today={today} onActed={refresh} ministers={ministers} />)
+        live.map((d) => (
+          <DirectiveCard
+            key={d.id}
+            d={d}
+            today={today}
+            onActed={refresh}
+            ministers={ministers}
+            activeMinisters={activeMinisters}
+            summon={summon}
+          />
+        ))
       )}
 
       {done.length > 0 && (
         <>
           <h2 className="m-section-title">已复命</h2>
-          {done.map((d) => <DirectiveCard key={d.id} d={d} today={today} onActed={refresh} ministers={ministers} />)}
+          {done.map((d) => (
+            <DirectiveCard
+              key={d.id}
+              d={d}
+              today={today}
+              onActed={refresh}
+              ministers={ministers}
+              activeMinisters={activeMinisters}
+              summon={summon}
+            />
+          ))}
         </>
       )}
     </div>

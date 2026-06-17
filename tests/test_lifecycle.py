@@ -156,6 +156,140 @@ class TickTests(unittest.TestCase):
             self.assertTrue(any("+12" in label for label in labels), labels)
             self.assertNotIn("integrity_actual", item)
 
+    def test_lifecycle_payload_tolerates_legacy_list_chain(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "着袁崇焕整顿辽东军饷，十日内具奏。")
+            db.conn.execute(
+                "UPDATE turn_directives SET lifecycle_status='executing', chain=? WHERE id=?",
+                (json.dumps([{"name": "袁崇焕", "role": "主办"}], ensure_ascii=False), did),
+            )
+            db.conn.commit()
+            item = [p for p in lifecycle.lifecycle_payload(db) if p["id"] == did][0]
+            self.assertEqual(item["resistance"], 0)
+            self.assertEqual(item["chain"], [])
+
+    def test_directive_chat_context_brief_is_trusted_and_assignee_scoped(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "令袁崇焕整顿辽东军饷，十日内具奏欠饷实数与裁汰方案。")
+            db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='executing', "
+                "progress=43, integrity_reported=66, anomaly=?, chain=? WHERE id=?",
+                (
+                    "袁崇焕",
+                    json.dumps({"kind": "delay"}, ensure_ascii=False),
+                    json.dumps({"resistance": 45, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            db.conn.commit()
+            brief = lifecycle.directive_chat_context_brief(db, "袁崇焕", did)
+            self.assertIn("追问在办旨意", brief)
+            self.assertIn("账面进度：43%", brief)
+            self.assertIn("奏报执行率：66%", brief)
+            self.assertIn("阻力估计：45", brief)
+            self.assertIn("当前异常：迟滞拖延", brief)
+            self.assertIn("不得说成不知道", brief)
+            self.assertEqual(lifecycle.directive_chat_context_brief(db, "韩爌", did), "")
+
+    def test_directive_audience_pressure_moves_live_directive(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "令袁崇焕整顿辽东军饷，十日内具奏欠饷实数与裁汰方案。")
+            db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='executing', "
+                "progress=43, exec_days=10, eta_day=12, anomaly=?, chain=? WHERE id=?",
+                (
+                    "袁崇焕",
+                    json.dumps({"kind": "delay"}, ensure_ascii=False),
+                    json.dumps({"resistance": 45, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            db.conn.commit()
+            effect = lifecycle.apply_directive_audience_pressure(
+                db,
+                state,
+                "袁崇焕",
+                did,
+                "朕问你进度，欠饷实数到底办到几分？",
+                "臣遵旨，即日清册具奏，三日内交账，不敢再误。",
+            )
+            row = db.conn.execute(
+                "SELECT lifecycle_status, progress, exec_days, eta_day, anomaly, chain FROM turn_directives WHERE id=?",
+                (did,),
+            ).fetchone()
+            self.assertEqual(effect["kind"], "pressed")
+            self.assertEqual(effect["progress_delta"], 6)
+            self.assertEqual(str(row["lifecycle_status"]), "executing")
+            self.assertEqual(int(row["progress"]), 49)
+            self.assertEqual(int(row["exec_days"]), 8)
+            self.assertEqual(int(row["eta_day"]), 10)
+            self.assertEqual(str(row["anomaly"] or ""), "")
+            self.assertEqual(json.loads(row["chain"])["resistance"], 40)
+
+    def test_directive_audience_pressure_records_person_blocker_clue(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "令袁崇焕整顿辽东军饷。")
+            db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='executing', progress=40, chain=? WHERE id=?",
+                ("袁崇焕", json.dumps({"resistance": 45, "chain": []}, ensure_ascii=False), did),
+            )
+            db.conn.commit()
+            effect = lifecycle.apply_directive_audience_pressure(
+                db,
+                state,
+                "袁崇焕",
+                did,
+                "朕问你阻力在何处？",
+                "臣遵旨具奏，只是温体仁屡以部议相格，户部钱粮亦迟迟不发。",
+            )
+            item = [p for p in lifecycle.lifecycle_payload(db) if p["id"] == did][0]
+            self.assertEqual(effect["blocker_clue"]["kind"], "person")
+            self.assertEqual(effect["blocker_clue"]["name"], "温体仁")
+            self.assertEqual(item["blocker_clue"]["name"], "温体仁")
+            self.assertIn("线索：温体仁", effect["message"])
+
+    def test_directive_audience_pressure_records_org_blocker_when_no_person(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "令袁崇焕整顿辽东军饷。")
+            db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='executing', progress=40, chain=? WHERE id=?",
+                ("袁崇焕", json.dumps({"resistance": 45, "chain": []}, ensure_ascii=False), did),
+            )
+            db.conn.commit()
+            effect = lifecycle.apply_directive_audience_pressure(
+                db,
+                state,
+                "袁崇焕",
+                did,
+                "朕问你阻力在何处？",
+                "臣遵旨具奏，只是户部钱粮迟迟不发，军饷无着。",
+            )
+            item = [p for p in lifecycle.lifecycle_payload(db) if p["id"] == did][0]
+            self.assertEqual(effect["blocker_clue"]["kind"], "org")
+            self.assertEqual(effect["blocker_clue"]["label"], "户部")
+            self.assertEqual(item["blocker_clue"]["label"], "户部")
+
+    def test_directive_audience_pressure_scoped_to_assignee(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "令袁崇焕整顿辽东军饷。")
+            db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='executing', progress=30 WHERE id=?",
+                ("袁崇焕", did),
+            )
+            db.conn.commit()
+            effect = lifecycle.apply_directive_audience_pressure(
+                db, state, "韩爌", did, "朕问进度。", "臣遵旨，即日具奏。")
+            progress = int(db.conn.execute(
+                "SELECT progress FROM turn_directives WHERE id=?", (did,)).fetchone()["progress"])
+            self.assertEqual(effect, {})
+            self.assertEqual(progress, 30)
+
 
 class InterveneTests(unittest.TestCase):
     def _stalled_directive(self, db, state) -> int:

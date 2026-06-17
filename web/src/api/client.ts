@@ -114,10 +114,11 @@ export const streamChat = async <T,>(
   ministerName: string,
   message: string,
   onDelta: (delta: string) => void,
+  context?: unknown,
 ): Promise<T> => {
   return streamJsonSse<T>(
     `/api/ministers/${encodeURIComponent(ministerName)}/chat/stream`,
-    { message },
+    { message, context },
     onDelta,
   );
 };

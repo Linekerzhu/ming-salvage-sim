@@ -251,6 +251,36 @@ class DrainPendingOutcomesTests(unittest.TestCase):
             finally:
                 db.close()
 
+    def test_directive_audience_context_enters_chat_prompt(self):
+        """从诏旨召主办时，具体旨意上下文应进入本轮 NPC prompt。"""
+        with TemporaryDirectory() as tmp:
+            sess = GameSession(
+                str(Path(tmp) / "directive_audience_context.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                verify_llm=False,
+            )
+            try:
+                sess.dialogue_audit_client = lambda phase, payload: {  # type: ignore[assignment]
+                    "goal_decision": "none",
+                    "confidence": 90,
+                }
+                character = sess.content.characters["袁崇焕"]
+                supplemental = (
+                    "【本次召对事项：追问在办旨意】\n"
+                    "旨意#7：令袁崇焕整顿辽东军饷。\n"
+                    "主办官：袁崇焕；当前状态：承办中；账面进度：43%。"
+                )
+                augmented, prepared = sess.prepare_chat_run(
+                    character,
+                    "朕交你的旨意办到几分？",
+                    supplemental_context=supplemental,
+                )
+                self.assertIn("追问在办旨意", augmented)
+                self.assertIn("账面进度：43%", augmented)
+                self.assertIn("追问在办旨意", prepared.behavior_context)
+            finally:
+                sess.close()
+
     def test_drain_idempotent(self):
         """再次 drain 不重复落 delta（已 applied 不再处理）。"""
         with TemporaryDirectory() as tmp:

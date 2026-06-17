@@ -59,6 +59,7 @@ export type DirectiveLifecycle = {
   start_day: number;
   eta_day: number;
   resistance: number;
+  blocker_clue?: { kind?: string; name?: string; label?: string; detail?: string; source_minister?: string; day?: number };
   reported_rate: number;
   anomaly: string;
   settle_note: string;
@@ -191,6 +192,15 @@ export type AudienceLead = {
   ref_id?: string;
   prompts?: Suggestion[];
 };
+export type ChatContext = {
+  kind?: string;
+  actor?: string;
+  target?: string;
+  ref_kind?: string;
+  ref_id?: string;
+  title?: string;
+  meta?: string;
+};
 export const loadPlaystyleBrief = (limit = 5): Promise<{ cards: PlaystyleBriefCard[]; limit: number }> =>
   api<{ cards: PlaystyleBriefCard[]; limit: number }>(`/api/playstyle/brief?limit=${encodeURIComponent(String(limit))}`);
 
@@ -291,6 +301,7 @@ export type ChatResponse = Record<string, any> & {
   next_minister?: string;
   court_action?: string;
   proposed_directive?: { id: number; text: string };
+  directive_effect?: { title?: string; message?: string; kind?: string; progress_delta?: number; resistance_delta?: number };
   minister_profile?: PublicCharacter;
 };
 

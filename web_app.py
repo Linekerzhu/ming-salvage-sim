@@ -496,6 +496,7 @@ def _llm_error_detail(exc: Exception, prefix: str = "") -> Dict[str, Any]:
 
 class ChatRequest(BaseModel):
     message: str
+    context: Optional[Dict[str, Any]] = None
 
 
 class ConversationGoalAbandonRequest(BaseModel):
@@ -2958,6 +2959,7 @@ class WebGame:
         secret_order_id: int = 0,
         secret_order_assignee: str = "",
         secret_order_effect: Optional[Dict[str, Any]] = None,
+        directive_effect: Optional[Dict[str, Any]] = None,
         chat_turn_id: int = 0,
         dialogue_goal: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
@@ -2985,6 +2987,7 @@ class WebGame:
             "secret_order_id": secret_order_id or 0,
             "secret_order_assignee": secret_order_assignee,
             "secret_order_effect": secret_order_effect or {},
+            "directive_effect": directive_effect or {},
             "dialogue_goal": (
                 self._conversation_goal_payload_from_rows([dialogue_goal])[0]
                 if dialogue_goal else {}
@@ -2995,7 +2998,41 @@ class WebGame:
             "can_undo_last_chat": self.can_undo_last_chat(minister_name),
         }
 
-    def chat(self, minister_name: str, message: str) -> Dict[str, Any]:
+    def _chat_context_brief(self, minister_name: str, context: Optional[Dict[str, Any]]) -> str:
+        if not isinstance(context, dict):
+            return ""
+        kind = str(context.get("kind") or "").strip()
+        ref_kind = str(context.get("ref_kind") or "").strip()
+        if kind != "directive" and ref_kind != "directive":
+            return ""
+        ref_id = context.get("ref_id") or context.get("id")
+        try:
+            from ming_sim.lifecycle import directive_chat_context_brief
+            return directive_chat_context_brief(self.db, minister_name, ref_id)
+        except Exception:
+            return ""
+
+    def _directive_chat_effect(
+        self,
+        minister_name: str,
+        context: Optional[Dict[str, Any]],
+        user_text: str,
+        answer: str,
+    ) -> Dict[str, Any]:
+        if not isinstance(context, dict):
+            return {}
+        kind = str(context.get("kind") or "").strip()
+        ref_kind = str(context.get("ref_kind") or "").strip()
+        if kind != "directive" and ref_kind != "directive":
+            return {}
+        ref_id = context.get("ref_id") or context.get("id")
+        try:
+            from ming_sim.lifecycle import apply_directive_audience_pressure
+            return apply_directive_audience_pressure(self.db, self.state, minister_name, ref_id, user_text, answer)
+        except Exception:
+            return {}
+
+    def chat(self, minister_name: str, message: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         if minister_name not in self.content.characters and minister_name not in self.session.temporary_characters:
             raise HTTPException(status_code=404, detail=f"未找到大臣：{minister_name}")
         text = message.strip()
@@ -3023,9 +3060,14 @@ class WebGame:
                 next_minister=deterministic_summon,
                 chat_turn_id=chat_turn_id,
             )
+        context_brief = self._chat_context_brief(minister_name, context)
         try:
-            result = self.session.chat(minister_name, text, source_chat_turn_id=chat_turn_id)
-            self._record_chat_rollback_items(chat_turn_id, before_snapshot)
+            result = self.session.chat(
+                minister_name,
+                text,
+                source_chat_turn_id=chat_turn_id,
+                supplemental_context=context_brief,
+            )
         except Exception:
             if chat_turn_id:
                 self.db.abort_chat_turn(chat_turn_id, before_snapshot)
@@ -3052,6 +3094,8 @@ class WebGame:
             proposed = self._proposed_from_dialogue_goal(result.dialogue_goal, character)
         if proposed is None:
             proposed = self._fallback_pending_directive(character, text, result.answer)
+        directive_effect = self._directive_chat_effect(minister_name, context, text, result.answer)
+        self._record_chat_rollback_items(chat_turn_id, before_snapshot)
         return self._chat_payload(
             minister_name, result.answer,
             court_action=result.court_action, next_minister=result.next_minister,
@@ -3062,11 +3106,12 @@ class WebGame:
             secret_order_id=result.secret_order_id,
             secret_order_assignee=result.secret_order_assignee,
             secret_order_effect=result.secret_order_effect,
+            directive_effect=directive_effect,
             chat_turn_id=chat_turn_id,
             dialogue_goal=result.dialogue_goal,
         )
 
-    def chat_stream(self, minister_name: str, message: str) -> Iterator[Dict[str, Any]]:
+    def chat_stream(self, minister_name: str, message: str, context: Optional[Dict[str, Any]] = None) -> Iterator[Dict[str, Any]]:
         if minister_name not in self.content.characters and minister_name not in self.session.temporary_characters:
             yield {"type": "error", "message": f"未找到大臣：{minister_name}"}
             return
@@ -3100,6 +3145,7 @@ class WebGame:
             return
         character = self.session._character(minister_name)
         chunks: List[str] = []
+        context_brief = self._chat_context_brief(minister_name, context)
         try:
             if self.session.registry is None:
                 raise RuntimeError("GameSession.begin_turn() 未调用。")
@@ -3108,6 +3154,7 @@ class WebGame:
                 character,
                 text,
                 source_chat_turn_id=chat_turn_id,
+                supplemental_context=context_brief,
             )
             run_output = None
             stream = agent.run(augmented, stream=True, stream_events=True, yield_run_output=True)
@@ -3217,6 +3264,7 @@ class WebGame:
                 proposed = self._proposed_from_dialogue_goal(dialogue_goal, character)
             if proposed is None:
                 proposed = self._fallback_pending_directive(character, text, answer)
+            directive_effect = self._directive_chat_effect(minister_name, context, text, answer)
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
             for portrait_name, reason in (
                 (appointed, "吏部铨选"),
@@ -3233,6 +3281,7 @@ class WebGame:
                 secret_order_id=secret_order_id,
                 secret_order_assignee=secret_order_assignee,
                 secret_order_effect=secret_order_effect,
+                directive_effect=directive_effect,
                 chat_turn_id=chat_turn_id,
                 dialogue_goal=dialogue_goal,
             )
@@ -5571,7 +5620,7 @@ async def api_create_secret_order(minister_name: str, request: SecretOrderReques
 @app.post("/api/ministers/{minister_name}/chat")
 async def api_chat(minister_name: str, request: ChatRequest) -> Dict[str, Any]:
     _require_active_minister(minister_name)
-    return get_game().chat(minister_name, request.message)
+    return get_game().chat(minister_name, request.message, request.context)
 
 
 @app.post("/api/ministers/{minister_name}/chat/undo")
@@ -5583,7 +5632,7 @@ async def api_undo_chat(minister_name: str) -> Dict[str, Any]:
 async def api_chat_stream(minister_name: str, request: ChatRequest) -> StreamingResponse:
     _require_active_minister(minister_name)
     async def generate() -> AsyncIterator[str]:
-        for item in get_game().chat_stream(minister_name, request.message):
+        for item in get_game().chat_stream(minister_name, request.message, request.context):
             item_type = str(item.get("type", "message"))
             if item_type == "delta":
                 yield sse_event("delta", {"content": item.get("content", "")})

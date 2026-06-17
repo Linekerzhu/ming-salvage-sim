@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { loadChat, streamChat } from "./api";
 import { Portrait } from "./Portrait";
-import type { ChatMessage, ChatResponse, Suggestion } from "./api";
+import type { ChatContext, ChatMessage, ChatResponse, Suggestion } from "./api";
 
 const EMPTY_LOCAL_MESSAGES: ChatMessage[] = [];
 
@@ -23,6 +23,7 @@ export function ChatPane({
   onWorldChanged,
   localMessages = EMPTY_LOCAL_MESSAGES,
   leadSuggestions = [],
+  chatContext,
 }: {
   name: string;
   speakerLabel: string;
@@ -30,6 +31,7 @@ export function ChatPane({
   onWorldChanged?: () => void;
   localMessages?: ChatMessage[];
   leadSuggestions?: Suggestion[];
+  chatContext?: ChatContext;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -85,14 +87,16 @@ export function ChatPane({
     setMessages((m) => [...m, { role: "user", content: msg }]);
     setStreaming("");
     try {
-      const resp = await streamChat<ChatResponse>(name, msg, (d) => setStreaming((s) => s + d));
+      const resp = await streamChat<ChatResponse>(name, msg, (d) => setStreaming((s) => s + d), chatContext);
       setStreaming("");
       if (resp.history) setMessages(resp.history);
       setSuggestions(resp.suggestions || []);
       // 驾驭高光：让"说动了人"这一刻被看见、被庆祝。
       const goal: any = resp.dialogue_goal || {};
       const committed = goal.committed || ["committed", "fulfilled", "达成", "promised"].includes(String(goal.status || ""));
-      if (resp.appointed_minister || resp.registered_minister) {
+      if (resp.directive_effect?.message) {
+        setWin({ glyph: "督", title: resp.directive_effect.title || "旨意有动", sub: String(resp.directive_effect.message).slice(0, 42) });
+      } else if (resp.appointed_minister || resp.registered_minister) {
         setWin({ glyph: "擢", title: "得人", sub: `${resp.appointed_minister || resp.registered_minister} 入朝听用` });
       } else if (resp.proposed_directive?.text) {
         setWin({ glyph: "旨", title: `${name}俯首拟旨`, sub: String(resp.proposed_directive.text).slice(0, 22) + "…（往「诏旨」核定颁布）" });

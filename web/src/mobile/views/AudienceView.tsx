@@ -3,7 +3,7 @@ import { useGame } from "../GameData";
 import { ChatPane } from "../ChatPane";
 import { Portrait } from "../Portrait";
 import { loadEunuch, loadEunuchCandidates, replaceEunuch } from "../api";
-import type { AudienceLead, ChatMessage, PublicCharacter } from "../api";
+import type { AudienceLead, ChatContext, ChatMessage, PublicCharacter } from "../api";
 import { usePerson } from "../personCtx";
 
 // 召对·人治之门：皇帝只直接对话随侍太监；要见大臣，命随侍传召 → 大臣趋入奏对 → 奏对完成，由随侍收尾。
@@ -88,6 +88,7 @@ export function AudienceView({
           speakerLabel={audience}
           onWorldChanged={refresh}
           leadSuggestions={activeLead?.prompts || []}
+          chatContext={activeLead ? chatContextFromLead(activeLead) : undefined}
         />
       </div>
     );
@@ -164,4 +165,16 @@ export function AudienceView({
       )}
     </div>
   );
+}
+
+function chatContextFromLead(lead: AudienceLead): ChatContext {
+  return {
+    kind: lead.kind,
+    actor: lead.actor,
+    target: lead.target,
+    ref_kind: lead.ref_kind,
+    ref_id: lead.ref_id,
+    title: lead.title,
+    meta: lead.meta,
+  };
 }

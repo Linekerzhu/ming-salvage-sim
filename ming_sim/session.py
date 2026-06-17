@@ -707,6 +707,7 @@ class GameSession:
         message: str,
         *,
         source_chat_turn_id: int = 0,
+        supplemental_context: str = "",
     ) -> Tuple[str, PreparedDialogue]:
         augmented = self._retrieve_memories_for_message(message)
         retrieved_context = augmented if augmented != message else ""
@@ -722,11 +723,16 @@ class GameSession:
             persistent=persistent,
         )
         live_memory_brief = self._live_dialogue_memory_brief(character) if persistent else ""
+        supplemental_context = str(supplemental_context or "").strip()
+        if supplemental_context:
+            augmented = f"{supplemental_context[:2200]}\n\n{augmented}"
         if live_memory_brief:
             augmented = f"{live_memory_brief}\n\n{augmented}"
         if dialogue_prep.prefix:
             augmented = f"{dialogue_prep.prefix}\n\n{augmented}"
         behavior_parts = [message]
+        if supplemental_context:
+            behavior_parts.append(supplemental_context[:2200])
         if dialogue_prep.prefix:
             behavior_parts.append(dialogue_prep.prefix[:1800])
         if live_memory_brief:
@@ -794,7 +800,14 @@ class GameSession:
             directive_already_recorded=directive_already_recorded,
         )
 
-    def chat(self, minister_name: str, message: str, *, source_chat_turn_id: int = 0) -> ChatTurnResult:
+    def chat(
+        self,
+        minister_name: str,
+        message: str,
+        *,
+        source_chat_turn_id: int = 0,
+        supplemental_context: str = "",
+    ) -> ChatTurnResult:
         """与大臣对话一轮，统一处理 court tool 截获。
         大臣 propose_directive 产生的草案以 status='pending' 入库，
         作为 proposed_directive 返回，确认/驳回由调用方下达。"""
@@ -823,6 +836,7 @@ class GameSession:
             character,
             message,
             source_chat_turn_id=source_chat_turn_id,
+            supplemental_context=supplemental_context,
         )
         run_output = agent.run(augmented)
         _dump_llm_messages(run_output, f"大臣对话/{minister_name}")
