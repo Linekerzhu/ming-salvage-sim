@@ -195,6 +195,31 @@ class RippleTests(unittest.TestCase):
             self.assertEqual(touched["rivals"], [rival])
 
 
+class PayloadTests(unittest.TestCase):
+    def test_court_payload_includes_back_previews(self):
+        with TemporaryDirectory() as tmp:
+            db, _, day = _fresh(tmp)
+            names = [str(r["name"]) for r in db.conn.execute(
+                "SELECT name FROM characters WHERE status='active' AND power_id='ming' "
+                "AND office_type!='后宫' AND name!='韩爌' LIMIT 2"
+            ).fetchall()]
+            ally, rival = names[0], names[1]
+            db.conn.execute("DELETE FROM relationships WHERE a_name='韩爌'")
+            court._set_opinion(db, "韩爌", ally, 70, "党附", day)
+            court._set_opinion(db, "韩爌", rival, -70, "政敌", day)
+            db.conn.commit()
+
+            payload = court.court_payload(db, "韩爌")
+
+            previews = payload["back_previews"]
+            self.assertIn("shoulder", previews)
+            labels = [str(e["label"]) for e in previews["shoulder"]]
+            self.assertIn("任事 +8", labels)
+            self.assertTrue(any("满意" in label for label in labels), labels)
+            self.assertIn("党羽受慰 1人", labels)
+            self.assertIn("政敌侧目 1人", labels)
+
+
 class QuietTests(unittest.TestCase):
     def test_quiet_when_no_grudges(self):
         with TemporaryDirectory() as tmp:

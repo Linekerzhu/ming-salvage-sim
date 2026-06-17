@@ -226,6 +226,7 @@ export type CourtTie = { name: string; opinion: number; basis: string };
 export type CourtTrait = { key: string; valence: number; desc: string };
 export type CourtCastration = { bao_status: string; bao_label: string; forced: boolean; servility: number };
 export type CourtSecret = { kind: string; label: string; detail: string; severity: number; used: boolean };
+export type ImpactEffect = { kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string };
 export type CourtPayload = {
   traits: CourtTrait[];
   agenda: { kind: string; title: string; target: string; intensity: number; status: string } | null;
@@ -234,6 +235,7 @@ export type CourtPayload = {
   duishi?: string;
   castration?: CourtCastration | null;
   secret?: CourtSecret | null;
+  back_previews?: Partial<Record<CourtBackKind, ImpactEffect[]>>;
 };
 export const loadCourt = (name: string): Promise<CourtPayload> =>
   api<CourtPayload>(`/api/court/${encodeURIComponent(name)}`);
@@ -282,7 +284,7 @@ export const decideMemorial = (id: number, action: MemorialAction, note = ""): P
 export type CourtBackKind = "shoulder" | "comfort" | "reuse";
 export const courtBack = (name: string, kind: CourtBackKind, cost = 0): Promise<{
   message: string;
-  effects?: Array<{ kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string }>;
+  effects?: ImpactEffect[];
 }> =>
   api("/api/court/back", { method: "POST", body: JSON.stringify({ name, kind, cost }) });
 

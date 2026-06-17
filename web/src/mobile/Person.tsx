@@ -6,7 +6,7 @@ import { Portrait } from "./Portrait";
 import type { PersonFocus, PersonOpen } from "./personCtx";
 import { PersonCtx } from "./personCtx";
 import { loadCharacter, loadCourt, intrigueInvestigate, intrigueCoerce, intrigueFabricate, intrigueDiscord, courtBack } from "./api";
-import type { CourtBackKind, CourtPayload } from "./api";
+import type { CourtBackKind, CourtPayload, ImpactEffect } from "./api";
 import { useGame } from "./GameData";
 
 const AGENDA_CN: Record<string, string> = {
@@ -55,6 +55,18 @@ function impactTagsFromEffects(items?: Array<{ label: string; tone?: string }>):
       label: item.label,
       tone: item.tone === "good" || item.tone === "bad" || item.tone === "warn" ? item.tone : "info",
     }));
+}
+
+function EffectChips({ items, limit = 6 }: { items?: ImpactEffect[]; limit?: number }) {
+  const shown = (items || []).filter((item) => item.label).slice(0, limit);
+  if (!shown.length) return null;
+  return (
+    <span className="m-effect-preview" aria-label="预期影响">
+      {shown.map((it, i) => (
+        <span key={`${it.label}-${i}`} className={`m-effect-chip tone-${it.tone || "neutral"}`}>{it.label}</span>
+      ))}
+    </span>
+  );
 }
 
 function tieSignature(court: CourtPayload): string {
@@ -176,6 +188,10 @@ function PersonSheet({ name, focus, onClose }: { name: string; focus?: PersonFoc
   const skills: string[] = (c?.personal_skills || c?.skills || []).map((x: any) => typeof x === "string" ? x : x?.name).filter(Boolean);
   const canBack = !!c && isMing && !isSelf && ["active", "imprisoned", "dismissed"].includes(String(c.status || ""));
   const canReuse = !!c && ["imprisoned", "dismissed"].includes(String(c.status || ""));
+  const backPreview = (kind: CourtBackKind, fallback: ImpactEffect[]) => {
+    const items = court?.back_previews?.[kind];
+    return items?.length ? items : fallback;
+  };
   return (
     <div className="m-sheet-backdrop" onClick={onClose}>
       <div className="m-sheet m-person" onClick={(e) => e.stopPropagation()}>
@@ -235,15 +251,26 @@ function PersonSheet({ name, focus, onClose }: { name: string; focus?: PersonFoc
             <span className="m-person-h">任事杠杆</span>
             <p className="m-hint" style={{ marginBottom: 8 }}>为失败或失意之臣买单：短期折势或惹议，长期回暖百官任事意愿。</p>
             <div className="m-intrigue-acts">
-              <button className="m-intrigue-btn" disabled={busy} onClick={() => back("shoulder")}>
-                公开担责 <span className="m-effect-chip tone-good">任事+8</span><span className="m-effect-chip tone-bad">势-4</span>
+              <button className="m-intrigue-btn has-preview" disabled={busy} onClick={() => back("shoulder")}>
+                <span>公开担责</span>
+                <EffectChips items={backPreview("shoulder", [
+                  { label: "任事 +8", tone: "good" },
+                  { label: "势 -4", tone: "bad" },
+                ])} />
               </button>
-              <button className="m-intrigue-btn" disabled={busy} onClick={() => back("comfort")}>
-                抚恤褒奖 <span className="m-effect-chip tone-good">任事+5</span>
+              <button className="m-intrigue-btn has-preview" disabled={busy} onClick={() => back("comfort")}>
+                <span>抚恤褒奖</span>
+                <EffectChips items={backPreview("comfort", [
+                  { label: "任事 +5", tone: "good" },
+                ])} />
               </button>
               {canReuse && (
-                <button className="m-intrigue-btn" disabled={busy} onClick={() => back("reuse")}>
-                  败后复用 <span className="m-effect-chip tone-good">任事+10</span><span className="m-effect-chip tone-bad">势-2</span>
+                <button className="m-intrigue-btn has-preview" disabled={busy} onClick={() => back("reuse")}>
+                  <span>败后复用</span>
+                  <EffectChips items={backPreview("reuse", [
+                    { label: "任事 +10", tone: "good" },
+                    { label: "势 -2", tone: "bad" },
+                  ])} />
                 </button>
               )}
             </div>

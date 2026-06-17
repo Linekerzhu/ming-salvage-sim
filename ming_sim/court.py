@@ -276,6 +276,28 @@ def court_payload(db: GameDB, name: str) -> Dict[str, object]:
         secret = secrets_for(db, name)
     except Exception:
         secret = None
+    back_previews = {}
+    try:
+        row = db.conn.execute(
+            "SELECT status, power_id, office_type FROM characters WHERE name=?", (name,)
+        ).fetchone()
+        can_back = (
+            row is not None
+            and str(row["power_id"] or "") == "ming"
+            and str(row["office_type"] or "") != "君主"
+            and str(row["status"] or "") in {"active", "imprisoned", "dismissed"}
+            and name != "崇祯"
+        )
+        if can_back:
+            from ming_sim.memorials import preview_back_official_effects
+            back_previews = {
+                "shoulder": preview_back_official_effects(db, name, "shoulder"),
+                "comfort": preview_back_official_effects(db, name, "comfort"),
+            }
+            if str(row["status"] or "") in {"imprisoned", "dismissed"}:
+                back_previews["reuse"] = preview_back_official_effects(db, name, "reuse")
+    except Exception:
+        back_previews = {}
     return {
         "traits": traits,
         "agenda": agenda_of(db, name),
@@ -284,6 +306,7 @@ def court_payload(db: GameDB, name: str) -> Dict[str, object]:
         "duishi": duishi,
         "castration": castration,
         "secret": secret,
+        "back_previews": back_previews,
     }
 
 
