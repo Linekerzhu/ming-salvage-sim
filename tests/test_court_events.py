@@ -44,6 +44,20 @@ class TriggerTests(unittest.TestCase):
             self.assertEqual(payload["id"], "rival_feud")
             self.assertGreaterEqual(len(payload["choices"]), 3)
 
+    def test_payload_includes_structured_choice_effects(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            a, b = _two_ming(db)
+            _erupt(db, a, b)
+            payload = court_events.evaluate_decisions(db, state, day)
+            both = next(c for c in payload["choices"] if c["key"] == "both")
+            labels = [e["label"] for e in both["effects"]]
+            tones = {e["label"]: e["tone"] for e in both["effects"]}
+            self.assertIn("君威 +3", labels)
+            self.assertIn("任事 -5", labels)
+            self.assertEqual(tones["君威 +3"], "good")
+            self.assertEqual(tones["任事 -5"], "bad")
+
     def test_one_pending_at_a_time(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)

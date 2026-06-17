@@ -264,7 +264,7 @@ export const frontierSupervisor = (army_id: string, opts?: { eunuch?: string; re
   api("/api/frontier/supervisor", { method: "POST", body: JSON.stringify({ army_id, ...(opts || {}) }) });
 
 // 抉择事件（CK3 化 P2）：朝局张力弹出的"请陛下裁断"。
-export type DecisionChoice = { key: string; label: string; hint: string };
+export type DecisionChoice = { key: string; label: string; hint: string; effects?: ImpactEffect[] };
 export type Decision = { id: string; title: string; narrative: string; choices: DecisionChoice[] };
 export const loadDecision = (): Promise<{ decision: Decision | null }> =>
   api<{ decision: Decision | null }>("/api/decision");

@@ -7,7 +7,7 @@ import { PersonProvider } from "./Person";
 import { Menu } from "./Menu";
 import { Guide, guideSeen, markGuideSeen } from "./Guide";
 import { authStatus, exitToMenu, login, menuStatus, register, resolveDecision } from "./api";
-import type { AudienceLead, ChatMessage, Decision, Tab } from "./api";
+import type { AudienceLead, ChatMessage, Decision, ImpactEffect, Tab } from "./api";
 import { HomeView } from "./views/HomeView";
 import { DeskView } from "./views/DeskView";
 import { AudienceView } from "./views/AudienceView";
@@ -169,6 +169,18 @@ function MilestoneToast() {
 }
 
 // 抉择事件（CK3 化 P2）：朝局张力弹出"请陛下裁断"，玩家落子→后果即时回写朝局。
+function DecisionEffectChips({ items }: { items?: ImpactEffect[] }) {
+  const shown = (items || []).filter((item) => item.label).slice(0, 6);
+  if (!shown.length) return null;
+  return (
+    <span className="m-effect-preview m-decision-effects" aria-label="预期影响">
+      {shown.map((it, i) => (
+        <span key={`${it.label}-${i}`} className={`m-effect-chip tone-${it.tone || "neutral"}`}>{it.label}</span>
+      ))}
+    </span>
+  );
+}
+
 function DecisionModal() {
   const { decision, refresh, desk } = useGame();
   const [busy, setBusy] = useState(false);
@@ -212,6 +224,7 @@ function DecisionModal() {
               <button key={c.key} className="m-decision-choice" disabled={busy} onClick={() => pick(c.key)}>
                 <span className="m-decision-label">{c.label}</span>
                 {c.hint && <span className="m-decision-hint">{c.hint}</span>}
+                <DecisionEffectChips items={c.effects} />
               </button>
             ))}
           </div>

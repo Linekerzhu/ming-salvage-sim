@@ -117,6 +117,100 @@ def _apply_effect(db: GameDB, state: GameState, eff: Dict[str, object], day: int
     return "；".join(parts) if parts else "圣意已决"
 
 
+def _signed(n: int) -> str:
+    return f"+{n}" if n > 0 else str(n)
+
+
+def _tone(delta: int, *, inverse: bool = False) -> str:
+    if delta == 0:
+        return "neutral"
+    good = delta > 0
+    if inverse:
+        good = not good
+    return "good" if good else "bad"
+
+
+def _status_label(status: str) -> str:
+    return {
+        "dismissed": "罢黜",
+        "imprisoned": "下狱",
+        "exiled": "流放",
+        "dead": "处死",
+        "active": "复出",
+    }.get(status, status)
+
+
+def _preview_effects(eff: Dict[str, object]) -> List[Dict[str, str]]:
+    """前端用：把声明式后果压成玩家可扫读的 CK3 式影响 chip。"""
+    out: List[Dict[str, str]] = []
+
+    def add(kind: str, label: str, tone: str = "neutral") -> None:
+        if label:
+            out.append({"kind": kind, "label": label, "tone": tone})
+
+    shi = int(eff.get("shi") or 0)
+    if shi:
+        add("shi", f"君威 {_signed(shi)}", _tone(shi))
+    renshi = int(eff.get("renshi") or 0)
+    if renshi:
+        add("renshi", f"任事 {_signed(renshi)}", _tone(renshi))
+    ep = int(eff.get("eunuch_power") or 0)
+    if ep:
+        add("eunuch_power", f"权阉 {_signed(ep)}", _tone(ep, inverse=True))
+
+    for k, v in (eff.get("metrics") or {}).items():
+        delta = int(v)
+        add("metric", f"{k} {_signed(delta)}", _tone(delta))
+
+    for fn, fv in (eff.get("faction") or {}).items():
+        if not isinstance(fv, dict):
+            continue
+        sd = int(fv.get("satisfaction") or 0)
+        if sd:
+            add("faction_satisfaction", f"{fn}满意 {_signed(sd)}", _tone(sd))
+        lev = int(fv.get("leverage") or 0)
+        if lev:
+            add("faction_leverage", f"{fn}势力 {_signed(lev)}", _tone(lev, inverse=True))
+
+    for ch in (eff.get("char") or []):
+        name = str(ch.get("name") or "")
+        trust = int(ch.get("emp_trust") or 0)
+        grievance = int(ch.get("grievance") or 0)
+        if name and trust:
+            add("trust", f"{name}信任 {_signed(trust)}", _tone(trust))
+        if name and grievance:
+            add("grievance", f"{name}怨望 {_signed(grievance)}", _tone(grievance, inverse=True))
+
+    for st in (eff.get("status") or []):
+        name = str(st.get("name") or "")
+        status = str(st.get("status") or "")
+        if name and status:
+            good = status == "active"
+            add("status", f"{_status_label(status)} {name}", "good" if good else "bad")
+
+    for am in (eff.get("army") or []):
+        autonomy = int(am.get("autonomy") or 0)
+        loyalty = int(am.get("loyalty") or 0)
+        arrears = int(am.get("arrears") or 0)
+        if autonomy:
+            add("army", f"军镇离心 {_signed(autonomy)}", _tone(autonomy, inverse=True))
+        if loyalty:
+            add("army", f"军心 {_signed(loyalty)}", _tone(loyalty))
+        if arrears:
+            add("army", f"欠饷 {_signed(arrears)}", _tone(arrears, inverse=True))
+
+    ap = eff.get("appoint")
+    if isinstance(ap, dict) and ap.get("name") and ap.get("office"):
+        add("appoint", f"擢{ap['name']}补{ap['office']}", "good")
+    sv = eff.get("supervise")
+    if isinstance(sv, dict) and sv.get("eunuch"):
+        add("supervise", f"遣{sv['eunuch']}监军", "neutral")
+    if eff.get("daipihong_off"):
+        add("daipihong", "停代批红", "good")
+
+    return out[:8]
+
+
 # ── 触发条件助手 ──────────────────────────────────────────────────────────────
 
 def _deepest_rivalry(db: GameDB) -> Optional[Dict[str, object]]:
@@ -596,8 +690,15 @@ def pending_payload(db: GameDB) -> Optional[Dict[str, object]]:
         "id": d["id"],
         "title": d["title"](ctx),
         "narrative": d["narrative"](ctx),
-        "choices": [{"key": ch["key"], "label": _call(ch["label"], ctx), "hint": _call(ch.get("hint", ""), ctx)}
-                    for ch in _choices_of(d, ctx)],
+        "choices": [
+            {
+                "key": ch["key"],
+                "label": _call(ch["label"], ctx),
+                "hint": _call(ch.get("hint", ""), ctx),
+                "effects": _preview_effects(_call(ch.get("effect", {}), ctx)),
+            }
+            for ch in _choices_of(d, ctx)
+        ],
     }
 
 
