@@ -406,12 +406,27 @@ def court_moves_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, o
         trow = db.conn.execute("SELECT office FROM characters WHERE name=?", (target["name"],)).fetchone()
         toffice = str(trow["office"]) if trow else ""
         basis = target["basis"] or "夙怨"
-        mid = create_memorial(
-            db, None, day=day, author_name=name, org=office, kind="弹章", urgency=3,
-            summary=f"{name}劾{toffice}{target['name']}（{basis}）",
-            full_text=(f"臣与{target['name']}夙有{basis}。今风闻其居官有玷——"
-                       f"或植党、或欺罔、或贪墨，乞陛下亟赐究问，以肃朝纲、正国法。"),
-            ref_kind="character", ref_id=str(target["name"]))
+        # 把柄喂弹章 credibility（宫斗阴谋）：被劾者已有御前掌握的把柄 → 弹章师出有名、更重更难驳。
+        hook = None
+        try:
+            from ming_sim.intrigue import secrets_for
+            hook = secrets_for(db, str(target["name"]))
+        except Exception:
+            hook = None
+        if hook:
+            mid = create_memorial(
+                db, None, day=day, author_name=name, org=office, kind="弹章", urgency=4,
+                summary=f"{name}劾{toffice}{target['name']}（{hook['label']}·有实)",
+                full_text=(f"臣劾{target['name']}{hook['label']}：{hook['detail']}，赃证粲然、众目共睹。"
+                           f"此非风闻，乃确有其事，乞陛下亟正典刑，以肃朝纲。"),
+                ref_kind="character", ref_id=str(target["name"]))
+        else:
+            mid = create_memorial(
+                db, None, day=day, author_name=name, org=office, kind="弹章", urgency=3,
+                summary=f"{name}劾{toffice}{target['name']}（{basis}）",
+                full_text=(f"臣与{target['name']}夙有{basis}。今风闻其居官有玷——"
+                           f"或植党、或欺罔、或贪墨，乞陛下亟赐究问，以肃朝纲、正国法。"),
+                ref_kind="character", ref_id=str(target["name"]))
         adjust_opinion(db, name, target["name"], -10, basis, day=day)
         events.append({
             "level": LEVEL_RED, "kind": "court_move",

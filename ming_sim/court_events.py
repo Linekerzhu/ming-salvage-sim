@@ -184,6 +184,36 @@ def _eunuch_crisis(db: GameDB) -> Optional[Dict[str, object]]:
             "office": str(row["office"] or "") if row else "司礼监", "packed": int(packed)}
 
 
+def _eunuch_frame(db: GameDB) -> Optional[Dict[str, object]]:
+    """阉党自发冤陷东林（宫斗阴谋 P3·涌现版构陷）：权阉炽盛（≥60）、东厂在手，
+    厂卫不待圣意、已锻炼一桩诏狱劾某清流——请陛下裁断：准其下狱？力保？抑或廷议核实？
+    锻炼六君子式的阉祸场景。目标有真把柄则"师出有名"，无则纯属冤陷（民心损更重）。"""
+    try:
+        from ming_sim.eunuch_power import get_eunuch_power
+        if get_eunuch_power(db) < 60:
+            return None
+    except Exception:
+        return None
+    try:
+        from ming_sim.intrigue import dongchang_chief, secrets_for
+    except Exception:
+        return None
+    chief = dongchang_chief(db)
+    if chief is None:
+        return None
+    row = db.conn.execute(
+        "SELECT name, office, integrity FROM characters WHERE status='active' AND power_id='ming' "
+        "AND office_type!='后宫' AND (faction LIKE '%东林%' OR faction LIKE '%清流%' OR integrity>=70) "
+        "AND faction NOT LIKE '%阉%' ORDER BY integrity DESC LIMIT 1").fetchone()
+    if row is None:
+        return None
+    target = str(row["name"])
+    known = secrets_for(db, target)
+    return {"eunuch": chief, "target": target, "office": str(row["office"] or ""),
+            "charge": (known["label"] if known else "结党乱政、谤讪朝廷"),
+            "real": bool(known)}
+
+
 def _succession(db: GameDB) -> Optional[Dict[str, object]]:
     """要职出缺（重臣病逝）：取候选三人——党羽续统 / 异党新进 / 不党能臣，请陛下简替。"""
     from ming_sim.lifespan import pop_vacancy, vacancies
@@ -381,6 +411,39 @@ def _defs() -> List[Dict[str, object]]:
                                       "metrics": {"皇威": 1},
                                       "log": f"遣{c.get('supervisor_cand') or '内臣'}监{c['army']}军，就近钳制。"},
                  "available": lambda c: bool(c.get("supervisor_cand"))},
+            ],
+        },
+        {
+            "id": "eunuch_frame",
+            "priority": 33,  # 厂卫锻炼诏狱，关乎清流存亡，仅次于要缺/阉祸/封疆
+            "when": _eunuch_frame,
+            "title": lambda c: f"厂卫锻炼诏狱：{c['eunuch']}劾{c['target']}",
+            "narrative": lambda c: (
+                f"{c['eunuch']}秉东厂之势，已锻炼一桩诏狱，劾{c['office']}{c['target']}「{c['charge']}」，"
+                + ("其事虽有端绪，然罗织深文、意在锄异。" if c["real"]
+                   else "查无实据、纯属罗织——分明借厂卫锄除清流异己。")
+                + "诏狱已具，只待圣意一准。陛下裁之？"),
+            "choices": [
+                {"key": "approve", "label": lambda c: f"准其奏，下{c['target']}诏狱",
+                 "hint": "照厂卫意：省事、权阉益横、阉党弹冠——然清流夺气、冤狱伤民心，养成阉祸",
+                 "effect": lambda c: {"eunuch_power": 5, "shi": 1, "renshi": -3,
+                                      "status": [{"name": c["target"], "status": "imprisoned", "reason": f"厂卫锻炼诏狱·{c['charge']}"}],
+                                      "faction": {"阉党": {"leverage": 6, "satisfaction": 5}, "东林": {"satisfaction": -8, "leverage": -5}},
+                                      "metrics": {"民心": -3 if c["real"] else -5},
+                                      "ripple": [{"name": c["target"], "kind": "oust"}],
+                                      "log": f"准{c['eunuch']}所奏，下{c['target']}诏狱。"}},
+                {"key": "protect", "label": lambda c: f"斥厂卫罗织，力保{c['target']}",
+                 "hint": "顶住权阉：清流感恩、君威自立、权阉受挫——然开罪厂卫，阉党衔恨",
+                 "effect": lambda c: {"eunuch_power": -6, "shi": 2,
+                                      "char": [{"name": c["target"], "emp_trust": 8, "grievance": -5}],
+                                      "faction": {"阉党": {"satisfaction": -6, "leverage": -4}, "东林": {"satisfaction": 8, "leverage": 4}},
+                                      "metrics": {"民心": 2},
+                                      "log": f"斥{c['eunuch']}罗织，力保{c['target']}。"}},
+                {"key": "review", "label": lambda c: "下三法司核实",
+                 "hint": "走程序：看似公允，却让清流寒心、任事者更怕出头，权阉徐图",
+                 "effect": lambda c: {"renshi": -3, "eunuch_power": -1,
+                                      "char": [{"name": c["target"], "emp_trust": -3, "grievance": 3}],
+                                      "log": f"{c['target']}被劾事，下三法司核实。"}},
             ],
         },
         {
