@@ -154,6 +154,10 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertEqual(hook["tab"], "audience")
             self.assertIn("把柄在手", str(hook["title"]))
             self.assertGreaterEqual(int(hook["urgency"]), 90)
+            labels = [str(e["label"]) for e in hook["effects"]]
+            self.assertIn("贪墨", labels)
+            self.assertIn("严重 82", labels)
+            self.assertIn("未动用", labels)
 
     def test_faction_pressure_names_summonable_representative(self):
         with TemporaryDirectory() as tmp:
@@ -362,6 +366,11 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("卡住旨意", str(blocker["title"]))
             self.assertIn("召问阻力", str(blocker["detail"]))
             self.assertGreaterEqual(int(blocker["urgency"]), 90)
+            labels = [str(e["label"]) for e in blocker["effects"]]
+            self.assertIn("进度 40%", labels)
+            self.assertIn("已卡住", labels)
+            self.assertIn("阻力 温体仁", labels)
+            self.assertIn("主办 袁崇焕", labels)
 
     def test_handled_directive_blocker_drops_from_home_brief(self):
         with TemporaryDirectory() as tmp:

@@ -444,6 +444,13 @@ def _directive_blocker_cards(db: GameDB, cards: List[BriefCard]) -> None:
         )
         if clue.get("detail"):
             detail += f"线索：{clue.get('detail')}。"
+        effects = [
+            {"kind": "directive_progress", "label": f"进度 {progress}%", "tone": "bad" if stalled or progress < 50 else "neutral"},
+            {"kind": "directive_status", "label": "已卡住" if stalled else "受牵制", "tone": "bad"},
+            {"kind": "blocker", "label": f"阻力 {label}", "tone": "bad"},
+        ]
+        if assignee:
+            effects.append({"kind": "assignee", "label": f"主办 {assignee}", "tone": "neutral"})
         cards.append(
             _card(
                 kind="directive_blocker",
@@ -458,6 +465,7 @@ def _directive_blocker_cards(db: GameDB, cards: List[BriefCard]) -> None:
                 meta=f"{progress}%",
                 ref_kind="directive",
                 ref_id=str(did),
+                effects=effects,
             )
         )
         count += 1
@@ -748,6 +756,11 @@ def _secret_cards(db: GameDB, cards: List[BriefCard]) -> None:
         severity = int(row["severity"] or 0)
         kind = str(row["kind"] or "把柄")
         detail = str(row["detail"] or "旧案在手")
+        effects = [
+            {"kind": "secret_kind", "label": kind, "tone": "bad" if severity >= 65 else "neutral"},
+            {"kind": "secret_severity", "label": f"严重 {severity}", "tone": "bad" if severity >= 65 else "neutral"},
+            {"kind": "secret_unused", "label": "未动用", "tone": "good"},
+        ]
         cards.append(
             _card(
                 kind="hook",
@@ -761,6 +774,7 @@ def _secret_cards(db: GameDB, cards: List[BriefCard]) -> None:
                 meta=f"重{severity}",
                 ref_kind="character",
                 ref_id=holder,
+                effects=effects,
             )
         )
 
