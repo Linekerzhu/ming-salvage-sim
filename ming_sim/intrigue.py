@@ -17,6 +17,7 @@ changwei_tick（自发侦缉/挟制，挂 rollover）+ secrets_for（Person 卡�
 
 from __future__ import annotations
 
+import hashlib
 import random
 from typing import Dict, List, Optional
 
@@ -33,6 +34,11 @@ SECRET_KINDS = {
     "怨望": "怨望腹诽、谤讪朝政",
     "私德": "私德有亏、旧案未了",
 }
+
+
+def _stable_seed(day: int, salt: str, key: str) -> int:
+    raw = f"{int(day)}:{salt}:{key}".encode("utf-8", "surrogatepass")
+    return int.from_bytes(hashlib.blake2s(raw, digest_size=8).digest(), "big") & 0x7FFFFFFF
 
 
 def ensure_schema(db: GameDB) -> None:
@@ -174,7 +180,7 @@ def investigate(db: GameDB, target: str, day: int, *, rng: Optional[random.Rando
     if sec["known_to_crown"]:
         return {"ok": True, "found": True, "chief": chief, "secret": sec, "already": True,
                 "message": f"{target}之「{SECRET_KINDS.get(sec['kind'], sec['kind'])}」把柄久在御前掌握。"}
-    rng = rng or random.Random((int(day) * 0x9E3779B1 ^ hash(target)) & 0x7FFFFFFF)
+    rng = rng or random.Random(_stable_seed(day, "investigate", target))
     margin = investigate_capability(db) - _concealment(db, target) + rng.randint(-15, 25)
     if margin <= 0:
         return {"ok": True, "found": False, "chief": chief,
@@ -281,7 +287,7 @@ def fabricate(db: GameDB, state: GameState, target: str, day: int, *,
     integrity = int(row["integrity"] or 50)
     pure = _is_pure(str(row["faction"] or ""))
     prestige = integrity + (12 if pure else 0)   # 清誉护身：高节者难陷、陷则易露
-    rng = rng or random.Random((int(day) * 0x2545F491 ^ hash(target)) & 0x7FFFFFFF)
+    rng = rng or random.Random(_stable_seed(day, "fabricate", target))
     margin = investigate_capability(db) - prestige + rng.randint(-20, 20)
     if margin > 0:
         # 罗织得逞 → 下诏狱
@@ -327,7 +333,7 @@ def sow_discord(db: GameDB, state: GameState, a: str, b: str, day: int, *,
         (a, b)).fetchall()}
     if a not in rows or b not in rows:
         return {"ok": False, "message": "二人须皆在朝。"}
-    rng = rng or random.Random((int(day) * 0x27220A95 ^ hash(a + b)) & 0x7FFFFFFF)
+    rng = rng or random.Random(_stable_seed(day, "discord", f"{a}:{b}"))
     resist = sum(int(rows[x]["integrity"] or 0) + int(rows[x]["loyalty"] or 0) for x in (a, b)) // 2
     drop = -(22 + rng.randint(0, 20))
     if resist >= 150 and rng.random() < 0.55:   # 皆笃实 → 窥破反间

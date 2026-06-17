@@ -11,6 +11,14 @@ const AGENDA_CN: Record<string, string> = {
   climb: "进取", protect: "护党", revenge: "夙怨", enrich: "自肥", survive: "自保", entrench: "自重",
 };
 
+function servilityTone(value?: number): string {
+  const v = Number(value ?? 0);
+  if (v >= 75) return "卑顺深重";
+  if (v >= 60) return "恭谨畏慎";
+  if (v >= 42) return "守分自持";
+  return "外顺内拗";
+}
+
 function PersonSheet({ name, onClose }: { name: string; onClose: () => void }) {
   const [c, setC] = useState<Record<string, any> | null>(null);
   const [court, setCourt] = useState<CourtPayload | null>(null);
@@ -133,14 +141,14 @@ function PersonSheet({ name, onClose }: { name: string; onClose: () => void }) {
         )}
         {(court?.castration || court?.duishi) && (
           <div className="m-person-block">
-            <span className="m-person-h">内廷 · 净身</span>
+            <span className="m-person-h">内廷旧事</span>
             {court?.castration && (
               <p className="m-person-castration">
                 <span className={court.castration.forced ? "tv-bad" : "tv-good"}>
                   {court.castration.forced ? "强旨净身" : "自愿净身"}
                 </span>
                 {court.castration.bao_label && <span className="m-bao">· {court.castration.bao_label}</span>}
-                <span className="m-serv">· 奴性 {court.castration.servility}</span>
+                <span className="m-serv">· 心相：{servilityTone(court.castration.servility)}</span>
               </p>
             )}
             {court?.duishi && (

@@ -35,6 +35,16 @@ class SeedTests(unittest.TestCase):
 
 
 class InvestigateTests(unittest.TestCase):
+    def test_default_rng_seed_is_stable(self):
+        self.assertEqual(
+            intrigue._stable_seed(3, "investigate", "崔呈秀"),
+            intrigue._stable_seed(3, "investigate", "崔呈秀"),
+        )
+        self.assertNotEqual(
+            intrigue._stable_seed(3, "investigate", "崔呈秀"),
+            intrigue._stable_seed(3, "fabricate", "崔呈秀"),
+        )
+
     def test_dongchang_chief_is_weizhongxian(self):
         with TemporaryDirectory() as tmp:
             db, _, _ = _fresh(tmp)

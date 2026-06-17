@@ -1,0 +1,190 @@
+[17:52:50.536] [memory/保存] #1 court:chapter chapter_summary《崇祯1627年10月月录》 imp=5 src=turn_report:1
+[17:52:50.536] [MEM-IO/db.upsert/BODY] #1 title='崇祯1627年10月月录' cause='' process='' outcome='崇祯1627年10月月录' sentiment=neutral tags=['章节', 'turn1', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '代批红：内廷廓清积压1本', '请陛下裁断：厂卫锻炼诏狱：魏忠贤劾韩爌', '请陛下裁断：阉祸临头：魏忠贤权倾朝野', '直臣上书：艾万年据实奏闻', '代批红：内廷廓清积压2本', '私怨成弹章：倪元璐劾王绍徽', '请陛下裁断：宿敌互讦：倪元璐 与 王绍徽', '弹章入奏：史可法劾张彝宪'] expires_turn=None
+[17:52:50.634] [memory/保存] #2 court:chapter chapter_summary《崇祯1627年11月月录》 imp=5 src=turn_report:2
+[17:52:50.634] [MEM-IO/db.upsert/BODY] #2 title='崇祯1627年11月月录' cause='' process='' outcome='崇祯1627年11月月录' sentiment=neutral tags=['章节', 'turn2', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '入1627年11月', '代批红：内廷廓清积压1本', '直臣上书：释普济据实奏闻', '代批红：内廷廓清积压2本', '直臣上书：曹文诏据实奏闻', '直臣上书：郑国昌据实奏闻', '私怨成弹章：黄道周劾王绍徽', '直臣上书：毛文龙据实奏闻'] expires_turn=None
+[17:52:50.727] [memory/保存] #3 court:chapter chapter_summary《崇祯1627年12月月录》 imp=5 src=turn_report:3
+[17:52:50.727] [MEM-IO/db.upsert/BODY] #3 title='崇祯1627年12月月录' cause='' process='' outcome='崇祯1627年12月月录' sentiment=neutral tags=['章节', 'turn3', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '入1627年12月', '厂卫侦缉：魏忠贤缉得朱常洵把柄', '代批红：内廷廓清积压1本', '请陛下裁断：厂卫锻炼诏狱：魏忠贤劾黄道周', '请陛下裁断：阉祸临头：魏忠贤权倾朝野', '直臣上书：王肇坤据实奏闻', '代批红：内廷廓清积压2本', '私怨成弹章：陈子龙劾阮大铖'] expires_turn=None
+[17:52:50.818] [memory/保存] #4 court:chapter chapter_summary《崇祯1628年1月月录》 imp=5 src=turn_report:4
+[17:52:50.818] [MEM-IO/db.upsert/BODY] #4 title='崇祯1628年1月月录' cause='' process='' outcome='崇祯1628年1月月录' sentiment=neutral tags=['章节', 'turn4', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '太仓见底，京俸边饷俱无所出', '#4', '入1628年1月', '代批红：内廷廓清积压1本', '直臣上书：孙应元据实奏闻', '代批红：内廷廓清积压2本', '直臣上书：曹变蛟据实奏闻', '私怨成弹章：刘宗周劾王绍徽'] expires_turn=None
+[17:52:50.914] [memory/保存] #5 court:chapter chapter_summary《崇祯1628年2月月录》 imp=5 src=turn_report:5
+[17:52:50.914] [MEM-IO/db.upsert/BODY] #5 title='崇祯1628年2月月录' cause='' process='' outcome='崇祯1628年2月月录' sentiment=neutral tags=['章节', 'turn5', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '太仓见底，京俸边饷俱无所出', '#4', '入1628年2月', '渐成自专：陕西边军', '直臣上书：阮大铖据实奏闻', '代批红：内廷廓清积压2本', '请陛下裁断：厂卫锻炼诏狱：魏忠贤劾史可法', '代批红：内廷廓清积压1本'] expires_turn=None
+[17:52:51.015] [memory/保存] #6 court:chapter chapter_summary《崇祯1628年3月月录》 imp=5 src=turn_report:6
+[17:52:51.015] [MEM-IO/db.upsert/BODY] #6 title='崇祯1628年3月月录' cause='' process='' outcome='崇祯1628年3月月录' sentiment=neutral tags=['章节', 'turn6', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '太仓见底，京俸边饷俱无所出', '#4', '入1628年3月', '代批红：内廷廓清积压1本', '私怨成弹章：刘宗周劾王绍徽', '直臣上书：曹变蛟据实奏闻', '代批红：内廷廓清积压2本', '直臣上书：崔呈秀据实奏闻'] expires_turn=None
+[17:52:51.106] [memory/保存] #7 court:chapter chapter_summary《崇祯1628年4月月录》 imp=5 src=turn_report:7
+[17:52:51.106] [MEM-IO/db.upsert/BODY] #7 title='崇祯1628年4月月录' cause='' process='' outcome='崇祯1628年4月月录' sentiment=neutral tags=['章节', 'turn7', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '太仓见底，京俸边饷俱无所出', '#4', '陕西边军哗变', '#5', '入1628年4月', '渐成自专：东江镇', '尾大不掉：陕西边军跋扈', '代批红：内廷廓清积压1本'] expires_turn=None
+[17:52:51.197] [memory/保存] #8 court:chapter chapter_summary《崇祯1628年5月月录》 imp=5 src=turn_report:8
+[17:52:51.197] [MEM-IO/db.upsert/BODY] #8 title='崇祯1628年5月月录' cause='' process='' outcome='崇祯1628年5月月录' sentiment=neutral tags=['章节', 'turn8', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#5', '太仓见底，京俸边饷俱无所出', '#4', '入1628年5月', '监军密劾：魏忠贤劾陕西巡抚与边将', '渐成自专：西南土司兵', '代批红：内廷廓清积压1本'] expires_turn=None
+[17:52:51.331] [memory/保存] #9 court:chapter chapter_summary《崇祯1628年6月月录》 imp=5 src=turn_report:9
+[17:52:51.332] [MEM-IO/db.upsert/BODY] #9 title='崇祯1628年6月月录' cause='' process='' outcome='崇祯1628年6月月录' sentiment=neutral tags=['章节', 'turn9', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#5', '京营哗变', '#6', '东江镇哗变', '#7', '福建水师哗变', '#8'] expires_turn=None
+[17:52:51.427] [memory/保存] #10 court:chapter chapter_summary《崇祯1628年7月月录》 imp=5 src=turn_report:10
+[17:52:51.427] [MEM-IO/db.upsert/BODY] #10 title='崇祯1628年7月月录' cause='' process='' outcome='崇祯1628年7月月录' sentiment=neutral tags=['章节', 'turn10', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#5', '京营哗变', '#6', '东江镇哗变', '#7', '福建水师哗变', '#8'] expires_turn=None
+[17:52:51.528] [memory/保存] #11 court:chapter chapter_summary《崇祯1628年8月月录》 imp=5 src=turn_report:11
+[17:52:51.528] [MEM-IO/db.upsert/BODY] #11 title='崇祯1628年8月月录' cause='' process='' outcome='崇祯1628年8月月录' sentiment=neutral tags=['章节', 'turn11', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#5', '京营哗变', '#6', '东江镇哗变', '#7', '福建水师哗变', '#8'] expires_turn=None
+[17:52:51.625] [memory/保存] #12 court:chapter chapter_summary《崇祯1628年9月月录》 imp=5 src=turn_report:12
+[17:52:51.625] [MEM-IO/db.upsert/BODY] #12 title='崇祯1628年9月月录' cause='' process='' outcome='崇祯1628年9月月录' sentiment=neutral tags=['章节', 'turn12', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#5', '京营哗变', '#6', '东江镇哗变', '#7', '福建水师哗变', '#8'] expires_turn=None
+[17:52:51.725] [memory/保存] #13 court:chapter chapter_summary《崇祯1628年10月月录》 imp=5 src=turn_report:13
+[17:52:51.725] [MEM-IO/db.upsert/BODY] #13 title='崇祯1628年10月月录' cause='' process='' outcome='崇祯1628年10月月录' sentiment=neutral tags=['章节', 'turn13', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#5', '京营哗变', '#6', '东江镇哗变', '#7', '福建水师哗变', '#8'] expires_turn=None
+[17:52:51.820] [memory/保存] #14 court:chapter chapter_summary《崇祯1628年11月月录》 imp=5 src=turn_report:14
+[17:52:51.820] [MEM-IO/db.upsert/BODY] #14 title='崇祯1628年11月月录' cause='' process='' outcome='崇祯1628年11月月录' sentiment=neutral tags=['章节', 'turn14', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '京营哗变', '#6', '东江镇哗变', '#7', '福建水师哗变', '#8', '广东水师哗变', '#9'] expires_turn=None
+[17:52:51.913] [memory/保存] #15 court:chapter chapter_summary《崇祯1628年12月月录》 imp=5 src=turn_report:15
+[17:52:51.913] [MEM-IO/db.upsert/BODY] #15 title='崇祯1628年12月月录' cause='' process='' outcome='崇祯1628年12月月录' sentiment=neutral tags=['章节', 'turn15', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '京营哗变', '#6', '东江镇哗变', '#7', '福建水师哗变', '#8', '广东水师哗变', '#9'] expires_turn=None
+[17:52:52.004] [memory/保存] #16 court:chapter chapter_summary《崇祯1629年1月月录》 imp=5 src=turn_report:16
+[17:52:52.004] [MEM-IO/db.upsert/BODY] #16 title='崇祯1629年1月月录' cause='' process='' outcome='崇祯1629年1月月录' sentiment=neutral tags=['章节', 'turn16', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '山海关守军哗变', '#11', '宣大边军哗变', '#12', '蓟镇兵哗变', '#13', '登莱兵与水师哗变', '#14'] expires_turn=None
+[17:52:52.097] [memory/保存] #17 court:chapter chapter_summary《崇祯1629年2月月录》 imp=5 src=turn_report:17
+[17:52:52.097] [MEM-IO/db.upsert/BODY] #17 title='崇祯1629年2月月录' cause='' process='' outcome='崇祯1629年2月月录' sentiment=neutral tags=['章节', 'turn17', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '南京守备军哗变', '#15', '关宁军 / 宁锦防线哗变', '#16', '山海关守军哗变', '#11', '宣大边军哗变', '#12'] expires_turn=None
+[17:52:52.189] [memory/保存] #18 court:chapter chapter_summary《崇祯1629年3月月录》 imp=5 src=turn_report:18
+[17:52:52.189] [MEM-IO/db.upsert/BODY] #18 title='崇祯1629年3月月录' cause='' process='' outcome='崇祯1629年3月月录' sentiment=neutral tags=['章节', 'turn18', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '关宁军 / 宁锦防线哗变', '#16', '南京守备军哗变', '#15', '入1629年3月', '清议相攻：夏允彝劾魏忠贤', '代批红：内廷廓清积压1本', '直臣上书：李若琏据实奏闻'] expires_turn=None
+[17:52:52.281] [memory/保存] #19 court:chapter chapter_summary《崇祯1629年4月月录》 imp=5 src=turn_report:19
+[17:52:52.282] [MEM-IO/db.upsert/BODY] #19 title='崇祯1629年4月月录' cause='' process='' outcome='崇祯1629年4月月录' sentiment=neutral tags=['章节', 'turn19', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#17', '四方汹汹，人心思乱', '#18', '关宁军 / 宁锦防线哗变', '#16', '入1629年4月', '讣告：岳听潮享年79'] expires_turn=None
+[17:52:52.370] [memory/保存] #20 court:chapter chapter_summary《崇祯1629年5月月录》 imp=5 src=turn_report:20
+[17:52:52.370] [MEM-IO/db.upsert/BODY] #20 title='崇祯1629年5月月录' cause='' process='' outcome='崇祯1629年5月月录' sentiment=neutral tags=['章节', 'turn20', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#17', '四方汹汹，人心思乱', '#18', '入1629年5月', '监军密劾：魏忠贤劾宣大总督', '清议相攻：何天球劾余大成', '代批红：内廷廓清积压1本'] expires_turn=None
+[17:52:52.471] [memory/保存] #21 court:chapter chapter_summary《崇祯1629年6月月录》 imp=5 src=turn_report:21
+[17:52:52.471] [MEM-IO/db.upsert/BODY] #21 title='崇祯1629年6月月录' cause='' process='' outcome='崇祯1629年6月月录' sentiment=neutral tags=['章节', 'turn21', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#17', '四方汹汹，人心思乱', '#18', '京营哗变', '#19', '东江镇哗变', '#20'] expires_turn=None
+[17:52:52.560] [memory/保存] #22 court:chapter chapter_summary《崇祯1629年7月月录》 imp=5 src=turn_report:22
+[17:52:52.560] [MEM-IO/db.upsert/BODY] #22 title='崇祯1629年7月月录' cause='' process='' outcome='崇祯1629年7月月录' sentiment=neutral tags=['章节', 'turn22', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#17', '四方汹汹，人心思乱', '#18', '京营哗变', '#19', '东江镇哗变', '#20'] expires_turn=None
+[17:52:52.654] [memory/保存] #23 court:chapter chapter_summary《崇祯1629年8月月录》 imp=5 src=turn_report:23
+[17:52:52.654] [MEM-IO/db.upsert/BODY] #23 title='崇祯1629年8月月录' cause='' process='' outcome='崇祯1629年8月月录' sentiment=neutral tags=['章节', 'turn23', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#17', '四方汹汹，人心思乱', '#18', '京营哗变', '#19', '东江镇哗变', '#20'] expires_turn=None
+[17:52:52.743] [memory/保存] #24 court:chapter chapter_summary《崇祯1629年9月月录》 imp=5 src=turn_report:24
+[17:52:52.743] [MEM-IO/db.upsert/BODY] #24 title='崇祯1629年9月月录' cause='' process='' outcome='崇祯1629年9月月录' sentiment=neutral tags=['章节', 'turn24', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#17', '四方汹汹，人心思乱', '#18', '京营哗变', '#19', '东江镇哗变', '#20'] expires_turn=None
+[17:52:52.830] [memory/保存] #25 court:chapter chapter_summary《崇祯1629年10月月录》 imp=5 src=turn_report:25
+[17:52:52.830] [MEM-IO/db.upsert/BODY] #25 title='崇祯1629年10月月录' cause='' process='' outcome='崇祯1629年10月月录' sentiment=neutral tags=['章节', 'turn25', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#17', '京营哗变', '#19', '东江镇哗变', '#20', '福建水师哗变', '#21'] expires_turn=None
+[17:52:52.925] [memory/保存] #26 court:chapter chapter_summary《崇祯1629年11月月录》 imp=5 src=turn_report:26
+[17:52:52.925] [MEM-IO/db.upsert/BODY] #26 title='崇祯1629年11月月录' cause='' process='' outcome='崇祯1629年11月月录' sentiment=neutral tags=['章节', 'turn26', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '京营哗变', '#19', '东江镇哗变', '#20', '福建水师哗变', '#21', '广东水师哗变', '#22'] expires_turn=None
+[17:52:53.018] [memory/保存] #27 court:chapter chapter_summary《崇祯1629年12月月录》 imp=5 src=turn_report:27
+[17:52:53.018] [MEM-IO/db.upsert/BODY] #27 title='崇祯1629年12月月录' cause='' process='' outcome='崇祯1629年12月月录' sentiment=neutral tags=['章节', 'turn27', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '京营哗变', '#19', '东江镇哗变', '#20', '福建水师哗变', '#21', '广东水师哗变', '#22'] expires_turn=None
+[17:52:53.139] [memory/保存] #28 court:chapter chapter_summary《崇祯1630年1月月录》 imp=5 src=turn_report:28
+[17:52:53.139] [MEM-IO/db.upsert/BODY] #28 title='崇祯1630年1月月录' cause='' process='' outcome='崇祯1630年1月月录' sentiment=neutral tags=['章节', 'turn28', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '山海关守军哗变', '#24', '宣大边军哗变', '#25', '蓟镇兵哗变', '#26', '登莱兵与水师哗变', '#27'] expires_turn=None
+[17:52:53.230] [memory/保存] #29 court:chapter chapter_summary《崇祯1630年2月月录》 imp=5 src=turn_report:29
+[17:52:53.230] [MEM-IO/db.upsert/BODY] #29 title='崇祯1630年2月月录' cause='' process='' outcome='崇祯1630年2月月录' sentiment=neutral tags=['章节', 'turn29', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '南京守备军哗变', '#28', '关宁军 / 宁锦防线哗变', '#29', '山海关守军哗变', '#24', '宣大边军哗变', '#25'] expires_turn=None
+[17:52:53.318] [memory/保存] #30 court:chapter chapter_summary《崇祯1630年3月月录》 imp=5 src=turn_report:30
+[17:52:53.318] [MEM-IO/db.upsert/BODY] #30 title='崇祯1630年3月月录' cause='' process='' outcome='崇祯1630年3月月录' sentiment=neutral tags=['章节', 'turn30', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '关宁军 / 宁锦防线哗变', '#29', '南京守备军哗变', '#28', '入1630年3月', '监军密劾：魏忠贤劾南京守备', '代批红：内廷廓清积压1本', '朋党相荐：陈子龙举夏允彝'] expires_turn=None
+[17:52:53.411] [memory/保存] #31 court:chapter chapter_summary《崇祯1630年4月月录》 imp=5 src=turn_report:31
+[17:52:53.411] [MEM-IO/db.upsert/BODY] #31 title='崇祯1630年4月月录' cause='' process='' outcome='崇祯1630年4月月录' sentiment=neutral tags=['章节', 'turn31', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#30', '四方汹汹，人心思乱', '#31', '关宁军 / 宁锦防线哗变', '#29', '入1630年4月', '清议相攻：余大成劾何天球'] expires_turn=None
+[17:52:53.498] [memory/保存] #32 court:chapter chapter_summary《崇祯1630年5月月录》 imp=5 src=turn_report:32
+[17:52:53.498] [MEM-IO/db.upsert/BODY] #32 title='崇祯1630年5月月录' cause='' process='' outcome='崇祯1630年5月月录' sentiment=neutral tags=['章节', 'turn32', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#30', '四方汹汹，人心思乱', '#31', '入1630年5月', '代批红：内廷廓清积压1本', '直臣上书：杨国柱据实奏闻', '代批红：内廷廓清积压2本'] expires_turn=None
+[17:52:53.591] [memory/保存] #33 court:chapter chapter_summary《崇祯1630年6月月录》 imp=5 src=turn_report:33
+[17:52:53.592] [MEM-IO/db.upsert/BODY] #33 title='崇祯1630年6月月录' cause='' process='' outcome='崇祯1630年6月月录' sentiment=neutral tags=['章节', 'turn33', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#30', '四方汹汹，人心思乱', '#31', '京营哗变', '#32', '东江镇哗变', '#33'] expires_turn=None
+[17:52:53.685] [memory/保存] #34 court:chapter chapter_summary《崇祯1630年7月月录》 imp=5 src=turn_report:34
+[17:52:53.685] [MEM-IO/db.upsert/BODY] #34 title='崇祯1630年7月月录' cause='' process='' outcome='崇祯1630年7月月录' sentiment=neutral tags=['章节', 'turn34', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#30', '四方汹汹，人心思乱', '#31', '京营哗变', '#32', '东江镇哗变', '#33'] expires_turn=None
+[17:52:53.781] [memory/保存] #35 court:chapter chapter_summary《崇祯1630年8月月录》 imp=5 src=turn_report:35
+[17:52:53.781] [MEM-IO/db.upsert/BODY] #35 title='崇祯1630年8月月录' cause='' process='' outcome='崇祯1630年8月月录' sentiment=neutral tags=['章节', 'turn35', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#30', '四方汹汹，人心思乱', '#31', '京营哗变', '#32', '东江镇哗变', '#33'] expires_turn=None
+[17:52:53.876] [memory/保存] #36 court:chapter chapter_summary《崇祯1630年9月月录》 imp=5 src=turn_report:36
+[17:52:53.877] [MEM-IO/db.upsert/BODY] #36 title='崇祯1630年9月月录' cause='' process='' outcome='崇祯1630年9月月录' sentiment=neutral tags=['章节', 'turn36', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#30', '四方汹汹，人心思乱', '#31', '京营哗变', '#32', '东江镇哗变', '#33'] expires_turn=None
+
+================================================================
+政策：rely（代批红scheming + 阉祸/冤陷/封疆按策；起步权阉70）
+================================================================
+  月    势   RA   权阉   把柄   下狱   民心    国库
+  1   66   56   89    0    1   51   197
+  4   66   64   93    1    2   49    43
+  7   72   86   95    2    4   35    -3
+ 10   71   85   96    3    5   38   -28
+ 13   76   92   97    3    7   31   -44
+ 16   73   85   98    4    8   31   -44
+ 19   76   92  100    5   10   20   -44
+ 22   73   85  100    6   11   16   -44
+ 25   76   92  100    8   13   10   -44
+ 28   73   85  100    8   14   15   -44
+ 31   76   92  100    9   16   11   -44
+ 34   73   85  100    9   17   12   -44
+ 36   73   85  100   10   18   12   -44
+
+涌现事件计数： {'changwei_probe': 1, 'daipihong': 810, 'eunuch_reincarnation': 1, 'supervisor_smear': 9}
+抉择触发： {'choice:eunuch_crisis:rely': 18, 'choice:eunuch_frame:approve': 18, 'choice:rival_feud:both': 18, 'choice:warlord:supervise': 10, 'decision:eunuch_crisis': 18, 'decision:eunuch_frame': 18, 'decision:rival_feud': 18, 'decision:warlord': 10}
+末月：势73 RA85 权阉100 把柄10 下狱18 民心12 国库-44
+死亡螺旋：✓ 否　不变式破坏：✓ 无
+[17:52:54.066] [memory/保存] #1 court:chapter chapter_summary《崇祯1627年10月月录》 imp=5 src=turn_report:1
+[17:52:54.066] [MEM-IO/db.upsert/BODY] #1 title='崇祯1627年10月月录' cause='' process='' outcome='崇祯1627年10月月录' sentiment=neutral tags=['章节', 'turn1', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '代批红：内廷廓清积压1本', '请陛下裁断：厂卫锻炼诏狱：魏忠贤劾韩爌', '直臣上书：艾万年据实奏闻', '代批红：内廷廓清积压2本', '私怨成弹章：倪元璐劾王绍徽', '请陛下裁断：宿敌互讦：倪元璐 与 王绍徽', '弹章入奏：史可法劾张彝宪', '私怨成弹章：黄道周劾王绍徽'] expires_turn=None
+[17:52:54.159] [memory/保存] #2 court:chapter chapter_summary《崇祯1627年11月月录》 imp=5 src=turn_report:2
+[17:52:54.159] [MEM-IO/db.upsert/BODY] #2 title='崇祯1627年11月月录' cause='' process='' outcome='崇祯1627年11月月录' sentiment=neutral tags=['章节', 'turn2', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '入1627年11月', '代批红：内廷廓清积压1本', '直臣上书：释普济据实奏闻', '代批红：内廷廓清积压2本', '直臣上书：曹文诏据实奏闻', '直臣上书：郑国昌据实奏闻', '私怨成弹章：黄道周劾王绍徽', '直臣上书：毛文龙据实奏闻'] expires_turn=None
+[17:52:54.255] [memory/保存] #3 court:chapter chapter_summary《崇祯1627年12月月录》 imp=5 src=turn_report:3
+[17:52:54.255] [MEM-IO/db.upsert/BODY] #3 title='崇祯1627年12月月录' cause='' process='' outcome='崇祯1627年12月月录' sentiment=neutral tags=['章节', 'turn3', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '入1627年12月', '厂卫侦缉：魏忠贤缉得朱常洵把柄', '代批红：内廷廓清积压1本', '请陛下裁断：厂卫锻炼诏狱：魏忠贤劾韩爌', '直臣上书：王肇坤据实奏闻', '代批红：内廷廓清积压2本', '私怨成弹章：倪元璐劾王绍徽', '请陛下裁断：宿敌互讦：倪元璐 与 王绍徽'] expires_turn=None
+[17:52:54.348] [memory/保存] #4 court:chapter chapter_summary《崇祯1628年1月月录》 imp=5 src=turn_report:4
+[17:52:54.348] [MEM-IO/db.upsert/BODY] #4 title='崇祯1628年1月月录' cause='' process='' outcome='崇祯1628年1月月录' sentiment=neutral tags=['章节', 'turn4', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '太仓见底，京俸边饷俱无所出', '#4', '入1628年1月', '代批红：内廷廓清积压1本', '直臣上书：关行烈据实奏闻', '代批红：内廷廓清积压2本', '直臣上书：孙应元据实奏闻', '直臣上书：曹变蛟据实奏闻'] expires_turn=None
+[17:52:54.450] [memory/保存] #5 court:chapter chapter_summary《崇祯1628年2月月录》 imp=5 src=turn_report:5
+[17:52:54.450] [MEM-IO/db.upsert/BODY] #5 title='崇祯1628年2月月录' cause='' process='' outcome='崇祯1628年2月月录' sentiment=neutral tags=['章节', 'turn5', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '太仓见底，京俸边饷俱无所出', '#4', '入1628年2月', '渐成自专：陕西边军', '直臣上书：阮大铖据实奏闻', '代批红：内廷廓清积压2本', '请陛下裁断：厂卫锻炼诏狱：魏忠贤劾韩爌', '代批红：内廷廓清积压1本'] expires_turn=None
+[17:52:54.545] [memory/保存] #6 court:chapter chapter_summary《崇祯1628年3月月录》 imp=5 src=turn_report:6
+[17:52:54.545] [MEM-IO/db.upsert/BODY] #6 title='崇祯1628年3月月录' cause='' process='' outcome='崇祯1628年3月月录' sentiment=neutral tags=['章节', 'turn6', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '太仓见底，京俸边饷俱无所出', '#4', '入1628年3月', '代批红：内廷廓清积压1本', '私怨成弹章：黄道周劾王绍徽', '直臣上书：李卑据实奏闻', '代批红：内廷廓清积压2本', '直臣上书：徐从治据实奏闻'] expires_turn=None
+[17:52:54.643] [memory/保存] #7 court:chapter chapter_summary《崇祯1628年4月月录》 imp=5 src=turn_report:7
+[17:52:54.652] [MEM-IO/db.upsert/BODY] #7 title='崇祯1628年4月月录' cause='' process='' outcome='崇祯1628年4月月录' sentiment=neutral tags=['章节', 'turn7', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '太仓见底，京俸边饷俱无所出', '#4', '陕西边军哗变', '#5', '入1628年4月', '渐成自专：东江镇', '尾大不掉：陕西边军跋扈', '代批红：内廷廓清积压1本'] expires_turn=None
+[17:52:54.749] [memory/保存] #8 court:chapter chapter_summary《崇祯1628年5月月录》 imp=5 src=turn_report:8
+[17:52:54.749] [MEM-IO/db.upsert/BODY] #8 title='崇祯1628年5月月录' cause='' process='' outcome='崇祯1628年5月月录' sentiment=neutral tags=['章节', 'turn8', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#5', '太仓见底，京俸边饷俱无所出', '#4', '入1628年5月', '渐成自专：西南土司兵', '代批红：内廷廓清积压1本', '直臣上书：刘应天据实奏闻'] expires_turn=None
+[17:52:54.847] [memory/保存] #9 court:chapter chapter_summary《崇祯1628年6月月录》 imp=5 src=turn_report:9
+[17:52:54.849] [MEM-IO/db.upsert/BODY] #9 title='崇祯1628年6月月录' cause='' process='' outcome='崇祯1628年6月月录' sentiment=neutral tags=['章节', 'turn9', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#5', '京营哗变', '#6', '东江镇哗变', '#7', '福建水师哗变', '#8'] expires_turn=None
+[17:52:54.948] [memory/保存] #10 court:chapter chapter_summary《崇祯1628年7月月录》 imp=5 src=turn_report:10
+[17:52:54.948] [MEM-IO/db.upsert/BODY] #10 title='崇祯1628年7月月录' cause='' process='' outcome='崇祯1628年7月月录' sentiment=neutral tags=['章节', 'turn10', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#5', '京营哗变', '#6', '东江镇哗变', '#7', '福建水师哗变', '#8'] expires_turn=None
+[17:52:55.044] [memory/保存] #11 court:chapter chapter_summary《崇祯1628年8月月录》 imp=5 src=turn_report:11
+[17:52:55.044] [MEM-IO/db.upsert/BODY] #11 title='崇祯1628年8月月录' cause='' process='' outcome='崇祯1628年8月月录' sentiment=neutral tags=['章节', 'turn11', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#5', '京营哗变', '#6', '东江镇哗变', '#7', '福建水师哗变', '#8'] expires_turn=None
+[17:52:55.172] [memory/保存] #12 court:chapter chapter_summary《崇祯1628年9月月录》 imp=5 src=turn_report:12
+[17:52:55.172] [MEM-IO/db.upsert/BODY] #12 title='崇祯1628年9月月录' cause='' process='' outcome='崇祯1628年9月月录' sentiment=neutral tags=['章节', 'turn12', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#5', '京营哗变', '#6', '东江镇哗变', '#7', '福建水师哗变', '#8'] expires_turn=None
+[17:52:55.264] [memory/保存] #13 court:chapter chapter_summary《崇祯1628年10月月录》 imp=5 src=turn_report:13
+[17:52:55.264] [MEM-IO/db.upsert/BODY] #13 title='崇祯1628年10月月录' cause='' process='' outcome='崇祯1628年10月月录' sentiment=neutral tags=['章节', 'turn13', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#5', '京营哗变', '#6', '东江镇哗变', '#7', '福建水师哗变', '#8'] expires_turn=None
+[17:52:55.351] [memory/保存] #14 court:chapter chapter_summary《崇祯1628年11月月录》 imp=5 src=turn_report:14
+[17:52:55.351] [MEM-IO/db.upsert/BODY] #14 title='崇祯1628年11月月录' cause='' process='' outcome='崇祯1628年11月月录' sentiment=neutral tags=['章节', 'turn14', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '京营哗变', '#6', '东江镇哗变', '#7', '福建水师哗变', '#8', '广东水师哗变', '#9'] expires_turn=None
+[17:52:55.433] [memory/保存] #15 court:chapter chapter_summary《崇祯1628年12月月录》 imp=5 src=turn_report:15
+[17:52:55.433] [MEM-IO/db.upsert/BODY] #15 title='崇祯1628年12月月录' cause='' process='' outcome='崇祯1628年12月月录' sentiment=neutral tags=['章节', 'turn15', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '京营哗变', '#6', '东江镇哗变', '#7', '福建水师哗变', '#8', '广东水师哗变', '#9'] expires_turn=None
+[17:52:55.520] [memory/保存] #16 court:chapter chapter_summary《崇祯1629年1月月录》 imp=5 src=turn_report:16
+[17:52:55.537] [MEM-IO/db.upsert/BODY] #16 title='崇祯1629年1月月录' cause='' process='' outcome='崇祯1629年1月月录' sentiment=neutral tags=['章节', 'turn16', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '山海关守军哗变', '#11', '宣大边军哗变', '#12', '蓟镇兵哗变', '#13', '登莱兵与水师哗变', '#14'] expires_turn=None
+[17:52:55.628] [memory/保存] #17 court:chapter chapter_summary《崇祯1629年2月月录》 imp=5 src=turn_report:17
+[17:52:55.628] [MEM-IO/db.upsert/BODY] #17 title='崇祯1629年2月月录' cause='' process='' outcome='崇祯1629年2月月录' sentiment=neutral tags=['章节', 'turn17', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '南京守备军哗变', '#15', '关宁军 / 宁锦防线哗变', '#16', '太仓见底，京俸边饷俱无所出', '#17', '山海关守军哗变', '#11'] expires_turn=None
+[17:52:55.718] [memory/保存] #18 court:chapter chapter_summary《崇祯1629年3月月录》 imp=5 src=turn_report:18
+[17:52:55.718] [MEM-IO/db.upsert/BODY] #18 title='崇祯1629年3月月录' cause='' process='' outcome='崇祯1629年3月月录' sentiment=neutral tags=['章节', 'turn18', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '关宁军 / 宁锦防线哗变', '#16', '太仓见底，京俸边饷俱无所出', '#17', '南京守备军哗变', '#15', '入1629年3月', '清议相攻：韩爌劾黄立极'] expires_turn=None
+[17:52:55.807] [memory/保存] #19 court:chapter chapter_summary《崇祯1629年4月月录》 imp=5 src=turn_report:19
+[17:52:55.807] [MEM-IO/db.upsert/BODY] #19 title='崇祯1629年4月月录' cause='' process='' outcome='崇祯1629年4月月录' sentiment=neutral tags=['章节', 'turn19', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '太仓见底，京俸边饷俱无所出', '#17', '陕西边军哗变', '#18', '关宁军 / 宁锦防线哗变', '#16', '入1629年4月', '讣告：张玄默享年79'] expires_turn=None
+[17:52:55.891] [memory/保存] #20 court:chapter chapter_summary《崇祯1629年5月月录》 imp=5 src=turn_report:20
+[17:52:55.891] [MEM-IO/db.upsert/BODY] #20 title='崇祯1629年5月月录' cause='' process='' outcome='崇祯1629年5月月录' sentiment=neutral tags=['章节', 'turn20', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '太仓见底，京俸边饷俱无所出', '#17', '陕西边军哗变', '#18', '入1629年5月', '清议相攻：钱龙锡劾黄立极', '私怨成弹章：黄道周劾王绍徽', '直臣上书：李若琏据实奏闻'] expires_turn=None
+[17:52:55.977] [memory/保存] #21 court:chapter chapter_summary《崇祯1629年6月月录》 imp=5 src=turn_report:21
+[17:52:55.977] [MEM-IO/db.upsert/BODY] #21 title='崇祯1629年6月月录' cause='' process='' outcome='崇祯1629年6月月录' sentiment=neutral tags=['章节', 'turn21', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#18', '京营哗变', '#19', '东江镇哗变', '#20', '福建水师哗变', '#21'] expires_turn=None
+[17:52:56.068] [memory/保存] #22 court:chapter chapter_summary《崇祯1629年7月月录》 imp=5 src=turn_report:22
+[17:52:56.068] [MEM-IO/db.upsert/BODY] #22 title='崇祯1629年7月月录' cause='' process='' outcome='崇祯1629年7月月录' sentiment=neutral tags=['章节', 'turn22', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#18', '京营哗变', '#19', '东江镇哗变', '#20', '福建水师哗变', '#21'] expires_turn=None
+[17:52:56.153] [memory/保存] #23 court:chapter chapter_summary《崇祯1629年8月月录》 imp=5 src=turn_report:23
+[17:52:56.153] [MEM-IO/db.upsert/BODY] #23 title='崇祯1629年8月月录' cause='' process='' outcome='崇祯1629年8月月录' sentiment=neutral tags=['章节', 'turn23', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#18', '京营哗变', '#19', '东江镇哗变', '#20', '福建水师哗变', '#21'] expires_turn=None
+[17:52:56.239] [memory/保存] #24 court:chapter chapter_summary《崇祯1629年9月月录》 imp=5 src=turn_report:24
+[17:52:56.239] [MEM-IO/db.upsert/BODY] #24 title='崇祯1629年9月月录' cause='' process='' outcome='崇祯1629年9月月录' sentiment=neutral tags=['章节', 'turn24', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#18', '京营哗变', '#19', '东江镇哗变', '#20', '福建水师哗变', '#21'] expires_turn=None
+[17:52:56.322] [memory/保存] #25 court:chapter chapter_summary《崇祯1629年10月月录》 imp=5 src=turn_report:25
+[17:52:56.322] [MEM-IO/db.upsert/BODY] #25 title='崇祯1629年10月月录' cause='' process='' outcome='崇祯1629年10月月录' sentiment=neutral tags=['章节', 'turn25', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#18', '京营哗变', '#19', '东江镇哗变', '#20', '福建水师哗变', '#21'] expires_turn=None
+[17:52:56.405] [memory/保存] #26 court:chapter chapter_summary《崇祯1629年11月月录》 imp=5 src=turn_report:26
+[17:52:56.406] [MEM-IO/db.upsert/BODY] #26 title='崇祯1629年11月月录' cause='' process='' outcome='崇祯1629年11月月录' sentiment=neutral tags=['章节', 'turn26', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '京营哗变', '#19', '东江镇哗变', '#20', '福建水师哗变', '#21', '广东水师哗变', '#22'] expires_turn=None
+[17:52:56.487] [memory/保存] #27 court:chapter chapter_summary《崇祯1629年12月月录》 imp=5 src=turn_report:27
+[17:52:56.488] [MEM-IO/db.upsert/BODY] #27 title='崇祯1629年12月月录' cause='' process='' outcome='崇祯1629年12月月录' sentiment=neutral tags=['章节', 'turn27', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '京营哗变', '#19', '东江镇哗变', '#20', '福建水师哗变', '#21', '广东水师哗变', '#22'] expires_turn=None
+[17:52:56.570] [memory/保存] #28 court:chapter chapter_summary《崇祯1630年1月月录》 imp=5 src=turn_report:28
+[17:52:56.571] [MEM-IO/db.upsert/BODY] #28 title='崇祯1630年1月月录' cause='' process='' outcome='崇祯1630年1月月录' sentiment=neutral tags=['章节', 'turn28', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '山海关守军哗变', '#24', '宣大边军哗变', '#25', '蓟镇兵哗变', '#26', '登莱兵与水师哗变', '#27'] expires_turn=None
+[17:52:56.659] [memory/保存] #29 court:chapter chapter_summary《崇祯1630年2月月录》 imp=5 src=turn_report:29
+[17:52:56.659] [MEM-IO/db.upsert/BODY] #29 title='崇祯1630年2月月录' cause='' process='' outcome='崇祯1630年2月月录' sentiment=neutral tags=['章节', 'turn29', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '南京守备军哗变', '#28', '关宁军 / 宁锦防线哗变', '#29', '山海关守军哗变', '#24', '宣大边军哗变', '#25'] expires_turn=None
+[17:52:56.743] [memory/保存] #30 court:chapter chapter_summary《崇祯1630年3月月录》 imp=5 src=turn_report:30
+[17:52:56.743] [MEM-IO/db.upsert/BODY] #30 title='崇祯1630年3月月录' cause='' process='' outcome='崇祯1630年3月月录' sentiment=neutral tags=['章节', 'turn30', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '关宁军 / 宁锦防线哗变', '#29', '南京守备军哗变', '#28', '入1630年3月', '清议相攻：钱谦益劾黄立极', '清议相攻：李标劾黄立极', '直臣上书：朱翊铭据实奏闻'] expires_turn=None
+[17:52:56.823] [memory/保存] #31 court:chapter chapter_summary《崇祯1630年4月月录》 imp=5 src=turn_report:31
+[17:52:56.823] [MEM-IO/db.upsert/BODY] #31 title='崇祯1630年4月月录' cause='' process='' outcome='崇祯1630年4月月录' sentiment=neutral tags=['章节', 'turn31', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#30', '关宁军 / 宁锦防线哗变', '#29', '入1630年4月', '私怨成弹章：黄道周劾王绍徽', '请陛下裁断：宿敌互讦：黄道周 与 王绍徽', '直臣上书：高名衡据实奏闻'] expires_turn=None
+[17:52:56.911] [memory/保存] #32 court:chapter chapter_summary《崇祯1630年5月月录》 imp=5 src=turn_report:32
+[17:52:56.911] [MEM-IO/db.upsert/BODY] #32 title='崇祯1630年5月月录' cause='' process='' outcome='崇祯1630年5月月录' sentiment=neutral tags=['章节', 'turn32', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#30', '入1630年5月', '清议相攻：倪元璐劾王绍徽', '直臣上书：高杰据实奏闻', '直臣上书：李卑据实奏闻', '私怨成弹章：黄道周劾王绍徽', '直臣上书：俞冲霄据实奏闻'] expires_turn=None
+[17:52:57.002] [memory/保存] #33 court:chapter chapter_summary《崇祯1630年6月月录》 imp=5 src=turn_report:33
+[17:52:57.002] [MEM-IO/db.upsert/BODY] #33 title='崇祯1630年6月月录' cause='' process='' outcome='崇祯1630年6月月录' sentiment=neutral tags=['章节', 'turn33', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#30', '京营哗变', '#31', '东江镇哗变', '#32', '福建水师哗变', '#33'] expires_turn=None
+[17:52:57.090] [memory/保存] #34 court:chapter chapter_summary《崇祯1630年7月月录》 imp=5 src=turn_report:34
+[17:52:57.090] [MEM-IO/db.upsert/BODY] #34 title='崇祯1630年7月月录' cause='' process='' outcome='崇祯1630年7月月录' sentiment=neutral tags=['章节', 'turn34', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#30', '京营哗变', '#31', '东江镇哗变', '#32', '福建水师哗变', '#33'] expires_turn=None
+[17:52:57.206] [memory/保存] #35 court:chapter chapter_summary《崇祯1630年8月月录》 imp=5 src=turn_report:35
+[17:52:57.206] [MEM-IO/db.upsert/BODY] #35 title='崇祯1630年8月月录' cause='' process='' outcome='崇祯1630年8月月录' sentiment=neutral tags=['章节', 'turn35', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#30', '京营哗变', '#31', '东江镇哗变', '#32', '福建水师哗变', '#33'] expires_turn=None
+[17:52:57.294] [memory/保存] #36 court:chapter chapter_summary《崇祯1630年9月月录》 imp=5 src=turn_report:36
+[17:52:57.294] [MEM-IO/db.upsert/BODY] #36 title='崇祯1630年9月月录' cause='' process='' outcome='崇祯1630年9月月录' sentiment=neutral tags=['章节', 'turn36', '月录', '连续时间', '户部亏空', '#1', '辽东索饷', '#2', '陕西流寇起', '#3', '陕西边军哗变', '#30', '京营哗变', '#31', '东江镇哗变', '#32', '福建水师哗变', '#33'] expires_turn=None
+
+================================================================
+政策：curb（代批红scheming + 阉祸/冤陷/封疆按策；起步权阉70）
+================================================================
+  月    势   RA   权阉   把柄   下狱   民心    国库
+  1   65   46   69    0    0   60   197
+  4   65   49   70    1    0   62    42
+  7   74   56   68    1    0   60    -4
+ 10   75   55   70    1    0   62   -29
+ 13   73   52   21    1    1   62   -44
+ 16   65   40   22    1    1   54   -44
+ 19   60   30   22    1    1   47   -44
+ 22   56   23   22    1    1   43   -44
+ 25   60   21   22    1    1   41   -44
+ 28   60   15   22    1    1   41   -44
+ 31   63   11   22    1    1   41   -44
+ 34   63    6   22    1    1   41   -44
+ 36   63    7   22    1    1   41   -44
+
+涌现事件计数： {'changwei_probe': 1, 'daipihong': 258, 'eunuch_reincarnation': 1}
+抉择触发： {'choice:eunuch_crisis:purge': 1, 'choice:eunuch_frame:protect': 6, 'choice:rival_feud:both': 18, 'choice:warlord:curb': 9, 'decision:eunuch_crisis': 1, 'decision:eunuch_frame': 6, 'decision:rival_feud': 18, 'decision:warlord': 9}
+末月：势63 RA7 权阉22 把柄1 下狱1 民心41 国库-44
+死亡螺旋：✓ 否　不变式破坏：✓ 无

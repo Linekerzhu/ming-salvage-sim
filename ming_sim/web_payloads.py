@@ -87,6 +87,7 @@ ARMY_FIELDS = (
     "mobility",
     "loyalty",
     "status",
+    "supervisor",
     "owner_power",
 )
 

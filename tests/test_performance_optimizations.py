@@ -741,7 +741,12 @@ class PerformanceOptimizationTests(unittest.TestCase):
             }
         ])
         region_encoded = compact_regions([{"id": "shanxi", "name": "山西", "controlled_by": "ming"}])
-        army_encoded = compact_armies([{"id": "liaodong", "name": "辽东军", "owner_power": "ming"}])
+        army_encoded = compact_armies([{
+            "id": "liaodong",
+            "name": "辽东军",
+            "supervisor": "王承恩",
+            "owner_power": "ming",
+        }])
         power_encoded = compact_powers([{"id": "ming", "name": "大明", "aliases": ""}])
         building_encoded = compact_buildings([{"id": "school", "region_id": "shanxi", "name": "社学", "origin": "官建"}])
         map_encoded = compact_map_nodes([
@@ -851,8 +856,10 @@ class PerformanceOptimizationTests(unittest.TestCase):
         self.assertEqual(region_encoded[0][0], "shanxi")
         self.assertEqual(region_encoded[0][-1], "ming")
         self.assertEqual(ARMY_FIELDS[0], "id")
+        self.assertIn("supervisor", ARMY_FIELDS)
         self.assertEqual(ARMY_FIELDS[-1], "owner_power")
         self.assertEqual(army_encoded[0][0], "liaodong")
+        self.assertEqual(army_encoded[0][ARMY_FIELDS.index("supervisor")], "王承恩")
         self.assertEqual(army_encoded[0][-1], "ming")
         self.assertEqual(POWER_FIELDS[0], "id")
         self.assertEqual(POWER_FIELDS[-1], "aliases")

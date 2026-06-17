@@ -1,0 +1,22 @@
+{
+  "url": "http://127.0.0.1:8011",
+  "model": "deepseek-v4-flash",
+  "viewport": "390x844 mobile",
+  "notes": [
+    "screenshot 01-menu.png",
+    "screenshot 02-home.png",
+    "screenshot 03-desk-daipihong-off.png",
+    "screenshot 04-desk-daipihong-on.png",
+    "screenshot 05-daipihong-keeper-picker.png",
+    "screenshot 06-daipihong-wang-chengen.png",
+    "screenshot 07-audience-eunuch.png",
+    "screenshot 08-summon-sheet.png",
+    "screenshot 09-minister-audience.png",
+    "screenshot 10-audience-complete-back-to-eunuch.png",
+    "summoned 韩爌",
+    "screenshot 11-person-card.png",
+    "screenshot 12-realm-bottom.png",
+    "screenshot 13-realm-supervisor.png"
+  ],
+  "bodyTextSample": "崇祯元年\n十月·第1日\n推时日 ›\n君威\n62\n任事\n60\n精力\n12/12\n中兴气象\n勉力支撑\n42\n中兴指数\n财政\n41\n边备\n26\n流寇压制\n47\n吏治\n49\n民心\n56\n站稳脚跟（崇祯元年—二年）\n2/3 方略告成\n\n新君初立，魏阉虽除，朝局未定。先把钱粮、京营与百官任事之心稳住。\n\n天下舆图\n安靖\n微澜\n动荡\n糜烂\n\n点选舆图各省查看；色越赤则其地越乱。\n\n国势\n国库\n248 万两\n内库\n442 万两\n民心\n56\n皇威\n20\n▸\n省份\n29\n21 处动荡\n▾\n军队\n17\n12 镇欠饷\n福建水师\n欠饷 4\n士气 50\n遣监军钳制\n\n遣魏忠贤监福建水师军——天子耳目就近钳制，然福建巡抚与水师将领受制掣肘、心怀怨望。\n\n京营\n欠饷 21\n士气 42\n遣监军钳制\n蓟镇兵\n欠饷 16\n士气 47\n遣监军钳制\n宣大边军\n欠饷 30\n士气 48\n遣监军钳制\n广东水师\n欠饷 4\n士气 51\n遣监军钳制\n朝鲜边军\n足饷\n士气 44\n遣监军钳制\n南京守备军\n欠饷 4\n士气 49\n遣监军钳制\n登莱兵与水师\n欠饷 6\n士气 50\n遣监军钳制\n察哈尔诸部骑兵\n足饷\n士气 58\n遣监军钳制\n陕西边军\n欠饷 25\n士气 36\n遣监军钳制\n西南土司兵\n欠饷 4\n士气 56\n遣监军钳制\n关宁军 / 宁锦防线\n欠饷 60\n士气 52\n遣监军钳制\n东江镇\n欠饷 16\n士气 58\n遣监军钳制\n汉军与辽人降兵\n足饷\n士气 52\n遣监军钳制\n满洲八旗主力\n足饷\n士气 76\n遣监军钳制\n山海关守军\n欠饷 6\n士气 55\n遣监军钳制\n王嘉胤部\n足饷\n士气 58\n遣监军钳制\n▾\n在办局势\n3\n辽东索饷\n险 82\n户部亏空\n险 78\n陕西流寇起\n险 74\n▸\n建筑\n38\n失修 15\n▸\n官制·衙门\n14\n空缺 28\n御\n御前\n案\n御案\n召\n召对\n诏\n诏旨\n天\n天下"
+}
