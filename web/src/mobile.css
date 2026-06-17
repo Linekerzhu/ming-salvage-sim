@@ -239,6 +239,20 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   min-width: 0; font-weight: 800; font-size: 0.92rem;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.m-brief-urgency {
+  flex: 0 0 auto; min-width: 38px; text-align: center;
+  border-radius: 6px; padding: 1px 5px; font-size: 0.66rem; font-weight: 900;
+  border: 1px solid rgba(74,45,20,.14); color: var(--ink-soft); background: rgba(42,31,18,.06);
+}
+.m-brief-urgency.level-danger {
+  color: #fff1de; background: linear-gradient(180deg, #a94033, #7e271d); border-color: rgba(158,52,41,.45);
+}
+.m-brief-urgency.level-warn {
+  color: #3a270e; background: rgba(181,134,58,.22); border-color: rgba(181,134,58,.34);
+}
+.m-brief-urgency.level-info {
+  color: #375247; background: rgba(73,122,97,.12); border-color: rgba(73,122,97,.2);
+}
 .m-brief-meta {
   flex: 0 0 auto; color: var(--gold-deep); background: rgba(181,134,58,.12);
   border: 1px solid rgba(181,134,58,.25); border-radius: 6px;

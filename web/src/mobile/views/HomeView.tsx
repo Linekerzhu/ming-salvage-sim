@@ -159,6 +159,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
           </header>
           <ul className="m-brief-list">
             {briefCards.map((card, i) => {
+              const urgency = briefUrgency(card.urgency);
               return (
                 <li key={`${card.kind}-${card.ref_id || i}`} className={`m-brief-card tone-${card.tone || "info"}`}>
                   <button className="m-brief-main" onClick={() => openBrief(card)}>
@@ -166,6 +167,11 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                     <span className="m-brief-body">
                       <span className="m-brief-head">
                         <span className="m-brief-title">{card.title}</span>
+                        {urgency && (
+                          <span className={`m-brief-urgency level-${urgency.level}`} title={`危急度 ${urgency.score}`}>
+                            {urgency.label}{urgency.score}
+                          </span>
+                        )}
                         {card.meta && <span className="m-brief-meta">{card.meta}</span>}
                       </span>
                       <span className="m-brief-detail">{card.detail}</span>
@@ -321,6 +327,16 @@ function kindMark(kind: string): string {
   if (kind === "trap") return "任";
   if (kind === "trap_remedy") return "担";
   return "机";
+}
+
+function briefUrgency(value?: number): { label: string; level: "danger" | "warn" | "info"; score: number } | null {
+  const raw = Number(value ?? 0);
+  if (!Number.isFinite(raw)) return null;
+  const score = Math.max(0, Math.min(100, Math.round(raw)));
+  if (score >= 90) return { label: "危", level: "danger", score };
+  if (score >= 78) return { label: "急", level: "warn", score };
+  if (score >= 65) return { label: "要", level: "info", score };
+  return null;
 }
 
 function audienceLeadFromBrief(card: PlaystyleBriefCard, actor = card.actor || "", target = card.target || ""): AudienceLead {
