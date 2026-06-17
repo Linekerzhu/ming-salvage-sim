@@ -91,6 +91,29 @@ class EdictOutcomeHandlerTests(unittest.TestCase):
             self.assertEqual(len(mem), 1)
             self.assertEqual(str(mem[0]["status"]), "pending")
 
+    def test_eunuch_outcome_fallback_uses_inner_court_voice(self):
+        """王承恩这类内廷承办人复命，不应再落成外朝大臣的“臣谨奏”。"""
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "敕曰：试办内书堂一所，着内官监御前王承恩协办章程。")
+            db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, integrity_actual=100, "
+                "integrity_reported=100, outcome_status='' WHERE id=?",
+                ("王承恩", did),
+            )
+            db.conn.commit()
+
+            from ming_sim.edict_outcome import handle_edict_outcome
+
+            memorial = handle_edict_outcome(db, None, {"directive_id": did})
+
+            self.assertIn("奴婢谨奏", memorial)
+            self.assertNotIn("臣谨奏", memorial)
+            row = db.conn.execute(
+                "SELECT settle_note FROM turn_directives WHERE id=?", (did,)
+            ).fetchone()
+            self.assertIn("奴婢谨奏", str(row["settle_note"]))
+
     def test_handler_idempotent(self):
         """worker 重复消费同一诏书不重复落复命奏报、状态不回退。"""
         with TemporaryDirectory() as tmp:
@@ -221,7 +244,7 @@ class DrainPendingOutcomesTests(unittest.TestCase):
                         "done",
                         100,
                         "王承恩",
-                        "臣承恩谨奏：遵旨试办内书堂，已于京西潭柘寺畔择地设学，诸事就绪。",
+                        "奴婢承恩谨奏：遵旨试办内书堂，已于京西潭柘寺畔择地设学，诸事就绪。",
                         "applied",
                     ),
                 )
@@ -247,7 +270,7 @@ class DrainPendingOutcomesTests(unittest.TestCase):
                 self.assertIn("内书堂", brief)
                 self.assertIn("已复命，结果已落库", brief)
                 self.assertIn("不得继续把已复命之事说成未办", brief)
-                self.assertIn("臣承恩谨奏", brief)
+                self.assertIn("奴婢承恩谨奏", brief)
             finally:
                 db.close()
 

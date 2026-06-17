@@ -21,12 +21,13 @@ from ming_sim.token_stats import tlog
 
 # 单诏复命：一次 LLM 调用同时产「奏报正文」与「数值 delta」，省一半调用且叙事与数值自洽。
 EDICT_OUTCOME_PROMPT = """你是大明的结算判官，正为一道刚办结的旨意做复命与定数。
-你会收到：旨意原文、主办官姓名官职、真实执行率 actual%、奏报执行率 reported%、
+你会收到：旨意原文、主办官姓名官职、主办官话语身份合约、真实执行率 actual%、奏报执行率 reported%、
 涉及地区、当前国势数值、与本旨相关的在办局势(issues)清单。
 
 输出严格 JSON，两部分：
-1. "memorial"：以主办官口吻写 60-160 字复命奏报正文（浅近文言）。这是**奏报口径(reported)**——
-   若 reported 高于 actual，要把折扣粉饰过去（报喜不报忧），不得透露真实数字。
+1. "memorial"：以主办官口吻写 60-160 字复命奏报正文（浅近文言）。必须遵守 speaker_contract：
+   内廷/太监只能自称「奴婢/奴才」，不得写「臣谨奏」「微臣」；外朝官员才用「臣」。
+   这是**奏报口径(reported)**——若 reported 高于 actual，要把折扣粉饰过去（报喜不报忧），不得透露真实数字。
 2. "delta"：这道旨意「政策本身」带来的数值后果，**按真实执行率 actual% 折算**（actual 越低后果越小）。
    只填确有因果的字段，其余省略或留空。各字段含义：
    - "metric_delta": {"民心"|"皇威": 整数}  幅度克制，单项一般 -5..+5。
@@ -43,7 +44,9 @@ EDICT_OUTCOME_PROMPT = """你是大明的结算判官，正为一道刚办结的
    不要凭空造 issue_id / 人名；不要超出给定地区/issue 范围。无数值后果时 "delta" 给 {}。
 直接输出 JSON，不要解释、不要 markdown 代码块。"""
 
-_FALLBACK_MEMORIAL = "臣谨奏：前奉谕旨，今已遵办完竣，地方安堵，伏乞圣鉴。"
+_FALLBACK_MINISTER_MEMORIAL = "臣谨奏：前奉谕旨，今已遵办完竣，地方安堵，伏乞圣鉴。"
+_FALLBACK_EUNUCH_MEMORIAL = "奴婢谨奏：前奉谕旨，今已遵办完竣，诸事已有回报，伏乞圣鉴。"
+_EUNUCH_ROLE_RE = re.compile(r"太监|宦官|内官|司礼监|东厂|内廷|秉笔|掌印|随堂|御马监|御用监|尚膳监|内官监|御前")
 
 
 _CN_NUM = {"零": 0, "〇": 0, "一": 1, "二": 2, "两": 2, "三": 3, "四": 4,
@@ -155,6 +158,62 @@ def _normalize_explicit_economy_moves(delta: Dict[str, object], context: Dict[st
     delta["economy_moves"] = kept + moves
 
 
+def _is_eunuch_assignee(context: Dict[str, object]) -> bool:
+    identity = " ".join(
+        str(context.get(key) or "")
+        for key in ("assignee", "office", "office_type", "faction")
+    )
+    return bool(_EUNUCH_ROLE_RE.search(identity))
+
+
+def _speaker_contract(context: Dict[str, object]) -> str:
+    assignee = str(context.get("assignee") or "主办官").strip() or "主办官"
+    office = str(context.get("office") or "").strip()
+    label = f"{assignee}（{office}）" if office else assignee
+    if _is_eunuch_assignee(context):
+        return (
+            f"{label}是内廷/太监主办。复命第一人称必须用「奴婢」或「奴才」；"
+            "不得用「臣」「微臣」「愚臣」。口气应像近侍回奏：短、低、近，"
+            "先说奉旨已办到哪一步，再说可继续传问、催办或复查。"
+        )
+    return (
+        f"{label}是外朝/军镇/地方主办。复命第一人称用「臣」「微臣」；"
+        "不得用「奴婢」「奴才」。"
+    )
+
+
+def _fallback_memorial(context: Dict[str, object]) -> str:
+    return _FALLBACK_EUNUCH_MEMORIAL if _is_eunuch_assignee(context) else _FALLBACK_MINISTER_MEMORIAL
+
+
+def _normalize_memorial_voice(memorial: str, context: Dict[str, object]) -> str:
+    """Keep persisted outcome memory aligned with the assignee's current speech role."""
+    text = re.sub(r"\s+", "", str(memorial or "").strip())
+    if not text:
+        return ""
+    if _is_eunuch_assignee(context):
+        text = text.replace("微臣", "奴婢").replace("愚臣", "奴婢")
+        text = re.sub(r"^臣(?=谨奏|奉旨|遵旨|已|今|不敢|闻|请|当|愿|即|所|查|抵|承)", "奴婢", text)
+        text = re.sub(r"^臣([一-龥]{1,4})(?=谨奏|叩奏|奏)", r"奴婢\1", text)
+        replacements = {
+            "，臣谨": "，奴婢谨",
+            "。臣谨": "。奴婢谨",
+            "，臣已": "，奴婢已",
+            "。臣已": "。奴婢已",
+            "，臣奉": "，奴婢奉",
+            "。臣奉": "。奴婢奉",
+            "，臣不敢": "，奴婢不敢",
+            "。臣不敢": "。奴婢不敢",
+            "，臣请": "，奴婢请",
+            "。臣请": "。奴婢请",
+        }
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+    else:
+        text = text.replace("奴婢谨奏", "臣谨奏").replace("奴才谨奏", "臣谨奏")
+    return text
+
+
 def _directive_context(db, did: int) -> Optional[Dict[str, object]]:
     row = db.conn.execute(
         "SELECT text, category, assignee, integrity_actual, integrity_reported, chain "
@@ -176,11 +235,15 @@ def _directive_context(db, did: int) -> Optional[Dict[str, object]]:
             region_unrest = int(rr["unrest"])
     assignee = str(row["assignee"] or "")
     office = ""
+    office_type = ""
+    faction = ""
     if assignee:
         orow = db.conn.execute(
-            "SELECT office FROM characters WHERE name=?", (assignee,)).fetchone()
+            "SELECT office, office_type, faction FROM characters WHERE name=?", (assignee,)).fetchone()
         if orow is not None:
             office = str(orow["office"] or "")
+            office_type = str(orow["office_type"] or "")
+            faction = str(orow["faction"] or "")
     # 与本旨相关的在办局势：同地区优先，给 extractor 一个可推进的 issue_id 白名单
     issue_rows = db.conn.execute(
         "SELECT id, title FROM issues WHERE status='active' ORDER BY "
@@ -195,10 +258,13 @@ def _directive_context(db, did: int) -> Optional[Dict[str, object]]:
         metrics = {k: int(v) for k, v in st.metrics.items()}
     except Exception:
         metrics = {}
-    return {
+    context = {
         "directive": str(row["text"] or "")[:300],
         "assignee": assignee,
         "office": office,
+        "office_type": office_type,
+        "faction": faction,
+        "speaker_contract": "",
         "actual": int(row["integrity_actual"]),
         "reported": int(row["integrity_reported"]),
         "region_id": region_id,
@@ -208,6 +274,8 @@ def _directive_context(db, did: int) -> Optional[Dict[str, object]]:
         "related_issues": related_issues,
         "allowed_issue_ids": [it["issue_id"] for it in related_issues],
     }
+    context["speaker_contract"] = _speaker_contract(context)
+    return context
 
 
 def _run_outcome_llm(llm_config: Optional[LLMConfig], context: Dict[str, object]) -> tuple[str, Dict[str, object]]:
@@ -225,7 +293,7 @@ def _run_outcome_llm(llm_config: Optional[LLMConfig], context: Dict[str, object]
     except Exception as exc:
         tlog(f"[edict_outcome] LLM/解析失败，走模板兜底：{exc}")
         return "", {}
-    memorial = str(data.get("memorial") or "").strip()
+    memorial = _normalize_memorial_voice(str(data.get("memorial") or "").strip(), context)
     delta = data.get("delta")
     if not isinstance(delta, dict):
         delta = {}
@@ -284,7 +352,9 @@ def handle_edict_outcome(db, llm_config: Optional[LLMConfig], payload: Dict[str,
         return ""
     memorial, delta = _run_outcome_llm(llm_config, context)
     if not memorial:
-        memorial = _FALLBACK_MEMORIAL
+        memorial = _fallback_memorial(context)
+    else:
+        memorial = _normalize_memorial_voice(memorial, context)
     # 暂存 delta，置 extracted（CAS 防并发重复）
     db.conn.execute(
         "UPDATE turn_directives SET outcome_delta=?, outcome_status='extracted', settle_note=? "
