@@ -78,6 +78,19 @@ class InvestigateTests(unittest.TestCase):
             self.assertTrue(res["ok"])
             self.assertFalse(res["found"])  # 无把柄可指（除非构陷，P2）
 
+    def test_preview_intrigue_effects_shows_investigation_and_fabrication_risks(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+
+            previews = intrigue.preview_intrigue_effects(db, "崔呈秀")
+
+            self.assertIn("investigate", previews)
+            self.assertIn("fabricate", previews)
+            investigate_labels = [str(e["label"]) for e in previews["investigate"]]
+            fabricate_labels = [str(e["label"]) for e in previews["fabricate"]]
+            self.assertIn("可能得把柄", investigate_labels)
+            self.assertIn("若败：势 -3", fabricate_labels)
+
 
 class CoerceTests(unittest.TestCase):
     def _reveal(self, db, state, day, target):
@@ -110,6 +123,20 @@ class CoerceTests(unittest.TestCase):
             r = intrigue.coerce_with_secret(db, state, target, "retire", day)
             self.assertTrue(r["ok"])
             self.assertEqual(db.get_character_status(target)[0], "retired")
+
+    def test_preview_intrigue_effects_shows_coercion_costs_after_hook_known(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            target = "崔呈秀"
+            self.assertTrue(self._reveal(db, state, day, target))
+
+            previews = intrigue.preview_intrigue_effects(db, target)
+
+            self.assertIn("coerce_submit", previews)
+            labels = [str(e["label"]) for e in previews["coerce_submit"]]
+            self.assertIn("归附皇党", labels)
+            self.assertIn("怨气 +10", labels)
+            self.assertIn("把柄消耗", labels)
 
 
 class ChangweiTickTests(unittest.TestCase):

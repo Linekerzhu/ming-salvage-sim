@@ -219,6 +219,25 @@ class PayloadTests(unittest.TestCase):
             self.assertIn("党羽受慰 1人", labels)
             self.assertIn("政敌侧目 1人", labels)
 
+    def test_court_payload_includes_intrigue_previews(self):
+        with TemporaryDirectory() as tmp:
+            db, _, day = _fresh(tmp)
+            ally = str(db.conn.execute(
+                "SELECT name FROM characters WHERE status='active' AND power_id='ming' "
+                "AND office_type!='后宫' AND name!='崔呈秀' LIMIT 1"
+            ).fetchone()["name"])
+            court._set_opinion(db, "崔呈秀", ally, 70, "党附", day)
+            db.conn.commit()
+
+            payload = court.court_payload(db, "崔呈秀")
+
+            previews = payload["intrigue_previews"]
+            self.assertIn("investigate", previews)
+            self.assertIn("fabricate", previews)
+            self.assertIn("discord", previews)
+            labels = [str(e["label"]) for e in previews["discord"]]
+            self.assertIn("关系骤跌", labels)
+
 
 class QuietTests(unittest.TestCase):
     def test_quiet_when_no_grudges(self):

@@ -6,7 +6,7 @@ import { Portrait } from "./Portrait";
 import type { PersonFocus, PersonOpen } from "./personCtx";
 import { PersonCtx } from "./personCtx";
 import { loadCharacter, loadCourt, intrigueInvestigate, intrigueCoerce, intrigueFabricate, intrigueDiscord, courtBack } from "./api";
-import type { CourtBackKind, CourtPayload, ImpactEffect } from "./api";
+import type { CourtBackKind, CourtPayload, ImpactEffect, IntriguePreviewKind } from "./api";
 import { useGame } from "./GameData";
 
 const AGENDA_CN: Record<string, string> = {
@@ -192,6 +192,10 @@ function PersonSheet({ name, focus, onClose }: { name: string; focus?: PersonFoc
     const items = court?.back_previews?.[kind];
     return items?.length ? items : fallback;
   };
+  const intriguePreview = (kind: IntriguePreviewKind, fallback: ImpactEffect[]) => {
+    const items = court?.intrigue_previews?.[kind];
+    return items?.length ? items : fallback;
+  };
   return (
     <div className="m-sheet-backdrop" onClick={onClose}>
       <div className="m-sheet m-person" onClick={(e) => e.stopPropagation()}>
@@ -330,21 +334,61 @@ function PersonSheet({ name, focus, onClose }: { name: string; focus?: PersonFoc
                   <span className="m-secret-detail">{court.secret.detail}</span>
                 </p>
                 <div className="m-intrigue-acts">
-                  <button className="m-intrigue-btn" disabled={busy} onClick={() => coerce("submit")}>胁其输诚</button>
-                  <button className="m-intrigue-btn" disabled={busy} onClick={() => coerce("serve")}>胁迫听用</button>
-                  <button className="m-intrigue-btn is-danger" disabled={busy} onClick={() => coerce("retire")}>逼令致仕</button>
+                  <button className="m-intrigue-btn has-preview" disabled={busy} onClick={() => coerce("submit")}>
+                    <span>胁其输诚</span>
+                    <EffectChips items={intriguePreview("coerce_submit", [
+                      { label: "归附皇党", tone: "good" },
+                      { label: "怨气 +10", tone: "bad" },
+                      { label: "把柄消耗", tone: "bad" },
+                    ])} />
+                  </button>
+                  <button className="m-intrigue-btn has-preview" disabled={busy} onClick={() => coerce("serve")}>
+                    <span>胁迫听用</span>
+                    <EffectChips items={intriguePreview("coerce_serve", [
+                      { label: "畏罪听用", tone: "good" },
+                      { label: "怨气 +8", tone: "bad" },
+                      { label: "把柄消耗", tone: "bad" },
+                    ])} />
+                  </button>
+                  <button className="m-intrigue-btn is-danger has-preview" disabled={busy} onClick={() => coerce("retire")}>
+                    <span>逼令致仕</span>
+                    <EffectChips items={intriguePreview("coerce_retire", [
+                      { label: "致仕去职", tone: "good" },
+                      { label: "党羽怨怒", tone: "bad" },
+                      { label: "把柄消耗", tone: "bad" },
+                    ])} />
+                  </button>
                 </div>
               </>
             ) : (
               <div className="m-intrigue-acts">
-                <button className="m-intrigue-btn" disabled={busy} onClick={probe}>令东厂密查</button>
+                <button className="m-intrigue-btn has-preview" disabled={busy} onClick={probe}>
+                  <span>令东厂密查</span>
+                  <EffectChips items={intriguePreview("investigate", [
+                    { label: "可能得把柄", tone: "good" },
+                    { label: "不保证有实", tone: "neutral" },
+                  ])} />
+                </button>
                 <span className="m-hint" style={{ alignSelf: "center" }}>厂卫侦缉，发其阴私为把柄</span>
               </div>
             )}
             <div className="m-intrigue-acts">
-              <button className="m-intrigue-btn is-danger" disabled={busy} onClick={fabricate}>罗织构陷·下诏狱</button>
+              <button className="m-intrigue-btn is-danger has-preview" disabled={busy} onClick={fabricate}>
+                <span>罗织构陷·下诏狱</span>
+                <EffectChips items={intriguePreview("fabricate", [
+                  { label: "若成：下诏狱", tone: "bad" },
+                  { label: "若败：势 -3", tone: "bad" },
+                ])} />
+              </button>
               {(court?.allies?.length ?? 0) > 0 && (
-                <button className="m-intrigue-btn" disabled={busy} onClick={discord}>离间其腹心（{court!.allies[0].name}）</button>
+                <button className="m-intrigue-btn has-preview" disabled={busy} onClick={discord}>
+                  <span>离间其腹心（{court!.allies[0].name}）</span>
+                  <EffectChips items={intriguePreview("discord", [
+                    { label: "关系骤跌", tone: "good" },
+                    { label: "双方怨气 +3", tone: "bad" },
+                    { label: "忠正可识破", tone: "bad" },
+                  ])} />
+                </button>
               )}
             </div>
             <span className="m-hint">构陷凭空罗织：清誉高者难陷，陷之易暴露反噬。</span>

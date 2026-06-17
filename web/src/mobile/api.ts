@@ -236,11 +236,19 @@ export type CourtPayload = {
   castration?: CourtCastration | null;
   secret?: CourtSecret | null;
   back_previews?: Partial<Record<CourtBackKind, ImpactEffect[]>>;
+  intrigue_previews?: Partial<Record<IntriguePreviewKind, ImpactEffect[]>>;
 };
 export const loadCourt = (name: string): Promise<CourtPayload> =>
   api<CourtPayload>(`/api/court/${encodeURIComponent(name)}`);
 
 // 宫斗阴谋：令东厂侦缉 / 凭把柄挟制。
+export type IntriguePreviewKind =
+  | "investigate"
+  | "fabricate"
+  | "discord"
+  | "coerce_submit"
+  | "coerce_serve"
+  | "coerce_retire";
 export type InvestigateResult = { ok: boolean; found: boolean; chief?: string; message: string;
   secret?: { kind: string; detail: string; severity: number }; already?: boolean };
 export const intrigueInvestigate = (name: string): Promise<InvestigateResult> =>

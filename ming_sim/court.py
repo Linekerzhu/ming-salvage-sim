@@ -271,11 +271,16 @@ def court_payload(db: GameDB, name: str) -> Dict[str, object]:
     except Exception:
         castration = None
     secret = None
+    intrigue_previews = {}
     try:
-        from ming_sim.intrigue import secrets_for
+        from ming_sim.intrigue import preview_intrigue_effects, secrets_for
         secret = secrets_for(db, name)
+        ally_rows = allies_of(db, name, limit=1)
+        ally = str(ally_rows[0]["name"]) if ally_rows else ""
+        intrigue_previews = preview_intrigue_effects(db, name, ally=ally)
     except Exception:
         secret = None
+        intrigue_previews = {}
     back_previews = {}
     try:
         row = db.conn.execute(
@@ -307,6 +312,7 @@ def court_payload(db: GameDB, name: str) -> Dict[str, object]:
         "castration": castration,
         "secret": secret,
         "back_previews": back_previews,
+        "intrigue_previews": intrigue_previews,
     }
 
 

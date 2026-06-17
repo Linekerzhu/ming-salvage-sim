@@ -263,6 +263,64 @@ def secrets_for(db: GameDB, name: str) -> Optional[Dict[str, object]]:
             "detail": str(row["detail"]), "severity": int(row["severity"]), "used": bool(row["used"])}
 
 
+def preview_intrigue_effects(db: GameDB, name: str, *, ally: str = "") -> Dict[str, List[Dict[str, str]]]:
+    """Read-only previews for Person-card intrigue actions."""
+    ensure_schema(db)
+    name = (name or "").strip()
+    try:
+        active = db.get_character_status(name)[0] == "active"
+    except Exception:
+        active = False
+    chief = dongchang_chief(db)
+    previews: Dict[str, List[Dict[str, str]]] = {}
+    if active:
+        previews["investigate"] = (
+            [
+                {"kind": "secret", "label": "可能得把柄", "tone": "good"},
+                {"kind": "risk", "label": "不保证有实", "tone": "neutral"},
+            ]
+            if chief
+            else [{"kind": "risk", "label": "无东厂可遣", "tone": "bad"}]
+        )
+        previews["fabricate"] = (
+            [
+                {"kind": "status", "label": "若成：下诏狱", "tone": "bad"},
+                {"kind": "faction", "label": "权阉/阉党 +", "tone": "bad"},
+                {"kind": "people", "label": "民心 -1", "tone": "bad"},
+                {"kind": "risk", "label": "若败：势 -3", "tone": "bad"},
+            ]
+            if chief
+            else [{"kind": "risk", "label": "无东厂可遣", "tone": "bad"}]
+        )
+    secret = secrets_for(db, name)
+    if active and secret and not bool(secret.get("used")):
+        previews["coerce_submit"] = [
+            {"kind": "faction", "label": "归附皇党", "tone": "good"},
+            {"kind": "court", "label": "忠诚 +6", "tone": "good"},
+            {"kind": "court", "label": "怨气 +10", "tone": "bad"},
+            {"kind": "secret", "label": "把柄消耗", "tone": "bad"},
+        ]
+        previews["coerce_serve"] = [
+            {"kind": "court", "label": "畏罪听用", "tone": "good"},
+            {"kind": "court", "label": "信任 +5", "tone": "good"},
+            {"kind": "court", "label": "怨气 +8", "tone": "bad"},
+            {"kind": "secret", "label": "把柄消耗", "tone": "bad"},
+        ]
+        previews["coerce_retire"] = [
+            {"kind": "status", "label": "致仕去职", "tone": "good"},
+            {"kind": "network", "label": "党羽怨怒", "tone": "bad"},
+            {"kind": "network", "label": "政敌称快", "tone": "good"},
+            {"kind": "secret", "label": "把柄消耗", "tone": "bad"},
+        ]
+    if active and ally:
+        previews["discord"] = [
+            {"kind": "network", "label": "关系骤跌", "tone": "good"},
+            {"kind": "court", "label": "双方怨气 +3", "tone": "bad"},
+            {"kind": "risk", "label": "忠正可识破", "tone": "bad"},
+        ]
+    return previews
+
+
 def _is_pure(faction: str) -> bool:
     return "东林" in str(faction or "") or "清流" in str(faction or "")
 
