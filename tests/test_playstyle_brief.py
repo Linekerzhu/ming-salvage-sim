@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from ming_sim import court, lifecycle, memorials, timeflow
+from ming_sim import court, court_events, lifecycle, memorials, timeflow
 from ming_sim.db import GameDB
 from ming_sim.intrigue import ensure_schema as ensure_secret_schema
 from ming_sim.playstyle import briefing_cards, briefing_payload
@@ -31,6 +31,42 @@ def _active_minister(db: GameDB) -> str:
 
 
 class PlaystyleBriefTests(unittest.TestCase):
+    def test_pending_decision_card_surfaces_stakes(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            names = [
+                str(r["name"]) for r in db.conn.execute(
+                    "SELECT name FROM characters "
+                    "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                    "LIMIT 2"
+                ).fetchall()
+            ]
+            a, b = names
+            court._set_opinion(db, a, b, -75, "夙仇", 1)
+            court._set_opinion(db, b, a, -75, "夙仇", 1)
+            memorials.create_memorial(
+                db,
+                state,
+                day=1,
+                author_name=a,
+                org="都察院",
+                kind="弹章",
+                urgency=3,
+                summary=f"{a}劾{b}",
+                ref_kind="character",
+                ref_id=b,
+            )
+            court_events.evaluate_decisions(db, state, 1)
+
+            cards = briefing_cards(db, state, limit=8)
+            decision = next(c for c in cards if c["kind"] == "decision")
+            labels = [str(e["label"]) for e in decision["effects"]]
+            self.assertEqual(decision["tab"], "desk")
+            self.assertEqual(decision["meta"], "4路待决")
+            self.assertIn("牵动君威", labels)
+            self.assertIn("牵动任事", labels)
+            self.assertIn("信怨变化", labels)
+
     def test_agenda_near_maturity_becomes_audience_hook(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)

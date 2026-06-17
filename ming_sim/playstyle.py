@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from ming_sim.db import GameDB
 from ming_sim.models import GameState
@@ -118,6 +118,7 @@ def _pending_decision_cards(db: GameDB, cards: List[BriefCard]) -> None:
         decision = None
     if not decision:
         return
+    choices = decision.get("choices") or []
     cards.append(
         _card(
             kind="decision",
@@ -127,11 +128,68 @@ def _pending_decision_cards(db: GameDB, cards: List[BriefCard]) -> None:
             tone="danger",
             cta="去裁断",
             tab=_TAB_DESK,
-            meta="待决",
+            meta=f"{len(choices)}路待决" if choices else "待决",
             ref_kind="decision",
             ref_id=str(decision.get("id") or ""),
+            effects=_decision_stakes(choices),
         )
     )
+
+
+def _decision_stakes(choices: object) -> List[Dict[str, str]]:
+    """Summarize what systems a pending decision can move, without merging option-specific numbers."""
+
+    buckets: Dict[str, Tuple[str, List[str]]] = {}
+
+    def add(bucket: str, label: str, tone: str) -> None:
+        if bucket not in buckets:
+            buckets[bucket] = (label, [])
+        buckets[bucket][1].append(tone)
+
+    for ch in choices if isinstance(choices, list) else []:
+        if not isinstance(ch, dict):
+            continue
+        for eff in ch.get("effects") or []:
+            if not isinstance(eff, dict):
+                continue
+            kind = str(eff.get("kind") or "")
+            label = str(eff.get("label") or "")
+            tone = str(eff.get("tone") or "neutral")
+            if kind in {"shi"}:
+                add("shi", "牵动君威", tone)
+            elif kind in {"renshi"}:
+                add("renshi", "牵动任事", tone)
+            elif kind == "eunuch_power" or "权阉" in label:
+                add("eunuch", "牵动权阉", tone)
+            elif kind.startswith("faction_") or "满意" in label or "势力" in label:
+                add("faction", "牵动派系", tone)
+            elif kind == "metric" and "民心" in label:
+                add("popular", "牵动民心", tone)
+            elif kind == "metric" and "国库" in label:
+                add("treasury", "牵动国库", tone)
+            elif kind in {"status", "appoint"}:
+                add("personnel", "人物去留", tone)
+            elif kind in {"trust", "grievance"}:
+                add("relationship", "信怨变化", tone)
+            elif kind == "army" or "军镇" in label or "军心" in label:
+                add("army", "牵动军镇", tone)
+            elif kind == "supervise":
+                add("supervise", "监军入局", tone)
+
+    order = [
+        "shi", "renshi", "popular", "treasury", "eunuch", "faction",
+        "personnel", "relationship", "army", "supervise",
+    ]
+    out: List[Dict[str, str]] = []
+    for key in order:
+        if key not in buckets:
+            continue
+        label, tones = buckets[key]
+        good = any(t == "good" for t in tones)
+        bad = any(t == "bad" for t in tones)
+        tone = "neutral" if good and bad else "good" if good else "bad" if bad else "neutral"
+        out.append({"kind": key, "label": label, "tone": tone})
+    return out[:6]
 
 
 def _trap_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard]) -> None:
