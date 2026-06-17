@@ -184,6 +184,46 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-feed-title { font-weight: 700; font-size: 0.92rem; }
 .m-feed-detail { color: var(--ink-soft); font-size: 0.82rem; }
 
+/* 朝局风向：把隐藏局势变成可点击玩法钩子 */
+.m-brief { border-left: 4px solid var(--gold-deep); }
+.m-brief-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.m-brief-card {
+  display: flex; align-items: center; gap: 8px; padding: 8px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.m-brief-card:last-child { border-bottom: none; }
+.m-brief-main {
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: flex-start; gap: 9px;
+  text-align: left; color: inherit; border-radius: 8px; padding: 2px 0;
+}
+.m-brief-main:active { background: rgba(42,31,18,.06); }
+.m-brief-mark {
+  flex: 0 0 auto; width: 34px; height: 34px; line-height: 34px; text-align: center;
+  border-radius: 8px; background: rgba(42,31,18,.1); color: var(--gold-deep);
+  font-size: 0.86rem; font-weight: 800;
+}
+.m-brief-card.tone-danger .m-brief-mark { background: rgba(158,52,41,.14); color: var(--cinnabar); }
+.m-brief-card.tone-warn .m-brief-mark { background: rgba(181,134,58,.15); color: var(--gold-deep); }
+.m-brief-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.m-brief-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.m-brief-title {
+  min-width: 0; font-weight: 800; font-size: 0.92rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.m-brief-meta {
+  flex: 0 0 auto; color: var(--gold-deep); background: rgba(181,134,58,.12);
+  border: 1px solid rgba(181,134,58,.25); border-radius: 6px;
+  padding: 1px 6px; font-size: 0.68rem; font-weight: 800;
+}
+.m-brief-detail {
+  color: var(--ink-soft); font-size: 0.8rem; line-height: 1.42; word-break: break-word;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.m-brief-cta {
+  flex: 0 0 auto; min-height: 34px; padding: 6px 10px; font-size: 0.76rem;
+  max-width: 92px; overflow: hidden; text-overflow: ellipsis;
+}
+
 /* ── 御案 ───────────────────────────────────────────────────── */
 .m-desk-status { display: flex; justify-content: space-between; color: #c9b487; font-size: 0.88rem; padding: 0 4px 2px; }
 .m-desk-status b { color: var(--gold); }

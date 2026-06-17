@@ -1,18 +1,23 @@
 import { useEffect, useState } from "react";
 import { useGame } from "../GameData";
 import { Portrait } from "../Portrait";
-import { loadEunuch } from "../api";
-import type { PublicCharacter, Tab } from "../api";
+import { loadEunuch, loadPlaystyleBrief } from "../api";
+import type { PlaystyleBriefCard, PublicCharacter, Tab } from "../api";
 import { OutcomeSummary } from "./EdictsView";
 
 const INFORMATIONAL_KINDS = ["复命", "捷报"];
+const BRIEF_TABS: Tab[] = ["home", "desk", "audience", "edicts", "realm"];
 
 export function HomeView({ go }: { go: (t: Tab) => void }) {
-  const { desk, lifecycle, recentEvents, zhongxing } = useGame();
+  const { desk, lifecycle, recentEvents, zhongxing, worldVersion } = useGame();
   const [eunuch, setEunuch] = useState<PublicCharacter | null>(null);
+  const [briefCards, setBriefCards] = useState<PlaystyleBriefCard[]>([]);
   useEffect(() => {
     loadEunuch().then((r) => setEunuch(r.eunuch)).catch(() => setEunuch(null));
   }, []);
+  useEffect(() => {
+    loadPlaystyleBrief(5).then((r) => setBriefCards(r.cards || [])).catch(() => setBriefCards([]));
+  }, [worldVersion]);
   const replies = (desk?.pending || []).filter((m) => INFORMATIONAL_KINDS.includes(m.kind));
   const drowning = (desk?.pending || []).filter((m) => m.days_to_expire > 0 && m.days_to_expire <= 7).length;
   const fuming = lifecycle.filter((d) => d.status === "stalled" || (d.anomaly && d.anomaly !== "")).length;
@@ -51,6 +56,32 @@ export function HomeView({ go }: { go: (t: Tab) => void }) {
           ))}
         </ul>
       </section>
+
+      {briefCards.length > 0 && (
+        <section className="m-card m-brief">
+          <h2 className="m-card-title">朝局风向</h2>
+          <ul className="m-brief-list">
+            {briefCards.map((card, i) => {
+              const to = BRIEF_TABS.includes(card.tab) ? card.tab : "audience";
+              return (
+                <li key={`${card.kind}-${card.ref_id || i}`} className={`m-brief-card tone-${card.tone || "info"}`}>
+                  <button className="m-brief-main" onClick={() => go(to)}>
+                    {card.actor ? <Portrait name={card.actor} size={34} /> : <span className="m-brief-mark">{kindMark(card.kind)}</span>}
+                    <span className="m-brief-body">
+                      <span className="m-brief-head">
+                        <span className="m-brief-title">{card.title}</span>
+                        {card.meta && <span className="m-brief-meta">{card.meta}</span>}
+                      </span>
+                      <span className="m-brief-detail">{card.detail}</span>
+                    </span>
+                  </button>
+                  <button className="m-chip m-brief-cta" onClick={() => go(to)}>{card.cta || "处置"} ›</button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {zhongxing?.stage && (zhongxing.goals?.length ?? 0) > 0 && (
         <section className="m-card m-stage">
@@ -108,4 +139,13 @@ export function HomeView({ go }: { go: (t: Tab) => void }) {
       </section>
     </div>
   );
+}
+
+function kindMark(kind: string): string {
+  if (kind === "decision") return "裁";
+  if (kind === "army") return "军";
+  if (kind === "faction") return "党";
+  if (kind === "hook") return "柄";
+  if (kind === "rivalry") return "怨";
+  return "机";
 }

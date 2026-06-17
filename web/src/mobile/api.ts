@@ -164,6 +164,24 @@ export type ZhongxingPayload = {
 };
 export const loadZhongxing = (): Promise<ZhongxingPayload> => api<ZhongxingPayload>("/api/zhongxing");
 
+// 朝局风向：零 LLM 的玩法雷达，把暗线局势转成首页可点击钩子。
+export type PlaystyleBriefCard = {
+  kind: "decision" | "agenda" | "rivalry" | "army" | "faction" | "hook" | string;
+  title: string;
+  detail: string;
+  urgency: number;
+  tone: "danger" | "warn" | "info" | string;
+  cta: string;
+  tab: Tab;
+  actor?: string;
+  target?: string;
+  meta?: string;
+  ref_kind?: string;
+  ref_id?: string;
+};
+export const loadPlaystyleBrief = (limit = 5): Promise<{ cards: PlaystyleBriefCard[]; limit: number }> =>
+  api<{ cards: PlaystyleBriefCard[]; limit: number }>(`/api/playstyle/brief?limit=${encodeURIComponent(String(limit))}`);
+
 // 活的宫廷：某官员的私心 + 党羽 + 政敌（双向好感网络）。
 export type CourtTie = { name: string; opinion: number; basis: string };
 export type CourtTrait = { key: string; valence: number; desc: string };

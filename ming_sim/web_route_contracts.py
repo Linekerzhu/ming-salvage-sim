@@ -111,6 +111,7 @@ EXCLUDED_WEB_PAYLOAD_ROUTES: Dict[str, str] = {
     "/api/foundation/recruit": "NPC foundation recruit mutation; foundation-owned payload.",
     "/api/beliefs": "Belief-variable trend lines; upgrade-schema-owned payload.",
     "/api/zhongxing": "Revival-index dashboard; zhongxing-owned payload.",
+    "/api/playstyle/brief": "Home strategic-briefing cards; playstyle-owned read-only payload.",
     "/api/eunuch": "Attending-eunuch hub; eunuch-owned payload.",
     "/api/eunuch/candidates": "Attending-eunuch candidate list; eunuch-owned payload.",
     "/api/eunuch/replace": "Attending-eunuch replacement mutation; eunuch-owned payload.",

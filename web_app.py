@@ -2868,6 +2868,48 @@ class WebGame:
         after_snapshot = self.db.capture_chat_rollback_snapshot()
         self.db.record_chat_turn_rollback_diffs(chat_turn_id, before_snapshot, after_snapshot)
 
+    def _attendant_summon_target(self, minister_name: str, text: str) -> str:
+        """Deterministic fallback for the player telling the attending eunuch to summon someone.
+
+        The LLM is still allowed to use the summon_minister tool, but this path
+        keeps the core court flow reliable when the model merely says "奴婢遵旨"
+        without emitting a tool call.
+        """
+
+        try:
+            from ming_sim.eunuch import get_attending_eunuch
+            if minister_name != get_attending_eunuch(self.db):
+                return ""
+        except Exception:
+            return ""
+        raw = str(text or "").strip()
+        if not raw:
+            return ""
+        if not re.search(r"(召|传|宣|请|唤|叫).{0,12}(来|入|觐|见|奏对|问对|进殿|入殿)", raw):
+            return ""
+        current = self.session._character(minister_name)
+        candidates: List[Character] = []
+        for character in self.session.content.characters.values():
+            if character.name == minister_name:
+                continue
+            haystacks = [character.name, *(getattr(character, "aliases", []) or [])]
+            if not any(alias and str(alias) in raw for alias in haystacks):
+                continue
+            try:
+                target, _is_temporary = self.session.summon_character(character.name, current, allow_temporary=False)
+            except ValueError:
+                continue
+            ok, _reason = self.session.can_summon(target)
+            if ok:
+                candidates.append(target)
+        if not candidates:
+            return ""
+        candidates.sort(key=lambda c: len(c.name), reverse=True)
+        return candidates[0].name
+
+    def _attendant_summon_answer(self, target_name: str) -> str:
+        return f"奴婢遵旨，这就传{target_name}大人趋入御前。"
+
     def undo_last_chat(self, minister_name: str) -> Dict[str, Any]:
         if self.state.turn_phase not in ("summoning", "reviewing"):
             raise HTTPException(status_code=409, detail="本回合已经进入颁诏结算，不能撤回召对。")
@@ -2970,6 +3012,17 @@ class WebGame:
             message_id = self.db.append_chat_message(minister_name, self.state.turn, "user", text)
             if chat_turn_id:
                 self.db.update_chat_turn_messages(chat_turn_id, user_message_id=message_id)
+        deterministic_summon = self._attendant_summon_target(minister_name, text)
+        if deterministic_summon:
+            answer = self._attendant_summon_answer(deterministic_summon)
+            self._record_chat_rollback_items(chat_turn_id, before_snapshot)
+            return self._chat_payload(
+                minister_name,
+                answer,
+                court_action="summon",
+                next_minister=deterministic_summon,
+                chat_turn_id=chat_turn_id,
+            )
         try:
             result = self.session.chat(minister_name, text, source_chat_turn_id=chat_turn_id)
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
@@ -3031,6 +3084,20 @@ class WebGame:
             message_id = self.db.append_chat_message(minister_name, self.state.turn, "user", text)
             if chat_turn_id:
                 self.db.update_chat_turn_messages(chat_turn_id, user_message_id=message_id)
+        deterministic_summon = self._attendant_summon_target(minister_name, text)
+        if deterministic_summon:
+            answer = self._attendant_summon_answer(deterministic_summon)
+            yield {"type": "delta", "content": answer}
+            self._record_chat_rollback_items(chat_turn_id, before_snapshot)
+            payload = self._chat_payload(
+                minister_name,
+                answer,
+                court_action="summon",
+                next_minister=deterministic_summon,
+                chat_turn_id=chat_turn_id,
+            )
+            yield {"type": "done", "payload": payload}
+            return
         character = self.session._character(minister_name)
         chunks: List[str] = []
         try:
@@ -4922,6 +4989,14 @@ async def api_zhongxing() -> Dict[str, Any]:
         "history": zhongxing_history(game.db)[-36:],
         **stage_payload(game.db, game.state),
     })
+
+
+@app.get("/api/playstyle/brief")
+async def api_playstyle_brief(limit: int = 5) -> Dict[str, Any]:
+    """朝局风向：把私心、党争、军镇、把柄转为首页可行动玩法钩子。"""
+    from ming_sim.playstyle import briefing_payload
+    game = get_game()
+    return _plain_payload(briefing_payload(game.db, game.state, limit=limit))
 
 
 @app.get("/api/beliefs")
