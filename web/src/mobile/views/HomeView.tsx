@@ -100,6 +100,15 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                         {card.meta && <span className="m-brief-meta">{card.meta}</span>}
                       </span>
                       <span className="m-brief-detail">{card.detail}</span>
+                      {card.effects?.length ? (
+                        <span className="m-brief-effects" aria-label="预期影响">
+                          {card.effects.slice(0, 6).map((it, idx) => (
+                            <span key={`${it.label}-${idx}`} className={`m-effect-chip tone-${it.tone || "neutral"}`}>
+                              {it.label}
+                            </span>
+                          ))}
+                        </span>
+                      ) : null}
                     </span>
                   </button>
                   <div className="m-brief-actions">

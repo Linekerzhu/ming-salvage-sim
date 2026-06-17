@@ -88,8 +88,9 @@ def _card(
     meta: str = "",
     ref_kind: str = "",
     ref_id: str = "",
+    effects: Optional[List[Dict[str, str]]] = None,
 ) -> BriefCard:
-    return {
+    card: BriefCard = {
         "kind": kind,
         "title": title,
         "detail": detail,
@@ -103,6 +104,9 @@ def _card(
         "ref_kind": ref_kind,
         "ref_id": ref_id,
     }
+    if effects:
+        card["effects"] = effects
+    return card
 
 
 def _pending_decision_cards(db: GameDB, cards: List[BriefCard]) -> None:
@@ -270,6 +274,7 @@ def _trap_remedy_cards(db: GameDB, state: Optional[GameState], cards: List[Brief
         )
         cta = "查此人"
         meta = "可复用"
+        back_kind = "reuse"
     elif status == "dismissed":
         title = f"破局人选：起复{name}"
         detail = (
@@ -278,6 +283,7 @@ def _trap_remedy_cards(db: GameDB, state: Optional[GameState], cards: List[Brief
         )
         cta = "查此人"
         meta = "可起复"
+        back_kind = "reuse"
     else:
         title = f"破局人选：替{name}担责"
         detail = (
@@ -286,8 +292,14 @@ def _trap_remedy_cards(db: GameDB, state: Optional[GameState], cards: List[Brief
         )
         cta = "查此人"
         meta = "可买单"
+        back_kind = "shoulder"
     if reason:
         detail += f"旧因：{_short_text(reason, 32)}。"
+    try:
+        from ming_sim.memorials import preview_back_official_effects
+        effects = preview_back_official_effects(db, name, back_kind)
+    except Exception:
+        effects = []
     cards.append(
         _card(
             kind="trap_remedy",
@@ -301,6 +313,7 @@ def _trap_remedy_cards(db: GameDB, state: Optional[GameState], cards: List[Brief
             meta=meta,
             ref_kind="character",
             ref_id=name,
+            effects=effects,
         )
     )
 

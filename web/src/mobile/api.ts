@@ -195,6 +195,7 @@ export type PlaystyleBriefCard = {
   meta?: string;
   ref_kind?: string;
   ref_id?: string;
+  effects?: Array<{ kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string }>;
 };
 export type AudienceLead = {
   kind: string;

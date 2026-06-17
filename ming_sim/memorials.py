@@ -658,6 +658,49 @@ def _back_faction_effects(db: GameDB, name: str, spec: Dict[str, object]) -> Lis
     return effects
 
 
+def _back_faction_preview(db: GameDB, name: str, spec: Dict[str, object]) -> List[Dict[str, str]]:
+    try:
+        from ming_sim.theater import faction_of
+        from ming_sim.political_reactions import rival_faction
+        faction = faction_of(db, name)
+    except Exception:
+        return []
+    if not faction or faction in ("无", "中立"):
+        return []
+
+    effects: List[Dict[str, str]] = []
+    sat_delta = int(spec.get("faction_sat") or 0)
+    heat_delta = int(spec.get("faction_heat") or 0)
+    if sat_delta:
+        effects.append({"kind": "faction", "label": f"{faction}满意 {sat_delta:+d}", "tone": "good"})
+    if heat_delta:
+        effects.append({"kind": "faction", "label": f"{faction}热度 {heat_delta:+d}", "tone": "good"})
+    rival = rival_faction(db, faction)
+    if rival:
+        rival_sat = int(spec.get("rival_sat") or 0)
+        rival_heat = int(spec.get("rival_heat") or 0)
+        if rival_sat:
+            effects.append({"kind": "faction", "label": f"{rival}满意 {rival_sat:+d}", "tone": "bad"})
+        if rival_heat:
+            effects.append({"kind": "faction", "label": f"{rival}热度 {rival_heat:+d}", "tone": "bad"})
+    return effects
+
+
+def _back_network_preview(db: GameDB, name: str) -> List[Dict[str, str]]:
+    try:
+        from ming_sim import court
+        allies = court.allies_of(db, name, limit=5)
+        rivals = court.rivals_of(db, name, limit=5)
+    except Exception:
+        return []
+    effects: List[Dict[str, str]] = []
+    if allies:
+        effects.append({"kind": "network", "label": f"党羽受慰 {len(allies)}人", "tone": "good"})
+    if rivals:
+        effects.append({"kind": "network", "label": f"政敌侧目 {len(rivals)}人", "tone": "bad"})
+    return effects
+
+
 def _back_network_effects(db: GameDB, name: str, day: int) -> List[Dict[str, str]]:
     try:
         from ming_sim import court
@@ -671,6 +714,26 @@ def _back_network_effects(db: GameDB, name: str, day: int) -> List[Dict[str, str
         effects.append({"kind": "network", "label": f"党羽受慰 {len(allies)}人", "tone": "good"})
     if rivals:
         effects.append({"kind": "network", "label": f"政敌侧目 {len(rivals)}人", "tone": "bad"})
+    return effects
+
+
+def preview_back_official_effects(db: GameDB, name: str, kind: str, *, cost: int = 0) -> List[Dict[str, str]]:
+    """Read-only player-facing preview for backing an official."""
+    spec = _BACK_KINDS.get(kind)
+    if spec is None:
+        return []
+    effects = [
+        {"kind": "belief", "label": f"任事 +{abs(int(spec['ra']))}", "tone": "good"},
+    ]
+    if spec["shi"]:
+        effects.append({"kind": "belief", "label": f"势 {int(spec['shi']):+d}", "tone": "bad"})
+    if cost > 0:
+        effects.append({"kind": "treasury", "label": f"内库 -{int(cost)}", "tone": "bad"})
+    effects.append({"kind": "court", "label": f"{name}信任 +{int(spec['trust'])}", "tone": "good"})
+    effects.extend(_back_faction_preview(db, name, spec))
+    effects.extend(_back_network_preview(db, name))
+    if kind == "reuse":
+        effects.append({"kind": "court", "label": "复归在朝", "tone": "good"})
     return effects
 
 

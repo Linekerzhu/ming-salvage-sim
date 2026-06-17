@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from ming_sim import lifecycle, memorials, timeflow
+from ming_sim import court, lifecycle, memorials, timeflow
 from ming_sim.db import GameDB
 from ming_sim.intrigue import ensure_schema as ensure_secret_schema
 from ming_sim.playstyle import briefing_cards, briefing_payload
@@ -145,6 +145,42 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertEqual(remedy["ref_id"], "韩爌")
             self.assertIn("复用", str(remedy["title"]) + str(remedy["detail"]))
             self.assertIn("可复用", str(remedy["meta"]))
+            labels = [str(e["label"]) for e in remedy["effects"]]
+            self.assertIn("任事 +10", labels)
+            self.assertIn("势 -2", labels)
+            self.assertIn("复归在朝", labels)
+
+    def test_trap_remedy_card_previews_faction_and_network_costs(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            db.conn.execute(
+                "UPDATE characters SET status='active', emp_trust=65, grievance=20 "
+                "WHERE power_id='ming' AND office_type!='后宫'"
+            )
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=20, grievance=70 WHERE name='韩爌'"
+            )
+            names = [str(r["name"]) for r in db.conn.execute(
+                "SELECT name FROM characters WHERE status='active' AND power_id='ming' "
+                "AND office_type!='后宫' AND name!='韩爌' LIMIT 2"
+            ).fetchall()]
+            ally, rival = names[0], names[1]
+            db.conn.execute("DELETE FROM relationships WHERE a_name='韩爌'")
+            court._set_opinion(db, "韩爌", ally, 70, "党附", 1)
+            court._set_opinion(db, "韩爌", rival, -70, "政敌", 1)
+            db.conn.commit()
+            kv_set_int(db, KV_RISK_AVERSION, 70)
+
+            cards = briefing_cards(db, state, limit=8)
+            remedy = next(c for c in cards if c["kind"] == "trap_remedy")
+
+            labels = [str(e["label"]) for e in remedy["effects"]]
+            self.assertEqual(remedy["actor"], "韩爌")
+            self.assertIn("任事 +8", labels)
+            self.assertIn("势 -4", labels)
+            self.assertTrue(any("满意" in label for label in labels), labels)
+            self.assertIn("党羽受慰 1人", labels)
+            self.assertIn("政敌侧目 1人", labels)
 
     def test_recently_backed_official_drops_from_trap_remedy(self):
         with TemporaryDirectory() as tmp:
