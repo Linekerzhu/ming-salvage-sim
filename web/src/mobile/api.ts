@@ -199,6 +199,7 @@ export type PlaystyleBriefCard = {
 };
 export type PlaystyleBriefPayload = {
   cards: PlaystyleBriefCard[];
+  lead?: PlaystyleBriefCard | null;
   limit: number;
   filter?: string;
   shown?: number;

@@ -15,6 +15,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   const openPerson = usePerson();
   const [eunuch, setEunuch] = useState<PublicCharacter | null>(null);
   const [briefCards, setBriefCards] = useState<PlaystyleBriefCard[]>([]);
+  const [briefLead, setBriefLead] = useState<PlaystyleBriefCard | null>(null);
   const [briefCount, setBriefCount] = useState({ shown: 0, total: 0, hidden: 0 });
   const [briefBuckets, setBriefBuckets] = useState<BriefBucket[]>([]);
   const [briefRanks, setBriefRanks] = useState<Array<{ level: string; label: string; count: number }>>([]);
@@ -30,6 +31,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
         const buckets = (r.buckets || []).filter((b) => Number(b.total || 0) > 0);
         const ranks = (r.ranks || []).filter((rank) => Number(rank.count || 0) > 0);
         setBriefCards(cards);
+        setBriefLead(r.lead || cards[0] || null);
         setBriefCount({
           shown: Number(r.shown ?? cards.length),
           total: Number(r.total ?? cards.length),
@@ -41,6 +43,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
       })
       .catch(() => {
         setBriefCards([]);
+        setBriefLead(null);
         setBriefCount({ shown: 0, total: 0, hidden: 0 });
         setBriefBuckets([]);
         setBriefRanks([]);
@@ -145,6 +148,13 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                   </span>
                 ))}
               </div>
+            )}
+            {briefLead && (
+              <button type="button" className="m-brief-lead" onClick={() => openBrief(briefLead)}>
+                <span>首要</span>
+                <b>{briefLead.title}</b>
+                <em>{briefLead.cta || "处置"}›</em>
+              </button>
             )}
             {briefBuckets.length > 0 && (
               <div className="m-brief-buckets" aria-label="朝局系统构成">

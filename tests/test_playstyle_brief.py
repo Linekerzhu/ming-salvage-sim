@@ -89,6 +89,8 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertEqual(payload["hidden"], int(payload["total"]) - 1)
             self.assertGreater(payload["hidden"], 0)
             self.assertEqual(len(payload["cards"]), 1)
+            self.assertIsNotNone(payload["lead"])
+            self.assertEqual(payload["lead"], payload["cards"][0])
             buckets = {str(b["kind"]): b for b in payload["buckets"]}
             self.assertIn("hook", buckets)
             self.assertEqual(buckets["hook"]["label"], "把柄")
@@ -125,6 +127,8 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertGreaterEqual(payload["total"], 3)
             self.assertEqual(payload["hidden"], int(payload["total"]) - 2)
             self.assertTrue(all(c["kind"] == "hook" for c in payload["cards"]))
+            self.assertEqual(payload["lead"]["kind"], "hook")
+            self.assertEqual(payload["lead"], payload["cards"][0])
             buckets = {str(b["kind"]): b for b in payload["buckets"]}
             self.assertGreaterEqual(buckets["hook"]["total"], 3)
             ranks = {str(r["level"]): r for r in payload["ranks"]}

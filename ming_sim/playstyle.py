@@ -94,6 +94,7 @@ def briefing_payload(
     overview_cards = _select_brief_cards(candidates, limit=safe_limit)
     return {
         "cards": cards,
+        "lead": cards[0] if cards else None,
         "limit": safe_limit,
         "filter": safe_kind if safe_kind in _KIND_LABELS else "",
         "shown": len(cards),

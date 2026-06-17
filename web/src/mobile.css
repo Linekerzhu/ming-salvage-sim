@@ -242,6 +242,23 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-brief-rank.level-info {
   color: #375247; background: rgba(73,122,97,.12); border-color: rgba(73,122,97,.2);
 }
+.m-brief-lead {
+  width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 7px;
+  min-height: 34px; padding: 6px 8px; border-radius: 8px;
+  color: #3b2b16; background: rgba(181,134,58,.12); border: 1px solid rgba(181,134,58,.28);
+}
+.m-brief-lead span {
+  padding: 1px 5px; border-radius: 5px; color: #fff1de; background: #8b2d24;
+  font-size: .66rem; font-weight: 900;
+}
+.m-brief-lead b {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: .78rem; font-weight: 900; text-align: left;
+}
+.m-brief-lead em {
+  color: var(--gold-deep); font-style: normal; font-size: .68rem; font-weight: 900; white-space: nowrap;
+}
+.m-brief-lead:active { transform: scale(.99); }
 .m-brief-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .m-brief-card {
   display: flex; flex-direction: column; align-items: stretch; gap: 7px; padding: 9px 0;
