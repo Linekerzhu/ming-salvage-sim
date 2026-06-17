@@ -1,8 +1,9 @@
 // 人物详情卡：点任意头像 → 看此人是谁（身份/性格小传/擅长），知道在跟谁打交道。
 // 才/忠/廉等隐藏数值不直显（账实分离·印象系统）——呈现性格与擅长即可。
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Portrait } from "./Portrait";
+import type { PersonFocus, PersonOpen } from "./personCtx";
 import { PersonCtx } from "./personCtx";
 import { loadCharacter, loadCourt, intrigueInvestigate, intrigueCoerce, intrigueFabricate, intrigueDiscord } from "./api";
 import type { CourtPayload } from "./api";
@@ -57,13 +58,14 @@ function shortText(value: unknown): string {
   return text.length > 8 ? `${text.slice(0, 8)}…` : text;
 }
 
-function PersonSheet({ name, onClose }: { name: string; onClose: () => void }) {
+function PersonSheet({ name, focus, onClose }: { name: string; focus?: PersonFocus; onClose: () => void }) {
   const [c, setC] = useState<Record<string, any> | null>(null);
   const [court, setCourt] = useState<CourtPayload | null>(null);
   const [err, setErr] = useState(false);
   const [intrigueMsg, setIntrigueMsg] = useState("");
   const [impactTags, setImpactTags] = useState<ImpactTag[]>([]);
   const [busy, setBusy] = useState(false);
+  const intrigueRef = useRef<HTMLDivElement | null>(null);
   const openPerson = useContext(PersonCtx);
   const { refresh } = useGame();
   useEffect(() => {
@@ -71,6 +73,13 @@ function PersonSheet({ name, onClose }: { name: string; onClose: () => void }) {
     loadCharacter(name).then((r) => setC(r.character)).catch(() => setErr(true));
     loadCourt(name).then(setCourt).catch(() => setCourt(null));
   }, [name]);
+  useEffect(() => {
+    if (focus !== "intrigue" || !c) return;
+    const t = window.setTimeout(() => {
+      intrigueRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [focus, c, court, name]);
   const isMing = !c || (c.power_id ? c.power_id === "ming" : true);
   const isSelf = name === "崇祯" || c?.office_type === "君主";
   async function reloadAfterAction(beforeC: Record<string, any> | null, beforeCourt: CourtPayload | null) {
@@ -232,7 +241,7 @@ function PersonSheet({ name, onClose }: { name: string; onClose: () => void }) {
           </div>
         )}
         {isMing && !isSelf && (
-          <div className="m-person-block">
+          <div className="m-person-block" ref={intrigueRef}>
             <span className="m-person-h">把柄 · 厂卫</span>
             {court?.secret ? (
               <>
@@ -275,11 +284,16 @@ function PersonSheet({ name, onClose }: { name: string; onClose: () => void }) {
 }
 
 export function PersonProvider({ children }: { children: ReactNode }) {
-  const [who, setWho] = useState<string>("");
+  const [who, setWho] = useState<{ name: string; focus?: PersonFocus } | null>(null);
+  const openPerson: PersonOpen = (target) => {
+    const name = (typeof target === "string" ? target : target.name).trim();
+    if (!name) return;
+    setWho({ name, focus: typeof target === "string" ? undefined : target.focus });
+  };
   return (
-    <PersonCtx.Provider value={setWho}>
+    <PersonCtx.Provider value={openPerson}>
       {children}
-      {who && <PersonSheet name={who} onClose={() => setWho("")} />}
+      {who && <PersonSheet name={who.name} focus={who.focus} onClose={() => setWho(null)} />}
     </PersonCtx.Provider>
   );
 }

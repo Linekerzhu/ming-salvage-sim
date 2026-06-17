@@ -188,12 +188,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-brief { border-left: 4px solid var(--gold-deep); }
 .m-brief-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .m-brief-card {
-  display: flex; align-items: center; gap: 8px; padding: 8px 0;
+  display: flex; flex-direction: column; align-items: stretch; gap: 7px; padding: 9px 0;
   border-bottom: 1px dashed var(--line);
 }
 .m-brief-card:last-child { border-bottom: none; }
 .m-brief-main {
-  flex: 1 1 auto; min-width: 0; display: flex; align-items: flex-start; gap: 9px;
+  width: 100%; min-width: 0; display: flex; align-items: flex-start; gap: 9px;
   text-align: left; color: inherit; border-radius: 8px; padding: 2px 0;
 }
 .m-brief-main:active { background: rgba(42,31,18,.06); }
@@ -219,9 +219,22 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   color: var(--ink-soft); font-size: 0.8rem; line-height: 1.42; word-break: break-word;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.m-brief-cta {
-  flex: 0 0 auto; min-height: 34px; padding: 6px 10px; font-size: 0.76rem;
-  max-width: 92px; overflow: hidden; text-overflow: ellipsis;
+.m-brief-actions {
+  display: flex; flex-wrap: wrap; gap: 6px; padding-left: 43px;
+}
+.m-brief-action {
+  min-height: 32px; padding: 5px 10px; border-radius: 999px; font-size: 0.74rem;
+  font-weight: 800; color: var(--gold-deep); background: rgba(181,134,58,.11);
+  border: 1px solid rgba(181,134,58,.26); white-space: nowrap;
+}
+.m-brief-action.primary {
+  color: #21180c; background: linear-gradient(180deg, #c1964d, var(--gold-deep));
+  border-color: rgba(92,64,22,.18);
+}
+.m-brief-action:active { transform: scale(.97); }
+.m-brief-card.tone-danger .m-brief-action.primary {
+  color: #fff0d0; background: linear-gradient(180deg, #a94033, #7e271d);
+  border-color: rgba(158,52,41,.45);
 }
 
 /* ── 御案 ───────────────────────────────────────────────────── */
@@ -579,7 +592,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* ── 人物详情卡 ─────────────────────────────────────────────── */
 .m-portrait.is-tappable { cursor: pointer; }
 .m-person { padding: 16px var(--pad) calc(16px + env(safe-area-inset-bottom)); min-height: min(82dvh, 760px); max-height: 88dvh; overflow-y: auto; background: linear-gradient(180deg, #f7eecb, #efe2b8); }
-.m-person-hd { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.m-person-hd {
+  position: sticky; top: -16px; z-index: 4; display: flex; align-items: center; gap: 12px;
+  margin: -16px calc(var(--pad) * -1) 0; padding: 16px var(--pad) 12px;
+  border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #f7eecb, #f3e8c2);
+}
 .m-person-id { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .m-person-name { font-size: 1.25rem; font-weight: 700; color: var(--cinnabar); }
 .m-person-sub { font-size: 0.86rem; color: var(--gold-deep); }
@@ -922,6 +939,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 16px;
     align-content: start;
+    align-items: start;
   }
   .m-home > *,
   .m-desk > *,

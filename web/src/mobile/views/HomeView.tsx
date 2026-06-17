@@ -3,13 +3,15 @@ import { useGame } from "../GameData";
 import { Portrait } from "../Portrait";
 import { loadEunuch, loadPlaystyleBrief } from "../api";
 import type { AudienceLead, PlaystyleBriefCard, PublicCharacter, Suggestion, Tab } from "../api";
+import { usePerson } from "../personCtx";
 import { OutcomeSummary } from "./EdictsView";
 
 const INFORMATIONAL_KINDS = ["复命", "捷报"];
 const BRIEF_TABS: Tab[] = ["home", "desk", "audience", "edicts", "realm"];
 
 export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: string, lead?: AudienceLead) => void }) {
-  const { desk, lifecycle, recentEvents, zhongxing, worldVersion } = useGame();
+  const { state, desk, lifecycle, recentEvents, zhongxing, worldVersion } = useGame();
+  const openPerson = usePerson();
   const [eunuch, setEunuch] = useState<PublicCharacter | null>(null);
   const [briefCards, setBriefCards] = useState<PlaystyleBriefCard[]>([]);
   useEffect(() => {
@@ -22,6 +24,11 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   const drowning = (desk?.pending || []).filter((m) => m.days_to_expire > 0 && m.days_to_expire <= 7).length;
   const fuming = lifecycle.filter((d) => d.status === "stalled" || (d.anomaly && d.anomaly !== "")).length;
   const live = lifecycle.filter((d) => ["in_transit", "executing"].includes(d.status)).length;
+  const activeMinisters = new Set(
+    ((state?.ministers || []) as PublicCharacter[])
+      .filter((m) => m.status === "active" && m.name)
+      .map((m) => String(m.name)),
+  );
   const directiveById: Record<string, any> = {};
   for (const d of lifecycle || []) directiveById[String(d.id)] = d;
 
@@ -34,10 +41,19 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   const openBrief = (card: PlaystyleBriefCard) => {
     const to = BRIEF_TABS.includes(card.tab) ? card.tab : "audience";
     if (to === "audience" && card.actor) {
-      summon(card.actor, audienceLeadFromBrief(card));
+      summonFromBrief(card, card.actor, card.target || "");
       return;
     }
     go(to);
+  };
+  const summonFromBrief = (card: PlaystyleBriefCard, actor: string, target = "") => {
+    const name = String(actor || "").trim();
+    if (!name) return;
+    summon(name, audienceLeadFromBrief(card, name, target));
+  };
+  const inspect = (name?: string, focus?: "intrigue") => {
+    const who = String(name || "").trim();
+    if (who) openPerson(focus ? { name: who, focus } : who);
   };
 
   return (
@@ -82,7 +98,55 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                       <span className="m-brief-detail">{card.detail}</span>
                     </span>
                   </button>
-                  <button className="m-chip m-brief-cta" onClick={() => openBrief(card)}>{card.cta || "处置"} ›</button>
+                  <div className="m-brief-actions">
+                    {card.kind === "rivalry" && card.actor && card.target ? (
+                      <>
+                        <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, card.target)}>召{shortName(card.actor)}</button>
+                        <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.target!, card.actor)}>召{shortName(card.target)}</button>
+                        <button className="m-brief-action" onClick={() => inspect(card.actor)}>查{shortName(card.actor)}</button>
+                        <button className="m-brief-action" onClick={() => inspect(card.target)}>查{shortName(card.target)}</button>
+                      </>
+                    ) : card.kind === "hook" && card.actor ? (
+                      <>
+                        <button className="m-brief-action primary" onClick={() => inspect(card.actor, "intrigue")}>用把柄</button>
+                        {canSummon(card.actor, activeMinisters) && (
+                          <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, "")}>召试探</button>
+                        )}
+                        <button className="m-brief-action" onClick={() => inspect(card.actor)}>查此人</button>
+                      </>
+                    ) : card.tab === "audience" && card.actor ? (
+                      <>
+                        <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, card.target || "")}>{card.cta || "召来问对"}</button>
+                        <button className="m-brief-action" onClick={() => inspect(card.actor)}>查此人</button>
+                        {card.target && <button className="m-brief-action" onClick={() => inspect(card.target)}>查{shortName(card.target)}</button>}
+                      </>
+                    ) : card.kind === "army" ? (
+                      <>
+                        <button className="m-brief-action primary" onClick={() => go("realm")}>看天下›</button>
+                        {canSummon(card.actor, activeMinisters) && (
+                          <>
+                            <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, "")}>召主帅</button>
+                            <button className="m-brief-action" onClick={() => inspect(card.actor)}>查主帅</button>
+                          </>
+                        )}
+                      </>
+                    ) : card.kind === "faction" ? (
+                      <>
+                        <button className="m-brief-action primary" onClick={() => go("desk")}>看御案›</button>
+                        {canSummon(card.actor, activeMinisters) && (
+                          <>
+                            <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, "")}>召代表</button>
+                            <button className="m-brief-action" onClick={() => inspect(card.actor)}>查代表</button>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <button className="m-brief-action primary" onClick={() => openBrief(card)}>{card.cta || "处置"} ›</button>
+                        {card.actor && <button className="m-brief-action" onClick={() => inspect(card.actor)}>查{shortName(card.actor)}</button>}
+                      </>
+                    )}
+                  </div>
                 </li>
               );
             })}
@@ -157,24 +221,24 @@ function kindMark(kind: string): string {
   return "机";
 }
 
-function audienceLeadFromBrief(card: PlaystyleBriefCard): AudienceLead {
+function audienceLeadFromBrief(card: PlaystyleBriefCard, actor = card.actor || "", target = card.target || ""): AudienceLead {
   return {
     kind: card.kind,
     title: card.title,
     detail: card.detail,
     tone: card.tone,
-    actor: card.actor,
-    target: card.target,
+    actor,
+    target,
     meta: card.meta,
     ref_kind: card.ref_kind,
     ref_id: card.ref_id,
-    prompts: briefPrompts(card),
+    prompts: briefPrompts(card, actor, target),
   };
 }
 
-function briefPrompts(card: PlaystyleBriefCard): Suggestion[] {
-  const actor = card.actor || "你";
-  const target = card.target || "他人";
+function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", target = card.target || "他人"): Suggestion[] {
+  const speaker = actor || "你";
+  const counterpart = target || "他人";
   const topic = briefTopic(card.title);
   if (card.kind === "hook") {
     return [
@@ -184,8 +248,8 @@ function briefPrompts(card: PlaystyleBriefCard): Suggestion[] {
   }
   if (card.kind === "rivalry") {
     return [
-      { label: "追问旧怨", text: `朕闻你与${target}嫌隙已深。今日召你，是要听实话：此怨从何而起？`, prefix: true },
-      { label: "逼其表态", text: `若朕令你暂收锋芒，同${target}共办一事，你肯不肯？条件是什么？`, prefix: true },
+      { label: "追问旧怨", text: `朕闻你与${counterpart}嫌隙已深。今日召你，是要听实话：此怨从何而起？`, prefix: true },
+      { label: "逼其表态", text: `若朕令你暂收锋芒，同${counterpart}共办一事，你肯不肯？条件是什么？`, prefix: true },
     ];
   }
   if (card.kind === "agenda") {
@@ -195,8 +259,23 @@ function briefPrompts(card: PlaystyleBriefCard): Suggestion[] {
       { label: "问党援钱粮", text: `此事牵动谁的党援和钱粮？把实话说清楚。`, prefix: true },
     ];
   }
+  if (card.kind === "army") {
+    return [
+      { label: "追欠饷", text: `朕闻你所领军镇欠饷压心。你据实奏来：欠从何来，兵心还能稳多久？`, prefix: true },
+      { label: "问自专", text: `边镇离心，往往始于主帅自专。你今日当面说清楚：军中听朝廷，还是只听你？`, prefix: true },
+      { label: "议制衡", text: `若朕遣监军、调饷、换将三策并举，你以为哪一策先行，哪一策最易激变？`, prefix: true },
+    ];
+  }
+  if (card.kind === "faction") {
+    const faction = String(card.ref_id || card.title || "本派").replace(/势大.*$|敌意.*$|怨气.*$/g, "") || "本派";
+    return [
+      { label: "问派内", text: `朕今日召你，是要听${faction}的实话：眼下谁能办事，谁在借势要价？`, prefix: true },
+      { label: "许以差遣", text: `若朕借${faction}办一件急务，你们要什么名分，又能给朕什么可验的成效？`, prefix: true },
+      { label: "立规矩", text: `${faction}可以任事，但不可挟势。你回去告诉众人：朕给差遣，也会查账。`, prefix: true },
+    ];
+  }
   return [
-    { label: "问根由", text: `朕今日召${actor}来，正为这桩风向。你先把根由、风险、可用之处说清楚。`, prefix: true },
+    { label: "问根由", text: `朕今日召${speaker}来，正为这桩风向。你先把根由、风险、可用之处说清楚。`, prefix: true },
   ];
 }
 
@@ -204,4 +283,14 @@ function briefTopic(title: string): string {
   const text = String(title || "").trim();
   const parts = text.split("：");
   return (parts[parts.length - 1] || text || "此事").trim();
+}
+
+function shortName(name?: string): string {
+  const text = String(name || "").trim();
+  return text.length > 3 ? `${text.slice(0, 3)}…` : text;
+}
+
+function canSummon(name: string | undefined, activeMinisters: Set<string>): boolean {
+  const text = String(name || "").trim();
+  return !!text && activeMinisters.has(text);
 }

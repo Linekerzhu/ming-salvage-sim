@@ -298,6 +298,7 @@ def _faction_cards(db: GameDB, cards: List[BriefCard]) -> None:
         sat = int(row["satisfaction"] or 0)
         lev = int(row["leverage"] or 0)
         heat = int(row["heat"] or 0)
+        representative = _faction_representative(db, name)
         if lev >= 70 and sat <= 35:
             title = f"{name}势大而不满"
             detail = f"{name}势力 {lev}、满意 {sat}，一旦有人串联，朝争会变成逼宫式要价。"
@@ -327,6 +328,7 @@ def _faction_cards(db: GameDB, cards: List[BriefCard]) -> None:
                 tone=tone,
                 cta="看御案",
                 tab=_TAB_DESK,
+                actor=representative,
                 meta=f"势{lev}/怨{100 - sat}",
                 ref_kind="faction",
                 ref_id=name,
@@ -380,6 +382,37 @@ def _short_office(office: str) -> str:
     if len(office) <= 8:
         return office
     return office[:8]
+
+
+def _faction_representative(db: GameDB, faction: str) -> str:
+    """Pick one visible courtier who can embody an abstract faction pressure card."""
+
+    faction = str(faction or "").strip()
+    if not faction:
+        return ""
+    rows = _safe_fetchall(
+        db,
+        """
+        SELECT name, office, office_type, ability, loyalty, grievance
+        FROM characters
+        WHERE faction=?
+          AND status='active'
+          AND power_id='ming'
+          AND office_type!='后宫'
+        ORDER BY
+          CASE
+            WHEN office_type IN ('内阁','司礼监','东厂') THEN 0
+            WHEN office LIKE '%尚书%' OR office LIKE '%大学士%' THEN 1
+            ELSE 2
+          END,
+          ability DESC,
+          grievance DESC,
+          loyalty ASC
+        LIMIT 1
+        """,
+        (faction,),
+    )
+    return str(rows[0]["name"]) if rows else ""
 
 
 def _safe_fetchall(db: GameDB, sql: str, params: tuple = ()) -> List[sqlite3.Row]:

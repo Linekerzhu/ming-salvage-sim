@@ -85,6 +85,37 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("把柄在手", str(hook["title"]))
             self.assertGreaterEqual(int(hook["urgency"]), 90)
 
+    def test_faction_pressure_names_summonable_representative(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            row = db.conn.execute(
+                "SELECT name, faction FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND faction NOT IN ('无','中立','') "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            faction = str(row["faction"])
+            db.conn.execute(
+                "UPDATE factions SET leverage=92, satisfaction=18 WHERE name=?",
+                (faction,),
+            )
+            db.conn.commit()
+
+            cards = briefing_cards(db, state, limit=8)
+            faction_card = next(c for c in cards if c["kind"] == "faction" and c["ref_id"] == faction)
+            self.assertEqual(faction_card["tab"], "desk")
+            self.assertTrue(faction_card["actor"])
+            representative = db.conn.execute(
+                "SELECT faction, status, power_id FROM characters WHERE name=?",
+                (str(faction_card["actor"]),),
+            ).fetchone()
+            self.assertIsNotNone(representative)
+            self.assertEqual(str(representative["faction"]), faction)
+            self.assertEqual(str(representative["status"]), "active")
+            self.assertEqual(str(representative["power_id"]), "ming")
+            self.assertIn(faction, str(faction_card["title"]))
+
 
 if __name__ == "__main__":
     unittest.main()
