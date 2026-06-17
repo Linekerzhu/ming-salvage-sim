@@ -284,7 +284,7 @@ class WebMultiuserAuthTests(unittest.TestCase):
         index = client.get("/")
 
         self.assertEqual(script.status_code, 200)
-        self.assertEqual(script.headers.get("cache-control"), "public, max-age=31536000, immutable")
+        self.assertEqual(script.headers.get("cache-control"), "no-cache")
         self.assertEqual(index.status_code, 200)
         self.assertEqual(index.headers.get("cache-control"), "no-cache")
         self.assertNotIn("fonts.googleapis.com", index.text)

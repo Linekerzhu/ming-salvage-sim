@@ -3274,6 +3274,7 @@ app.add_middleware(SelectiveGZipMiddleware, minimum_size=1024)
 _STATIC_IMMUTABLE_CACHE = "public, max-age=31536000, immutable"
 _STATIC_MEDIA_CACHE = "public, max-age=604800"
 _STATIC_HTML_CACHE = "no-cache"
+_STATIC_SCRIPT_STYLE_RE = re.compile(r"\.(?:js|css|mjs)$", re.IGNORECASE)
 _STATIC_MEDIA_RE = re.compile(r"\.(?:png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf)$", re.IGNORECASE)
 
 
@@ -3286,6 +3287,10 @@ class CacheControlledStaticFiles(StaticFiles):
         clean_path = path.lstrip("/")
         content_type = response.headers.get("content-type", "")
         if clean_path in {"", ".", "index.html"} or clean_path.endswith(".html") or content_type.startswith("text/html"):
+            response.headers["Cache-Control"] = _STATIC_HTML_CACHE
+        elif clean_path.startswith("assets/") and _STATIC_SCRIPT_STYLE_RE.search(clean_path):
+            # The mobile shell is small enough to revalidate. Avoid sticky old UI
+            # after deploys if a build reuses an asset basename.
             response.headers["Cache-Control"] = _STATIC_HTML_CACHE
         elif clean_path.startswith("assets/"):
             response.headers["Cache-Control"] = _STATIC_IMMUTABLE_CACHE
