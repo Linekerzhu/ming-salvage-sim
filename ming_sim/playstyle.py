@@ -34,6 +34,18 @@ _KIND_PRIORITY = {
     "hook": 8,
 }
 
+_KIND_LABELS = {
+    "decision": "裁断",
+    "trap": "御案",
+    "directive_blocker": "诏旨",
+    "trap_remedy": "担责",
+    "army": "军镇",
+    "faction": "派系",
+    "agenda": "私图",
+    "rivalry": "怨隙",
+    "hook": "把柄",
+}
+
 _AGENDA_LABELS = {
     "climb": "进取求用",
     "enrich": "自肥敛财",
@@ -65,6 +77,7 @@ def briefing_payload(db: GameDB, state: Optional[GameState] = None, *, limit: in
         "shown": len(cards),
         "total": len(candidates),
         "hidden": max(0, len(candidates) - len(cards)),
+        "buckets": _brief_kind_buckets(candidates, cards),
     }
 
 
@@ -134,6 +147,39 @@ def _select_brief_cards(cards: List[BriefCard], limit: int = 5) -> List[BriefCar
             if len(selected) >= safe_limit:
                 break
     return [cards[i] for i in selected]
+
+
+def _brief_kind_buckets(candidates: List[BriefCard], selected: List[BriefCard]) -> List[Dict[str, object]]:
+    """Summarize how many hooks each visible strategic system contributes."""
+
+    totals: Dict[str, int] = {}
+    shown: Dict[str, int] = {}
+    for card in candidates:
+        kind = str(card.get("kind") or "")
+        if kind:
+            totals[kind] = totals.get(kind, 0) + 1
+    for card in selected:
+        kind = str(card.get("kind") or "")
+        if kind:
+            shown[kind] = shown.get(kind, 0) + 1
+
+    def sort_key(kind: str) -> tuple:
+        return (_KIND_PRIORITY.get(kind, 50), kind)
+
+    buckets: List[Dict[str, object]] = []
+    for kind in sorted(totals, key=sort_key):
+        total = totals[kind]
+        visible = shown.get(kind, 0)
+        buckets.append(
+            {
+                "kind": kind,
+                "label": _KIND_LABELS.get(kind, "机变"),
+                "shown": visible,
+                "total": total,
+                "hidden": max(0, total - visible),
+            }
+        )
+    return buckets
 
 
 def _card(

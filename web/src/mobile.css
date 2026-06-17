@@ -186,6 +186,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 /* 朝局风向：把隐藏局势变成可点击玩法钩子 */
 .m-brief { border-left: 4px solid var(--gold-deep); }
+.m-brief-header { display: flex; flex-direction: column; gap: 6px; }
 .m-brief-titlebar { display: flex; align-items: center; gap: 8px; }
 .m-brief-count {
   display: inline-flex; align-items: center; min-height: 18px; padding: 1px 7px; border-radius: 999px;
@@ -198,6 +199,16 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   font-size: .75rem; font-weight: 800;
 }
 .m-brief-toggle:active { transform: scale(.97); }
+.m-brief-buckets { display: flex; flex-wrap: wrap; gap: 4px; }
+.m-brief-bucket {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 22px; padding: 2px 7px;
+  border-radius: 7px; color: var(--ink-soft); background: rgba(42,31,18,.045);
+  border: 1px solid rgba(74,45,20,.1); font-size: .68rem; font-weight: 800;
+}
+.m-brief-bucket b { color: var(--gold-deep); font-size: .7rem; }
+.m-brief-bucket.has-hidden {
+  color: #5d4121; background: rgba(181,134,58,.11); border-color: rgba(181,134,58,.22);
+}
 .m-brief-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .m-brief-card {
   display: flex; flex-direction: column; align-items: stretch; gap: 7px; padding: 9px 0;

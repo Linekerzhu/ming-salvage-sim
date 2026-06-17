@@ -203,6 +203,7 @@ export type PlaystyleBriefPayload = {
   shown?: number;
   total?: number;
   hidden?: number;
+  buckets?: Array<{ kind: string; label: string; shown: number; total: number; hidden: number }>;
 };
 export type AudienceLead = {
   kind: string;

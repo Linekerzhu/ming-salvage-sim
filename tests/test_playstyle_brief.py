@@ -74,6 +74,12 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertEqual(payload["hidden"], int(payload["total"]) - 1)
             self.assertGreater(payload["hidden"], 0)
             self.assertEqual(len(payload["cards"]), 1)
+            buckets = {str(b["kind"]): b for b in payload["buckets"]}
+            self.assertIn("hook", buckets)
+            self.assertEqual(buckets["hook"]["label"], "把柄")
+            self.assertEqual(buckets["hook"]["shown"], 1)
+            self.assertGreaterEqual(buckets["hook"]["total"], 3)
+            self.assertEqual(buckets["hook"]["hidden"], int(buckets["hook"]["total"]) - 1)
 
     def test_pending_decision_card_surfaces_stakes(self):
         with TemporaryDirectory() as tmp:

@@ -15,6 +15,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   const [eunuch, setEunuch] = useState<PublicCharacter | null>(null);
   const [briefCards, setBriefCards] = useState<PlaystyleBriefCard[]>([]);
   const [briefCount, setBriefCount] = useState({ shown: 0, total: 0, hidden: 0 });
+  const [briefBuckets, setBriefBuckets] = useState<Array<{ kind: string; label: string; shown: number; total: number; hidden: number }>>([]);
   const [briefLimit, setBriefLimit] = useState(5);
   useEffect(() => {
     loadEunuch().then((r) => setEunuch(r.eunuch)).catch(() => setEunuch(null));
@@ -29,10 +30,12 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
           total: Number(r.total ?? cards.length),
           hidden: Number(r.hidden ?? 0),
         });
+        setBriefBuckets((r.buckets || []).filter((b) => Number(b.total || 0) > 0));
       })
       .catch(() => {
         setBriefCards([]);
         setBriefCount({ shown: 0, total: 0, hidden: 0 });
+        setBriefBuckets([]);
       });
   }, [worldVersion, briefLimit]);
   const replies = (desk?.pending || []).filter((m) => INFORMATIONAL_KINDS.includes(m.kind));
@@ -104,21 +107,33 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
 
       {briefCards.length > 0 && (
         <section className="m-card m-brief">
-          <h2 className="m-card-title m-brief-titlebar">
-            朝局风向
-            {briefCount.hidden > 0 && (
-              <span className="m-brief-count">{briefCount.shown}/{briefCount.total}</span>
+          <header className="m-brief-header">
+            <h2 className="m-card-title m-brief-titlebar">
+              朝局风向
+              {briefCount.hidden > 0 && (
+                <span className="m-brief-count">{briefCount.shown}/{briefCount.total}</span>
+              )}
+              {(canExpandBrief || canCollapseBrief) && (
+                <button
+                  type="button"
+                  className="m-brief-toggle"
+                  onClick={() => setBriefLimit((v) => (v > 5 ? 5 : 8))}
+                >
+                  {briefLimit > 5 ? "收起" : "展开"}
+                </button>
+              )}
+            </h2>
+            {briefBuckets.length > 0 && (
+              <div className="m-brief-buckets" aria-label="朝局系统构成">
+                {briefBuckets.map((bucket) => (
+                  <span key={bucket.kind} className={`m-brief-bucket ${bucket.hidden > 0 ? "has-hidden" : ""}`}>
+                    {bucket.label}
+                    <b>{bucket.hidden > 0 ? `${bucket.shown}/${bucket.total}` : bucket.total}</b>
+                  </span>
+                ))}
+              </div>
             )}
-            {(canExpandBrief || canCollapseBrief) && (
-              <button
-                type="button"
-                className="m-brief-toggle"
-                onClick={() => setBriefLimit((v) => (v > 5 ? 5 : 8))}
-              >
-                {briefLimit > 5 ? "收起" : "展开"}
-              </button>
-            )}
-          </h2>
+          </header>
           <ul className="m-brief-list">
             {briefCards.map((card, i) => {
               return (
