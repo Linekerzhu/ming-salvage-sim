@@ -328,6 +328,7 @@ def ripple_personnel(db: GameDB, name: str, kind: str, *, day: int = 0) -> Dict[
     """皇帝对某人的处置在关系网中荡开涟漪：
       kind='oust'  （罢/狱/流/死）：其党羽怨怒（信任↓怨气↑）、政敌称快（信任↑）。
       kind='favor' （起复/擢升/厚赏）：其人感念、党羽欣慰、政敌侧目戒备。
+      kind='shield'（背书/买单）：其党羽感到皇帝肯保人、政敌不悦；当事人收益由调用方处理。
     返回被波及者摘要，供事件呈现。零 LLM。
     """
     allies = allies_of(db, name, limit=5)
@@ -347,6 +348,13 @@ def ripple_personnel(db: GameDB, name: str, kind: str, *, day: int = 0) -> Dict[
             touched["allies"].append(a["name"])
         for r in rivals:
             _adjust_char(db, r["name"], grievance=+3)
+            touched["rivals"].append(r["name"])
+    elif kind == "shield":
+        for a in allies:
+            _adjust_char(db, a["name"], emp_trust=+3, grievance=-2)
+            touched["allies"].append(a["name"])
+        for r in rivals:
+            _adjust_char(db, r["name"], emp_trust=-2, grievance=+3)
             touched["rivals"].append(r["name"])
     db.conn.commit()
     return touched

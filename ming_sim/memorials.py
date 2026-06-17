@@ -658,6 +658,22 @@ def _back_faction_effects(db: GameDB, name: str, spec: Dict[str, object]) -> Lis
     return effects
 
 
+def _back_network_effects(db: GameDB, name: str, day: int) -> List[Dict[str, str]]:
+    try:
+        from ming_sim import court
+        touched = court.ripple_personnel(db, name, "shield", day=day)
+    except Exception:
+        return []
+    effects: List[Dict[str, str]] = []
+    allies = list(touched.get("allies") or []) if isinstance(touched, dict) else []
+    rivals = list(touched.get("rivals") or []) if isinstance(touched, dict) else []
+    if allies:
+        effects.append({"kind": "network", "label": f"党羽受慰 {len(allies)}人", "tone": "good"})
+    if rivals:
+        effects.append({"kind": "network", "label": f"政敌侧目 {len(rivals)}人", "tone": "bad"})
+    return effects
+
+
 def back_official(db: GameDB, state: GameState, name: str, kind: str,
                   *, day: int, cost: int = 0) -> Dict[str, object]:
     """为失败的忠臣买单——破崇祯陷阱的反直觉之举：短期掉势/花钱，长期挽回任事意愿。"""
@@ -686,6 +702,7 @@ def back_official(db: GameDB, state: GameState, name: str, kind: str,
         (int(spec["trust"]), name))
     effects.append({"kind": "court", "label": f"{name}信任 +{int(spec['trust'])}", "tone": "good"})
     effects.extend(_back_faction_effects(db, name, spec))
+    effects.extend(_back_network_effects(db, name, day))
     if kind == "reuse" and str(row["status"]) in ("imprisoned", "dismissed"):
         db.conn.execute(
             "UPDATE characters SET status='active', status_reason='败后复用', status_changed_turn=? WHERE name=?",

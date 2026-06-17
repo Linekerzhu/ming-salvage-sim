@@ -159,6 +159,41 @@ class RippleTests(unittest.TestCase):
             self.assertGreater(int(row["emp_trust"]), 50, "受恩者对帝信任应上升")
             self.assertLess(int(row["grievance"]), 30, "受恩者怨气应下降")
 
+    def test_shield_comforts_allies_and_angers_rivals_without_touching_subject(self):
+        with TemporaryDirectory() as tmp:
+            db, _, day = _fresh(tmp)
+            names = [r["name"] for r in db.conn.execute(
+                "SELECT name FROM characters WHERE status='active' AND power_id='ming' LIMIT 4")]
+            subject, ally, rival = names[0], names[1], names[2]
+            db.conn.execute("DELETE FROM relationships WHERE a_name=?", (subject,))
+            court._set_opinion(db, subject, ally, 60, "盟友", day)
+            court._set_opinion(db, subject, rival, -60, "政敌", day)
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=50, grievance=30 WHERE name IN (?,?,?)",
+                (subject, ally, rival),
+            )
+            db.conn.commit()
+
+            touched = court.ripple_personnel(db, subject, "shield", day=day)
+
+            srow = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?", (subject,)
+            ).fetchone()
+            arow = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?", (ally,)
+            ).fetchone()
+            rrow = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?", (rival,)
+            ).fetchone()
+            self.assertEqual(int(srow["emp_trust"]), 50)
+            self.assertEqual(int(srow["grievance"]), 30)
+            self.assertGreater(int(arow["emp_trust"]), 50)
+            self.assertLess(int(arow["grievance"]), 30)
+            self.assertLess(int(rrow["emp_trust"]), 50)
+            self.assertGreater(int(rrow["grievance"]), 30)
+            self.assertEqual(touched["allies"], [ally])
+            self.assertEqual(touched["rivals"], [rival])
+
 
 class QuietTests(unittest.TestCase):
     def test_quiet_when_no_grudges(self):

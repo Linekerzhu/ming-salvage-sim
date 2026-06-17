@@ -1,11 +1,11 @@
 """M3 御案与崇祯陷阱测试：奏疏流、注意力、批红、留中后果、RA 双杠杆。零 LLM。"""
 
-import unittest
 import random
+import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from ming_sim import memorials, timeflow
+from ming_sim import court, memorials, timeflow
 from ming_sim.db import GameDB
 from ming_sim.models import Character, CourtContext
 from ming_sim.political_reactions import rival_faction
@@ -349,6 +349,40 @@ class TrapLeverTests(unittest.TestCase):
             self.assertIn(f"{faction}热度 -6", labels)
             self.assertIn(f"{rival}满意 -2", labels)
             self.assertIn(f"{rival}热度 +3", labels)
+
+    def test_back_official_ripples_to_subject_network(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            names = [r["name"] for r in db.conn.execute(
+                "SELECT name FROM characters WHERE status='active' AND power_id='ming' "
+                "AND name!='韩爌' LIMIT 2"
+            )]
+            ally, rival = names[0], names[1]
+            db.conn.execute("DELETE FROM relationships WHERE a_name='韩爌'")
+            court._set_opinion(db, "韩爌", ally, 70, "党附", day)
+            court._set_opinion(db, "韩爌", rival, -70, "政敌", day)
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=50, grievance=30 WHERE name IN (?,?)",
+                (ally, rival),
+            )
+            db.conn.commit()
+
+            r = memorials.back_official(db, state, "韩爌", "comfort", day=day)
+
+            self.assertTrue(r["ok"])
+            arow = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?", (ally,)
+            ).fetchone()
+            rrow = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?", (rival,)
+            ).fetchone()
+            self.assertGreater(int(arow["emp_trust"]), 50)
+            self.assertLess(int(arow["grievance"]), 30)
+            self.assertLess(int(rrow["emp_trust"]), 50)
+            self.assertGreater(int(rrow["grievance"]), 30)
+            labels = [str(e["label"]) for e in r["effects"]]
+            self.assertIn("党羽受慰 1人", labels)
+            self.assertIn("政敌侧目 1人", labels)
 
     def test_execute_kills(self):
         with TemporaryDirectory() as tmp:
