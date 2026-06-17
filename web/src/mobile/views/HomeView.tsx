@@ -15,11 +15,12 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   const [eunuch, setEunuch] = useState<PublicCharacter | null>(null);
   const [briefCards, setBriefCards] = useState<PlaystyleBriefCard[]>([]);
   const [briefCount, setBriefCount] = useState({ shown: 0, total: 0, hidden: 0 });
+  const [briefLimit, setBriefLimit] = useState(5);
   useEffect(() => {
     loadEunuch().then((r) => setEunuch(r.eunuch)).catch(() => setEunuch(null));
   }, []);
   useEffect(() => {
-    loadPlaystyleBrief(5)
+    loadPlaystyleBrief(briefLimit)
       .then((r) => {
         const cards = r.cards || [];
         setBriefCards(cards);
@@ -33,7 +34,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
         setBriefCards([]);
         setBriefCount({ shown: 0, total: 0, hidden: 0 });
       });
-  }, [worldVersion]);
+  }, [worldVersion, briefLimit]);
   const replies = (desk?.pending || []).filter((m) => INFORMATIONAL_KINDS.includes(m.kind));
   const drowning = (desk?.pending || []).filter((m) => m.days_to_expire > 0 && m.days_to_expire <= 7).length;
   const fuming = lifecycle.filter((d) => d.status === "stalled" || (d.anomaly && d.anomaly !== "")).length;
@@ -73,6 +74,8 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
     const who = String(name || "").trim();
     if (who) openPerson(focus ? { name: who, focus } : who);
   };
+  const canExpandBrief = briefLimit < 8 && briefCount.hidden > 0;
+  const canCollapseBrief = briefLimit > 5 && briefCount.total > 5;
 
   return (
     <div className="m-view m-home">
@@ -105,6 +108,15 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
             朝局风向
             {briefCount.hidden > 0 && (
               <span className="m-brief-count">{briefCount.shown}/{briefCount.total}</span>
+            )}
+            {(canExpandBrief || canCollapseBrief) && (
+              <button
+                type="button"
+                className="m-brief-toggle"
+                onClick={() => setBriefLimit((v) => (v > 5 ? 5 : 8))}
+              >
+                {briefLimit > 5 ? "收起" : "展开"}
+              </button>
             )}
           </h2>
           <ul className="m-brief-list">

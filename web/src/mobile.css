@@ -192,6 +192,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   font-size: .7rem; font-weight: 800; color: var(--ink-soft);
   background: rgba(42,31,18,.07); border: 1px solid rgba(74,45,20,.12);
 }
+.m-brief-toggle {
+  margin-left: auto; min-height: 24px; padding: 2px 9px; border-radius: 999px;
+  color: var(--gold-deep); background: rgba(181,134,58,.1); border: 1px solid rgba(181,134,58,.24);
+  font-size: .75rem; font-weight: 800;
+}
+.m-brief-toggle:active { transform: scale(.97); }
 .m-brief-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .m-brief-card {
   display: flex; flex-direction: column; align-items: stretch; gap: 7px; padding: 9px 0;
