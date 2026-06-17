@@ -746,6 +746,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-intrigue-btn.is-danger { border-color: rgba(158,52,41,.55); color: #e58a7d; }
 .m-intrigue-btn:disabled { opacity: .5; }
 .m-intrigue-msg { margin: 6px 0 0; font-size: .8rem; color: var(--gold); line-height: 1.45; }
+.m-army-row { flex-direction: column; align-items: stretch; gap: 5px; }
+.m-army-line { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.m-army-sup { display: flex; align-items: center; gap: 8px; }
+.m-sup-tag { display: inline-flex; align-items: center; gap: 5px; font-size: .76rem; color: #c9b487;
+  padding: 1px 8px 1px 2px; border-radius: 999px; border: 1px solid rgba(158,52,41,.4); background: rgba(158,52,41,.08); }
+.m-mini-btn { font-size: .76rem; padding: 3px 10px; border-radius: 8px; border: 1px solid var(--gold-line);
+  background: rgba(0,0,0,.22); color: var(--paper); }
+.m-mini-btn:disabled { opacity: .5; }
+.m-army-msg { margin: 2px 0 0; font-size: .76rem; color: var(--gold); line-height: 1.4; }
 .m-tie.is-ally .m-tie-basis { color: #4a8060; }
 .m-tie.is-rival .m-tie-basis { color: var(--cinnabar); }
 

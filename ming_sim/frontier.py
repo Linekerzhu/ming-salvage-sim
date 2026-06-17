@@ -56,15 +56,74 @@ def _push_warlord(db: GameDB, vac: Dict[str, object]) -> None:
     db.kv_set(KV_WARLORDS, json.dumps(q[-6:], ensure_ascii=False))
 
 
+def _eunuch_active(db: GameDB, name: str) -> bool:
+    """某人是否在朝内臣（监军须是宦官）。"""
+    if not name:
+        return False
+    from ming_sim.eunuch import is_eunuch_like
+    row = db.conn.execute(
+        "SELECT office, office_type, status FROM characters WHERE name=?", (name,)).fetchone()
+    return (bool(row) and str(row["status"]) == "active"
+            and is_eunuch_like(str(row["office"] or ""), str(row["office_type"] or "")))
+
+
+def dispatch_supervisor(db: GameDB, state: GameState, army_id: str, eunuch: str, day: int
+                        ) -> Dict[str, object]:
+    """遣监军太监镇某军（E4）：天子耳目就近钳制——抑割据，然掣肘军务、主帅受辱怨望、权阉伸入军。"""
+    from ming_sim import court
+    arow = db.conn.execute(
+        "SELECT name, commander, supervisor FROM armies WHERE id=? AND owner_power='ming'",
+        (army_id,)).fetchone()
+    if arow is None:
+        return {"ok": False, "message": "无此镇。"}
+    if not _eunuch_active(db, eunuch):
+        return {"ok": False, "message": "监军须遣在朝内臣（宦官）。"}
+    db.conn.execute("UPDATE armies SET supervisor=? WHERE id=?", (eunuch, army_id))
+    commander = str(arow["commander"] or "")
+    if commander:
+        court._adjust_char(db, commander, grievance=+5)   # 受太监监临之辱
+    try:
+        from ming_sim.eunuch_power import adjust_eunuch_power
+        adjust_eunuch_power(db, 2, "遣监军（内廷入军）", day=day)
+    except Exception:
+        pass
+    db.conn.commit()
+    return {"ok": True, "army": str(arow["name"]), "supervisor": eunuch,
+            "message": f"遣{eunuch}监{arow['name']}军——天子耳目就近钳制，然{commander or '主帅'}受制掣肘、心怀怨望。"}
+
+
+def recall_supervisor(db: GameDB, state: GameState, army_id: str, day: int) -> Dict[str, object]:
+    """撤监军：去其掣肘——主帅稍安，权阉略退。"""
+    from ming_sim import court
+    arow = db.conn.execute(
+        "SELECT name, commander, supervisor FROM armies WHERE id=? AND owner_power='ming'",
+        (army_id,)).fetchone()
+    if arow is None or not str(arow["supervisor"] or ""):
+        return {"ok": False, "message": "此镇并无监军。"}
+    db.conn.execute("UPDATE armies SET supervisor='' WHERE id=?", (army_id,))
+    commander = str(arow["commander"] or "")
+    if commander:
+        court._adjust_char(db, commander, grievance=-2)
+    try:
+        from ming_sim.eunuch_power import adjust_eunuch_power
+        adjust_eunuch_power(db, -1, "撤监军", day=day)
+    except Exception:
+        pass
+    db.conn.commit()
+    return {"ok": True, "army": str(arow["name"]),
+            "message": f"撤{arow['supervisor']}监军，{arow['name']}去其掣肘，{commander or '主帅'}稍安。"}
+
+
 def autonomy_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:
-    """月初：按欠饷/君威/忠诚/主帅志向更新各镇离心度，自专者阳奉阴违、截留钱粮。"""
+    """月初：按欠饷/君威/忠诚/主帅志向更新各镇离心度，自专者阳奉阴违、截留钱粮。
+    有监军者：天子耳目抑割据，然掣肘军务（士气沮/侵饷/主帅怨/权阉涨），偶诬报主帅成把柄。"""
     from ming_sim.timeflow import LEVEL_RED, LEVEL_YELLOW
 
     shi = kv_int(db, KV_SHI, SHI_DEFAULT)
     rng = random.Random((int(day) * 0x27D4EB2F) % (2 ** 31))
     events: List[Dict[str, object]] = []
     rows = db.conn.execute(
-        "SELECT id, name, commander, arrears, maintenance_per_turn, loyalty, autonomy "
+        "SELECT id, name, commander, arrears, maintenance_per_turn, loyalty, autonomy, supervisor "
         "FROM armies WHERE owner_power='ming' AND maintenance_per_turn>0"
     ).fetchall()
     for r in rows:
@@ -82,6 +141,42 @@ def autonomy_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, obje
             drift += 6
         if arrears_months <= 0.5 and shi >= 60:
             drift -= 8                                    # 足饷 + 君威隆盛 → 慑服归朝
+        # 监军太监坐镇（E4）：天子耳目抑割据，但掣肘军务、侵饷、主帅含怨、权阉伸入。
+        supervisor = str(r["supervisor"] or "")
+        if supervisor and _eunuch_active(db, supervisor):
+            drift -= 12                                   # 监临钳制 → 抑离心
+            db.conn.execute(
+                "UPDATE armies SET morale=MAX(0, morale-2), arrears=arrears+? WHERE id=?",
+                (max(1, maint // 4), r["id"]))            # 士气沮 + 监军侵饷
+            if commander:
+                from ming_sim import court
+                court._adjust_char(db, commander, grievance=+1)
+            try:
+                from ming_sim.eunuch_power import adjust_eunuch_power
+                adjust_eunuch_power(db, 1, "监军遍镇", day=day)
+            except Exception:
+                pass
+            if commander and rng.random() < 0.2:          # 监军诬报主帅 → 锻造把柄
+                try:
+                    from ming_sim.intrigue import ensure_schema as _es
+                    _es(db)
+                    has = db.conn.execute(
+                        "SELECT 1 FROM secrets WHERE holder=? AND known_to_crown=1", (commander,)).fetchone()
+                    if not has:
+                        db.conn.execute(
+                            "INSERT INTO secrets(holder, kind, detail, severity, known_to_crown, discovered_day, used) "
+                            "VALUES (?,?,?,?,1,?,0)",
+                            (commander, "通敌", f"监军{supervisor}密劾其克饷通敌（未必属实）", 58, int(day)))
+                        events.append({
+                            "level": LEVEL_YELLOW, "kind": "supervisor_smear",
+                            "title": f"监军密劾：{supervisor}劾{commander}",
+                            "detail": f"监{r['name']}军之{supervisor}密劾主帅{commander}克饷通敌——未必属实，"
+                                      "然把柄入御前，将帅愈寒、边事愈坏。",
+                            "ref_kind": "character", "ref_id": commander, "day": day})
+                except Exception:
+                    pass
+        elif supervisor:  # 监军已殁/去职 → 自动撤
+            db.conn.execute("UPDATE armies SET supervisor='' WHERE id=?", (r["id"],))
         new = _clamp(cur + int(round(drift)))
         if new != cur:
             db.conn.execute("UPDATE armies SET autonomy=? WHERE id=?", (new, r["id"]))

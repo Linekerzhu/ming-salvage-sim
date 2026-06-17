@@ -950,6 +950,7 @@ class GameDB:
         }.items():
             self.ensure_column("powers", column, definition)
         self.ensure_column("armies", "owner_power", "TEXT NOT NULL DEFAULT 'ming'")
+        self.ensure_column("armies", "supervisor", "TEXT NOT NULL DEFAULT ''")  # 监军太监（E4）
         self.ensure_column("regions", "controlled_by", "TEXT NOT NULL DEFAULT 'ming'")
         self.ensure_column("characters", "power_id", "TEXT NOT NULL DEFAULT 'ming'")
         self.ensure_column("characters", "location", "TEXT NOT NULL DEFAULT ''")
@@ -3264,6 +3265,8 @@ class GameDB:
                     "loyalty": int(row["loyalty"]),
                     "status": row["status"],
                     "owner_power": row["owner_power"],
+                    "autonomy": int(row["autonomy"] or 0) if "autonomy" in row.keys() else 0,
+                    "supervisor": str(row["supervisor"] or "") if "supervisor" in row.keys() else "",
                 }
             )
         return payload

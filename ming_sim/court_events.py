@@ -102,6 +102,14 @@ def _apply_effect(db: GameDB, state: GameState, eff: Dict[str, object], day: int
             set_daipihong(db, False, day=day)
         except Exception:
             pass
+    sv = eff.get("supervise")
+    if sv and sv.get("army_id") and sv.get("eunuch"):
+        try:
+            from ming_sim.frontier import dispatch_supervisor
+            dispatch_supervisor(db, state, str(sv["army_id"]), str(sv["eunuch"]), day)
+            parts.append(f"遣{sv['eunuch']}监军")
+        except Exception:
+            pass
     db.conn.commit()
     db.save_state(state)
     if eff.get("log"):
@@ -231,9 +239,25 @@ def _warlord(db: GameDB) -> Optional[Dict[str, object]]:
         pop_warlord(db)
         return None
     pop_warlord(db)
+    # 监军候选（遣往钳制之内臣）：东厂提督优先，否则任一在朝宦官。
+    cand = ""
+    try:
+        from ming_sim.intrigue import dongchang_chief
+        cand = dongchang_chief(db) or ""
+    except Exception:
+        cand = ""
+    if not cand:
+        try:
+            from ming_sim.eunuch import list_candidates
+            for c in list_candidates(db):
+                if c.get("is_eunuch"):
+                    cand = str(c["name"])
+                    break
+        except Exception:
+            cand = ""
     return {"army_id": head["army_id"], "army": str(head["army"]),
             "commander": str(head["commander"]), "autonomy": int(row["autonomy"]),
-            "arrears": int(row["arrears"] or 0)}
+            "arrears": int(row["arrears"] or 0), "supervisor_cand": cand}
 
 
 def _packed_faction(db: GameDB) -> Optional[Dict[str, object]]:
@@ -349,6 +373,14 @@ def _defs() -> List[Dict[str, object]]:
                  "effect": lambda c: {"shi": -3,
                                       "army": [{"id": c["army_id"], "autonomy": 5}],
                                       "log": f"对{c['army']}暂事姑息。"}},
+                {"key": "supervise", "label": lambda c: f"遣{c.get('supervisor_cand') or '内臣'}监军就近钳制",
+                 "hint": "监军太监：天子耳目镇之、离心骤抑，然掣肘军务、侵饷、主帅含怨、权阉伸入军（明季祸辽之患）",
+                 "effect": lambda c: {"shi": 1, "renshi": -2,
+                                      "army": [{"id": c["army_id"], "autonomy": -25}],
+                                      "supervise": {"army_id": c["army_id"], "eunuch": c.get("supervisor_cand")},
+                                      "metrics": {"皇威": 1},
+                                      "log": f"遣{c.get('supervisor_cand') or '内臣'}监{c['army']}军，就近钳制。"},
+                 "available": lambda c: bool(c.get("supervisor_cand"))},
             ],
         },
         {
@@ -466,9 +498,16 @@ def get_pending(db: GameDB) -> Optional[Dict[str, object]]:
 
 
 def _choices_of(d: Dict[str, object], ctx: Dict[str, object]) -> List[Dict[str, object]]:
-    """choices 可为静态 list 或 据 ctx 动态生成的 callable。"""
+    """choices 可为静态 list 或 据 ctx 动态生成的 callable；带 available(ctx) 的选项条件不满足则隐去。"""
     ch = d["choices"]
-    return ch(ctx) if callable(ch) else ch
+    items = ch(ctx) if callable(ch) else ch
+    out = []
+    for c in items:
+        avail = c.get("available")
+        if avail is not None and not _call(avail, ctx):
+            continue
+        out.append(c)
+    return out
 
 
 def _call(v, ctx):

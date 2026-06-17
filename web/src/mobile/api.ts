@@ -192,6 +192,9 @@ export const intrigueFabricate = (name: string): Promise<{ ok: boolean; success?
   api("/api/intrigue/fabricate", { method: "POST", body: JSON.stringify({ name }) });
 export const intrigueDiscord = (a: string, b: string): Promise<{ ok: boolean; success?: boolean; message: string }> =>
   api("/api/intrigue/discord", { method: "POST", body: JSON.stringify({ a, b }) });
+// 监军太监：遣（省略 eunuch 即默认东厂提督）/ 撤。
+export const frontierSupervisor = (army_id: string, opts?: { eunuch?: string; recall?: boolean }): Promise<{ ok: boolean; message: string }> =>
+  api("/api/frontier/supervisor", { method: "POST", body: JSON.stringify({ army_id, ...(opts || {}) }) });
 
 // 抉择事件（CK3 化 P2）：朝局张力弹出的"请陛下裁断"。
 export type DecisionChoice = { key: string; label: string; hint: string };

@@ -5394,6 +5394,37 @@ async def api_intrigue_fabricate(body: Dict[str, Any]) -> Dict[str, Any]:
     return res
 
 
+@app.post("/api/frontier/supervisor")
+async def api_frontier_supervisor(body: Dict[str, Any]) -> Dict[str, Any]:
+    """遣/撤监军太监（E4）：{army_id, eunuch} 派监军；{army_id, recall:true} 撤监军。
+    eunuch 省略则遣东厂提督/任一在朝宦官。"""
+    from ming_sim.frontier import dispatch_supervisor, recall_supervisor
+    from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
+    game = get_game()
+    payload = body or {}
+    army_id = str(payload.get("army_id") or "").strip()
+    if not army_id:
+        raise HTTPException(status_code=400, detail="army_id 必填")
+    day = kv_int(game.db, KV_CURRENT_DAY, 0)
+    if payload.get("recall"):
+        res = recall_supervisor(game.db, game.state, army_id, day)
+    else:
+        eunuch = str(payload.get("eunuch") or "").strip()
+        if not eunuch:  # 默认遣东厂提督，缺则任一在朝宦官
+            from ming_sim.intrigue import dongchang_chief
+            eunuch = dongchang_chief(game.db) or ""
+            if not eunuch:
+                from ming_sim.eunuch import list_candidates
+                for c in list_candidates(game.db):
+                    if c.get("is_eunuch"):
+                        eunuch = str(c["name"]); break
+        res = dispatch_supervisor(game.db, game.state, army_id, eunuch, day)
+    if not res.get("ok"):
+        raise HTTPException(status_code=400, detail=str(res.get("message")))
+    game.db.save_state(game.state)
+    return res
+
+
 @app.post("/api/intrigue/discord")
 async def api_intrigue_discord(body: Dict[str, Any]) -> Dict[str, Any]:
     """离间二人（宫斗阴谋 P2）：挑其相疑；笃实忠正者识破、反损君威。"""

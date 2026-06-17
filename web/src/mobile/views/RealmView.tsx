@@ -3,6 +3,50 @@ import { useGame } from "../GameData";
 import { OrgSection } from "./OrgSection";
 import { BuildingSection } from "./BuildingSection";
 import { Section } from "./Section";
+import { Portrait } from "../Portrait";
+import { frontierSupervisor } from "../api";
+
+// 军镇行：欠饷/士气/离心 + 监军太监（E4：天子耳目钳制割据，代价是掣肘军务）。
+function ArmyRow({ a }: { a: any }) {
+  const { refresh } = useGame();
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const sup = a.supervisor || "";
+  const autonomy = Number(a.autonomy || 0);
+  async function act(recall: boolean) {
+    if (busy) return;
+    setBusy(true); setMsg("");
+    try {
+      const r = await frontierSupervisor(String(a.id), recall ? { recall: true } : {});
+      setMsg(r.message || "");
+      await refresh();
+    } catch (e: any) { setMsg(e?.message || "未成。"); }
+    finally { setBusy(false); }
+  }
+  return (
+    <li className="m-row m-army-row">
+      <div className="m-army-line">
+        <span className="m-row-name">{a.name}</span>
+        <span className={`m-row-tag ${Number(a.arrears) > 0 ? "danger" : ""}`}>
+          {Number(a.arrears) > 0 ? `欠饷 ${a.arrears}` : "足饷"}
+        </span>
+        <span className="m-row-tag">士气 {a.morale ?? "—"}</span>
+        {autonomy >= 45 && <span className={`m-row-tag ${autonomy >= 72 ? "danger" : "warn"}`}>自专 {autonomy}</span>}
+      </div>
+      <div className="m-army-sup">
+        {sup ? (
+          <>
+            <span className="m-sup-tag"><Portrait name={sup} size={18} interactive={false} />监军 {sup}</span>
+            <button className="m-mini-btn" disabled={busy} onClick={() => act(true)}>撤监军</button>
+          </>
+        ) : (
+          <button className="m-mini-btn" disabled={busy} onClick={() => act(false)}>遣监军钳制</button>
+        )}
+      </div>
+      {msg && <p className="m-army-msg">{msg}</p>}
+    </li>
+  );
+}
 
 // 舆图含 mapPaths(115KB)，按需懒加载，缩小首屏包。
 const RealmMap = lazy(() => import("./RealmMap").then((m) => ({ default: m.RealmMap })));
@@ -153,15 +197,7 @@ export function RealmView() {
 
       <Section title="军队" count={armies.length} tag={owing ? `${owing} 镇欠饷` : ""} defaultOpen={false}>
         <ul className="m-rowlist">
-          {armies.map((a: any) => (
-            <li key={a.id || a.name} className="m-row">
-              <span className="m-row-name">{a.name}</span>
-              <span className={`m-row-tag ${Number(a.arrears) > 0 ? "danger" : ""}`}>
-                {Number(a.arrears) > 0 ? `欠饷 ${a.arrears}` : "足饷"}
-              </span>
-              <span className="m-row-tag">士气 {a.morale ?? "—"}</span>
-            </li>
-          ))}
+          {armies.map((a: any) => <ArmyRow key={a.id || a.name} a={a} />)}
         </ul>
       </Section>
 
