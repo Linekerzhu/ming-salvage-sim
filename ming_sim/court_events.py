@@ -1468,6 +1468,81 @@ def _private_distress(db: GameDB) -> Optional[Dict[str, object]]:
     return None
 
 
+def _patronage_accountability(db: GameDB) -> Optional[Dict[str, object]]:
+    """举主担保：把“推荐来的人”从免费人才池变成可追责的人情链。"""
+
+    rows = db.conn.execute(
+        """
+        SELECT r.a_name AS sponsor, r.b_name AS candidate, r.opinion AS sponsor_opinion,
+               r.basis AS basis,
+               COALESCE(rr.opinion, 0) AS candidate_opinion,
+               s.office AS sponsor_office, s.faction AS sponsor_faction,
+               s.emp_trust AS sponsor_trust, s.grievance AS sponsor_grievance,
+               c.office AS candidate_office, c.faction AS candidate_faction,
+               c.emp_trust AS candidate_trust, c.grievance AS candidate_grievance,
+               c.ability AS candidate_ability, c.integrity AS candidate_integrity,
+               c.summary AS candidate_summary
+        FROM relationships r
+        JOIN characters s ON s.name=r.a_name
+        JOIN characters c ON c.name=r.b_name
+        LEFT JOIN relationships rr ON rr.a_name=r.b_name AND rr.b_name=r.a_name
+        WHERE r.a_name!=r.b_name
+          AND r.opinion>=18
+          AND s.status='active'
+          AND c.status='active'
+          AND s.power_id='ming'
+          AND c.power_id='ming'
+          AND s.office_type!='后宫'
+          AND c.office_type!='后宫'
+          AND s.name!='崇祯'
+          AND c.name!='崇祯'
+          AND (
+            r.basis LIKE '%举荐%'
+            OR r.basis LIKE '%荐取%'
+            OR r.basis LIKE '%挑补%'
+            OR r.basis LIKE '%入京%'
+            OR c.summary LIKE '%举荐来源%'
+            OR c.summary LIKE '%举主%'
+          )
+        ORDER BY
+          CASE WHEN c.summary LIKE '%风险%' THEN 0 ELSE 1 END,
+          r.opinion DESC,
+          c.ability DESC,
+          c.integrity ASC
+        LIMIT 12
+        """
+    ).fetchall()
+    for row in rows:
+        sponsor = str(row["sponsor"] or "")
+        candidate = str(row["candidate"] or "")
+        if not sponsor or not candidate:
+            continue
+        source = f"patronage_accountability:{sponsor}:{candidate}"
+        if _active_goal_exists(db, source):
+            continue
+        return {
+            "sponsor": sponsor,
+            "candidate": candidate,
+            "basis": str(row["basis"] or "举荐入朝"),
+            "sponsor_opinion": int(row["sponsor_opinion"] or 0),
+            "candidate_opinion": int(row["candidate_opinion"] or 0),
+            "sponsor_office": str(row["sponsor_office"] or ""),
+            "sponsor_faction": str(row["sponsor_faction"] or ""),
+            "sponsor_trust": int(row["sponsor_trust"] or 0),
+            "sponsor_grievance": int(row["sponsor_grievance"] or 0),
+            "candidate_office": str(row["candidate_office"] or ""),
+            "candidate_faction": str(row["candidate_faction"] or ""),
+            "candidate_trust": int(row["candidate_trust"] or 0),
+            "candidate_grievance": int(row["candidate_grievance"] or 0),
+            "candidate_ability": int(row["candidate_ability"] or 50),
+            "candidate_integrity": int(row["candidate_integrity"] or 50),
+            "candidate_summary": str(row["candidate_summary"] or "")[:180],
+            "cooldown_id": source,
+            "source_id": source,
+        }
+    return None
+
+
 def _private_faction_effect(ctx: Dict[str, object], sat: int = 0, lev: int = 0, heat: int = 0) -> Dict[str, Dict[str, int]]:
     faction = _meaningful_faction(ctx.get("faction"))
     if not faction:
@@ -1505,6 +1580,51 @@ def _private_memory(ctx: Dict[str, object], choice: str, outcome: str, sentiment
         "source_id": f"{ctx.get('source_id') or 'private_distress'}:{choice}",
         "summary": f"{actor}旧恩入账",
     }
+
+
+def _patronage_faction_effect(
+    ctx: Dict[str, object],
+    *,
+    sponsor_sat: int = 0,
+    sponsor_lev: int = 0,
+    sponsor_heat: int = 0,
+    candidate_sat: int = 0,
+    candidate_lev: int = 0,
+    candidate_heat: int = 0,
+) -> Dict[str, Dict[str, int]]:
+    out: Dict[str, Dict[str, int]] = {}
+
+    def add(faction: object, sat: int, lev: int, heat: int) -> None:
+        fac = _meaningful_faction(faction)
+        if not fac:
+            return
+        bucket = out.setdefault(fac, {})
+        if sat:
+            bucket["satisfaction"] = int(bucket.get("satisfaction", 0)) + sat
+        if lev:
+            bucket["leverage"] = int(bucket.get("leverage", 0)) + lev
+        if heat:
+            bucket["heat"] = int(bucket.get("heat", 0)) + heat
+
+    add(ctx.get("sponsor_faction"), sponsor_sat, sponsor_lev, sponsor_heat)
+    add(ctx.get("candidate_faction"), candidate_sat, candidate_lev, candidate_heat)
+    return out
+
+
+def _patronage_opinion_effect(
+    ctx: Dict[str, object],
+    sponsor_to_candidate: int,
+    candidate_to_sponsor: int,
+    basis: str,
+) -> List[Dict[str, object]]:
+    sponsor = str(ctx.get("sponsor") or "")
+    candidate = str(ctx.get("candidate") or "")
+    if not sponsor or not candidate:
+        return []
+    return [
+        {"a": sponsor, "b": candidate, "delta": sponsor_to_candidate, "basis": basis},
+        {"a": candidate, "b": sponsor, "delta": candidate_to_sponsor, "basis": basis},
+    ]
 
 
 # ── 事件定义（涌现自活的宫廷）─────────────────────────────────────────────────
@@ -2139,6 +2259,106 @@ def _defs() -> List[Dict[str, object]]:
                                       "opinion": _private_opinion_effect(c, -5, "御前斥私请"),
                                       "faction": _private_faction_effect(c, sat=-4, heat=4),
                                       "log": f"斥{c['actor']}私下求援，不许开私请之门。"}},
+            ],
+        },
+        {
+            "id": "patronage_accountability",
+            "priority": 23,
+            "cooldown": "ctx",
+            "when": _patronage_accountability,
+            "title": lambda c: f"举主担保：{c['sponsor']}荐{c['candidate']}",
+            "narrative": lambda c: (
+                f"{c['sponsor_office']}{c['sponsor']}先前以「{c['basis']}」荐入"
+                f"{c['candidate_office']}{c['candidate']}。"
+                f"此人小传称：{c['candidate_summary'] or '初入朝局，才具与来路尚待验证。'}"
+                f"眼下举主对新人好感{c['sponsor_opinion']}，新人对举主好感{c['candidate_opinion']}，"
+                f"才干{c['candidate_ability']}、操守{c['candidate_integrity']}。"
+                "若不追担保，举荐便成免费人情；若骤然信用，又可能喂大门生故旧。"
+                "陛下要如何处置这条举主链？"
+            ),
+            "choices": [
+                {"key": "joint_trial", "label": lambda c: f"命{c['sponsor']}与{c['candidate']}共办试差，举主连坐",
+                 "hint": "把荐人变成可验账本：新人得机会，举主也要拿名节担保；办坏了两人一起回奏",
+                 "effect": lambda c: {"shi": 2, "renshi": 2,
+                                      "char": [{"name": c["sponsor"], "emp_trust": 2, "grievance": 2},
+                                               {"name": c["candidate"], "emp_trust": 5, "grievance": 1}],
+                                      "opinion": _patronage_opinion_effect(c, 4, 6, "御前共办试差"),
+                                      "faction": _patronage_faction_effect(c, sponsor_sat=1, sponsor_heat=1),
+                                      "obligations": [
+                                          {
+                                              "minister": c["sponsor"],
+                                              "title": f"举主连坐：{c['sponsor']}保{c['candidate']}",
+                                              "target_text": f"{c['sponsor']}须与{c['candidate']}共办一件可验试差，并说明荐人短板、担保边界与误事追责。",
+                                              "tasks": [
+                                                  f"两月内与{c['candidate']}共同回奏试差成果、证据与下一步期限。",
+                                                  f"列明为何荐{c['candidate']}、短板何在，若误事愿受何责。",
+                                                  "说明此荐是否牵动派系、乡党或门生故旧，不得只称识才。"
+                                              ],
+                                              "source": f"{c['source_id']}:joint_trial:sponsor",
+                                              "due_turns": 2,
+                                              "summary": f"御前命{c['sponsor']}为{c['candidate']}连坐担保，共办试差。"
+                                          },
+                                          {
+                                              "minister": c["candidate"],
+                                              "title": f"新人试差：{c['candidate']}",
+                                              "target_text": f"{c['candidate']}须以可验试差证明自己不是只靠{c['sponsor']}荐书入朝。",
+                                              "tasks": [
+                                                  "两月内回奏一件可验证据、成效或名单，不得只借举主名义。",
+                                                  f"说明与{c['sponsor']}的关系如何避嫌，如何向御前直接交账。"
+                                              ],
+                                              "source": f"{c['source_id']}:joint_trial:candidate",
+                                              "due_turns": 2,
+                                              "summary": f"{c['candidate']}得御前试差，须独立交账。"
+                                          }
+                                      ],
+                                      "log": f"命{c['sponsor']}与{c['candidate']}共办试差，举主连坐担保。"}},
+                {"key": "sponsor_bond", "label": lambda c: f"先令{c['sponsor']}具保结，暂缓实授{c['candidate']}",
+                 "hint": "谨慎用人：先锁住举主责任，降低误用风险；但新人会觉得被压在举主阴影下",
+                 "effect": lambda c: {"shi": 1, "renshi": -1,
+                                      "char": [{"name": c["sponsor"], "emp_trust": 1, "grievance": 4},
+                                               {"name": c["candidate"], "grievance": 3}],
+                                      "faction": _patronage_faction_effect(c, sponsor_sat=-1, sponsor_heat=1),
+                                      "obligations": [{
+                                          "minister": c["sponsor"],
+                                          "title": f"保结荐人：{c['candidate']}",
+                                          "target_text": f"{c['sponsor']}须为举荐{c['candidate']}具明保结，列才具、短板、关系与可试之差。",
+                                          "tasks": [
+                                              f"一月内具明保结：{c['candidate']}可办何差、何处短板、何人可证。",
+                                              "说明若新人误事，举主愿承担何种名节或职事责任。"
+                                          ],
+                                          "source": f"{c['source_id']}:sponsor_bond",
+                                          "due_turns": 1,
+                                          "summary": f"御前暂缓实授{c['candidate']}，命{c['sponsor']}先具保结。"
+                                      }],
+                                      "log": f"暂缓实授{c['candidate']}，令{c['sponsor']}具保结。"}},
+                {"key": "separate_trial", "label": lambda c: f"越过举主，给{c['candidate']}一件独立试差",
+                 "hint": "验新人、削人情：新人可直接向御前交账；举主不悦，派系会觉得皇帝防着他们",
+                 "effect": lambda c: {"shi": 1, "renshi": 2,
+                                      "char": [{"name": c["sponsor"], "emp_trust": -2, "grievance": 5},
+                                               {"name": c["candidate"], "emp_trust": 6, "grievance": -2}],
+                                      "opinion": _patronage_opinion_effect(c, -5, -4, "御前拆分举荐链"),
+                                      "faction": _patronage_faction_effect(c, sponsor_sat=-2, sponsor_heat=2),
+                                      "obligations": [{
+                                          "minister": c["candidate"],
+                                          "title": f"避嫌试差：{c['candidate']}",
+                                          "target_text": f"{c['candidate']}须避开{c['sponsor']}的人情链，独立办成一件可验差使。",
+                                          "tasks": [
+                                              "两月内回奏独立试差成果、证据和受阻之处。",
+                                              f"不得以{c['sponsor']}名义压人，也不得替举主递私请。"
+                                          ],
+                                          "source": f"{c['source_id']}:separate_trial",
+                                          "due_turns": 2,
+                                          "summary": f"御前越过举主，给{c['candidate']}独立试差。"
+                                      }],
+                                      "log": f"越过举主，给{c['candidate']}独立试差，以验其才。"}},
+                {"key": "reject_chain", "label": lambda c: "不用此人，斩断这条荐人链",
+                 "hint": "立规矩：不让门生故旧借荐人伸手；但可能错失人才，举主与新人都会记怨",
+                 "effect": lambda c: {"shi": 2, "renshi": -3,
+                                      "char": [{"name": c["sponsor"], "emp_trust": -5, "grievance": 8},
+                                               {"name": c["candidate"], "emp_trust": -4, "grievance": 8}],
+                                      "opinion": _patronage_opinion_effect(c, -10, -8, "荐人链被御前斩断"),
+                                      "faction": _patronage_faction_effect(c, sponsor_sat=-3, sponsor_heat=3),
+                                      "log": f"斩断{c['sponsor']}举荐{c['candidate']}之链，暂不用其人。"}},
             ],
         },
         {

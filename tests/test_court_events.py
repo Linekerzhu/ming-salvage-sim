@@ -137,6 +137,35 @@ def _private_distress_case(db, state):
     return actor, target
 
 
+def _patronage_case(db):
+    sponsor, candidate = _two_ming(db)
+    db.conn.execute(
+        """
+        UPDATE characters
+        SET emp_trust=55, grievance=18, faction='东林'
+        WHERE name=?
+        """,
+        (sponsor,),
+    )
+    db.conn.execute(
+        """
+        UPDATE characters
+        SET emp_trust=45, grievance=26, faction='中立', ability=63, integrity=44,
+            summary=?
+        WHERE name=?
+        """,
+        (
+            f"由地方举荐入京。举荐来源：{sponsor}；短板：朝中根基浅；风险：仍受举主关系牵引。",
+            candidate,
+        ),
+    )
+    db.conn.execute("DELETE FROM npc_agendas WHERE name IN (?, ?)", (sponsor, candidate))
+    court._set_opinion(db, sponsor, candidate, 38, "举荐入朝", 1)
+    court._set_opinion(db, candidate, sponsor, 42, "举主恩义", 1)
+    db.conn.commit()
+    return sponsor, candidate
+
+
 class TriggerTests(unittest.TestCase):
     def test_deep_rivalry_triggers_feud_decision(self):
         with TemporaryDirectory() as tmp:
@@ -310,6 +339,27 @@ class TriggerTests(unittest.TestCase):
             self.assertIn(f"履约账本：{actor}", labels)
             pending = court_events.get_pending(db) or {}
             self.assertEqual(str(pending.get("cooldown_key")), f"private_distress:{actor}")
+
+    def test_patronage_bond_triggers_accountability_decision(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            sponsor, candidate = _patronage_case(db)
+
+            payload = court_events.evaluate_decisions(db, state, day)
+
+            self.assertIsNotNone(payload)
+            self.assertEqual(payload["id"], "patronage_accountability")
+            self.assertIn(sponsor, str(payload["title"]))
+            self.assertIn(candidate, str(payload["title"]))
+            self.assertIn("免费人情", str(payload["narrative"]))
+            keys = {str(ch["key"]) for ch in payload["choices"]}
+            self.assertEqual(keys, {"joint_trial", "sponsor_bond", "separate_trial", "reject_chain"})
+            joint = next(ch for ch in payload["choices"] if ch["key"] == "joint_trial")
+            labels = [str(e["label"]) for e in joint["effects"]]
+            self.assertIn(f"履约账本：{sponsor}", labels)
+            self.assertIn(f"履约账本：{candidate}", labels)
+            pending = court_events.get_pending(db) or {}
+            self.assertEqual(str(pending.get("cooldown_key")), f"patronage_accountability:{sponsor}:{candidate}")
 
 
 class ResolveTests(unittest.TestCase):
@@ -698,6 +748,44 @@ class ResolveTests(unittest.TestCase):
             self.assertEqual(int(after["grievance"]), max(0, int(before["grievance"]) - 4))
             opinion = court.get_opinion(db, actor, target)
             self.assertGreater(opinion, 64)
+            self.assertIsNone(court_events.get_pending(db))
+
+    def test_patronage_joint_trial_creates_two_followup_obligations(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            sponsor, candidate = _patronage_case(db)
+            before_candidate = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (candidate,),
+            ).fetchone()
+
+            court_events.evaluate_decisions(db, state, day)
+            res = court_events.resolve_decision(db, state, "joint_trial", day=day)
+
+            self.assertTrue(res["ok"], res)
+            labels = [str(e["label"]) for e in res["effects"]]
+            self.assertIn(f"履约账本：{sponsor}", labels)
+            self.assertIn(f"履约账本：{candidate}", labels)
+            sponsor_goals = db.list_conversation_goals(
+                minister_name=sponsor,
+                statuses=["waiting_conditions"],
+            )
+            candidate_goals = db.list_conversation_goals(
+                minister_name=candidate,
+                statuses=["waiting_conditions"],
+            )
+            self.assertEqual(len(sponsor_goals), 1)
+            self.assertEqual(len(candidate_goals), 1)
+            self.assertIn("举主连坐", str(sponsor_goals[0]["title"]))
+            self.assertIn("新人试差", str(candidate_goals[0]["title"]))
+            self.assertGreater(court.get_opinion(db, sponsor, candidate), 38)
+            self.assertGreater(court.get_opinion(db, candidate, sponsor), 42)
+            after_candidate = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (candidate,),
+            ).fetchone()
+            self.assertEqual(int(after_candidate["emp_trust"]), int(before_candidate["emp_trust"]) + 5)
+            self.assertEqual(int(after_candidate["grievance"]), int(before_candidate["grievance"]) + 1)
             self.assertIsNone(court_events.get_pending(db))
 
     def test_overdue_cooldown_is_scoped_per_agreement(self):
