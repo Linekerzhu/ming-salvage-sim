@@ -705,6 +705,34 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 /* ── 召对·奏对趋入/退下 ─────────────────────────────────────── */
 .m-arrival { flex: 0 0 auto; text-align: center; color: #c9b487; font-size: 0.78rem; padding: 6px var(--pad); background: rgba(0,0,0,.18); border-bottom: 1px solid var(--gold-line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-audience-dossier {
+  flex: 0 0 auto; margin: 6px var(--pad) 0; padding: 0;
+  border: 1px solid rgba(181,134,58,.28); border-left: 4px solid var(--gold-deep);
+  border-radius: 8px; background: rgba(0,0,0,.14); overflow: hidden;
+}
+.m-audience-dossier.tone-danger { border-color: rgba(158,52,41,.38); border-left-color: var(--cinnabar); background: rgba(158,52,41,.08); }
+.m-audience-dossier.tone-warn { border-left-color: #b5863a; background: rgba(181,134,58,.09); }
+.m-audience-dossier-head {
+  display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 7px;
+  min-height: 34px; padding: 5px 8px 5px 9px; cursor: pointer; list-style: none;
+}
+.m-audience-dossier-head::-webkit-details-marker { display: none; }
+.m-audience-dossier-head span { color: var(--gold); font-size: .76rem; font-weight: 900; white-space: nowrap; }
+.m-audience-dossier-head small { color: #9c8a64; font-size: .67rem; white-space: nowrap; }
+.m-audience-dossier-head b {
+  min-width: 0; color: #bfae86; font-size: .72rem; font-weight: 800;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.m-audience-dossier-body {
+  display: flex; flex-direction: column; gap: 8px; max-height: min(34dvh, 286px);
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 8px 9px 9px; border-top: 1px solid rgba(181,134,58,.18);
+}
+.m-audience-dossier-section + .m-audience-dossier-section { padding-top: 8px; border-top: 1px dashed rgba(181,134,58,.24); }
+.m-audience-dossier-label { color: #c9b487; font-size: .68rem; font-weight: 900; }
+.m-audience-dossier-title { margin-top: 2px; color: var(--gold); font-size: .84rem; line-height: 1.35; font-weight: 900; overflow-wrap: anywhere; }
+.m-audience-dossier-detail { margin-top: 3px; color: #d6c8aa; font-size: .78rem; line-height: 1.45; overflow-wrap: anywhere; }
+.m-audience-dossier .m-audience-goals-list { display: flex; flex-direction: column; gap: 5px; }
 .m-audience-lead {
   flex: 0 0 auto; margin: 8px var(--pad) 0; padding: 8px 10px;
   background: rgba(200,162,74,.11); border: 1px solid rgba(181,134,58,.34);

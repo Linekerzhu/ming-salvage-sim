@@ -75,6 +75,9 @@ export function AudienceView({
       ...(activeLead?.prompts || []),
       ...(goalSuggestion ? [goalSuggestion] : []),
     ];
+    const dossierTone = activeLead?.tone || audienceGoalsTone(audienceGoals);
+    const dossierMeta = [activeLead?.meta, audienceGoals.length ? `${audienceGoals.length} 桩旧约` : ""].filter(Boolean).join(" · ");
+    const dossierTitle = activeLead?.title || audienceGoals[0]?.title || audienceGoals[0]?.goal_type || "可展开查阅";
     return (
       <div className="m-audience-full">
         <div className="m-audience-bar">
@@ -99,61 +102,62 @@ export function AudienceView({
             ? `（${audience}正在御前随侍，本次按差使复命追问。）`
             : `（${audience} 奉召趋入，正在御前奏对。奏对完成后，由随侍送其告退。）`}
         </div>
-        {activeLead && (
-          <details className={`m-audience-lead tone-${activeLead.tone || "info"}`}>
-            <summary className="m-audience-lead-summary">
-              <span className="m-audience-lead-kicker">本次召对</span>
-              <span className="m-audience-lead-title">{activeLead.title}</span>
-              {activeLead.meta && <span className="m-audience-lead-meta">{activeLead.meta}</span>}
+        {(activeLead || audienceGoals.length > 0) && (
+          <details className={`m-audience-dossier tone-${dossierTone}`} aria-label="奏对情报">
+            <summary className="m-audience-dossier-head">
+              <span>奏对情报</span>
+              <small>{dossierMeta || "本场上下文"}</small>
+              <b>{dossierTitle}</b>
               <span className="m-disclosure-caret">卷</span>
             </summary>
-            <div className="m-audience-lead-content">
-              <div className="m-audience-lead-detail">{activeLead.detail}</div>
-              {activeLead.stakes?.length ? (
-                <div className="m-audience-lead-stakes" aria-label="本次召对两难">
-                  {activeLead.stakes.slice(0, 3).map((it, idx) => (
-                    <span key={`${it.label}-${idx}`} className={`m-stake-chip tone-${it.tone || "neutral"}`}>
-                      {it.label}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-              {activeLead.target && (
-                <div className="m-lead-actions">
-                  <button className="m-lead-link" onClick={() => openPerson(activeLead.target!)}>查{activeLead.target}</button>
-                  {activeLead.target !== audience && (
-                    <button
-                      className="m-lead-link primary"
-                      onClick={() => onAudienceChange(activeLead.target!, counterpartLeadFromActive(activeLead, audience))}
-                    >
-                      传{shortName(activeLead.target)}对质
-                    </button>
+            <div className="m-audience-dossier-body">
+              {activeLead && (
+                <section className="m-audience-dossier-section">
+                  <div className="m-audience-dossier-label">本次召对</div>
+                  <div className="m-audience-dossier-title">{activeLead.title}</div>
+                  <div className="m-audience-dossier-detail">{activeLead.detail}</div>
+                  {activeLead.stakes?.length ? (
+                    <div className="m-audience-lead-stakes" aria-label="本次召对两难">
+                      {activeLead.stakes.slice(0, 3).map((it, idx) => (
+                        <span key={`${it.label}-${idx}`} className={`m-stake-chip tone-${it.tone || "neutral"}`}>
+                          {it.label}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {activeLead.target && (
+                    <div className="m-lead-actions">
+                      <button className="m-lead-link" onClick={() => openPerson(activeLead.target!)}>查{activeLead.target}</button>
+                      {activeLead.target !== audience && (
+                        <button
+                          className="m-lead-link primary"
+                          onClick={() => onAudienceChange(activeLead.target!, counterpartLeadFromActive(activeLead, audience))}
+                        >
+                          传{shortName(activeLead.target)}对质
+                        </button>
+                      )}
+                    </div>
                   )}
-                </div>
+                </section>
               )}
-            </div>
-          </details>
-        )}
-        {audienceGoals.length > 0 && (
-          <details className="m-audience-goals" aria-label="此人旧约">
-            <summary className="m-audience-goals-head">
-              <span>旧约在案</span>
-              <small>{audienceGoals.length} 桩未竟</small>
-              <b>{audienceGoals[0]?.title || audienceGoals[0]?.goal_type || "待复命"}</b>
-              <span className="m-disclosure-caret">卷</span>
-            </summary>
-            <div className="m-audience-goals-list">
-              {audienceGoals.slice(0, 3).map((goal, i) => (
-                <div key={`${goal.id || i}-${goal.title || goal.target_text || ""}`} className={`m-audience-goal tone-${goal.status || "active"}`}>
-                  <span className="m-audience-goal-title">{goal.title || goal.goal_type || "未竟奏对"}</span>
-                  <span className="m-audience-goal-meta">
-                    {[goal.status_label, goal.condition_label, goal.due_label, goal.progress_label].filter(Boolean).join(" · ")}
-                  </span>
-                  {(goal.blocker_summary || goal.pending_summary || goal.public_hint) && (
-                    <span className="m-audience-goal-note">{goal.blocker_summary || goal.pending_summary || goal.public_hint}</span>
-                  )}
-                </div>
-              ))}
+              {audienceGoals.length > 0 && (
+                <section className="m-audience-dossier-section">
+                  <div className="m-audience-dossier-label">旧约在案 · {audienceGoals.length} 桩未竟</div>
+                  <div className="m-audience-goals-list">
+                    {audienceGoals.slice(0, 3).map((goal, i) => (
+                      <div key={`${goal.id || i}-${goal.title || goal.target_text || ""}`} className={`m-audience-goal tone-${goal.status || "active"}`}>
+                        <span className="m-audience-goal-title">{goal.title || goal.goal_type || "未竟奏对"}</span>
+                        <span className="m-audience-goal-meta">
+                          {[goal.status_label, goal.condition_label, goal.due_label, goal.progress_label].filter(Boolean).join(" · ")}
+                        </span>
+                        {(goal.blocker_summary || goal.pending_summary || goal.public_hint) && (
+                          <span className="m-audience-goal-note">{goal.blocker_summary || goal.pending_summary || goal.public_hint}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
           </details>
         )}
@@ -329,6 +333,12 @@ function openAudienceGoals(rawGoals: unknown, audience: string): any[] {
     .filter((goal: any) => String(goal?.minister_name || "").trim() === name)
     .filter((goal: any) => !hidden.has(String(goal?.status || "").trim()))
     .slice(0, 4);
+}
+
+function audienceGoalsTone(goals: any[]): string {
+  if (goals.some((goal) => ["blocked", "expired"].includes(String(goal?.status || "")))) return "danger";
+  if (goals.some((goal) => String(goal?.status || "") === "waiting_conditions")) return "warn";
+  return "info";
 }
 
 function suggestionFromGoal(goal: any, audience: string): Suggestion {
