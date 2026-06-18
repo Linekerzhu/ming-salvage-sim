@@ -3052,7 +3052,13 @@ class WebGame:
         raw = str(text or "").strip()
         if not raw:
             return {}
-        if not re.search(r"(召|传|宣|请|唤|叫|找|寻).{0,12}(来|入|觐|见|聊|谈|奏对|问对|进殿|入殿)", raw):
+        summon_verb = r"(?:召|传|宣|请|唤|叫|找|寻|带|领|引|拉|让|命|令|把)"
+        summon_arrival = r"(?:见面|过来|面圣|面前|御前|来|到|入|觐|见|聊|谈|奏对|问对|进殿|入殿)"
+        direct_arrival = r"(?:见面|过来|面圣|来|入|觐|见|聊|谈|奏对|问对|进殿|入殿)"
+        if not (
+            re.search(fr"{summon_verb}.{{0,16}}{summon_arrival}", raw)
+            or re.search(fr"^[\u4e00-\u9fff]{{2,4}}[？?，,、\s]*{direct_arrival}", raw)
+        ):
             return {}
         candidates: List[Character] = []
         for character in self.session.content.characters.values():
@@ -3326,6 +3332,10 @@ class WebGame:
             "吏部", "户部", "礼部", "兵部", "刑部", "工部", "都察院", "翰林院", "詹事府", "大理寺",
             "奏对", "名册", "档案", "小火者", "太监", "内侍", "内臣", "新科", "科场", "科举",
         }
+        descriptor_fragments = (
+            "一个", "某个", "这个", "那个", "有个", "一位", "某位", "这位", "那位", "有人",
+            "来见", "见面", "过来", "面圣", "面前", "御前", "入殿", "进殿", "奏对", "问对",
+        )
         org_tokens = (
             "司礼", "锦衣", "镇抚司", "内阁", "东厂", "内官监", "御马监", "内书堂", "文书房",
             "都察院", "翰林院", "詹事府", "大理寺", "太常寺", "光禄寺", "南京",
@@ -3334,6 +3344,7 @@ class WebGame:
         if (
             name in stopwords
             or any(bad in name for bad in ("陛下", "皇上", "奴婢", "朝廷", "档案"))
+            or any(fragment in name for fragment in descriptor_fragments)
             or any(token in name for token in org_tokens)
             or (2 <= len(name) <= 4 and any(name.endswith(suffix) for suffix in org_suffixes))
         ):
@@ -3377,8 +3388,11 @@ class WebGame:
         ]
         if include_command:
             patterns.extend([
-                r"^([\u4e00-\u9fff]{2,4})[？?，,、\s]*(?:朕要|我要|想要|要)?(?:找|寻|召|传|宣|请|唤|叫).{0,8}(?:来|入|见|觐|聊|谈|奏对|问对|进殿|入殿)",
-                r"(?:找|寻|召|传|宣|请|唤|叫)([\u4e00-\u9fff]{2,4})(?:来|入|见|觐|聊|谈|奏对|问对|进殿|入殿)",
+                r"^([\u4e00-\u9fff]{2,4})[？?，,、\s]*(?:朕要|我要|想要|要)?(?:找|寻|召|传|宣|请|唤|叫|带|领|引|拉).{0,8}(?:见面|过来|面圣|面前|御前|来|到|入|见|觐|聊|谈|奏对|问对|进殿|入殿)",
+                r"^([\u4e00-\u9fff]{2,4}?)[？?，,、\s]*(?:见面|过来|面圣|来|入|见|觐|聊|谈|奏对|问对|进殿|入殿)",
+                r"(?:找|寻|召|传|宣|请|唤|叫|带|领|引|拉)([\u4e00-\u9fff]{2,4}?)(?:见面|过来|面圣|面前|御前|来|到|入|见|觐|聊|谈|奏对|问对|进殿|入殿)",
+                r"(?:让|命|令)([\u4e00-\u9fff]{2,4}?)(?:见面|过来|面圣|来|入|见|觐|聊|谈|奏对|问对|进殿|入殿)",
+                r"把([\u4e00-\u9fff]{2,4}?)(?:带|领|引|拉).{0,6}(?:见面|过来|面圣|面前|御前|朕前|来|到|入|见|觐|进殿|入殿)",
             ])
         for pattern in patterns:
             for candidate in re.findall(pattern, scan):

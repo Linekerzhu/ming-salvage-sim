@@ -589,10 +589,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-audience-return { flex: 0 0 auto; margin: 8px var(--pad) 0; padding: 8px 12px; border: 1px solid rgba(197,157,92,.34); border-radius: 8px; background: rgba(197,157,92,.10); color: #d9c79a; font-size: 0.84rem; line-height: 1.45; }
 .m-audience-hooks { flex: 0 0 auto; margin: 8px var(--pad) 0; padding: 8px 9px;
   border: 1px solid rgba(181,134,58,.24); border-radius: 8px; background: rgba(0,0,0,.16); }
-.m-audience-hooks-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.m-audience-hooks-head { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 7px; margin-bottom: 0; cursor: pointer; list-style: none; }
+.m-audience-hooks-head::-webkit-details-marker { display: none; }
 .m-audience-hooks-head span { color: var(--gold); font-size: .78rem; font-weight: 800; }
 .m-audience-hooks-head small { color: #9c8a64; font-size: .68rem; }
+.m-audience-hooks-head b { min-width: 0; color: #bfae86; font-size: .72rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .m-audience-hooks-list { display: flex; flex-direction: column; gap: 6px; }
+.m-audience-hooks[open] .m-audience-hooks-list { margin-top: 7px; }
 .m-audience-hook { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px; align-items: stretch;
   border: 1px solid rgba(200,162,74,.18); border-radius: 8px; background: rgba(200,162,74,.06); overflow: hidden; }
 .m-audience-hook.tone-danger { border-color: rgba(158,52,41,.35); background: rgba(158,52,41,.08); }
@@ -695,20 +698,23 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-mem-tip { margin: 8px 0 0; font-size: 0.76rem; color: var(--ink-soft); }
 
 /* ── 召对·奏对趋入/退下 ─────────────────────────────────────── */
-.m-arrival { flex: 0 0 auto; text-align: center; color: #c9b487; font-size: 0.82rem; padding: 8px var(--pad); background: rgba(0,0,0,.18); border-bottom: 1px solid var(--gold-line); }
+.m-arrival { flex: 0 0 auto; text-align: center; color: #c9b487; font-size: 0.78rem; padding: 6px var(--pad); background: rgba(0,0,0,.18); border-bottom: 1px solid var(--gold-line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .m-audience-lead {
-  flex: 0 0 auto; margin: 10px var(--pad) 0; padding: 10px 12px;
+  flex: 0 0 auto; margin: 8px var(--pad) 0; padding: 8px 10px;
   background: rgba(200,162,74,.11); border: 1px solid rgba(181,134,58,.34);
   border-left: 4px solid var(--gold-deep); border-radius: 8px;
 }
 .m-audience-lead.tone-danger { background: rgba(158,52,41,.13); border-color: rgba(158,52,41,.42); border-left-color: var(--cinnabar); }
-.m-audience-lead-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 3px; }
+.m-audience-lead-summary { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 7px; cursor: pointer; list-style: none; }
+.m-audience-lead-summary::-webkit-details-marker { display: none; }
 .m-audience-lead-kicker { color: #c9b487; font-size: 0.7rem; font-weight: 800; }
 .m-audience-lead-meta {
   color: var(--gold); background: rgba(181,134,58,.14); border: 1px solid rgba(181,134,58,.28);
   border-radius: 6px; padding: 1px 6px; font-size: 0.68rem; font-weight: 800;
 }
 .m-audience-lead-title { color: var(--gold); font-size: 0.9rem; font-weight: 800; line-height: 1.35; word-break: break-word; }
+.m-audience-lead-summary .m-audience-lead-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; word-break: normal; }
+.m-audience-lead-content { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(181,134,58,.18); }
 .m-audience-lead-detail { color: #d6c8aa; font-size: 0.8rem; line-height: 1.45; margin-top: 3px; word-break: break-word; }
 .m-audience-lead-stakes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .m-audience-lead-stakes .m-stake-chip,
@@ -736,10 +742,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   flex: 0 0 auto; margin: 8px var(--pad) 0; padding: 8px 9px;
   border: 1px solid rgba(181,134,58,.24); border-radius: 8px; background: rgba(0,0,0,.14);
 }
-.m-audience-goals-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 5px; }
+.m-audience-goals-head { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 7px; margin-bottom: 0; cursor: pointer; list-style: none; }
+.m-audience-goals-head::-webkit-details-marker { display: none; }
 .m-audience-goals-head span { color: var(--gold); font-size: .76rem; font-weight: 900; }
 .m-audience-goals-head small { color: #9c8a64; font-size: .68rem; }
+.m-audience-goals-head b { min-width: 0; color: #bfae86; font-size: .72rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .m-audience-goals-list { display: flex; flex-direction: column; gap: 5px; }
+.m-audience-goals[open] .m-audience-goals-list { margin-top: 7px; }
 .m-audience-goal {
   display: flex; flex-direction: column; gap: 1px; padding: 6px 7px;
   border: 1px solid rgba(200,162,74,.16); border-radius: 7px;
@@ -752,6 +761,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-audience-goal-title { color: #ead39b; font-size: .78rem; line-height: 1.35; font-weight: 800; overflow-wrap: anywhere; }
 .m-audience-goal-meta { color: #c7ae70; font-size: .68rem; line-height: 1.35; font-weight: 800; }
 .m-audience-goal-note { color: #bfae86; font-size: .7rem; line-height: 1.38; overflow-wrap: anywhere; }
+.m-disclosure-caret { justify-self: end; color: #8e7b58; border: 1px solid rgba(181,134,58,.24); border-radius: 6px; padding: 1px 5px; font-size: .64rem; font-weight: 900; }
+details[open] > summary .m-disclosure-caret { color: var(--gold); background: rgba(181,134,58,.12); }
 .m-mini-dismiss { background: rgba(158,52,41,.2); color: #e2a89c; border-color: rgba(158,52,41,.45); }
 .m-mini-complete { background: rgba(160,112,42,.24); color: #f1cf8c; border-color: rgba(190,140,57,.5); }
 

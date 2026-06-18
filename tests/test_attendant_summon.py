@@ -215,6 +215,28 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_unknown_dialogue_mentions_reject_descriptor_fragments(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            unknown = next(name for name in ("陈稳", "沈诚", "陆恪") if name not in game.content.characters)
+
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                f"臣十三岁被锦衣卫一个老试百户收作徒弟，后来另听说一个叫{unknown}的百户可用。",
+            )
+
+            stored = game._load_unknown_dialogue_mentions()
+            self.assertIn(unknown, stored)
+            self.assertNotIn("卫一个老", stored)
+            self.assertFalse(any("一个" in name for name in stored), stored)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_single_dialogue_mentioned_person_can_be_summoned_by_pronoun(self):
         game = web_app.WebGame(fresh=True)
         try:
@@ -258,6 +280,73 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(payload["court_action"], "summon")
             self.assertEqual(payload["next_minister"], second)
             self.assertEqual(payload["registered_minister"], second)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_colloquial_summon_can_materialize_unlisted_person_without_prior_mention(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            unknown = "陈贵"
+            self.assertNotIn(unknown, game.content.characters)
+
+            events = list(game.chat_stream(attendant, f"让{unknown}来见面。"))
+
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], unknown)
+            self.assertEqual(payload["registered_minister"], unknown)
+            self.assertIn(unknown, game.content.characters)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_direct_command_does_not_fold_arrival_words_into_new_name(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            unknown = "陈贵"
+            self.assertNotIn(unknown, game.content.characters)
+
+            events = list(game.chat_stream(attendant, f"叫{unknown}来见"))
+
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], unknown)
+            self.assertEqual(payload["registered_minister"], unknown)
+            self.assertIn(unknown, game.content.characters)
+            self.assertNotIn(f"{unknown}来见", game.content.characters)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_attendant_can_pull_dialogue_person_to_emperor_with_colloquial_command(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            unknown = "陈贵"
+            self.assertNotIn(unknown, game.content.characters)
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                f"奴婢留心到锦衣卫南镇抚司那边一个叫{unknown}的试百户，武艺扎实。",
+            )
+
+            events = list(game.chat_stream(attendant, f"把{unknown}带到朕面前。"))
+
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], unknown)
+            self.assertEqual(payload["registered_minister"], unknown)
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
