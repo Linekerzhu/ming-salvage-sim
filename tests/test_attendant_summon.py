@@ -379,6 +379,42 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_chat_mentions_ignore_live_org_alias_samples(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = game.content.characters["王承恩"]
+            attendant.aliases = ["王承恩", "王伴伴", "老王", "王公公", "司礼监"]
+            liu = Character(
+                name="刘忠",
+                office="司礼监文书房小火者",
+                office_type="司礼监",
+                faction="内廷",
+                aliases=["司礼监文书房", "刘小火者"],
+                personal_skills=[],
+                loyalty=55,
+                ability=50,
+                integrity=45,
+                courage=45,
+                style="线上样本补档",
+                power_id="ming",
+            )
+            game.content.characters[liu.name] = liu
+
+            mentions = game._chat_message_mentions("司礼监文书房一个叫刘忠的小火者，王承恩也夸过他。")
+            terms = {term for item in mentions for term in item["terms"]}
+
+            self.assertIn("刘忠", terms)
+            self.assertIn("王承恩", terms)
+            self.assertNotIn("司礼监", terms)
+            self.assertNotIn("文书房", terms)
+            self.assertNotIn("司礼监文书房", terms)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_chat_mentions_strip_title_only_aliases_but_keep_named_titles(self):
         game = web_app.WebGame(fresh=True)
         try:
