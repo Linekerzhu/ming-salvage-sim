@@ -1361,6 +1361,56 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             self.assertIn("旧事牵引", prepared.behavior_brief)
             session.close()
 
+    def test_prepare_chat_run_injects_eunuch_lore_into_behavior_context(self) -> None:
+        with TemporaryDirectory() as tmp:
+            session = GameSession(
+                str(Path(tmp) / "npc_session_eunuch_lore_behavior.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            name = "韩爌"
+            session.db.conn.execute(
+                """
+                UPDATE characters
+                SET office='司礼监随堂小火者',
+                    office_type='司礼监',
+                    faction='内廷',
+                    ability=42,
+                    wisdom=38,
+                    courage=35,
+                    style='识字不多的小火者，出身寒微，胆怯',
+                    birth_year=?
+                WHERE name=?
+                """,
+                (int(session.state.year) - 23, name),
+            )
+            session.db.conn.commit()
+            el.record_castration(
+                session.db,
+                name,
+                forced=True,
+                day=0,
+                detail_text="净军房无麻；宝官库石灰封存；近来漏尿尿闭，嗓音尖薄，常有幻肢痛。",
+            )
+
+            augmented, prepared = session.prepare_chat_run(
+                self.content.characters[name],
+                "净军房旧档和御前跑腿，卿自己怎么回？",
+            )
+
+            self.assertIn("【净身·心相】", augmented)
+            self.assertIn("【口吻差异】", augmented)
+            self.assertIn("低文化内侍", augmented)
+            self.assertIn("不要讲内阁大学士式长篇", augmented)
+            self.assertIn("动作神态必须与对白分离", augmented)
+            self.assertIn("【动作】", augmented)
+            self.assertIn("漏尿兼尿闭", prepared.behavior_context)
+            self.assertIn("低文化内侍", prepared.behavior_context)
+            self.assertIn("动作神态必须与对白分离", prepared.behavior_context)
+            self.assertIn("净军房旧档", prepared.behavior_context)
+            session.close()
+
     def test_recorded_stance_uses_prepared_memory_behavior_context(self) -> None:
         with TemporaryDirectory() as tmp:
             session = GameSession(

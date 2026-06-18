@@ -326,6 +326,28 @@ def _is_adult_for_lore(db: GameDB, name: str) -> bool:
     return year - birth_year >= 18
 
 
+_MINOR_UNSAFE_FIXATION_RE = re.compile(r"受罚|束缚|羞辱|调教|畸恋|情欲|肉欲|性|BDSM", re.IGNORECASE)
+_MINOR_SAFE_FIXATIONS = (
+    "洁净癖，衣褶不齐便不安",
+    "恋香压惊，厌恶血腥旧味",
+    "偏爱掌管钥匙与封匣",
+    "钥匙收藏癖",
+)
+
+
+def _sanitize_lore_details_for_age(db: GameDB, name: str, details: Dict[str, str]) -> Dict[str, str]:
+    """未成年小火者只保留创伤/礼仪/宝匣执念，不暴露性化心癖。"""
+
+    if _is_adult_for_lore(db, name):
+        return details
+    sanitized = dict(details)
+    fixation = str(sanitized.get("private_fixation") or "")
+    if _MINOR_UNSAFE_FIXATION_RE.search(fixation):
+        sanitized["private_fixation"] = _pick(_MINOR_SAFE_FIXATIONS, name, "minor-safe-fixation")
+    sanitized["psychosexual_state"] = ""
+    return sanitized
+
+
 def _clamp_0_100(value: int) -> int:
     return max(0, min(100, int(value)))
 
@@ -369,7 +391,11 @@ def seed_eunuch_lore(db: GameDB) -> None:
         servility = 45 + max(0, 55 - integ) // 4 - max(0, loy - 60) // 5
         servility = max(15, min(85, servility + (25 if forced else 0)))
         bao = BAO_FORFEIT if forced else BAO_KEPT
-        details = _default_detail(name, forced=bool(forced), bao_status=bao)
+        details = _sanitize_lore_details_for_age(
+            db,
+            name,
+            _default_detail(name, forced=bool(forced), bao_status=bao),
+        )
         note = (
             "少年净身入仕，宝匣自藏"
             if not forced
@@ -391,9 +417,11 @@ def record_castration(db: GameDB, name: str, *, forced: bool, day: int, detail_t
         return {}
     bao = BAO_FORFEIT if forced else BAO_KEPT
     servility = 78 if forced else 46
-    details = _default_detail(name, forced=bool(forced), bao_status=bao)
-    if not _is_adult_for_lore(db, name):
-        details["psychosexual_state"] = ""
+    details = _sanitize_lore_details_for_age(
+        db,
+        name,
+        _default_detail(name, forced=bool(forced), bao_status=bao),
+    )
     note = (
         "奉强旨净身，宝为官没——奇辱深结"
         if forced
@@ -442,6 +470,7 @@ def get_lore(db: GameDB, name: str) -> Optional[Dict[str, object]]:
         value = str(row[key] or "").strip()
         if value:
             details[key] = value
+    details = _sanitize_lore_details_for_age(db, str(row["name"]), details)
     return {"name": str(row["name"]), "bao_status": bao,
             "forced": forced, "servility": int(row["servility"]),
             "castration_day": int(row["castration_day"]), "reincarnation": bool(row["reincarnation"]),
@@ -949,7 +978,11 @@ def servility_brief(db: GameDB, name: str) -> str:
     if voice_rules:
         parts.append("【口吻差异】" + "；".join(voice_rules))
     if stage_bits:
-        parts.append("【动作神态】动作/神态要短，不要塞满对白正文；可用极短括注表现：" + "；".join(dict.fromkeys(stage_bits[:4])))
+        parts.append(
+            "【动作神态】动作神态必须与对白分离：优先单独写一行「【动作】...」或「【神态】...」，"
+            "不要把长动作塞进聊天气泡正文；每轮最多1-2条，每条不超过24字，正文只保留说话内容。"
+            "可用短 cue：" + "；".join(dict.fromkeys(stage_bits[:4]))
+        )
     return "".join(parts)
 
 

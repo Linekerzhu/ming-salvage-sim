@@ -727,6 +727,14 @@ class GameSession:
         )
         live_memory_brief = self._live_dialogue_memory_brief(character) if persistent else ""
         supplemental_context = str(supplemental_context or "").strip()
+        servility_context = ""
+        # 净身·心相不只是 flavor：它影响该 NPC 应知范围、说话粗细、动作神态和后遗症风险。
+        # 先放进 behavior_context，再由 npc_dialogue_behavior_brief 二次归纳，避免模型滑回通用大臣口吻。
+        try:
+            from ming_sim.eunuch_lore import servility_brief
+            servility_context = servility_brief(self.db, character.name)
+        except Exception:
+            servility_context = ""
         if supplemental_context:
             augmented = f"{supplemental_context[:2200]}\n\n{augmented}"
         if live_memory_brief:
@@ -734,6 +742,8 @@ class GameSession:
         if dialogue_prep.prefix:
             augmented = f"{dialogue_prep.prefix}\n\n{augmented}"
         behavior_parts = [message]
+        if servility_context:
+            behavior_parts.append(servility_context[:2600])
         if supplemental_context:
             behavior_parts.append(supplemental_context[:2200])
         if dialogue_prep.prefix:
@@ -769,13 +779,8 @@ class GameSession:
         except Exception:
             pass
         # 净身·心相（E2a）：与净身者对话时注入其奴性表达与「宝」之心结（强阉扭曲/自愿恭谨）。
-        try:
-            from ming_sim.eunuch_lore import servility_brief
-            sb = servility_brief(self.db, character.name)
-            if sb:
-                augmented = f"{sb}\n\n{augmented}"
-        except Exception:
-            pass
+        if servility_context:
+            augmented = f"{servility_context}\n\n{augmented}"
         return augmented, dialogue_prep
 
     def record_dialogue_after_chat(

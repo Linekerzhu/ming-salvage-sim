@@ -265,7 +265,52 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertIn("禁用话术", brief)
             self.assertIn("不要讲内阁大学士式长篇", brief)
             self.assertIn("【动作神态】", brief)
+            self.assertIn("动作神态必须与对白分离", brief)
+            self.assertIn("【动作】", brief)
+            self.assertIn("【神态】", brief)
             self.assertIn("夹腰", brief)
+
+    def test_underage_lore_suppresses_psychosexual_fixations_in_dialogue_brief(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "小禄子"
+            db.conn.execute(
+                """
+                INSERT INTO characters (
+                    name, office, office_type, faction, aliases, personal_skills,
+                    loyalty, ability, integrity, courage, style, power_id, status, birth_year
+                ) VALUES (?, ?, ?, ?, '[]', '[]', 70, 38, 55, 30, ?, 'ming', 'active', ?)
+                """,
+                (
+                    name,
+                    "内书堂识字小火者",
+                    "司礼监",
+                    "内廷",
+                    "保定逃荒入京，识字不多，胆怯",
+                    int(state.year) - 11,
+                ),
+            )
+            db.conn.execute("DELETE FROM eunuch_lore WHERE name!=?", (name,))
+            db.conn.commit()
+
+            el.record_castration(
+                db,
+                name,
+                forced=False,
+                day=day,
+                detail_text="他说自己有贤者模式、性无能、受罚束缚依恋，但近来漏尿尿闭、嗓音尖薄。",
+            )
+            lore = el.get_lore(db, name)
+            public = el.public_lore_payload(db, name)
+            brief = el.servility_brief(db, name)
+
+            self.assertEqual(lore["psychosexual_state"], "")
+            self.assertEqual(public["psychosexual_label"], "")
+            self.assertNotRegex(public["condition_line"], r"贤者|性无能|受罚|束缚|调教|畸恋")
+            self.assertNotRegex(brief, r"贤者|性无能|受罚|束缚|调教|畸恋")
+            self.assertIn("漏尿", brief)
+            self.assertIn("嗓音尖薄", brief)
+            self.assertIn("低文化内侍", brief)
 
     def test_no_lore_brief_is_empty(self):
         with TemporaryDirectory() as tmp:
