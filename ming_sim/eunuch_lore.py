@@ -1932,6 +1932,77 @@ def _care_plan(mode: str, lore: Dict[str, object], *, adult: bool) -> Dict[str, 
     }
 
 
+def _hard_service_plan(mode: str, lore: Dict[str, object], *, adult: bool) -> Dict[str, object]:
+    """Plan for the negative branch: the emperor orders an old wound ignored."""
+
+    mode = normalize_care_mode(mode)
+    if mode == "urinary":
+        return {
+            "mode": mode,
+            "label": "带患当差",
+            "trait": "旧患硬派",
+            "delta": {"emp_trust": -1, "grievance": 7, "ability": -1, "charm": -1, "luck": -1},
+            "process": str(lore.get("urinary_aftereffect") or "漏尿尿闭旧患未调，仍限期当差"),
+            "stage": "夹腰叩首称是，退下时步子明显僵住。",
+        }
+    if mode == "trauma":
+        return {
+            "mode": mode,
+            "label": "惊创硬派",
+            "trait": "旧患硬派",
+            "delta": {"emp_trust": -2, "grievance": 8, "wisdom": -1, "luck": -1},
+            "process": str(lore.get("trauma_response") or "净房惊创未抚，仍令近差照办"),
+            "stage": "闻声一僵，仍伏地称奴婢不敢退。",
+        }
+    if mode == "body":
+        return {
+            "mode": mode,
+            "label": "失仪硬撑",
+            "trait": "旧患硬派",
+            "delta": {"emp_trust": -1, "grievance": 5, "charm": -1},
+            "process": str(lore.get("voice_body_change") or "体声失仪未修，仍命其照常侍立办差"),
+            "stage": "尖声应命，忙又压低嗓子，肩背缩得更紧。",
+        }
+    if mode == "bao":
+        return {
+            "mode": mode,
+            "label": "宝案硬压",
+            "trait": "旧患硬派",
+            "delta": {"emp_trust": -2, "grievance": 7, "wisdom": -1},
+            "process": str(lore.get("bao_ritual") or "宝匣心结未安，仍以官库封签压其办差"),
+            "stage": "手指在袖中摸了个空，叩首时额角贴地。",
+        }
+    if mode == "fixation":
+        fixation = str(lore.get("private_fixation") or "心癖旧结未安")
+        if not adult and re.search(r"受罚|束缚|羞辱|调教|畸恋|情欲|肉欲|性", fixation):
+            fixation = "旧创心悸未安"
+        return {
+            "mode": mode,
+            "label": "心癖硬压",
+            "trait": "旧患硬派",
+            "delta": {"emp_trust": -1, "grievance": 6, "luck": -1},
+            "process": fixation,
+            "stage": "反复抚平衣褶，答得比平日更急。",
+        }
+    if mode == "psychosexual" and adult:
+        return {
+            "mode": mode,
+            "label": "心相硬压",
+            "trait": "旧患硬派",
+            "delta": {"emp_trust": -1, "grievance": 6, "charm": -1},
+            "process": str(lore.get("psychosexual_state") or "心相偏执未安"),
+            "stage": "低头急称奴婢该死，话尾有些发颤。",
+        }
+    return {
+        "mode": "general",
+        "label": "旧患硬派",
+        "trait": "旧患硬派",
+        "delta": {"emp_trust": -1, "grievance": 6, "ability": -1},
+        "process": "旧患未调，仍照常派入差事",
+        "stage": "叩首称遵旨，起身时把袖口攥得发皱。",
+    }
+
+
 _BAO_LEVERAGE_ALIASES = {
     "return": "return",
     "赐还": "return",
@@ -2363,6 +2434,166 @@ def apply_eunuch_care(
     }
 
 
+def apply_eunuch_hard_service(
+    db: GameDB,
+    state: GameState,
+    name: str,
+    *,
+    mode: str = "general",
+    note: str = "",
+    source: str = "dialogue",
+) -> Dict[str, object]:
+    """对白驱动的负向取舍：不调养旧患，奉旨照常派差并承担后果。"""
+
+    ensure_schema(db)
+    clean_name = str(name or "").strip()
+    if not clean_name:
+        return {"ok": False, "reason": "未点明硬派对象。"}
+    lore = get_lore(db, clean_name)
+    if lore is None:
+        return {"ok": False, "reason": f"{clean_name}没有净身旧档。"}
+    row = db.conn.execute(
+        "SELECT emp_trust, grievance, ability, wisdom, charm, luck, birth_year FROM characters WHERE name=? AND status='active'",
+        (clean_name,),
+    ).fetchone()
+    if row is None:
+        return {"ok": False, "reason": f"{clean_name}不在可派差名册中。"}
+    adult = _is_adult_for_lore(db, clean_name)
+    requested_mode = normalize_care_mode(mode, note)
+    source_id = f"{int(state.turn)}:{clean_name}:{requested_mode}:{source}"
+    existed = db.conn.execute(
+        """
+        SELECT 1 FROM event_memories
+        WHERE subject_type='character' AND subject_id=? AND event_type='eunuch_hard_service'
+          AND source_kind=? AND source_id=?
+        """,
+        (clean_name, source, source_id),
+    ).fetchone()
+    if existed is not None:
+        return {"ok": False, "reason": f"{clean_name}本回合已奉旨硬派过这项旧患。", "mode": requested_mode}
+    plan = _hard_service_plan(requested_mode, lore, adult=adult)
+    scheme = castration_scheme_profile(lore)
+    before = {
+        "emp_trust": int(row["emp_trust"] or 55),
+        "grievance": int(row["grievance"] or 20),
+        "ability": int(row["ability"] or 50),
+        "wisdom": int(row["wisdom"] or 50),
+        "charm": int(row["charm"] or 50),
+        "luck": int(row["luck"] or 50),
+    }
+    delta = dict(plan.get("delta") or {})
+    risk_score = int(scheme.get("risk_score") or 0)
+    scheme_pressure = 0
+    if bool(scheme.get("explicit")) and risk_score >= 68:
+        scheme_pressure = max(1, min(4, (risk_score - 62) // 8))
+        delta["grievance"] = int(delta.get("grievance") or 0) + scheme_pressure
+        if scheme_pressure >= 2:
+            delta["luck"] = int(delta.get("luck") or 0) - 1
+        if scheme_pressure >= 3:
+            delta["ability"] = int(delta.get("ability") or 0) - 1
+    after = dict(before)
+    for key, value in delta.items():
+        if key in after:
+            after[key] = _clamp_0_100(after[key] + int(value or 0))
+    db.conn.execute(
+        """
+        UPDATE characters
+        SET emp_trust=?, grievance=?, ability=?, wisdom=?, charm=?, luck=?
+        WHERE name=?
+        """,
+        (after["emp_trust"], after["grievance"], after["ability"], after["wisdom"], after["charm"], after["luck"], clean_name),
+    )
+    trait = str(plan.get("trait") or "旧患硬派").strip()
+    if trait:
+        db.conn.execute(
+            "INSERT OR IGNORE INTO character_traits (name, trait, valence) VALUES (?,?,?)",
+            (clean_name, trait, -1),
+        )
+    outcome_bits = [
+        f"{label}{after[key] - before[key]:+d}"
+        for key, label in (
+            ("emp_trust", "信任"),
+            ("grievance", "怨望"),
+            ("ability", "才干"),
+            ("wisdom", "机敏"),
+            ("charm", "仪表"),
+            ("luck", "运势"),
+        )
+        if after[key] != before[key]
+    ]
+    if scheme_pressure:
+        outcome_bits.append(f"方案压迫+{scheme_pressure}")
+    outcome = "，".join(outcome_bits) or "硬派入档"
+    label = str(plan.get("label") or "旧患硬派")
+    process = "；".join(
+        part for part in (
+            f"奉旨不予调养，照常派差：{str(plan.get('process') or '')}",
+            str(note or "").strip(),
+        ) if part
+    )[:180]
+    db.upsert_event_memory(
+        state,
+        "character",
+        clean_name,
+        "eunuch_hard_service",
+        f"{label}：{clean_name}",
+        cause="御前强派净身旧患",
+        process=process,
+        outcome=outcome,
+        sentiment="negative",
+        importance=4,
+        tags=["净身", "旧患", "硬派", str(plan.get("mode") or requested_mode), label],
+        source_kind=source,
+        source_id=source_id,
+    )
+    fulfilled_goal_id = 0
+    goal_row = db.conn.execute(
+        """
+        SELECT id FROM conversation_goals
+        WHERE minister_name=?
+          AND action_kind='eunuch_care'
+          AND status IN ('active','waiting_conditions','blocked')
+        ORDER BY id DESC LIMIT 1
+        """,
+        (clean_name,),
+    ).fetchone()
+    if goal_row is not None:
+        fulfilled_goal_id = int(goal_row["id"] or 0)
+        if fulfilled_goal_id:
+            db.update_conversation_goal(
+                fulfilled_goal_id,
+                state=state,
+                event_kind="eunuch_hard_service_fulfilled",
+                event_summary=f"{clean_name}{label}已奉旨处置：{outcome}",
+                status="fulfilled",
+                score=100,
+                condition_status="satisfied",
+                last_delta_json={
+                    "source": "eunuch_hard_service",
+                    "mode": str(plan.get("mode") or requested_mode),
+                    "public_hint": f"{clean_name}净身旧患已奉旨照常派差。",
+                    "outcome": outcome,
+                    "hard_service": True,
+                },
+            )
+    db.record_log(state, f"【旧患硬派】{clean_name}{label}：{outcome}。")
+    db.conn.commit()
+    return {
+        "ok": True,
+        "name": clean_name,
+        "mode": str(plan.get("mode") or requested_mode),
+        "label": label,
+        "trait": trait,
+        "stage_direction": str(plan.get("stage") or ""),
+        "process": process,
+        "outcome": outcome,
+        "delta": {key: after[key] - before[key] for key in before if after[key] != before[key]},
+        "scheme_profile": scheme,
+        "scheme_pressure": scheme_pressure,
+        "goal_id": fulfilled_goal_id,
+    }
+
+
 def _trait_names(db: GameDB, name: str) -> set[str]:
     try:
         rows = db.conn.execute(
@@ -2633,6 +2864,17 @@ def assignment_risk_profile(
                 "宝案钳制：官库封签是把柄，遇封签宝匣差事容易失神或怨气反扑。",
                 stage="听见官库封签便喉头一紧，叩首更低。",
             )
+    if "旧患硬派" in traits and (
+        risks
+        or re.search(r"久候|夜守|盯梢|刑房|净房|刀|血|拷|审|封签|宝匣|远行|出京|限期", raw)
+        or domain_set.intersection({"investigation", "military", "local", "inner"})
+    ):
+        add(
+            -2,
+            "旧患曾被奉旨硬派，怨望和失手阈值更低",
+            "旧患硬派在案：此前未调养便照常派差，后续再遇高压差事更易误时或怨气反噬。",
+            stage="接差时先叩首称不敢退，袖中手指却攥紧。",
+        )
 
     fixation = str(lore.get("private_fixation") or "").strip()
     if fixation and re.search(r"钥匙|封匣|账册|库|规矩|搜查|翻检|洁净|衣物", raw):

@@ -500,6 +500,66 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertEqual(fulfilled["status"], "fulfilled")
             self.assertEqual(fulfilled["condition_status"], "satisfied")
 
+    def test_hard_service_fulfills_old_wound_goal_and_raises_future_risk(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(
+                db,
+                name,
+                forced=True,
+                day=day,
+                detail_text="净军房无麻；近来漏尿尿闭，夜里小解不畅。",
+            )
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=50, grievance=30, ability=55, charm=54, luck=50 WHERE name=?",
+                (name,),
+            )
+            db.conn.commit()
+            goal_id = db.create_conversation_goal(
+                state,
+                minister_name=name,
+                action_kind="eunuch_care",
+                title=f"尿路调养求助：{name}",
+                target_text=f"{name}因净身旧患主动候见。",
+                threshold=70,
+                score=35,
+                status="waiting_conditions",
+                condition_status="pending",
+                conditions=[{"description": "裁断调养或照常派差。", "status": "pending"}],
+                expires_turn=int(state.turn) + 2,
+                last_delta={"source": "eunuch_complication", "complication": "urinary"},
+            )
+
+            result = el.apply_eunuch_hard_service(db, state, name, mode="urinary", note="不许调养，照常派差。")
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["mode"], "urinary")
+            self.assertEqual(result["label"], "带患当差")
+            self.assertEqual(int(result["goal_id"]), goal_id)
+            row = db.conn.execute(
+                "SELECT emp_trust, grievance, ability, charm, luck FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertEqual(int(row["emp_trust"]), 49)
+            self.assertGreaterEqual(int(row["grievance"]), 37)
+            self.assertLess(int(row["ability"]), 55)
+            self.assertLess(int(row["charm"]), 54)
+            self.assertIsNotNone(db.conn.execute(
+                "SELECT 1 FROM character_traits WHERE name=? AND trait='旧患硬派'",
+                (name,),
+            ).fetchone())
+            self.assertIsNotNone(db.conn.execute(
+                "SELECT 1 FROM event_memories WHERE subject_id=? AND event_type='eunuch_hard_service'",
+                (name,),
+            ).fetchone())
+            fulfilled = db.get_conversation_goal(goal_id)
+            self.assertEqual(fulfilled["status"], "fulfilled")
+            self.assertEqual(fulfilled["last_delta"]["source"], "eunuch_hard_service")
+
+            risk = el.assignment_risk_profile(db, name, "夜守久候，限期查封签。", domains=["investigation"])
+            self.assertTrue(any("旧患硬派在案" in item for item in risk["risks"]))
+
     def test_assignment_risk_profile_turns_old_wounds_into_dispatch_risk_and_care_mitigates(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)

@@ -1614,6 +1614,89 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_dialogue_hard_service_requires_confirmation_and_fulfills_old_wound_goal(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            row = game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' "
+                "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
+                "AND office NOT LIKE '%太监%' AND office NOT LIKE '%宦官%' "
+                "LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            name = str(row["name"])
+            game.castrate_official(
+                name,
+                force=True,
+                scheme_text="净军房无麻；近来漏尿尿闭，夜里小解不畅。",
+            )
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=50, grievance=30, ability=55, charm=54, luck=50 WHERE name=?",
+                (name,),
+            )
+            goal_id = game.db.create_conversation_goal(
+                game.state,
+                minister_name=name,
+                action_kind="eunuch_care",
+                title=f"尿路调养求助：{name}",
+                target_text=f"{name}因净身旧患主动候见。",
+                threshold=70,
+                score=35,
+                status="waiting_conditions",
+                condition_status="pending",
+                conditions=[{"description": "裁断调养或照常派差。", "status": "pending"}],
+                expires_turn=int(game.state.turn) + 2,
+                last_delta={"source": "eunuch_complication", "complication": "urinary"},
+            )
+            game.db.conn.commit()
+
+            proposal_events = list(game.chat_stream(attendant, f"{name}漏尿尿闭旧患不用调养，照常派差。"))
+            self.assertEqual(proposal_events[-1]["type"], "done")
+            self.assertIn("若仍准", proposal_events[-1]["payload"]["answer"])
+            pending = game._load_pending_dialogue_action(attendant)
+            self.assertEqual(pending.get("type"), "eunuch_hard_service")
+            self.assertEqual(pending.get("target"), name)
+            self.assertEqual(pending.get("mode"), "urinary")
+            mid_row = game.db.conn.execute(
+                "SELECT grievance, ability FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertEqual(int(mid_row["grievance"]), 30)
+            self.assertEqual(int(mid_row["ability"]), 55)
+
+            confirm_events = list(game.chat_stream(attendant, "准，照旧硬派。"))
+
+            payload = confirm_events[-1]["payload"]
+            self.assertEqual(payload["dialogue_effect"]["title"], "带患当差")
+            self.assertTrue(payload["history"][-1].get("stage_directions"))
+            self.assertIn("夹腰", " ".join(payload["history"][-1]["stage_directions"]))
+            self.assertIn("旧患硬派", str(payload["dialogue_effect"]["effects"]))
+            after_row = game.db.conn.execute(
+                "SELECT grievance, ability FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertGreater(int(after_row["grievance"]), 30)
+            self.assertLess(int(after_row["ability"]), 55)
+            self.assertIsNotNone(game.db.conn.execute(
+                "SELECT 1 FROM character_traits WHERE name=? AND trait='旧患硬派'",
+                (name,),
+            ).fetchone())
+            self.assertIsNotNone(game.db.conn.execute(
+                "SELECT 1 FROM event_memories WHERE subject_id=? AND event_type='eunuch_hard_service'",
+                (name,),
+            ).fetchone())
+            fulfilled = game.db.get_conversation_goal(goal_id)
+            self.assertEqual(fulfilled["status"], "fulfilled")
+            self.assertEqual(fulfilled["last_delta"]["source"], "eunuch_hard_service")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_bao_care_merges_confirmation_scheme_into_lore(self):
         game = web_app.WebGame(fresh=True)
         try:

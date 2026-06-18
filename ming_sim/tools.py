@@ -679,6 +679,41 @@ def build_minister_tools(character: Character, context: CourtContext):
         )
         return f"__dialogue_action__{payload}"
 
+    def propose_eunuch_hard_service(target: str, mode: str = "general", note: str = "") -> str:
+        """对白驱动硬派净身旧患：皇帝表示不调养、照常派差时调用。
+
+        只生成待确认意图，不立刻改人物状态。mode 可填 urinary、trauma、body、bao、fixation、general。
+        回奏必须说明取舍：省内库和差期，但怨望、失手和后续旧患风险会上升。
+        """
+        nm = (target or "").strip()
+        if not nm:
+            return "旧患硬派提议失败：target 不能为空。"
+        payload = json.dumps(
+            {
+                "type": "eunuch_hard_service",
+                "phase": "propose",
+                "target": nm,
+                "mode": (mode or "general").strip(),
+                "note": (note or "").strip(),
+            },
+            ensure_ascii=False,
+        )
+        return f"__dialogue_action__{payload}"
+
+    def confirm_eunuch_hard_service(target: str = "", mode: str = "", note: str = "") -> str:
+        """对白驱动硬派净身旧患：只有皇帝明确准许硬派/照常派差后才调用。"""
+        payload = json.dumps(
+            {
+                "type": "eunuch_hard_service",
+                "phase": "confirm",
+                "target": (target or "").strip(),
+                "mode": (mode or "").strip(),
+                "note": (note or "").strip(),
+            },
+            ensure_ascii=False,
+        )
+        return f"__dialogue_action__{payload}"
+
     def propose_bao_leverage(target: str, mode: str = "return", note: str = "") -> str:
         """对白驱动宝匣筹码：皇帝提到赐还宝匣或用官库封签钳制时调用。
 
@@ -1001,6 +1036,8 @@ def build_minister_tools(character: Character, context: CourtContext):
         confirm_mediation,
         propose_eunuch_care,
         confirm_eunuch_care,
+        propose_eunuch_hard_service,
+        confirm_eunuch_hard_service,
         propose_bao_leverage,
         confirm_bao_leverage,
         issue_secret_order,
