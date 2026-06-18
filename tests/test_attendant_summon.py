@@ -892,6 +892,60 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_army_context_is_commander_scoped_and_reaches_dialogue_prep(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            row = game.db.conn.execute(
+                "SELECT a.id, a.name, a.commander FROM armies a "
+                "JOIN characters c ON c.name=a.commander "
+                "WHERE a.owner_power='ming' AND c.status='active' AND c.power_id='ming' AND c.office_type!='后宫' "
+                "ORDER BY a.id LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            army_id = str(row["id"])
+            army_name = str(row["name"])
+            commander = str(row["commander"])
+            game.db.conn.execute(
+                "UPDATE armies SET autonomy=78, arrears=maintenance_per_turn*4, morale=38, loyalty=41, supervisor='' WHERE id=?",
+                (army_id,),
+            )
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=35, grievance=66 WHERE name=?",
+                (commander,),
+            )
+            game.db.conn.commit()
+            game.session.dialogue_audit_client = lambda phase, payload: {  # type: ignore[assignment]
+                "goal_decision": "none",
+                "confidence": 90,
+            }
+            context = {
+                "kind": "army",
+                "actor": commander,
+                "ref_kind": "army",
+                "ref_id": army_id,
+            }
+
+            brief = game._chat_context_brief(commander, context)
+            mismatch = game._chat_context_brief("王承恩", context)
+            augmented, prepared = game.session.prepare_chat_run(
+                game.content.characters[commander],
+                "朕今日召你，正为军镇欠饷与离心之事。",
+                supplemental_context=brief,
+            )
+
+            self.assertIn("本次召对事项：军镇离心/欠饷问对", brief)
+            self.assertIn(army_name, brief)
+            self.assertEqual(mismatch, "")
+            self.assertIn("军镇离心/欠饷问对", augmented)
+            self.assertIn("军镇离心/欠饷问对", prepared.behavior_context)
+            self.assertIn("NPC对话行为档案", prepared.behavior_brief)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_mediation_requires_confirmation(self):
         game = web_app.WebGame(fresh=True)
         try:

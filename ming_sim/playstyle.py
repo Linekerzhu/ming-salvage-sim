@@ -330,6 +330,147 @@ def rivalry_chat_context_brief(
     return "\n".join(lines)
 
 
+def army_chat_context_brief(
+    db: GameDB,
+    minister_name: str,
+    army_id: object = "",
+) -> str:
+    """Trusted context for summoning a commander about autonomy or arrears.
+
+    Army cards are generated from deterministic simulation state; the LLM gets
+    this rebuilt server-side so the commander can bargain over soldiers, pay,
+    supervisors, and command autonomy without pretending to know the whole map.
+    """
+
+    name = str(minister_name or "").strip()
+    if not name or not _table_exists(db, "armies") or not _table_exists(db, "characters"):
+        return ""
+    commander = _active_character_row(db, name)
+    if commander is None:
+        return ""
+
+    has_autonomy = _has_column(db, "armies", "autonomy")
+    has_supervisor = _has_column(db, "armies", "supervisor")
+    autonomy_expr = "autonomy" if has_autonomy else "0"
+    supervisor_expr = "supervisor" if has_supervisor else "''"
+    ref_id = str(army_id or "").strip()
+    params: tuple
+    where = "owner_power='ming' AND commander=?"
+    params = (name,)
+    if ref_id:
+        where += " AND id=?"
+        params = (name, ref_id)
+    rows = _safe_fetchall(
+        db,
+        f"""
+        SELECT id, name, station, theater, commander, controller, troop_type, manpower,
+               maintenance_per_turn, supply, morale, training, equipment, arrears, mobility,
+               loyalty, status, {autonomy_expr} AS autonomy, {supervisor_expr} AS supervisor
+        FROM armies
+        WHERE {where}
+        ORDER BY autonomy DESC, arrears DESC, loyalty ASC
+        LIMIT 1
+        """,
+        params,
+    )
+    if not rows:
+        return ""
+    row = rows[0]
+
+    army = str(row["name"] or "")
+    station = str(row["station"] or "")
+    theater = str(row["theater"] or "")
+    troop_type = str(row["troop_type"] or "")
+    status = str(row["status"] or "")
+    controller = str(row["controller"] or "")
+    supervisor = str(row["supervisor"] or "")
+    manpower = _clamp_int(row["manpower"], 0, 500000)
+    maint = max(1, int(row["maintenance_per_turn"] or 1))
+    arrears = max(0, int(row["arrears"] or 0))
+    arrears_months = arrears / maint
+    autonomy = _clamp_int(row["autonomy"], 0, 100)
+    loyalty = _clamp_int(row["loyalty"], 0, 100)
+    morale = _clamp_int(row["morale"], 0, 100)
+    supply = _clamp_int(row["supply"], 0, 100)
+    training = _clamp_int(row["training"], 0, 100)
+    equipment = _clamp_int(row["equipment"], 0, 100)
+    mobility = _clamp_int(row["mobility"], 0, 100)
+
+    office = _short_office(str(commander["office"] or ""))
+    faction = str(commander["faction"] or "").strip()
+    trust = _clamp_int(commander["emp_trust"], 0, 100)
+    grievance = _clamp_int(commander["grievance"], 0, 100)
+    ability = _clamp_int(commander["ability"], 0, 100)
+    integrity = _clamp_int(commander["integrity"], 0, 100)
+
+    pressure_bits = []
+    if autonomy >= 70:
+        pressure_bits.append("离心已近藩镇自专")
+    elif autonomy >= 45:
+        pressure_bits.append("主帅和亲兵已有自专苗头")
+    if arrears_months >= 3:
+        pressure_bits.append(f"欠饷约 {arrears_months:.1f} 月，兵心可被主帅拿来要价")
+    if loyalty <= 45:
+        pressure_bits.append(f"军心忠诚 {loyalty}，遇削权易生鼓噪")
+    if morale <= 45:
+        pressure_bits.append(f"士气 {morale}，若只压不抚会坏战力")
+    if supervisor:
+        pressure_bits.append(f"{supervisor}在镇监军，能牵制也会激起主帅怨气")
+    else:
+        pressure_bits.append("尚无监军耳目，朝廷少一只就近的眼睛")
+    if trust <= 40:
+        pressure_bits.append(f"{name}御前信任低，会把问军当成试探")
+    if grievance >= 60:
+        pressure_bits.append(f"{name}怨望高，容易把补饷谈成讨价还价")
+
+    if autonomy >= 70 and arrears_months >= 3:
+        exchange = "先核欠饷、分期补发一部，换主帅交兵册、限期整饬并接受监军或轮调亲兵"
+    elif autonomy >= 70:
+        exchange = "先问兵册、亲兵、关防和调动权，必要时以监军/换防削其自专"
+    elif arrears_months >= 3:
+        exchange = "先核实欠饷真数，许有限补发，换其约束军中鼓噪和交出虚冒名册"
+    elif loyalty <= 45:
+        exchange = "用短限差遣试其忠顺，赏罚和监军同时落下"
+    else:
+        exchange = "让主帅说明卡点，给短期限回奏，不急着一刀切"
+
+    cost_bits = [
+        "补饷会压国库和其他军镇公平",
+        "遣监军会涨内廷插手军务，也可能触怒主帅",
+        "骤然削权或换将可能激变",
+        "只安抚不立规矩会继续养高军镇离心",
+    ]
+    if ability >= 70 and integrity >= 55:
+        posture = "有才可用，适合用难差和可验账目拴住"
+    elif integrity <= 42:
+        posture = "可能借军情索饷索权，须先要账册证据"
+    elif grievance >= 60:
+        posture = "先诉委屈，再谈条件；需要皇帝给边界"
+    else:
+        posture = "可试探其底线，再决定补饷、监军或换防"
+
+    lines = [
+        "【本次召对事项：军镇离心/欠饷问对】",
+        f"- {office}{name}被召来谈{army}军情；这不是泛泛问边事，而是一次兵权、钱粮和君臣信任的谈判。",
+        f"- 军镇盘面：{army}驻{station or theater or '边镇'}，战区{theater or '未明'}，兵种{troop_type or '混编'}，兵力约{manpower}，状态「{status or '未明'}」。",
+        f"- 军务数值：离心 {autonomy}，欠饷 {arrears_months:.1f} 月，军心忠诚 {loyalty}，士气 {morale}，补给 {supply}，训练 {training}，装备 {equipment}，机动 {mobility}。",
+        f"- 统属线索：主帅 {name}"
+        + (f"，控制权记为{controller}" if controller and controller != name else "")
+        + (f"，监军 {supervisor}" if supervisor else "，暂无监军")
+        + "。",
+        f"- 入对者状态：御前信任 {trust}，怨望 {grievance}，才干 {ability}，操守 {integrity}"
+        + (f"，派系 {faction}" if faction and faction not in {"无", "中立"} else "")
+        + f"；谈判姿态：{posture}。",
+        "- 压力来源：" + "；".join(pressure_bits) + "。",
+        f"- 可谈交换：{exchange}。",
+        "- 代价提醒：" + "；".join(cost_bits) + "。",
+        "- 对话玩法：主帅可求饷、求名分、拒监军、交兵册、索期限、推责户部或同僚；也可借战功和兵心试探皇帝底线。",
+        "- 落库边界：只有皇帝明确调饷、遣监军、换将、换防、限期交兵册或下旨整军，才进入旨意/履约；首次问话不直接改变军镇数值。",
+        "- 口吻要求：按武臣或边帅身份说话，多讲兵、饷、关防和军心，不要像内阁大学士或全知旁白解释系统。",
+    ]
+    return "\n".join(lines)
+
+
 def faction_chat_context_brief(
     db: GameDB,
     minister_name: str,
@@ -2520,6 +2661,8 @@ def _army_cards(db: GameDB, cards: List[BriefCard]) -> None:
     for row in rows:
         army = str(row["name"])
         commander = str(row["commander"] or "")
+        commander_active = _active_character_row(db, commander) is not None
+        actor = commander if commander_active else ""
         autonomy = int(row["autonomy"] or 0)
         loyalty = int(row["loyalty"] or 0)
         maint = max(1, int(row["maintenance_per_turn"] or 1))
@@ -2557,9 +2700,9 @@ def _army_cards(db: GameDB, cards: List[BriefCard]) -> None:
                 detail=detail,
                 urgency=autonomy + int(arrears_months * 9) + (0 if supervisor else 8),
                 tone="danger" if autonomy >= 65 else "warn",
-                cta="看天下",
-                tab=_TAB_REALM,
-                actor=commander,
+                cta="召将问军" if commander_active else "看天下",
+                tab=_TAB_AUDIENCE if commander_active else _TAB_REALM,
+                actor=actor,
                 meta=meta,
                 ref_kind="army",
                 ref_id=str(row["id"]),
@@ -2800,6 +2943,27 @@ def _faction_representative(db: GameDB, faction: str) -> str:
         (faction,),
     )
     return str(rows[0]["name"]) if rows else ""
+
+
+def _active_character_row(db: GameDB, name: str) -> Optional[sqlite3.Row]:
+    clean = str(name or "").strip()
+    if not clean or not _table_exists(db, "characters"):
+        return None
+    try:
+        return db.conn.execute(
+            """
+            SELECT name, office, office_type, faction, ability, integrity, emp_trust, grievance
+            FROM characters
+            WHERE name=?
+              AND status='active'
+              AND power_id='ming'
+              AND office_type!='后宫'
+              AND name!='崇祯'
+            """,
+            (clean,),
+        ).fetchone()
+    except sqlite3.Error:
+        return None
 
 
 def _safe_fetchall(db: GameDB, sql: str, params: tuple = ()) -> List[sqlite3.Row]:

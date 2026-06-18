@@ -12,6 +12,7 @@ from ming_sim.playstyle import (
     _brief_kind_buckets,
     _select_brief_cards,
     agenda_chat_context_brief,
+    army_chat_context_brief,
     briefing_cards,
     briefing_payload,
     favor_chat_context_brief,
@@ -697,11 +698,14 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("调停只能降温", brief)
             self.assertIn("首次试探不直接改变关系", brief)
 
-    def test_army_autonomy_becomes_realm_hook(self):
+    def test_army_autonomy_becomes_commander_audience_hook(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)
             army = db.conn.execute(
-                "SELECT id FROM armies WHERE owner_power='ming' ORDER BY id LIMIT 1"
+                "SELECT a.id, a.commander FROM armies a "
+                "JOIN characters c ON c.name=a.commander "
+                "WHERE a.owner_power='ming' AND c.status='active' AND c.power_id='ming' AND c.office_type!='后宫' "
+                "ORDER BY a.id LIMIT 1"
             ).fetchone()
             assert army is not None
             db.conn.execute(
@@ -711,14 +715,49 @@ class PlaystyleBriefTests(unittest.TestCase):
             db.conn.commit()
 
             cards = briefing_cards(db, state, limit=5)
-            army_card = next(c for c in cards if c["kind"] == "army")
-            self.assertEqual(army_card["tab"], "realm")
+            army_card = next(c for c in cards if c["kind"] == "army" and c["ref_id"] == str(army["id"]))
+            self.assertEqual(army_card["tab"], "audience")
+            self.assertEqual(army_card["cta"], "召将问军")
+            self.assertEqual(army_card["actor"], str(army["commander"]))
             self.assertIn("离心", str(army_card["title"]) + str(army_card["detail"]))
             self.assertEqual(army_card["tone"], "danger")
             labels = [str(e["label"]) for e in army_card["effects"]]
             self.assertIn("离心 76", labels)
             self.assertIn("欠饷 4.0月", labels)
             self.assertIn("无监军制衡", labels)
+
+    def test_army_chat_context_brief_rebuilds_military_stakes(self):
+        with TemporaryDirectory() as tmp:
+            db, _state = _fresh(tmp)
+            army = db.conn.execute(
+                "SELECT a.id, a.name, a.commander FROM armies a "
+                "JOIN characters c ON c.name=a.commander "
+                "WHERE a.owner_power='ming' AND c.status='active' AND c.power_id='ming' AND c.office_type!='后宫' "
+                "ORDER BY a.id LIMIT 1"
+            ).fetchone()
+            assert army is not None
+            db.conn.execute(
+                "UPDATE armies SET autonomy=76, arrears=maintenance_per_turn*4, morale=39, loyalty=42, supervisor='' WHERE id=?",
+                (str(army["id"]),),
+            )
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=34, grievance=68 WHERE name=?",
+                (str(army["commander"]),),
+            )
+            db.conn.commit()
+
+            brief = army_chat_context_brief(db, str(army["commander"]), str(army["id"]))
+            mismatch = army_chat_context_brief(db, "王承恩", str(army["id"]))
+
+            self.assertIn("本次召对事项：军镇离心/欠饷问对", brief)
+            self.assertIn(str(army["name"]), brief)
+            self.assertIn(str(army["commander"]), brief)
+            self.assertIn("离心 76", brief)
+            self.assertIn("欠饷 4.0 月", brief)
+            self.assertIn("暂无监军", brief)
+            self.assertIn("可谈交换", brief)
+            self.assertIn("首次问话不直接改变军镇数值", brief)
+            self.assertEqual(mismatch, "")
 
     def test_known_secret_becomes_hook_card(self):
         with TemporaryDirectory() as tmp:

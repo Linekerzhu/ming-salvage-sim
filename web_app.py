@@ -3836,6 +3836,16 @@ class WebGame:
                 )
             except Exception:
                 return ""
+        if kind == "army" or ref_kind == "army":
+            actor = str(context.get("actor") or "").strip()
+            if actor and actor != minister_name:
+                return ""
+            ref_id = context.get("ref_id") or context.get("id")
+            try:
+                from ming_sim.playstyle import army_chat_context_brief
+                return army_chat_context_brief(self.db, minister_name, ref_id)
+            except Exception:
+                return ""
         if kind == "favor":
             actor = str(context.get("actor") or "").strip()
             if actor and actor != minister_name:
