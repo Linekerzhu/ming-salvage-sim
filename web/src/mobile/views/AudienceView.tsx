@@ -106,7 +106,17 @@ export function AudienceView({
               </div>
             ) : null}
             {activeLead.target && (
-              <button className="m-lead-link" onClick={() => openPerson(activeLead.target!)}>查{activeLead.target}</button>
+              <div className="m-lead-actions">
+                <button className="m-lead-link" onClick={() => openPerson(activeLead.target!)}>查{activeLead.target}</button>
+                {activeLead.target !== audience && (
+                  <button
+                    className="m-lead-link primary"
+                    onClick={() => onAudienceChange(activeLead.target!, counterpartLeadFromActive(activeLead, audience))}
+                  >
+                    传{shortName(activeLead.target)}对质
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -259,4 +269,73 @@ function chatContextFromLead(lead: AudienceLead): ChatContext {
     title: lead.title,
     meta: lead.meta,
   };
+}
+
+function counterpartLeadFromActive(lead: AudienceLead, currentActor: string): AudienceLead {
+  const next = String(lead.target || "").trim();
+  const current = String(currentActor || lead.actor || "").trim();
+  return {
+    ...lead,
+    actor: next,
+    target: current,
+    title: lead.title.startsWith("对质：") ? lead.title : `对质：${lead.title}`,
+    detail: current
+      ? `方才已听${current}一面之词。此番传${next}入殿，仍围绕同一桩事，问其证据、代价和愿担的责。`
+      : lead.detail,
+    meta: lead.meta ? `对质/${lead.meta}` : "对质",
+    opening: counterpartOpening(lead.kind, next, current),
+    prompts: counterpartPrompts(lead.kind, next, current),
+  };
+}
+
+function counterpartOpening(kind: string, next: string, previous: string): string {
+  const who = next || "此人";
+  const other = previous || "前一人";
+  if (kind === "rivalry") {
+    return `${who}奉召趋入，已知${other}方才在御前陈情；此番不敢只喊冤，须把旧怨、证据和愿退让的边界说清。`;
+  }
+  if (kind === "patronage") {
+    return `${who}趋入叩首，知道陛下正在查这条举荐人情链；此番要说清自己能办什么、受谁牵引、若误事谁该担责。`;
+  }
+  if (kind === "legacy") {
+    return `${who}入殿承问旧政余波；方才已听过另一方说法，此番须把受益、受损、钱粮缺口和善后代价讲明。`;
+  }
+  if (kind === "petition") {
+    return `${who}趋入时先看了${other}一眼，知道陛下要听两面之词；此番须说明自己是否掣肘、是否愿给台阶或证据。`;
+  }
+  if (kind === "relationship") {
+    return `${who}奉召入殿，知道陛下问的是自己同${other}这层人情；此番须说清护持、担保或旧怨的真实边界。`;
+  }
+  return `${who}奉召续入。陛下方才已听${other}一面之词，此番要听另一面：证据、代价、可退让处，都须说清。`;
+}
+
+function counterpartPrompts(kind: string, next: string, previous: string) {
+  const who = next || "你";
+  const other = previous || "前一人";
+  if (kind === "rivalry") {
+    return [
+      { label: "听另一面", text: `朕已听过${other}之言。你如今当面说：旧怨从何而起，哪一句是假，哪一件可证？`, prefix: true },
+      { label: "问退让", text: `若朕令你与${other}各退一步、共办一差，你肯让哪一步，又要什么边界？`, prefix: true },
+      { label: "防借刀", text: `你若只是借朕的手压${other}，也要说清代价。朝中谁会因此得利，谁会反扑？`, prefix: true },
+    ];
+  }
+  if (kind === "patronage") {
+    return [
+      { label: "查担保", text: `朕正在查你和${other}的举荐人情。若用错人，谁担责？若用得其人，何差可验？`, prefix: true },
+      { label: "问避嫌", text: `${who}，你今日说清楚：自己是朝廷的人，还是${other}的人？如何避嫌、如何交账？`, prefix: true },
+      { label: "定试差", text: `若朕给一件试差，几日内见成效？办坏了，举主、新人，各担什么责？`, prefix: true },
+    ];
+  }
+  if (kind === "legacy") {
+    return [
+      { label: "问谁得利", text: `旧政余波不是一句民怨。你指出谁得利、谁受损、谁在中间吞没或加派。`, prefix: true },
+      { label: "问缺口", text: `若要善后，钱粮缺口由谁补？若不善后，地方怨气会落到谁头上？`, prefix: true },
+      { label: "定证据", text: `朕不要空泛议论。几日内能拿出账册、人证或地方实情？`, prefix: true },
+    ];
+  }
+  return [
+    { label: "听另一面", text: `朕已听过${other}一面之词。你照实说，哪里是真，哪里是假？`, prefix: true },
+    { label: "问代价", text: `若朕采信你这一面，会得罪谁、补什么缺口、留下什么后患？`, prefix: true },
+    { label: "定可验证据", text: `不要空口。你能拿出什么证据、差使或期限，证明自己不是推脱？`, prefix: true },
+  ];
 }

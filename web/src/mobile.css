@@ -719,9 +719,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-audience-hook-stakes .m-stake-chip.tone-bad {
   color: #ebb1a5; background: rgba(158,52,41,.16); border-color: rgba(158,52,41,.36);
 }
+.m-lead-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .m-lead-link {
-  margin-top: 8px; color: #f1cf8c; border: 1px solid rgba(181,134,58,.35);
+  color: #f1cf8c; border: 1px solid rgba(181,134,58,.35);
   background: rgba(181,134,58,.1); border-radius: 8px; padding: 5px 10px; font-size: 0.78rem;
+}
+.m-lead-link.primary {
+  color: #21180c; background: linear-gradient(180deg, #c1964d, var(--gold-deep));
+  border-color: rgba(92,64,22,.18); font-weight: 800;
 }
 .m-mini-dismiss { background: rgba(158,52,41,.2); color: #e2a89c; border-color: rgba(158,52,41,.45); }
 .m-mini-complete { background: rgba(160,112,42,.24); color: #f1cf8c; border-color: rgba(190,140,57,.5); }
