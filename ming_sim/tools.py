@@ -826,6 +826,17 @@ def build_minister_tools(character: Character, context: CourtContext):
         if risks:
             lines.append(f"- 风险：{risks}")
         eunuch_risk = assessment.get("eunuch_lore_risk") if isinstance(assessment.get("eunuch_lore_risk"), dict) else {}
+        flare = eunuch_risk.get("flare") if isinstance(eunuch_risk.get("flare"), dict) else {}
+        if flare:
+            mode = str(flare.get("mode") or "旧患").strip()
+            severity = str(flare.get("severity") or "").strip()
+            trigger = str(flare.get("trigger") or "").strip()
+            failure = str(flare.get("likely_failure") or "").strip()
+            counterplay = "/".join(str(item) for item in (flare.get("counterplay") or [])[:3] if str(item).strip())
+            lines.append(
+                f"- 旧患爆点：{mode} {severity or '?'}；{trigger}；{failure}"
+                + (f"；可压：{counterplay}" if counterplay else "")
+            )
         voice_fit = eunuch_risk.get("voice_fit") if isinstance(eunuch_risk.get("voice_fit"), dict) else {}
         voice_notes = [
             str(item).strip()
@@ -1006,9 +1017,16 @@ def build_minister_tools(character: Character, context: CourtContext):
             return f"旧患差遣安排失败：{result.get('reason') or '未能落档'}"
         before = int((result.get("risk_before") or {}).get("score_delta") or 0) if isinstance(result.get("risk_before"), dict) else 0
         after = int((result.get("risk_after") or {}).get("score_delta") or 0) if isinstance(result.get("risk_after"), dict) else before
+        flare = result.get("flare_after") if isinstance(result.get("flare_after"), dict) else {}
+        flare_text = ""
+        if flare:
+            flare_text = (
+                f"；余下爆点：{flare.get('mode') or '旧患'} {flare.get('severity') or '?'}，"
+                f"{flare.get('likely_failure') or flare.get('trigger') or '仍须留意'}"
+            )
         return (
             f"密令 #{order['id']}「{order['title']}」已按{order['minister_name']}净身旧患调整差遣："
-            f"{result.get('process')}；结算：{result.get('outcome')}；旧患风险{before:+d}->{after:+d}。"
+            f"{result.get('process')}；结算：{result.get('outcome')}；旧患风险{before:+d}->{after:+d}{flare_text}。"
         )
 
     def dismiss_minister() -> str:

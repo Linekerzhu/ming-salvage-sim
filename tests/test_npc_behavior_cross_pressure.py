@@ -852,6 +852,8 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
 
             self.assertIn("eunuch_lore_risk", assessment)
             self.assertLess(int(assessment["eunuch_lore_risk"]["score_delta"]), 0)
+            self.assertEqual(assessment["eunuch_lore_risk"]["flare"]["mode"], "urinary")
+            self.assertIn("漏尿尿闭", assessment["eunuch_lore_risk"]["flare"]["likely_failure"])
             self.assertTrue(any("尿路旧患" in item for item in assessment["risks"]))
             self.assertTrue(any("惊创未平" in item for item in assessment["risks"]))
             self.assertTrue(any("净身旧患修正" in item for item in assessment["drivers"]))
@@ -891,6 +893,8 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
 
             self.assertIn("净身旧患", brief)
             self.assertIn("尿路旧患", brief)
+            self.assertIn("旧患爆点", brief)
+            self.assertIn("漏尿尿闭误时", brief)
             self.assertIn("旧患差遣可选", brief)
             self.assertIn("分班副手/relay", brief)
             self.assertIn("set_eunuch_dispatch_strategy", brief)
@@ -1064,12 +1068,14 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             order_id = int(issue_result.split("__")[2])
 
             self.assertIn("旧患差遣可选", issue_result)
+            self.assertIn("旧患爆点", issue_result)
             self.assertIn("set_eunuch_dispatch_strategy", issue_result)
 
             dispatch_result = dispatch(order_id, strategy="relay", note="准副手轮值，别硬撑坏事。")
 
             self.assertIn("已按王承恩净身旧患调整差遣", dispatch_result)
             self.assertIn("旧患风险", dispatch_result)
+            self.assertIn("余下爆点", dispatch_result)
             updated = db.get_secret_order(order_id)
             self.assertIn("分班轮值", updated["sim_note"])
             self.assertEqual(state.metrics["内库"], 29)

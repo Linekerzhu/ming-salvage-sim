@@ -2746,6 +2746,133 @@ def _dispatch_strategy_options(
     return list(dedup.values())
 
 
+def _dispatch_flare_profile(
+    lore: Dict[str, object],
+    *,
+    raw: str,
+    domain_set: set[str],
+    risks: Sequence[str],
+    score_delta: int,
+    traits: set[str],
+) -> Dict[str, object]:
+    """Describe the most likely old-wound flare for this concrete assignment."""
+
+    if not risks or int(score_delta or 0) >= 0:
+        return {}
+    scheme = castration_scheme_profile(lore)
+    base = 36 + min(44, abs(int(score_delta or 0)) * 4)
+    if int(scheme.get("risk_score") or 0) >= 70:
+        base += 8
+    if "旧患硬派" in traits:
+        base += 8
+    candidates: List[Dict[str, object]] = []
+
+    def cared(*names: str) -> bool:
+        return any(name in traits for name in names)
+
+    def add(
+        mode: str,
+        severity: int,
+        trigger: str,
+        likely_failure: str,
+        counterplay: Sequence[str],
+        stage: str,
+    ) -> None:
+        value = max(1, min(95, int(severity)))
+        if cared("旧患调养") and mode == "urinary":
+            value = max(1, value - 14)
+        if cared("惊创抚慰") and mode == "trauma":
+            value = max(1, value - 14)
+        if cared("仪态修整") and mode == "body":
+            value = max(1, value - 10)
+        if cared("宝匣安置", "御赐宝匣") and mode == "bao":
+            value = max(1, value - 12)
+        if cared("心癖安顿") and mode == "fixation":
+            value = max(1, value - 10)
+        candidates.append({
+            "mode": mode,
+            "severity": value,
+            "trigger": trigger,
+            "likely_failure": likely_failure,
+            "counterplay": [str(item) for item in counterplay if str(item).strip()][:3],
+            "stage": stage,
+        })
+
+    urine = str(lore.get("urinary_aftereffect") or "").strip()
+    if urine and (
+        re.search(r"久候|夜守|盯梢|跟踪|远行|出京|巡|缉拿|路上|边镇|陕西|山西|辽东", raw)
+        or domain_set.intersection({"investigation", "military", "local"})
+    ):
+        add(
+            "urinary",
+            base + 12,
+            "久候、夜守、远行或连夜盯梢",
+            "夹腰缩步、漏尿尿闭误时，线人交接或脚程可能断档。",
+            ("relay", "care_first"),
+            "久候到二更会夹腰退半步，额角见汗，却还叩首说不敢误差。",
+        )
+
+    trauma = str(lore.get("trauma_response") or "").strip()
+    if trauma and (
+        re.search(r"刑房|净房|净军|刀|血|拷|审|拿问|下狱|诏狱|廷杖|抄家|封签", raw)
+        or "investigation" in domain_set
+    ):
+        add(
+            "trauma",
+            base + 15,
+            "刑房、净房、刀声、封签或高压拿问",
+            "短暂失神、抢答或退缩，口供追问可能漏掉关键半句。",
+            ("avoid_trigger", "care_first"),
+            "听见刑房刀声先僵住，手指攥紧袖口，嗓音忽然发尖。",
+        )
+
+    bao_status = str(lore.get("bao_status") or "")
+    if (bao_status in {BAO_FORFEIT, BAO_LOST} or str(lore.get("bao_ritual") or "").strip()) and (
+        re.search(r"宝|宝匣|封签|官库|旧案|净房|司礼监|内廷|验身|验宝", raw)
+        or "inner" in domain_set
+    ):
+        add(
+            "bao",
+            base + (13 if bao_status in {BAO_FORFEIT, BAO_LOST} else 4),
+            "宝匣、官库封签、净房旧案或验宝话头",
+            "怨气和全尸执念上涌，可能避谈、篡改轻重或借题报私怨。",
+            ("avoid_trigger", "care_first", "force"),
+            "话到宝匣封签便摸袖中钥匙，眼神避开御案。",
+        )
+
+    body = str(lore.get("voice_body_change") or "").strip()
+    if body and (
+        re.search(r"乔装|潜入|外出|传旨|宣旨|密会|面见|跑腿|见人|口供", raw)
+        or domain_set.intersection({"investigation", "local", "public"})
+    ):
+        add(
+            "body",
+            base + 6,
+            "公开传旨、乔装接触、面见问话",
+            "嗓音体态露怯，容易被外人看出内廷痕迹或被当场压住。",
+            ("avoid_trigger", "care_first"),
+            "说到要见外人时肩背微缩，先清嗓再敢回话。",
+        )
+
+    fixation = str(lore.get("private_fixation") or "").strip()
+    if fixation and re.search(r"钥匙|封匣|账册|库|规矩|搜查|翻检|洁净|衣物", raw):
+        add(
+            "fixation",
+            base + 4,
+            "库房、封匣、翻检、洁净规矩",
+            "办差会偏执走样，过度翻检或死守小规矩，拖慢主线。",
+            ("avoid_trigger", "care_first"),
+            "反复抚平衣褶，像先把规矩摆正才敢迈步。",
+        )
+
+    if not candidates:
+        return {}
+    candidates.sort(key=lambda item: int(item.get("severity") or 0), reverse=True)
+    chosen = candidates[0]
+    chosen["severity_label"] = "高" if int(chosen["severity"]) >= 78 else "中" if int(chosen["severity"]) >= 58 else "低"
+    return chosen
+
+
 def assignment_risk_profile(
     db: GameDB,
     name: str,
@@ -3009,6 +3136,14 @@ def assignment_risk_profile(
         risks=risks,
         score_delta=score_delta,
     )
+    flare = _dispatch_flare_profile(
+        lore,
+        raw=raw,
+        domain_set=domain_set,
+        risks=risks,
+        score_delta=score_delta,
+        traits=traits,
+    )
     return {
         "name": clean_name,
         "score_delta": score_delta,
@@ -3018,6 +3153,7 @@ def assignment_risk_profile(
         "stage_cues": stage_cues[:4],
         "condition_line": str((public_lore_payload(db, clean_name) or {}).get("condition_line") or "")[:240],
         "dispatch_strategies": dispatch_strategies[:4],
+        "flare": flare,
         "voice_fit": {
             "register": register,
             "traits": voice_traits[:6],
@@ -3222,6 +3358,8 @@ def apply_eunuch_dispatch_strategy(
         "delta": delta,
         "risk_before": risk_before,
         "risk_after": risk_after,
+        "flare_before": risk_before.get("flare") if isinstance(risk_before.get("flare"), dict) else {},
+        "flare_after": risk_after.get("flare") if isinstance((risk_after or {}).get("flare"), dict) else {},
     }
 
 

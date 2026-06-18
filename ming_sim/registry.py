@@ -704,6 +704,18 @@ def build_secret_order_brief(character: Character, context: CourtContext) -> str
         ] if isinstance(eunuch_risk, dict) else []
         if risks:
             lines.append(f"    （净身旧患：{'; '.join(risks[:2])}）")
+        flare = eunuch_risk.get("flare") if isinstance(eunuch_risk.get("flare"), dict) else {}
+        if flare:
+            mode = str(flare.get("mode") or "旧患").strip()
+            severity = str(flare.get("severity") or "").strip()
+            trigger = str(flare.get("trigger") or "").strip()
+            failure = str(flare.get("likely_failure") or "").strip()
+            counterplay = "/".join(str(item) for item in (flare.get("counterplay") or [])[:3] if str(item).strip())
+            lines.append(
+                f"    （旧患爆点：{mode} {severity or '?'}；{trigger}；{failure}"
+                + (f"；可压：{counterplay}" if counterplay else "")
+                + "）"
+            )
         voice_fit = eunuch_risk.get("voice_fit") if isinstance(eunuch_risk.get("voice_fit"), dict) else {}
         voice_notes = [
             str(item).strip()

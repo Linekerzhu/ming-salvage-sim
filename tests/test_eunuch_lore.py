@@ -619,12 +619,17 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertTrue(any("尿路旧患" in item for item in before["risks"]))
             self.assertTrue(any("惊创未平" in item for item in before["risks"]))
             self.assertTrue(before["stage_cues"])
+            self.assertEqual(before["flare"]["mode"], "urinary")
+            self.assertGreaterEqual(int(before["flare"]["severity"]), 70)
+            self.assertIn("relay", before["flare"]["counterplay"])
+            self.assertIn("漏尿尿闭", before["flare"]["likely_failure"])
 
             el.apply_eunuch_care(db, state, name, mode="urinary", note="先治尿闭漏尿，再派久候盯梢。")
             after = el.assignment_risk_profile(db, name, task, domains=["investigation", "inner"])
 
             self.assertGreater(int(after["score_delta"]), int(before["score_delta"]))
             self.assertTrue(any("尿路旧患已有御前调养" in item for item in after["mitigations"]))
+            self.assertTrue(after["flare"])
 
     def test_dispatch_strategy_relays_old_wound_secret_order_risk(self):
         with TemporaryDirectory() as tmp:
@@ -667,6 +672,8 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertEqual(result["strategy"], "relay")
             self.assertEqual(result["cost"], 1)
             self.assertIn("旧患风险", result["outcome"])
+            self.assertTrue(result["flare_before"])
+            self.assertTrue(result["flare_after"])
             self.assertGreater(
                 int(result["risk_after"]["score_delta"]),
                 int(result["risk_before"]["score_delta"]),
