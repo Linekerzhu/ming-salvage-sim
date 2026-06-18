@@ -96,6 +96,55 @@ def _blocked_json(goal: Dict[str, object], blocker: str) -> str:
     return json.dumps(blockers[-8:], ensure_ascii=False)
 
 
+def _clamp_opinion(value: int) -> int:
+    return max(-100, min(100, int(value)))
+
+
+def _shift_existing_opinion(db: GameDB, a: str, b: str, delta: int, day: int) -> bool:
+    row = db.conn.execute(
+        "SELECT opinion FROM relationships WHERE a_name=? AND b_name=?",
+        (str(a or "").strip(), str(b or "").strip()),
+    ).fetchone()
+    if row is None:
+        return False
+    db.conn.execute(
+        "UPDATE relationships SET opinion=?, updated_day=? WHERE a_name=? AND b_name=?",
+        (_clamp_opinion(int(row["opinion"] or 0) + int(delta)), int(day), a, b),
+    )
+    return True
+
+
+def _relationship_ripple(db: GameDB, name: str, *, overdue: bool, day: int) -> Dict[str, List[str]]:
+    """Let a failed promise tug at the existing NPC relationship web."""
+
+    try:
+        from ming_sim import court
+    except ImportError:
+        return {"allies": [], "rivals": []}
+    touched: Dict[str, List[str]] = {"allies": [], "rivals": []}
+    ally_delta = 2 if overdue else 1
+    rival_delta = -2 if overdue else -1
+    for ally in court.allies_of(db, name, limit=3):
+        other = str(ally.get("name") or "").strip()
+        if not other:
+            continue
+        changed = _shift_existing_opinion(db, other, name, ally_delta, day)
+        changed = _shift_existing_opinion(db, name, other, max(1, ally_delta - 1), day) or changed
+        if changed:
+            touched["allies"].append(other)
+    for rival in court.rivals_of(db, name, limit=3):
+        other = str(rival.get("name") or "").strip()
+        if not other:
+            continue
+        changed = _shift_existing_opinion(db, other, name, rival_delta, day)
+        changed = _shift_existing_opinion(db, name, other, min(-1, rival_delta + 1), day) or changed
+        if changed:
+            touched["rivals"].append(other)
+    if touched["allies"] or touched["rivals"]:
+        db.conn.commit()
+    return touched
+
+
 def obligation_pressure_tick(
     db: GameDB,
     state: GameState,
@@ -149,6 +198,9 @@ def obligation_pressure_tick(
             "trust_delta": -2 if overdue else -1,
             "grievance_delta": 5 if overdue else 2,
         }
+        ripple = _relationship_ripple(db, name, overdue=overdue, day=day)
+        if ripple["allies"] or ripple["rivals"]:
+            last_delta["monthly_pressure"]["network_touch"] = ripple
         fields: Dict[str, object] = {
             "last_delta_json": last_delta,
             "blockers_json": _blocked_json(goal, blocker),
@@ -189,6 +241,10 @@ def obligation_pressure_tick(
                 {"kind": "trust", "label": "信任 -2" if overdue else "信任 -1", "tone": "bad"},
                 {"kind": "grievance", "label": "怨望 +5" if overdue else "怨望 +2", "tone": "bad"},
                 {"kind": "obligation", "label": label, "tone": "warn"},
+                *(
+                    [{"kind": "relationship", "label": "关系网震荡", "tone": "warn"}]
+                    if ripple["allies"] or ripple["rivals"] else []
+                ),
             ],
         })
 

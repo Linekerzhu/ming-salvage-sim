@@ -944,11 +944,50 @@ def _professional_match(values: Dict[str, object], flags: Dict[str, bool]) -> Tu
     return strengths[:4], gaps[:3]
 
 
-def _network_pressure_for_dialogue(name: str, text: str) -> Dict[str, object]:
+def _recent_obligation_pressure_for_dialogue(db: Optional[GameDB], name: str) -> List[str]:
+    if db is None:
+        return []
+    clean_name = str(name or "").strip()
+    if not clean_name:
+        return []
+    try:
+        rows = db.conn.execute(
+            """
+            SELECT g.title, g.status, e.summary, e.payload_json
+            FROM conversation_goal_events e
+            JOIN conversation_goals g ON g.id=e.goal_id
+            WHERE e.minister_name=? AND e.event_kind='monthly_pressure'
+            ORDER BY e.id DESC
+            LIMIT 3
+            """,
+            (clean_name,),
+        ).fetchall()
+    except Exception:
+        return []
+    out: List[str] = []
+    for row in rows:
+        payload: Dict[str, object] = {}
+        try:
+            parsed = json.loads(str(row["payload_json"] or "{}"))
+            payload = parsed if isinstance(parsed, dict) else {}
+        except (TypeError, ValueError, json.JSONDecodeError):
+            payload = {}
+        pressure = payload.get("monthly_pressure") if isinstance(payload.get("monthly_pressure"), dict) else {}
+        label = str(pressure.get("label") or "旧约发酵").strip()
+        kind = str(pressure.get("kind") or "").strip()
+        title = str(row["title"] or row["summary"] or "未竟奏对").strip()
+        status = str(row["status"] or "").strip()
+        prefix = "逾期" if kind == "overdue" or status == "blocked" else "拖延"
+        out.append(f"{prefix}{label}：{title[:48]}")
+    return out[:3]
+
+
+def _network_pressure_for_dialogue(name: str, text: str, *, db: Optional[GameDB] = None) -> Dict[str, object]:
     content = _ctx()
     entry = content.npc_network.get(str(name or "").strip())
+    recent_pressures = _recent_obligation_pressure_for_dialogue(db, name)
     if not isinstance(entry, dict):
-        return {"allies": [], "rivals": [], "obligations": [], "traits": []}
+        return {"allies": [], "rivals": [], "obligations": [], "traits": [], "pressures": recent_pressures}
     relations = entry.get("relations") if isinstance(entry.get("relations"), list) else []
     allies: List[str] = []
     rivals: List[str] = []
@@ -993,6 +1032,7 @@ def _network_pressure_for_dialogue(name: str, text: str) -> Dict[str, object]:
         "rivals": rivals[:4],
         "obligations": obligations[:4],
         "traits": traits[:6],
+        "pressures": recent_pressures,
     }
 
 
@@ -1368,6 +1408,7 @@ def npc_dialogue_behavior_profile(
     xinpan_profile: Optional[Dict[str, object]] = None,
     text: str = "",
     character: Optional[Character] = None,
+    db: Optional[GameDB] = None,
 ) -> Dict[str, object]:
     """Hidden behavior policy for NPC chat and stance extraction.
 
@@ -1462,11 +1503,17 @@ def npc_dialogue_behavior_profile(
         _bias_add(bias, reasons, "caution", 1, f"议题超出明显强项：{'、'.join(ability_gaps[:2])}")
         risk_tags.append("能力边界")
 
-    network_pressure = _network_pressure_for_dialogue(name, text)
+    network_pressure = _network_pressure_for_dialogue(name, text, db=db)
     rivals = [str(item) for item in network_pressure.get("rivals", []) if str(item).strip()]
     allies = [str(item) for item in network_pressure.get("allies", []) if str(item).strip()]
     obligations = [str(item) for item in network_pressure.get("obligations", []) if str(item).strip()]
+    pressures = [str(item) for item in network_pressure.get("pressures", []) if str(item).strip()]
     trait_markers = [str(item) for item in network_pressure.get("traits", []) if str(item).strip()]
+    if pressures:
+        _bias_add(bias, reasons, "caution", 2, "近期旧约发酵：须先交账、求证据或请求皇帝明示责任边界")
+        decision.append("若被召见，应先主动说明旧约为何未了、证据缺口和愿担/不能担的责任")
+        tone.append("带着旧约压力入殿，可能有歉疚、委屈或求保全的味道")
+        risk_tags.append("旧约发酵")
     if rivals:
         _bias_add(bias, reasons, "oppose", 3, "本轮提到政敌/旧怨对象：倾向拆台、告状或借题攻击")
         decision.append("若皇帝采纳政敌建议，应指出其私心、旧案或执行反噬；可请求查证而非直接撕破脸")
@@ -1544,6 +1591,7 @@ def npc_dialogue_behavior_profile(
             "rivals": rivals[:4],
             "allies": allies[:4],
             "obligations": obligations[:4],
+            "pressures": pressures[:3],
             "traits": trait_markers[:6],
         },
         "role_policy": role_policy,
@@ -1557,12 +1605,14 @@ def npc_dialogue_behavior_brief(
     xinpan_profile: Optional[Dict[str, object]] = None,
     text: str = "",
     character: Optional[Character] = None,
+    db: Optional[GameDB] = None,
 ) -> str:
     profile = npc_dialogue_behavior_profile(
         name,
         xinpan_profile=xinpan_profile,
         text=text,
         character=character,
+        db=db,
     )
     tone = "；".join(str(item) for item in profile.get("tone", []) if str(item).strip())
     decision = "；".join(str(item) for item in profile.get("decision", []) if str(item).strip())
@@ -1570,7 +1620,7 @@ def npc_dialogue_behavior_brief(
     risks = "、".join(str(item) for item in profile.get("risk_tags", []) if str(item).strip())
     network = profile.get("network_pressure") if isinstance(profile.get("network_pressure"), dict) else {}
     network_bits = []
-    for key, label in (("rivals", "政敌/旧怨"), ("allies", "同党/同道"), ("obligations", "恩主座师")):
+    for key, label in (("rivals", "政敌/旧怨"), ("allies", "同党/同道"), ("obligations", "恩主座师"), ("pressures", "近期旧约压力")):
         values = [str(item) for item in (network.get(key) or []) if str(item).strip()]
         if values:
             network_bits.append(f"{label}：" + "、".join(values[:3]))
