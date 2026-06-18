@@ -3786,7 +3786,9 @@ class WebGame:
                 return ""
         if kind == "legacy" or ref_kind == "legacy":
             actor = str(context.get("actor") or "").strip()
-            if actor and actor != minister_name:
+            target = str(context.get("target") or "").strip()
+            allowed = {name for name in (actor, target) if name}
+            if allowed and minister_name not in allowed:
                 return ""
             ref_id = context.get("ref_id") or context.get("id")
             try:

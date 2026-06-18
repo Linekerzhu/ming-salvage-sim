@@ -562,19 +562,28 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertEqual(card["tab"], "audience")
             self.assertEqual(card["cta"], "召人问余波")
             self.assertTrue(card["actor"])
+            self.assertTrue(card["target"])
+            self.assertNotEqual(card["actor"], card["target"])
             self.assertEqual(card["meta"], "永久")
             self.assertIn("政策余波", str(card["title"]))
+            self.assertIn("可召", str(card["detail"]))
             labels = [str(e["label"]) for e in card["effects"]]
             self.assertIn("民心 -9%", labels)
             self.assertIn("永久", labels)
+            self.assertIn("受益 边军/户部", labels)
+            self.assertIn("承压 地方百姓/士绅", labels)
 
             brief = legacy_chat_context_brief(db, str(card["actor"]), legacy_id)
+            target_brief = legacy_chat_context_brief(db, str(card["target"]), legacy_id)
             self.assertIn("本次召对事项：长期政策余波", brief)
             self.assertIn("苛税余波：辽饷", brief)
             self.assertIn("不是新政空谈", brief)
+            self.assertIn("两难结构", brief)
+            self.assertIn("财政承压方", brief)
             self.assertIn("民心 -9%", brief)
             self.assertIn("有代价的善后方案", brief)
             self.assertIn("受益者/受损者", brief)
+            self.assertIn("民怨善后方", target_brief)
 
     def test_legacy_chat_context_uses_live_remaining_months(self):
         with TemporaryDirectory() as tmp:

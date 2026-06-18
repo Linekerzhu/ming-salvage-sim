@@ -709,12 +709,33 @@ def legacy_chat_context_brief(
     hint = str(row["narrative_hint"] or "")
     stem = str(policy.get("stem") or "")
     office = _short_office(str(minister["office"] or ""))
+    stakeholders = _policy_legacy_stakeholders(db, row)
+    fiscal_actor = str(stakeholders.get("fiscal_actor") or "")
+    relief_actor = str(stakeholders.get("relief_actor") or "")
+    beneficiary = str(stakeholders.get("beneficiary") or "国库与承办衙门")
+    sufferer = str(stakeholders.get("sufferer") or "地方百姓与清议")
+    if name == fiscal_actor:
+        stance = "财政承压方，容易先护住钱粮缺口，再谈蠲缓"
+    elif name == relief_actor:
+        stance = "民怨善后方，容易先追问地方承受、浮收和清议反噬"
+    else:
+        stance = "被召来评估旧政两难，应按本职和派系选择立场"
     lines = [
         "【本次召对事项：长期政策余波】",
         f"- {office}{name}被召来讨论「{title}」：这是已经落库的长期后果，不是新政空谈。",
         f"- 余波事实：{hint or '旧政仍在拖动朝局。'}",
         f"- 持续性：{duration_text}" + (f"；当前修正：{effect_text}" if effect_text else "") + "。",
+        f"- 两难结构：撑住/受益的是{beneficiary}；承压/反噬的是{sufferer}。",
+        f"- 当前入对立场：{name}更像{stance}。",
     ]
+    if fiscal_actor or relief_actor:
+        lines.append(
+            "- 可对质人选："
+            + (f"财政承压方 {fiscal_actor}" if fiscal_actor else "财政承压方未明")
+            + "；"
+            + (f"民怨善后方 {relief_actor}" if relief_actor else "民怨善后方未明")
+            + "。"
+        )
     if stem:
         lines.append(
             f"- 政策焦点：{stem}已成税负/钱粮旧账；可谈增收、民怨、地方承受、士绅阻力和善后路径。"
@@ -2420,23 +2441,39 @@ def _policy_legacy_cards(db: GameDB, state: Optional[GameState], cards: List[Bri
                 remaining = duration
         duration_label = "永久" if duration < 0 else f"余{remaining}月"
         effects = policy_legacy_effect_labels_safe(row)
-        actor = _policy_legacy_actor(db, row)
+        stakeholders = _policy_legacy_stakeholders(db, row)
+        actor = str(stakeholders.get("fiscal_actor") or "")
+        target = str(stakeholders.get("relief_actor") or "")
+        beneficiary = str(stakeholders.get("beneficiary") or "")
+        sufferer = str(stakeholders.get("sufferer") or "")
+        if beneficiary:
+            effects.append({"kind": "beneficiary", "label": f"受益 {beneficiary}", "tone": "good"})
+        if sufferer:
+            effects.append({"kind": "sufferer", "label": f"承压 {sufferer}", "tone": "bad"})
         if actor and any(
             str(card.get("actor") or "") == actor
             and str(card.get("kind") or "") in {"trap_remedy", "directive_followup", "monthly_followup", "petition", "favor"}
             for card in cards
         ):
             continue
+        if target == actor:
+            target = ""
+        detail = hint or "此项旧政仍在拖动朝局。钱粮、民心与地方承受力不会因办结而立刻归零。"
+        if actor and target:
+            detail += f" 可召{actor}谈钱粮缺口，也可召{target}追问民怨反噬。"
+        elif actor:
+            detail += f" 可召{actor}问清受益者、受损者和善后代价。"
         cards.append(
             _card(
                 kind="legacy",
                 title=f"政策余波：{name}",
-                detail=hint or "此项旧政仍在拖动朝局。钱粮、民心与地方承受力不会因办结而立刻归零。",
+                detail=detail,
                 urgency=68 + min(24, abs(minxin) * 2) + (8 if duration < 0 else 0),
                 tone="danger" if duration < 0 or minxin <= -10 else "warn",
                 cta="召人问余波" if actor else "看天下",
                 tab=_TAB_AUDIENCE if actor else _TAB_REALM,
                 actor=actor,
+                target=target,
                 meta=duration_label,
                 ref_kind="legacy",
                 ref_id=str(row["id"]),
@@ -2523,6 +2560,69 @@ def _policy_legacy_actor(db: GameDB, row) -> str:
         """
     ).fetchone()
     return str(row2["name"] or "") if row2 is not None else ""
+
+
+def _policy_legacy_stakeholders(db: GameDB, row) -> Dict[str, str]:
+    policy = _legacy_policy_payload(row)
+    if not policy["is_policy"]:
+        return {}
+    stem = str(policy.get("stem") or "")
+    fiscal_actor = _policy_legacy_actor(db, row)
+    relief_actor = _policy_legacy_relief_actor(db, exclude=fiscal_actor)
+    beneficiary, sufferer = _policy_legacy_side_labels(stem)
+    return {
+        "fiscal_actor": fiscal_actor,
+        "relief_actor": relief_actor,
+        "beneficiary": beneficiary,
+        "sufferer": sufferer,
+    }
+
+
+def _policy_legacy_relief_actor(db: GameDB, *, exclude: str = "") -> str:
+    if not _table_exists(db, "characters"):
+        return ""
+    row = db.conn.execute(
+        """
+        SELECT name
+        FROM characters
+        WHERE status='active'
+          AND power_id='ming'
+          AND office_type!='后宫'
+          AND name!='崇祯'
+          AND name!=?
+        ORDER BY
+          CASE
+            WHEN office LIKE '%都察院%' OR office_type LIKE '%都察院%' THEN 0
+            WHEN office LIKE '%御史%' OR office LIKE '%给事%' THEN 1
+            WHEN faction='东林' THEN 2
+            WHEN office_type IN ('地方','翰林院') THEN 3
+            ELSE 4
+          END,
+          integrity DESC,
+          grievance DESC,
+          ability DESC
+        LIMIT 1
+        """,
+        (str(exclude or ""),),
+    ).fetchone()
+    return str(row["name"] or "") if row is not None else ""
+
+
+def _policy_legacy_side_labels(stem: str) -> Tuple[str, str]:
+    text = str(stem or "")
+    if text == "辽饷":
+        return "边军/户部", "地方百姓/士绅"
+    if text == "商税":
+        return "国库/军需", "商贾/城市"
+    if text == "盐税":
+        return "国库/盐法衙门", "灶户/盐商"
+    if text == "矿税":
+        return "内库/矿监", "矿区百姓/地方官"
+    if text == "田赋":
+        return "国库/州县粮道", "粮户/地方士绅"
+    if text:
+        return "国库/承办衙门", "地方百姓/清议"
+    return "受益衙门", "承压人群"
 
 
 def _agenda_cards(db: GameDB, cards: List[BriefCard]) -> None:

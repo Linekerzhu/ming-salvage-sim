@@ -285,6 +285,16 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                         )}
                         <button className="m-brief-action" onClick={() => inspect(card.actor)}>查此人</button>
                       </>
+                    ) : card.kind === "legacy" && card.actor ? (
+                      <>
+                        {canSummon(card.actor, activeMinisters) && (
+                          <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, card.target || "")}>召{shortName(card.actor)}</button>
+                        )}
+                        {canSummon(card.target, activeMinisters) && (
+                          <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.target!, card.actor)}>召{shortName(card.target)}</button>
+                        )}
+                        <button className="m-brief-action" onClick={() => go("realm")}>看天下</button>
+                      </>
                     ) : card.tab === "audience" && card.actor ? (
                       <>
                         <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, card.target || "")}>{card.cta || "召来问对"}</button>

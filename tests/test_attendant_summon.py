@@ -588,11 +588,18 @@ class AttendantSummonTests(unittest.TestCase):
                 "AND (office LIKE '%户部%' OR office_type LIKE '%户部%') "
                 "ORDER BY ability DESC LIMIT 1"
             ).fetchone()["name"])
+            target = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!=? AND (office LIKE '%都察院%' OR office_type LIKE '%都察院%' OR faction='东林') "
+                "ORDER BY integrity DESC, ability DESC LIMIT 1",
+                (actor,),
+            ).fetchone()["name"])
             other = str(game.db.conn.execute(
                 "SELECT name FROM characters "
-                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' AND name!=? "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' AND name NOT IN (?, ?) "
                 "ORDER BY ability DESC LIMIT 1",
-                (actor,),
+                (actor, target),
             ).fetchone()["name"])
             legacy_id = game.db.insert_legacy(
                 game.state,
@@ -609,11 +616,13 @@ class AttendantSummonTests(unittest.TestCase):
             context = {
                 "kind": "legacy",
                 "actor": actor,
+                "target": target,
                 "ref_kind": "legacy",
                 "ref_id": str(legacy_id),
             }
 
             brief = game._chat_context_brief(actor, context)
+            target_brief = game._chat_context_brief(target, context)
             mismatch = game._chat_context_brief(other, context)
             augmented, prepared = game.session.prepare_chat_run(
                 game.content.characters[actor],
@@ -622,6 +631,8 @@ class AttendantSummonTests(unittest.TestCase):
             )
 
             self.assertIn("本次召对事项：长期政策余波", brief)
+            self.assertIn("两难结构", brief)
+            self.assertIn("民怨善后方", target_brief)
             self.assertEqual(mismatch, "")
             self.assertIn("长期政策余波", augmented)
             self.assertIn("长期政策余波", prepared.behavior_context)
