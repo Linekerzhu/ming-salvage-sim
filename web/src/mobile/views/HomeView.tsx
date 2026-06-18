@@ -445,9 +445,9 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
   }
   if (card.kind === "petition") {
     return [
-      { label: "听其求援", text: `朕知道你近日有难处。今日召你，不听套话，只听你要求朕替你解哪一处困局。`, prefix: true },
-      { label: "给台阶", text: `朕可以给你一个台阶，但你须拿一件可验的差使来换。你愿办什么，几日能见回奏？`, prefix: true },
-      { label: "问代价", text: `你来求朕护持，是为公事还是私怨？若朕应你，会得罪谁，又能换来什么？`, prefix: true },
+      { label: "准其护持", text: `朕可以暂护你一程，但不是白给。你先说清楚：朕应你会得罪谁，你能拿什么差使来换？`, prefix: true },
+      { label: "逼其交账", text: `要朕给台阶，就先交账：人证、账目、把柄或可验差使，你今日能拿出哪一样？`, prefix: true },
+      { label: "暂不护持", text: `朕今日未必应你。若朕暂不护持，你还愿不愿替朝廷办事？你的底线是什么？`, prefix: true },
     ];
   }
   if (card.kind === "favor") {
@@ -472,11 +472,7 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
     ];
   }
   if (card.kind === "monthly_followup") {
-    return [
-      { label: "听其请安", text: `朕准你请安。你本月主动求见，先说清楚：是复命、求资源，还是要朕给一道明旨？`, prefix: true },
-      { label: "问卡点", text: `你这桩事拖到今日，卡在钱粮、人手、名分，还是有人暗中掣肘？照实奏来。`, prefix: true },
-      { label: "设回奏期", text: `朕可以给你边界和名分，但要有期限、有证据。你几日内能拿什么来回奏？`, prefix: true },
-    ];
+    return monthlyFollowupPrompts(card);
   }
   if (card.kind === "patronage") {
     const summonedSponsor = actor && actor === card.actor;
@@ -527,6 +523,44 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
   }
   return [
     { label: "问根由", text: `朕今日召${speaker}来，正为这桩风向。你先把根由、风险、可用之处说清楚。`, prefix: true },
+  ];
+}
+
+function monthlyFollowupPrompts(card: PlaystyleBriefCard): Suggestion[] {
+  const meta = String(card.meta || "");
+  const title = briefTopic(card.title);
+  if (meta.includes("密令")) {
+    return [
+      { label: "先复密令", text: `先不求新恩。${title}办到哪一步？哪些是亲见证据，哪些只是风闻？`, prefix: true },
+      { label: "补证再议", text: `若证据不足，朕不给你空名分。你还缺谁的人证、哪处账目、几日能补齐？`, prefix: true },
+      { label: "问失手价", text: `密令若再拖下去，会惊动谁、牵连谁？你要朕保你，先说失手的代价。`, prefix: true },
+    ];
+  }
+  if (meta.includes("举主")) {
+    return [
+      { label: "问担保", text: `你今日候见，若是为荐人旧账而来，就说明白：你愿拿什么名节、差使或期限作保？`, prefix: true },
+      { label: "令共办", text: `荐人不能只写在名帖上。你同他共办一件可验小差，几日内交账？`, prefix: true },
+      { label: "防植党", text: `若此事只是替门生故旧求路，朕不会轻许。你如何证明不是借荐人植党？`, prefix: true },
+    ];
+  }
+  if (meta.includes("旧政")) {
+    return [
+      { label: "先报清查", text: `旧政清查先说证据：谁加派，谁吞没，谁受益，谁受损？`, prefix: true },
+      { label: "限期善后", text: `若朕给你名分清查，你几日内能拿出账目、人证和善后方案？`, prefix: true },
+      { label: "问反噬", text: `这桩旧政牵动钱粮和党争。若朕动它，谁会反噬，缺口由谁补？`, prefix: true },
+    ];
+  }
+  if (meta.includes("旧约") || meta.includes("到期")) {
+    return [
+      { label: "清旧约", text: `你本月候见，先把旧约说清楚：已办成什么，没办成什么，谁在拖你？`, prefix: true },
+      { label: "重定限期", text: `朕可再给期限，但要换条件。几日、何证、何人担保？`, prefix: true },
+      { label: "问失约罪", text: `若这回仍无实据，朕该问谁的罪？你自己先说轻重。`, prefix: true },
+    ];
+  }
+  return [
+    { label: "先听复命", text: `朕准你请安。先说清楚：这是复命、求资源，还是要朕给一道明旨？`, prefix: true },
+    { label: "问卡点", text: `你这桩事卡在钱粮、人手、名分，还是有人暗中掣肘？照实奏来。`, prefix: true },
+    { label: "设回奏期", text: `朕可以给边界和名分，但要有期限、有证据。你几日内能拿什么来回奏？`, prefix: true },
   ];
 }
 
