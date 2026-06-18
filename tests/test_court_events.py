@@ -68,6 +68,35 @@ class TriggerTests(unittest.TestCase):
             second = court_events.evaluate_decisions(db, state, day)  # 已有待决
             self.assertIsNone(second, "一次至多一道待决")
 
+    def test_high_grievance_petition_triggers_dilemma(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            petitioner, rival = _two_ming(db)
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=24, grievance=84, faction='东林' WHERE name=?",
+                (petitioner,),
+            )
+            db.conn.execute(
+                "UPDATE characters SET faction='阉党' WHERE name=?",
+                (rival,),
+            )
+            court._set_opinion(db, petitioner, rival, -78, "夺功旧怨", day)
+            court._set_opinion(db, rival, petitioner, -72, "夺功旧怨", day)
+            db.conn.commit()
+
+            payload = court_events.evaluate_decisions(db, state, day)
+
+            self.assertIsNotNone(payload)
+            self.assertEqual(payload["id"], "imperial_petition")
+            self.assertIn(petitioner, str(payload["title"]))
+            keys = {str(ch["key"]) for ch in payload["choices"]}
+            self.assertEqual(keys, {"protect", "demand_service", "co_work", "shelve"})
+            protect = next(ch for ch in payload["choices"] if ch["key"] == "protect")
+            labels = [str(e["label"]) for e in protect["effects"]]
+            self.assertIn(f"{petitioner}信任 +10", labels)
+            self.assertIn("东林满意 +4", labels)
+            self.assertIn("阉党热度 +5", labels)
+
 
 class ResolveTests(unittest.TestCase):
     def test_resolve_applies_effect_and_clears(self):
@@ -102,6 +131,47 @@ class ResolveTests(unittest.TestCase):
             db, state, day = _fresh(tmp)
             res = court_events.resolve_decision(db, state, "both", day=day)
             self.assertFalse(res["ok"])
+
+    def test_petition_protection_changes_people_and_faction_heat(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            petitioner, rival = _two_ming(db)
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=24, grievance=84, faction='东林' WHERE name=?",
+                (petitioner,),
+            )
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=55, grievance=20, faction='阉党' WHERE name=?",
+                (rival,),
+            )
+            court._set_opinion(db, petitioner, rival, -78, "夺功旧怨", day)
+            court._set_opinion(db, rival, petitioner, -72, "夺功旧怨", day)
+            db.conn.commit()
+            heat_before = int(db.conn.execute(
+                "SELECT heat FROM factions WHERE name='阉党'"
+            ).fetchone()["heat"])
+
+            court_events.evaluate_decisions(db, state, day)
+            res = court_events.resolve_decision(db, state, "protect", day=day)
+
+            self.assertTrue(res["ok"], res)
+            prow = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?", (petitioner,)
+            ).fetchone()
+            rrow = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?", (rival,)
+            ).fetchone()
+            self.assertEqual(int(prow["emp_trust"]), 34)
+            self.assertEqual(int(prow["grievance"]), 72)
+            self.assertEqual(int(rrow["emp_trust"]), 52)
+            self.assertEqual(int(rrow["grievance"]), 25)
+            heat_after = int(db.conn.execute(
+                "SELECT heat FROM factions WHERE name='阉党'"
+            ).fetchone()["heat"])
+            self.assertEqual(heat_after, heat_before + 5)
+            labels = [str(e["label"]) for e in res["effects"]]
+            self.assertIn("阉党热度 +5", labels)
+            self.assertIsNone(court_events.get_pending(db))
 
 
 class IntegrationTests(unittest.TestCase):

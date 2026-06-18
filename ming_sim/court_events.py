@@ -56,6 +56,14 @@ def _apply_effect(db: GameDB, state: GameState, eff: Dict[str, object], day: int
             sd = int(fv.get("satisfaction") or 0) if isinstance(fv, dict) else 0
             if sd:
                 parts.append(f"{fn}满意{'+' if sd > 0 else ''}{sd}")
+            heat = int(fv.get("heat") or 0) if isinstance(fv, dict) else 0
+            if heat:
+                try:
+                    from ming_sim.theater import adjust_faction_heat
+                    adjust_faction_heat(db, str(fn), heat, str(eff.get("log") or "抉择"))
+                except Exception:
+                    pass
+                parts.append(f"{fn}热度{'+' if heat > 0 else ''}{heat}")
     for op in (eff.get("opinion") or []):
         court.adjust_opinion(db, str(op["a"]), str(op["b"]), int(op["delta"]),
                              str(op.get("basis") or ""), day=day)
@@ -171,6 +179,9 @@ def _preview_effects(eff: Dict[str, object]) -> List[Dict[str, str]]:
         lev = int(fv.get("leverage") or 0)
         if lev:
             add("faction_leverage", f"{fn}势力 {_signed(lev)}", _tone(lev, inverse=True))
+        heat = int(fv.get("heat") or 0)
+        if heat:
+            add("faction_heat", f"{fn}热度 {_signed(heat)}", _tone(heat, inverse=True))
 
     for ch in (eff.get("char") or []):
         name = str(ch.get("name") or "")
@@ -396,6 +407,139 @@ def _packed_faction(db: GameDB) -> Optional[Dict[str, object]]:
     return {"faction": str(row["name"]), "leverage": int(row["leverage"])}
 
 
+def _imperial_petition(db: GameDB) -> Optional[Dict[str, object]]:
+    """NPC 主动求援：怨望/低信任/政敌重压积累到必须请皇帝给话。
+
+    首页风向可以轻量提示；这里阈值更高，只有矛盾进入政治成本区才升格为
+    CK3 式裁断事件。
+    """
+
+    row = db.conn.execute(
+        """
+        SELECT c.name, c.office, c.faction, c.ability, c.integrity,
+               c.emp_trust, c.grievance
+        FROM characters c
+        WHERE c.status='active'
+          AND c.power_id='ming'
+          AND c.office_type!='后宫'
+          AND c.name!='崇祯'
+          AND (
+            c.grievance>=78
+            OR c.emp_trust<=28
+            OR EXISTS (
+              SELECT 1
+              FROM relationships r
+              JOIN characters other ON other.name=r.b_name
+              WHERE r.a_name=c.name
+                AND r.opinion<=-74
+                AND (c.grievance>=50 OR c.emp_trust<=42)
+                AND other.status='active'
+                AND other.power_id='ming'
+                AND other.office_type!='后宫'
+            )
+          )
+        ORDER BY
+          CASE WHEN c.grievance>=78 OR c.emp_trust<=28 THEN 0 ELSE 1 END,
+          c.grievance DESC,
+          c.emp_trust ASC,
+          c.ability DESC
+        LIMIT 1
+        """
+    ).fetchone()
+    if row is None:
+        return None
+    name = str(row["name"])
+    rival = db.conn.execute(
+        """
+        SELECT r.b_name, r.opinion, r.basis, cb.office, cb.faction
+        FROM relationships r
+        JOIN characters cb ON cb.name=r.b_name
+        WHERE r.a_name=?
+          AND r.opinion<=-55
+          AND cb.status='active'
+          AND cb.power_id='ming'
+          AND cb.office_type!='后宫'
+        ORDER BY r.opinion ASC
+        LIMIT 1
+        """,
+        (name,),
+    ).fetchone()
+    if rival is None:
+        rival_ctx = {"name": "", "opinion": 0, "basis": "", "office": "", "faction": ""}
+    else:
+        rival_ctx = {
+            "name": str(rival["b_name"] or ""),
+            "opinion": int(rival["opinion"] or 0),
+            "basis": str(rival["basis"] or "旧怨"),
+            "office": str(rival["office"] or ""),
+            "faction": str(rival["faction"] or ""),
+        }
+    return {
+        "petitioner": name,
+        "office": str(row["office"] or ""),
+        "faction": str(row["faction"] or ""),
+        "ability": int(row["ability"] or 50),
+        "integrity": int(row["integrity"] or 50),
+        "trust": int(row["emp_trust"] or 0),
+        "grievance": int(row["grievance"] or 0),
+        "rival": rival_ctx["name"],
+        "rival_office": rival_ctx["office"],
+        "rival_faction": rival_ctx["faction"],
+        "rival_opinion": rival_ctx["opinion"],
+        "basis": rival_ctx["basis"],
+    }
+
+
+def _meaningful_faction(name: object) -> str:
+    faction = str(name or "").strip()
+    return "" if faction in {"", "无", "中立"} else faction
+
+
+def _petition_faction_effect(
+    ctx: Dict[str, object],
+    *,
+    petitioner_sat: int = 0,
+    petitioner_lev: int = 0,
+    petitioner_heat: int = 0,
+    rival_sat: int = 0,
+    rival_lev: int = 0,
+    rival_heat: int = 0,
+) -> Dict[str, Dict[str, int]]:
+    out: Dict[str, Dict[str, int]] = {}
+
+    def add(faction: str, sat: int, lev: int, heat: int) -> None:
+        fac = _meaningful_faction(faction)
+        if not fac:
+            return
+        bucket = out.setdefault(fac, {})
+        if sat:
+            bucket["satisfaction"] = int(bucket.get("satisfaction", 0)) + sat
+        if lev:
+            bucket["leverage"] = int(bucket.get("leverage", 0)) + lev
+        if heat:
+            bucket["heat"] = int(bucket.get("heat", 0)) + heat
+
+    add(str(ctx.get("faction") or ""), petitioner_sat, petitioner_lev, petitioner_heat)
+    add(str(ctx.get("rival_faction") or ""), rival_sat, rival_lev, rival_heat)
+    return out
+
+
+def _petition_opinion_effect(
+    ctx: Dict[str, object],
+    petitioner_to_rival: int,
+    rival_to_petitioner: int,
+    basis: str,
+) -> List[Dict[str, object]]:
+    petitioner = str(ctx.get("petitioner") or "")
+    rival = str(ctx.get("rival") or "")
+    if not petitioner or not rival:
+        return []
+    return [
+        {"a": petitioner, "b": rival, "delta": petitioner_to_rival, "basis": basis},
+        {"a": rival, "b": petitioner, "delta": rival_to_petitioner, "basis": basis},
+    ]
+
+
 # ── 事件定义（涌现自活的宫廷）─────────────────────────────────────────────────
 
 def _succession_choices(ctx: Dict[str, object]) -> List[Dict[str, object]]:
@@ -538,6 +682,59 @@ def _defs() -> List[Dict[str, object]]:
                  "effect": lambda c: {"renshi": -3, "eunuch_power": -1,
                                       "char": [{"name": c["target"], "emp_trust": -3, "grievance": 3}],
                                       "log": f"{c['target']}被劾事，下三法司核实。"}},
+            ],
+        },
+        {
+            "id": "imperial_petition",
+            "priority": 28,
+            "when": _imperial_petition,
+            "title": lambda c: f"求援请托：{c['petitioner']}请陛下给话",
+            "narrative": lambda c: (
+                f"{c['office']}{c['petitioner']}求见，称近来信任仅{c['trust']}、怨望已{c['grievance']}。"
+                + (
+                    f"又与{c['rival_office']}{c['rival']}因「{c['basis']}」积怨甚深，恐被政敌乘势逼入绝路。"
+                    if c.get("rival") else
+                    "其言辞虽称公事，骨子里却是求陛下给一个台阶与护身符。"
+                )
+                + "陛下一句话，可救一人任事，也可能开请托之门。何以处之？"),
+            "choices": [
+                {"key": "protect", "label": lambda c: f"明旨护持{c['petitioner']}，给他台阶",
+                 "hint": "买一颗人心：任事回暖、本人死力，但显得偏护，政敌与敌派会记账",
+                 "effect": lambda c: {"shi": -1, "renshi": 4,
+                                      "char": [{"name": c["petitioner"], "emp_trust": 10, "grievance": -12}]
+                                      + ([{"name": c["rival"], "emp_trust": -3, "grievance": 5}] if c.get("rival") else []),
+                                      "opinion": _petition_opinion_effect(c, -4, -8, "御前偏护"),
+                                      "faction": _petition_faction_effect(
+                                          c, petitioner_sat=4, petitioner_lev=1, petitioner_heat=-3,
+                                          rival_sat=-4, rival_heat=5),
+                                      "log": f"明旨护持{c['petitioner']}，给其台阶以收任事之心。"}},
+                {"key": "demand_service", "label": lambda c: f"许其自辩，但命{c['petitioner']}领难差自证",
+                 "hint": "把请托变成交易：不给白护身符，须拿可验差使来换；人心略回，仍有压力",
+                 "effect": lambda c: {"shi": 1, "renshi": 3 if int(c.get("ability") or 50) >= 55 else 2,
+                                      "char": [{"name": c["petitioner"], "emp_trust": 6, "grievance": -5}],
+                                      "faction": _petition_faction_effect(c, petitioner_sat=1, petitioner_heat=-1),
+                                      "log": f"许{c['petitioner']}自辩，命其领难差自证。"}},
+                {"key": "co_work", "label": lambda c: f"令{c['petitioner']}与{c['rival']}共办一事",
+                 "hint": "把私怨压成公事：可降一点党争热度，但两人都不痛快，办坏了会一起怨上",
+                 "available": lambda c: bool(c.get("rival")),
+                 "effect": lambda c: {"shi": 2, "renshi": 1,
+                                      "char": [{"name": c["petitioner"], "emp_trust": 2, "grievance": 3},
+                                               {"name": c["rival"], "emp_trust": 2, "grievance": 2}],
+                                      "opinion": _petition_opinion_effect(c, 6, 6, "御前责令共办"),
+                                      "faction": _petition_faction_effect(
+                                          c, petitioner_sat=-2, petitioner_heat=-3,
+                                          rival_sat=-2, rival_heat=-3),
+                                      "log": f"令{c['petitioner']}与{c['rival']}共办一事，以公事压私怨。"}},
+                {"key": "shelve", "label": lambda c: "留中不应，示以不纳私请",
+                 "hint": "不为请托开门：略立规矩，却寒其任事之心，相关派系怨气升温",
+                 "effect": lambda c: {"shi": 1, "renshi": -4,
+                                      "char": [{"name": c["petitioner"], "emp_trust": -8, "grievance": 10}]
+                                      + ([{"name": c["rival"], "emp_trust": 4}] if c.get("rival") else []),
+                                      "opinion": _petition_opinion_effect(c, -6, -2, "御前留中不应"),
+                                      "faction": _petition_faction_effect(
+                                          c, petitioner_sat=-5, petitioner_heat=6,
+                                          rival_sat=2, rival_lev=1, rival_heat=2),
+                                      "log": f"{c['petitioner']}求援请托，留中不应。"}},
             ],
         },
         {
