@@ -1326,6 +1326,197 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
     return []
 
 
+def _bao_instability_score(lore: Dict[str, object], traits: set[str]) -> int:
+    bao = str(lore.get("bao_status") or "")
+    preservation = str(lore.get("bao_preservation") or "")
+    container = str(lore.get("bao_container") or "")
+    ritual = str(lore.get("bao_ritual") or "")
+    note = str(lore.get("note") or "")
+    score = 0
+    if bao == BAO_FORFEIT:
+        score += 38
+    elif bao == BAO_LOST:
+        score += 44
+    elif bao == BAO_KEPT:
+        score += 8
+    if re.search(r"官库|封签|刑房|案袋|灰瓮|旧案", f"{preservation} {container} {ritual} {note}"):
+        score += 14
+    if re.search(r"粗木|白签|灰瓮|铁皮|旧案匣|破锦|无名|失签|旧布", container):
+        score += 12
+    if re.search(r"失匣|散失|遗失|霉坏|无凭|卷匣而逃", f"{preservation} {container} {ritual} {note}"):
+        score += 18
+    if re.search(r"打听|下落|忌听|失神|终身惦念|问旧匣", ritual):
+        score += 10
+    if re.search(r"黑漆楠木|黄杨|锡胆|杉木|描金|钥匙贴身|佛龛|供奉", f"{container} {ritual}"):
+        score -= 8
+    scheme = castration_scheme_profile(lore)
+    if bool(scheme.get("explicit")) and int(scheme.get("risk_score") or 0) >= 72:
+        score += 6
+    if traits.intersection({"宝匣安置", "御前调养"}):
+        score -= 60
+    return max(0, min(100, int(score)))
+
+
+def _apply_bao_instability_effect(db: GameDB, name: str, lore: Dict[str, object], score: int) -> Dict[str, object]:
+    row = db.conn.execute(
+        "SELECT emp_trust, grievance, ability, wisdom, charm, luck FROM characters WHERE name=?",
+        (name,),
+    ).fetchone()
+    if row is None:
+        return {}
+    bao = str(lore.get("bao_status") or "")
+    delta = {"emp_trust": 0, "grievance": 0, "ability": 0, "wisdom": 0, "charm": 0, "luck": 0}
+    if bao == BAO_FORFEIT:
+        delta.update({"emp_trust": -1, "grievance": 3, "wisdom": -1 if score >= 58 else 0})
+    elif bao == BAO_LOST:
+        delta.update({"emp_trust": -1, "grievance": 2, "luck": -1})
+    else:
+        delta.update({"grievance": 1, "wisdom": 1 if score < 36 else 0})
+    if score >= 70:
+        delta["grievance"] += 1
+        delta["luck"] -= 1
+    before = {key: int(row[key] or (55 if key == "emp_trust" else 20 if key == "grievance" else 50)) for key in delta}
+    after = {key: _clamp_0_100(before[key] + delta[key]) for key in delta}
+    db.conn.execute(
+        """
+        UPDATE characters
+        SET emp_trust=?, grievance=?, ability=?, wisdom=?, charm=?, luck=?
+        WHERE name=?
+        """,
+        (after["emp_trust"], after["grievance"], after["ability"], after["wisdom"], after["charm"], after["luck"], name),
+    )
+    return {
+        "before": before,
+        "after": after,
+        "delta": {key: after[key] - before[key] for key in delta if after[key] != before[key]},
+    }
+
+
+def _bao_instability_text(name: str, lore: Dict[str, object], score: int) -> Dict[str, str]:
+    bao = str(lore.get("bao_status") or "")
+    preservation = str(lore.get("bao_preservation") or "")
+    container = str(lore.get("bao_container") or "")
+    ritual = str(lore.get("bao_ritual") or "")
+    if bao == BAO_FORFEIT:
+        return {
+            "title": f"宝案风声：{name}官库封签走漏",
+            "detail": (
+                f"{name}听闻官库有人翻看旧封签，想起宝为官没之辱。"
+                f"旧案所记：{preservation or '封存未详'}，{container or '匣器未详'}。"
+                "若不查验安置，内廷会把这桩羞辱当作拿捏他的把柄。"
+            ),
+            "stage": "手指在袖中一僵，听见封签二字便低头不语。",
+            "process": f"官库封签扰动；风险{score}",
+        }
+    if bao == BAO_LOST:
+        return {
+            "title": f"宝匣无凭：{name}旧匣下落成疑",
+            "detail": (
+                f"{name}又听见有人说起旧匣下落，{preservation or '遗失无凭'}。"
+                "真伪未明，却足以搅动他的全尸执念。"
+            ),
+            "stage": "他下意识摸袖中空处，神色一下黯了。",
+            "process": f"旧匣线索扰动；风险{score}",
+        }
+    return {
+        "title": f"宝匣失安：{name}夜验旧匣",
+        "detail": (
+            f"{name}夜里验看宝匣，{ritual or '默念全尸旧愿'}；"
+            f"{preservation or '保存未详'}，{container or '匣器未详'}。"
+            "宝匣尚在，心神稍定，但越在意，越怕人知晓。"
+        ),
+        "stage": "他摸了摸袖中钥匙，像把一口乱气按回去。",
+        "process": f"宝匣供奉扰动；风险{score}",
+    }
+
+
+def bao_instability_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:
+    """低频宝匣/官库封签事件：让宝的处置成为长期风险源，可用宝匣安置压住。"""
+    from ming_sim.timeflow import LEVEL_BLUE
+    ensure_schema(db)
+    day = int(day or 0)
+    if day <= 0 or day % 10 != 6:
+        return []
+    rows = db.conn.execute(
+        """
+        SELECT l.name
+        FROM eunuch_lore l
+        JOIN characters c ON c.name=l.name
+        WHERE c.status='active' AND c.power_id='ming'
+        ORDER BY l.name
+        """
+    ).fetchall()
+    candidates: List[tuple[int, int, str, Dict[str, object]]] = []
+    for row in rows:
+        name = str(row["name"] or "")
+        lore = get_lore(db, name) or {}
+        score = _bao_instability_score(lore, _trait_names(db, name))
+        if score < 24:
+            continue
+        seed = sum(ord(ch) for ch in f"{name}:bao") + day * 23
+        candidates.append((score * 10 + seed % 997, score, name, lore))
+    candidates.sort(reverse=True)
+    for _, score, name, lore in candidates:
+        source_id = f"{day}:{name}:bao:{score}"
+        exists = db.conn.execute(
+            """
+            SELECT 1 FROM event_memories
+            WHERE subject_type='character' AND subject_id=? AND event_type='eunuch_bao_instability'
+              AND source_kind='timeflow' AND source_id=?
+            """,
+            (name, source_id),
+        ).fetchone()
+        if exists is not None:
+            continue
+        text = _bao_instability_text(name, lore, score)
+        effect = _apply_bao_instability_effect(db, name, lore, score)
+        goal_id = _ensure_complication_goal(db, state, name, "bao", text, effect)
+        outcome_bits = []
+        for key, label in (
+            ("emp_trust", "信任"),
+            ("grievance", "怨望"),
+            ("ability", "才干"),
+            ("wisdom", "机敏"),
+            ("charm", "仪表"),
+            ("luck", "运势"),
+        ):
+            delta = int((effect.get("delta") or {}).get(key) or 0) if isinstance(effect, dict) else 0
+            if delta:
+                outcome_bits.append(f"{label}{delta:+d}")
+        outcome = "，".join(outcome_bits) or "只留宝案风声"
+        db.upsert_event_memory(
+            state,
+            "character",
+            name,
+            "eunuch_bao_instability",
+            text["title"],
+            cause="宝匣/官库封签失安",
+            process=text["process"],
+            outcome=outcome,
+            sentiment="negative" if str(lore.get("bao_status") or "") != BAO_KEPT else "mixed",
+            importance=4 if score >= 56 else 3,
+            tags=["净身", "宝匣", "封签", str(lore.get("bao_status") or "")],
+            source_kind="timeflow",
+            source_id=source_id,
+        )
+        db.record_log(state, f"【宝匣失安】{text['title']}：{outcome}。")
+        db.conn.commit()
+        return [{
+            "level": LEVEL_BLUE,
+            "kind": "eunuch_bao_instability",
+            "title": text["title"],
+            "detail": text["detail"],
+            "stage_direction": text["stage"],
+            "effect": outcome,
+            "goal_id": goal_id,
+            "bao_risk": score,
+            "ref_kind": "character",
+            "ref_id": name,
+            "day": day,
+        }]
+    return []
+
+
 _CARE_MODE_ALIASES = {
     "urinary": "urinary",
     "尿路": "urinary",

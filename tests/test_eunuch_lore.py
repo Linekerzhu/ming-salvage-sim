@@ -482,6 +482,47 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertIsNotNone(memory)
             self.assertEqual(state.metrics["内库"], 19)
 
+    def test_bao_instability_tick_creates_goal_and_is_mitigated_by_bao_care(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(
+                db,
+                name,
+                forced=True,
+                day=day,
+                detail_text="奉旨宫刑，宝官库石灰封存，收白签灰瓮；暗记官库封签，终身惦念。",
+            )
+            db.conn.execute("DELETE FROM eunuch_lore WHERE name!=?", (name,))
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=50, grievance=20, wisdom=55, luck=52 WHERE name=?",
+                (name,),
+            )
+            db.conn.commit()
+
+            evs = el.bao_instability_tick(db, state, 6)
+
+            self.assertEqual(len(evs), 1)
+            self.assertEqual(evs[0]["kind"], "eunuch_bao_instability")
+            self.assertIn("官库封签", evs[0]["title"])
+            self.assertGreaterEqual(int(evs[0]["bao_risk"]), 50)
+            self.assertGreater(int(evs[0]["goal_id"]), 0)
+            row = db.conn.execute(
+                "SELECT emp_trust, grievance, wisdom, luck FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertEqual(int(row["emp_trust"]), 49)
+            self.assertGreater(int(row["grievance"]), 20)
+            self.assertLessEqual(int(row["wisdom"]), 55)
+
+            self.assertEqual(el.bao_instability_tick(db, state, 6), [])
+            state.metrics["内库"] = 50
+            db.save_state(state)
+            care = el.apply_eunuch_care(db, state, name, mode="bao", note="命官库查封签、补录宝案。")
+            self.assertTrue(care["ok"])
+            self.assertEqual(care["trait"], "宝匣安置")
+            self.assertEqual(el.bao_instability_tick(db, state, 16), [])
+
     def test_timeflow_surfaces_castration_complication_events(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)
@@ -507,6 +548,25 @@ class RecordCastrationTests(unittest.TestCase):
             events = [event for report in result["reports"] for event in report["events"]]
 
             self.assertTrue(any(event["kind"] == "eunuch_complication" for event in events))
+
+    def test_timeflow_surfaces_bao_instability_events(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(
+                db,
+                name,
+                forced=True,
+                day=day,
+                detail_text="奉旨宫刑，宝官库石灰封存，收白签灰瓮；暗记官库封签，终身惦念。",
+            )
+            db.conn.execute("DELETE FROM eunuch_lore WHERE name!=?", (name,))
+            db.conn.commit()
+
+            result = timeflow.advance_days(db, state, 5, stop_on_yellow=False)
+            events = [event for report in result["reports"] for event in report["events"]]
+
+            self.assertTrue(any(event["kind"] == "eunuch_bao_instability" for event in events))
 
 
 class ReincarnationTests(unittest.TestCase):
