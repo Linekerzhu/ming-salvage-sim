@@ -8,12 +8,13 @@ const BLOCKED_MENTION_TERMS = new Set([
   "南户部", "南京户部", "南京兵部", "南京礼部", "南京吏部", "南京工部", "南京刑部",
   "首辅", "次辅", "阁老", "前首辅", "原首辅", "大学士", "尚书", "侍郎",
   "掌印", "秉笔", "掌印太监", "秉笔太监", "都指挥使", "督师", "经略", "总督", "巡抚",
-  "提督", "少司马", "本兵", "都督", "指挥", "百户", "千户", "内官", "内侍", "太监",
+  "提督", "少司马", "本兵", "都督", "指挥", "百户", "千户", "内官", "内侍", "太监", "小火者",
   "知府", "知县", "御史", "郎中", "主事", "监军", "总兵", "副将", "游击", "把总",
-  "司礼监掌印", "司礼监秉笔", "司礼监文书房", "锦衣卫千户", "锦衣卫百户", "南镇抚司试百户",
+  "司礼监掌印", "司礼监秉笔", "司礼监掌印太监", "司礼监秉笔太监", "司礼监文书房", "司礼太监",
+  "锦衣卫千户", "锦衣卫百户", "南镇抚司试百户",
 ]);
 const ORG_MENTION_TOKENS = [
-  "司礼", "司礼监", "东厂", "锦衣卫", "镇抚司", "内阁", "都察院", "翰林院", "詹事府",
+  "司礼", "礼监", "司礼监", "东厂", "锦衣卫", "镇抚司", "内阁", "都察院", "翰林院", "詹事府",
   "大理寺", "太常寺", "光禄寺", "内官监", "御马监", "内书堂", "文书房", "南京",
 ];
 const ORG_MENTION_SUFFIXES = ["监", "部", "院", "寺", "厂", "卫", "司", "府", "衙", "局", "营", "镇", "房", "堂"];
@@ -21,11 +22,12 @@ const SURNAME_TITLE_SUFFIXES = [
   "首辅", "次辅", "阁老", "大学士", "尚书", "侍郎", "掌印", "秉笔",
   "厂臣", "督师", "经略", "总督", "巡抚", "提督", "少司马", "本兵",
   "都督", "指挥", "百户", "千户", "公公", "伴伴",
-  "太监", "内侍", "知府", "知县", "御史", "郎中", "主事", "监军",
+  "太监", "内侍", "小火者", "知府", "知县", "御史", "郎中", "主事", "监军",
 ];
 const TITLE_ONLY_SUFFIXES = SURNAME_TITLE_SUFFIXES.filter((suffix) => suffix !== "公公" && suffix !== "伴伴");
 
 export type MentionTerm = { name: string; term: string };
+export type MentionSegment = { text: string; name?: string; term?: string };
 
 export function isBlockedMentionName(name: string) {
   if (BLOCKED_MENTION_TERMS.has(name)) return true;
@@ -67,4 +69,30 @@ export function mentionTerms(mentions?: ChatMention[]): MentionTerm[] {
   }
   terms.sort((a, b) => b.term.length - a.term.length);
   return terms;
+}
+
+export function mentionSegments(text: string, mentions?: ChatMention[]): MentionSegment[] {
+  const source = String(text || "");
+  const terms = mentionTerms(mentions);
+  if (!terms.length || !source) return [{ text: source }];
+  const out: MentionSegment[] = [];
+  let pos = 0;
+  while (pos < source.length) {
+    let best: { name: string; term: string; index: number } | null = null;
+    for (const item of terms) {
+      const index = source.indexOf(item.term, pos);
+      if (index < 0) continue;
+      if (!best || index < best.index || (index === best.index && item.term.length > best.term.length)) {
+        best = { ...item, index };
+      }
+    }
+    if (!best) {
+      out.push({ text: source.slice(pos) });
+      break;
+    }
+    if (best.index > pos) out.push({ text: source.slice(pos, best.index) });
+    out.push({ text: best.term, name: best.name, term: best.term });
+    pos = best.index + best.term.length;
+  }
+  return out.length ? out : [{ text: source }];
 }

@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
 import { loadChat, streamChat } from "./api";
 import { Portrait } from "./Portrait";
 import type { ChatContext, ChatMention, ChatMessage, ChatResponse, Suggestion } from "./api";
-import { mentionTerms } from "./mentionLinks";
+import { mentionSegments } from "./mentionLinks";
 
 const EMPTY_LOCAL_MESSAGES: ChatMessage[] = [];
 
@@ -22,39 +21,21 @@ function renderMentionedText(
   mentions: ChatMention[] | undefined,
   onOpenPerson?: (name: string) => void,
 ) {
-  const terms = mentionTerms(mentions);
-  if (!terms.length || !onOpenPerson) return text;
-  const out: Array<string | ReactNode> = [];
-  let pos = 0;
+  if (!onOpenPerson) return text;
   let key = 0;
-  while (pos < text.length) {
-    let best: { name: string; term: string; index: number } | null = null;
-    for (const item of terms) {
-      const index = text.indexOf(item.term, pos);
-      if (index < 0) continue;
-      if (!best || index < best.index || (index === best.index && item.term.length > best.term.length)) {
-        best = { ...item, index };
-      }
-    }
-    if (!best) {
-      out.push(text.slice(pos));
-      break;
-    }
-    if (best.index > pos) out.push(text.slice(pos, best.index));
-    out.push(
+  return mentionSegments(text, mentions).map((segment) => (
+    segment.name ? (
       <button
         key={`mention-${key++}`}
         type="button"
         className="m-chat-mention"
-        onClick={() => onOpenPerson(best!.name)}
-        title={`查看${best.name}档案`}
+        onClick={() => onOpenPerson(segment.name!)}
+        title={`查看${segment.name}档案`}
       >
-        {best.term}
-      </button>,
-    );
-    pos = best.index + best.term.length;
-  }
-  return out;
+        {segment.text}
+      </button>
+    ) : segment.text
+  ));
 }
 
 // 复用于「随侍太监」与「被传召大臣」的对话气泡 UI。
