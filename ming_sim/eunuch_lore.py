@@ -652,6 +652,40 @@ def servility_brief(db: GameDB, name: str) -> str:
             f"净身旧档：{details.get('detail_line') or '旧档不全'}；"
             f"{details.get('condition_line') or '后遗未详'}。"
         )
+    try:
+        row = db.conn.execute(
+            "SELECT ability, wisdom, courage, style FROM characters WHERE name=?",
+            (name,),
+        ).fetchone()
+    except Exception:
+        row = None
+    ability = int(row["ability"] or 50) if row else 50
+    wisdom = int(row["wisdom"] or 50) if row and "wisdom" in row.keys() else 50
+    courage = int(row["courage"] or 50) if row else 50
+    style = str(row["style"] or "") if row else ""
+    voice_rules: List[str] = []
+    if ability <= 48 or wisdom <= 45 or re.search(r"小火者|出身寒微|识字不多|粗|怯", style):
+        voice_rules.append("口吻偏低文化小内侍：短句、土话、宫里切口，不要讲内阁大学士式大道理；可说“奴婢晓得”“不敢瞒陛下”“那档子事”。")
+    elif wisdom >= 70 or "文书" in style:
+        voice_rules.append("口吻可稍识字：会讲账册、名册、封签，但仍从内廷见闻出发，不装外朝通儒。")
+    if courage >= 70:
+        voice_rules.append("性子急时先抢一句复命，再赶紧收住请罪。")
+    elif courage <= 42:
+        voice_rules.append("胆怯时吞字、停顿、先请饶命再答实话。")
+    condition_line = str((details or {}).get("condition_line") or "")
+    stage_bits: List[str] = []
+    if "漏尿" in condition_line or "尿闭" in condition_line or "石淋" in condition_line:
+        stage_bits.append("久站会夹腿、缩腰或嗫嚅请退半步。")
+    if "嗓音" in condition_line or "体态" in condition_line:
+        stage_bits.append("说急了嗓音发尖、肩背微缩。")
+    if "幻肢" in condition_line or "PTSD" in condition_line or "噩梦" in condition_line:
+        stage_bits.append("听见刀、净房、验身、封匣等词时短暂失神。")
+    if "宝匣" in condition_line or "钥匙" in condition_line or bao in {BAO_KEPT, BAO_FORFEIT}:
+        stage_bits.append("偶尔摸袖中钥匙或避谈宝匣。")
+    if voice_rules:
+        parts.append("【口吻差异】" + "；".join(voice_rules))
+    if stage_bits:
+        parts.append("【动作神态】动作/神态要短，不要塞满对白正文；可用极短括注表现：" + "；".join(dict.fromkeys(stage_bits[:4])))
     return "".join(parts)
 
 

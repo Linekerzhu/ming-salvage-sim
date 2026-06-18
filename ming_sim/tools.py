@@ -576,6 +576,41 @@ def build_minister_tools(character: Character, context: CourtContext):
         )
         return f"__dialogue_action__{payload}"
 
+    def propose_castration(target: str, scheme_text: str = "") -> str:
+        """对白驱动净身：皇帝提到把某人净身/宫刑/入内廷时调用。
+
+        只生成待确认意图，不执行净身。scheme_text 可记录刀具、麻醉、宝况、保存手段、宝匣等方案。
+        回奏必须说明风险并追问陛下是否准办。
+        """
+        nm = (target or "").strip()
+        if not nm:
+            return "净身提议失败：target 不能为空。"
+        payload = json.dumps(
+            {
+                "type": "castration",
+                "phase": "propose",
+                "target": nm,
+                "scheme_text": (scheme_text or "").strip(),
+                "force": True,
+            },
+            ensure_ascii=False,
+        )
+        return f"__dialogue_action__{payload}"
+
+    def confirm_castration(target: str = "", scheme_text: str = "") -> str:
+        """对白驱动净身：只有皇帝明确准许后才调用，Web 端才会执行身份转换。"""
+        payload = json.dumps(
+            {
+                "type": "castration",
+                "phase": "confirm",
+                "target": (target or "").strip(),
+                "scheme_text": (scheme_text or "").strip(),
+                "force": True,
+            },
+            ensure_ascii=False,
+        )
+        return f"__dialogue_action__{payload}"
+
     def propose_mediation(actor: str = "", target: str = "", faction: str = "", condition: str = "") -> str:
         """对白驱动调停：皇帝要某两人/某派各退一步时调用。
 
@@ -814,6 +849,8 @@ def build_minister_tools(character: Character, context: CourtContext):
         propose_directive,
         propose_recruitment,
         confirm_recruitment,
+        propose_castration,
+        confirm_castration,
         propose_mediation,
         confirm_mediation,
         issue_secret_order,

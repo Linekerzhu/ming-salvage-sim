@@ -906,6 +906,8 @@ class GameSession:
             elif tool_result.startswith("__dialogue_action__") or tool_name in {
                 "propose_recruitment",
                 "confirm_recruitment",
+                "propose_castration",
+                "confirm_castration",
                 "propose_mediation",
                 "confirm_mediation",
             }:

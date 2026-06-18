@@ -635,6 +635,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-chat-scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: var(--pad); display: flex; flex-direction: column; gap: 10px; }
 .m-bubble { max-width: 84%; padding: 9px 13px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
 .m-bubble-who { display: block; font-size: 0.68rem; opacity: .7; margin-bottom: 2px; }
+.m-bubble-stage { display: flex; flex-direction: column; gap: 2px; margin: 0 0 5px; font-size: 0.72rem; line-height: 1.35; color: rgba(87, 64, 34, .72); }
+.m-bubble-stage span { display: block; padding-left: 8px; border-left: 2px solid rgba(160, 111, 46, .32); }
 .m-bubble-text { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 0.95rem; line-height: 1.5; }
 .m-chat-mention {
   display: inline-block; border: 0; border-bottom: 1.5px solid currentColor; padding: 0 1px 1px; margin: 0;

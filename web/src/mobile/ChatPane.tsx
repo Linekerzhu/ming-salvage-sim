@@ -24,6 +24,23 @@ function cleanDisplayText(raw: string): string {
     .trim();
 }
 
+function stripStageText(raw: string, stageDirections?: string[]): string {
+  let text = String(raw || "");
+  for (const direction of stageDirections || []) {
+    const escaped = direction.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    text = text.replace(new RegExp(`\\s*（${escaped}）\\s*`, "g"), "\n");
+    text = text.replace(new RegExp(`^\\s*[—-]+\\s*${escaped}\\s*$`, "gm"), "");
+  }
+  return text
+    .split("\n")
+    .filter((line) => {
+      const clean = line.trim().replace(/^[—-]+\s*/, "");
+      return !/^(传|宣|召|唤|叫).{1,24}(觐见|入殿|进殿|进来|趋入|来见|面圣)/.test(clean);
+    })
+    .join("\n")
+    .trim();
+}
+
 function renderMentionedText(
   text: string,
   mentions: ChatMention[] | undefined,
@@ -230,7 +247,12 @@ export function ChatPane({
               <Portrait name={name} size={32} />
               <div className="m-bubble is-other">
                 <span className="m-bubble-who">{speakerLabel}</span>
-                <p className="m-bubble-text">{renderMentionedText(cleanDisplayText(m.content), m.mentions, onOpenPerson)}</p>
+                {m.stage_directions?.length ? (
+                  <div className="m-bubble-stage">
+                    {m.stage_directions.slice(0, 3).map((line, idx) => <span key={idx}>{line}</span>)}
+                  </div>
+                ) : null}
+                <p className="m-bubble-text">{renderMentionedText(cleanDisplayText(stripStageText(m.content, m.stage_directions)), m.mentions, onOpenPerson)}</p>
               </div>
             </div>
           )
@@ -240,7 +262,7 @@ export function ChatPane({
             <Portrait name={name} size={32} />
             <div className="m-bubble is-other">
               <span className="m-bubble-who">{speakerLabel}</span>
-              <p className="m-bubble-text">{cleanDisplayText(streaming)}<span className="m-caret">▍</span></p>
+              <p className="m-bubble-text">{cleanDisplayText(stripStageText(streaming))}<span className="m-caret">▍</span></p>
             </div>
           </div>
         )}

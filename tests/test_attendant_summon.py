@@ -237,6 +237,82 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_unknown_dialogue_mentions_capture_palace_nicknames_from_suggestions(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                "回陛下——内书堂有个叫**小禄子**的，今年刚满十一，记性极好。"
+                "还有一个**小顺子**，今年十二，规矩熟。"
+                "蒙王承恩公公提携的人不可误记成姓名。",
+            )
+
+            stored = game._load_unknown_dialogue_mentions()
+            self.assertIn("小禄子", stored)
+            self.assertIn("小顺子", stored)
+            self.assertNotIn("蒙王承恩", stored)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_attendant_answer_implied_summon_materializes_unlisted_palace_nickname(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+
+            result = game._attendant_answer_summon_target(
+                attendant,
+                "（躬身一礼，转身快步至殿门，朝外唤了一声）\n\n"
+                "——传内书堂生徒小禄子觐见。\n\n"
+                "陛下，小禄子今年十一，保定府人，原是逃荒到京的孤儿。",
+            )
+
+            self.assertEqual(result["name"], "小禄子")
+            self.assertTrue(result["generated"])
+            self.assertIn("小禄子", game.content.characters)
+            row = game.db.conn.execute(
+                "SELECT office, office_type, summary FROM characters WHERE name=?",
+                ("小禄子",),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
+            self.assertIn("当前活动存档", str(row["summary"] or ""))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_pronoun_followup_recovers_recent_attendant_implied_summon(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+            game.chat_history[attendant] = [
+                {"role": "minister", "content": "——传内书堂生徒小禄子觐见。小禄子胆子小，已在殿外候着。"}
+            ]
+
+            events = list(game.chat_stream(attendant, "人呢？我来和他说话。"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], "小禄子")
+            self.assertEqual(payload["registered_minister"], "小禄子")
+            self.assertIn("小禄子", game.content.characters)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_single_dialogue_mentioned_person_can_be_summoned_by_pronoun(self):
         game = web_app.WebGame(fresh=True)
         try:
@@ -706,7 +782,7 @@ class AttendantSummonTests(unittest.TestCase):
             }
             self.assertEqual(mid_names, before_names)
 
-            confirm_events = list(game.chat_stream(attendant, "准，就招一个。"))
+            confirm_events = list(game.chat_stream(attendant, "好，你去招募。"))
             self.assertEqual(confirm_events[-1]["type"], "done")
             payload = confirm_events[-1]["payload"]
             recruited = str(payload.get("recruited_minister") or "")
@@ -720,6 +796,110 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
             self.assertIn("举荐来源", str(row["summary"] or ""))
             self.assertGreater(court.get_opinion(game.db, recruited, attendant), 0)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_dialogue_castration_scheme_requires_confirmation(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            row = game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' "
+                "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
+                "AND office NOT LIKE '%太监%' AND office NOT LIKE '%宦官%' "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            name = str(row["name"])
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=55, grievance=20 WHERE name=?",
+                (name,),
+            )
+            game.db.conn.commit()
+
+            proposal_events = list(game.chat_stream(
+                attendant,
+                f"把{name}净身入内廷，净军房行事，铜柄宫刀，无麻，宝油炸封蜡，收黄杨木描金匣。",
+            ))
+            self.assertEqual(proposal_events[-1]["type"], "done")
+            self.assertIn("若准", proposal_events[-1]["payload"]["answer"])
+            pending = game._load_pending_dialogue_action(attendant)
+            self.assertEqual(pending.get("type"), "castration")
+            self.assertEqual(pending.get("target"), name)
+            mid_row = game.db.conn.execute(
+                "SELECT office, office_type FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertIsNotNone(mid_row)
+            self.assertFalse(is_eunuch_office(str(mid_row["office"]), str(mid_row["office_type"])))
+
+            confirm_events = list(game.chat_stream(
+                attendant,
+                "准，照办；宝约二两八钱，一大一小，油封后发硬，日后若漏尿尿闭、嗓音尖薄、幻肢痛、贤者模式与性无能，也一并记档。",
+            ))
+            self.assertEqual(confirm_events[-1]["type"], "done")
+            payload = confirm_events[-1]["payload"]
+            self.assertEqual(payload["dialogue_effect"]["title"], "强旨净身")
+            self.assertIn("净身旧档", payload["answer"])
+            minister = game.public_character(game.content.characters[name])
+            self.assertEqual(minister["office"], "司礼监随堂太监")
+            self.assertEqual(minister["office_type"], "司礼监")
+            castration = minister["castration"]
+            self.assertTrue(castration["forced"])
+            self.assertEqual(castration["method_label"], "净军房夜割")
+            self.assertEqual(castration["knife_label"], "铜柄宫刀")
+            self.assertEqual(castration["anesthesia_label"], "无麻，冷汗硬熬")
+            self.assertEqual(castration["bao_weight_label"], "约二两八钱")
+            self.assertEqual(castration["bao_shape_label"], "一大一小")
+            self.assertEqual(castration["bao_texture_label"], "油封后发硬")
+            self.assertEqual(castration["preservation_label"], "油炸封蜡")
+            self.assertEqual(castration["container_label"], "黄杨木描金匣")
+            self.assertIn("漏尿", castration["urine_label"])
+            self.assertIn("嗓音尖薄", castration["voice_body_label"])
+            self.assertIn("幻肢痛", castration["trauma_label"])
+            after_row = game.db.conn.execute(
+                "SELECT emp_trust, grievance, ability, charm FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertLess(int(after_row["emp_trust"]), 55)
+            self.assertGreater(int(after_row["grievance"]), 20)
+            trait_names = {
+                str(r["trait"])
+                for r in game.db.conn.execute("SELECT trait FROM character_traits WHERE name=?", (name,)).fetchall()
+            }
+            self.assertIn("内廷奴籍", trait_names)
+            self.assertIn("惊创未平", trait_names)
+            self.assertIn("尿路旧患", trait_names)
+            self.assertIn("情欲异化", trait_names)
+            inventory_ids = {str(item["id"]) for item in game.db.list_player_inventory()}
+            self.assertIn(f"净身旧档：{name}", inventory_ids)
+            self.assertIn(f"官没宝匣：{name}", inventory_ids)
+            self.assertEqual(game._load_pending_dialogue_action(attendant), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_stage_directions_are_split_from_minister_chat_payload(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            game.chat_history[attendant] = [
+                {"role": "minister", "content": "（躬身一礼，低声）\n\n——传内书堂生徒小禄子觐见。\n\n奴婢回陛下，小禄子在殿外候着。"}
+            ]
+
+            payload = game._chat_history_payload(attendant)
+
+            self.assertIn("stage_directions", payload[0])
+            self.assertIn("躬身一礼", payload[0]["stage_directions"][0])
+            self.assertTrue(any("小禄子觐见" in line for line in payload[0]["stage_directions"]))
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
