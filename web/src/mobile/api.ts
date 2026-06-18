@@ -272,6 +272,10 @@ export const loadPlaystyleBrief = (limit = 5, kind = ""): Promise<PlaystyleBrief
   if (kind) qs.set("kind", kind);
   return api<PlaystyleBriefPayload>(`/api/playstyle/brief?${qs.toString()}`);
 };
+export type SummonHintTag = { label: string; tone?: "good" | "bad" | "warn" | "neutral" | string };
+export type SummonHint = { tags?: SummonHintTag[]; pressure_score?: number };
+export const loadSummonHints = (): Promise<{ hints: Record<string, SummonHint> }> =>
+  api<{ hints: Record<string, SummonHint> }>("/api/audience/summon_hints");
 
 // 活的宫廷：某官员的私心 + 党羽 + 政敌（双向好感网络）。
 export type CourtTie = { name: string; opinion: number; basis: string; strength_label?: string; play_hint?: string };

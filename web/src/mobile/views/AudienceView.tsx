@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useGame } from "../GameData";
 import { ChatPane } from "../ChatPane";
 import { Portrait } from "../Portrait";
-import { loadEunuch, loadEunuchCandidates, loadPlaystyleBrief, replaceEunuch } from "../api";
-import type { AudienceLead, ChatContext, PlaystyleBriefCard, PublicCharacter, Suggestion, Tab } from "../api";
+import { loadEunuch, loadEunuchCandidates, loadPlaystyleBrief, loadSummonHints, replaceEunuch } from "../api";
+import type { AudienceLead, ChatContext, PlaystyleBriefCard, PublicCharacter, Suggestion, SummonHint, Tab } from "../api";
 import { usePerson } from "../personCtx";
 import { audienceLeadFromBrief, briefUrgency, closurePromptForAudience, shortName } from "./HomeView";
 
@@ -30,6 +30,7 @@ export function AudienceView({
   const [sheet, setSheet] = useState<"" | "summon" | "replace">("");
   const [candidates, setCandidates] = useState<Array<{ name: string; office: string; is_eunuch: boolean }>>([]);
   const [leads, setLeads] = useState<PlaystyleBriefCard[]>([]);
+  const [summonHints, setSummonHints] = useState<Record<string, SummonHint>>({});
 
   useEffect(() => {
     loadEunuch().then((r) => setEunuch(r.eunuch)).catch(() => setEunuch(null));
@@ -45,11 +46,19 @@ export function AudienceView({
     (m: any) => m.status === "active" && m.name !== eunuch?.name,
   );
   const summonMinisters = [...ministers].sort((a, b) => (
-    summonPriority(b.name, state?.conversation_goals, leads)
-    - summonPriority(a.name, state?.conversation_goals, leads)
+    summonPriority(b, state?.conversation_goals, leads, summonHints)
+    - summonPriority(a, state?.conversation_goals, leads, summonHints)
     || String(a.name || "").localeCompare(String(b.name || ""), "zh-Hans-CN")
   ));
 
+  const openSummon = async () => {
+    setSheet("summon");
+    try {
+      setSummonHints((await loadSummonHints()).hints || {});
+    } catch {
+      setSummonHints({});
+    }
+  };
   const openReplace = async () => {
     setSheet("replace");
     if (!candidates.length) {
@@ -77,6 +86,7 @@ export function AudienceView({
       ...(activeLead?.prompts || []),
       ...(goalSuggestion ? [goalSuggestion] : []),
     ];
+    const visibleAudienceGoals = audienceGoals.slice(0, 2);
     const dossierTone = activeLead?.tone || audienceGoalsTone(audienceGoals);
     const dossierMeta = [activeLead?.meta, audienceGoals.length ? `${audienceGoals.length} 桩旧约` : ""].filter(Boolean).join(" · ");
     const dossierTitle = activeLead?.title || audienceGoals[0]?.title || audienceGoals[0]?.goal_type || "可展开查阅";
@@ -146,7 +156,7 @@ export function AudienceView({
                 <section className="m-audience-dossier-section">
                   <div className="m-audience-dossier-label">旧约在案 · {audienceGoals.length} 桩未竟</div>
                   <div className="m-audience-goals-list">
-                    {audienceGoals.slice(0, 3).map((goal, i) => (
+                    {visibleAudienceGoals.map((goal, i) => (
                       <div key={`${goal.id || i}-${goal.title || goal.target_text || ""}`} className={`m-audience-goal tone-${goal.status || "active"}`}>
                         <span className="m-audience-goal-title">{goal.title || goal.goal_type || "未竟奏对"}</span>
                         <span className="m-audience-goal-meta">
@@ -157,6 +167,11 @@ export function AudienceView({
                         )}
                       </div>
                     ))}
+                    {audienceGoals.length > visibleAudienceGoals.length && (
+                      <div className="m-audience-goals-more">
+                        另有 {audienceGoals.length - visibleAudienceGoals.length} 桩未竟，查此人可看完整档案
+                      </div>
+                    )}
                   </div>
                 </section>
               )}
@@ -202,7 +217,7 @@ export function AudienceView({
           </div>
         </div>
         <div className="m-audience-acts">
-          <button className="m-mini" onClick={() => setSheet("summon")}>命其传召</button>
+          <button className="m-mini" onClick={openSummon}>命其传召</button>
           <button className="m-mini" onClick={openReplace}>换随侍</button>
         </div>
       </div>
@@ -283,7 +298,7 @@ export function AudienceView({
                   <p className="m-hint" style={{ margin: "0 4px 8px" }}>随侍领命传召，大臣须臾趋入御前。</p>
                   {summonMinisters.map((m) => {
                     const summonLead = leadFromSummonRow(m.name, state?.conversation_goals, leads);
-                    const tags = summonRowTags(m.name, state?.conversation_goals, leads);
+                    const tags = summonRowTags(m, state?.conversation_goals, leads, summonHints);
                     return (
                       <button key={m.name} className="m-sheet-row m-sheet-row-face" onClick={() => { onAudienceChange(m.name, summonLead); setSheet(""); }}>
                         <Portrait name={m.name} size={36} interactive={false} />
@@ -403,18 +418,30 @@ function leadFromSummonRow(name: string, rawGoals: unknown, leads: PlaystyleBrie
   return null;
 }
 
-function summonPriority(name: string, rawGoals: unknown, leads: PlaystyleBriefCard[]): number {
+function summonPriority(
+  minister: PublicCharacter,
+  rawGoals: unknown,
+  leads: PlaystyleBriefCard[],
+  hints: Record<string, SummonHint>,
+): number {
+  const name = String(minister?.name || "").trim();
   const goals = openAudienceGoals(rawGoals, name);
-  const lead = leads.find((card) => String(card.actor || "").trim() === String(name || "").trim());
+  const lead = leads.find((card) => String(card.actor || "").trim() === name);
   let score = 0;
   if (lead) score += 100 + Number(lead.urgency || 0);
   if (goals.some((goal) => ["blocked", "expired"].includes(String(goal?.status || "")))) score += 80;
   score += goals.length * 12;
+  score += Number(hints[name]?.pressure_score || 0);
   return score;
 }
 
-function summonRowTags(name: string, rawGoals: unknown, leads: PlaystyleBriefCard[]): Array<{ label: string; tone?: string }> {
-  const clean = String(name || "").trim();
+function summonRowTags(
+  minister: PublicCharacter,
+  rawGoals: unknown,
+  leads: PlaystyleBriefCard[],
+  hints: Record<string, SummonHint>,
+): Array<{ label: string; tone?: string }> {
+  const clean = String(minister?.name || "").trim();
   const tags: Array<{ label: string; tone?: string }> = [];
   const lead = leads.find((card) => String(card.actor || "").trim() === clean);
   if (lead) {
@@ -433,7 +460,8 @@ function summonRowTags(name: string, rawGoals: unknown, leads: PlaystyleBriefCar
       tone: expired || blocked ? "bad" : waiting ? "warn" : "neutral",
     });
   }
-  return tags.slice(0, 3);
+  tags.push(...(hints[clean]?.tags || []));
+  return tags.slice(0, 5);
 }
 
 function counterpartLeadFromActive(lead: AudienceLead, currentActor: string): AudienceLead {

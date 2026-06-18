@@ -112,6 +112,7 @@ EXCLUDED_WEB_PAYLOAD_ROUTES: Dict[str, str] = {
     "/api/beliefs": "Belief-variable trend lines; upgrade-schema-owned payload.",
     "/api/zhongxing": "Revival-index dashboard; zhongxing-owned payload.",
     "/api/playstyle/brief": "Home strategic-briefing cards; playstyle-owned read-only payload.",
+    "/api/audience/summon_hints": "Audience summon sheet lazy-loaded pressure tags; read-only compact UI payload.",
     "/api/eunuch": "Attending-eunuch hub; eunuch-owned payload.",
     "/api/eunuch/candidates": "Attending-eunuch candidate list; eunuch-owned payload.",
     "/api/eunuch/replace": "Attending-eunuch replacement mutation; eunuch-owned payload.",
