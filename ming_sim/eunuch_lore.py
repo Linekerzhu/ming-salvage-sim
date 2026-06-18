@@ -303,6 +303,29 @@ def _detail_update_sql() -> str:
     return ", ".join(f"{column}=?" for column in _DETAIL_COLUMNS)
 
 
+def _is_adult_for_lore(db: GameDB, name: str) -> bool:
+    """Adult gate for lore fields that should not be exposed for young palace boys."""
+    try:
+        row = db.conn.execute(
+            """
+            SELECT c.birth_year AS birth_year, gs.year AS year
+            FROM characters c
+            LEFT JOIN game_state gs ON gs.id=1
+            WHERE c.name=?
+            """,
+            ((name or "").strip(),),
+        ).fetchone()
+    except Exception:
+        row = None
+    if row is None:
+        return True
+    birth_year = int(row["birth_year"] or 0)
+    year = int(row["year"] or 0)
+    if birth_year <= 0 or year <= 0:
+        return True
+    return year - birth_year >= 18
+
+
 def ensure_schema(db: GameDB) -> None:
     db.conn.execute(
         """CREATE TABLE IF NOT EXISTS eunuch_lore (
@@ -365,6 +388,8 @@ def record_castration(db: GameDB, name: str, *, forced: bool, day: int, detail_t
     bao = BAO_FORFEIT if forced else BAO_KEPT
     servility = 78 if forced else 46
     details = _default_detail(name, forced=bool(forced), bao_status=bao)
+    if not _is_adult_for_lore(db, name):
+        details["psychosexual_state"] = ""
     note = (
         "奉强旨净身，宝为官没——奇辱深结"
         if forced
@@ -428,6 +453,7 @@ def public_lore_payload(db: GameDB, name: str) -> Optional[Dict[str, object]]:
     lore = get_lore(db, name)
     if lore is None:
         return None
+    adult = _is_adult_for_lore(db, name)
     payload = dict(lore)
     payload["bao_label"] = _BAO_LABEL.get(str(lore["bao_status"]), "")
     payload["method_label"] = str(lore.get("castration_method") or "")
@@ -446,7 +472,7 @@ def public_lore_payload(db: GameDB, name: str) -> Optional[Dict[str, object]]:
     payload["voice_body_label"] = str(lore.get("voice_body_change") or "")
     payload["trauma_label"] = str(lore.get("trauma_response") or "")
     payload["fixation_label"] = str(lore.get("private_fixation") or "")
-    payload["psychosexual_label"] = str(lore.get("psychosexual_state") or "")
+    payload["psychosexual_label"] = str(lore.get("psychosexual_state") or "") if adult else ""
     payload["detail_line"] = " · ".join(
         part for part in (
             payload["method_label"],
@@ -597,13 +623,14 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
         (r"束缚|束带|捆|缚", "束带安定癖，衣带不紧便惊惶"),
         (r"恋香|香味", "恋香压惊，厌恶血腥旧味"),
     ])
-    _set_if_match(updates, raw, "psychosexual_state", [
-        (r"贤者模式", "贤者模式式空心麻木，欲念退潮后只剩畏冷与厌烦"),
-        (r"性无能|不能人道|无能", "性无能自知，转以权柄、服从与封匣仪式代偿"),
-        (r"变态|畸恋", "畸恋式权力代偿，羞辱与掌控混作一团"),
-        (r"BDSM|受罚|束缚|羞辱|调教", "受罚束缚依恋，越被规训越心定"),
-        (r"禁欲|冷淡|无欲", "性欲淡薄，转以宝匣供奉和近侍秩序安神"),
-    ])
+    if _is_adult_for_lore(db, name):
+        _set_if_match(updates, raw, "psychosexual_state", [
+            (r"贤者模式", "贤者模式式空心麻木，欲念退潮后只剩畏冷与厌烦"),
+            (r"性无能|不能人道|无能", "性无能自知，转以权柄、服从与封匣仪式代偿"),
+            (r"变态|畸恋", "畸恋式权力代偿，羞辱与掌控混作一团"),
+            (r"BDSM|受罚|束缚|羞辱|调教", "受罚束缚依恋，越被规训越心定"),
+            (r"禁欲|冷淡|无欲", "性欲淡薄，转以宝匣供奉和近侍秩序安神"),
+        ])
     changed = {key: value for key, value in updates.items() if str(lore.get(key) or "") != value}
     if not changed:
         return {}

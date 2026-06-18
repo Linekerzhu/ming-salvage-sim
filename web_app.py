@@ -1356,11 +1356,20 @@ class WebGame:
             return {}
         try:
             from ming_sim.eunuch_lore import update_lore_from_text
+            from ming_sim.personnel_actions import sync_castration_lore_gameplay
             day = int(self.db.kv_get("upgrade.current_day") or 0)
             targets: Dict[str, Dict[str, Any]] = {}
             for target in candidates:
                 result = update_lore_from_text(self.db, target, raw, day=day)
                 if isinstance(result, dict) and result.get("updated"):
+                    gameplay = sync_castration_lore_gameplay(
+                        self.db,
+                        self.state,
+                        target,
+                        result.get("castration") if isinstance(result.get("castration"), dict) else {},
+                    )
+                    if gameplay:
+                        result["gameplay"] = gameplay
                     targets[target] = result
         except Exception:
             targets = {}
@@ -3696,6 +3705,55 @@ class WebGame:
         self.db.record_log(self.state, f"奉旨按对白线索寻访{added.name}，补入本局人物名册，可召见奏对。")
         return added
 
+    def _dialogue_age_from_context(self, context: str) -> int:
+        raw = str(context or "")
+
+        def from_chinese(value: str) -> int:
+            text = str(value or "").strip().replace("两", "二").replace("〇", "零")
+            if not text:
+                return 0
+            if text.isdigit():
+                return int(text)
+            digits = {"零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
+            if "十" in text:
+                left, _, right = text.partition("十")
+                tens = digits.get(left, 1) if left else 1
+                ones = digits.get(right[:1], 0) if right else 0
+                return tens * 10 + ones
+            value = 0
+            for ch in text:
+                if ch not in digits:
+                    return 0
+                value = value * 10 + digits[ch]
+            return value
+
+        patterns = [
+            r"(?:今年|年方|刚满|才|只|不过|约莫|约有|年纪)[^零〇一二两三四五六七八九十\d]{0,4}(\d{1,3})\s*(?:岁|龄|来岁|上下)?",
+            r"(?:今年|年方|刚满|才|只|不过|约莫|约有|年纪)[^零〇一二两三四五六七八九十\d]{0,4}([零〇一二两三四五六七八九十]{1,4})\s*(?:岁|龄|来岁|上下)?",
+            r"(\d{1,3})\s*(?:岁|龄)",
+            r"([零〇一二两三四五六七八九十]{1,4})\s*(?:岁|龄)",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, raw)
+            if not match:
+                continue
+            age = from_chinese(match.group(1))
+            if 1 <= age <= 90:
+                return age
+        return 0
+
+    def _dialogue_birth_year(
+        self,
+        context: str,
+        *,
+        default_min_age: int,
+        default_max_age: int,
+    ) -> int:
+        age = self._dialogue_age_from_context(context)
+        if not age:
+            age = self.character_rng.randint(int(default_min_age), int(default_max_age))
+        return int(self.state.year) - int(age)
+
     def _generate_dialogue_character(
         self,
         name: str,
@@ -3718,6 +3776,7 @@ class WebGame:
             summary_tail = "短板：见识多限宫禁，谈外朝容易露怯；风险：若被旧监房牵住，忠心会和内廷小圈子纠缠。"
             loyalty = rng.randint(78, 96)
             ability = rng.randint(42, 68)
+            min_age, max_age = (11, 17) if re.search(r"(小火者|生徒|小内官|小内侍|刚满|年纪|今年)", raw) else (18, 55)
         elif re.search(r"(百户|千户|游击|把总|武|军|营|边|辽东|兵)", raw):
             office = "待铨（武选访得）"
             office_type = "待铨"
@@ -3731,6 +3790,7 @@ class WebGame:
             summary_tail = "短板：朝堂辞令生疏，容易被文臣压住；风险：边镇旧关系未明，荐用需看军中牵连。"
             loyalty = rng.randint(48, 76)
             ability = rng.randint(52, 78)
+            min_age, max_age = (20, 55)
         else:
             office = "待铨（对白寻访）"
             office_type = "待铨"
@@ -3750,6 +3810,7 @@ class WebGame:
             summary_tail = "短板：朝中根基浅，骤入御前容易被贴上举主标签；风险：来路未深查，可能牵出地方人情债。"
             loyalty = rng.randint(46, 76)
             ability = rng.randint(50, 78)
+            min_age, max_age = (18, 60)
         source_minister = str(source.get("source_minister") or minister_name or "").strip()
         excerpt = str(source.get("excerpt") or "").strip()
         summary = (
@@ -3770,7 +3831,7 @@ class WebGame:
             integrity=rng.randint(42, 84),
             courage=rng.randint(40, 80),
             style=style,
-            birth_year=self.state.year - rng.randint(18, 55),
+            birth_year=self._dialogue_birth_year(raw, default_min_age=min_age, default_max_age=max_age),
             power_id="ming",
             location=rng.choice(["京师", "南京", "山西", "陕西", "山东", "南直隶", "福建", "湖广"]),
             status="active",

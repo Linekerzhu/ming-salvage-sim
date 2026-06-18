@@ -276,12 +276,13 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertTrue(result["generated"])
             self.assertIn("小禄子", game.content.characters)
             row = game.db.conn.execute(
-                "SELECT office, office_type, summary FROM characters WHERE name=?",
+                "SELECT office, office_type, summary, birth_year FROM characters WHERE name=?",
                 ("小禄子",),
             ).fetchone()
             self.assertIsNotNone(row)
             self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
             self.assertIn("当前活动存档", str(row["summary"] or ""))
+            self.assertEqual(int(game.state.year) - int(row["birth_year"]), 11)
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
@@ -972,8 +973,23 @@ class AttendantSummonTests(unittest.TestCase):
             ).fetchone()
             self.assertIsNotNone(row)
             name = str(row["name"])
-            game.castrate_official(name, force=True)
+            game.castrate_official(
+                name,
+                force=True,
+                scheme_text="净军房行事，铜柄宫刀，无麻；宝约一两二钱，圆缩成团，石灰封后发白，官库石灰封存，收白签灰瓮。",
+            )
+            game.db.conn.execute("DELETE FROM character_traits WHERE name=?", (name,))
+            game.db.conn.execute(
+                "DELETE FROM player_inventory WHERE item_id IN (?, ?, ?)",
+                (f"净身旧档：{name}", f"官没宝匣：{name}", f"遗失宝案：{name}"),
+            )
+            game.db.conn.commit()
             before = game.public_character(game.content.characters[name])["castration"]
+            before_traits = {
+                str(r["trait"])
+                for r in game.db.conn.execute("SELECT trait FROM character_traits WHERE name=?", (name,)).fetchall()
+            }
+            before_inventory = {str(item["id"]) for item in game.db.list_player_inventory()}
             chat_turn_id, snapshot = game._start_chat_turn(name)
 
             result = game._absorb_eunuch_lore_from_text(
@@ -982,6 +998,9 @@ class AttendantSummonTests(unittest.TestCase):
                 "他近来漏尿尿闭，嗓音尖薄，幻肢痛发作，还有贤者模式。",
             )
             self.assertIn("updated", result)
+            self.assertIn("gameplay", result)
+            self.assertTrue(result["gameplay"]["traits_added"])
+            self.assertTrue(result["gameplay"]["items_added"])
             game._record_chat_rollback_items(chat_turn_id, snapshot)
 
             after = game.public_character(game.content.characters[name])["castration"]
@@ -994,12 +1013,69 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertIn("嗓音尖薄", after["voice_body_label"])
             self.assertIn("幻肢痛", after["trauma_label"])
             self.assertIn("贤者模式", after["psychosexual_label"])
+            after_traits = {
+                str(r["trait"])
+                for r in game.db.conn.execute("SELECT trait FROM character_traits WHERE name=?", (name,)).fetchall()
+            }
+            self.assertIn("尿路旧患", after_traits - before_traits)
+            self.assertIn("情欲异化", after_traits - before_traits)
+            after_inventory = {str(item["id"]) for item in game.db.list_player_inventory()}
+            self.assertIn(f"净身旧档：{name}", after_inventory - before_inventory)
 
             game.db.undo_chat_turn(chat_turn_id)
             restored = game.public_character(game.content.characters[name])["castration"]
             self.assertEqual(restored["container_label"], before["container_label"])
             self.assertEqual(restored["preservation_label"], before["preservation_label"])
             self.assertEqual(restored["psychosexual_label"], before["psychosexual_label"])
+            restored_traits = {
+                str(r["trait"])
+                for r in game.db.conn.execute("SELECT trait FROM character_traits WHERE name=?", (name,)).fetchall()
+            }
+            restored_inventory = {str(item["id"]) for item in game.db.list_player_inventory()}
+            self.assertEqual(restored_traits, before_traits)
+            self.assertEqual(restored_inventory, before_inventory)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_minor_castration_suppresses_adult_lore_and_traits(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            row = game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' "
+                "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
+                "AND office NOT LIKE '%太监%' AND office NOT LIKE '%宦官%' "
+                "LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            name = str(row["name"])
+            game.db.conn.execute(
+                "UPDATE characters SET birth_year=? WHERE name=?",
+                (int(game.state.year) - 15, name),
+            )
+            game.db.conn.commit()
+
+            game.castrate_official(
+                name,
+                force=True,
+                scheme_text="无麻净身，宝油炸封蜡；近来漏尿尿闭、嗓音尖薄、幻肢痛，也有人胡说贤者模式与性无能。",
+            )
+
+            minister = game.public_character(game.content.characters[name])
+            castration = minister["castration"]
+            self.assertEqual(castration["psychosexual_label"], "")
+            self.assertNotIn("癖性", castration["condition_line"])
+            trait_names = {
+                str(r["trait"])
+                for r in game.db.conn.execute("SELECT trait FROM character_traits WHERE name=?", (name,)).fetchall()
+            }
+            self.assertIn("尿路旧患", trait_names)
+            self.assertIn("惊创未平", trait_names)
+            self.assertNotIn("情欲异化", trait_names)
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

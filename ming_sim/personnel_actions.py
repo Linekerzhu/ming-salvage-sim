@@ -53,23 +53,28 @@ def _add_character_traits(db: GameDB, name: str, traits: List[str]) -> None:
         )
 
 
-def _apply_castration_gameplay_consequences(
-    db: GameDB,
-    state: GameState,
-    name: str,
-    *,
-    forced: bool,
-    lore: Dict[str, object],
-) -> Dict[str, object]:
-    """Turn castration-detail choices into persistent gameplay consequences."""
-    row = db.conn.execute(
-        "SELECT emp_trust, grievance, ability, wisdom, charm, luck FROM characters WHERE name=?",
-        (name,),
-    ).fetchone()
-    if row is None:
-        return {}
+def _is_adult_in_year(year: int, birth_year: int) -> bool:
+    if int(birth_year or 0) <= 0 or int(year or 0) <= 0:
+        return True
+    return int(year) - int(birth_year) >= 18
 
-    text = " ".join(str(lore.get(key) or "") for key in (
+
+def _grant_player_item_once(db: GameDB, item_id: str, state: GameState) -> bool:
+    clean = str(item_id or "").strip()
+    if not clean:
+        return False
+    exists = db.conn.execute(
+        "SELECT 1 FROM player_inventory WHERE item_id=?",
+        (clean,),
+    ).fetchone()
+    if exists is not None:
+        return False
+    db.grant_player_item(clean, state)
+    return True
+
+
+def _castration_lore_text(lore: Dict[str, object], *, include_psychosexual: bool) -> str:
+    keys = [
         "castration_method",
         "knife_tool",
         "anesthesia",
@@ -82,47 +87,180 @@ def _apply_castration_gameplay_consequences(
         "voice_body_change",
         "trauma_response",
         "private_fixation",
-        "psychosexual_state",
-    ))
+    ]
+    if include_psychosexual:
+        keys.append("psychosexual_state")
+    return " ".join(str(lore.get(key) or "") for key in keys)
+
+
+def _castration_traits_from_text(text: str, *, adult: bool) -> List[str]:
+    traits = ["内廷奴籍"]
+    if re.search(r"无麻|冷汗硬熬|蒙眼塞布|痛醒|番役|刑房薄刃|旧军刀|幻肢|PTSD|噩梦|梦回|磨刀|按肩|净房", text):
+        traits.append("惊创未平")
+    if re.search(r"麻沸散|温酒|香汤|老匠|熟匠|细净|受罚|规训|传旨声|服从", text):
+        traits.append("服从依恋")
+    if re.search(r"漏尿|尿闭|石淋|小解|夜尿|尿频", text):
+        traits.append("尿路旧患")
+    if re.search(r"嗓音|体态|肩背|步子|腰腹|久跪", text):
+        traits.append("体声异变")
+    if re.search(r"洁净|衣褶|香|压惊", text):
+        traits.append("洁净癖")
+    if re.search(r"宝匣|钥匙|封匣|供奉|还阳|全尸|佛龛", text):
+        traits.append("宝匣执念")
+    if adult and re.search(r"贤者模式|性无能|不能人道|畸恋|羞辱|束缚|受罚|禁欲|冷淡|情欲", text):
+        traits.append("情欲异化")
+    return list(dict.fromkeys(traits))
+
+
+def sync_castration_lore_gameplay(
+    db: GameDB,
+    state: GameState,
+    name: str,
+    lore: Dict[str, object],
+    *,
+    source: str = "dialogue_lore_update",
+) -> Dict[str, object]:
+    """Idempotently sync later lore maintenance into traits, inventory, and memory."""
+    clean_name = str(name or "").strip()
+    if not clean_name or not isinstance(lore, dict):
+        return {}
+    row = db.conn.execute(
+        "SELECT emp_trust, grievance, ability, wisdom, charm, luck, birth_year FROM characters WHERE name=?",
+        (clean_name,),
+    ).fetchone()
+    if row is None:
+        return {}
+    adult = _is_adult_in_year(int(getattr(state, "year", 0) or 0), int(row["birth_year"] or 0))
+    text = _castration_lore_text(lore, include_psychosexual=adult)
+    wanted_traits = _castration_traits_from_text(text, adult=adult)
+    existing_traits = {
+        str(r["trait"])
+        for r in db.conn.execute("SELECT trait FROM character_traits WHERE name=?", (clean_name,)).fetchall()
+    }
+    new_traits = [trait for trait in wanted_traits if trait not in existing_traits]
+    stat_delta = {"ability": 0, "wisdom": 0, "charm": 0, "luck": 0, "emp_trust": 0, "grievance": 0}
+    for trait in new_traits:
+        if trait == "尿路旧患":
+            stat_delta["ability"] -= 1
+            stat_delta["charm"] -= 1
+        elif trait == "体声异变":
+            stat_delta["charm"] -= 1
+        elif trait == "惊创未平":
+            stat_delta["emp_trust"] -= 1
+            stat_delta["grievance"] += 3
+            stat_delta["wisdom"] -= 1
+        elif trait == "宝匣执念":
+            stat_delta["wisdom"] += 1
+        elif trait == "情欲异化":
+            stat_delta["charm"] -= 1
+        elif trait == "服从依恋":
+            stat_delta["emp_trust"] += 1
+            stat_delta["grievance"] -= 1
+    if new_traits:
+        _add_character_traits(db, clean_name, new_traits)
+        before = {key: int(row[key] or (55 if key == "emp_trust" else 20 if key == "grievance" else 50)) for key in stat_delta}
+        after = {key: _clamp_0_100(before[key] + stat_delta[key]) for key in stat_delta}
+        db.conn.execute(
+            """
+            UPDATE characters
+            SET emp_trust=?, grievance=?, ability=?, wisdom=?, charm=?, luck=?
+            WHERE name=?
+            """,
+            (after["emp_trust"], after["grievance"], after["ability"], after["wisdom"], after["charm"], after["luck"], clean_name),
+        )
+
+    bao_status = str(lore.get("bao_status") or "")
+    item_ids = [f"净身旧档：{clean_name}"]
+    if bao_status == "forfeit":
+        item_ids.append(f"官没宝匣：{clean_name}")
+    elif bao_status == "kept":
+        item_ids.append(f"宝匣线索：{clean_name}")
+    elif bao_status:
+        item_ids.append(f"遗失宝案：{clean_name}")
+    granted = [item_id for item_id in item_ids if _grant_player_item_once(db, item_id, state)]
+
+    if new_traits or granted:
+        db.upsert_event_memory(
+            state,
+            "character",
+            clean_name,
+            "eunuch_lore_maintenance",
+            f"净身后患入档：{clean_name}",
+            cause="奏对维护净身档案",
+            process="；".join(str(lore.get(key) or "") for key in (
+                "urinary_aftereffect",
+                "voice_body_change",
+                "trauma_response",
+                "private_fixation",
+                "psychosexual_state" if adult else "",
+            ) if key and str(lore.get(key) or "")),
+            outcome="；".join(
+                part for part in (
+                    f"新增特质：{'、'.join(new_traits)}" if new_traits else "",
+                    f"入库物件：{'、'.join(granted)}" if granted else "",
+                ) if part
+            ),
+            sentiment="negative" if any(t in new_traits for t in ("惊创未平", "尿路旧患", "情欲异化")) else "mixed",
+            importance=4 if new_traits else 3,
+            tags=["净身", "后患", "宝匣", *new_traits[:3]],
+            source_kind=source,
+            source_id=f"{state.turn}:{clean_name}:{source}",
+        )
+        db.record_log(
+            state,
+            f"【净身档案维护】{clean_name}新增机制后果："
+            + ("、".join(new_traits) if new_traits else "无新特质")
+            + (f"；入库{'、'.join(granted)}" if granted else ""),
+        )
+    db.conn.commit()
+    return {"traits_added": new_traits, "items_added": granted, "adult": adult}
+
+
+def _apply_castration_gameplay_consequences(
+    db: GameDB,
+    state: GameState,
+    name: str,
+    *,
+    forced: bool,
+    lore: Dict[str, object],
+) -> Dict[str, object]:
+    """Turn castration-detail choices into persistent gameplay consequences."""
+    row = db.conn.execute(
+        "SELECT emp_trust, grievance, ability, wisdom, charm, luck, birth_year FROM characters WHERE name=?",
+        (name,),
+    ).fetchone()
+    if row is None:
+        return {}
+
+    adult = _is_adult_in_year(int(getattr(state, "year", 0) or 0), int(row["birth_year"] or 0))
+    text = _castration_lore_text(lore, include_psychosexual=adult)
     trust_delta = -8 if forced else 5
     grievance_delta = 18 if forced else -4
     ability_delta = 0
     wisdom_delta = 0
     charm_delta = -1 if forced else 0
     luck_delta = -1 if forced else 0
-    traits = ["内廷奴籍"]
-
+    traits = _castration_traits_from_text(text, adult=adult)
     if re.search(r"无麻|冷汗硬熬|蒙眼塞布|痛醒|番役|刑房薄刃|旧军刀", text):
         trust_delta -= 5
         grievance_delta += 12
         ability_delta -= 1
-        traits.append("惊创未平")
     if re.search(r"麻沸散|温酒|香汤|老匠|熟匠|细净", text):
         trust_delta += 2
         grievance_delta -= 4
-        traits.append("服从依恋")
     if re.search(r"漏尿|尿闭|石淋|小解|夜尿|尿频", text):
         ability_delta -= 1
         charm_delta -= 1
-        traits.append("尿路旧患")
     if re.search(r"嗓音|体态|肩背|步子|腰腹|久跪", text):
         charm_delta -= 1
-        traits.append("体声异变")
     if re.search(r"幻肢|PTSD|噩梦|梦回|磨刀|按肩|净房", text):
         trust_delta -= 2
         grievance_delta += 5
         wisdom_delta -= 1
-        traits.append("惊创未平")
-    if re.search(r"洁净|衣褶|香|压惊", text):
-        traits.append("洁净癖")
     if re.search(r"宝匣|钥匙|封匣|供奉|还阳|全尸|佛龛", text):
         wisdom_delta += 1
-        traits.append("宝匣执念")
-    if re.search(r"贤者模式|性无能|不能人道|畸恋|羞辱|束缚|受罚|禁欲|冷淡|情欲", text):
+    if adult and re.search(r"贤者模式|性无能|不能人道|畸恋|羞辱|束缚|受罚|禁欲|冷淡|情欲", text):
         charm_delta -= 1
-        traits.append("情欲异化")
-    if re.search(r"受罚|规训|传旨声|服从", text):
-        traits.append("服从依恋")
 
     before = {
         "emp_trust": int(row["emp_trust"] or 55),

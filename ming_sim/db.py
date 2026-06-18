@@ -4069,6 +4069,8 @@ class GameDB:
         "negotiation_agreements": "id",
         "negotiation_tasks": "id",
         "eunuch_lore": "name",
+        "character_traits": "name,trait",
+        "player_inventory": "item_id",
         "kv_store": "key",
     }
 
@@ -4093,6 +4095,8 @@ class GameDB:
 
     def _snapshot_table(self, table: str, pk: str) -> Dict[str, Dict[str, Any]]:
         rows = self.conn.execute(f"SELECT * FROM {table}").fetchall()
+        if table == "character_traits":
+            return {f"{row['name']}\u241f{row['trait']}": self._row_dict(row) for row in rows}
         return {str(row[pk]): self._row_dict(row) for row in rows}
 
     def capture_chat_rollback_snapshot(self) -> Dict[str, Dict[str, Dict[str, Any]]]:
@@ -5749,6 +5753,12 @@ class GameDB:
         pk = self._ROLLBACK_TABLE_PK.get(table)
         if not pk:
             raise ValueError(f"不支持回滚表：{table}")
+        if table == "character_traits":
+            name, sep, trait = str(target_id).partition("\u241f")
+            if not sep:
+                raise ValueError(f"character_traits 回滚键格式错误：{target_id}")
+            self.conn.execute("DELETE FROM character_traits WHERE name=? AND trait=?", (name, trait))
+            return
         self.conn.execute(f"DELETE FROM {table} WHERE {pk} = ?", (target_id,))
 
     def undo_chat_turn(self, chat_turn_id: int) -> Dict[str, Any]:
