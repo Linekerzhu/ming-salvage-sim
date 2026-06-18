@@ -357,11 +357,8 @@ def court_payload(db: GameDB, name: str) -> Dict[str, object]:
         duishi = ""
     castration = None
     try:
-        from ming_sim.eunuch_lore import get_lore, _BAO_LABEL
-        lore = get_lore(db, name)
-        if lore:
-            castration = {"bao_status": lore["bao_status"], "bao_label": _BAO_LABEL.get(lore["bao_status"], ""),
-                          "forced": lore["forced"], "servility": lore["servility"]}
+        from ming_sim.eunuch_lore import public_lore_payload
+        castration = public_lore_payload(db, name)
     except Exception:
         castration = None
     secret = None

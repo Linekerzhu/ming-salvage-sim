@@ -41,6 +41,41 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertTrue(r["forced"])
             lore = el.get_lore(db, "韩爌")
             self.assertGreaterEqual(lore["servility"], 70)  # 强阉奴性扭曲偏高
+            self.assertTrue(lore["knife_tool"])
+            self.assertTrue(lore["anesthesia"])
+            self.assertTrue(lore["urinary_aftereffect"])
+            self.assertTrue(lore["voice_body_change"])
+            self.assertTrue(lore["trauma_response"])
+            self.assertTrue(lore["private_fixation"])
+            self.assertTrue(lore["psychosexual_state"])
+            public = el.public_lore_payload(db, "韩爌")
+            self.assertIn("强阉", public["bao_label"])
+            self.assertIn("尿路", public["condition_line"])
+            self.assertIn("惊创", public["condition_line"])
+            self.assertIn("癖性", public["condition_line"])
+
+    def test_dialogue_text_can_maintain_lore_fields(self):
+        with TemporaryDirectory() as tmp:
+            db, _, day = _fresh(tmp)
+            el.record_castration(db, "韩爌", forced=True, day=day)
+            result = el.update_lore_from_text(
+                db,
+                "韩爌",
+                "以后他的宝用黑漆楠木匣，油炸封蜡，约二两八钱，一大一小，油封后发硬。"
+                "此人近来漏尿尿闭，嗓音尖薄，常有幻肢痛和贤者模式。",
+                day=day + 1,
+            )
+            self.assertIn("updated", result)
+            lore = el.get_lore(db, "韩爌")
+            self.assertEqual(lore["bao_container"], "黑漆楠木匣")
+            self.assertEqual(lore["bao_preservation"], "油炸封蜡")
+            self.assertEqual(lore["bao_weight"], "约二两八钱")
+            self.assertEqual(lore["bao_shape"], "一大一小")
+            self.assertEqual(lore["bao_texture"], "油封后发硬")
+            self.assertIn("漏尿", lore["urinary_aftereffect"])
+            self.assertIn("嗓音尖薄", lore["voice_body_change"])
+            self.assertIn("幻肢痛", lore["trauma_response"])
+            self.assertIn("贤者模式", lore["psychosexual_state"])
 
     def test_voluntary_keeps_bao_and_lower_servility(self):
         with TemporaryDirectory() as tmp:

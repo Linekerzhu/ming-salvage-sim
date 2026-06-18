@@ -4068,6 +4068,7 @@ class GameDB:
         "xinpan_logs": "id",
         "negotiation_agreements": "id",
         "negotiation_tasks": "id",
+        "eunuch_lore": "name",
         "kv_store": "key",
     }
 

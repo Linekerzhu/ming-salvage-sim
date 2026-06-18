@@ -1336,6 +1336,40 @@ class WebGame:
             by_name.setdefault(str(item.get("minister_name") or ""), []).append(item)
         return by_name
 
+    def _public_castration_payload(self, name: str) -> Optional[Dict[str, Any]]:
+        try:
+            from ming_sim.eunuch_lore import public_lore_payload
+            payload = public_lore_payload(self.db, name)
+        except Exception:
+            payload = None
+        return payload if isinstance(payload, dict) else None
+
+    def _absorb_eunuch_lore_from_text(self, minister_name: str, text: str) -> Dict[str, Any]:
+        clean = str(minister_name or "").strip()
+        raw = str(text or "").strip()
+        if not clean or not raw:
+            return {}
+        try:
+            character = self.session._character(clean)
+        except Exception:
+            return {}
+        try:
+            office, office_type, faction = self._current_office_identity(character)
+        except Exception:
+            office, office_type, faction = character.office, character.office_type, character.faction
+        if not (
+            is_eunuch_office(str(office or ""), str(office_type or ""))
+            or bool(re.search(r"太监|宦官|内官|内廷", str(faction or "")))
+        ):
+            return {}
+        try:
+            from ming_sim.eunuch_lore import update_lore_from_text
+            day = int(self.db.kv_get("upgrade.current_day") or 0)
+            result = update_lore_from_text(self.db, clean, raw, day=day)
+        except Exception:
+            result = {}
+        return result if isinstance(result, dict) else {}
+
     def public_character(
         self,
         character: Character,
@@ -1372,6 +1406,25 @@ class WebGame:
             "skills": [],
             "favorite": character.name in self.favorites,
         }
+        may_have_castration_lore = (
+            is_eunuch_office(str(identity.office or ""), str(identity.office_type or ""))
+            or bool(re.search(r"太监|宦官|内官|内廷", str(identity.faction or "")))
+        )
+        castration_payload = (
+            self._public_castration_payload(character.name)
+            if include_detail and may_have_castration_lore
+            else None
+        )
+        if castration_payload:
+            payload["castration"] = castration_payload
+            payload["identity_tags"] = [
+                {"label": "内廷奴籍", "tone": "warn"},
+                {
+                    "label": "强旨净身" if castration_payload.get("forced") else "自愿净身",
+                    "tone": "bad" if castration_payload.get("forced") else "good",
+                },
+                {"label": str(castration_payload.get("bao_label") or "宝况未录"), "tone": "info"},
+            ]
         if include_detail:
             active_skill_grants = self.db.active_skill_grants(character.name)
             skill_ids = available_skill_ids(character, active_grants=active_skill_grants)
@@ -4318,6 +4371,67 @@ class WebGame:
                 return goal
         return {}
 
+    def _short_commitment_title(self, value: str, limit: int = 18) -> str:
+        clean = re.sub(r"\s+", "", str(value or "")).strip("「」")
+        if not clean:
+            return "本次奏对"
+        return clean[:limit] + ("…" if len(clean) > limit else "")
+
+    def _commitment_context_kind(self, context: Optional[Dict[str, Any]]) -> str:
+        if not isinstance(context, dict):
+            return "general"
+        return str(context.get("kind") or context.get("ref_kind") or "general").strip() or "general"
+
+    def _generic_bargain_commitment_terms(
+        self,
+        minister_name: str,
+        context: Dict[str, Any],
+        attitude: str,
+        context_title: str,
+    ) -> Dict[str, Any]:
+        ask = str(context.get("ask") or context.get("motive") or "").strip()
+        exchange = str(context.get("exchange") or context.get("gain") or "").strip()
+        cost = str(context.get("cost") or "").strip()
+        refusal = str(context.get("refusal") or "").strip()
+        short_title = self._short_commitment_title(context_title)
+        context_kind = self._commitment_context_kind(context)
+        if attitude == "press":
+            title = f"御前索证：{minister_name}·{short_title}"
+            target_text = f"{minister_name}须围绕「{context_title}」补交证据、账册、担保或期限，再由御前决定是否给名分、资源或差使。"
+            tasks = [
+                f"补交「{context_title}」相关账册、人证或担保",
+                f"说明「{exchange or '可验交换'}」如何兑现、几日回奏、谁担责",
+            ]
+            if cost:
+                tasks.append(f"交代皇帝若背书须承担的代价：{cost}")
+            promise_type = "御前索证"
+            message = "索证入账"
+            stakes_bits = ["证据压力", "担保连坐", context_kind]
+        else:
+            title = f"御前许诺：{minister_name}·{short_title}"
+            target_text = f"{minister_name}领下「{context_title}」相关御前许诺，须把所求转成可验差使、成效或人事回报，避免口头恩典变空账。"
+            tasks = [
+                f"把「{context_title}」落实为可验差使、成效或回报",
+                f"围绕「{exchange or '可得收益'}」限期回奏实际结果",
+            ]
+            if ask:
+                tasks.append(f"所求「{ask}」不得外溢为新的请托")
+            if cost:
+                tasks.append(f"回奏代价处置：{cost}")
+            promise_type = "御前许诺"
+            message = "许诺入账"
+            stakes_bits = ["私恩成债", "履约压力", context_kind]
+        if refusal:
+            stakes_bits.append(f"拒之：{refusal}")
+        return {
+            "title": title,
+            "target_text": target_text,
+            "tasks": tasks[:4],
+            "promise_type": promise_type,
+            "stakes": "、".join(bit for bit in stakes_bits if bit)[:120],
+            "message": message,
+        }
+
     def _create_bargain_commitment(
         self,
         minister_name: str,
@@ -4326,13 +4440,14 @@ class WebGame:
         user_text: str,
         chat_turn_id: int = 0,
     ) -> Dict[str, Any]:
-        if not isinstance(context, dict) or str(context.get("kind") or "").strip() != "bargain":
+        if not isinstance(context, dict):
             return {}
         if attitude not in {"accept", "press"}:
             return {}
         context_title = str(context.get("title") or context.get("meta") or "御前旧账").strip()
         memory_id = str(context.get("ref_id") or context.get("id") or "").strip()
-        if attitude == "press":
+        context_kind = self._commitment_context_kind(context)
+        if context_kind == "bargain" and attitude == "press":
             title = f"旧账索证：{minister_name}"
             target_text = f"{minister_name}须围绕「{context_title}」补交证据、账册或担保，再由御前裁定是否兑现。"
             tasks = [
@@ -4342,7 +4457,7 @@ class WebGame:
             promise_type = "旧账索证"
             stakes = "证据压力、拖延成怨、担保连坐"
             message = "旧账索证入账"
-        else:
+        elif context_kind == "bargain":
             title = f"兑现旧账：{minister_name}"
             target_text = f"{minister_name}须把「{context_title}」兑现为可验差使、成效或回报，避免旧恩变空账。"
             tasks = [
@@ -4352,6 +4467,14 @@ class WebGame:
             promise_type = "旧账兑现"
             stakes = "旧账兑现、私恩成债、派系要价"
             message = "旧账兑现入账"
+        else:
+            terms = self._generic_bargain_commitment_terms(minister_name, context, attitude, context_title)
+            title = str(terms["title"])
+            target_text = str(terms["target_text"])
+            tasks = list(terms["tasks"])
+            promise_type = str(terms["promise_type"])
+            stakes = str(terms["stakes"])
+            message = str(terms["message"])
         existing = self._open_bargain_commitment(minister_name, title)
         if existing:
             return {
@@ -4381,6 +4504,12 @@ class WebGame:
                 "attitude": attitude,
                 "memory_id": memory_id,
                 "context_title": context_title,
+                "context_kind": context_kind,
+                "ask": str(context.get("ask") or context.get("motive") or "")[:80],
+                "exchange": str(context.get("exchange") or context.get("gain") or "")[:100],
+                "cost": str(context.get("cost") or "")[:80],
+                "refusal": str(context.get("refusal") or "")[:100],
+                "public_hint": f"{promise_type}：{context_title}",
                 "user_text": str(user_text or "")[:120],
             },
         )
@@ -4559,11 +4688,13 @@ class WebGame:
             message_id = self.db.append_chat_message(minister_name, self.state.turn, "user", text)
             if chat_turn_id:
                 self.db.update_chat_turn_messages(chat_turn_id, user_message_id=message_id)
+        self._absorb_eunuch_lore_from_text(minister_name, text)
         deterministic_summon = self._attendant_summon_target(minister_name, text)
         if deterministic_summon:
             target_name = str(deterministic_summon.get("name") or "")
             generated = bool(deterministic_summon.get("generated"))
             answer = self._attendant_summon_answer(target_name, generated=generated)
+            self._absorb_eunuch_lore_from_text(minister_name, answer)
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
             return self._chat_payload(
                 minister_name,
@@ -4576,6 +4707,7 @@ class WebGame:
         dialogue_response = self._dialogue_action_response(minister_name, text)
         if dialogue_response is not None:
             answer = str(dialogue_response.get("answer") or "")
+            self._absorb_eunuch_lore_from_text(minister_name, answer)
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
             return self._chat_payload(
                 minister_name,
@@ -4639,6 +4771,7 @@ class WebGame:
             decision_effect,
             bargain_effect,
         )
+        self._absorb_eunuch_lore_from_text(minister_name, result.answer)
         self._record_chat_rollback_items(chat_turn_id, before_snapshot)
         return self._chat_payload(
             minister_name, result.answer,
@@ -4675,12 +4808,14 @@ class WebGame:
             message_id = self.db.append_chat_message(minister_name, self.state.turn, "user", text)
             if chat_turn_id:
                 self.db.update_chat_turn_messages(chat_turn_id, user_message_id=message_id)
+        self._absorb_eunuch_lore_from_text(minister_name, text)
         deterministic_summon = self._attendant_summon_target(minister_name, text)
         if deterministic_summon:
             target_name = str(deterministic_summon.get("name") or "")
             generated = bool(deterministic_summon.get("generated"))
             answer = self._attendant_summon_answer(target_name, generated=generated)
             yield {"type": "delta", "content": answer}
+            self._absorb_eunuch_lore_from_text(minister_name, answer)
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
             payload = self._chat_payload(
                 minister_name,
@@ -4696,6 +4831,7 @@ class WebGame:
         if dialogue_response is not None:
             answer = str(dialogue_response.get("answer") or "")
             yield {"type": "delta", "content": answer}
+            self._absorb_eunuch_lore_from_text(minister_name, answer)
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
             payload = self._chat_payload(
                 minister_name,
@@ -4871,6 +5007,7 @@ class WebGame:
                 decision_effect,
                 bargain_effect,
             )
+            self._absorb_eunuch_lore_from_text(minister_name, answer)
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
             for portrait_name, reason in (
                 (appointed, "吏部铨选"),

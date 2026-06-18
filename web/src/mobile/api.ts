@@ -279,6 +279,12 @@ export type ChatContext = {
   ref_id?: string;
   title?: string;
   meta?: string;
+  motive?: string;
+  gain?: string;
+  cost?: string;
+  ask?: string;
+  exchange?: string;
+  refusal?: string;
 };
 export const loadPlaystyleBrief = (limit = 5, kind = ""): Promise<PlaystyleBriefPayload> => {
   const qs = new URLSearchParams({ limit: String(limit) });
@@ -293,7 +299,35 @@ export const loadSummonHints = (): Promise<{ hints: Record<string, SummonHint> }
 // 活的宫廷：某官员的私心 + 党羽 + 政敌（双向好感网络）。
 export type CourtTie = { name: string; opinion: number; basis: string; strength_label?: string; play_hint?: string };
 export type CourtTrait = { key: string; valence: number; desc: string };
-export type CourtCastration = { bao_status: string; bao_label: string; forced: boolean; servility: number };
+export type CourtCastration = {
+  bao_status: string;
+  bao_label: string;
+  forced: boolean;
+  servility: number;
+  castration_day?: number;
+  reincarnation?: boolean;
+  note?: string;
+  method_label?: string;
+  knife_label?: string;
+  anesthesia_label?: string;
+  procedure_label?: string;
+  bao_size_label?: string;
+  bao_shape_label?: string;
+  bao_texture_label?: string;
+  bao_weight_label?: string;
+  preservation_label?: string;
+  container_label?: string;
+  ritual_label?: string;
+  aftereffect_label?: string;
+  urine_label?: string;
+  voice_body_label?: string;
+  trauma_label?: string;
+  fixation_label?: string;
+  psychosexual_label?: string;
+  detail_line?: string;
+  condition_line?: string;
+  procedure_line?: string;
+};
 export type CourtSecret = { kind: string; label: string; detail: string; severity: number; used: boolean };
 export type CourtFavorMemory = {
   turn: number;

@@ -727,6 +727,94 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_castrated_official_public_profile_shows_inner_court_lore(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            row = game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' "
+                "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
+                "AND office NOT LIKE '%太监%' AND office NOT LIKE '%宦官%' "
+                "LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            name = str(row["name"])
+
+            result = game.castrate_official(name, force=True)
+            minister = result["minister"]
+
+            self.assertEqual(minister["office"], "司礼监随堂太监")
+            self.assertEqual(minister["office_type"], "司礼监")
+            self.assertEqual(minister["faction"], "内廷")
+            self.assertIn("castration", minister)
+            castration = minister["castration"]
+            self.assertTrue(castration["forced"])
+            self.assertIn("强阉", castration["bao_label"])
+            self.assertTrue(castration["knife_label"])
+            self.assertTrue(castration["anesthesia_label"])
+            self.assertTrue(castration["urine_label"])
+            self.assertTrue(castration["voice_body_label"])
+            self.assertTrue(castration["trauma_label"])
+            self.assertTrue(castration["fixation_label"])
+
+            refreshed = game.public_character(game.content.characters[name])
+            self.assertEqual(refreshed["office"], "司礼监随堂太监")
+            self.assertEqual(refreshed["castration"]["bao_status"], "forfeit")
+            self.assertTrue(any(tag["label"] == "内廷奴籍" for tag in refreshed["identity_tags"]))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_eunuch_lore_updates_from_dialogue_text_and_rolls_back(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            row = game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' "
+                "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
+                "AND office NOT LIKE '%太监%' AND office NOT LIKE '%宦官%' "
+                "LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            name = str(row["name"])
+            game.castrate_official(name, force=True)
+            before = game.public_character(game.content.characters[name])["castration"]
+            chat_turn_id, snapshot = game._start_chat_turn(name)
+
+            result = game._absorb_eunuch_lore_from_text(
+                name,
+                "承恩的宝匣改用黑漆楠木匣，宝用油炸封蜡，约二两八钱，一大一小，油封后发硬。"
+                "他近来漏尿尿闭，嗓音尖薄，幻肢痛发作，还有贤者模式。",
+            )
+            self.assertIn("updated", result)
+            game._record_chat_rollback_items(chat_turn_id, snapshot)
+
+            after = game.public_character(game.content.characters[name])["castration"]
+            self.assertEqual(after["container_label"], "黑漆楠木匣")
+            self.assertEqual(after["preservation_label"], "油炸封蜡")
+            self.assertEqual(after["bao_weight_label"], "约二两八钱")
+            self.assertEqual(after["bao_shape_label"], "一大一小")
+            self.assertEqual(after["bao_texture_label"], "油封后发硬")
+            self.assertIn("漏尿", after["urine_label"])
+            self.assertIn("嗓音尖薄", after["voice_body_label"])
+            self.assertIn("幻肢痛", after["trauma_label"])
+            self.assertIn("贤者模式", after["psychosexual_label"])
+
+            game.db.undo_chat_turn(chat_turn_id)
+            restored = game.public_character(game.content.characters[name])["castration"]
+            self.assertEqual(restored["container_label"], before["container_label"])
+            self.assertEqual(restored["preservation_label"], before["preservation_label"])
+            self.assertEqual(restored["psychosexual_label"], before["psychosexual_label"])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_petition_context_is_actor_scoped_and_reaches_dialogue_prep(self):
         game = web_app.WebGame(fresh=True)
         try:
@@ -1472,13 +1560,20 @@ class AttendantSummonTests(unittest.TestCase):
             game._record_chat_rollback_items(chat_turn_id, before_snapshot)
 
             self.assertEqual(effect["title"], "御前许诺")
-            self.assertIn("交易入记忆", {str(item["label"]) for item in effect["effects"]})
+            labels = {str(item["label"]) for item in effect["effects"]}
+            self.assertIn("交易入记忆", labels)
+            self.assertIn("履约账本：许诺入账", labels)
             after = game.db.conn.execute(
                 "SELECT emp_trust, grievance FROM characters WHERE name=?",
                 (actor,),
             ).fetchone()
             self.assertEqual(int(after["emp_trust"]), 44)
             self.assertEqual(int(after["grievance"]), 56)
+            goals = game.db.list_conversation_goals(minister_name=actor, statuses=["waiting_conditions"])
+            self.assertEqual(len(goals), 1)
+            self.assertEqual(goals[0]["action_kind"], "audience_bargain")
+            self.assertIn("御前许诺", str(goals[0]["title"]))
+            self.assertTrue(any("可验" in str(item.get("description") or "") for item in goals[0]["conditions"]))
             memory = game.db.conn.execute(
                 """
                 SELECT * FROM event_memories
@@ -1513,6 +1608,11 @@ class AttendantSummonTests(unittest.TestCase):
                 (f"%【奏对交易】{actor}%",),
             ).fetchone()
             self.assertIsNone(rolled_log)
+            self.assertEqual(game.db.list_conversation_goals(minister_name=actor), [])
+            self.assertEqual(
+                game.db.list_negotiation_agreements(minister_name=actor, action_kind="audience_bargain"),
+                [],
+            )
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
@@ -1542,10 +1642,17 @@ class AttendantSummonTests(unittest.TestCase):
                 "臣谨遵。",
             )
             self.assertEqual(press["title"], "御前索证")
-            self.assertEqual(
-                game.db.list_conversation_goals(minister_name=actor, statuses=["waiting_conditions"]),
-                [],
+            goals = game.db.list_conversation_goals(minister_name=actor, statuses=["waiting_conditions"])
+            self.assertEqual(len(goals), 1)
+            self.assertIn("御前索证", str(goals[0]["title"]))
+            self.assertTrue(any("账册" in str(item.get("description") or "") for item in goals[0]["conditions"]))
+            agreements = game.db.list_negotiation_agreements(
+                minister_name=actor,
+                action_kind="audience_bargain",
+                status="pending",
             )
+            self.assertEqual(len(agreements), 1)
+            self.assertEqual(agreements[0]["promise_type"], "御前索证")
             after_press = game.db.conn.execute(
                 "SELECT emp_trust, grievance FROM characters WHERE name=?",
                 (actor,),
@@ -1566,8 +1673,8 @@ class AttendantSummonTests(unittest.TestCase):
             )
             self.assertEqual(refused["title"], "御前拒请")
             self.assertEqual(
-                game.db.list_conversation_goals(minister_name=actor, statuses=["waiting_conditions"]),
-                [],
+                len(game.db.list_conversation_goals(minister_name=actor, statuses=["waiting_conditions"])),
+                1,
             )
             after_refused = game.db.conn.execute(
                 "SELECT emp_trust, grievance FROM characters WHERE name=?",

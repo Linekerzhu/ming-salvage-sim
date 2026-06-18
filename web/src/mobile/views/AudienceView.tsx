@@ -484,6 +484,12 @@ function chatContextFromLead(lead: AudienceLead): ChatContext {
     ref_id: lead.ref_id,
     title: lead.title,
     meta: lead.meta,
+    motive: lead.motive,
+    gain: lead.gain,
+    cost: lead.cost,
+    ask: lead.ask,
+    exchange: lead.exchange,
+    refusal: lead.refusal,
   };
 }
 
