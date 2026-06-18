@@ -3465,10 +3465,20 @@ class WebGame:
             return []
         directions: List[str] = []
         for match in re.finditer(r"（([^（）]{2,64})）", raw):
-            body = match.group(1).strip()
-            if not body:
-                continue
-            if re.search(r"(躬身|叩首|跪|垂手|低声|压低|退到|侍立|夹肩|摸|攥|颤|发抖|咳|低头|抬头|转身|唤|招|让出|侧身|趋前|汗|脸色|旧创|腰腹|宝匣|钥匙)", body):
+            body = self._normalize_stage_direction(match.group(1))
+            if body and self._looks_like_stage_direction(body):
+                directions.append(body)
+        for match in re.finditer(r"【(?:动作|神态|举止|舞台|旁白)\s*[:：]?\s*([^】]{2,72})】", raw):
+            body = self._normalize_stage_direction(match.group(1))
+            if body and self._looks_like_stage_direction(body):
+                directions.append(body)
+        for match in re.finditer(r"(?m)^\s*【(?:动作|神态|举止|舞台|旁白)】\s*([^\n]{2,72})\s*$", raw):
+            body = self._normalize_stage_direction(match.group(1))
+            if body and self._looks_like_stage_direction(body):
+                directions.append(body)
+        for match in re.finditer(r"(?m)^\s*(?:【(?:动作|神态|举止|舞台|旁白)】\s*)?[*_]{1,2}([^*_]{2,72})[*_]{1,2}\s*$", raw):
+            body = self._normalize_stage_direction(match.group(1))
+            if body and self._looks_like_stage_direction(body):
                 directions.append(body)
         # 兼容常见“——传某人觐见”舞台句，不让它占满聊天气泡。
         for line in raw.splitlines():
@@ -3476,6 +3486,38 @@ class WebGame:
             if re.search(r"^(?:传|宣|召|唤|叫)[^\n，。；：]{1,24}(?:觐见|入殿|进殿|进来|趋入|来见|面圣)", clean):
                 directions.append(clean)
         return list(dict.fromkeys(directions[:4]))
+
+    def _normalize_stage_direction(self, text: str) -> str:
+        body = re.sub(r"^\s*(?:动作|神态|举止|舞台|旁白)\s*[:：]\s*", "", str(text or "").strip())
+        body = re.sub(r"\s+", " ", body)
+        return body.strip(" ：:;；，,。")
+
+    def _looks_like_stage_direction(self, text: str) -> bool:
+        body = str(text or "").strip()
+        if not (2 <= len(body) <= 72):
+            return False
+        if re.search(r"(曰|说道|回道|奏道|奴婢|臣以为|陛下|皇上).{0,8}[，。！？]", body):
+            return False
+        return bool(re.search(
+            r"(躬身|叩首|跪|垂手|低声|压低|退到|侍立|夹肩|夹腰|缩步|摸|攥|颤|发抖|咳|低头|抬头|转身|唤|招|让出|侧身|趋前|汗|脸色|旧创|腰腹|宝匣|钥匙|袖中|袖口|肩背|失神|破声|尖声|伏地|俯首|叩谢|定神)",
+            body,
+        ))
+
+    def _fallback_eunuch_stage_directions(self, minister_name: str, answer: str) -> List[str]:
+        try:
+            from ming_sim.eunuch_lore import eunuch_voice_profile
+            profile = eunuch_voice_profile(self.db, minister_name) or {}
+        except Exception:
+            profile = {}
+        cues = [
+            str(item).strip()
+            for item in (profile.get("stage_cues") if isinstance(profile, dict) else []) or []
+            if str(item).strip()
+        ]
+        if not cues:
+            return []
+        seed = sum(ord(ch) for ch in f"{minister_name}:{answer[:24]}:{self.state.turn}")
+        return [cues[seed % len(cues)]]
 
     def _dialogue_unknown_mentions_key(self) -> str:
         return "dialogue.unknown_person_mentions"
@@ -4494,9 +4536,14 @@ class WebGame:
             stage = str(dialogue_effect.get("stage_direction") or "").strip()
             if stage:
                 stage_directions.append(stage)
+        for stage in self._chat_stage_directions(answer):
+            if stage and stage not in stage_directions:
+                stage_directions.append(stage)
+        if not stage_directions:
+            stage_directions.extend(self._fallback_eunuch_stage_directions(minister_name, answer))
         minister_message: Dict[str, Any] = {"role": "minister", "content": answer}
         if stage_directions:
-            minister_message["stage_directions"] = stage_directions
+            minister_message["stage_directions"] = stage_directions[:4]
         self.chat_history[minister_name].append(minister_message)
         if minister_name not in self.session.temporary_characters:
             message_id = self.db.append_chat_message(
@@ -4504,7 +4551,7 @@ class WebGame:
                 self.state.turn,
                 "minister",
                 answer,
-                stage_directions=stage_directions,
+                stage_directions=stage_directions[:4],
             )
             if chat_turn_id:
                 self.db.update_chat_turn_messages(chat_turn_id, minister_message_id=message_id)

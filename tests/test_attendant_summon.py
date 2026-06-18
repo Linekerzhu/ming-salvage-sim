@@ -1205,14 +1205,47 @@ class AttendantSummonTests(unittest.TestCase):
         try:
             attendant = "王承恩"
             game.chat_history[attendant] = [
-                {"role": "minister", "content": "（躬身一礼，低声）\n\n——传内书堂生徒小禄子觐见。\n\n奴婢回陛下，小禄子在殿外候着。"}
+                {
+                    "role": "minister",
+                    "content": (
+                        "（躬身一礼，低声）\n\n"
+                        "【动作】夹腰退半步，摸了摸袖中钥匙。\n"
+                        "*嗓音一尖，肩背微缩*\n"
+                        "——传内书堂生徒小禄子觐见。\n\n"
+                        "奴婢回陛下，小禄子在殿外候着。"
+                    ),
+                }
             ]
 
             payload = game._chat_history_payload(attendant)
 
             self.assertIn("stage_directions", payload[0])
             self.assertIn("躬身一礼", payload[0]["stage_directions"][0])
+            self.assertTrue(any("夹腰退半步" in line for line in payload[0]["stage_directions"]))
+            self.assertTrue(any("肩背微缩" in line for line in payload[0]["stage_directions"]))
             self.assertTrue(any("小禄子觐见" in line for line in payload[0]["stage_directions"]))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_eunuch_chat_payload_adds_profile_stage_direction_without_polluting_bubble(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            payload = game._chat_payload(attendant, "奴婢晓得。小的先去值房问问，不敢替外朝乱断。")
+
+            last = payload["history"][-1]
+            self.assertEqual(last["content"], "奴婢晓得。小的先去值房问问，不敢替外朝乱断。")
+            self.assertTrue(last.get("stage_directions"))
+            self.assertTrue(any(
+                marker in " ".join(last["stage_directions"])
+                for marker in ("垂手", "夹腰", "嗓音", "失神", "钥匙", "宝匣", "肩背")
+            ))
+            stored = game._chat_history_payload(attendant)[-1]
+            self.assertTrue(stored.get("stage_directions"))
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

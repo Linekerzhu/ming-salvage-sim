@@ -29,6 +29,10 @@ function stripStageText(raw: string, stageDirections?: string[]): string {
   for (const direction of stageDirections || []) {
     const escaped = direction.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     text = text.replace(new RegExp(`\\s*（${escaped}）\\s*`, "g"), "\n");
+    text = text.replace(new RegExp(`\\s*（(?:动作|神态|举止|舞台|旁白)[:：]\\s*${escaped}）\\s*`, "g"), "\n");
+    text = text.replace(new RegExp(`^\\s*【(?:动作|神态|举止|舞台|旁白)[:：]?\\s*${escaped}】\\s*$`, "gm"), "");
+    text = text.replace(new RegExp(`^\\s*【(?:动作|神态|举止|舞台|旁白)】\\s*${escaped}\\s*$`, "gm"), "");
+    text = text.replace(new RegExp(`^\\s*[*_]{1,2}${escaped}[*_]{1,2}\\s*$`, "gm"), "");
     text = text.replace(new RegExp(`^\\s*[—-]+\\s*${escaped}\\s*$`, "gm"), "");
   }
   return text
