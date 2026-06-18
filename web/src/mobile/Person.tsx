@@ -80,7 +80,7 @@ function shortText(value: unknown): string {
   return text.length > 8 ? `${text.slice(0, 8)}…` : text;
 }
 
-function PersonSheet({ name, focus, onClose }: { name: string; focus?: PersonFocus; onClose: () => void }) {
+function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?: PersonFocus; onClose: () => void; onSummon?: (name: string) => void }) {
   const [c, setC] = useState<Record<string, any> | null>(null);
   const [court, setCourt] = useState<CourtPayload | null>(null);
   const [err, setErr] = useState(false);
@@ -112,6 +112,12 @@ function PersonSheet({ name, focus, onClose }: { name: string; focus?: PersonFoc
   }, [focus, c, name]);
   const isMing = !c || (c.power_id ? c.power_id === "ming" : true);
   const isSelf = name === "崇祯" || c?.office_type === "君主";
+  const canSummon = !!c && isMing && !isSelf && String(c.status || "active") === "active";
+  const summonThisPerson = () => {
+    if (!canSummon || !onSummon) return;
+    onClose();
+    onSummon(name);
+  };
   async function reloadAfterAction(beforeC: Record<string, any> | null, beforeCourt: CourtPayload | null) {
     const [nextCharacter, nextCourt] = await Promise.all([
       loadCharacter(name).then((r) => { setErr(false); return r.character; }).catch(() => { setErr(true); return null; }),
@@ -206,6 +212,7 @@ function PersonSheet({ name, focus, onClose }: { name: string; focus?: PersonFoc
             <span className="m-person-sub">{c ? [c.office || c.office_type, c.faction].filter(Boolean).join(" · ") : "…"}</span>
             <span className="m-person-sub2">{c ? [c.status_label, c.age_label].filter(Boolean).join(" · ") : ""}</span>
           </div>
+          {canSummon && onSummon && <button className="m-person-summon" onClick={summonThisPerson}>召来问对</button>}
           <button className="m-mini" onClick={onClose}>关</button>
         </div>
         {intrigueMsg && (
@@ -428,7 +435,7 @@ function PersonSheet({ name, focus, onClose }: { name: string; focus?: PersonFoc
   );
 }
 
-export function PersonProvider({ children }: { children: ReactNode }) {
+export function PersonProvider({ children, onSummon }: { children: ReactNode; onSummon?: (name: string) => void }) {
   const [who, setWho] = useState<{ name: string; focus?: PersonFocus } | null>(null);
   const openPerson: PersonOpen = (target) => {
     const name = (typeof target === "string" ? target : target.name).trim();
@@ -438,7 +445,7 @@ export function PersonProvider({ children }: { children: ReactNode }) {
   return (
     <PersonCtx.Provider value={openPerson}>
       {children}
-      {who && <PersonSheet name={who.name} focus={who.focus} onClose={() => setWho(null)} />}
+      {who && <PersonSheet name={who.name} focus={who.focus} onClose={() => setWho(null)} onSummon={onSummon} />}
     </PersonCtx.Provider>
   );
 }

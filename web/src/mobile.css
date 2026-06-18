@@ -771,10 +771,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   margin: -16px calc(var(--pad) * -1) 0; padding: 16px var(--pad) 12px;
   border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #f7eecb, #f3e8c2);
 }
-.m-person-id { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.m-person-id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .m-person-name { font-size: 1.25rem; font-weight: 700; color: var(--cinnabar); }
+.m-person-sub, .m-person-sub2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .m-person-sub { font-size: 0.86rem; color: var(--gold-deep); }
 .m-person-sub2 { font-size: 0.78rem; color: var(--ink-soft); }
+.m-person-summon { flex: 0 0 auto; border-radius: 8px; padding: 7px 10px; background: var(--cinnabar);
+  color: #fff7dc; font-size: .78rem; font-weight: 800; box-shadow: 0 5px 14px rgba(126,39,29,.18); }
+.m-person-summon:active { transform: translateY(1px); }
 .m-person-outcome {
   position: sticky; top: -16px; z-index: 3; display: flex; flex-direction: column; gap: 2px;
   margin: 0 calc(var(--pad) * -1) 12px; padding: 9px var(--pad);

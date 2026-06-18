@@ -261,36 +261,38 @@ function Shell({ onExitMenu }: { onExitMenu: () => void }) {
     if (!guideSeen()) setGuideOpen(true);
   }, []);
   return (
-    <div className="m-app">
-      <TopBar go={setTab} onHelp={() => setGuideOpen(true)} />
-      <MetricFlash />
-      <MilestoneToast />
-      <main className="m-content" key={tab}>
-        {error && <div className="m-error">{error}</div>}
-        {loading && <div className="m-loading">正在召集朝局…</div>}
-        {!loading && tab === "home" && <HomeView go={setTab} summon={summonAudience} />}
-        {!loading && tab === "desk" && <DeskView />}
-        {!loading && tab === "audience" && (
-          <AudienceView
-            audience={audienceName}
-            onAudienceChange={(name) => { setAudienceName(name); setAudienceLead(null); if (name) setAudienceNotice(""); }}
-            onAudienceComplete={completeAudience}
-            audienceNotice={audienceNotice}
-            audienceLead={audienceLead}
+    <PersonProvider onSummon={summonAudience}>
+      <div className="m-app">
+        <TopBar go={setTab} onHelp={() => setGuideOpen(true)} />
+        <MetricFlash />
+        <MilestoneToast />
+        <main className="m-content" key={tab}>
+          {error && <div className="m-error">{error}</div>}
+          {loading && <div className="m-loading">正在召集朝局…</div>}
+          {!loading && tab === "home" && <HomeView go={setTab} summon={summonAudience} />}
+          {!loading && tab === "desk" && <DeskView />}
+          {!loading && tab === "audience" && (
+            <AudienceView
+              audience={audienceName}
+              onAudienceChange={(name) => { setAudienceName(name); setAudienceLead(null); if (name) setAudienceNotice(""); }}
+              onAudienceComplete={completeAudience}
+              audienceNotice={audienceNotice}
+              audienceLead={audienceLead}
+            />
+          )}
+          {!loading && tab === "edicts" && <EdictsView summon={summonAudience} />}
+          {!loading && tab === "realm" && <RealmView />}
+        </main>
+        <BottomNav active={tab} go={setTab} />
+        <DecisionModal />
+        {guideOpen && (
+          <Guide
+            onClose={() => { markGuideSeen(); setGuideOpen(false); }}
+            onExit={async () => { try { await exitToMenu(); } catch { /* ignore */ } onExitMenu(); }}
           />
         )}
-        {!loading && tab === "edicts" && <EdictsView summon={summonAudience} />}
-        {!loading && tab === "realm" && <RealmView />}
-      </main>
-      <BottomNav active={tab} go={setTab} />
-      <DecisionModal />
-      {guideOpen && (
-        <Guide
-          onClose={() => { markGuideSeen(); setGuideOpen(false); }}
-          onExit={async () => { try { await exitToMenu(); } catch { /* ignore */ } onExitMenu(); }}
-        />
-      )}
-    </div>
+      </div>
+    </PersonProvider>
   );
 }
 
@@ -422,9 +424,7 @@ export function App() {
   if (phase === "menu") return <Menu onEnter={() => setPhase("game")} />;
   return (
     <GameDataProvider>
-      <PersonProvider>
-        <Shell onExitMenu={() => setPhase("menu")} />
-      </PersonProvider>
+      <Shell onExitMenu={() => setPhase("menu")} />
     </GameDataProvider>
   );
 }
