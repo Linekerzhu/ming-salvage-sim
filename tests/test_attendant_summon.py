@@ -290,6 +290,40 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_named_selection_from_attendant_shortlist_summons_unlisted_person(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                "回陛下——内书堂里有个叫**小禄子**的，今年刚满十一，保定府人，记性极好。"
+                "还有一个**小顺子**，今年十二，规矩熟。",
+            )
+
+            events = list(game.chat_stream(attendant, "算啦，换一个，小禄子。"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], "小禄子")
+            self.assertEqual(payload["registered_minister"], "小禄子")
+            self.assertIn("小禄子", game.content.characters)
+            row = game.db.conn.execute(
+                "SELECT office, office_type, faction, birth_year FROM characters WHERE name=?",
+                ("小禄子",),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
+            self.assertIn(str(row["faction"] or ""), {"内廷", "皇党", "阉党"})
+            self.assertEqual(int(game.state.year) - int(row["birth_year"]), 11)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_pronoun_followup_recovers_recent_attendant_implied_summon(self):
         game = web_app.WebGame(fresh=True)
         try:
@@ -789,6 +823,9 @@ class AttendantSummonTests(unittest.TestCase):
             recruited = str(payload.get("recruited_minister") or "")
             self.assertTrue(recruited)
             self.assertNotIn(recruited, before_names)
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], recruited)
+            self.assertTrue(payload["history"][-1].get("stage_directions"))
             row = game.db.conn.execute(
                 "SELECT office, office_type, summary FROM characters WHERE name=?",
                 (recruited,),
@@ -934,6 +971,13 @@ class AttendantSummonTests(unittest.TestCase):
             payload = confirm_events[-1]["payload"]
             self.assertEqual(payload["dialogue_effect"]["title"], "尿路调养")
             self.assertIn("内库-3", payload["dialogue_effect"]["message"])
+            self.assertIn("stage_direction", payload["dialogue_effect"])
+            self.assertTrue(payload["history"][-1].get("stage_directions"))
+            self.assertIn("夹腰", " ".join(payload["history"][-1]["stage_directions"]))
+            game._restore_chat_history_cache()
+            reloaded_history = game._chat_history_payload(attendant)
+            self.assertTrue(reloaded_history[-1].get("stage_directions"))
+            self.assertIn("夹腰", " ".join(reloaded_history[-1]["stage_directions"]))
             after_row = game.db.conn.execute(
                 "SELECT emp_trust, grievance, ability, charm FROM characters WHERE name=?",
                 (name,),

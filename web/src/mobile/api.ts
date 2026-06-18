@@ -483,7 +483,7 @@ export type ChatResponse = Record<string, any> & {
   court_action?: string;
   proposed_directive?: { id: number; text: string };
   directive_effect?: { title?: string; message?: string; kind?: string; progress_delta?: number; resistance_delta?: number };
-  dialogue_effect?: { title?: string; message?: string; effects?: ImpactEffect[] };
+  dialogue_effect?: { title?: string; message?: string; effects?: ImpactEffect[]; stage_direction?: string };
   dialogue_goal?: Record<string, any>;
   recruited_minister?: string;
   appointed_minister?: string;

@@ -488,6 +488,7 @@ class GameDB:
                 turn INTEGER NOT NULL,
                 role TEXT NOT NULL,
                 content TEXT NOT NULL,
+                stage_directions TEXT NOT NULL DEFAULT '[]',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
             CREATE INDEX IF NOT EXISTS idx_chat_messages_minister
@@ -1000,6 +1001,7 @@ class GameDB:
         self.ensure_column("economy_ledger", "purpose", "TEXT")
         self.ensure_column("economy_ledger", "target_kind", "TEXT")
         self.ensure_column("economy_ledger", "target_id", "TEXT")
+        self.ensure_column("chat_messages", "stage_directions", "TEXT NOT NULL DEFAULT '[]'")
         # 政治黑板：召对证据与月末成因札记。旧档为空，前端按缺省隐藏。
         self.ensure_column("minister_stances", "evidence_json", "TEXT NOT NULL DEFAULT '{}'")
         self.ensure_column("minister_stances", "risk_tags", "TEXT NOT NULL DEFAULT ''")
@@ -3989,28 +3991,52 @@ class GameDB:
         )
         self.conn.commit()
 
-    def append_chat_message(self, minister_name: str, turn: int, role: str, content: str) -> int:
+    def _chat_stage_list(self, raw: object) -> List[str]:
+        if isinstance(raw, list):
+            return [str(item).strip() for item in raw if str(item).strip()]
+        try:
+            parsed = json.loads(str(raw or "[]"))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            parsed = []
+        if not isinstance(parsed, list):
+            return []
+        return [str(item).strip() for item in parsed if str(item).strip()]
+
+    def append_chat_message(
+        self,
+        minister_name: str,
+        turn: int,
+        role: str,
+        content: str,
+        stage_directions: Optional[List[str]] = None,
+    ) -> int:
         """召对聊天单条消息落库（chat_messages）。"""
+        stage_json = json.dumps(self._chat_stage_list(stage_directions or []), ensure_ascii=False)
         cur = self.conn.execute(
-            "INSERT INTO chat_messages (minister_name, turn, role, content) VALUES (?, ?, ?, ?)",
-            (minister_name, turn, role, content),
+            "INSERT INTO chat_messages (minister_name, turn, role, content, stage_directions) VALUES (?, ?, ?, ?, ?)",
+            (minister_name, turn, role, content, stage_json),
         )
         self.conn.commit()
         return int(cur.lastrowid)
 
-    def load_all_chat_history(self) -> Dict[str, List[Dict[str, str]]]:
+    def _chat_message_payload_row(self, row: sqlite3.Row) -> Dict[str, Any]:
+        item: Dict[str, Any] = {"role": row["role"], "content": row["content"]}
+        stages = self._chat_stage_list(row["stage_directions"] if "stage_directions" in row.keys() else "[]")
+        if stages:
+            item["stage_directions"] = stages
+        return item
+
+    def load_all_chat_history(self) -> Dict[str, List[Dict[str, Any]]]:
         """读出全部召对记录，按大臣分组，供进程启动时恢复内存缓存。"""
         rows = self.conn.execute(
-            "SELECT minister_name, role, content FROM chat_messages ORDER BY id"
+            "SELECT minister_name, role, content, stage_directions FROM chat_messages ORDER BY id"
         ).fetchall()
-        history: Dict[str, List[Dict[str, str]]] = {}
+        history: Dict[str, List[Dict[str, Any]]] = {}
         for row in rows:
-            history.setdefault(row["minister_name"], []).append(
-                {"role": row["role"], "content": row["content"]}
-            )
+            history.setdefault(row["minister_name"], []).append(self._chat_message_payload_row(row))
         return history
 
-    def load_recent_chat_history(self, limit_per_minister: int = 80) -> Dict[str, List[Dict[str, str]]]:
+    def load_recent_chat_history(self, limit_per_minister: int = 80) -> Dict[str, List[Dict[str, Any]]]:
         """读出每名 NPC 最近 N 条召对记录，供 Web 进程恢复轻量缓存。"""
         try:
             limit = max(1, int(limit_per_minister or 80))
@@ -4019,11 +4045,12 @@ class GameDB:
         try:
             rows = self.conn.execute(
                 """
-                SELECT minister_name, role, content FROM (
+                SELECT minister_name, role, content, stage_directions FROM (
                     SELECT
                         minister_name,
                         role,
                         content,
+                        stage_directions,
                         ROW_NUMBER() OVER (PARTITION BY minister_name ORDER BY id DESC) AS rn
                     FROM chat_messages
                 )
@@ -4034,7 +4061,7 @@ class GameDB:
             ).fetchall()
         except sqlite3.DatabaseError:
             rows = self.conn.execute(
-                "SELECT minister_name, role, content FROM chat_messages ORDER BY id"
+                "SELECT minister_name, role, content, stage_directions FROM chat_messages ORDER BY id"
             ).fetchall()
             trimmed: Dict[str, List[Any]] = {}
             for row in rows:
@@ -4043,11 +4070,9 @@ class GameDB:
                 if len(bucket) > limit:
                     del bucket[0]
             rows = [row for bucket in trimmed.values() for row in bucket]
-        history: Dict[str, List[Dict[str, str]]] = {}
+        history: Dict[str, List[Dict[str, Any]]] = {}
         for row in rows:
-            history.setdefault(row["minister_name"], []).append(
-                {"role": row["role"], "content": row["content"]}
-            )
+            history.setdefault(row["minister_name"], []).append(self._chat_message_payload_row(row))
         return history
 
     # ----- chat_turns（本回合召对撤回）-----

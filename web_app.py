@@ -673,7 +673,7 @@ class WebGame:
         self.session = GameSession(db_path, llm_config)
         self.session.begin_turn()
         # 召对记录完整持久化在 chat_messages 表；Web 进程只恢复最近窗口，避免长期运行时搬运全文历史。
-        self.chat_history: Dict[str, List[Dict[str, str]]] = {}
+        self.chat_history: Dict[str, List[Dict[str, Any]]] = {}
         self._restore_chat_history_cache()
         _DEFAULT_FAVORITES = {"王承恩", "曹化淳", "李若琏", "魏忠贤", "田尔耕"}
         _fav_raw = self.db.kv_get("favorites")
@@ -3127,10 +3127,11 @@ class WebGame:
             or re.search(fr"^[\u4e00-\u9fff]{{2,4}}[？?，,、\s]*{direct_arrival}", raw)
         )
         pronoun_followup = bool(re.search(r"(人呢|他呢|她呢|在哪|哪去了|带来|领来|引来|进来|入殿|我来和[他她]说话|我和[他她]说话|让[他她]进来|叫[他她]进来|传[他她])", raw))
-        if not (summon_requested or pronoun_followup):
+        selection_followup = self._attendant_named_selection_requested(minister_name, raw)
+        if not (summon_requested or pronoun_followup or selection_followup):
             return {}
         candidates: List[Character] = []
-        if summon_requested:
+        if summon_requested or selection_followup:
             for character in self.session.content.characters.values():
                 if character.name == minister_name:
                     continue
@@ -3160,6 +3161,37 @@ class WebGame:
             return {}
         self._clear_pending_dialogue_action(minister_name)
         return {"name": target.name, "generated": True}
+
+    def _attendant_named_selection_requested(self, minister_name: str, text: str) -> bool:
+        """Treat a named choice from the attendant's recent suggestions as a summons.
+
+        Players often answer a recruitment shortlist with "换一个，小禄子" or
+        "就小禄子" instead of issuing a formal "传某入殿" command. In that
+        context the natural court action is to materialize and summon the named
+        person, not to leave the attendant roleplaying the handoff.
+        """
+
+        raw = str(text or "").strip()
+        if not raw:
+            return False
+        stored = self._load_unknown_dialogue_mentions()
+        names = [name for name in stored if name and name in raw]
+        if not names:
+            names = [
+                character.name
+                for character in self.session.content.characters.values()
+                if character.name != minister_name and character.name and character.name in raw
+            ]
+        if not names:
+            return False
+        selection_words = (
+            r"(换|另|就|要|选|挑|用|取|这个|那个|这位|那位|先把|先叫|先传|先带|"
+            r"看看|过目|见见|试试|问问|人呢|在哪|进来|入殿)"
+        )
+        if re.search(selection_words, raw):
+            return True
+        stripped = re.sub(r"[？?，,。！!\s、]+", "", raw)
+        return any(stripped in {name, f"就{name}", f"要{name}", f"选{name}", f"传{name}", f"叫{name}"} for name in names)
 
     def _attendant_summon_answer(self, target_name: str, generated: bool = False) -> str:
         if generated:
@@ -3410,9 +3442,15 @@ class WebGame:
             if mentions:
                 item["mentions"] = mentions
             if str(item.get("role") or "") != "user":
+                existing_stage = (
+                    [str(line).strip() for line in item.get("stage_directions", []) if str(line).strip()]
+                    if isinstance(item.get("stage_directions"), list)
+                    else []
+                )
                 stage_directions = self._chat_stage_directions(str(item.get("content") or ""))
-                if stage_directions:
-                    item["stage_directions"] = stage_directions
+                combined_stage = list(dict.fromkeys([*existing_stage, *stage_directions]))
+                if combined_stage:
+                    item["stage_directions"] = combined_stage[:4]
             payload.append(item)
         return payload
 
@@ -3966,13 +4004,35 @@ class WebGame:
         minister = result.get("minister") or {}
         name = str(minister.get("name") or "")
         self._clear_pending_dialogue_action(minister_name)
-        answer = f"{self._dialogue_speaker_self(minister_name)}遵旨，已办妥。{result.get('message') or detail} 新人小传已记明来源、短板与举荐风险，陛下可召见验看。"
+        court_action = ""
+        next_minister = ""
+        summon_note = ""
+        current = self._summon_handler_character(minister_name)
+        if name and current is not None:
+            try:
+                target, _is_temporary = self.session.summon_character(name, current, allow_temporary=False)
+                ok, _reason = self.session.can_summon(target)
+            except Exception:
+                ok = False
+                target = None
+            if ok and target is not None:
+                court_action = "summon"
+                next_minister = target.name
+                summon_note = f" {target.name}已在殿外候旨，奴婢这就引入御前，供陛下当面试问。"
+        answer = (
+            f"{self._dialogue_speaker_self(minister_name)}遵旨，已办妥。"
+            f"{result.get('message') or detail} 新人小传已记明来源、短板与举荐风险。"
+            f"{summon_note or '陛下可召见验看。'}"
+        )
         return {
             "answer": answer,
             "recruited_minister": name,
+            "court_action": court_action,
+            "next_minister": next_minister,
             "dialogue_effect": {
                 "title": title,
                 "message": detail,
+                "stage_direction": f"{self._dialogue_speaker_self(minister_name)}趋至殿门，传{name or '新人'}入殿候问。" if court_action else "",
                 "effects": [{"kind": "recruitment", "label": "新人可召见", "tone": "good"}],
             },
         }
@@ -4410,9 +4470,23 @@ class WebGame:
     ) -> Dict[str, Any]:
         character = self.session._character(minister_name)
         self._record_unknown_dialogue_mentions(minister_name, answer)
-        self.chat_history[minister_name].append({"role": "minister", "content": answer})
+        stage_directions: List[str] = []
+        if isinstance(dialogue_effect, dict):
+            stage = str(dialogue_effect.get("stage_direction") or "").strip()
+            if stage:
+                stage_directions.append(stage)
+        minister_message: Dict[str, Any] = {"role": "minister", "content": answer}
+        if stage_directions:
+            minister_message["stage_directions"] = stage_directions
+        self.chat_history[minister_name].append(minister_message)
         if minister_name not in self.session.temporary_characters:
-            message_id = self.db.append_chat_message(minister_name, self.state.turn, "minister", answer)
+            message_id = self.db.append_chat_message(
+                minister_name,
+                self.state.turn,
+                "minister",
+                answer,
+                stage_directions=stage_directions,
+            )
             if chat_turn_id:
                 self.db.update_chat_turn_messages(chat_turn_id, minister_message_id=message_id)
         self._prune_chat_history(minister_name)
@@ -4702,19 +4776,26 @@ class WebGame:
         if len(cleaned) == 1:
             return cleaned[0]
         messages: List[str] = []
+        stage_directions: List[str] = []
         merged_items: List[Dict[str, Any]] = []
         for effect in cleaned:
             message = str(effect.get("message") or effect.get("title") or "").strip()
             if message and message not in messages:
                 messages.append(message)
+            stage = str(effect.get("stage_direction") or "").strip()
+            if stage and stage not in stage_directions:
+                stage_directions.append(stage)
             for item in effect.get("effects") or []:
                 if isinstance(item, dict):
                     merged_items.append(item)
-        return {
+        merged: Dict[str, Any] = {
             "title": "奏对有动",
             "message": "；".join(messages)[:120],
             "effects": merged_items[:10],
         }
+        if stage_directions:
+            merged["stage_direction"] = "；".join(stage_directions[:3])
+        return merged
 
     def _bargain_attitude(self, user_text: str) -> str:
         raw = re.sub(r"\s+", "", str(user_text or ""))
@@ -5112,6 +5193,8 @@ class WebGame:
             return self._chat_payload(
                 minister_name,
                 answer,
+                court_action=str(dialogue_response.get("court_action") or ""),
+                next_minister=str(dialogue_response.get("next_minister") or ""),
                 recruited_minister=str(dialogue_response.get("recruited_minister") or ""),
                 dialogue_effect=dialogue_response.get("dialogue_effect") if isinstance(dialogue_response.get("dialogue_effect"), dict) else None,
                 dialogue_goal=dialogue_response.get("dialogue_goal") if isinstance(dialogue_response.get("dialogue_goal"), dict) else None,
@@ -5137,6 +5220,9 @@ class WebGame:
         )
         if tool_dialogue_response is not None:
             result.answer = str(tool_dialogue_response.get("answer") or result.answer)
+            if not result.court_action and tool_dialogue_response.get("court_action"):
+                result.court_action = str(tool_dialogue_response.get("court_action") or "")
+                result.next_minister = str(tool_dialogue_response.get("next_minister") or "")
         if not result.court_action:
             implied_summon = self._attendant_answer_summon_target(minister_name, result.answer)
             if implied_summon:
@@ -5243,6 +5329,8 @@ class WebGame:
             payload = self._chat_payload(
                 minister_name,
                 answer,
+                court_action=str(dialogue_response.get("court_action") or ""),
+                next_minister=str(dialogue_response.get("next_minister") or ""),
                 recruited_minister=str(dialogue_response.get("recruited_minister") or ""),
                 dialogue_effect=dialogue_response.get("dialogue_effect") if isinstance(dialogue_response.get("dialogue_effect"), dict) else None,
                 dialogue_goal=dialogue_response.get("dialogue_goal") if isinstance(dialogue_response.get("dialogue_goal"), dict) else None,
@@ -5393,6 +5481,9 @@ class WebGame:
                         chunks.append(extra)
                         yield {"type": "delta", "content": extra}
                     answer = updated_answer
+                if not court_action and dialogue_tool_response.get("court_action"):
+                    court_action = str(dialogue_tool_response.get("court_action") or "")
+                    next_minister = str(dialogue_tool_response.get("next_minister") or "")
             if not court_action:
                 implied_summon = self._attendant_answer_summon_target(minister_name, answer)
                 if implied_summon:
