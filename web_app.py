@@ -4046,20 +4046,127 @@ class WebGame:
             else:
                 yield {"type": "error", "message": str(error)}
 
-    def suggestions_for(self, character: Character) -> List[Dict[str, str]]:
-        suggestions = [
-            {"label": "问在办事项", "text": "当前在办的事项里，哪几件轻重缓急最该先理？"},
-            {"label": "问阻力", "text": "眼下推进朝政，最大的阻力来自哪一方？"},
+    def _audience_stake_suggestions(self, character: Character) -> List[Dict[str, Any]]:
+        """Character-specific opening hooks for summons.
+
+        Keep these facts server-side: they are derived from simulation tables
+        (agenda, relationships, favors, obligations, directives) and should not
+        become client-only roleplay prompts.
+        """
+        name = character.name
+        suggestions: List[Dict[str, Any]] = []
+        seen_labels: set[str] = set()
+
+        def add(label: str, text: str, *, prefix: bool = True) -> None:
+            clean_label = str(label or "").strip()[:6]
+            clean_text = re.sub(r"\s+", " ", str(text or "").strip())
+            if not clean_label or not clean_text or clean_label in seen_labels:
+                return
+            seen_labels.add(clean_label)
+            item: Dict[str, Any] = {"label": clean_label, "text": clean_text}
+            if prefix:
+                item["prefix"] = True
+            suggestions.append(item)
+
+        try:
+            active_goals = self.db.list_conversation_goals(
+                minister_name=name,
+                statuses=["active", "waiting_conditions", "blocked", "expired"],
+                limit=2,
+            )
+        except Exception:
+            active_goals = []
+        for goal in active_goals[:1]:
+            title = str(goal.get("title") or goal.get("target_text") or "未完奏对")[:32]
+            status = str(goal.get("status") or "")
+            add(
+                "追旧约",
+                f"朕记得你在「{title}」上已有话头。今日不许泛泛而谈：进展、卡点、可验凭据各是什么？"
+                + ("若已过期，更要说清延误责任。" if status == "expired" else ""),
+            )
+
+        directive = next(
+            (
+                row for row in self.directive_rows()
+                if str(row["actor"] or "").strip() == name or str(row["notes"] or "").find(name) >= 0
+            ),
+            None,
+        )
+        if directive is not None:
+            d_text = str(directive["text"] or directive["notes"] or "本回合拟旨")[:36]
+            add("核拟旨", f"你与「{d_text}」有关。朕先不核定，先问你：此旨真正要害、阻力和可验成效是什么？")
+
+        followup = next(
+            (item for item in (getattr(self.session, "monthly_followups", []) or [])
+             if str(item.get("minister_name") or "") == name),
+            None,
+        )
+        if isinstance(followup, dict):
+            title = str(followup.get("title") or followup.get("summary") or "本月主动请安")[:42]
+            risk_tags = "、".join(str(tag) for tag in (followup.get("risk_tags") or [])[:3] if str(tag).strip())
+            add("听请安", f"朕准你请安。你本月为「{title}」主动求见，先说清楚：要复命、求资源，还是求一道明旨？{('风险在' + risk_tags + '，也一并说。') if risk_tags else ''}")
+
+        try:
+            from ming_sim import court
+            agenda = court.agenda_of(self.db, name)
+        except Exception:
+            court = None
+            agenda = None
+        if agenda and str(agenda.get("status") or "active") == "active":
+            title = str(agenda.get("title") or "私心")[:42]
+            add("问私心", f"朕闻你近来有「{title}」之势。你自己说，是为国任事，还是另有所图？若朕用你，如何避嫌交账？")
+
+        if court is not None:
+            try:
+                rivals = court.rivals_of(self.db, name, limit=1, threshold=-18)
+            except Exception:
+                rivals = []
+            if rivals:
+                rival = str(rivals[0].get("name") or "")
+                basis = str(rivals[0].get("basis") or "旧怨")[:28]
+                add("问政敌", f"朕知道你与{rival}有嫌隙（{basis}）。若朕令你们共办一事，你肯退哪一步，又要朕给什么边界？")
+            try:
+                favors = court.favor_memories(self.db, name, limit=1)
+            except Exception:
+                favors = []
+            if favors:
+                favor = favors[0]
+                title = str(favor.get("title") or "旧恩")[:30]
+                outcome = str(favor.get("outcome") or favor.get("cause") or "")[:42]
+                add("点旧恩", f"朕昔日给过你「{title}」的余地。今日召你，是要听你如何还这笔旧恩；{outcome or '不要只谢恩，要说可验差使。'}")
+            try:
+                allies = court.allies_of(self.db, name, limit=1, threshold=22)
+            except Exception:
+                allies = []
+            if allies:
+                ally = str(allies[0].get("name") or "")
+                basis = str(allies[0].get("basis") or "声气相通")[:28]
+                add("问党羽", f"你与{ally}声气相通（{basis}）。若朕让你荐人或办事，如何保证不是借公事植党？")
+
+        return suggestions[:3]
+
+    def suggestions_for(self, character: Character) -> List[Dict[str, Any]]:
+        suggestions: List[Dict[str, Any]] = self._audience_stake_suggestions(character)
+        if not suggestions:
+            suggestions.extend([
+                {"label": "问在办", "text": "当前在办的事项里，哪几件轻重缓急最该先理？"},
+                {"label": "问阻力", "text": "眼下推进朝政，最大的阻力来自哪一方？"},
+            ])
+        skill_ids = set(available_skill_ids(character, self.db))
+        if "check_treasury" in skill_ids:
+            suggestions.insert(min(1, len(suggestions)), {"label": "查钱粮", "text": "太仓和内库实数如何？本月哪些钱最急？"})
+        if "check_military" in skill_ids or "front_line_plan" in skill_ids or "strategic_review" in skill_ids:
+            suggestions.insert(min(1, len(suggestions)), {"label": "查驻军", "text": "查一下关宁军、京营和陕西边军的士气、欠饷与补给。"})
+        if "secret_investigation" in skill_ids:
+            suggestions.insert(min(1, len(suggestions)), {"label": "密查", "text": "哪些账册和人物最该先密查？"})
+        structural = [
             {"label": "拟旨", "text": "拟旨如下：", "prefix": True},
             {"label": "下密令", "text": "密令如下：", "prefix": True},
         ]
-        skill_ids = set(available_skill_ids(character, self.db))
-        if "check_treasury" in skill_ids:
-            suggestions.insert(1, {"label": "查钱粮", "text": "太仓和内库实数如何？本月哪些钱最急？"})
-        if "check_military" in skill_ids or "front_line_plan" in skill_ids or "strategic_review" in skill_ids:
-            suggestions.insert(1, {"label": "查驻军", "text": "查一下关宁军、京营和陕西边军的士气、欠饷与补给。"})
-        if "secret_investigation" in skill_ids:
-            suggestions.insert(1, {"label": "密查", "text": "哪些账册和人物最该先密查？"})
+        labels = {str(item.get("label") or "") for item in suggestions}
+        for item in structural:
+            if item["label"] not in labels:
+                suggestions.append(item)
         return suggestions[:6]
 
 

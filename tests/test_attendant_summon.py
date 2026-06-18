@@ -155,6 +155,92 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_direct_audience_suggestions_surface_personal_stakes(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' AND name!='王承恩' "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            target = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' AND name NOT IN (?, '王承恩') "
+                "ORDER BY ability ASC LIMIT 1",
+                (actor,),
+            ).fetchone()["name"])
+            game.session.monthly_followups = []
+            game.db.conn.execute(
+                "INSERT OR REPLACE INTO npc_agendas "
+                "(name, kind, title, target_name, intensity, status) VALUES (?, 'protect', ?, ?, 80, 'active')",
+                (actor, "护持本党同气、安插自己人", target),
+            )
+            court._set_opinion(game.db, actor, target, -72, "旧案相攻", 1)
+            game.db.upsert_event_memory(
+                game.state,
+                subject_type="character",
+                subject_id=actor,
+                event_type="imperial_favor",
+                title="留中保全",
+                cause="旧案未究",
+                process="御前留中",
+                outcome="保住差事",
+                sentiment="positive",
+                importance=4,
+                tags=["旧恩"],
+                source_kind="test",
+                source_id=f"favor:{actor}",
+                expires_turn=None,
+            )
+
+            suggestions = game.suggestions_for(game.session._character(actor))
+            labels = {str(item["label"]) for item in suggestions}
+
+            self.assertIn("问私心", labels)
+            self.assertIn("问政敌", labels)
+            self.assertIn("点旧恩", labels)
+            self.assertIn("拟旨", labels)
+            self.assertIn("下密令", labels)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_direct_audience_suggestions_prioritize_unfinished_commitments(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            game.db.create_conversation_goal(
+                game.state,
+                minister_name=actor,
+                action_kind="court_commitment",
+                title="三日内清查粮台",
+                target_text=f"{actor}须清查粮台并回奏证据。",
+                threshold=70,
+                score=45,
+                status="waiting_conditions",
+                condition_status="pending",
+                conditions=[{"description": "限期回奏可验证据", "status": "pending"}],
+                expires_turn=int(game.state.turn) + 2,
+            )
+
+            suggestions = game.suggestions_for(game.session._character(actor))
+
+            self.assertEqual(suggestions[0]["label"], "追旧约")
+            self.assertIn("三日内清查粮台", suggestions[0]["text"])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_recruitment_requires_confirmation(self):
         game = web_app.WebGame(fresh=True)
         try:
