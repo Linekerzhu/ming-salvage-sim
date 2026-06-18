@@ -1121,6 +1121,70 @@ def npc_relation_perspective(
     }
 
 
+def _goal_followup_flavor(goal: Dict[str, object]) -> Dict[str, object]:
+    """Turn a generic conversation goal into a more characterful audience hook."""
+
+    title = str(goal.get("title") or goal.get("target_text") or "未竟奏对")
+    last_delta = goal.get("last_delta") if isinstance(goal.get("last_delta"), dict) else {}
+    source = str((last_delta or {}).get("source") or "")
+    blob = f"{source}\n{title}\n{goal.get('target_text') or ''}"
+    if "patronage_accountability" in blob or "举主" in title or "新人试差" in title or "保结荐人" in title:
+        return {
+            "reason_type": "patronage_followup",
+            "hook": f"举主担保「{title}」仍需交账：须说明荐人短板、担保边界与试差证据。",
+            "priority": 5,
+            "risk_tags": ["举主担保", "门生故旧"],
+            "opening": "请安时先交代荐人担保、试差证据和避嫌边界；不要只说新人可用。",
+        }
+    if "co_work" in blob or "共办消怨" in title:
+        return {
+            "reason_type": "co_work_followup",
+            "hook": f"共办消怨「{title}」仍需回奏：须说明分工、阻力与是否仍借旧怨互相牵制。",
+            "priority": 4,
+            "risk_tags": ["共办消怨", "政敌牵动"],
+            "opening": "请安时先说明与政敌共办到哪一步，哪些是公事，哪些仍是私怨。",
+        }
+    if "policy_aftershock:audit" in blob or ("清查" in title and "加派" in title):
+        return {
+            "reason_type": "policy_audit_followup",
+            "hook": f"旧政清查「{title}」仍需复命：须拿出浮收名目、钱粮缺口和减负清单。",
+            "priority": 5,
+            "risk_tags": ["旧政余波", "钱粮压力"],
+            "opening": "请安时先交代旧政余波的实数、受损者和可减负处，不要只诉百姓困苦。",
+        }
+    if "secret_order_review:question" in blob or "补证密令" in title:
+        return {
+            "reason_type": "secret_evidence_followup",
+            "hook": f"密令补证「{title}」仍需复命：须补足可核验证据、牵连名单与公开风险。",
+            "priority": 6,
+            "risk_tags": ["密令补证", "证据压力"],
+            "opening": "请安时先交代新得证据和公开收网风险，不得只称风闻。",
+        }
+    if "private_distress" in blob or "偿恩差使" in title:
+        return {
+            "reason_type": "favor_service_followup",
+            "hook": f"偿恩差使「{title}」仍需交账：这是私恩变成的政治债。",
+            "priority": 4,
+            "risk_tags": ["旧恩未报", "私请余波"],
+            "opening": "请安时先承认旧恩未报，再说可验证据、成效和愿担的责任。",
+        }
+    if "imperial_petition:demand_service" in blob or "难差自证" in title:
+        return {
+            "reason_type": "petition_service_followup",
+            "hook": f"难差自证「{title}」仍需回奏：求援不是白给护身符，须拿成效来换。",
+            "priority": 4,
+            "risk_tags": ["求援请托", "自证压力"],
+            "opening": "请安时先说明自证难差进展，别再只求护持。",
+        }
+    return {
+        "reason_type": "",
+        "hook": "",
+        "priority": 0,
+        "risk_tags": [],
+        "opening": "",
+    }
+
+
 def build_npc_monthly_followups(
     db: GameDB,
     state: GameState,
@@ -1156,10 +1220,18 @@ def build_npc_monthly_followups(
             "reason_types": [],
             "memory_hooks": [],
             "risk_tags": [],
+            "opening_hints": [],
         })
         return item
 
-    def add(name: str, reason_type: str, hook: str, priority: int, risk_tags: Optional[List[str]] = None) -> None:
+    def add(
+        name: str,
+        reason_type: str,
+        hook: str,
+        priority: int,
+        risk_tags: Optional[List[str]] = None,
+        opening: str = "",
+    ) -> None:
         name = str(name or "").strip()
         if not name or not active_enough(name):
             return
@@ -1176,13 +1248,29 @@ def build_npc_monthly_followups(
             text = str(tag or "").strip()
             if text and text not in risks:
                 risks.append(text)
+        openings = item["opening_hints"] if isinstance(item.get("opening_hints"), list) else []
+        opening_text = str(opening or "").strip()
+        if opening_text and opening_text not in openings:
+            openings.append(opening_text[:160])
 
     for goal in db.list_conversation_goals(statuses=["active", "waiting_conditions", "blocked", "expired"], limit=80):
         name = str(goal.get("minister_name") or "")
         status = str(goal.get("status") or "")
         title = str(goal.get("title") or goal.get("target_text") or "未竟奏对")
         priority = 18 if status == "waiting_conditions" else 12 if status == "active" else 9
-        add(name, f"conversation_goal:{status}", f"未完奏对「{title}」仍需复命或请旨。", priority, ["旧约未了"])
+        flavor = _goal_followup_flavor(goal)
+        reason_type = str(flavor.get("reason_type") or f"conversation_goal:{status}")
+        hook = str(flavor.get("hook") or f"未完奏对「{title}」仍需复命或请旨。")
+        priority += int(flavor.get("priority") or 0)
+        risk_tags = [*([str(item) for item in (flavor.get("risk_tags") or [])]), "旧约未了"]
+        add(
+            name,
+            reason_type,
+            hook,
+            priority,
+            risk_tags,
+            opening=str(flavor.get("opening") or ""),
+        )
 
     for agreement in db.negotiation_agreement_ledger(state, limit=80):
         name = str(agreement.get("minister_name") or "")
@@ -1244,6 +1332,7 @@ def build_npc_monthly_followups(
     rows: List[Dict[str, object]] = []
     for name, item in bucket.items():
         hooks = [str(hook) for hook in (item.get("memory_hooks") or []) if str(hook).strip()]
+        opening_hints = [str(hint) for hint in (item.get("opening_hints") or []) if str(hint).strip()]
         text = "；".join(hooks[:4])
         profile = npc_dialogue_behavior_profile(name, text=text)
         risks = list(dict.fromkeys([*(item.get("risk_tags") or []), *(profile.get("risk_tags") or [])]))[:6]
@@ -1255,6 +1344,8 @@ def build_npc_monthly_followups(
             "oppose": "请安时会借机申辩、告状或拖延，未必真心奉行。",
             "neutral": "请安时先陈事实与利害，再等皇帝定夺。",
         }.get(preferred, "请安时先陈事实与利害，再等皇帝定夺。")
+        if opening_hints:
+            opener = opening_hints[0]
         row = {
             **item,
             "priority": int(item.get("priority") or 0),

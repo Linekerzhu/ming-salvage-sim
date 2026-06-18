@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from ming_sim.db import GameDB
 from ming_sim.models import GameState
@@ -1488,6 +1488,9 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
         priority = _clamp_int(item.get("priority"), 0, 120)
         due = any("due" in reason or "expired" in reason or "blocked" in reason for reason in reasons)
         secret = any("secret_order" in reason for reason in reasons)
+        patronage = any("patronage" in reason for reason in reasons)
+        co_work = any("co_work" in reason for reason in reasons)
+        policy_audit = any("policy_audit" in reason for reason in reasons)
         agreement = any("agreement" in reason or "conversation_goal" in reason for reason in reasons)
         speech = any("stance" in reason or "speech" in reason for reason in reasons)
         title = str(item.get("title") or (hooks[0] if hooks else "本月可主动请安回奏。")).strip()
@@ -1499,6 +1502,12 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
             meta_bits.append("到期")
         if secret:
             meta_bits.append("密令")
+        if patronage:
+            meta_bits.append("举主")
+        if co_work:
+            meta_bits.append("共办")
+        if policy_audit:
+            meta_bits.append("旧政")
         if agreement:
             meta_bits.append("旧约")
         if speech:
@@ -1511,12 +1520,27 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
         ]
         if secret:
             effects.append({"kind": "secret_order", "label": "密令回奏", "tone": "bad" if due else "neutral"})
-        if agreement:
+        if patronage:
+            effects.append({"kind": "patronage", "label": "举主担保", "tone": "warn"})
+        if co_work:
+            effects.append({"kind": "co_work", "label": "共办回奏", "tone": "warn"})
+        if policy_audit:
+            effects.append({"kind": "policy_audit", "label": "旧政清查", "tone": "warn"})
+        if agreement and not (patronage or co_work or policy_audit):
             effects.append({"kind": "agreement", "label": "旧约待复", "tone": "bad" if due else "neutral"})
         if speech:
             effects.append({"kind": "speech", "label": "延续口径", "tone": "neutral"})
         if risks:
             effects.append({"kind": "risk", "label": risks[0], "tone": "bad" if due else "neutral"})
+        deduped_effects: List[Dict[str, object]] = []
+        seen_effect_labels: Set[str] = set()
+        for effect in effects:
+            label = str(effect.get("label") or "").strip()
+            if label and label in seen_effect_labels:
+                continue
+            if label:
+                seen_effect_labels.add(label)
+            deduped_effects.append(effect)
         detail = (
             f"{office}{name}本月有事候见。{summary or title}"
             f"{'；'.join(hooks[:2]) if hooks else ''}"
@@ -1537,7 +1561,7 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
                 meta=meta,
                 ref_kind="monthly_followup",
                 ref_id=name,
-                effects=effects[:6],
+                effects=deduped_effects[:6],
             )
         )
         count += 1
@@ -2340,6 +2364,18 @@ def _clamp_int(value: object, low: int, high: int) -> int:
 
 def _monthly_reason_label(reason: str) -> str:
     text = str(reason or "")
+    if "patronage_followup" in text:
+        return "举主担保"
+    if "co_work_followup" in text:
+        return "共办回奏"
+    if "policy_audit_followup" in text:
+        return "旧政清查"
+    if "secret_evidence_followup" in text:
+        return "补证密令"
+    if "favor_service_followup" in text:
+        return "偿恩差使"
+    if "petition_service_followup" in text:
+        return "难差自证"
     if "secret_order_due" in text:
         return "密令到期"
     if "secret_order_pending_review" in text:

@@ -423,6 +423,38 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("主动复命或诉难处", brief)
             self.assertIn("不要给无成本完美答案", brief)
 
+    def test_patronage_followup_gets_specific_home_card_labels(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            name = _active_minister(db)
+            state.turn = 3
+            state.period = 3
+            db.save_state(state)
+            goal_id = db.create_conversation_goal(
+                state,
+                minister_name=name,
+                action_kind="court_commitment",
+                title=f"举主连坐：{name}保新人",
+                target_text=f"{name}须为荐人共办试差并交代担保边界。",
+                threshold=70,
+                score=100,
+                status="waiting_conditions",
+                condition_status="pending",
+                conditions=[{"description": "两月内回奏荐人试差证据。", "status": "pending"}],
+                expires_turn=5,
+                last_delta={"source": f"patronage_accountability:{name}:新人:joint_trial:sponsor"},
+            )
+            self.assertTrue(goal_id)
+
+            payload = briefing_payload(db, state, limit=5, kind="monthly_followup")
+
+            card = next(c for c in payload["cards"] if c["kind"] == "monthly_followup" and c["actor"] == name)
+            self.assertIn("举主", str(card["meta"]))
+            labels = [str(e["label"]) for e in card["effects"]]
+            self.assertIn("举主担保", labels)
+            self.assertEqual(labels.count("举主担保"), 1)
+            self.assertNotIn("旧约待复", labels)
+
     def test_recommendation_bond_becomes_patronage_brief_card(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)

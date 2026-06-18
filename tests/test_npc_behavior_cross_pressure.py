@@ -1095,6 +1095,41 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             self.assertIn("请安", han_item["suggested_opening"])
             db.conn.close()
 
+    def test_monthly_followup_specializes_patronage_obligation_opening(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db = GameDB(str(Path(tmp) / "npc_patronage_followup.db"), content=self.content)
+            db.seed_static_data()
+            state = GameState(
+                year=1628,
+                period=3,
+                turn=3,
+                metrics={"国库": 100, "内库": 50, "民心": 50, "皇威": 50},
+            )
+            goal_id = db.create_conversation_goal(
+                state,
+                minister_name="韩爌",
+                action_kind="court_commitment",
+                title="举主连坐：韩爌保张瑞图",
+                target_text="韩爌须与张瑞图共办一件可验试差，并说明荐人短板、担保边界与误事追责。",
+                threshold=70,
+                score=100,
+                status="waiting_conditions",
+                condition_status="pending",
+                conditions=[{"description": "两月内共同回奏试差成果。", "status": "pending"}],
+                expires_turn=5,
+                last_delta={"source": "patronage_accountability:韩爌:张瑞图:joint_trial:sponsor"},
+            )
+            self.assertTrue(goal_id)
+
+            followups = build_npc_monthly_followups(db, state, limit=5)
+            item = next(row for row in followups if row["minister_name"] == "韩爌")
+
+            self.assertIn("patronage_followup", item["reason_types"])
+            self.assertIn("举主担保", str(item["title"]))
+            self.assertIn("荐人担保", str(item["suggested_opening"]))
+            self.assertIn("门生故旧", item["risk_tags"])
+            db.conn.close()
+
     def test_monthly_followup_brief_injects_only_current_npc(self) -> None:
         state = GameState(
             year=1628,
