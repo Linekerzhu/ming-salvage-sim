@@ -1454,7 +1454,7 @@ class WebGame:
             tier = str(scheme_review.get("tier") or "方案复盘").strip()
             risk = int(scheme_review.get("risk_score") or 0)
             tone = "bad" if risk >= 72 else "warn" if risk >= 55 else "good"
-            effects.append({"kind": "castration_scheme", "label": f"方案复盘：{tier} 风险{risk}", "tone": tone})
+            effects.append({"kind": "castration_scheme", "label": f"旧制复盘：{tier} 风险{risk}", "tone": tone})
         stage = ""
         castration = update.get("castration") if isinstance(update.get("castration"), dict) else {}
         profile = castration.get("voice_profile") if isinstance(castration.get("voice_profile"), dict) else {}
@@ -2573,7 +2573,7 @@ class WebGame:
             location=archetype["location"],
             status="active",
             summary=(
-                f"净身入宫的内廷新人。{archetype['summary']}太监是皇帝家奴，入仕路径正常；"
+                f"新入内廷的低品近侍。{archetype['summary']}太监是皇帝家奴，入仕路径正常；"
                 "其能力未必压倒外朝，但忠诚与执行链清晰。短板：见识多限宫禁，骤掌外事易被老吏牵着走；"
                 "风险：若被旧监房或掌印系统收拢，可能生出内廷小圈子。"
             ),
@@ -2871,14 +2871,14 @@ class WebGame:
         clean_name = (name or "").strip()
         character = self.content.characters.get(clean_name)
         if character is None or character.office_type == "后宫":
-            raise HTTPException(status_code=404, detail=f"未找到可净身入内廷的人物：{clean_name}")
+            raise HTTPException(status_code=404, detail=f"未找到可改入内廷的人物：{clean_name}")
         if self.character_power_id(character) != "ming":
             raise HTTPException(status_code=409, detail=f"{clean_name}不属大明，不能入内廷。")
         status, reason = self.db.get_character_status(clean_name)
         if status != "active":
-            raise HTTPException(status_code=409, detail=f"{clean_name}当前{_STATUS_LABEL_WEB.get(status, status)}，不可净身入宫。{reason}")
+            raise HTTPException(status_code=409, detail=f"{clean_name}当前{_STATUS_LABEL_WEB.get(status, status)}，不可改入内廷。{reason}")
         if not self._castration_applicable(character):
-            raise HTTPException(status_code=409, detail=f"{clean_name}并非可净身入内廷的文官或武官。")
+            raise HTTPException(status_code=409, detail=f"{clean_name}并非可改入内廷的文官或武官。")
         consent = self._castration_consent_note(clean_name)
         if not force:
             if not consent:
@@ -2901,7 +2901,7 @@ class WebGame:
                     detail=detail + "若陛下仍要执行，只能下旨强行净身。",
                 )
         new_office = "司礼监随堂太监"
-        source = "强旨净身入宫" if force else "自愿净身入宫"
+        source = "强旨改入内廷" if force else "自愿改入内廷"
         character, political_reactions = convert_character_to_eunuch(
             self.db,
             self.state,
@@ -4612,22 +4612,22 @@ class WebGame:
                 value = str(castration.get(key) or "").strip()
                 if value and value not in labels:
                     labels.append(value)
-        detail = "、".join(labels[:6]) or "净身旧档已入册"
+        detail = "、".join(labels[:6]) or "旧档已封存"
         scheme_profile = castration.get("scheme_profile") if isinstance(castration, dict) else {}
         scheme_summary = self._castration_scheme_summary(scheme_profile if isinstance(scheme_profile, dict) else {})
         scheme_effects = self._castration_scheme_effects(scheme_profile if isinstance(scheme_profile, dict) else {})
         self._clear_pending_dialogue_action(minister_name)
         return {
             "answer": (
-                f"{self_ref}遵旨。{target}已净身入内廷，净身旧档按御前方案写明：{detail}。"
+                f"{self_ref}遵旨。{target}已改入内廷，内廷旧档按御前方案封存：{detail}。"
                 + (f"{scheme_summary}。" if scheme_summary else "")
-                + "宝况、宝匣、后患与私癖已入档；后续旧患发作、调养成本与差遣风险都会按此方案走。"
+                + "旧匣、后患与心相已入档；后续旧疾、调养成本与差遣风险都会按此方案走。"
             ),
             "dialogue_effect": {
-                "title": "强旨净身",
+                "title": "内廷改籍",
                 "message": f"{target}入内廷：{detail}" + (f"；{scheme_summary}" if scheme_summary else ""),
                 "effects": [
-                    {"kind": "castration", "label": "净身旧档已入册", "tone": "bad"},
+                    {"kind": "castration", "label": "内廷旧档已封存", "tone": "bad"},
                     {"kind": "character", "label": f"{target} 可召见", "tone": "warn"},
                     *scheme_effects[:6],
                 ],

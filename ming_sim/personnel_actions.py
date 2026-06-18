@@ -74,6 +74,18 @@ def _grant_player_item_once(db: GameDB, item_id: str, state: GameState) -> bool:
     return True
 
 
+def _inner_court_lore_item_ids(name: str, bao_status: str) -> List[str]:
+    clean_name = str(name or "").strip()
+    item_ids = [f"内廷旧档：{clean_name}"]
+    if bao_status == "forfeit":
+        item_ids.append(f"官库旧匣：{clean_name}")
+    elif bao_status == "kept":
+        item_ids.append(f"旧匣线索：{clean_name}")
+    elif bao_status:
+        item_ids.append(f"旧匣遗失：{clean_name}")
+    return item_ids
+
+
 def _castration_lore_text(lore: Dict[str, object], *, include_psychosexual: bool) -> str:
     keys = [
         "castration_method",
@@ -248,23 +260,23 @@ def _apply_scheme_review_gameplay(
         "character",
         name,
         "eunuch_scheme_review",
-        f"净身方案复盘：{name}",
-        cause="奏对补录净身方案",
+        f"内廷方案复盘：{name}",
+        cause="奏对补录内廷旧制方案",
         process=(
             f"{tier} 风险{risk}；酷烈{scheme_profile.get('brutality')}、"
             f"惊创{scheme_profile.get('trauma_risk')}、伤身{scheme_profile.get('surgery_risk')}、"
-            f"宝案{scheme_profile.get('bao_security')}"
+            f"旧匣{scheme_profile.get('bao_security')}"
         ),
         outcome="，".join(outcome_bits),
         sentiment="negative" if risk >= 55 else "positive",
         importance=4 if risk >= 72 else 3,
-        tags=["净身", "方案复盘", tier],
+        tags=["内廷旧档", "方案复盘", tier],
         source_kind="dialogue_lore_update",
         source_id=source_id,
     )
     db.record_log(
         state,
-        f"【净身方案复盘】{name}：{tier}（风险{risk}），{','.join(outcome_bits)}。",
+        f"【内廷方案复盘】{name}：{tier}（风险{risk}），{','.join(outcome_bits)}。",
     )
     return {
         "tier": tier,
@@ -335,13 +347,7 @@ def sync_castration_lore_gameplay(
         )
 
     bao_status = str(lore.get("bao_status") or "")
-    item_ids = [f"净身旧档：{clean_name}"]
-    if bao_status == "forfeit":
-        item_ids.append(f"官没宝匣：{clean_name}")
-    elif bao_status == "kept":
-        item_ids.append(f"宝匣线索：{clean_name}")
-    elif bao_status:
-        item_ids.append(f"遗失宝案：{clean_name}")
+    item_ids = _inner_court_lore_item_ids(clean_name, bao_status)
     granted = [item_id for item_id in item_ids if _grant_player_item_once(db, item_id, state)]
 
     scheme_review: Dict[str, object] = {}
@@ -504,24 +510,20 @@ def _apply_castration_gameplay_consequences(
     _add_character_traits(db, name, traits)
 
     bao_status = str(lore.get("bao_status") or "")
-    if bao_status == "forfeit":
-        item_id = f"官没宝匣：{name}"
-    elif bao_status == "kept":
-        item_id = f"宝匣线索：{name}"
-    else:
-        item_id = f"遗失宝案：{name}"
-    db.grant_player_item(f"净身旧档：{name}", state)
-    db.grant_player_item(item_id, state)
+    item_ids = _inner_court_lore_item_ids(name, bao_status)
+    item_id = item_ids[-1] if len(item_ids) > 1 else item_ids[0]
+    for granted_item_id in item_ids:
+        db.grant_player_item(granted_item_id, state)
 
-    tags = ["净身", "宝匣", "内廷奴籍", *traits[:4]]
+    tags = ["内廷旧档", "旧匣", "内廷奴籍", *traits[:4]]
     try:
         db.upsert_event_memory(
             state,
             "character",
             name,
             "eunuch_castration",
-            f"净身旧档：{name}",
-            cause="强旨净身" if forced else "自愿净身入宫",
+            f"内廷旧档：{name}",
+            cause="强旨改入内廷" if forced else "自愿改入内廷",
             process="；".join(part for part in (
                 str(lore.get("castration_method") or ""),
                 str(lore.get("knife_tool") or ""),
@@ -545,8 +547,8 @@ def _apply_castration_gameplay_consequences(
     db.record_log(
         state,
         (
-            f"【净身旧档】{name}：{str(lore.get('castration_method') or '净身')}、"
-            f"{str(lore.get('bao_preservation') or '宝况未详')}、{str(lore.get('bao_container') or '宝匣未详')}。"
+            f"【内廷旧档】{name}：{str(lore.get('castration_method') or '旧制未详')}、"
+            f"{str(lore.get('bao_preservation') or '封存未详')}、{str(lore.get('bao_container') or '旧匣未详')}。"
             + (f"方案：{scheme_profile.get('tier')}（风险{scheme_profile.get('risk_score')}）。" if scheme_profile else "")
             + f"信任 {before['emp_trust']}->{after['emp_trust']}，怨望 {before['grievance']}->{after['grievance']}。"
         ),
@@ -561,7 +563,7 @@ def _apply_castration_gameplay_consequences(
             if after[key] != before[key]
         },
         "traits": list(dict.fromkeys(traits)),
-        "items": [f"净身旧档：{name}", item_id],
+        "items": item_ids,
         "scheme_profile": scheme_profile,
     }
 
@@ -584,12 +586,12 @@ def convert_character_to_eunuch(
     character = content.characters[clean_name]
     old_row = character_political_row(db, clean_name)
     office = normalize_office(new_office) or "司礼监随堂太监"
-    db.set_character_office(clean_name, office, "司礼监", source=source or "净身入宫")
+    db.set_character_office(clean_name, office, "司礼监", source=source or "改入内廷")
 
     status_reason = (
-        "奉强旨净身入宫，转入皇帝私人执行链；外朝将视为重罚与奇辱"
+        "奉强旨改入内廷，转入皇帝私人执行链；外朝将视为重罚与奇辱"
         if force
-        else "奏对同意后净身入宫，转入皇帝私人执行链"
+        else "奏对同意后改入内廷，转入皇帝私人执行链"
     )
     row = db.conn.execute(
         "SELECT personal_skills, loyalty, courage, style FROM characters WHERE name=?",

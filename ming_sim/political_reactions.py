@@ -347,7 +347,7 @@ def apply_castration_reaction(
     cleaned = _clean_delta(delta)
     if not cleaned:
         return []
-    mode = "强旨净身" if force else "自愿净身"
+    mode = "强旨改籍" if force else "自愿入内廷"
     return _apply(db, {
         "kind": "political_reaction",
         "tone": "bad" if force else "warn",
@@ -361,7 +361,7 @@ def apply_castration_reaction(
             f"原缺权重{old_weight}",
             f"原派系{old_side or '无'}",
             f"内廷归入{imperial_side or '皇权'}",
-            "强旨将被外朝视为奇辱与威压" if force else "奏对同意后转入皇帝私人执行链",
+            "强旨改籍将被外朝视为奇辱与威压" if force else "奏对同意后转入皇帝私人执行链",
         ],
         "faction_delta": cleaned,
         "turn": state.turn,

@@ -258,7 +258,7 @@ class RecordCastrationTests(unittest.TestCase):
             volun_brief = el.servility_brief(db, "乙")
             self.assertIn("强旨", forced_brief)
             self.assertIn("收没", forced_brief)        # 宝被官府收没之痛
-            self.assertIn("匣中供奉", volun_brief)       # 自藏宝匣望来世
+            self.assertIn("旧匣供奉", volun_brief)       # 自藏旧匣望来世
             self.assertNotEqual(forced_brief, volun_brief)
 
     def test_voice_profile_drives_public_payload_and_servility_brief(self):

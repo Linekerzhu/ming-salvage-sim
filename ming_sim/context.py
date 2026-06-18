@@ -350,7 +350,7 @@ def _identity_conversion_overlay(character: Character) -> Dict[str, str]:
     if not re.search(r"既入内廷|奉强旨入内廷|净身入宫|强旨净身|自愿净身", style):
         return {}
     forced = bool(re.search(r"强旨|心结", style))
-    mode = "奉强旨净身入内廷" if forced else "奏对同意后净身入内廷"
+    mode = "奉强旨改入内廷" if forced else "奏对同意后改入内廷"
     office = character.office or "司礼监差使"
     return {
         "biography": (
@@ -366,7 +366,7 @@ def _identity_conversion_overlay(character: Character) -> Dict[str, str]:
         ),
         "risk": (
             "旧同年、同乡、清流或官署关系可能转为疑忌；"
-            + ("强旨净身还会留下羞辱心结与外朝反弹。" if forced else "自愿入内廷也会引发外朝名分压力。")
+            + ("强旨改籍还会留下羞辱心结与外朝反弹。" if forced else "自愿入内廷也会引发外朝名分压力。")
         ),
     }
 

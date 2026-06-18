@@ -1339,14 +1339,14 @@ def apply_score_extraction(
                         content,
                         name,
                         force=force_castration,
-                        source=reason[:60] or ("强旨净身入宫" if force_castration else "自愿净身入宫"),
+                        source=reason[:60] or ("强旨改入内廷" if force_castration else "自愿改入内廷"),
                         new_office=new_office,
                         lore_text=f"{directive_text} {reason}",
                     )
                 except Exception as exc:
                     applied_office_changes.append({
                         "name": name, "new_office": new_office, "rejected": True,
-                        "reason": f"净身入内廷落库失败：{exc}",
+                        "reason": f"改入内廷落库失败：{exc}",
                     })
                     continue
                 if registry is not None:
@@ -1359,7 +1359,7 @@ def apply_score_extraction(
                     "new_office": new_office,
                     "kind": "castration",
                     "forced": force_castration,
-                    "reason": reason or ("未见同意奏对，按强旨净身" if force_castration else "奏对同意后净身"),
+                    "reason": reason or ("未见同意奏对，按强旨改入内廷" if force_castration else "奏对同意后改入内廷"),
                 })
                 continue
             if commoner_transfer:

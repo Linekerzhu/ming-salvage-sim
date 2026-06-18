@@ -1488,8 +1488,9 @@ class AttendantSummonTests(unittest.TestCase):
             ))
             self.assertEqual(confirm_events[-1]["type"], "done")
             payload = confirm_events[-1]["payload"]
-            self.assertEqual(payload["dialogue_effect"]["title"], "强旨净身")
-            self.assertIn("净身旧档", payload["answer"])
+            self.assertEqual(payload["dialogue_effect"]["title"], "内廷改籍")
+            self.assertIn("内廷旧档", payload["answer"])
+            self.assertNotIn("强旨净身", payload["dialogue_effect"]["title"])
             self.assertIn("方案画像", payload["answer"])
             self.assertIn("差遣风险", payload["answer"])
             effect_labels = {str(item.get("label") or "") for item in payload["dialogue_effect"].get("effects", [])}
@@ -1526,8 +1527,8 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertIn("尿路旧患", trait_names)
             self.assertIn("情欲异化", trait_names)
             inventory_ids = {str(item["id"]) for item in game.db.list_player_inventory()}
-            self.assertIn(f"净身旧档：{name}", inventory_ids)
-            self.assertIn(f"官没宝匣：{name}", inventory_ids)
+            self.assertIn(f"内廷旧档：{name}", inventory_ids)
+            self.assertIn(f"官库旧匣：{name}", inventory_ids)
             self.assertEqual(game._load_pending_dialogue_action(attendant), {})
         finally:
             try:
@@ -2175,7 +2176,7 @@ class AttendantSummonTests(unittest.TestCase):
             game.db.conn.execute("DELETE FROM character_traits WHERE name=?", (name,))
             game.db.conn.execute(
                 "DELETE FROM player_inventory WHERE item_id IN (?, ?, ?)",
-                (f"净身旧档：{name}", f"官没宝匣：{name}", f"遗失宝案：{name}"),
+                (f"内廷旧档：{name}", f"官库旧匣：{name}", f"旧匣遗失：{name}"),
             )
             game.db.conn.commit()
             before = game.public_character(game.content.characters[name])["castration"]
@@ -2205,7 +2206,7 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertGreaterEqual(int(scheme_review["risk_score"]), 72)
             effect = game._eunuch_lore_dialogue_effect(result)
             effect_labels = {str(item.get("label") or "") for item in effect.get("effects", [])}
-            self.assertTrue(any("方案复盘：酷烈高危" in label for label in effect_labels))
+            self.assertTrue(any("旧制复盘：酷烈高危" in label for label in effect_labels))
             game._record_chat_rollback_items(chat_turn_id, snapshot)
 
             after = game.public_character(game.content.characters[name])["castration"]
@@ -2225,7 +2226,7 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertIn("尿路旧患", after_traits - before_traits)
             self.assertIn("情欲异化", after_traits - before_traits)
             after_inventory = {str(item["id"]) for item in game.db.list_player_inventory()}
-            self.assertIn(f"净身旧档：{name}", after_inventory - before_inventory)
+            self.assertIn(f"内廷旧档：{name}", after_inventory - before_inventory)
             after_stats = game.db.conn.execute(
                 "SELECT emp_trust, grievance, ability, luck FROM characters WHERE name=?",
                 (name,),

@@ -865,12 +865,12 @@ def _direct_personnel_delta(name: str, applied: Dict[str, object]) -> Tuple[floa
                     shi -= 48.0
                     fear += 24.0
                     hatred += 52.0
-                    note = "强旨净身"
+                    note = "强旨改籍"
                 else:
                     shi += 16.0
                     fear -= 2.0
                     hatred -= 3.0
-                    note = "自愿净身"
+                    note = "自愿入内廷"
             elif kind == "emancipation":
                 if forced:
                     shi -= 36.0

@@ -35,7 +35,7 @@ class NegotiationClassificationTests(unittest.TestCase):
         )
 
         self.assertNotEqual(result.action_kind, "castration")
-        self.assertNotIn("净身未明确自愿", result.blockers)
+        self.assertNotIn("内廷改籍未明确自愿", result.blockers)
         self.assertEqual(result.handshake_status, HANDSHAKE_CONDITIONAL)
 
     def test_person_name_qian_does_not_force_money_topic(self) -> None:
@@ -175,7 +175,7 @@ class NegotiationClassificationTests(unittest.TestCase):
 
         self.assertEqual(result.action_kind, "castration")
         self.assertFalse(result.factors["soft_hook_invoked"])
-        self.assertIn("净身未明确自愿", result.blockers)
+        self.assertIn("内廷改籍未明确自愿", result.blockers)
 
 
 if __name__ == "__main__":

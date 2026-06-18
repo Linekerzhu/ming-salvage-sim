@@ -397,9 +397,9 @@ def seed_eunuch_lore(db: GameDB) -> None:
             _default_detail(name, forced=bool(forced), bao_status=bao),
         )
         note = (
-            "少年净身入仕，宝匣自藏"
+            "少年入内廷，旧匣自藏"
             if not forced
-            else "奉强旨净身，宝为官没"
+            else "奉强旨改入内廷，旧匣官没"
         )
         db.conn.execute(
             _detail_insert_sql(("name", "bao_status", "forced", "servility", "castration_day", "note")),
@@ -423,9 +423,9 @@ def record_castration(db: GameDB, name: str, *, forced: bool, day: int, detail_t
         _default_detail(name, forced=bool(forced), bao_status=bao),
     )
     note = (
-        "奉强旨净身，宝为官没——奇辱深结"
+        "奉强旨改入内廷，旧匣官没——奇辱深结"
         if forced
-        else "奏对同意后净身，宝匣自藏供奉"
+        else "奏对同意后改入内廷，旧匣自藏供奉"
     )
     note = (
         f"{note}；{details['castration_method']}，{details['knife_tool']}，{details['anesthesia']}；"
@@ -1022,31 +1022,32 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
 
 
 def servility_brief(db: GameDB, name: str) -> str:
-    """注入与净身者对话的角色简报：奴性表达 + 宝况心结，随净身情形分野。无记录则空。"""
+    """注入内廷旧档者的角色简报：奴性表达 + 旧匣心结，随经历分野。无记录则空。"""
     lore = get_lore(db, name)
     if lore is None:
         return ""
     serv = int(lore["servility"])
     forced = bool(lore["forced"])
     bao = str(lore["bao_status"])
-    parts: List[str] = ["【净身·心相】"]
+    parts: List[str] = ["【内廷·心相】"]
     if forced or bao == BAO_FORFEIT:
-        parts.append("你是被强旨净身入宫的——这是奇辱。表面卑顺谄媚、口称奴婢叩首不迭，"
-                     "内里却结着深重心结，逢迎之中带几分阴鸷与不甘；对昔日羞辱你的外朝，怨而隐忍。")
+        parts.append("你是被强旨改入内廷的——这是奇辱。表面卑顺谄媚、口称奴婢叩首不迭，"
+                     "内里却结着深重心结，逢迎之中带几分阴鸷与不甘；这段旧创深藏不露，"
+                     "除非陛下追问，不要主动铺陈。")
     elif serv >= 60:
-        parts.append("你自净身入宫，安于为奴：恭顺谄媚、揣摩上意唯恐不及，以伺候得陛下欢心为荣，"
+        parts.append("你由内廷旧制入宫，安于为奴：恭顺谄媚、揣摩上意唯恐不及，以伺候得陛下欢心为荣，"
                      "言必称奴婢、奴才，事事先意承旨。")
     else:
-        parts.append("你净身入宫多年，奴性已化为分寸：恭谨守礼而不谄佞，知所进退；"
+        parts.append("你入内廷多年，奴性已化为分寸：恭谨守礼而不谄佞，知所进退；"
                      "口称奴婢，却存一段读书人或老内臣的体面。")
     if bao == BAO_KEPT:
-        parts.append("你私藏「宝」于匣中供奉，礼佛攒福，望来世做个全尸完整之人——此念你深藏不露。")
+        parts.append("你私藏旧匣供奉，礼佛攒福，望来世做个全尸完整之人——此念你深藏不露。")
     elif bao == BAO_FORFEIT:
-        parts.append("你的「宝」被官府收没，每念及死后不得全尸，便如鲠在喉，是你最深的隐痛。")
+        parts.append("你的旧匣被官府收没，每念及死后不得全尸，便如鲠在喉，是你最深的隐痛。")
     details = public_lore_payload(db, name)
     if details:
         parts.append(
-            f"净身旧档：{details.get('detail_line') or '旧档不全'}；"
+            f"内廷旧档：{details.get('detail_line') or '旧档不全'}；"
             f"{details.get('condition_line') or '后遗未详'}。"
         )
     profile = eunuch_voice_profile(db, name) or {}
@@ -2264,7 +2265,7 @@ def apply_bao_leverage(
         return {"ok": False, "reason": "未点明宝匣所系之人。"}
     lore = get_lore(db, clean_name)
     if lore is None:
-        return {"ok": False, "reason": f"{clean_name}没有净身旧档。"}
+        return {"ok": False, "reason": f"{clean_name}没有内廷旧档。"}
     row = db.conn.execute(
         "SELECT emp_trust, grievance, ability, wisdom, charm, luck FROM characters WHERE name=? AND status='active'",
         (clean_name,),
@@ -2452,7 +2453,7 @@ def apply_eunuch_care(
         return {"ok": False, "reason": "未点明照料对象。"}
     lore = get_lore(db, clean_name)
     if lore is None:
-        return {"ok": False, "reason": f"{clean_name}没有净身旧档。"}
+        return {"ok": False, "reason": f"{clean_name}没有内廷旧档。"}
     row = db.conn.execute(
         "SELECT emp_trust, grievance, ability, wisdom, charm, luck, birth_year FROM characters WHERE name=? AND status='active'",
         (clean_name,),
@@ -2655,7 +2656,7 @@ def apply_eunuch_hard_service(
         return {"ok": False, "reason": "未点明硬派对象。"}
     lore = get_lore(db, clean_name)
     if lore is None:
-        return {"ok": False, "reason": f"{clean_name}没有净身旧档。"}
+        return {"ok": False, "reason": f"{clean_name}没有内廷旧档。"}
     row = db.conn.execute(
         "SELECT emp_trust, grievance, ability, wisdom, charm, luck, birth_year FROM characters WHERE name=? AND status='active'",
         (clean_name,),
@@ -3385,12 +3386,12 @@ def apply_eunuch_dispatch_strategy(
         return {"ok": False, "reason": "未点明承办宦官。"}
     lore = get_lore(db, clean_name)
     if lore is None:
-        return {"ok": False, "reason": f"{clean_name}没有净身旧档。"}
+        return {"ok": False, "reason": f"{clean_name}没有内廷旧档。"}
     task = str(task_text or "").strip()
     mode = normalize_dispatch_strategy(strategy)
     risk_before = assignment_risk_profile(db, clean_name, task, domains=domains)
     if not risk_before:
-        return {"ok": False, "reason": f"{clean_name}此差未触发净身旧患风险。"}
+        return {"ok": False, "reason": f"{clean_name}此差未触发内廷旧疾风险。"}
     source_id = f"{int(getattr(state, 'turn', 0) or 0)}:{clean_name}:{mode}:{int(order_id or 0)}:{source}"
     existed = db.conn.execute(
         """

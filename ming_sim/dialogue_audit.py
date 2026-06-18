@@ -403,7 +403,7 @@ def _normalize_post(data: Dict[str, object], *, existing_threshold: int = 70) ->
             agreement_action = "none"
             score_after = min(score_after, threshold - 1)
             if action_kind == "castration":
-                blockers.append("身份转换缺少明确自愿净身证据")
+                blockers.append("身份转换缺少明确自愿入内廷证据")
             else:
                 blockers.append("身份转换缺少明确自愿脱籍证据")
 

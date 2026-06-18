@@ -1533,7 +1533,7 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 "净军房旧档和御前跑腿，卿自己怎么回？",
             )
 
-            self.assertIn("【净身·心相】", augmented)
+            self.assertIn("【内廷·心相】", augmented)
             self.assertIn("【口吻差异】", augmented)
             self.assertIn("【口吻合约】", augmented)
             self.assertIn("【说话边界】", augmented)

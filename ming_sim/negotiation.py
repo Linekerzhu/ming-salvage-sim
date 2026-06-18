@@ -369,7 +369,7 @@ def evaluate_negotiation(
     if hard_oppose or stance == "oppose":
         blockers.append("明确拒绝")
     if action_kind == "castration" and not explicit_castration:
-        blockers.append("净身未明确自愿")
+        blockers.append("内廷改籍未明确自愿")
     if action_kind == "emancipation" and not explicit_emancipation:
         blockers.append("转民籍未明确自愿")
     score_gap = threshold - score
