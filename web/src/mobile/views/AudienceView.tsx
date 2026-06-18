@@ -5,7 +5,7 @@ import { Portrait } from "../Portrait";
 import { loadEunuch, loadEunuchCandidates, loadPlaystyleBrief, replaceEunuch } from "../api";
 import type { AudienceLead, ChatContext, PlaystyleBriefCard, PublicCharacter } from "../api";
 import { usePerson } from "../personCtx";
-import { audienceLeadFromBrief, briefUrgency, shortName } from "./HomeView";
+import { audienceLeadFromBrief, briefUrgency, closurePromptForAudience, shortName } from "./HomeView";
 
 // 召对·人治之门：皇帝只直接对话随侍太监；要见大臣，命随侍传召 → 大臣趋入奏对 → 奏对完成，由随侍收尾。
 // 随侍是必经的门与顾问（进言荐人、过滤外朝），不可绕过直挑大臣。
@@ -317,6 +317,7 @@ function counterpartPrompts(kind: string, next: string, previous: string) {
       { label: "听另一面", text: `朕已听过${other}之言。你如今当面说：旧怨从何而起，哪一句是假，哪一件可证？`, prefix: true },
       { label: "问退让", text: `若朕令你与${other}各退一步、共办一差，你肯让哪一步，又要什么边界？`, prefix: true },
       { label: "防借刀", text: `你若只是借朕的手压${other}，也要说清代价。朝中谁会因此得利，谁会反扑？`, prefix: true },
+      closurePromptForAudience(kind, who, other),
     ];
   }
   if (kind === "patronage") {
@@ -324,6 +325,7 @@ function counterpartPrompts(kind: string, next: string, previous: string) {
       { label: "查担保", text: `朕正在查你和${other}的举荐人情。若用错人，谁担责？若用得其人，何差可验？`, prefix: true },
       { label: "问避嫌", text: `${who}，你今日说清楚：自己是朝廷的人，还是${other}的人？如何避嫌、如何交账？`, prefix: true },
       { label: "定试差", text: `若朕给一件试差，几日内见成效？办坏了，举主、新人，各担什么责？`, prefix: true },
+      closurePromptForAudience(kind, who, other),
     ];
   }
   if (kind === "legacy") {
@@ -331,11 +333,13 @@ function counterpartPrompts(kind: string, next: string, previous: string) {
       { label: "问谁得利", text: `旧政余波不是一句民怨。你指出谁得利、谁受损、谁在中间吞没或加派。`, prefix: true },
       { label: "问缺口", text: `若要善后，钱粮缺口由谁补？若不善后，地方怨气会落到谁头上？`, prefix: true },
       { label: "定证据", text: `朕不要空泛议论。几日内能拿出账册、人证或地方实情？`, prefix: true },
+      closurePromptForAudience(kind, who, other),
     ];
   }
   return [
     { label: "听另一面", text: `朕已听过${other}一面之词。你照实说，哪里是真，哪里是假？`, prefix: true },
     { label: "问代价", text: `若朕采信你这一面，会得罪谁、补什么缺口、留下什么后患？`, prefix: true },
     { label: "定可验证据", text: `不要空口。你能拿出什么证据、差使或期限，证明自己不是推脱？`, prefix: true },
+    closurePromptForAudience(kind, who, other),
   ];
 }

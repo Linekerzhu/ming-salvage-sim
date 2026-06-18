@@ -452,8 +452,58 @@ export function audienceLeadFromBrief(card: PlaystyleBriefCard, actor = card.act
     ref_kind: card.ref_kind,
     ref_id: card.ref_id,
     opening: audienceOpeningFromBrief(card, actor, target),
-    prompts: briefPrompts(card, actor, target),
+    prompts: withClosurePrompt(briefPrompts(card, actor, target), card.kind, actor, target),
     stakes: card.stakes || [],
+  };
+}
+
+function withClosurePrompt(prompts: Suggestion[], kind: string, actor: string, target: string): Suggestion[] {
+  if (prompts.some((item) => item.label === "定下一手")) return prompts;
+  return [...prompts, closurePromptForAudience(kind, actor, target)];
+}
+
+export function closurePromptForAudience(kind: string, actor = "你", target = "此事"): Suggestion {
+  const who = actor || "你";
+  const other = target || "此事";
+  if (kind === "rivalry") {
+    return {
+      label: "定下一手",
+      text: `朕已听够两面之词。现在定下一手：你与${other}谁承办、几日回奏、各退哪一步、办坏了谁担责？`,
+      prefix: true,
+    };
+  }
+  if (kind === "patronage") {
+    return {
+      label: "定下一手",
+      text: `荐人不是空话。现在定下一手：${who}与${other}谁领试差、几日见证据、举主和新人各担什么责？`,
+      prefix: true,
+    };
+  }
+  if (kind === "legacy") {
+    return {
+      label: "定下一手",
+      text: `旧政善后不能空谈。现在定下一手：谁承办清查、几日给账册、钱粮缺口由谁补、办坏了谁担责？`,
+      prefix: true,
+    };
+  }
+  if (kind === "army") {
+    return {
+      label: "定下一手",
+      text: `军镇之事现在定下一手：兵册、欠饷、监军、换防四项，先办哪一项，几日回奏，谁担责？`,
+      prefix: true,
+    };
+  }
+  if (kind === "faction") {
+    return {
+      label: "定下一手",
+      text: `朕可以借力，也可以压势。现在定下一手：本派交什么人、办什么差、几日见效、若挟势谁担责？`,
+      prefix: true,
+    };
+  }
+  return {
+    label: "定下一手",
+    text: `朕已听明白。现在定下一手：由谁承办、几日回奏、拿什么证据、办坏了谁担责？你当面给朕一个可落账的说法。`,
+    prefix: true,
   };
 }
 
