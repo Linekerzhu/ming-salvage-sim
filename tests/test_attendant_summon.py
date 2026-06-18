@@ -241,6 +241,58 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_agenda_context_is_actor_scoped_and_reaches_dialogue_prep(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            other = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' AND name!=? "
+                "ORDER BY ability DESC LIMIT 1",
+                (actor,),
+            ).fetchone()["name"])
+            game.db.conn.execute(
+                "INSERT OR REPLACE INTO npc_agendas "
+                "(name, kind, title, target_name, intensity, status, progress) "
+                "VALUES (?, 'enrich', '自肥', '', 92, 'active', 88)",
+                (actor,),
+            )
+            game.db.conn.commit()
+            game.session.dialogue_audit_client = lambda phase, payload: {  # type: ignore[assignment]
+                "goal_decision": "none",
+                "confidence": 90,
+            }
+            context = {
+                "kind": "agenda",
+                "actor": actor,
+                "ref_kind": "character",
+                "ref_id": actor,
+            }
+
+            brief = game._chat_context_brief(actor, context)
+            mismatch = game._chat_context_brief(other, context)
+            augmented, prepared = game.session.prepare_chat_run(
+                game.content.characters[actor],
+                "朕闻你近来动作渐密，今日说清楚。",
+                supplemental_context=brief,
+            )
+
+            self.assertIn("本次召对事项：人物私图将成", brief)
+            self.assertEqual(mismatch, "")
+            self.assertIn("人物私图将成", augmented)
+            self.assertIn("人物私图将成", prepared.behavior_context)
+            self.assertIn("NPC对话行为档案", prepared.behavior_brief)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_mediation_requires_confirmation(self):
         game = web_app.WebGame(fresh=True)
         try:

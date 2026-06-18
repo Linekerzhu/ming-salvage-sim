@@ -11,6 +11,7 @@ from ming_sim.intrigue import ensure_schema as ensure_secret_schema
 from ming_sim.playstyle import (
     _brief_kind_buckets,
     _select_brief_cards,
+    agenda_chat_context_brief,
     briefing_cards,
     briefing_payload,
     legacy_chat_context_brief,
@@ -414,6 +415,30 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("进度 91%", labels)
             self.assertIn("强度 92", labels)
             self.assertIn("自肥敛财", labels)
+
+    def test_agenda_chat_context_brief_rebuilds_from_live_db(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            del state
+            name = _active_minister(db)
+            db.conn.execute(
+                "INSERT OR REPLACE INTO npc_agendas "
+                "(name, kind, title, target_name, intensity, status, progress) "
+                "VALUES (?, 'enrich', '自肥', '', 92, 'active', 88)",
+                (name,),
+            )
+            db.conn.commit()
+
+            brief = agenda_chat_context_brief(db, name)
+
+            self.assertIn("本次召对事项：人物私图将成", brief)
+            self.assertIn("不是普通被动问策", brief)
+            self.assertIn("自肥敛财", brief)
+            self.assertIn("推进到 88%", brief)
+            self.assertIn("强度 92", brief)
+            self.assertIn("御前信任", brief)
+            self.assertIn("钱粮/请托风闻", brief)
+            self.assertIn("首次追问不直接落库", brief)
 
     def test_rivalry_card_surfaces_opinion_and_basis(self):
         with TemporaryDirectory() as tmp:

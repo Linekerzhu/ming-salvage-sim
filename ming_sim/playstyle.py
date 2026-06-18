@@ -271,6 +271,91 @@ def legacy_chat_context_brief(
     return "\n".join(lines)
 
 
+def agenda_chat_context_brief(
+    db: GameDB,
+    minister_name: str,
+    *,
+    target: str = "",
+) -> str:
+    """Trusted context for summoning a character because their private agenda is ripening."""
+
+    name = str(minister_name or "").strip()
+    if not name or not _table_exists(db, "characters") or not _table_exists(db, "npc_agendas"):
+        return ""
+    row = db.conn.execute(
+        """
+        SELECT a.name, a.kind, a.title, a.target_name, a.intensity, a.progress,
+               c.office, c.office_type, c.faction, c.ability, c.integrity,
+               c.emp_trust, c.grievance
+        FROM npc_agendas a
+        JOIN characters c ON c.name=a.name
+        WHERE a.name=?
+          AND a.status='active'
+          AND c.status='active'
+          AND c.power_id='ming'
+          AND c.office_type!='后宫'
+          AND c.name!='崇祯'
+        LIMIT 1
+        """,
+        (name,),
+    ).fetchone()
+    if row is None:
+        return ""
+    progress = _clamp_int(row["progress"], 0, 100)
+    if progress < 50:
+        return ""
+
+    kind = str(row["kind"] or "")
+    label = _AGENDA_LABELS.get(kind, str(row["title"] or "私图将成"))
+    hint = _AGENDA_HINTS.get(kind, "可召来探口风，再决定拉拢、压制或借力。")
+    office = _short_office(str(row["office"] or ""))
+    faction = str(row["faction"] or "").strip()
+    intensity = _clamp_int(row["intensity"], 0, 100)
+    ability = _clamp_int(row["ability"], 0, 100)
+    integrity = _clamp_int(row["integrity"], 0, 100)
+    trust = _clamp_int(row["emp_trust"], 0, 100)
+    grievance = _clamp_int(row["grievance"], 0, 100)
+    agenda_target = str(target or row["target_name"] or "").strip()
+    if not agenda_target and kind == "revenge":
+        agenda_target, _, _ = _worst_rival_of(db, name)
+
+    posture = {
+        "climb": "此人想求用、求大差、求更高名位；他会把私图包装成替皇帝任事。",
+        "enrich": "此人已有钱粮/请托风闻；他会避重就轻，或用办事功劳换皇帝暂不深究。",
+        "protect": "此人想护住本党与门生故旧；他会请求名分、官缺或缓查同党。",
+        "entrench": "此人正在固结根基，尤其可能把军镇、人手或地方资源握成自己的筹码。",
+        "survive": "此人急于避祸洗白；他会求台阶、求保全，也可能愿用实绩换赦免。",
+        "revenge": "此人想借清议或弹劾清算政敌；他会称公义，内里要皇帝替他落刀。",
+    }.get(kind, "此人带着私心入对，不宜只当普通问策。")
+    bargain = {
+        "climb": "可谈：给难差试用、许功后再迁、要求避嫌交账。",
+        "enrich": "可谈：查账换效忠、令其吐出侵吞、以限期难差自证。",
+        "protect": "可谈：令其举荐人才但连坐担保，或命其与敌派共办一事。",
+        "entrench": "可谈：调饷、换将、遣监军、交出兵册；都要说明激变风险。",
+        "survive": "可谈：旧案换新功、限期自证、交出同谋或把柄。",
+        "revenge": "可谈：准其弹劾但要证据，或把私怨压成共办差使。",
+    }.get(kind, "可谈：拉拢、压制、交换差使或设下期限。")
+
+    lines = [
+        "【本次召对事项：人物私图将成】",
+        f"- {office}{name}不是普通被动问策；其私图「{label}」已推进到 {progress}%，强度 {intensity}。",
+        f"- 当前人心：才干 {ability}，操守 {integrity}，御前信任 {trust}，怨望 {grievance}。",
+        f"- 私图判断：{hint}",
+        f"- 对话底色：{posture}",
+        f"- 可用玩法：{bargain}",
+    ]
+    if faction and faction not in {"无", "中立"}:
+        lines.append(f"- 派系牵连：{name}属{faction}；皇帝若拉拢或压制，可能影响本派满意、热度与党援。")
+    if agenda_target:
+        lines.append(f"- 牵涉对象：{agenda_target}；若谈及此人，应让{name}说明公义与私怨各占几分。")
+    lines.extend([
+        "- 交互要求：NPC 应先试探、求名分、求台阶或回避要害；不要一开口就坦白完整机制。",
+        "- 只有皇帝明确许诺、命其承办、要求拟旨或设下期限，才进入奏对目的或履约账本；首次追问不直接落库。",
+        "- 口吻要求：按身份、派系、信任、怨望和人物性格说话；不要像全知旁白解释系统。",
+    ])
+    return "\n".join(lines)
+
+
 def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[BriefCard]:
     """Collect all actionable hooks before the home-screen outliner chooses a subset."""
 

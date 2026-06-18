@@ -3385,6 +3385,19 @@ class WebGame:
                 return legacy_chat_context_brief(self.db, minister_name, ref_id)
             except Exception:
                 return ""
+        if kind == "agenda":
+            actor = str(context.get("actor") or context.get("ref_id") or context.get("id") or "").strip()
+            if actor and actor != minister_name:
+                return ""
+            try:
+                from ming_sim.playstyle import agenda_chat_context_brief
+                return agenda_chat_context_brief(
+                    self.db,
+                    minister_name,
+                    target=str(context.get("target") or ""),
+                )
+            except Exception:
+                return ""
         return ""
 
     def _directive_chat_effect(
