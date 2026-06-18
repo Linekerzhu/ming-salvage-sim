@@ -3776,9 +3776,44 @@ class WebGame:
             "can_undo_last_chat": self.can_undo_last_chat(minister_name),
         }
 
+    def _auto_chat_context_brief(self, minister_name: str) -> str:
+        """Best available live-state context for a plain direct summon.
+
+        Home-screen cards pass an explicit context and remain authoritative. This
+        fallback keeps ordinary person-list summons from becoming stateless small
+        talk when the DB already knows the NPC has an obligation, agenda, plea,
+        or unpaid favor.
+        """
+
+        try:
+            from ming_sim.playstyle import (
+                agenda_chat_context_brief,
+                favor_chat_context_brief,
+                monthly_followup_chat_context_brief,
+                petition_chat_context_brief,
+            )
+        except Exception:
+            return ""
+        providers = (
+            lambda: monthly_followup_chat_context_brief(self.db, minister_name),
+            lambda: agenda_chat_context_brief(self.db, minister_name),
+            lambda: petition_chat_context_brief(self.db, minister_name),
+            lambda: favor_chat_context_brief(self.db, minister_name),
+        )
+        for provider in providers:
+            try:
+                brief = str(provider() or "").strip()
+            except Exception:
+                brief = ""
+            if brief:
+                return brief
+        return ""
+
     def _chat_context_brief(self, minister_name: str, context: Optional[Dict[str, Any]]) -> str:
         if not isinstance(context, dict):
-            return ""
+            return self._auto_chat_context_brief(minister_name)
+        if not any(str(context.get(key) or "").strip() for key in ("kind", "ref_kind", "ref_id", "id", "actor", "target")):
+            return self._auto_chat_context_brief(minister_name)
         kind = str(context.get("kind") or "").strip()
         ref_kind = str(context.get("ref_kind") or "").strip()
         if kind == "directive" or ref_kind == "directive":

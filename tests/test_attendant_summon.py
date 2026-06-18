@@ -760,14 +760,19 @@ class AttendantSummonTests(unittest.TestCase):
             }
 
             brief = game._chat_context_brief(actor, context)
+            auto_brief = game._chat_context_brief(actor, None)
+            empty_context_brief = game._chat_context_brief(actor, {})
             mismatch = game._chat_context_brief(other, context)
             augmented, prepared = game.session.prepare_chat_run(
                 game.content.characters[actor],
                 "朕闻你近来动作渐密，今日说清楚。",
-                supplemental_context=brief,
+                supplemental_context=auto_brief,
             )
 
             self.assertIn("本次召对事项：人物私图将成", brief)
+            self.assertIn("本次召对事项：人物私图将成", auto_brief)
+            self.assertIn("交易画像", auto_brief)
+            self.assertEqual(empty_context_brief, auto_brief)
             self.assertEqual(mismatch, "")
             self.assertIn("人物私图将成", augmented)
             self.assertIn("人物私图将成", prepared.behavior_context)
