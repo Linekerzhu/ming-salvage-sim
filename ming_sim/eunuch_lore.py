@@ -968,6 +968,21 @@ def _complication_options(lore: Dict[str, object], *, adult: bool) -> List[str]:
     return options
 
 
+_COMPLICATION_CARE_TRAITS = {
+    "urinary": {"旧患调养", "御前调养"},
+    "trauma": {"惊创抚慰", "御前调养"},
+    "body": {"仪态修整", "御前调养"},
+    "bao": {"宝匣安置", "御前调养"},
+    "fixation": {"心癖安顿", "御前调养"},
+    "psychosexual": {"心相安顿", "御前调养"},
+}
+
+
+def _complication_mitigated(kind: str, traits: set[str]) -> bool:
+    care_traits = _COMPLICATION_CARE_TRAITS.get(str(kind or ""), {"御前调养"})
+    return bool(traits.intersection(care_traits))
+
+
 def _apply_complication_effect(db: GameDB, name: str, kind: str, lore: Dict[str, object]) -> Dict[str, object]:
     row = db.conn.execute(
         "SELECT emp_trust, grievance, ability, wisdom, charm, luck FROM characters WHERE name=?",
@@ -991,6 +1006,33 @@ def _apply_complication_effect(db: GameDB, name: str, kind: str, lore: Dict[str,
         delta.update({"emp_trust": 1, "grievance": -1})
     elif kind == "psychosexual":
         delta.update({"grievance": 1, "charm": -1})
+    scheme = castration_scheme_profile(lore)
+    if bool(scheme.get("explicit")) and int(scheme.get("risk_score") or 0) >= 62:
+        traits = _trait_names(db, name)
+        mitigated = _complication_mitigated(kind, traits)
+        risk_score = int(scheme.get("risk_score") or 0)
+        pressure = 1 + (1 if risk_score >= 78 else 0) + (1 if risk_score >= 90 else 0)
+        if mitigated:
+            pressure = max(0, pressure - 1)
+        if pressure:
+            if kind == "urinary":
+                delta["grievance"] += pressure
+                delta["ability"] -= 1 if pressure >= 2 else 0
+            elif kind == "trauma":
+                delta["grievance"] += pressure + 1
+                delta["emp_trust"] -= 1
+                delta["wisdom"] -= 1 if pressure >= 2 else 0
+            elif kind == "body":
+                delta["grievance"] += pressure
+                delta["charm"] -= 1
+            elif kind == "bao":
+                delta["grievance"] += pressure if str(lore.get("bao_status") or "") != BAO_KEPT else 0
+                delta["emp_trust"] -= 1 if str(lore.get("bao_status") or "") == BAO_FORFEIT and pressure >= 2 else 0
+            elif kind == "psychosexual":
+                delta["grievance"] += pressure
+                delta["charm"] -= 1 if pressure >= 2 else 0
+            else:
+                delta["grievance"] += pressure
     before = {key: int(row[key] or (55 if key == "emp_trust" else 20 if key == "grievance" else 50)) for key in delta}
     after = {key: _clamp_0_100(before[key] + delta[key]) for key in delta}
     db.conn.execute(
@@ -1165,7 +1207,9 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
     from ming_sim.timeflow import LEVEL_BLUE
     ensure_schema(db)
     day = int(day or 0)
-    if day <= 0 or day % 6 != 3:
+    regular_window = day % 6 == 3
+    scheme_surge_window = day % 6 == 1
+    if day <= 0 or not (regular_window or scheme_surge_window):
         return []
     rows = db.conn.execute(
         """
@@ -1176,7 +1220,7 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
         ORDER BY l.name
         """
     ).fetchall()
-    candidates: List[tuple[int, str, str, Dict[str, object]]] = []
+    candidates: List[tuple[int, str, str, Dict[str, object], Dict[str, object], bool]] = []
     for row in rows:
         name = str(row["name"] or "")
         lore = get_lore(db, name) or {}
@@ -1184,12 +1228,26 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
         options = _complication_options(lore, adult=adult)
         if not options:
             continue
+        scheme = castration_scheme_profile(lore)
+        scheme_surge = False
+        if regular_window:
+            candidate_options = options
+        else:
+            risk_score = int(scheme.get("risk_score") or 0)
+            if not bool(scheme.get("explicit")) or risk_score < 72:
+                continue
+            traits = _trait_names(db, name)
+            candidate_options = [kind for kind in options if not _complication_mitigated(kind, traits)]
+            if not candidate_options:
+                continue
+            scheme_surge = True
         seed = sum(ord(ch) for ch in name) + day * 17
-        kind = options[seed % len(options)]
-        candidates.append((seed % 997, name, kind, lore))
+        kind = candidate_options[seed % len(candidate_options)]
+        priority = (seed % 997) + (300 if scheme_surge else 0) + max(0, int(scheme.get("risk_score") or 0) - 72)
+        candidates.append((priority, name, kind, lore, scheme, scheme_surge))
     candidates.sort(reverse=True)
-    for _, name, kind, lore in candidates:
-        source_id = f"{day}:{name}:{kind}"
+    for _, name, kind, lore, scheme, scheme_surge in candidates:
+        source_id = f"{day}:{name}:{kind}:{'scheme' if scheme_surge else 'regular'}"
         exists = db.conn.execute(
             """
             SELECT 1 FROM event_memories
@@ -1202,6 +1260,18 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
             continue
         effect = _apply_complication_effect(db, name, kind, lore)
         text = _complication_text(kind, name, lore)
+        scheme_tags: List[str] = []
+        if bool(scheme.get("explicit")):
+            tier = str(scheme.get("tier") or "").strip()
+            if tier:
+                scheme_tags.append(tier)
+            if scheme_surge:
+                text["detail"] = (
+                    f"{text['detail']}（净身方案压着旧患，未调养便提前发作；"
+                    f"方案画像：{tier or '高危'}，风险{int(scheme.get('risk_score') or 0)}。）"
+                )
+            elif int(scheme.get("risk_score") or 0) >= 62:
+                text["detail"] = f"{text['detail']}（净身方案旧患留痕明显。）"
         goal_id = _ensure_complication_goal(db, state, name, kind, text, effect)
         outcome_bits = []
         for key, label in (
@@ -1215,7 +1285,12 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
             delta = int((effect.get("delta") or {}).get(key) or 0) if isinstance(effect, dict) else 0
             if delta:
                 outcome_bits.append(f"{label}{delta:+d}")
+        if scheme_surge:
+            outcome_bits.append("方案压迫")
         outcome = "，".join(outcome_bits) or "只留内廷传闻"
+        tags = ["净身", "旧患", "宝匣", kind, *scheme_tags]
+        if scheme_surge:
+            tags.append("方案压迫")
         db.upsert_event_memory(
             state,
             "character",
@@ -1226,8 +1301,8 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
             process=text["process"],
             outcome=outcome,
             sentiment="negative" if kind in {"urinary", "trauma", "body", "psychosexual"} else "mixed",
-            importance=3,
-            tags=["净身", "旧患", "宝匣", kind],
+            importance=4 if scheme_surge else 3,
+            tags=tags,
             source_kind="timeflow",
             source_id=source_id,
         )
@@ -1242,6 +1317,8 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
             "stage_direction": text["stage"],
             "effect": outcome,
             "goal_id": goal_id,
+            "scheme_surge": scheme_surge,
+            "scheme_profile": scheme if bool(scheme.get("explicit")) else {},
             "ref_kind": "character",
             "ref_id": name,
             "day": day,

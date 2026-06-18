@@ -140,6 +140,58 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertEqual(care["cost"], 7)
             self.assertIn("方案调养+4", care["outcome"])
 
+    def test_harsh_scheme_adds_extra_complication_window_until_general_care(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(
+                db,
+                name,
+                forced=True,
+                day=day,
+                detail_text=(
+                    "净军房行事，铜柄宫刀，无麻；宝油炸封蜡，官库石灰封存。"
+                    "近来漏尿尿闭，嗓音尖薄，幻肢痛。"
+                ),
+            )
+            db.conn.execute("DELETE FROM eunuch_lore WHERE name!=?", (name,))
+            db.conn.commit()
+
+            evs = el.castration_complication_tick(db, state, 7)
+
+            self.assertEqual(len(evs), 1)
+            self.assertTrue(evs[0]["scheme_surge"])
+            self.assertEqual(evs[0]["scheme_profile"]["tier"], "酷烈高危")
+            self.assertIn("方案压迫", evs[0]["effect"])
+            self.assertIn("方案画像", evs[0]["detail"])
+
+            state.metrics["内库"] = 80
+            db.save_state(state)
+            care = el.apply_eunuch_care(db, state, name, mode="general", note="总调养压住净房旧患。")
+
+            self.assertTrue(care["ok"])
+            self.assertEqual(care["trait"], "御前调养")
+            self.assertEqual(el.castration_complication_tick(db, state, 13), [])
+
+    def test_careful_scheme_does_not_add_extra_complication_window(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "钱谦益"
+            el.record_castration(
+                db,
+                name,
+                forced=False,
+                day=day,
+                detail_text=(
+                    "内书堂老匠细净，麻沸散浅麻，先沐浴焚香，"
+                    "宝匣交本人收执，香料腌藏，黄杨木描金匣。"
+                ),
+            )
+            db.conn.execute("DELETE FROM eunuch_lore WHERE name!=?", (name,))
+            db.conn.commit()
+
+            self.assertEqual(el.castration_complication_tick(db, state, 7), [])
+
     def test_voluntary_keeps_bao_and_lower_servility(self):
         with TemporaryDirectory() as tmp:
             db, _, day = _fresh(tmp)
