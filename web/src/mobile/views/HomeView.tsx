@@ -433,8 +433,60 @@ function audienceLeadFromBrief(card: PlaystyleBriefCard, actor = card.actor || "
     meta: card.meta,
     ref_kind: card.ref_kind,
     ref_id: card.ref_id,
+    opening: audienceOpeningFromBrief(card, actor, target),
     prompts: briefPrompts(card, actor, target),
   };
+}
+
+function audienceOpeningFromBrief(card: PlaystyleBriefCard, actor = card.actor || "此人", target = card.target || ""): string {
+  const speaker = actor || "此人";
+  const counterpart = target || "那人";
+  const topic = briefTopic(card.title);
+  if (card.kind === "petition") {
+    return `${speaker}趋入叩首，先低声说明：今日不是空谈国事，而是带着一桩难处求陛下裁断；若陛下肯听，愿拿差使和证据来换。`;
+  }
+  if (card.kind === "rivalry") {
+    return `${speaker}入殿后神色紧绷：与${counterpart}的嫌隙，外间多有添油加醋。此番愿说实情，但也要陛下给一句边界。`;
+  }
+  if (card.kind === "army") {
+    return `${speaker}跪奏军情：军中欠饷与人心不敢粉饰。若只问罪不问饷，兵心难稳；若只给饷不立规矩，边镇也难服朝廷。`;
+  }
+  if (card.kind === "faction") {
+    return `${speaker}入殿便称本派人心浮动：既有人可用，也有人借势要价。陛下若要借力，须先定名分与规矩。`;
+  }
+  if (card.kind === "legacy") {
+    const fiscalSide = actor && actor === card.actor;
+    return fiscalSide
+      ? `${speaker}趋入便谈旧政余波：钱粮缺口是真，民怨也是真；若要蠲缓，先要说清由谁补这个窟窿。`
+      : `${speaker}入殿叩首，先指向地方承受：这项旧政在账上或许有利，在地方却已成怨。请陛下先问受损者，再问谁从中得利。`;
+  }
+  if (card.kind === "favor") {
+    return `${speaker}伏地称谢旧恩，表示受过陛下护持，不敢只记在心里；今日若陛下有难差，愿先听条件。`;
+  }
+  if (card.kind === "patronage") {
+    return target
+      ? `${speaker}入殿先谈举荐：举荐不是一纸名帖。此番愿当面说清${counterpart}可用何处，也愿担该担的风险。`
+      : `${speaker}趋入候旨，愿受陛下试用，但也请陛下明察自己从何处来、受谁举荐。`;
+  }
+  if (card.kind === "agenda") {
+    return `${speaker}被召入殿，先行自辩：外间说近来有「${topic}」之图，不敢全认，也不敢全辩，请陛下问。`;
+  }
+  if (card.kind === "hook") {
+    return `${speaker}入殿时明显收敛，知道陛下今日不是寻常问策；若有风闻落到自己身上，愿听陛下发问。`;
+  }
+  if (card.kind === "trap_remedy") {
+    return `${speaker}跪奏旧事：当日办坏，不敢一味喊冤。陛下若肯再问，愿把当日卡点和今日补救一并说清。`;
+  }
+  if (card.kind === "monthly_followup") {
+    return `${speaker}趋入复奏，本该主动请安回话，不敢等陛下追问；旧约办到哪一步，今日照实奏来。`;
+  }
+  if (card.kind === "directive_blocker") {
+    return `${speaker}入殿便称并非有意梗旨，只是此旨牵动人情、钱粮或名分。陛下若问，愿当面说清。`;
+  }
+  if (card.kind === "directive_followup") {
+    return `${speaker}捧着复命入殿：旨意办到几分，奏报里哪些是真功、哪些只是口径，今日不敢含糊。`;
+  }
+  return `${speaker}入殿候问，知道陛下召见不是闲谈。此事利害，请陛下发问，愿照实奏来。`;
 }
 
 function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", target = card.target || "他人"): Suggestion[] {

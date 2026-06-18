@@ -253,6 +253,7 @@ export type AudienceLead = {
   meta?: string;
   ref_kind?: string;
   ref_id?: string;
+  opening?: string;
   prompts?: Suggestion[];
 };
 export type ChatContext = {

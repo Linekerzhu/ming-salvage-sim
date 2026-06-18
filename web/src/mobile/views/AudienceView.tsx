@@ -97,6 +97,7 @@ export function AudienceView({
           speakerLabel={isAttendantAudience ? `${audience}·随侍` : audience}
           onWorldChanged={refresh}
           onOpenPerson={openPerson}
+          localMessages={activeLead?.opening ? [{ role: "minister", content: activeLead.opening }] : undefined}
           leadSuggestions={activeLead?.prompts || []}
           chatContext={activeLead ? chatContextFromLead(activeLead) : undefined}
         />

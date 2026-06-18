@@ -219,12 +219,13 @@ export function ChatPane({
     ...leadSuggestions,
     ...suggestions.filter((s) => !leadSuggestions.some((lead) => lead.label === s.label || lead.text === s.text)),
   ].slice(0, 6);
+  const transientMessages = messages.length === 0 ? localMessages : EMPTY_LOCAL_MESSAGES;
 
   return (
     <div className="m-chat">
       <div className="m-chat-scroll" ref={scrollRef}>
-        {messages.length + localMessages.length === 0 && !streaming && <p className="m-empty">尚未开问。</p>}
-        {[...messages, ...localMessages].map((m, i) => (
+        {messages.length + transientMessages.length === 0 && !streaming && <p className="m-empty">尚未开问。</p>}
+        {[...messages, ...transientMessages].map((m, i) => (
           m.role === "user" ? (
             <div key={i} className="m-bubble is-emperor">
               <span className="m-bubble-who">朕</span>
