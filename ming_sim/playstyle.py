@@ -156,6 +156,8 @@ def petition_chat_context_brief(
 
     trust = _clamp_int(row["emp_trust"], 0, 100)
     grievance = _clamp_int(row["grievance"], 0, 100)
+    ability = _clamp_int(row["ability"], 0, 100)
+    integrity = _clamp_int(row["integrity"], 0, 100)
     requested_target = str(target or "").strip()
     rival = ""
     opinion = 0
@@ -203,12 +205,72 @@ def petition_chat_context_brief(
         )
     else:
         lines.append("- 请托焦点：其言辞或称公事，骨子里是在求台阶、护身符或重新取得任事机会。")
+    lines.extend(_request_cost_profile(
+        trust=trust,
+        grievance=grievance,
+        ability=ability,
+        integrity=integrity,
+        faction=faction,
+        rival=rival,
+    ))
     lines.extend([
         "- 对话玩法：先提出可谈方案，不要直接落库；只有皇帝明确答应、追问条件或命其换取差使后，才算进入奏对目的。",
         "- 可谈条件：明旨护持；自辩换难差；与政敌共办一事；若皇帝留中不应，则表现寒心与转入自保。",
         "- 口吻要求：按本人的身份、派系、性格和关系网说话；不要像全知旁白解释机制。",
     ])
     return "\n".join(lines)
+
+
+def _request_cost_profile(
+    *,
+    trust: int,
+    grievance: int,
+    ability: int,
+    integrity: int,
+    faction: str = "",
+    rival: str = "",
+) -> List[str]:
+    """Turn relationship stats into concrete audience stakes for plea scenes."""
+
+    clean_faction = str(faction or "").strip()
+    if trust <= 35:
+        ask = "保全边界"
+        refusal = "转入自保，回话更谨慎，后续可能只给半真半假的消息"
+    elif grievance >= 68:
+        ask = "体面台阶"
+        refusal = "记作被冷落，容易把公事拖成私怨"
+    elif ability >= 72:
+        ask = "难差换护持"
+        refusal = "仍会办事，但会把功劳和风险算得很清"
+    else:
+        ask = "明旨护身"
+        refusal = "退回观望，短期不敢替皇帝冒险"
+
+    cost_bits = []
+    if rival:
+        cost_bits.append(f"{rival}及其同党会认为皇帝偏护")
+    if clean_faction and clean_faction not in {"无", "中立"}:
+        cost_bits.append(f"外朝会读成向{clean_faction}让步")
+    if integrity <= 42:
+        cost_bits.append("给名分或资源可能被其私用")
+    elif integrity >= 76:
+        cost_bits.append("若压得太狠，清议会说皇帝薄待敢言可用之臣")
+    if not cost_bits:
+        cost_bits.append("皇帝要拿名分、人情或钱粮作抵押")
+
+    if ability >= 72 and integrity >= 55:
+        exchange = "限期办一件可验难差，成则护持，败则自请处分"
+    elif integrity <= 42:
+        exchange = "先交账目、人证或把柄，再谈护持"
+    elif grievance >= 68:
+        exchange = "让他与政敌共办小事，以功过抵旧怨"
+    else:
+        exchange = "给短限复奏，拿事实换恩典"
+
+    return [
+        f"- 请托代价画像：他最可能先求「{ask}」；皇帝若答应，代价是{'；'.join(cost_bits)}。",
+        f"- 可逼交换：{exchange}；若皇帝拒绝，他会{refusal}。",
+    ]
 
 
 def legacy_chat_context_brief(
@@ -507,6 +569,27 @@ def monthly_followup_chat_context_brief(db: GameDB, minister_name: str) -> str:
         lines.append(f"- 性格/风险提示：{cue}")
     if risks:
         lines.append("- 风险标签：" + "、".join(risks[:6]))
+    char = None
+    if _table_exists(db, "characters"):
+        char = db.conn.execute(
+            """
+            SELECT faction, ability, integrity, emp_trust, grievance
+            FROM characters
+            WHERE name=?
+              AND status='active'
+              AND power_id='ming'
+              AND office_type!='后宫'
+            """,
+            (name,),
+        ).fetchone()
+    if char is not None:
+        lines.extend(_request_cost_profile(
+            trust=_clamp_int(char["emp_trust"], 0, 100),
+            grievance=_clamp_int(char["grievance"], 0, 100),
+            ability=_clamp_int(char["ability"], 0, 100),
+            integrity=_clamp_int(char["integrity"], 0, 100),
+            faction=str(char["faction"] or ""),
+        ))
     lines.extend([
         "- 对话玩法：NPC 应先主动复命或诉难处，再请皇帝给名分、人手、银粮、期限或保全边界；不要等玩家逐条逼问。",
         "- 两难要求：提出的方案必须有代价，可能牵动政敌、同党、钱粮、旧约或密令风险；不要给无成本完美答案。",

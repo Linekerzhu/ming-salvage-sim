@@ -362,12 +362,20 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("怨望 80", brief)
             self.assertIn(rival, brief)
             self.assertIn("夺功旧怨", brief)
+            self.assertIn("请托代价画像", brief)
+            self.assertIn("保全边界", brief)
+            self.assertIn("若皇帝拒绝", brief)
             self.assertIn("不要直接落库", brief)
 
     def test_monthly_followup_becomes_audience_brief_card(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)
             name = _active_minister(db)
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=31, grievance=72, faction='东林' WHERE name=?",
+                (name,),
+            )
+            db.conn.commit()
             state.turn = 1
             db.create_secret_order(
                 state,
@@ -421,6 +429,8 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("密查阉党旧案", brief)
             self.assertIn("密令到期", brief)
             self.assertIn("主动复命或诉难处", brief)
+            self.assertIn("请托代价画像", brief)
+            self.assertIn("保全边界", brief)
             self.assertIn("不要给无成本完美答案", brief)
 
     def test_patronage_followup_gets_specific_home_card_labels(self):
