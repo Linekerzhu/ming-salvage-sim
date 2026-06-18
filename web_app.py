@@ -598,8 +598,11 @@ class WebGame:
         "司礼监掌印", "司礼监秉笔", "锦衣卫千户", "锦衣卫百户", "南镇抚司试百户",
     }
     _CHAT_MENTION_ORG_TOKENS = (
-        "司礼监", "东厂", "锦衣卫", "镇抚司", "内阁", "都察院", "翰林院", "詹事府",
+        "司礼", "司礼监", "东厂", "锦衣卫", "镇抚司", "内阁", "都察院", "翰林院", "詹事府",
         "大理寺", "太常寺", "光禄寺", "内官监", "御马监", "内书堂", "文书房", "南京",
+    )
+    _CHAT_MENTION_ORG_SUFFIXES = (
+        "监", "部", "院", "寺", "厂", "卫", "司", "府", "衙", "局", "营", "镇", "房", "堂",
     )
     _CHAT_MENTION_SURNAME_TITLE_SUFFIXES = (
         "吏部", "户部", "礼部", "兵部", "刑部", "工部",
@@ -3163,6 +3166,9 @@ class WebGame:
             return True
         has_org_token = any(token in clean for token in self._CHAT_MENTION_ORG_TOKENS)
         if has_org_token and not self._is_surname_title_alias(clean, character):
+            return True
+        has_org_shape = 2 <= len(clean) <= 8 and any(clean.endswith(suffix) for suffix in self._CHAT_MENTION_ORG_SUFFIXES)
+        if has_org_shape and not self._is_surname_title_alias(clean, character):
             return True
         return False
 

@@ -331,9 +331,9 @@ class AttendantSummonTests(unittest.TestCase):
         game = web_app.WebGame(fresh=True)
         try:
             character = game.content.characters["王承恩"]
-            character.aliases = list(character.aliases or []) + ["司礼监", "司礼监掌印", "王掌印"]
+            character.aliases = list(character.aliases or []) + ["司礼监", "司礼监掌印", "司礼太监", "御马监", "京营", "王掌印"]
 
-            org_mentions = game._chat_message_mentions("司礼监掌印今日递文，司礼监另有旧案。")
+            org_mentions = game._chat_message_mentions("司礼监掌印今日递文，司礼太监称御马监与京营另有旧案。")
             self.assertEqual(org_mentions, [])
 
             mixed = game._chat_message_mentions("司礼监掌印今日递文，王承恩在旁候旨。")
@@ -341,6 +341,9 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertIn("王承恩", terms)
             self.assertNotIn("司礼监", terms)
             self.assertNotIn("司礼监掌印", terms)
+            self.assertNotIn("司礼太监", terms)
+            self.assertNotIn("御马监", terms)
+            self.assertNotIn("京营", terms)
 
             personal = game._chat_message_mentions("王掌印说司礼监今日有事。")
             personal_terms = {term for item in personal for term in item["terms"]}
