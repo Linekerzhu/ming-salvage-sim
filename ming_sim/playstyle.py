@@ -29,17 +29,18 @@ _KIND_PRIORITY = {
     "directive_blocker": 2,
     "directive_followup": 3,
     "monthly_followup": 4,
-    "patronage": 5,
-    "trap_remedy": 6,
-    "petition": 7,
-    "favor": 8,
-    "relationship": 9,
-    "legacy": 10,
-    "army": 11,
-    "faction": 12,
-    "agenda": 13,
-    "rivalry": 14,
-    "hook": 15,
+    "bargain": 5,
+    "patronage": 6,
+    "trap_remedy": 7,
+    "petition": 8,
+    "favor": 9,
+    "relationship": 10,
+    "legacy": 11,
+    "army": 12,
+    "faction": 13,
+    "agenda": 14,
+    "rivalry": 15,
+    "hook": 16,
 }
 
 _KIND_LABELS = {
@@ -48,6 +49,7 @@ _KIND_LABELS = {
     "directive_blocker": "诏旨",
     "directive_followup": "复命",
     "monthly_followup": "候见",
+    "bargain": "旧账",
     "patronage": "举主",
     "trap_remedy": "担责",
     "petition": "求援",
@@ -98,6 +100,7 @@ _CARD_MOTIVES = {
     "directive_blocker": "旨意被人掣肘",
     "directive_followup": "复命须追问",
     "monthly_followup": "旧约求闭环",
+    "bargain": "御前旧账求了结",
     "patronage": "举荐要担保",
     "petition": "怨望求台阶",
     "favor": "旧恩来还账",
@@ -140,6 +143,11 @@ _CARD_DEALS = {
         "ask": "求展限、资源或明旨护身",
         "exchange": "补证据、重定期限并写入履约账",
         "refusal": "旧约失信会转成怨望和推诿",
+    },
+    "bargain": {
+        "ask": "求兑现、补证或重新给台阶",
+        "exchange": "交证据、领难差、定期限后再清账",
+        "refusal": "旧账悬而未决，会沉成怨望或拖延",
     },
     "patronage": {
         "ask": "求皇帝采纳举荐",
@@ -1102,6 +1110,96 @@ def favor_chat_context_brief(
     return "\n".join(lines)
 
 
+def bargain_chat_context_brief(
+    db: GameDB,
+    minister_name: str,
+    memory_id: object = 0,
+) -> str:
+    """Trusted context for an NPC returning to settle a remembered court bargain."""
+
+    name = str(minister_name or "").strip()
+    try:
+        mid = int(memory_id or 0)
+    except (TypeError, ValueError):
+        mid = 0
+    if not name or not _table_exists(db, "event_memories") or not _table_exists(db, "characters"):
+        return ""
+    try:
+        state = db.load_state()
+        turn = int(state.turn)
+    except Exception:
+        turn = 0
+    params: tuple
+    where_id = ""
+    if mid > 0:
+        where_id = "AND m.id=?"
+        params = (name, turn, turn, mid)
+    else:
+        params = (name, turn, turn)
+    row = db.conn.execute(
+        f"""
+        SELECT m.id, m.title, m.cause, m.process, m.outcome, m.sentiment,
+               m.importance, m.turn,
+               c.office, c.faction, c.ability, c.integrity, c.emp_trust, c.grievance
+        FROM event_memories m
+        JOIN characters c ON c.name=m.subject_id
+        WHERE m.subject_type='character'
+          AND m.subject_id=?
+          AND m.event_type='audience_bargain'
+          AND m.turn<=?
+          AND (m.expires_turn IS NULL OR m.expires_turn>=?)
+          AND c.status='active'
+          AND c.power_id='ming'
+          AND c.office_type!='后宫'
+          {where_id}
+        ORDER BY m.turn DESC, m.importance DESC, m.id DESC
+        LIMIT 1
+        """,
+        params,
+    ).fetchone()
+    if row is None:
+        return ""
+
+    office = _short_office(str(row["office"] or ""))
+    faction = str(row["faction"] or "").strip()
+    ability = _clamp_int(row["ability"], 0, 100)
+    integrity = _clamp_int(row["integrity"], 0, 100)
+    trust = _clamp_int(row["emp_trust"], 0, 100)
+    grievance = _clamp_int(row["grievance"], 0, 100)
+    sentiment = str(row["sentiment"] or "neutral").strip()
+    title = str(row["title"] or f"御前旧账：{name}")
+    cause = str(row["cause"] or "前番召对留下未清条件。")
+    process = str(row["process"] or "")
+    outcome = str(row["outcome"] or "此事尚未在御前清账。")
+    if sentiment == "positive":
+        posture = "他会先谢恩，但要试探天恩是否真能兑现；感恩不等于免费效忠。"
+        bargain = "可谈兑现、领难差还恩、以证据或担保换正式差遣。"
+    elif sentiment == "mixed":
+        posture = "他认为陛下留下了条件，今日该带着证据、账册或担保来求确认。"
+        bargain = "可谈补证、改期限、共办验真，或明示条件不足继续压着。"
+    elif sentiment == "negative":
+        posture = "他记得前番被拒，可能怨而不敢言；若不给边界，容易把私怨带进公事。"
+        bargain = "可谈重新给台阶、派冷硬难差自证、交政敌线索，或当面划死边界。"
+    else:
+        posture = "他带着未清旧账入对，应先试探皇帝是否记得前话。"
+        bargain = "可谈兑现、补证、展限、追责或另派共办。"
+
+    lines = [
+        "【本次召对事项：御前旧账】",
+        f"- {office}{name}不是普通被动问策；他前番召对留下「{title}」，今日可主动求见清账。",
+        f"- 旧账记录：事由「{cause}」" + (f"；御前话头「{process}」" if process else "") + f"；结果「{outcome}」。",
+        f"- 当前人心：才干 {ability}，操守 {integrity}，御前信任 {trust}，怨望 {grievance}"
+        + (f"，派系 {faction}" if faction and faction not in {"无", "中立"} else "")
+        + "。",
+        f"- 入对心态：{posture}",
+        f"- 对话玩法：{bargain}",
+        "- 两难要求：清旧账必须有代价，可能牵动党援、政敌、钱粮、期限或名节；不要给无成本完美答案。",
+        "- 落库边界：只有皇帝明确兑现、继续索证、改期限、命其承办或正式拒绝，才再写入奏对交易记忆；普通寒暄不直接落库。",
+        "- 口吻要求：按身份、派系、信任、怨望和人物性格说话；先说人话、旧话和怕处，不要像全知旁白解释系统。",
+    ]
+    return "\n".join(lines)
+
+
 def monthly_followup_chat_context_brief(db: GameDB, minister_name: str) -> str:
     """Trusted context for an NPC who has a month-start reason to seek audience."""
 
@@ -1706,6 +1804,7 @@ def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[
     _trap_remedy_cards(db, state, cards)
     _directive_blocker_cards(db, cards)
     _directive_followup_cards(db, state, cards)
+    _bargain_cards(db, state, cards)
     _monthly_followup_cards(db, state, cards)
     _patronage_cards(db, cards)
     _petition_cards(db, cards)
@@ -1884,6 +1983,11 @@ def _card_stakes(kind: str) -> List[Dict[str, str]]:
             ("gain", "旧约可续", "good"),
             ("cost", "失信成怨", "bad"),
             ("ask", "重定期限", "neutral"),
+        ],
+        "bargain": [
+            ("gain", "清旧账", "good"),
+            ("cost", "再拖成怨", "bad"),
+            ("ask", "证据期限", "neutral"),
         ],
         "patronage": [
             ("gain", "可得新人", "good"),
@@ -2853,7 +2957,7 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
             continue
         if any(
             str(card.get("actor") or "") == name
-            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup"}
+            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup", "bargain"}
             for card in cards
         ):
             continue
@@ -3240,6 +3344,156 @@ def _patronage_cards(db: GameDB, cards: List[BriefCard]) -> None:
             break
 
 
+def _bargain_deal(sentiment: str) -> Dict[str, str]:
+    """Conversation terms for a remembered audience bargain."""
+
+    if sentiment == "positive":
+        return {
+            "ask": "求兑现御前许诺或领差还恩",
+            "exchange": "以证据、效忠或一件难差清账",
+            "refusal": "旧恩冷却，转为观望或反向求赏",
+        }
+    if sentiment == "mixed":
+        return {
+            "ask": "求确认条件是否足够",
+            "exchange": "补交账册、人证、担保或期限",
+            "refusal": "条件悬空，继续拖延成怨",
+        }
+    if sentiment == "negative":
+        return {
+            "ask": "求重新给台阶或说明拒请边界",
+            "exchange": "领可验难差或交政敌线索",
+            "refusal": "怨望加深，可能借公事泄私怨",
+        }
+    return {}
+
+
+def _bargain_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard]) -> None:
+    """Surface remembered audience bargains as proactive follow-up summons."""
+
+    if not _table_exists(db, "event_memories") or not _table_exists(db, "characters"):
+        return
+    current_turn = int(getattr(state, "turn", 0) or 0)
+    if current_turn <= 0:
+        try:
+            current_turn = int(db.load_state().turn)
+        except Exception:
+            current_turn = 0
+    rows = _safe_fetchall(
+        db,
+        """
+        SELECT m.id, m.subject_id, m.title, m.cause, m.process, m.outcome,
+               m.sentiment, m.importance, m.turn, m.tags,
+               c.office, c.faction, c.ability, c.integrity, c.emp_trust, c.grievance
+        FROM event_memories m
+        JOIN characters c ON c.name=m.subject_id
+        WHERE m.subject_type='character'
+          AND m.event_type='audience_bargain'
+          AND m.turn<=?
+          AND (m.expires_turn IS NULL OR m.expires_turn>=?)
+          AND c.status='active'
+          AND c.power_id='ming'
+          AND c.office_type!='后宫'
+          AND c.name!='崇祯'
+        ORDER BY m.turn DESC, m.importance DESC, m.id DESC
+        LIMIT 24
+        """,
+        (current_turn, current_turn),
+    )
+    seen: Set[str] = set()
+    count = 0
+    for row in rows:
+        name = str(row["subject_id"] or "").strip()
+        if not name or name in seen:
+            continue
+        if any(
+            str(card.get("actor") or "") == name
+            and str(card.get("kind") or "") in {
+                "decision", "trap_remedy", "directive_blocker",
+                "directive_followup",
+            }
+            for card in cards
+        ):
+            continue
+        seen.add(name)
+        office = _short_office(str(row["office"] or ""))
+        trust = _clamp_int(row["emp_trust"], 0, 100)
+        grievance = _clamp_int(row["grievance"], 0, 100)
+        ability = _clamp_int(row["ability"], 0, 100)
+        integrity = _clamp_int(row["integrity"], 0, 100)
+        importance = _clamp_int(row["importance"], 1, 5)
+        sentiment = str(row["sentiment"] or "neutral").strip()
+        title = str(row["title"] or "御前旧账").strip()
+        cause = _short_text(str(row["cause"] or ""), 48)
+        process = _short_text(str(row["process"] or ""), 48)
+        outcome = _short_text(str(row["outcome"] or ""), 58)
+        faction = str(row["faction"] or "").strip()
+
+        if sentiment == "positive":
+            card_title = f"旧账求兑现：{name}"
+            lead = "前番御前已经给过口风，今日最怕空许不兑现。"
+            urgency = 66 + importance * 5 + max(0, trust - 55) // 5 + max(0, grievance - 45) // 4
+            tone = "warn" if grievance >= 55 else "info"
+            meta = "旧账/许诺"
+        elif sentiment == "mixed":
+            card_title = f"条件待证：{name}"
+            lead = "前番不是准也不是驳，而是留了条件；如今该问证据是否凑齐。"
+            urgency = 74 + importance * 5 + max(0, grievance - 40) // 3 + max(0, 55 - trust) // 4
+            tone = "warn"
+            meta = "旧账/索证"
+        elif sentiment == "negative":
+            card_title = f"拒请余波：{name}"
+            lead = "前番御前拒了他的所求，这笔怨气若不设边界，会转入公事拖延。"
+            urgency = 78 + importance * 4 + max(0, grievance - 40) // 2 + max(0, 55 - trust) // 3
+            tone = "danger" if grievance >= 68 or trust <= 35 else "warn"
+            meta = "旧账/拒请"
+        else:
+            card_title = f"御前旧账：{name}"
+            lead = "前番奏对留下未清条件，今日可召来重定边界。"
+            urgency = 68 + importance * 5 + max(0, grievance - 45) // 4
+            tone = "warn"
+            meta = "旧账"
+        urgency = max(60, min(96, urgency))
+        detail_bits = [f"{office}{name}上次奏对留下「{title}」。", lead]
+        if cause:
+            detail_bits.append(f"事由：{cause}。")
+        if process:
+            detail_bits.append(f"御前话头：{process}。")
+        if outcome:
+            detail_bits.append(f"旧账结果：{outcome}。")
+        detail_bits.append("这次应让他先说明要兑现、补证还是领责，别让旧账只沉在聊天记录里。")
+
+        effects = [
+            {"kind": "memory", "label": meta, "tone": "neutral"},
+            {"kind": "trust", "label": f"信任 {trust}", "tone": "bad" if trust <= 38 else "good" if trust >= 62 else "neutral"},
+            {"kind": "grievance", "label": f"怨望 {grievance}", "tone": "bad" if grievance >= 55 else "neutral"},
+            {"kind": "ability", "label": f"才{ability}/廉{integrity}", "tone": "neutral"},
+        ]
+        if faction and faction not in {"无", "中立"}:
+            effects.append({"kind": "faction", "label": faction, "tone": "neutral"})
+
+        cards.append(
+            _card(
+                kind="bargain",
+                title=card_title,
+                detail="".join(detail_bits),
+                urgency=urgency,
+                tone=tone,
+                cta="召来清账",
+                tab=_TAB_AUDIENCE,
+                actor=name,
+                meta=meta,
+                ref_kind="memory",
+                ref_id=str(row["id"] or ""),
+                effects=effects,
+                deal=_bargain_deal(sentiment),
+            )
+        )
+        count += 1
+        if count >= 2:
+            break
+
+
 def _petition_cards(db: GameDB, cards: List[BriefCard]) -> None:
     """Surface active characters who would plausibly seek imperial help.
 
@@ -3281,7 +3535,7 @@ def _petition_cards(db: GameDB, cards: List[BriefCard]) -> None:
         name = str(row["name"])
         if any(
             str(card.get("actor") or "") == name
-            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup", "monthly_followup"}
+            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup", "monthly_followup", "bargain"}
             for card in cards
         ):
             continue
@@ -3399,7 +3653,7 @@ def _favor_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard])
     for name in order:
         if any(
             str(card.get("actor") or "") == name
-            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup", "petition"}
+            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup", "petition", "bargain"}
             for card in cards
         ):
             continue

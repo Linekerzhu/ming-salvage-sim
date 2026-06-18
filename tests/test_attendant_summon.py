@@ -1574,6 +1574,51 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_audience_bargain_card_routes_to_context_brief(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            memory_id = game.db.upsert_event_memory(
+                game.state,
+                "character",
+                actor,
+                "audience_bargain",
+                "御前拒请",
+                cause="求护持政敌旧案",
+                process="不准，此事驳回。",
+                outcome="拒其所求；信任 50->48，怨望 50->55",
+                sentiment="negative",
+                importance=4,
+                tags=["奏对交易", "refuse"],
+                source_kind="chat_turn",
+                source_id="unit-route",
+            )
+            context = {
+                "kind": "bargain",
+                "actor": actor,
+                "ref_kind": "memory",
+                "ref_id": str(memory_id),
+                "title": "拒请余波",
+            }
+
+            brief = game._chat_context_brief(actor, context)
+            mismatch = game._chat_context_brief("王承恩", context)
+
+            self.assertIn("本次召对事项：御前旧账", brief)
+            self.assertIn("御前拒请", brief)
+            self.assertIn("重新给台阶", brief)
+            self.assertEqual(mismatch, "")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
 
 if __name__ == "__main__":
     unittest.main()

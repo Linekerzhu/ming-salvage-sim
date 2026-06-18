@@ -4139,6 +4139,16 @@ class WebGame:
                 return favor_chat_context_brief(self.db, minister_name, ref_id)
             except Exception:
                 return ""
+        if kind == "bargain":
+            actor = str(context.get("actor") or "").strip()
+            if actor and actor != minister_name:
+                return ""
+            ref_id = context.get("ref_id") or context.get("id")
+            try:
+                from ming_sim.playstyle import bargain_chat_context_brief
+                return bargain_chat_context_brief(self.db, minister_name, ref_id)
+            except Exception:
+                return ""
         if kind == "monthly_followup" or ref_kind == "monthly_followup":
             actor = str(context.get("actor") or context.get("ref_id") or context.get("id") or "").strip()
             if actor and actor != minister_name:
@@ -4287,6 +4297,7 @@ class WebGame:
         allowed = {
             "petition", "agenda", "favor", "monthly_followup", "legacy",
             "rivalry", "faction", "army", "patronage", "relationship",
+            "bargain",
         }
         if kind not in allowed and ref_kind not in allowed:
             return False

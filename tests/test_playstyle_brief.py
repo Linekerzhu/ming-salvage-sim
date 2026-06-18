@@ -13,6 +13,7 @@ from ming_sim.playstyle import (
     _select_brief_cards,
     agenda_chat_context_brief,
     army_chat_context_brief,
+    bargain_chat_context_brief,
     briefing_cards,
     briefing_payload,
     favor_chat_context_brief,
@@ -1268,6 +1269,54 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("曾受皇帝保全/复用", brief)
             self.assertIn("不直接落库", brief)
             self.assertIn("求赏", brief)
+
+    def test_audience_bargain_memory_becomes_followup_hook(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=49, grievance=63 WHERE name=?",
+                ("韩爌",),
+            )
+            db.conn.commit()
+            memory_id = db.upsert_event_memory(
+                state,
+                "character",
+                "韩爌",
+                "audience_bargain",
+                "御前索证",
+                cause="求展限办差",
+                process="先拿出账册和担保，限期三日再说。",
+                outcome="准而索证；信任 48->49，怨望 61->63",
+                sentiment="mixed",
+                importance=4,
+                tags=["奏对交易", "press", "petition"],
+                source_kind="chat_turn",
+                source_id="unit-bargain",
+            )
+            self.assertGreater(memory_id, 0)
+
+            payload = briefing_payload(db, state, limit=5, kind="bargain")
+
+            self.assertEqual(payload["filter"], "bargain")
+            self.assertGreaterEqual(payload["total"], 1)
+            card = next(c for c in payload["cards"] if c["actor"] == "韩爌")
+            self.assertEqual(card["kind"], "bargain")
+            self.assertEqual(card["tab"], "audience")
+            self.assertEqual(card["cta"], "召来清账")
+            self.assertEqual(card["meta"], "旧账/索证")
+            self.assertEqual(card["ref_kind"], "memory")
+            self.assertEqual(card["ref_id"], str(memory_id))
+            self.assertIn("条件待证", str(card["title"]))
+            self.assertIn("补交账册", str(card["exchange"]))
+            labels = [str(e["label"]) for e in card["effects"]]
+            self.assertIn("旧账/索证", labels)
+            self.assertTrue(any(label.startswith("怨望 ") for label in labels), labels)
+
+            brief = bargain_chat_context_brief(db, "韩爌", card["ref_id"])
+            self.assertIn("本次召对事项：御前旧账", brief)
+            self.assertIn("御前索证", brief)
+            self.assertIn("补证、改期限", brief)
+            self.assertIn("普通寒暄不直接落库", brief)
 
     def test_overdue_memorials_become_trap_card(self):
         with TemporaryDirectory() as tmp:

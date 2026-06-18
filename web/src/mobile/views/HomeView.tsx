@@ -443,6 +443,7 @@ function kindMark(kind: string): string {
   if (kind === "directive_blocker") return "阻";
   if (kind === "directive_followup") return "复";
   if (kind === "monthly_followup") return "候";
+  if (kind === "bargain") return "账";
   if (kind === "patronage") return "荐";
   if (kind === "relationship") return "情";
   if (kind === "trap") return "任";
@@ -571,6 +572,13 @@ export function closurePromptForAudience(kind: string, actor = "你", target = "
       prefix: true,
     };
   }
+  if (kind === "bargain") {
+    return {
+      label: "定下一手",
+      text: `旧账今日要清。现在定下一手：是兑现、索证、改限还是明拒？由${who}几日交什么证据，办坏了谁担责？`,
+      prefix: true,
+    };
+  }
   if (kind === "army") {
     return {
       label: "定下一手",
@@ -620,6 +628,9 @@ function audienceOpeningFromBrief(card: PlaystyleBriefCard, actor = card.actor |
   }
   if (card.kind === "favor") {
     return withDeal(`${speaker}伏地称谢旧恩，表示受过陛下护持，不敢只记在心里；今日若陛下有难差，愿先听条件。`);
+  }
+  if (card.kind === "bargain") {
+    return withDeal(`${speaker}趋入时先提起前番御前旧账：不敢说陛下忘了，只求今日把兑现、补证或拒请边界当面讲清。`);
   }
   if (card.kind === "patronage") {
     return withDeal(target
@@ -789,6 +800,13 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
       { label: "点明旧恩", text: `朕昔日曾为你留任事余地。今日召你，是要听你如何还这笔旧恩。`, prefix: true },
       { label: "换难差", text: `旧恩不是空话。你若还愿任事，就领一件可验难差，几日内给朕回奏？`, prefix: true },
       { label: "防其要赏", text: `你若借天恩替同党求情，也须先说清代价、担保和可查的成效。`, prefix: true },
+    ];
+  }
+  if (card.kind === "bargain") {
+    return [
+      { label: "追旧账", text: `前番御前这笔旧账，今日你自己说清楚：朕当时许了什么、留了什么条件、拒了什么边界？`, prefix: true },
+      { label: "索实证", text: `不要只拿旧话要价。你今日能拿出什么账册、人证、担保或差使成效，证明这笔账该清？`, prefix: true },
+      { label: "定去留", text: `朕可以兑现，也可以改限或明拒。你先说：哪一种结果你能承受，哪一种会让你转入拖延？`, prefix: true },
     ];
   }
   if (card.kind === "directive_blocker") {

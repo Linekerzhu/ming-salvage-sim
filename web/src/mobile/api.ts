@@ -203,6 +203,7 @@ export type PlaystyleBriefCard = {
     | "directive_blocker"
     | "directive_followup"
     | "monthly_followup"
+    | "bargain"
     | "patronage"
     | "trap"
     | "trap_remedy"
