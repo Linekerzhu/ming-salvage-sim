@@ -728,6 +728,26 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   color: #21180c; background: linear-gradient(180deg, #c1964d, var(--gold-deep));
   border-color: rgba(92,64,22,.18); font-weight: 800;
 }
+.m-audience-goals {
+  flex: 0 0 auto; margin: 8px var(--pad) 0; padding: 8px 9px;
+  border: 1px solid rgba(181,134,58,.24); border-radius: 8px; background: rgba(0,0,0,.14);
+}
+.m-audience-goals-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 5px; }
+.m-audience-goals-head span { color: var(--gold); font-size: .76rem; font-weight: 900; }
+.m-audience-goals-head small { color: #9c8a64; font-size: .68rem; }
+.m-audience-goals-list { display: flex; flex-direction: column; gap: 5px; }
+.m-audience-goal {
+  display: flex; flex-direction: column; gap: 1px; padding: 6px 7px;
+  border: 1px solid rgba(200,162,74,.16); border-radius: 7px;
+  background: rgba(200,162,74,.055);
+}
+.m-audience-goal.tone-blocked,
+.m-audience-goal.tone-expired {
+  border-color: rgba(158,52,41,.34); background: rgba(158,52,41,.09);
+}
+.m-audience-goal-title { color: #ead39b; font-size: .78rem; line-height: 1.35; font-weight: 800; overflow-wrap: anywhere; }
+.m-audience-goal-meta { color: #c7ae70; font-size: .68rem; line-height: 1.35; font-weight: 800; }
+.m-audience-goal-note { color: #bfae86; font-size: .7rem; line-height: 1.38; overflow-wrap: anywhere; }
 .m-mini-dismiss { background: rgba(158,52,41,.2); color: #e2a89c; border-color: rgba(158,52,41,.45); }
 .m-mini-complete { background: rgba(160,112,42,.24); color: #f1cf8c; border-color: rgba(190,140,57,.5); }
 

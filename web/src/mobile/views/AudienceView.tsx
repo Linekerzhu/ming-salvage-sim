@@ -3,7 +3,7 @@ import { useGame } from "../GameData";
 import { ChatPane } from "../ChatPane";
 import { Portrait } from "../Portrait";
 import { loadEunuch, loadEunuchCandidates, loadPlaystyleBrief, replaceEunuch } from "../api";
-import type { AudienceLead, ChatContext, PlaystyleBriefCard, PublicCharacter } from "../api";
+import type { AudienceLead, ChatContext, PlaystyleBriefCard, PublicCharacter, Suggestion } from "../api";
 import { usePerson } from "../personCtx";
 import { audienceLeadFromBrief, briefUrgency, closurePromptForAudience, shortName } from "./HomeView";
 
@@ -64,6 +64,12 @@ export function AudienceView({
   if (audience) {
     const activeLead = audienceLead && (!audienceLead.actor || audienceLead.actor === audience) ? audienceLead : null;
     const isAttendantAudience = !!eunuch?.name && audience === eunuch.name;
+    const audienceGoals = openAudienceGoals(state?.conversation_goals, audience);
+    const goalSuggestion = audienceGoals[0] ? suggestionFromGoal(audienceGoals[0], audience) : null;
+    const leadSuggestions = [
+      ...(activeLead?.prompts || []),
+      ...(goalSuggestion ? [goalSuggestion] : []),
+    ];
     return (
       <div className="m-audience-full">
         <div className="m-audience-bar">
@@ -120,6 +126,27 @@ export function AudienceView({
             )}
           </div>
         )}
+        {audienceGoals.length > 0 && (
+          <section className="m-audience-goals" aria-label="此人旧约">
+            <div className="m-audience-goals-head">
+              <span>旧约在案</span>
+              <small>{audienceGoals.length} 桩未竟</small>
+            </div>
+            <div className="m-audience-goals-list">
+              {audienceGoals.slice(0, 3).map((goal, i) => (
+                <div key={`${goal.id || i}-${goal.title || goal.target_text || ""}`} className={`m-audience-goal tone-${goal.status || "active"}`}>
+                  <span className="m-audience-goal-title">{goal.title || goal.goal_type || "未竟奏对"}</span>
+                  <span className="m-audience-goal-meta">
+                    {[goal.status_label, goal.condition_label, goal.due_label, goal.progress_label].filter(Boolean).join(" · ")}
+                  </span>
+                  {(goal.blocker_summary || goal.pending_summary || goal.public_hint) && (
+                    <span className="m-audience-goal-note">{goal.blocker_summary || goal.pending_summary || goal.public_hint}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
         <ChatPane
           key={isAttendantAudience ? `eunuch-lead:${audience}:${activeLead?.ref_id || ""}` : audience}
           name={audience}
@@ -127,7 +154,7 @@ export function AudienceView({
           onWorldChanged={refresh}
           onOpenPerson={openPerson}
           localMessages={activeLead?.opening ? [{ role: "minister", content: activeLead.opening }] : undefined}
-          leadSuggestions={activeLead?.prompts || []}
+          leadSuggestions={leadSuggestions}
           chatContext={activeLead ? chatContextFromLead(activeLead) : undefined}
         />
       </div>
@@ -268,6 +295,30 @@ function chatContextFromLead(lead: AudienceLead): ChatContext {
     ref_id: lead.ref_id,
     title: lead.title,
     meta: lead.meta,
+  };
+}
+
+function openAudienceGoals(rawGoals: unknown, audience: string): any[] {
+  const name = String(audience || "").trim();
+  if (!name || !Array.isArray(rawGoals)) return [];
+  const hidden = new Set(["fulfilled", "abandoned"]);
+  return rawGoals
+    .filter((goal: any) => String(goal?.minister_name || "").trim() === name)
+    .filter((goal: any) => !hidden.has(String(goal?.status || "").trim()))
+    .slice(0, 4);
+}
+
+function suggestionFromGoal(goal: any, audience: string): Suggestion {
+  const title = String(goal?.title || goal?.target_text || "未竟奏对").trim();
+  const pending = String(goal?.pending_summary || "").trim();
+  const blocker = String(goal?.blocker_summary || "").trim();
+  const due = String(goal?.due_label || "").trim();
+  const status = String(goal?.status_label || goal?.status || "未定").trim();
+  const pressure = [status, due, blocker || pending].filter(Boolean).join("；");
+  return {
+    label: blocker ? "问阻力" : "追旧约",
+    text: `${audience}，朕记得你旧约「${title}」尚未了结。${pressure ? `眼下是：${pressure}。` : ""}你当面说清楚：已办成什么、还缺什么证据、几日能回奏，若再误事谁担责？`,
+    prefix: true,
   };
 }
 
