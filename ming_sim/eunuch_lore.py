@@ -626,6 +626,10 @@ def castration_scheme_profile(lore: Dict[str, object]) -> Dict[str, object]:
             "knife_tool",
             "anesthesia",
             "procedure_note",
+            "bao_size",
+            "bao_shape",
+            "bao_texture",
+            "bao_weight",
             "bao_preservation",
             "bao_container",
             "bao_ritual",
@@ -675,6 +679,16 @@ def castration_scheme_profile(lore: Dict[str, object]) -> Dict[str, object]:
         bump("宝案封存：线索清楚，但封签会牵动心结", bao=18, trauma=4)
     if re.search(r"楠木|黄杨|锡胆|杉木|描金|宝匣|钥匙|供奉|佛龛", raw):
         bump("宝匣安置：可供后续验宝、安抚或追查", bao=18, trauma=-2)
+    if re.search(r"偏沉粗大|约二两八钱|三两", raw):
+        bump("宝相偏沉：宝案可验，但验宝羞辱与封存心结更重", bao=6, trauma=5, care=1)
+    if re.search(r"小如雀卵|干瘪寒缩|轻得几乎无声|约一两二钱", raw):
+        bump("宝相寒缩：易生轻侮与遗失疑云，宝案安全下降", bao=-10, trauma=4)
+    if re.search(r"一大一小|瘪坠不匀|细长偏皱", raw):
+        bump("宝形偏异：验宝时更易刺中心结", bao=-4, trauma=4)
+    if re.search(r"油封后发硬|石灰封后发白", raw):
+        bump("宝质留痕：封存证据更清楚，触发旧案记忆也更强", bao=5, trauma=3)
+    elif re.search(r"干皱如旧枣|韧而发暗", raw):
+        bump("宝质晦暗：难验新旧，容易牵出宝案疑云", bao=-4, trauma=2)
     if str(lore.get("bao_status") or "") == BAO_FORFEIT:
         bump("宝为官没：服从来自恐惧，长线怨气更重", brutal=8, trauma=8, care=1)
     elif str(lore.get("bao_status") or "") == BAO_KEPT:
@@ -712,7 +726,7 @@ def castration_scheme_profile(lore: Dict[str, object]) -> Dict[str, object]:
         "bao_security": bao_security,
         "care_cost_delta": care_cost_delta if explicit else 0,
         "stat_delta": stat_delta if explicit else {},
-        "effects": effects[:6],
+        "effects": effects[:12],
     }
 
 

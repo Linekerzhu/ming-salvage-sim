@@ -140,6 +140,55 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertEqual(care["cost"], 7)
             self.assertIn("方案调养+4", care["outcome"])
 
+    def test_bao_specimen_details_change_scheme_risk_and_dispatch(self):
+        with TemporaryDirectory() as tmp:
+            db, _state, day = _fresh(tmp)
+            heavy = "韩爌"
+            shrunken = "钱谦益"
+            el.record_castration(
+                db,
+                heavy,
+                forced=True,
+                day=day,
+                detail_text=(
+                    "净军房行事，铜柄宫刀，无麻；宝约二两八钱，偏沉粗大，一大一小，"
+                    "油封后发硬，油炸封蜡，收黄杨木描金匣。"
+                ),
+            )
+            el.record_castration(
+                db,
+                shrunken,
+                forced=True,
+                day=day,
+                detail_text=(
+                    "净军房行事，铜柄宫刀，无麻；宝约一两二钱，小如雀卵，瘪坠不匀，"
+                    "干皱如旧枣，官库石灰封存，收白签灰瓮。"
+                ),
+            )
+
+            heavy_profile = el.public_lore_payload(db, heavy)["scheme_profile"]
+            shrunken_profile = el.public_lore_payload(db, shrunken)["scheme_profile"]
+
+            self.assertTrue(any("宝相偏沉" in item for item in heavy_profile["effects"]))
+            self.assertTrue(any("宝形偏异" in item for item in shrunken_profile["effects"]))
+            self.assertTrue(any("宝相寒缩" in item for item in shrunken_profile["effects"]))
+            self.assertGreater(
+                int(heavy_profile["bao_security"]),
+                int(shrunken_profile["bao_security"]),
+            )
+            self.assertGreaterEqual(int(shrunken_profile["trauma_risk"]), int(heavy_profile["trauma_risk"]))
+
+            risk = el.assignment_risk_profile(
+                db,
+                shrunken,
+                "命其查官库封签宝匣旧案，核验净军房旧册。",
+                domains=["investigation", "inner"],
+            )
+
+            self.assertLess(int(risk["score_delta"]), 0)
+            self.assertTrue(any("净身方案画像" in item for item in risk["risks"]))
+            self.assertTrue(risk["dispatch_strategies"])
+
     def test_harsh_scheme_adds_extra_complication_window_until_general_care(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)
