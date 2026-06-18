@@ -691,6 +691,37 @@ def build_secret_order_brief(character: Character, context: CourtContext) -> str
         content_brief = (o.get("content") or "")[:80].replace("\n", " ")
         if content_brief:
             lines.append(f"    （任务摘要：{content_brief}…）")
+        try:
+            from ming_sim.bureaucracy import secret_order_actor_assessment
+            assessment = secret_order_actor_assessment(context.state, context.db, o)
+        except Exception:
+            assessment = {}
+        eunuch_risk = assessment.get("eunuch_lore_risk") if isinstance(assessment, dict) and isinstance(assessment.get("eunuch_lore_risk"), dict) else {}
+        risks = [
+            str(item).strip()
+            for item in (eunuch_risk.get("risks") or [])[:3]
+            if str(item).strip()
+        ] if isinstance(eunuch_risk, dict) else []
+        if risks:
+            lines.append(f"    （净身旧患：{'; '.join(risks[:2])}）")
+        strategies = [
+            item for item in (eunuch_risk.get("dispatch_strategies") if isinstance(eunuch_risk, dict) else []) or []
+            if isinstance(item, dict) and str(item.get("key") or "").strip()
+        ]
+        if strategies:
+            choices: List[str] = []
+            for item in strategies[:3]:
+                label = str(item.get("label") or item.get("key") or "").strip()
+                key = str(item.get("key") or "").strip()
+                tradeoff = str(item.get("tradeoff") or "").strip()
+                cost = int(item.get("cost") or 0)
+                cost_text = f"内库{cost}" if cost else "无耗费"
+                choices.append(f"{label}/{key}（{cost_text}；{tradeoff}）")
+            lines.append(f"    （旧患差遣可选：{'；'.join(choices)}）")
+            lines.append(
+                f"    （若陛下准，调用 `set_eunuch_dispatch_strategy(order_id={int(o['id'])}, "
+                "strategy='relay|avoid_trigger|care_first|force')` 落档。）"
+            )
     return "\n".join(lines)
 
 

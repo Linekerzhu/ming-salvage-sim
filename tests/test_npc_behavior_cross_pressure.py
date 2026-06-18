@@ -24,6 +24,7 @@ from ming_sim.registry import (
     build_audience_bargain_memory_brief,
     build_monthly_followup_brief,
     build_personal_chat_memory_brief,
+    build_secret_order_brief,
     build_stance_brief,
 )
 from ming_sim.session import GameSession
@@ -856,6 +857,46 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             self.assertTrue(any("净身旧患修正" in item for item in assessment["drivers"]))
             db.conn.close()
 
+    def test_secret_order_brief_surfaces_eunuch_dispatch_choices(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db = GameDB(str(Path(tmp) / "npc_secret_eunuch_wound_brief.db"), content=self.content)
+            db.seed_static_data()
+            state = GameState(
+                year=1628,
+                period=1,
+                turn=1,
+                metrics={"国库": 100, "内库": 50, "民心": 50, "皇威": 50},
+            )
+            actor = "王承恩"
+            el.record_castration(
+                db,
+                actor,
+                forced=True,
+                day=1,
+                detail_text="净军房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+            )
+            order_id = db.create_secret_order(
+                state,
+                actor,
+                "密查净军房封签",
+                "夜间久候盯梢刑房封签，拿问口供，查清官库旧案。",
+                ["刑房", "封签", "净军房"],
+                deadline_months=1,
+            )
+
+            brief = build_secret_order_brief(
+                self.content.characters[actor],
+                CourtContext(state=state, db=db),
+            )
+
+            self.assertIn("净身旧患", brief)
+            self.assertIn("尿路旧患", brief)
+            self.assertIn("旧患差遣可选", brief)
+            self.assertIn("分班副手/relay", brief)
+            self.assertIn("set_eunuch_dispatch_strategy", brief)
+            self.assertIn(f"order_id={order_id}", brief)
+            db.conn.close()
+
     def test_secret_order_tools_return_actor_behavior_brief(self) -> None:
         with TemporaryDirectory() as tmp:
             db = GameDB(str(Path(tmp) / "npc_secret_tool_brief.db"), content=self.content)
@@ -1359,6 +1400,45 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             self.assertIn("本月尚未推进", augmented)
             self.assertIn("密查阉党旧案", prepared.behavior_context)
             self.assertIn("旧事牵引", prepared.behavior_brief)
+            session.close()
+
+    def test_prepare_chat_run_injects_eunuch_secret_order_dispatch_choices(self) -> None:
+        with TemporaryDirectory() as tmp:
+            session = GameSession(
+                str(Path(tmp) / "npc_session_live_eunuch_secret.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            session.dialogue_audit_client = lambda phase, payload: {  # type: ignore[assignment]
+                "goal_decision": "none",
+                "confidence": 90,
+            }
+            actor = "王承恩"
+            el.record_castration(
+                session.db,
+                actor,
+                forced=True,
+                day=0,
+                detail_text="净军房无麻；宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+            )
+            session.db.create_secret_order(
+                session.state,
+                actor,
+                "密查净军房封签",
+                "夜间久候盯梢刑房封签，拿问口供，查清官库旧案。",
+                ["刑房", "封签", "净军房"],
+            )
+
+            augmented, prepared = session.prepare_chat_run(
+                self.content.characters[actor],
+                "这桩密查你打算如何办？",
+            )
+
+            self.assertIn("旧患差遣可选", augmented)
+            self.assertIn("set_eunuch_dispatch_strategy", augmented)
+            self.assertIn("尿路旧患", prepared.behavior_context)
+            self.assertIn("分班副手/relay", prepared.behavior_context)
             session.close()
 
     def test_prepare_chat_run_injects_eunuch_lore_into_behavior_context(self) -> None:
