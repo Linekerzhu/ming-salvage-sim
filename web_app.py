@@ -3417,6 +3417,17 @@ class WebGame:
                 return monthly_followup_chat_context_brief(self.db, minister_name)
             except Exception:
                 return ""
+        if kind == "patronage":
+            actor = str(context.get("actor") or "").strip()
+            target = str(context.get("target") or "").strip()
+            if minister_name not in {actor, target}:
+                return ""
+            other = target if minister_name == actor else actor
+            try:
+                from ming_sim.playstyle import patronage_chat_context_brief
+                return patronage_chat_context_brief(self.db, minister_name, target=other)
+            except Exception:
+                return ""
         return ""
 
     def _directive_chat_effect(

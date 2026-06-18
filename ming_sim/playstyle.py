@@ -28,15 +28,16 @@ _KIND_PRIORITY = {
     "directive_blocker": 2,
     "directive_followup": 3,
     "monthly_followup": 4,
-    "trap_remedy": 5,
-    "petition": 6,
-    "favor": 7,
-    "legacy": 8,
-    "army": 9,
-    "faction": 10,
-    "agenda": 11,
-    "rivalry": 12,
-    "hook": 13,
+    "patronage": 5,
+    "trap_remedy": 6,
+    "petition": 7,
+    "favor": 8,
+    "legacy": 9,
+    "army": 10,
+    "faction": 11,
+    "agenda": 12,
+    "rivalry": 13,
+    "hook": 14,
 }
 
 _KIND_LABELS = {
@@ -45,6 +46,7 @@ _KIND_LABELS = {
     "directive_blocker": "诏旨",
     "directive_followup": "复命",
     "monthly_followup": "候见",
+    "patronage": "举主",
     "trap_remedy": "担责",
     "petition": "求援",
     "favor": "旧恩",
@@ -507,6 +509,98 @@ def monthly_followup_chat_context_brief(db: GameDB, minister_name: str) -> str:
     return "\n".join(lines)
 
 
+def patronage_chat_context_brief(
+    db: GameDB,
+    minister_name: str,
+    *,
+    target: str = "",
+) -> str:
+    """Trusted context for a recommendation bond: sponsor and candidate both have stakes."""
+
+    name = str(minister_name or "").strip()
+    other = str(target or "").strip()
+    if not name or not other or not _table_exists(db, "relationships") or not _table_exists(db, "characters"):
+        return ""
+    relation = db.conn.execute(
+        """
+        SELECT opinion, basis
+        FROM relationships
+        WHERE a_name=? AND b_name=?
+        LIMIT 1
+        """,
+        (name, other),
+    ).fetchone()
+    if relation is None:
+        return ""
+    basis = str(relation["basis"] or "")
+    if not any(token in basis for token in ("举荐", "举主", "荐取", "入京", "挑补")):
+        return ""
+    self_row = db.conn.execute(
+        """
+        SELECT name, office, faction, emp_trust, grievance, summary
+        FROM characters
+        WHERE name=? AND status='active' AND power_id='ming' AND office_type!='后宫'
+        """,
+        (name,),
+    ).fetchone()
+    other_row = db.conn.execute(
+        """
+        SELECT name, office, faction, emp_trust, grievance, summary
+        FROM characters
+        WHERE name=? AND status='active' AND power_id='ming' AND office_type!='后宫'
+        """,
+        (other,),
+    ).fetchone()
+    if self_row is None or other_row is None:
+        return ""
+    reverse = db.conn.execute(
+        "SELECT opinion, basis FROM relationships WHERE a_name=? AND b_name=? LIMIT 1",
+        (other, name),
+    ).fetchone()
+    reverse_basis = str(reverse["basis"] or "") if reverse is not None else ""
+    is_sponsor = "举荐" in basis or "荐取" in basis or "挑补" in basis or "入京" in basis
+    if not is_sponsor and not ("举主" in basis or "举主" in reverse_basis):
+        return ""
+    sponsor = name if is_sponsor else other
+    candidate = other if is_sponsor else name
+    sponsor_row = self_row if sponsor == name else other_row
+    candidate_row = other_row if candidate == other else self_row
+    sponsor_opinion = int(relation["opinion"] or 0) if sponsor == name else int((reverse or relation)["opinion"] or 0)
+    candidate_opinion = int((reverse or relation)["opinion"] or 0) if sponsor == name else int(relation["opinion"] or 0)
+    sponsor_office = _short_office(str(sponsor_row["office"] or ""))
+    candidate_office = _short_office(str(candidate_row["office"] or ""))
+    candidate_summary = str(candidate_row["summary"] or "")
+    sponsor_faction = str(sponsor_row["faction"] or "")
+    candidate_faction = str(candidate_row["faction"] or "")
+    lines = [
+        "【本次召对事项：举主担保】",
+        f"- {sponsor_office}{sponsor}曾举荐/引入{candidate_office}{candidate}，这不是无根用人，而是一条可追责的人情链。",
+        f"- 关系账：举主对新人 {sponsor_opinion}，新人对举主 {candidate_opinion}；若用错人，举主名声与派系都要受牵连。",
+    ]
+    if sponsor_faction and sponsor_faction not in {"无", "中立"}:
+        lines.append(f"- 举主派系：{sponsor}属{sponsor_faction}，可能借荐人伸手，也可能真有识人之功。")
+    if candidate_faction and candidate_faction not in {"无", "中立"}:
+        lines.append(f"- 新人标签：{candidate}属{candidate_faction}，入朝后未必只听皇帝，也会受举主/乡党牵引。")
+    if candidate_summary:
+        lines.append(f"- 新人小传：{_short_text(candidate_summary, 220)}")
+    if name == sponsor:
+        lines.extend([
+            f"- 当前入对者是举主{sponsor}：应让他说明为何荐{candidate}、短板在哪里、愿用什么名节或差事担保。",
+            "- 对话玩法：皇帝可要求举主连坐担保、限期带新人共办一事、交出可验差使，或明示若新人坏事则先问举主。",
+        ])
+    else:
+        lines.extend([
+            f"- 当前入对者是新人{candidate}：应让他证明自己不是{sponsor}的影子，说明能办什么、会得罪谁、如何避嫌交账。",
+            "- 对话玩法：皇帝可给试差、要求避嫌、命其与举主分账，或用新人反查举主的人情网。",
+        ])
+    lines.extend([
+        "- 两难要求：举荐可得人，也会喂大派系和门生故旧；不要把荐人写成免费人才池。",
+        "- 落库边界：只有皇帝明确设期限、命共办、要求拟旨或确认担保条件，才进入奏对目的/履约账本。",
+        "- 口吻要求：按身份、派系、信任、怨望和人物性格说话；不要像全知旁白解释系统。",
+    ])
+    return "\n".join(lines)
+
+
 def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[BriefCard]:
     """Collect all actionable hooks before the home-screen outliner chooses a subset."""
 
@@ -517,6 +611,7 @@ def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[
     _directive_blocker_cards(db, cards)
     _directive_followup_cards(db, state, cards)
     _monthly_followup_cards(db, state, cards)
+    _patronage_cards(db, cards)
     _petition_cards(db, cards)
     _favor_cards(db, state, cards)
     _policy_legacy_cards(db, state, cards)
@@ -1442,6 +1537,118 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
                 meta=meta,
                 ref_kind="monthly_followup",
                 ref_id=name,
+                effects=effects[:6],
+            )
+        )
+        count += 1
+        if count >= 2:
+            break
+
+
+def _patronage_cards(db: GameDB, cards: List[BriefCard]) -> None:
+    """Surface recommendation bonds as playable patronage accountability hooks."""
+
+    if not _table_exists(db, "relationships") or not _table_exists(db, "characters"):
+        return
+    rows = _safe_fetchall(
+        db,
+        """
+        SELECT r.a_name AS sponsor, r.b_name AS candidate, r.opinion AS sponsor_opinion,
+               r.basis AS basis,
+               rb.opinion AS candidate_opinion, rb.basis AS reverse_basis,
+               cs.office AS sponsor_office, cs.faction AS sponsor_faction,
+               cc.office AS candidate_office, cc.faction AS candidate_faction,
+               cc.summary AS candidate_summary, cc.emp_trust AS candidate_trust,
+               cc.grievance AS candidate_grievance
+        FROM relationships r
+        JOIN characters cs ON cs.name=r.a_name
+        JOIN characters cc ON cc.name=r.b_name
+        LEFT JOIN relationships rb ON rb.a_name=r.b_name AND rb.b_name=r.a_name
+        WHERE cs.status='active'
+          AND cc.status='active'
+          AND cs.power_id='ming'
+          AND cc.power_id='ming'
+          AND cs.office_type!='后宫'
+          AND cc.office_type!='后宫'
+          AND r.opinion>=18
+          AND (
+            r.basis LIKE '%举荐%'
+            OR r.basis LIKE '%荐取%'
+            OR r.basis LIKE '%挑补%'
+            OR r.basis LIKE '%入京%'
+          )
+        ORDER BY
+          CASE WHEN cc.office LIKE '%待铨%' OR cc.office_type LIKE '%待铨%' THEN 0 ELSE 1 END,
+          r.opinion DESC,
+          cc.grievance DESC
+        LIMIT 16
+        """,
+    )
+    seen: set[tuple[str, str]] = set()
+    count = 0
+    for row in rows:
+        sponsor = str(row["sponsor"] or "").strip()
+        candidate = str(row["candidate"] or "").strip()
+        if not sponsor or not candidate or sponsor == candidate:
+            continue
+        key = (sponsor, candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        if any(
+            str(card.get("actor") or "") in {sponsor, candidate}
+            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup"}
+            for card in cards
+        ):
+            continue
+        sponsor_opinion = _clamp_int(row["sponsor_opinion"], -100, 100)
+        candidate_opinion = _clamp_int(row["candidate_opinion"], -100, 100)
+        if candidate_opinion == 0:
+            candidate_opinion = sponsor_opinion
+        basis = str(row["basis"] or "举荐入朝")
+        sponsor_office = _short_office(str(row["sponsor_office"] or ""))
+        candidate_office = _short_office(str(row["candidate_office"] or ""))
+        sponsor_faction = str(row["sponsor_faction"] or "")
+        candidate_faction = str(row["candidate_faction"] or "")
+        summary = str(row["candidate_summary"] or "")
+        trust = _clamp_int(row["candidate_trust"], 0, 100)
+        grievance = _clamp_int(row["candidate_grievance"], 0, 100)
+        faction_risk = (
+            bool(sponsor_faction and candidate_faction and sponsor_faction == candidate_faction and sponsor_faction not in {"无", "中立"})
+            or "风险" in summary
+        )
+        effects = [
+            {"kind": "patronage", "label": f"举主 {sponsor}", "tone": "neutral"},
+            {"kind": "candidate", "label": f"新人 {candidate}", "tone": "neutral"},
+            {"kind": "opinion", "label": f"举主关系 {sponsor_opinion}", "tone": "good" if sponsor_opinion >= 30 else "neutral"},
+            {"kind": "obligation", "label": f"恩义 {candidate_opinion}", "tone": "good" if candidate_opinion >= 30 else "neutral"},
+        ]
+        if sponsor_faction and sponsor_faction not in {"无", "中立"}:
+            effects.append({"kind": "faction", "label": sponsor_faction, "tone": "bad" if faction_risk else "neutral"})
+        if trust <= 45:
+            effects.append({"kind": "trust", "label": f"新人信任 {trust}", "tone": "bad"})
+        if grievance >= 45:
+            effects.append({"kind": "grievance", "label": f"新人怨望 {grievance}", "tone": "bad"})
+        detail = (
+            f"{sponsor_office}{sponsor}以「{basis}」引{candidate_office}{candidate}入朝。"
+            "这条人情链可用来得人，也可追问举主是否愿以名节担保。"
+        )
+        if summary:
+            detail += f"新人档案：{_short_text(summary, 68)}"
+        cards.append(
+            _card(
+                kind="patronage",
+                title=f"举主担保：{sponsor}荐{candidate}",
+                detail=detail,
+                urgency=70 + min(18, sponsor_opinion // 4) + (8 if faction_risk else 0),
+                tone="warn" if faction_risk else "info",
+                cta="问举主",
+                tab=_TAB_AUDIENCE,
+                actor=sponsor,
+                target=candidate,
+                meta="连坐担保" if faction_risk else "人情链",
+                ref_kind="relationship",
+                ref_id=f"{sponsor}:{candidate}",
                 effects=effects[:6],
             )
         )

@@ -17,6 +17,7 @@ from ming_sim.playstyle import (
     favor_chat_context_brief,
     legacy_chat_context_brief,
     monthly_followup_chat_context_brief,
+    patronage_chat_context_brief,
     petition_chat_context_brief,
 )
 from ming_sim.upgrade_schema import KV_CURRENT_DAY, KV_RISK_AVERSION, kv_set_int
@@ -421,6 +422,80 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("密令到期", brief)
             self.assertIn("主动复命或诉难处", brief)
             self.assertIn("不要给无成本完美答案", brief)
+
+    def test_recommendation_bond_becomes_patronage_brief_card(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            sponsor = _active_minister(db)
+            candidate = str(db.conn.execute(
+                """
+                SELECT name
+                FROM characters
+                WHERE status='active'
+                  AND power_id='ming'
+                  AND office_type!='后宫'
+                  AND name!=?
+                LIMIT 1
+                """,
+                (sponsor,),
+            ).fetchone()["name"])
+            db.conn.execute(
+                "UPDATE characters SET office='待铨（举贤入京）', office_type='待铨', summary=? WHERE name=?",
+                (f"由地方举荐入京。举荐来源：{sponsor}；风险：初入朝局，仍受举主关系牵引。", candidate),
+            )
+            court.adjust_opinion(db, sponsor, candidate, +28, "举荐入朝", day=1, reciprocal=False)
+            court.adjust_opinion(db, candidate, sponsor, +34, "举主恩义", day=1, reciprocal=False)
+
+            payload = briefing_payload(db, state, limit=5, kind="patronage")
+
+            self.assertEqual(payload["filter"], "patronage")
+            self.assertGreaterEqual(payload["total"], 1)
+            card = next(c for c in payload["cards"] if c["kind"] == "patronage")
+            self.assertEqual(card["tab"], "audience")
+            self.assertEqual(card["actor"], sponsor)
+            self.assertEqual(card["target"], candidate)
+            self.assertEqual(card["cta"], "问举主")
+            self.assertIn("举主担保", str(card["title"]))
+            labels = [str(e["label"]) for e in card["effects"]]
+            self.assertIn(f"举主 {sponsor}", labels)
+            self.assertIn(f"新人 {candidate}", labels)
+            self.assertIn("举主关系 28", labels)
+            buckets = {str(b["kind"]): b for b in payload["buckets"]}
+            self.assertEqual(buckets["patronage"]["label"], "举主")
+
+    def test_patronage_chat_context_differs_for_sponsor_and_candidate(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            del state
+            sponsor = _active_minister(db)
+            candidate = str(db.conn.execute(
+                """
+                SELECT name
+                FROM characters
+                WHERE status='active'
+                  AND power_id='ming'
+                  AND office_type!='后宫'
+                  AND name!=?
+                LIMIT 1
+                """,
+                (sponsor,),
+            ).fetchone()["name"])
+            db.conn.execute(
+                "UPDATE characters SET office='待铨（举贤入京）', office_type='待铨', summary=? WHERE name=?",
+                (f"由地方举荐入京。举荐来源：{sponsor}；风险：初入朝局，仍受举主关系牵引。", candidate),
+            )
+            court.adjust_opinion(db, sponsor, candidate, +28, "举荐入朝", day=1, reciprocal=False)
+            court.adjust_opinion(db, candidate, sponsor, +34, "举主恩义", day=1, reciprocal=False)
+
+            sponsor_brief = patronage_chat_context_brief(db, sponsor, target=candidate)
+            candidate_brief = patronage_chat_context_brief(db, candidate, target=sponsor)
+
+            self.assertIn("本次召对事项：举主担保", sponsor_brief)
+            self.assertIn("当前入对者是举主", sponsor_brief)
+            self.assertIn("愿用什么名节或差事担保", sponsor_brief)
+            self.assertIn("当前入对者是新人", candidate_brief)
+            self.assertIn("证明自己不是", candidate_brief)
+            self.assertIn("不要把荐人写成免费人才池", candidate_brief)
 
     def test_active_tax_legacy_becomes_policy_aftershock_card(self):
         with TemporaryDirectory() as tmp:

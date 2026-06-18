@@ -241,6 +241,60 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_patronage_context_handles_sponsor_and_candidate(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            sponsor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            candidate = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' AND name!=? "
+                "ORDER BY ability DESC LIMIT 1",
+                (sponsor,),
+            ).fetchone()["name"])
+            game.db.conn.execute(
+                "UPDATE characters SET office='待铨（举贤入京）', office_type='待铨', summary=? WHERE name=?",
+                (f"由地方举荐入京。举荐来源：{sponsor}；风险：初入朝局，仍受举主关系牵引。", candidate),
+            )
+            court.adjust_opinion(game.db, sponsor, candidate, +28, "举荐入朝", day=1, reciprocal=False)
+            court.adjust_opinion(game.db, candidate, sponsor, +34, "举主恩义", day=1, reciprocal=False)
+            game.session.dialogue_audit_client = lambda phase, payload: {  # type: ignore[assignment]
+                "goal_decision": "none",
+                "confidence": 90,
+            }
+            context = {
+                "kind": "patronage",
+                "actor": sponsor,
+                "target": candidate,
+                "ref_kind": "relationship",
+                "ref_id": f"{sponsor}:{candidate}",
+            }
+
+            sponsor_brief = game._chat_context_brief(sponsor, context)
+            candidate_brief = game._chat_context_brief(candidate, context)
+            mismatch = game._chat_context_brief("王承恩", context)
+            augmented, prepared = game.session.prepare_chat_run(
+                game.content.characters[sponsor],
+                f"你既荐{candidate}，今日当面说清楚。",
+                supplemental_context=sponsor_brief,
+            )
+
+            self.assertIn("本次召对事项：举主担保", sponsor_brief)
+            self.assertIn("当前入对者是举主", sponsor_brief)
+            self.assertIn("当前入对者是新人", candidate_brief)
+            self.assertEqual(mismatch, "")
+            self.assertIn("举主担保", augmented)
+            self.assertIn("举主担保", prepared.behavior_context)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_agenda_context_is_actor_scoped_and_reaches_dialogue_prep(self):
         game = web_app.WebGame(fresh=True)
         try:

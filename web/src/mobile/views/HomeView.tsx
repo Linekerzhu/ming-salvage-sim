@@ -262,6 +262,13 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                         )}
                         {card.actor && <button className="m-brief-action" onClick={() => inspect(card.actor)}>查此人</button>}
                       </>
+                    ) : card.kind === "patronage" && card.actor && card.target ? (
+                      <>
+                        <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, card.target)}>召举主</button>
+                        <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.target!, card.actor)}>召新人</button>
+                        <button className="m-brief-action" onClick={() => inspect(card.actor)}>查举主</button>
+                        <button className="m-brief-action" onClick={() => inspect(card.target)}>查新人</button>
+                      </>
                     ) : card.kind === "trap_remedy" && card.actor ? (
                       <>
                         <button className="m-brief-action primary" onClick={() => inspect(card.actor, "back")}>去买单›</button>
@@ -385,6 +392,7 @@ function kindMark(kind: string): string {
   if (kind === "directive_blocker") return "阻";
   if (kind === "directive_followup") return "复";
   if (kind === "monthly_followup") return "候";
+  if (kind === "patronage") return "荐";
   if (kind === "trap") return "任";
   if (kind === "trap_remedy") return "担";
   if (kind === "petition") return "求";
@@ -468,6 +476,18 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
       { label: "听其请安", text: `朕准你请安。你本月主动求见，先说清楚：是复命、求资源，还是要朕给一道明旨？`, prefix: true },
       { label: "问卡点", text: `你这桩事拖到今日，卡在钱粮、人手、名分，还是有人暗中掣肘？照实奏来。`, prefix: true },
       { label: "设回奏期", text: `朕可以给你边界和名分，但要有期限、有证据。你几日内能拿什么来回奏？`, prefix: true },
+    ];
+  }
+  if (card.kind === "patronage") {
+    const summonedSponsor = actor && actor === card.actor;
+    return [
+      summonedSponsor
+        ? { label: "问担保", text: `你既举荐${counterpart}入朝，就当面说清楚：你愿拿什么名节、差事或期限替他担保？`, prefix: true }
+        : { label: "验新人", text: `你由${counterpart}举荐入朝。今日不问荐书，只问你自己能办什么、短板在哪里、几日能见证据？`, prefix: true },
+      summonedSponsor
+        ? { label: "验新人", text: `${counterpart}究竟有什么可用之处，短板在哪里？若朕给他一件试差，几日能见证据？`, prefix: true }
+        : { label: "问避嫌", text: `你与${counterpart}有人情牵连。若朕用你办事，你如何避嫌、如何交账、如何不只替举主说话？`, prefix: true },
+      { label: "防植党", text: `荐人可以，但不可借荐人植党。你和${counterpart}的关系、派系、人情账，今日要说清楚。`, prefix: true },
     ];
   }
   if (card.kind === "agenda") {
