@@ -117,6 +117,94 @@ def briefing_cards(db: GameDB, state: Optional[GameState] = None, *, limit: int 
     return _select_brief_cards(_briefing_candidates(db, state), limit)
 
 
+def petition_chat_context_brief(
+    db: GameDB,
+    minister_name: str,
+    *,
+    target: str = "",
+) -> str:
+    """Trusted context for a home-screen petition card entering audience chat.
+
+    The frontend may carry a card id, but the actual prompt context must be
+    rebuilt from live DB state. This keeps "NPC comes to ask for help" as
+    dialogue-driven gameplay, not a client-side button pretending to be truth.
+    """
+
+    name = str(minister_name or "").strip()
+    if not name or not _table_exists(db, "characters"):
+        return ""
+    row = db.conn.execute(
+        """
+        SELECT name, office, faction, ability, integrity, emp_trust, grievance
+        FROM characters
+        WHERE name=?
+          AND status='active'
+          AND power_id='ming'
+          AND office_type!='后宫'
+          AND name!='崇祯'
+        """,
+        (name,),
+    ).fetchone()
+    if row is None:
+        return ""
+
+    trust = _clamp_int(row["emp_trust"], 0, 100)
+    grievance = _clamp_int(row["grievance"], 0, 100)
+    requested_target = str(target or "").strip()
+    rival = ""
+    opinion = 0
+    basis = ""
+    if requested_target and _table_exists(db, "relationships"):
+        relation = db.conn.execute(
+            """
+            SELECT r.b_name, r.opinion, r.basis
+            FROM relationships r
+            JOIN characters c ON c.name=r.b_name
+            WHERE r.a_name=?
+              AND r.b_name=?
+              AND r.opinion<=-40
+              AND c.status='active'
+              AND c.power_id='ming'
+              AND c.office_type!='后宫'
+            LIMIT 1
+            """,
+            (name, requested_target),
+        ).fetchone()
+        if relation is not None:
+            rival = str(relation["b_name"] or "")
+            opinion = int(relation["opinion"] or 0)
+            basis = str(relation["basis"] or "")
+    if not rival:
+        rival, opinion, basis = _worst_rival_of(db, name)
+
+    pressure = grievance >= 50 or trust <= 48 or bool(rival)
+    if not pressure:
+        return ""
+
+    office = _short_office(str(row["office"] or ""))
+    faction = str(row["faction"] or "").strip()
+    lines = [
+        "【本次召对事项：主动求援请托】",
+        f"- {office}{name}不是普通被动问策，而是带着困局求见皇帝；请安后应自然说出自己求陛下解哪一处难局。",
+        f"- 当前心态：御前信任 {trust}，怨望 {grievance}"
+        + (f"，派系 {faction}" if faction and faction not in {"无", "中立"} else "")
+        + "。",
+    ]
+    if rival:
+        lines.append(
+            f"- 请托焦点：与{rival}因「{basis or '旧怨'}」相争，关系 {opinion}；"
+            "他可能求台阶、求护持、求自辩，也可能借皇帝之手压政敌。"
+        )
+    else:
+        lines.append("- 请托焦点：其言辞或称公事，骨子里是在求台阶、护身符或重新取得任事机会。")
+    lines.extend([
+        "- 对话玩法：先提出可谈方案，不要直接落库；只有皇帝明确答应、追问条件或命其换取差使后，才算进入奏对目的。",
+        "- 可谈条件：明旨护持；自辩换难差；与政敌共办一事；若皇帝留中不应，则表现寒心与转入自保。",
+        "- 口吻要求：按本人的身份、派系、性格和关系网说话；不要像全知旁白解释机制。",
+    ])
+    return "\n".join(lines)
+
+
 def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[BriefCard]:
     """Collect all actionable hooks before the home-screen outliner chooses a subset."""
 

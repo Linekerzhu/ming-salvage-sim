@@ -8,7 +8,13 @@ from tempfile import TemporaryDirectory
 from ming_sim import court, court_events, lifecycle, memorials, timeflow
 from ming_sim.db import GameDB
 from ming_sim.intrigue import ensure_schema as ensure_secret_schema
-from ming_sim.playstyle import _brief_kind_buckets, _select_brief_cards, briefing_cards, briefing_payload
+from ming_sim.playstyle import (
+    _brief_kind_buckets,
+    _select_brief_cards,
+    briefing_cards,
+    briefing_payload,
+    petition_chat_context_brief,
+)
 from ming_sim.upgrade_schema import KV_CURRENT_DAY, KV_RISK_AVERSION, kv_set_int
 
 
@@ -324,6 +330,34 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("信任 22", labels)
             self.assertIn("怨望 82", labels)
             self.assertIn(f"政敌 {rival}", labels)
+
+    def test_petition_chat_context_brief_rebuilds_from_live_db(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            del state
+            name = _active_minister(db)
+            rival = str(db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' AND name!=? "
+                "LIMIT 1",
+                (name,),
+            ).fetchone()["name"])
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=24, grievance=80, faction='东林' WHERE name=?",
+                (name,),
+            )
+            court._set_opinion(db, name, rival, -76, "夺功旧怨", 1)
+            db.conn.commit()
+
+            brief = petition_chat_context_brief(db, name, target=rival)
+
+            self.assertIn("本次召对事项：主动求援请托", brief)
+            self.assertIn("不是普通被动问策", brief)
+            self.assertIn("御前信任 24", brief)
+            self.assertIn("怨望 80", brief)
+            self.assertIn(rival, brief)
+            self.assertIn("夺功旧怨", brief)
+            self.assertIn("不要直接落库", brief)
 
     def test_active_tax_legacy_becomes_policy_aftershock_card(self):
         with TemporaryDirectory() as tmp:
