@@ -126,6 +126,88 @@ class RecordCastrationTests(unittest.TestCase):
             db, _, _ = _fresh(tmp)
             self.assertEqual(el.servility_brief(db, "韩爌"), "")
 
+    def test_castration_complication_tick_changes_stats_and_is_idempotent(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(db, name, forced=True, day=day)
+            db.conn.execute("DELETE FROM eunuch_lore WHERE name!=?", (name,))
+            db.conn.execute(
+                """
+                UPDATE eunuch_lore
+                SET urinary_aftereffect='尿线细弱，冬日易尿闭',
+                    trauma_response='',
+                    voice_body_change='',
+                    bao_ritual='',
+                    private_fixation='',
+                    psychosexual_state=''
+                WHERE name=?
+                """,
+                (name,),
+            )
+            db.conn.execute(
+                "UPDATE characters SET ability=60, charm=58, grievance=20 WHERE name=?",
+                (name,),
+            )
+            db.conn.commit()
+
+            evs = el.castration_complication_tick(db, state, 3)
+
+            self.assertEqual(len(evs), 1)
+            self.assertEqual(evs[0]["kind"], "eunuch_complication")
+            self.assertEqual(evs[0]["complication"], "urinary")
+            self.assertIn("stage_direction", evs[0])
+            row = db.conn.execute(
+                "SELECT ability, charm, grievance FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertEqual(int(row["ability"]), 59)
+            self.assertEqual(int(row["charm"]), 57)
+            self.assertEqual(int(row["grievance"]), 22)
+            memory = db.conn.execute(
+                """
+                SELECT id FROM event_memories
+                WHERE subject_id=? AND event_type='eunuch_complication'
+                """,
+                (name,),
+            ).fetchone()
+            self.assertIsNotNone(memory)
+
+            self.assertEqual(el.castration_complication_tick(db, state, 3), [])
+            row2 = db.conn.execute(
+                "SELECT ability, charm, grievance FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertEqual(int(row2["ability"]), 59)
+            self.assertEqual(int(row2["charm"]), 57)
+            self.assertEqual(int(row2["grievance"]), 22)
+
+    def test_timeflow_surfaces_castration_complication_events(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(db, name, forced=True, day=day)
+            db.conn.execute("DELETE FROM eunuch_lore WHERE name!=?", (name,))
+            db.conn.execute(
+                """
+                UPDATE eunuch_lore
+                SET urinary_aftereffect='漏尿，夜间须垫旧布',
+                    trauma_response='',
+                    voice_body_change='',
+                    bao_ritual='',
+                    private_fixation='',
+                    psychosexual_state=''
+                WHERE name=?
+                """,
+                (name,),
+            )
+            db.conn.commit()
+
+            result = timeflow.advance_days(db, state, 2, stop_on_yellow=False)
+            events = [event for report in result["reports"] for event in report["events"]]
+
+            self.assertTrue(any(event["kind"] == "eunuch_complication" for event in events))
+
 
 class ReincarnationTests(unittest.TestCase):
     def test_aged_eunuch_gets_reincarnation_rumor_once(self):

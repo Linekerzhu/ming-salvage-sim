@@ -326,6 +326,10 @@ def _is_adult_for_lore(db: GameDB, name: str) -> bool:
     return year - birth_year >= 18
 
 
+def _clamp_0_100(value: int) -> int:
+    return max(0, min(100, int(value)))
+
+
 def ensure_schema(db: GameDB) -> None:
     db.conn.execute(
         """CREATE TABLE IF NOT EXISTS eunuch_lore (
@@ -471,7 +475,10 @@ def public_lore_payload(db: GameDB, name: str) -> Optional[Dict[str, object]]:
     payload["urine_label"] = str(lore.get("urinary_aftereffect") or "")
     payload["voice_body_label"] = str(lore.get("voice_body_change") or "")
     payload["trauma_label"] = str(lore.get("trauma_response") or "")
-    payload["fixation_label"] = str(lore.get("private_fixation") or "")
+    fixation = str(lore.get("private_fixation") or "")
+    if not adult and re.search(r"受罚|束缚|羞辱|调教|畸恋|情欲|肉欲|性", fixation):
+        fixation = ""
+    payload["fixation_label"] = fixation
     payload["psychosexual_label"] = str(lore.get("psychosexual_state") or "") if adult else ""
     payload["detail_line"] = " · ".join(
         part for part in (
@@ -616,13 +623,17 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
         (r"按肩|僵住", "PTSD：被人按肩会骤然僵住"),
         (r"磨刀|刀声", "幻肢痛与噩梦并发，闻刀磨声即失态"),
     ])
-    _set_if_match(updates, raw, "private_fixation", [
+    private_patterns = [
         (r"洁净|爱干净", "洁净癖，衣褶不齐便不安"),
         (r"钥匙|封匣|掌管.*匣", "偏爱掌管钥匙与封匣"),
-        (r"受罚|规训|羞辱", "受罚仪式癖，越被明令越心定"),
-        (r"束缚|束带|捆|缚", "束带安定癖，衣带不紧便惊惶"),
         (r"恋香|香味", "恋香压惊，厌恶血腥旧味"),
-    ])
+    ]
+    if _is_adult_for_lore(db, name):
+        private_patterns.extend([
+            (r"受罚|规训|羞辱", "受罚仪式癖，越被明令越心定"),
+            (r"束缚|束带|捆|缚", "束带安定癖，衣带不紧便惊惶"),
+        ])
+    _set_if_match(updates, raw, "private_fixation", private_patterns)
     if _is_adult_for_lore(db, name):
         _set_if_match(updates, raw, "psychosexual_state", [
             (r"贤者模式", "贤者模式式空心麻木，欲念退潮后只剩畏冷与厌烦"),
@@ -758,6 +769,210 @@ def reincarnation_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str,
     return [{"level": LEVEL_BLUE, "kind": "eunuch_reincarnation",
              "title": f"内廷异闻：{name}与「还阳」",
              "detail": detail, "ref_kind": "character", "ref_id": name, "day": day}]
+
+
+def _complication_options(lore: Dict[str, object], *, adult: bool) -> List[str]:
+    options: List[str] = []
+    if str(lore.get("urinary_aftereffect") or "").strip():
+        options.append("urinary")
+    if str(lore.get("trauma_response") or "").strip():
+        options.append("trauma")
+    if str(lore.get("voice_body_change") or "").strip():
+        options.append("body")
+    if str(lore.get("bao_ritual") or "").strip() or str(lore.get("bao_status") or "") in {BAO_FORFEIT, BAO_LOST}:
+        options.append("bao")
+    fixation = str(lore.get("private_fixation") or "")
+    if fixation and (adult or not re.search(r"受罚|束缚|羞辱|调教|畸恋|情欲|肉欲|性", fixation)):
+        options.append("fixation")
+    if adult and str(lore.get("psychosexual_state") or "").strip():
+        options.append("psychosexual")
+    return options
+
+
+def _apply_complication_effect(db: GameDB, name: str, kind: str, lore: Dict[str, object]) -> Dict[str, object]:
+    row = db.conn.execute(
+        "SELECT emp_trust, grievance, ability, wisdom, charm, luck FROM characters WHERE name=?",
+        (name,),
+    ).fetchone()
+    if row is None:
+        return {}
+    delta = {"emp_trust": 0, "grievance": 0, "ability": 0, "wisdom": 0, "charm": 0, "luck": 0}
+    if kind == "urinary":
+        delta.update({"grievance": 2, "ability": -1, "charm": -1})
+    elif kind == "trauma":
+        delta.update({"emp_trust": -1, "grievance": 3, "wisdom": -1})
+    elif kind == "body":
+        delta.update({"grievance": 1, "charm": -1})
+    elif kind == "bao":
+        if str(lore.get("bao_status") or "") == BAO_KEPT:
+            delta.update({"emp_trust": 1, "grievance": -1, "wisdom": 1})
+        else:
+            delta.update({"emp_trust": -1, "grievance": 2})
+    elif kind == "fixation":
+        delta.update({"emp_trust": 1, "grievance": -1})
+    elif kind == "psychosexual":
+        delta.update({"grievance": 1, "charm": -1})
+    before = {key: int(row[key] or (55 if key == "emp_trust" else 20 if key == "grievance" else 50)) for key in delta}
+    after = {key: _clamp_0_100(before[key] + delta[key]) for key in delta}
+    db.conn.execute(
+        """
+        UPDATE characters
+        SET emp_trust=?, grievance=?, ability=?, wisdom=?, charm=?, luck=?
+        WHERE name=?
+        """,
+        (after["emp_trust"], after["grievance"], after["ability"], after["wisdom"], after["charm"], after["luck"], name),
+    )
+    return {
+        "before": before,
+        "after": after,
+        "delta": {key: after[key] - before[key] for key in delta if after[key] != before[key]},
+    }
+
+
+def _complication_text(kind: str, name: str, lore: Dict[str, object]) -> Dict[str, str]:
+    if kind == "urinary":
+        symptom = str(lore.get("urinary_aftereffect") or "小解不畅")
+        return {
+            "title": f"内廷旧患：{name}尿路发作",
+            "detail": f"{name}当值时旧患忽发，{symptom}，复命慢了半刻。若久置不管，近侍差遣会越发吃力。",
+            "stage": "夹腿缩腰，袖口压着下腹，回话比平日更短。",
+            "process": symptom,
+        }
+    if kind == "trauma":
+        symptom = str(lore.get("trauma_response") or "旧梦惊醒")
+        return {
+            "title": f"净房旧梦：{name}一时失神",
+            "detail": f"宫中器具相碰，{name}{symptom}。小内侍们看在眼里，私下不敢多问。",
+            "stage": "闻声一僵，眼神空了片刻，随即叩首请罪。",
+            "process": symptom,
+        }
+    if kind == "body":
+        symptom = str(lore.get("voice_body_change") or "体态有异")
+        return {
+            "title": f"内廷失仪：{name}体声露怯",
+            "detail": f"{name}奏事急了些，{symptom}，被旁人记下一笔笑柄。",
+            "stage": "嗓音一尖，肩背微缩，马上把话咽回去。",
+            "process": symptom,
+        }
+    if kind == "bao":
+        ritual = str(lore.get("bao_ritual") or "")
+        if str(lore.get("bao_status") or "") == BAO_KEPT:
+            detail = f"{name}夜里验看宝匣，{ritual or '默念全尸旧愿'}，心神稍定。"
+        elif str(lore.get("bao_status") or "") == BAO_FORFEIT:
+            detail = f"{name}听见官库封签，想起宝为官没之辱，半日不肯多话。"
+        else:
+            detail = f"{name}又问旧匣下落，因宝已无凭，神色颓然。"
+        return {
+            "title": f"宝匣心结：{name}",
+            "detail": detail,
+            "stage": "手指在袖中摸索钥匙或封签，旋即垂手。",
+            "process": ritual or str(lore.get("bao_label") or ""),
+        }
+    if kind == "psychosexual":
+        symptom = str(lore.get("psychosexual_state") or "癖性心结")
+        return {
+            "title": f"隐癖扰心：{name}",
+            "detail": f"{name}近来心相更偏，{symptom}。这不是大案，却会改变他近侍时的胆怯、逢迎与怨气。",
+            "stage": "听见规训二字，先低头，随后又急急称奴婢该死。",
+            "process": symptom,
+        }
+    fixation = str(lore.get("private_fixation") or "心结发作")
+    return {
+        "title": f"内廷怪癖：{name}",
+        "detail": f"{name}{fixation}，借此压住旧创惊悸。近侍们渐渐知道他这点毛病。",
+        "stage": "反复抚平衣褶或摸索封匣钥匙，像在给自己定神。",
+        "process": fixation,
+    }
+
+
+def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:
+    """日 tick：净身后遗症/宝匣心结低频发作，真实扰动人物状态。
+
+    这是游戏性结算，不是纯展示：每次触发会改变信任、怨望或人物属性，并写入事件记忆。
+    """
+    from ming_sim.timeflow import LEVEL_BLUE
+    ensure_schema(db)
+    day = int(day or 0)
+    if day <= 0 or day % 6 != 3:
+        return []
+    rows = db.conn.execute(
+        """
+        SELECT l.name
+        FROM eunuch_lore l
+        JOIN characters c ON c.name=l.name
+        WHERE c.status='active' AND c.power_id='ming'
+        ORDER BY l.name
+        """
+    ).fetchall()
+    candidates: List[tuple[int, str, str, Dict[str, object]]] = []
+    for row in rows:
+        name = str(row["name"] or "")
+        lore = get_lore(db, name) or {}
+        adult = _is_adult_for_lore(db, name)
+        options = _complication_options(lore, adult=adult)
+        if not options:
+            continue
+        seed = sum(ord(ch) for ch in name) + day * 17
+        kind = options[seed % len(options)]
+        candidates.append((seed % 997, name, kind, lore))
+    candidates.sort(reverse=True)
+    for _, name, kind, lore in candidates:
+        source_id = f"{day}:{name}:{kind}"
+        exists = db.conn.execute(
+            """
+            SELECT 1 FROM event_memories
+            WHERE subject_type='character' AND subject_id=? AND event_type='eunuch_complication'
+              AND source_kind='timeflow' AND source_id=?
+            """,
+            (name, source_id),
+        ).fetchone()
+        if exists is not None:
+            continue
+        effect = _apply_complication_effect(db, name, kind, lore)
+        text = _complication_text(kind, name, lore)
+        outcome_bits = []
+        for key, label in (
+            ("emp_trust", "信任"),
+            ("grievance", "怨望"),
+            ("ability", "才干"),
+            ("wisdom", "机敏"),
+            ("charm", "仪表"),
+            ("luck", "运势"),
+        ):
+            delta = int((effect.get("delta") or {}).get(key) or 0) if isinstance(effect, dict) else 0
+            if delta:
+                outcome_bits.append(f"{label}{delta:+d}")
+        outcome = "，".join(outcome_bits) or "只留内廷传闻"
+        db.upsert_event_memory(
+            state,
+            "character",
+            name,
+            "eunuch_complication",
+            text["title"],
+            cause="净身旧患/宝匣心结发作",
+            process=text["process"],
+            outcome=outcome,
+            sentiment="negative" if kind in {"urinary", "trauma", "body", "psychosexual"} else "mixed",
+            importance=3,
+            tags=["净身", "旧患", "宝匣", kind],
+            source_kind="timeflow",
+            source_id=source_id,
+        )
+        db.record_log(state, f"【净身旧患】{text['title']}：{outcome}。")
+        db.conn.commit()
+        return [{
+            "level": LEVEL_BLUE,
+            "kind": "eunuch_complication",
+            "complication": kind,
+            "title": text["title"],
+            "detail": text["detail"],
+            "stage_direction": text["stage"],
+            "effect": outcome,
+            "ref_kind": "character",
+            "ref_id": name,
+            "day": day,
+        }]
+    return []
 
 
 # ── 民间募新宦官（E2d）：灾年民困，良家子自宫求进、卖身入宫充内侍 ──
