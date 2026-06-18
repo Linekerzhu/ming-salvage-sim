@@ -295,6 +295,34 @@ def _apply_secret_order_action(db: GameDB, state: GameState, item: Dict[str, obj
     return ""
 
 
+def _apply_memory_action(db: GameDB, state: GameState, item: Dict[str, object], day: int) -> str:
+    subject_id = str(item.get("subject_id") or item.get("name") or "").strip()
+    if not subject_id:
+        return ""
+    event_type = str(item.get("event_type") or "court_memory").strip()[:40]
+    title = str(item.get("title") or "御前记忆").strip()[:80]
+    source_id = str(item.get("source_id") or f"court_event:{event_type}:{subject_id}:{state.turn}").strip()[:120]
+    memory_id = db.upsert_event_memory(
+        state,
+        subject_type=str(item.get("subject_type") or "character"),
+        subject_id=subject_id,
+        event_type=event_type,
+        title=title,
+        cause=str(item.get("cause") or "").strip()[:160],
+        process=str(item.get("process") or "").strip()[:160],
+        outcome=str(item.get("outcome") or "").strip()[:160],
+        sentiment=str(item.get("sentiment") or "neutral"),
+        importance=max(1, min(5, _intish(item.get("importance"), 3))),
+        tags=[str(tag) for tag in (item.get("tags") or [])],
+        source_kind=str(item.get("source_kind") or "court_event"),
+        source_id=source_id,
+        expires_turn=item.get("expires_turn") if isinstance(item.get("expires_turn"), int) else None,
+    )
+    if memory_id:
+        return str(item.get("summary") or f"{subject_id}旧恩入账").strip()[:80]
+    return ""
+
+
 def _intish(value: object, default: int = 0) -> int:
     try:
         return int(value)
@@ -491,6 +519,11 @@ def _apply_effect(db: GameDB, state: GameState, eff: Dict[str, object], day: int
             result = _apply_secret_order_action(db, state, so, day)
             if result:
                 parts.append(result)
+    for mem in (eff.get("memories") or []):
+        if isinstance(mem, dict):
+            result = _apply_memory_action(db, state, mem, day)
+            if result:
+                parts.append(result)
     for lg in (eff.get("legacy") or []):
         if isinstance(lg, dict):
             result = _apply_legacy_action(db, state, lg, day)
@@ -618,6 +651,13 @@ def _preview_effects(eff: Dict[str, object]) -> List[Dict[str, str]]:
         elif action == "close":
             status = str(so.get("status") or "done")
             add("secret_order", "密令结案" if status == "done" else "密令封存", "good" if status == "done" else "bad")
+    for mem in (eff.get("memories") or []):
+        if not isinstance(mem, dict):
+            continue
+        subject = str(mem.get("subject_id") or mem.get("name") or "").strip()
+        event_type = str(mem.get("event_type") or "")
+        label = "旧恩入账" if event_type == "imperial_favor" else "记忆入账"
+        add("memory", f"{subject}{label}" if subject else label, "good")
     for lg in (eff.get("legacy") or []):
         if not isinstance(lg, dict):
             continue
@@ -1245,6 +1285,228 @@ def _secret_order_faction_effect(
     return {faction: out} if out else {}
 
 
+def _active_goal_exists(db: GameDB, source_fragment: str) -> bool:
+    row = db.conn.execute(
+        """
+        SELECT 1
+        FROM conversation_goals
+        WHERE status IN ('active', 'waiting_conditions')
+          AND last_delta_json LIKE ?
+        LIMIT 1
+        """,
+        (f"%{source_fragment}%",),
+    ).fetchone()
+    return row is not None
+
+
+def _private_distress_target(db: GameDB, actor: str, agenda_kind: str) -> Dict[str, object]:
+    if agenda_kind in {"protect", "climb", "entrench"}:
+        rel = db.conn.execute(
+            """
+            SELECT r.b_name AS name, r.opinion, r.basis, c.office, c.faction
+            FROM relationships r
+            JOIN characters c ON c.name=r.b_name
+            WHERE r.a_name=?
+              AND r.opinion>=24
+              AND c.status='active'
+              AND c.power_id='ming'
+              AND c.office_type!='后宫'
+            ORDER BY r.opinion DESC
+            LIMIT 1
+            """,
+            (actor,),
+        ).fetchone()
+    else:
+        rel = db.conn.execute(
+            """
+            SELECT r.b_name AS name, r.opinion, r.basis, c.office, c.faction
+            FROM relationships r
+            JOIN characters c ON c.name=r.b_name
+            WHERE r.a_name=?
+              AND r.opinion<=-24
+              AND c.status='active'
+              AND c.power_id='ming'
+              AND c.office_type!='后宫'
+            ORDER BY r.opinion ASC
+            LIMIT 1
+            """,
+            (actor,),
+        ).fetchone()
+    if rel is None:
+        return {"name": "", "opinion": 0, "basis": "", "office": "", "faction": ""}
+    return {
+        "name": str(rel["name"] or ""),
+        "opinion": int(rel["opinion"] or 0),
+        "basis": str(rel["basis"] or ""),
+        "office": str(rel["office"] or ""),
+        "faction": str(rel["faction"] or ""),
+    }
+
+
+def _private_distress_kind(kind: str, target: str) -> Dict[str, str]:
+    if kind == "protect":
+        return {
+            "label": "护持故旧",
+            "stake": f"门生故旧{target}被人逼迫" if target else "本党门生被人逼迫",
+            "ask": "求陛下给一句护持，莫使清议与私怨逼死人。",
+        }
+    if kind == "survive":
+        return {
+            "label": "自保求生",
+            "stake": f"政敌{target}步步相逼" if target else "旧案风声渐紧",
+            "ask": "求陛下留一条自明身家的路，不要让廷臣一拥而上。",
+        }
+    if kind == "revenge":
+        return {
+            "label": "借手伸怨",
+            "stake": f"与{target}旧怨未平" if target else "夙怨未平",
+            "ask": "求陛下准其追究旧案，说是为朝廷，其实也为一口气。",
+        }
+    if kind == "entrench":
+        return {
+            "label": "保境避祸",
+            "stake": f"地方/军镇差使牵连{target or '故旧'}" if target else "地方/军镇差使牵连甚广",
+            "ask": "求陛下给边界、银粮或人手，好让他不至独背黑锅。",
+        }
+    return {
+        "label": "求恩求进",
+        "stake": f"想替{target}争一个台阶" if target else "想替自己争一个台阶",
+        "ask": "求陛下给个名分，日后愿以差使报效。",
+    }
+
+
+def _private_distress(db: GameDB) -> Optional[Dict[str, object]]:
+    """NPC 私人困局：不是大案，却是 CK3 式角色麻烦，救与不救都会变成人情账。"""
+
+    rows = db.conn.execute(
+        """
+        SELECT c.name, c.office, c.faction, c.ability, c.integrity,
+               c.emp_trust, c.grievance, a.kind, a.title, a.intensity
+        FROM characters c
+        JOIN npc_agendas a ON a.name=c.name AND a.status='active'
+        WHERE c.status='active'
+          AND c.power_id='ming'
+          AND c.office_type!='后宫'
+          AND c.name!='崇祯'
+          AND a.kind IN ('protect','survive','revenge','climb','entrench')
+          AND (
+            c.grievance BETWEEN 42 AND 77
+            OR c.emp_trust BETWEEN 29 AND 48
+            OR a.intensity>=72
+          )
+        ORDER BY
+          (a.intensity + c.grievance + (60 - c.emp_trust)) DESC,
+          c.ability DESC
+        LIMIT 16
+        """
+    ).fetchall()
+    for row in rows:
+        actor = str(row["name"] or "")
+        if _active_goal_exists(db, f"private_distress:{actor}:"):
+            continue
+        kind = str(row["kind"] or "")
+        target = _private_distress_target(db, actor, kind)
+        target_name = str(target.get("name") or "")
+        if not target_name and kind in {"protect", "survive", "revenge"}:
+            continue
+        if target_name:
+            formal = db.conn.execute(
+                """
+                SELECT 1
+                FROM memorials
+                WHERE status='pending'
+                  AND ref_kind='character'
+                  AND (
+                    (author_name=? AND ref_id=?)
+                    OR (author_name=? AND ref_id=?)
+                  )
+                LIMIT 1
+                """,
+                (actor, target_name, target_name, actor),
+            ).fetchone()
+            if formal is not None:
+                continue
+        source_id = f"private_distress:{actor}:{target_name or kind}"
+        recent = db.conn.execute(
+            """
+            SELECT 1
+            FROM event_memories
+            WHERE subject_type='character'
+              AND subject_id=?
+              AND source_kind='court_event'
+              AND source_id LIKE ?
+              AND (expires_turn IS NULL OR expires_turn>=?)
+            LIMIT 1
+            """,
+            (actor, f"{source_id}%", int(db.load_state().turn)),
+        ).fetchone()
+        if recent is not None:
+            continue
+        flavor = _private_distress_kind(kind, target_name)
+        return {
+            "actor": actor,
+            "office": str(row["office"] or ""),
+            "faction": str(row["faction"] or ""),
+            "ability": int(row["ability"] or 50),
+            "integrity": int(row["integrity"] or 50),
+            "trust": int(row["emp_trust"] or 0),
+            "grievance": int(row["grievance"] or 0),
+            "agenda_kind": kind,
+            "agenda_title": str(row["title"] or ""),
+            "intensity": int(row["intensity"] or 0),
+            "target": target_name,
+            "target_office": str(target.get("office") or ""),
+            "target_faction": str(target.get("faction") or ""),
+            "relation_basis": str(target.get("basis") or "旧情"),
+            "relation_opinion": int(target.get("opinion") or 0),
+            "plea_label": flavor["label"],
+            "stake": flavor["stake"],
+            "ask": flavor["ask"],
+            "cooldown_id": f"private_distress:{actor}",
+            "source_id": source_id,
+        }
+    return None
+
+
+def _private_faction_effect(ctx: Dict[str, object], sat: int = 0, lev: int = 0, heat: int = 0) -> Dict[str, Dict[str, int]]:
+    faction = _meaningful_faction(ctx.get("faction"))
+    if not faction:
+        return {}
+    out: Dict[str, int] = {}
+    if sat:
+        out["satisfaction"] = sat
+    if lev:
+        out["leverage"] = lev
+    if heat:
+        out["heat"] = heat
+    return {faction: out} if out else {}
+
+
+def _private_opinion_effect(ctx: Dict[str, object], delta: int, basis: str) -> List[Dict[str, object]]:
+    actor = str(ctx.get("actor") or "")
+    target = str(ctx.get("target") or "")
+    if not actor or not target:
+        return []
+    return [{"a": actor, "b": target, "delta": delta, "basis": basis}]
+
+
+def _private_memory(ctx: Dict[str, object], choice: str, outcome: str, sentiment: str = "positive") -> Dict[str, object]:
+    actor = str(ctx.get("actor") or "")
+    return {
+        "subject_id": actor,
+        "event_type": "imperial_favor",
+        "title": f"旧恩未报：{ctx.get('plea_label') or '御前求援'}",
+        "cause": f"{ctx.get('stake') or '私事求援'}；{ctx.get('ask') or ''}",
+        "process": f"御前裁断：{choice}",
+        "outcome": outcome,
+        "sentiment": sentiment,
+        "importance": 4,
+        "tags": ["私请", "旧恩", str(ctx.get("agenda_kind") or "")],
+        "source_id": f"{ctx.get('source_id') or 'private_distress'}:{choice}",
+        "summary": f"{actor}旧恩入账",
+    }
+
+
 # ── 事件定义（涌现自活的宫廷）─────────────────────────────────────────────────
 
 def _succession_choices(ctx: Dict[str, object]) -> List[Dict[str, object]]:
@@ -1799,6 +2061,84 @@ def _defs() -> List[Dict[str, object]]:
                  "effect": lambda c: {"shi": -1,
                                       "char": [{"name": c["victim"], "emp_trust": -3}],
                                       "log": f"{c['victim']}被劾事留中。"}},
+            ],
+        },
+        {
+            "id": "private_distress",
+            "priority": 24,
+            "cooldown": "ctx",
+            "when": _private_distress,
+            "title": lambda c: f"{c['plea_label']}：{c['actor']}私下求见",
+            "narrative": lambda c: (
+                f"{c['office']}{c['actor']}递话求见。此人平日私心是「{c['agenda_title']}」，"
+                f"如今信任{c['trust']}、怨望{c['grievance']}，事情压到「{c['stake']}」。"
+                + (
+                    f"牵涉{c['target_office']}{c['target']}，二人关系为「{c['relation_basis']}」"
+                    f"（好感{c['relation_opinion']}）。"
+                    if c.get("target") else ""
+                )
+                + f"{c['ask']}这不是奏疏大案，却是一个活人的身家与私心。"
+                "陛下若救他，他会记恩；若趁机索差，也能把私请变成账本；若公断或拒绝，则人情与清议各有代价。"
+            ),
+            "choices": [
+                {"key": "grant_private_grace", "label": lambda c: f"给{c['actor']}一个私恩，先护住人",
+                 "hint": "收买一颗人心：本人和相关故旧记恩，但朝中会觉得皇帝开了私请口子",
+                 "effect": lambda c: {"shi": -1, "renshi": 2,
+                                      "metrics": {"皇威": -1},
+                                      "char": [{"name": c["actor"], "emp_trust": 9, "grievance": -9}]
+                                      + ([{"name": c["target"], "emp_trust": 4, "grievance": -3}] if c.get("target") else []),
+                                      "opinion": _private_opinion_effect(c, 8, "御前私恩"),
+                                      "faction": _private_faction_effect(c, sat=3, heat=-2),
+                                      "memories": [
+                                          _private_memory(
+                                              c,
+                                              "私恩护持",
+                                              "陛下曾私下护持，不宜装作两清；日后有差使须知报效。",
+                                          )
+                                      ],
+                                      "log": f"私下护持{c['actor']}所请：{c['stake']}。"}},
+                {"key": "trade_for_service", "label": lambda c: f"许其所请，但命{c['actor']}领差偿恩",
+                 "hint": "把人情变债务：本人得救且必须回报，形成后续履约账本；本人会感到被拿捏",
+                 "effect": lambda c: {"shi": 1, "renshi": 3,
+                                      "char": [{"name": c["actor"], "emp_trust": 6, "grievance": -4}]
+                                      + ([{"name": c["target"], "emp_trust": 2, "grievance": -2}] if c.get("target") else []),
+                                      "opinion": _private_opinion_effect(c, 5, "以差换恩"),
+                                      "faction": _private_faction_effect(c, sat=1, heat=1),
+                                      "memories": [
+                                          _private_memory(
+                                              c,
+                                              "以差换恩",
+                                              "陛下准其所请，但此恩未报；必须以可验差使偿还。",
+                                          )
+                                      ],
+                                      "obligations": [{
+                                          "minister": c["actor"],
+                                          "title": f"偿恩差使：{c['plea_label']}",
+                                          "target_text": f"{c['actor']}因「{c['stake']}」得御前护持，须领一件可验差使偿还私恩。",
+                                          "tasks": [
+                                              "两月内回奏一件可验证据、成效或名单，不得只以谢恩搪塞。",
+                                              f"说明此事与「{c['agenda_title']}」的牵连，避免借圣恩扩张私党。",
+                                              "若事涉故旧或政敌，列明会激怒何人以及如何收束。"
+                                          ],
+                                          "source": f"{c['source_id']}:trade_for_service",
+                                          "due_turns": 2,
+                                          "summary": f"御前准{c['actor']}私请，但命其领差偿恩。"
+                                      }],
+                                      "log": f"准{c['actor']}所请，但命其领差偿恩：{c['stake']}。"}},
+                {"key": "public_review", "label": lambda c: "交廷议公断，不许私下徇情",
+                 "hint": "走公论：能保制度名分，避免私恩泛滥；求援者会觉得皇帝不肯担人情",
+                 "effect": lambda c: {"shi": 2, "renshi": -1,
+                                      "char": [{"name": c["actor"], "emp_trust": -2, "grievance": 5}]
+                                      + ([{"name": c["target"], "grievance": 2}] if c.get("target") else []),
+                                      "faction": _private_faction_effect(c, sat=-1, heat=2),
+                                      "log": f"{c['actor']}私下求援，交廷议公断，不许私下徇情。"}},
+                {"key": "refuse_private", "label": lambda c: "斥为私请，令其退下",
+                 "hint": "不为私情开门：皇威略立，但此人和同党会寒心，日后更可能自保或结援",
+                 "effect": lambda c: {"shi": 1, "renshi": -3,
+                                      "char": [{"name": c["actor"], "emp_trust": -7, "grievance": 11}],
+                                      "opinion": _private_opinion_effect(c, -5, "御前斥私请"),
+                                      "faction": _private_faction_effect(c, sat=-4, heat=4),
+                                      "log": f"斥{c['actor']}私下求援，不许开私请之门。"}},
             ],
         },
         {

@@ -110,6 +110,33 @@ def _pending_secret_order(db, state, minister, title="密查内库侵冒"):
     return order_id
 
 
+def _private_distress_case(db, state):
+    actor, target = _two_ming(db)
+    db.conn.execute(
+        """
+        UPDATE characters
+        SET emp_trust=44, grievance=55, faction='东林'
+        WHERE name=?
+        """,
+        (actor,),
+    )
+    db.conn.execute(
+        "UPDATE characters SET emp_trust=50, grievance=30, faction='东林' WHERE name=?",
+        (target,),
+    )
+    db.conn.execute(
+        """
+        INSERT OR REPLACE INTO npc_agendas (name, kind, title, target_name, intensity, status)
+        VALUES (?, 'protect', '护持本党门生故旧、要害位置安插自己人', ?, 76, 'active')
+        """,
+        (actor, target),
+    )
+    court._set_opinion(db, actor, target, 64, "门生故旧", 1)
+    court._set_opinion(db, target, actor, 48, "恩主提携", 1)
+    db.conn.commit()
+    return actor, target
+
+
 class TriggerTests(unittest.TestCase):
     def test_deep_rivalry_triggers_feud_decision(self):
         with TemporaryDirectory() as tmp:
@@ -263,6 +290,26 @@ class TriggerTests(unittest.TestCase):
             self.assertIn("密令续查 2月", [str(e["label"]) for e in seal["effects"]])
             pending = court_events.get_pending(db) or {}
             self.assertEqual(str(pending.get("cooldown_key")), f"secret_order_review:{order_id}")
+
+    def test_private_distress_triggers_personal_help_decision(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            actor, target = _private_distress_case(db, state)
+
+            payload = court_events.evaluate_decisions(db, state, day)
+
+            self.assertIsNotNone(payload)
+            self.assertEqual(payload["id"], "private_distress")
+            self.assertIn(actor, str(payload["title"]))
+            self.assertIn(target, str(payload["narrative"]))
+            keys = {str(ch["key"]) for ch in payload["choices"]}
+            self.assertEqual(keys, {"grant_private_grace", "trade_for_service", "public_review", "refuse_private"})
+            trade = next(ch for ch in payload["choices"] if ch["key"] == "trade_for_service")
+            labels = [str(e["label"]) for e in trade["effects"]]
+            self.assertIn(f"{actor}旧恩入账", labels)
+            self.assertIn(f"履约账本：{actor}", labels)
+            pending = court_events.get_pending(db) or {}
+            self.assertEqual(str(pending.get("cooldown_key")), f"private_distress:{actor}")
 
 
 class ResolveTests(unittest.TestCase):
@@ -609,6 +656,49 @@ class ResolveTests(unittest.TestCase):
             self.assertEqual(len(goals), 1)
             self.assertIn("补证密令", str(goals[0]["title"]))
             self.assertTrue(any("可核验证据" in str(t["description"]) for t in goals[0]["conditions"]))
+
+    def test_private_distress_trade_records_favor_and_followup(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            actor, target = _private_distress_case(db, state)
+            before = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (actor,),
+            ).fetchone()
+
+            court_events.evaluate_decisions(db, state, day)
+            res = court_events.resolve_decision(db, state, "trade_for_service", day=day)
+
+            self.assertTrue(res["ok"], res)
+            labels = [str(e["label"]) for e in res["effects"]]
+            self.assertIn(f"{actor}旧恩入账", labels)
+            self.assertIn(f"履约账本：{actor}", labels)
+            favors = court.favor_memories(db, actor, limit=3)
+            self.assertEqual(len(favors), 1)
+            self.assertIn("旧恩未报", str(favors[0]["title"]))
+            self.assertIn("可验差使偿还", str(favors[0]["outcome"]))
+            goals = db.list_conversation_goals(
+                minister_name=actor,
+                statuses=["waiting_conditions"],
+            )
+            self.assertEqual(len(goals), 1)
+            self.assertIn("偿恩差使", str(goals[0]["title"]))
+            agreements = db.list_negotiation_agreements(
+                minister_name=actor,
+                action_kind="court_commitment",
+                status="pending",
+            )
+            self.assertEqual(len(agreements), 1)
+            self.assertEqual(int(agreements[0]["due_turn"]), int(state.turn) + 2)
+            after = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (actor,),
+            ).fetchone()
+            self.assertEqual(int(after["emp_trust"]), min(100, int(before["emp_trust"]) + 6))
+            self.assertEqual(int(after["grievance"]), max(0, int(before["grievance"]) - 4))
+            opinion = court.get_opinion(db, actor, target)
+            self.assertGreater(opinion, 64)
+            self.assertIsNone(court_events.get_pending(db))
 
     def test_overdue_cooldown_is_scoped_per_agreement(self):
         with TemporaryDirectory() as tmp:
