@@ -3235,7 +3235,7 @@ class WebGame:
         if candidates:
             candidates.sort(key=lambda c: len(c.name), reverse=True)
             self._clear_pending_dialogue_action(minister_name)
-            return {"name": candidates[0].name, "generated": False}
+            return {"name": candidates[0].name, "generated": False, "source": "known"}
         if followup_requested:
             recent_name = self._recent_attendant_implied_summon_name(minister_name)
             if recent_name and recent_name != minister_name and recent_name in self.content.characters:
@@ -3247,7 +3247,7 @@ class WebGame:
                     ok, _reason = self.session.can_summon(target)
                     if ok:
                         self._clear_pending_dialogue_action(minister_name)
-                        return {"name": target.name, "generated": False}
+                        return {"name": target.name, "generated": False, "source": "followup"}
         generated = self._materialize_dialogue_mention_from_text(minister_name, raw)
         if not generated:
             return {}
@@ -3259,7 +3259,8 @@ class WebGame:
         if not ok:
             return {}
         self._clear_pending_dialogue_action(minister_name)
-        return {"name": target.name, "generated": True}
+        source = "selection" if selection_followup else "followup" if followup_requested else "direct"
+        return {"name": target.name, "generated": True, "source": source}
 
     def _attendant_summon_followup_requested(self, text: str) -> bool:
         raw = str(text or "").strip()
@@ -3308,8 +3309,14 @@ class WebGame:
         stripped = re.sub(r"[？?，,。！!\s、]+", "", raw)
         return any(stripped in {name, f"就{name}", f"要{name}", f"选{name}", f"传{name}", f"叫{name}"} for name in names)
 
-    def _attendant_summon_answer(self, target_name: str, generated: bool = False) -> str:
+    def _attendant_summon_answer(self, target_name: str, generated: bool = False, source: str = "") -> str:
         if generated:
+            if source == "followup":
+                return f"奴婢失察。{target_name}已按陛下催问补入名册，这就领入御前，不再让陛下空等。"
+            if source == "selection":
+                return f"奴婢遵旨。{target_name}按方才荐名补入名册，奴婢这就传其趋入御前。"
+            if source == "direct":
+                return f"奴婢遵旨。{target_name}既是陛下点名要见的人，奴婢已按线索补入名册，这就传其趋入御前。"
             return f"奴婢遵旨。{target_name}原只是奏对里露出的名目，奴婢已按线索补入名册，这就传其趋入御前。"
         title = f"{target_name}大人"
         try:
@@ -5417,7 +5424,11 @@ class WebGame:
         if deterministic_summon:
             target_name = str(deterministic_summon.get("name") or "")
             generated = bool(deterministic_summon.get("generated"))
-            answer = self._attendant_summon_answer(target_name, generated=generated)
+            answer = self._attendant_summon_answer(
+                target_name,
+                generated=generated,
+                source=str(deterministic_summon.get("source") or ""),
+            )
             answer_lore_effect = self._eunuch_lore_dialogue_effect(
                 self._absorb_eunuch_lore_from_text(minister_name, answer)
             )
@@ -5564,7 +5575,11 @@ class WebGame:
         if deterministic_summon:
             target_name = str(deterministic_summon.get("name") or "")
             generated = bool(deterministic_summon.get("generated"))
-            answer = self._attendant_summon_answer(target_name, generated=generated)
+            answer = self._attendant_summon_answer(
+                target_name,
+                generated=generated,
+                source=str(deterministic_summon.get("source") or ""),
+            )
             yield {"type": "delta", "content": answer}
             answer_lore_effect = self._eunuch_lore_dialogue_effect(
                 self._absorb_eunuch_lore_from_text(minister_name, answer)

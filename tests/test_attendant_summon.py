@@ -662,6 +662,35 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(payload["court_action"], "summon")
             self.assertEqual(payload["next_minister"], "小禄子")
             self.assertEqual(payload["registered_minister"], "小禄子")
+            self.assertIn("催问补入名册", str(payload["answer"]))
+            row = game.db.conn.execute(
+                "SELECT office, office_type, summary FROM characters WHERE name=?",
+                ("小禄子",),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
+            self.assertIn("内廷小名补档", str(row["summary"] or ""))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_quoted_waiting_complaint_materializes_unlisted_palace_nickname(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+
+            events = list(game.chat_stream(attendant, "我叫了“小禄子”很久都没有人出现"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], "小禄子")
+            self.assertEqual(payload["registered_minister"], "小禄子")
+            self.assertIn("催问补入名册", str(payload["answer"]))
             row = game.db.conn.execute(
                 "SELECT office, office_type, summary FROM characters WHERE name=?",
                 ("小禄子",),
