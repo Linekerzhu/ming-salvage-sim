@@ -95,6 +95,7 @@ export function AudienceView({
     const dossierTone = activeLead?.tone || audienceGoalsTone(audienceGoals);
     const dossierMeta = [activeLead?.meta, audienceGoals.length ? `${audienceGoals.length} 桩旧约` : ""].filter(Boolean).join(" · ");
     const dossierTitle = activeLead?.title || audienceGoals[0]?.title || audienceGoals[0]?.goal_type || "可展开查阅";
+    const dossierCount = (activeLead ? 1 : 0) + audienceGoals.length;
     return (
       <div className="m-audience-full">
         <div className="m-audience-bar">
@@ -102,36 +103,31 @@ export function AudienceView({
             <Portrait name={audience} size={40} />
             <div className="m-audience-id">
               <span className="m-audience-name">{audience}</span>
-              <span className="m-audience-role">{isAttendantAudience ? "御前随侍" : "奉召觐见"}</span>
+              <span className="m-audience-role">
+                {isAttendantAudience ? "御前随侍" : "奉召觐见"}
+                <em>{isAttendantAudience ? "差使复命" : "奏对中"}</em>
+              </span>
             </div>
           </div>
           <div className="m-audience-acts">
-            <button className="m-mini" onClick={() => openPerson(audience)}>查此人</button>
+            <button className="m-mini" onClick={() => openPerson(audience)} aria-label={`查看${audience}档案`}>查档</button>
+            {hasDossier && (
+              <button
+                type="button"
+                className={`m-mini m-audience-context-act tone-${dossierTone}`}
+                onClick={() => setDossierOpen(true)}
+                aria-label={`打开奏对情报卷宗：${dossierMeta || dossierTitle}`}
+              >
+                卷宗{dossierCount > 1 ? dossierCount : ""}
+              </button>
+            )}
             {isAttendantAudience ? (
-              <button className="m-mini m-mini-complete" onClick={() => onAudienceChange("")}>回随侍 ›</button>
+              <button className="m-mini m-mini-complete" onClick={() => onAudienceChange("")}>回侍</button>
             ) : (
-              <button className="m-mini m-mini-complete" onClick={() => onAudienceComplete(audience)}>奏对完成 ›</button>
+              <button className="m-mini m-mini-complete" onClick={() => onAudienceComplete(audience)}>奏毕</button>
             )}
           </div>
         </div>
-        <div className="m-arrival">
-          {isAttendantAudience
-            ? `（${audience}正在御前随侍，本次按差使复命追问。）`
-            : `（${audience} 奉召趋入，正在御前奏对。奏对完成后，由随侍送其告退。）`}
-        </div>
-        {hasDossier && (
-          <button
-            type="button"
-            className={`m-audience-dossier-strip tone-${dossierTone}`}
-            onClick={() => setDossierOpen(true)}
-            aria-label="打开奏对情报卷宗"
-          >
-            <span>奏对情报</span>
-            <small>{dossierMeta || "本场上下文"}</small>
-            <b>{dossierTitle}</b>
-            <span className="m-disclosure-caret">阅</span>
-          </button>
-        )}
         <ChatPane
           key={isAttendantAudience ? `eunuch-lead:${audience}:${activeLead?.ref_id || ""}` : audience}
           name={audience}
@@ -182,24 +178,16 @@ export function AudienceView({
           </div>
         </div>
         <div className="m-audience-acts">
-          <button className="m-mini" onClick={openSummon}>命其传召</button>
-          <button className="m-mini" onClick={openReplace}>换随侍</button>
+          {leads.length > 0 && (
+            <button className="m-mini m-audience-context-act" onClick={() => setSheet("hooks")}>
+              递话{leads.length}
+            </button>
+          )}
+          <button className="m-mini" onClick={openSummon}>传召</button>
+          <button className="m-mini" onClick={openReplace}>换侍</button>
         </div>
       </div>
       {audienceNotice && <div className="m-audience-return">{audienceNotice}</div>}
-      {leads.length > 0 && (
-        <button
-          type="button"
-          className="m-audience-hooks-strip"
-          onClick={() => setSheet("hooks")}
-          aria-label="打开随侍递话"
-        >
-          <span>随侍递话</span>
-          <small>{leads.length} 件候旨</small>
-          <b>{leads[0]?.title || "宫门外有人候旨"}</b>
-          <span className="m-disclosure-caret">阅</span>
-        </button>
-      )}
       <ChatPane
         key={`eunuch:${eunuch.name}`}
         name={eunuch.name}
