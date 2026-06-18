@@ -248,6 +248,14 @@ function PersonSheet({ name, focus, onClose }: { name: string; focus?: PersonFoc
           <div className="m-person-block">
             <span className="m-person-h">私心 <span className="m-agenda-tag">{AGENDA_CN[court.agenda.kind] || ""}</span></span>
             <p className="m-person-agenda">{court.agenda.title}</p>
+            {court.agenda.bargain && (
+              <div className="m-agenda-bargain" aria-label="私心交易画像">
+                {court.agenda.bargain.ask && <span><b>所求</b>{court.agenda.bargain.ask}</span>}
+                {court.agenda.bargain.exchange && <span><b>可压</b>{court.agenda.bargain.exchange}</span>}
+                {court.agenda.bargain.cost && <span><b>许之</b>{court.agenda.bargain.cost}</span>}
+                {court.agenda.bargain.refusal && <span><b>拒之</b>{court.agenda.bargain.refusal}</span>}
+              </div>
+            )}
           </div>
         )}
         {(court?.favor_memories?.length ?? 0) > 0 && (

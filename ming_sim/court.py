@@ -166,9 +166,16 @@ def agenda_of(db: GameDB, name: str) -> Optional[Dict[str, object]]:
     ).fetchone()
     if row is None:
         return None
-    return {"kind": str(row["kind"]), "title": str(row["title"]),
-            "target": str(row["target_name"]), "intensity": int(row["intensity"]),
-            "status": str(row["status"])}
+    kind = str(row["kind"])
+    target = str(row["target_name"])
+    try:
+        from ming_sim.playstyle import _agenda_bargain_profile
+        bargain = dict(_agenda_bargain_profile(kind, target))
+    except Exception:
+        bargain = {}
+    return {"kind": kind, "title": str(row["title"]),
+            "target": target, "intensity": int(row["intensity"]),
+            "status": str(row["status"]), "bargain": bargain}
 
 
 def favor_memories(db: GameDB, name: str, limit: int = 3) -> List[Dict[str, object]]:

@@ -196,6 +196,29 @@ class RippleTests(unittest.TestCase):
 
 
 class PayloadTests(unittest.TestCase):
+    def test_court_payload_agenda_includes_bargain_profile(self):
+        with TemporaryDirectory() as tmp:
+            db, _, _ = _fresh(tmp)
+            name = str(db.conn.execute(
+                "SELECT name FROM characters WHERE status='active' AND power_id='ming' "
+                "AND office_type!='后宫' LIMIT 1"
+            ).fetchone()["name"])
+            db.conn.execute(
+                "INSERT OR REPLACE INTO npc_agendas(name,kind,title,target_name,intensity,status) "
+                "VALUES (?, 'enrich', '自肥', '', 92, 'active')",
+                (name,),
+            )
+            db.conn.commit()
+
+            payload = court.court_payload(db, name)
+
+            agenda = payload["agenda"]
+            self.assertEqual(agenda["kind"], "enrich")
+            self.assertEqual(agenda["bargain"]["risk_label"], "查账自证")
+            self.assertIn("求暂缓深查", agenda["bargain"]["ask"])
+            self.assertIn("吐出请托链", agenda["bargain"]["exchange"])
+            self.assertIn("毁账串供", agenda["bargain"]["refusal"])
+
     def test_court_payload_includes_back_previews(self):
         with TemporaryDirectory() as tmp:
             db, _, day = _fresh(tmp)

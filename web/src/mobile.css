@@ -991,6 +991,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   background: linear-gradient(180deg, var(--cinnabar), #7e271d); padding: 1px 8px; border-radius: 999px; }
 .m-person-agenda { margin: 4px 0 0; font-size: .9rem; line-height: 1.5; color: var(--ink, #3a2f1c);
   font-style: italic; border-left: 3px solid var(--gold); padding-left: 9px; }
+.m-agenda-bargain { display: grid; grid-template-columns: 1fr; gap: 5px; margin-top: 8px; }
+.m-agenda-bargain span { display: block; min-width: 0; overflow-wrap: anywhere; font-size: .78rem; line-height: 1.45;
+  color: var(--ink-soft, #76684d); background: rgba(200,162,74,.08); border: 1px solid rgba(200,162,74,.22);
+  border-radius: 7px; padding: 6px 8px; }
+.m-agenda-bargain b { display: inline-block; margin-right: 6px; color: var(--cinnabar); font-size: .72rem; }
 .m-ties { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 4px; }
 .m-tie { display: flex; align-items: center; gap: 6px; padding: 4px 9px 4px 4px; border-radius: 999px;
   border: 1px solid var(--gold-line); background: rgba(0,0,0,.04); cursor: pointer; }

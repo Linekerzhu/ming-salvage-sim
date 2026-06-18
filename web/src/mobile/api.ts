@@ -291,7 +291,14 @@ export type CourtFavorMemory = {
 export type ImpactEffect = { kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string };
 export type CourtPayload = {
   traits: CourtTrait[];
-  agenda: { kind: string; title: string; target: string; intensity: number; status: string } | null;
+  agenda: {
+    kind: string;
+    title: string;
+    target: string;
+    intensity: number;
+    status: string;
+    bargain?: { ask?: string; exchange?: string; cost?: string; refusal?: string; risk_label?: string; cost_label?: string };
+  } | null;
   favor_memories?: CourtFavorMemory[];
   allies: CourtTie[];
   rivals: CourtTie[];
