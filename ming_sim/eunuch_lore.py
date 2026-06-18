@@ -545,6 +545,111 @@ def eunuch_voice_profile(db: GameDB, name: str) -> Optional[Dict[str, object]]:
     return _voice_profile_from_lore(db, name, lore)
 
 
+def castration_scheme_profile(lore: Dict[str, object]) -> Dict[str, object]:
+    """Gameplay profile for the chosen castration/bao handling scheme.
+
+    This is intentionally deterministic and data-only: UI, dialogue, dispatch
+    risk, and care costs can all read the same profile without inventing lore.
+    """
+
+    raw = " ".join(
+        str(lore.get(key) or "")
+        for key in (
+            "note",
+            "castration_method",
+            "knife_tool",
+            "anesthesia",
+            "procedure_note",
+            "bao_preservation",
+            "bao_container",
+            "bao_ritual",
+            "aftereffect",
+            "urinary_aftereffect",
+            "voice_body_change",
+            "trauma_response",
+        )
+    )
+    explicit = "奏对维护净身档案" in raw or "御前方案" in raw
+    brutality = 48 if bool(lore.get("forced")) else 28
+    trauma_risk = 30
+    surgery_risk = 30
+    bao_security = 45
+    care_cost_delta = 0
+    effects: List[str] = []
+
+    def bump(label: str, *, brutal: int = 0, trauma: int = 0, surgery: int = 0, bao: int = 0, care: int = 0) -> None:
+        nonlocal brutality, trauma_risk, surgery_risk, bao_security, care_cost_delta
+        brutality += int(brutal)
+        trauma_risk += int(trauma)
+        surgery_risk += int(surgery)
+        bao_security += int(bao)
+        care_cost_delta += int(care)
+        if label and label not in effects:
+            effects.append(label)
+
+    if re.search(r"净军房|刑房|宫刑|番役|押入|夜半|杖", raw):
+        bump("刑房急办：震慑强，怨望与惊创风险上升", brutal=14, trauma=14, surgery=8, care=1)
+    if re.search(r"无麻|冷汗硬熬|痛醒", raw):
+        bump("无麻硬熬：短期压服，尿路与惊创后患加重", brutal=16, trauma=16, surgery=10, care=2)
+    elif re.search(r"麻沸散|香汤|熟匠|老匠|细净|沐浴|焚香", raw):
+        bump("细净安置：创伤较轻，后续调养省力", brutal=-8, trauma=-8, surgery=-8, care=-1)
+    elif re.search(r"烈酒|蒙眼|塞布", raw):
+        bump("粗麻遮痛：能撑流程，醒后旧创更难安", brutal=5, trauma=6, surgery=4)
+    if re.search(r"铜柄宫刀|番役快刀|刑房薄刃|旧军刀", raw):
+        bump("刀具粗硬：失仪与旧创风险升高", brutal=5, trauma=4, surgery=5)
+    elif re.search(r"银柄小净刀|檀柄细刀", raw):
+        bump("刀具细净：伤口较稳，体声失仪略缓", brutal=-3, trauma=-2, surgery=-4)
+    if re.search(r"漏尿|尿闭|石淋|灼痛|夜尿|尿频", raw):
+        bump("尿路后患：久候、远行、夜值差遣风险升高", surgery=12, care=1)
+    if re.search(r"幻肢|PTSD|噩梦|梦回|磨刀|按肩|净房旧话", raw, flags=re.IGNORECASE):
+        bump("惊创未平：刑房、封签、逼问场景容易失神", trauma=14, care=1)
+    if re.search(r"嗓音|尖薄|体态|肩背|步子|腰腹|久跪", raw):
+        bump("体声异变：乔装问话与公开传旨更容易露怯", surgery=5)
+    if re.search(r"油炸|石灰|盐灰|香料|封蜡|封签|官库", raw):
+        bump("宝案封存：线索清楚，但封签会牵动心结", bao=18, trauma=4)
+    if re.search(r"楠木|黄杨|锡胆|杉木|描金|宝匣|钥匙|供奉|佛龛", raw):
+        bump("宝匣安置：可供后续验宝、安抚或追查", bao=18, trauma=-2)
+    if str(lore.get("bao_status") or "") == BAO_FORFEIT:
+        bump("宝为官没：服从来自恐惧，长线怨气更重", brutal=8, trauma=8, care=1)
+    elif str(lore.get("bao_status") or "") == BAO_KEPT:
+        bump("宝可自藏：全尸执念有安放处，内廷规矩较稳", brutal=-4, trauma=-4, bao=12, care=-1)
+
+    brutality = _clamp_0_100(brutality)
+    trauma_risk = _clamp_0_100(trauma_risk)
+    surgery_risk = _clamp_0_100(surgery_risk)
+    bao_security = _clamp_0_100(bao_security)
+    risk_score = _clamp_0_100((brutality * 3 + trauma_risk * 3 + surgery_risk * 2 + (100 - bao_security)) // 9)
+    if risk_score >= 72:
+        tier = "酷烈高危"
+    elif risk_score >= 55:
+        tier = "粗急伤身"
+    elif risk_score >= 38:
+        tier = "可控旧例"
+    else:
+        tier = "细净安置"
+    stat_delta = {
+        "emp_trust": max(-4, min(2, -max(0, brutality - 58) // 14 + max(0, 42 - trauma_risk) // 18)),
+        "grievance": max(-2, min(8, max(0, brutality - 45) // 8 + max(0, trauma_risk - 55) // 12)),
+        "ability": -1 if surgery_risk >= 62 else 0,
+        "wisdom": 1 if bao_security >= 72 and trauma_risk < 60 else 0,
+        "charm": -1 if surgery_risk >= 52 or trauma_risk >= 64 else 0,
+        "luck": -1 if risk_score >= 72 else 0,
+    }
+    care_cost_delta = max(-1, min(4, int(care_cost_delta)))
+    return {
+        "tier": tier,
+        "explicit": bool(explicit),
+        "risk_score": risk_score,
+        "brutality": brutality,
+        "trauma_risk": trauma_risk,
+        "surgery_risk": surgery_risk,
+        "bao_security": bao_security,
+        "care_cost_delta": care_cost_delta if explicit else 0,
+        "stat_delta": stat_delta if explicit else {},
+        "effects": effects[:6],
+    }
+
+
 def public_lore_payload(db: GameDB, name: str) -> Optional[Dict[str, object]]:
     """人物档案/前端公开用：把净身旧档折成稳定 payload。"""
     lore = get_lore(db, name)
@@ -599,6 +704,7 @@ def public_lore_payload(db: GameDB, name: str) -> Optional[Dict[str, object]]:
     )
     payload["procedure_line"] = str(payload["procedure_label"] or "")
     payload["voice_profile"] = _voice_profile_from_lore(db, name, lore)
+    payload["scheme_profile"] = castration_scheme_profile(lore)
     return payload
 
 
@@ -1286,6 +1392,7 @@ def apply_eunuch_care(
         return {"ok": False, "reason": f"{clean_name}不在可照料名册中。"}
     adult = _is_adult_for_lore(db, clean_name)
     plan = _care_plan(mode, lore, adult=adult)
+    scheme = castration_scheme_profile(lore)
     mode = str(plan["mode"])
     source_id = f"{int(state.turn)}:{clean_name}:{mode}:{source}"
     existed = db.conn.execute(
@@ -1326,7 +1433,11 @@ def apply_eunuch_care(
             "INSERT OR IGNORE INTO character_traits (name, trait, valence) VALUES (?,?,?)",
             (clean_name, trait, 1),
         )
-    cost = max(0, int(plan.get("cost") or 0))
+    base_cost = max(0, int(plan.get("cost") or 0))
+    scheme_cost = int(scheme.get("care_cost_delta") or 0)
+    if mode not in {"urinary", "trauma", "body", "general"}:
+        scheme_cost = min(scheme_cost, 1)
+    cost = max(0, base_cost + scheme_cost)
     paid = 0
     if cost:
         paid = abs(db.record_issue_economy_move(
@@ -1356,6 +1467,8 @@ def apply_eunuch_care(
     ]
     if paid:
         outcome_bits.append(f"内库-{paid}")
+    if scheme_cost:
+        outcome_bits.append(f"方案调养{scheme_cost:+d}")
     outcome = "，".join(outcome_bits) or "照料入档"
     title = f"{plan.get('label') or '内廷调养'}：{clean_name}"
     process = "；".join(part for part in (str(plan.get("process") or ""), str(note or "").strip()) if part)[:160]
@@ -1416,6 +1529,7 @@ def apply_eunuch_care(
         "process": process,
         "outcome": outcome,
         "delta": {key: after[key] - before[key] for key in before if after[key] != before[key]},
+        "scheme_profile": scheme,
         "goal_id": fulfilled_goal_id,
     }
 
@@ -1469,7 +1583,8 @@ def assignment_risk_profile(
     ) -> None:
         nonlocal score_delta
         adjusted = int(delta)
-        if adjusted < 0 and care_trait and care_trait in traits:
+        care_traits = {item.strip() for item in str(care_trait or "").split("|") if item.strip()}
+        if adjusted < 0 and care_traits and traits.intersection(care_traits):
             relief = min(abs(adjusted), 4)
             adjusted += relief
             if mitigation and mitigation not in mitigations:
@@ -1531,6 +1646,19 @@ def assignment_risk_profile(
 
     bao_status = str(lore.get("bao_status") or "")
     ritual = str(lore.get("bao_ritual") or "").strip()
+    scheme = castration_scheme_profile(lore)
+    if scheme.get("explicit") and int(scheme.get("risk_score") or 0) >= 62 and (
+        re.search(r"久候|夜守|盯梢|刑房|净房|刀|血|拷|审|拿问|下狱|诏狱|抄家|远行|出京|传旨|乔装|密会", raw)
+        or domain_set.intersection({"investigation", "military", "local", "inner"})
+    ):
+        add(
+            -3 if int(scheme.get("risk_score") or 0) < 76 else -5,
+            f"净身方案{scheme.get('tier') or '高危'}，旧患底子不稳",
+            f"净身方案画像：{scheme.get('tier')}，酷烈{scheme.get('brutality')}、创伤{scheme.get('trauma_risk')}、伤身{scheme.get('surgery_risk')}。",
+            care_trait="御前调养|旧患调养|惊创抚慰|仪态修整",
+            mitigation="相关旧患已有御前调养，方案后患被压住一部分。",
+            stage="一遇久候或刑房差事，会先摸封签、夹肩定神。",
+        )
     bao_touch = bool(re.search(r"宝|宝匣|封签|官库|旧案|净房|司礼监|内廷|验身|验宝", raw) or "inner" in domain_set)
     if bao_touch:
         if bao_status in {BAO_FORFEIT, BAO_LOST}:

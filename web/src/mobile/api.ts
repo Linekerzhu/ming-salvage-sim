@@ -333,6 +333,17 @@ export type CourtCastration = {
     pet_phrases?: string[];
     stage_cues?: string[];
   };
+  scheme_profile?: {
+    tier?: string;
+    explicit?: boolean;
+    risk_score?: number;
+    brutality?: number;
+    trauma_risk?: number;
+    surgery_risk?: number;
+    bao_security?: number;
+    care_cost_delta?: number;
+    effects?: string[];
+  };
 };
 export type CourtSecret = { kind: string; label: string; detail: string; severity: number; used: boolean };
 export type CourtFavorMemory = {

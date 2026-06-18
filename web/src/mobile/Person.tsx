@@ -422,6 +422,15 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
             {castration && (
               <div className="m-castration-ledger" aria-label="净身旧档">
                 {castration.procedure_line && <span className="m-castration-note">{castration.procedure_line}</span>}
+                {castration.scheme_profile?.tier && (
+                  <span className="m-castration-row">
+                    <b>方案</b>
+                    <i>{castration.scheme_profile.tier}</i>
+                    {typeof castration.scheme_profile.risk_score === "number" && <i>风险{castration.scheme_profile.risk_score}</i>}
+                    {!!castration.scheme_profile.care_cost_delta && <i>调养{castration.scheme_profile.care_cost_delta > 0 ? "+" : ""}{castration.scheme_profile.care_cost_delta}</i>}
+                    {(castration.scheme_profile.effects || []).slice(0, 2).map((bit) => <i key={bit}>{bit}</i>)}
+                  </span>
+                )}
                 {castrationBits(castration, ["method_label", "knife_label", "anesthesia_label"]).length > 0 && (
                   <span className="m-castration-row">
                     <b>净法</b>

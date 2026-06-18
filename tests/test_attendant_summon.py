@@ -1146,7 +1146,8 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(confirm_events[-1]["type"], "done")
             payload = confirm_events[-1]["payload"]
             self.assertEqual(payload["dialogue_effect"]["title"], "尿路调养")
-            self.assertIn("内库-3", payload["dialogue_effect"]["message"])
+            self.assertIn("内库-7", payload["dialogue_effect"]["message"])
+            self.assertIn("方案调养+4", payload["dialogue_effect"]["message"])
             self.assertIn("stage_direction", payload["dialogue_effect"])
             self.assertTrue(payload["history"][-1].get("stage_directions"))
             self.assertIn("夹腰", " ".join(payload["history"][-1]["stage_directions"]))
@@ -1162,7 +1163,7 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(int(after_row["grievance"]), 34)
             self.assertEqual(int(after_row["ability"]), 56)
             self.assertEqual(int(after_row["charm"]), 55)
-            self.assertEqual(game.state.metrics["内库"], 77)
+            self.assertEqual(game.state.metrics["内库"], 73)
             self.assertIsNotNone(game.db.conn.execute(
                 "SELECT 1 FROM character_traits WHERE name=? AND trait='旧患调养'",
                 (name,),

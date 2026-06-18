@@ -261,6 +261,20 @@ def _apply_castration_gameplay_consequences(
         wisdom_delta += 1
     if adult and re.search(r"贤者模式|性无能|不能人道|畸恋|羞辱|束缚|受罚|禁欲|冷淡|情欲", text):
         charm_delta -= 1
+    scheme_profile: Dict[str, object] = {}
+    try:
+        from ming_sim.eunuch_lore import castration_scheme_profile
+        scheme_profile = castration_scheme_profile(lore)
+    except Exception:
+        scheme_profile = {}
+    scheme_delta = scheme_profile.get("stat_delta") if isinstance(scheme_profile, dict) else {}
+    if isinstance(scheme_delta, dict):
+        trust_delta += int(scheme_delta.get("emp_trust") or 0)
+        grievance_delta += int(scheme_delta.get("grievance") or 0)
+        ability_delta += int(scheme_delta.get("ability") or 0)
+        wisdom_delta += int(scheme_delta.get("wisdom") or 0)
+        charm_delta += int(scheme_delta.get("charm") or 0)
+        luck_delta += int(scheme_delta.get("luck") or 0)
 
     before = {
         "emp_trust": int(row["emp_trust"] or 55),
@@ -322,11 +336,11 @@ def _apply_castration_gameplay_consequences(
                 str(lore.get("bao_preservation") or ""),
                 str(lore.get("bao_container") or ""),
             ) if part),
-            outcome=(
-                f"信任 {before['emp_trust']}->{after['emp_trust']}，"
-                f"怨望 {before['grievance']}->{after['grievance']}；"
-                f"入库物件：{item_id}"
-            ),
+            outcome="；".join(part for part in (
+                f"信任 {before['emp_trust']}->{after['emp_trust']}，怨望 {before['grievance']}->{after['grievance']}",
+                f"方案画像：{scheme_profile.get('tier')} 风险{scheme_profile.get('risk_score')}" if scheme_profile else "",
+                f"入库物件：{item_id}",
+            ) if part),
             sentiment="negative" if forced else "mixed",
             importance=5,
             tags=tags,
@@ -340,7 +354,8 @@ def _apply_castration_gameplay_consequences(
         (
             f"【净身旧档】{name}：{str(lore.get('castration_method') or '净身')}、"
             f"{str(lore.get('bao_preservation') or '宝况未详')}、{str(lore.get('bao_container') or '宝匣未详')}。"
-            f"信任 {before['emp_trust']}->{after['emp_trust']}，怨望 {before['grievance']}->{after['grievance']}。"
+            + (f"方案：{scheme_profile.get('tier')}（风险{scheme_profile.get('risk_score')}）。" if scheme_profile else "")
+            + f"信任 {before['emp_trust']}->{after['emp_trust']}，怨望 {before['grievance']}->{after['grievance']}。"
         ),
     )
     db.conn.commit()
@@ -354,6 +369,7 @@ def _apply_castration_gameplay_consequences(
         },
         "traits": list(dict.fromkeys(traits)),
         "items": [f"净身旧档：{name}", item_id],
+        "scheme_profile": scheme_profile,
     }
 
 

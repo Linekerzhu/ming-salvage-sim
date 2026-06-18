@@ -101,6 +101,45 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertEqual(lore["bao_preservation"], "油炸封蜡")
             self.assertEqual(lore["bao_container"], "黄杨木描金匣")
 
+    def test_harsh_castration_scheme_has_playable_risk_profile_and_care_cost(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(
+                db,
+                name,
+                forced=True,
+                day=day,
+                detail_text=(
+                    "净军房行事，铜柄宫刀，无麻；宝约二两八钱，一大一小，"
+                    "油封后发硬，油炸封蜡，官库石灰封存，收黄杨木描金匣。"
+                    "近来漏尿尿闭，嗓音尖薄，幻肢痛。"
+                ),
+            )
+
+            public = el.public_lore_payload(db, name)
+            profile = public["scheme_profile"]
+            self.assertTrue(profile["explicit"])
+            self.assertEqual(profile["tier"], "酷烈高危")
+            self.assertGreaterEqual(int(profile["risk_score"]), 70)
+            self.assertGreater(int(profile["care_cost_delta"]), 0)
+            self.assertTrue(any("无麻" in item for item in profile["effects"]))
+
+            risk = el.assignment_risk_profile(
+                db,
+                name,
+                "夜守刑房封签，久候拿问净房旧案。",
+                domains=["investigation", "inner"],
+            )
+            self.assertLessEqual(int(risk["score_delta"]), -8)
+            self.assertTrue(any("净身方案画像" in item for item in risk["risks"]))
+
+            state.metrics["内库"] = 50
+            db.save_state(state)
+            care = el.apply_eunuch_care(db, state, name, mode="urinary", note="准调养尿闭旧患。")
+            self.assertEqual(care["cost"], 7)
+            self.assertIn("方案调养+4", care["outcome"])
+
     def test_voluntary_keeps_bao_and_lower_servility(self):
         with TemporaryDirectory() as tmp:
             db, _, day = _fresh(tmp)
