@@ -29,12 +29,13 @@ _KIND_PRIORITY = {
     "directive_followup": 3,
     "trap_remedy": 4,
     "petition": 5,
-    "legacy": 6,
-    "army": 7,
-    "faction": 8,
-    "agenda": 9,
-    "rivalry": 10,
-    "hook": 11,
+    "favor": 6,
+    "legacy": 7,
+    "army": 8,
+    "faction": 9,
+    "agenda": 10,
+    "rivalry": 11,
+    "hook": 12,
 }
 
 _KIND_LABELS = {
@@ -44,6 +45,7 @@ _KIND_LABELS = {
     "directive_followup": "复命",
     "trap_remedy": "担责",
     "petition": "求援",
+    "favor": "旧恩",
     "legacy": "余波",
     "army": "军镇",
     "faction": "派系",
@@ -356,6 +358,96 @@ def agenda_chat_context_brief(
     return "\n".join(lines)
 
 
+def favor_chat_context_brief(
+    db: GameDB,
+    minister_name: str,
+    memory_id: object = 0,
+) -> str:
+    """Trusted context for summoning an official around an unpaid imperial favor."""
+
+    name = str(minister_name or "").strip()
+    try:
+        mid = int(memory_id or 0)
+    except (TypeError, ValueError):
+        mid = 0
+    if not name or not _table_exists(db, "event_memories") or not _table_exists(db, "characters"):
+        return ""
+    try:
+        state = db.load_state()
+        turn = int(state.turn)
+    except Exception:
+        turn = 0
+    params: tuple
+    where_id = ""
+    if mid > 0:
+        where_id = "AND m.id=?"
+        params = (name, turn, mid)
+    else:
+        params = (name, turn)
+    row = db.conn.execute(
+        f"""
+        SELECT m.id, m.title, m.cause, m.process, m.outcome, m.importance,
+               c.office, c.faction, c.ability, c.integrity, c.emp_trust, c.grievance
+        FROM event_memories m
+        JOIN characters c ON c.name=m.subject_id
+        WHERE m.subject_type='character'
+          AND m.subject_id=?
+          AND m.event_type='imperial_favor'
+          AND (m.expires_turn IS NULL OR m.expires_turn>=?)
+          AND c.status='active'
+          AND c.power_id='ming'
+          AND c.office_type!='后宫'
+          {where_id}
+        ORDER BY m.importance DESC, m.turn DESC, m.id DESC
+        LIMIT 1
+        """,
+        params,
+    ).fetchone()
+    if row is None:
+        return ""
+
+    allies = []
+    rivals = []
+    try:
+        from ming_sim import court
+        allies = court.allies_of(db, name, limit=3)
+        rivals = court.rivals_of(db, name, limit=3)
+    except Exception:
+        allies = []
+        rivals = []
+    office = _short_office(str(row["office"] or ""))
+    faction = str(row["faction"] or "").strip()
+    ability = _clamp_int(row["ability"], 0, 100)
+    integrity = _clamp_int(row["integrity"], 0, 100)
+    trust = _clamp_int(row["emp_trust"], 0, 100)
+    grievance = _clamp_int(row["grievance"], 0, 100)
+    title = str(row["title"] or f"旧恩未报：{name}")
+    cause = str(row["cause"] or "皇帝昔日曾替其保全名节或任事余地。")
+    process = str(row["process"] or "")
+    outcome = str(row["outcome"] or "此后召对须记得旧恩，不宜装作两清。")
+    lines = [
+        "【本次召对事项：旧恩未报】",
+        f"- {office}{name}曾受皇帝保全/复用，此次不是普通问策；这笔旧恩可被点明，也可能被他反向求赏。",
+        f"- 旧恩账目：{title}；{cause}" + (f"；{process}" if process else "") + f"；{outcome}",
+        f"- 当前人心：才干 {ability}，操守 {integrity}，御前信任 {trust}，怨望 {grievance}"
+        + (f"，派系 {faction}" if faction and faction not in {"无", "中立"} else "")
+        + "。",
+        "- 对话玩法：皇帝可要求其以难差、查账、举荐担保、共办消怨来还恩；NPC 可感恩、试探边界，也可求赏、求保全同党或求缓查旧案。",
+        "- 两难要求：不要把旧恩写成免费忠诚。还恩会牵动其党羽、政敌、名节和未来仕途；若皇帝逼得太急，他可能口头顺从、私下拖延。",
+    ]
+    if allies:
+        lines.append("【党羽/同道人情】" + "、".join(f"{a['name']}（{a['basis']}）" for a in allies[:3])
+                     + "：他可能替这些人求台阶或要名分。")
+    if rivals:
+        lines.append("【政敌/旧怨】" + "、".join(f"{r['name']}（{r['basis']}）" for r in rivals[:3])
+                     + "：他可能借还恩之名要求打击政敌。")
+    lines.extend([
+        "- 只有皇帝明确命其承办、要求拟旨、设期限或双方确认条件，才进入奏对目的或履约账本；首次点明旧恩不直接落库。",
+        "- 口吻要求：按身份、派系、信任、怨望和人物性格说话；不要像全知旁白解释系统。",
+    ])
+    return "\n".join(lines)
+
+
 def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[BriefCard]:
     """Collect all actionable hooks before the home-screen outliner chooses a subset."""
 
@@ -366,6 +458,7 @@ def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[
     _directive_blocker_cards(db, cards)
     _directive_followup_cards(db, state, cards)
     _petition_cards(db, cards)
+    _favor_cards(db, state, cards)
     _policy_legacy_cards(db, state, cards)
     _agenda_cards(db, cards)
     _rivalry_cards(db, cards)
@@ -1129,6 +1222,114 @@ def _petition_cards(db: GameDB, cards: List[BriefCard]) -> None:
                 meta=meta,
                 ref_kind="character",
                 ref_id=name,
+                effects=effects,
+            )
+        )
+        count += 1
+        if count >= 2:
+            break
+
+
+def _favor_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard]) -> None:
+    """Surface unpaid imperial favors as character-driven audience hooks."""
+
+    if not _table_exists(db, "event_memories") or not _table_exists(db, "characters"):
+        return
+    current_turn = int(getattr(state, "turn", 0) or 0)
+    if current_turn <= 0:
+        try:
+            current_turn = int(db.load_state().turn)
+        except Exception:
+            current_turn = 0
+    rows = _safe_fetchall(
+        db,
+        """
+        SELECT m.id, m.subject_id, m.title, m.cause, m.outcome, m.importance,
+               m.turn, m.tags,
+               c.office, c.faction, c.emp_trust, c.grievance
+        FROM event_memories m
+        JOIN characters c ON c.name=m.subject_id
+        WHERE m.subject_type='character'
+          AND m.event_type='imperial_favor'
+          AND (m.expires_turn IS NULL OR m.expires_turn>=?)
+          AND c.status='active'
+          AND c.power_id='ming'
+          AND c.office_type!='后宫'
+          AND c.name!='崇祯'
+        ORDER BY m.importance DESC, m.turn DESC, m.id DESC
+        LIMIT 24
+        """,
+        (current_turn,),
+    )
+    grouped: Dict[str, List[sqlite3.Row]] = {}
+    order: List[str] = []
+    for row in rows:
+        name = str(row["subject_id"] or "").strip()
+        if not name:
+            continue
+        if name not in grouped:
+            grouped[name] = []
+            order.append(name)
+        grouped[name].append(row)
+
+    count = 0
+    for name in order:
+        if any(
+            str(card.get("actor") or "") == name
+            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup", "petition"}
+            for card in cards
+        ):
+            continue
+        items = grouped.get(name) or []
+        if not items:
+            continue
+        row = items[0]
+        favor_count = len(items)
+        office = _short_office(str(row["office"] or ""))
+        trust = _clamp_int(row["emp_trust"], 0, 100)
+        grievance = _clamp_int(row["grievance"], 0, 100)
+        importance = _clamp_int(row["importance"], 1, 5)
+        faction = str(row["faction"] or "")
+        cause = _short_text(str(row["cause"] or ""), 54)
+        outcome = _short_text(str(row["outcome"] or ""), 64)
+        try:
+            from ming_sim import court
+            allies = court.allies_of(db, name, limit=3)
+            rivals = court.rivals_of(db, name, limit=3)
+        except Exception:
+            allies = []
+            rivals = []
+        urgency = min(96, 60 + importance * 6 + favor_count * 5 + max(0, trust - 55) // 4 + max(0, grievance - 45) // 3)
+        tone = "danger" if favor_count >= 2 and grievance >= 55 else "warn"
+        effects = [
+            {"kind": "favor", "label": f"旧恩 {favor_count}笔", "tone": "good"},
+            {"kind": "trust", "label": f"信任 {trust}", "tone": "good" if trust >= 58 else "neutral"},
+            {"kind": "grievance", "label": f"怨望 {grievance}", "tone": "bad" if grievance >= 55 else "neutral"},
+        ]
+        if faction and faction not in {"无", "中立"}:
+            effects.append({"kind": "faction", "label": faction, "tone": "neutral"})
+        if allies:
+            effects.append({"kind": "network", "label": f"党羽 {len(allies)}人", "tone": "neutral"})
+        if rivals:
+            effects.append({"kind": "network", "label": f"政敌 {len(rivals)}人", "tone": "bad"})
+        detail = (
+            f"{office}{name}受过天恩，{cause or '旧恩还挂在账上'}。"
+            f"{outcome or '召来可点明旧恩，逼其以差使、人脉或担保来还。'}"
+            "这既是可用软钩子，也可能被他反过来要赏、求保或护党。"
+        )
+        cards.append(
+            _card(
+                kind="favor",
+                title=f"旧恩未报：{name}",
+                detail=detail,
+                urgency=urgency,
+                tone=tone,
+                cta="召来还恩",
+                tab=_TAB_AUDIENCE,
+                actor=name,
+                meta=f"{favor_count}笔",
+                ref_kind="memory",
+                ref_id=str(row["id"] or ""),
                 effects=effects,
             )
         )

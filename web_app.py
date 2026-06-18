@@ -3398,6 +3398,16 @@ class WebGame:
                 )
             except Exception:
                 return ""
+        if kind == "favor":
+            actor = str(context.get("actor") or "").strip()
+            if actor and actor != minister_name:
+                return ""
+            ref_id = context.get("ref_id") or context.get("id")
+            try:
+                from ming_sim.playstyle import favor_chat_context_brief
+                return favor_chat_context_brief(self.db, minister_name, ref_id)
+            except Exception:
+                return ""
         return ""
 
     def _directive_chat_effect(

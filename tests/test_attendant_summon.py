@@ -6,7 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import web_app
-from ming_sim import court
+from ming_sim import court, memorials
 from ming_sim.personnel_actions import is_eunuch_office
 import ming_sim.session as session_module
 
@@ -285,6 +285,58 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(mismatch, "")
             self.assertIn("人物私图将成", augmented)
             self.assertIn("人物私图将成", prepared.behavior_context)
+            self.assertIn("NPC对话行为档案", prepared.behavior_brief)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_favor_context_is_actor_scoped_and_reaches_dialogue_prep(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            other = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' AND name!=? "
+                "ORDER BY ability DESC LIMIT 1",
+                (actor,),
+            ).fetchone()["name"])
+            result = memorials.back_official(game.db, game.state, actor, "comfort", day=1)
+            self.assertTrue(result["ok"], result)
+            memory_id = int(game.db.conn.execute(
+                "SELECT id FROM event_memories WHERE subject_id=? AND event_type='imperial_favor' "
+                "ORDER BY id DESC LIMIT 1",
+                (actor,),
+            ).fetchone()["id"])
+            game.session.dialogue_audit_client = lambda phase, payload: {  # type: ignore[assignment]
+                "goal_decision": "none",
+                "confidence": 90,
+            }
+            context = {
+                "kind": "favor",
+                "actor": actor,
+                "ref_kind": "memory",
+                "ref_id": str(memory_id),
+            }
+
+            brief = game._chat_context_brief(actor, context)
+            mismatch = game._chat_context_brief(other, context)
+            augmented, prepared = game.session.prepare_chat_run(
+                game.content.characters[actor],
+                "朕昔日曾替你留任事余地，今日该谈谈如何还恩。",
+                supplemental_context=brief,
+            )
+
+            self.assertIn("本次召对事项：旧恩未报", brief)
+            self.assertEqual(mismatch, "")
+            self.assertIn("旧恩未报", augmented)
+            self.assertIn("旧恩未报", prepared.behavior_context)
             self.assertIn("NPC对话行为档案", prepared.behavior_brief)
         finally:
             try:

@@ -14,6 +14,7 @@ from ming_sim.playstyle import (
     agenda_chat_context_brief,
     briefing_cards,
     briefing_payload,
+    favor_chat_context_brief,
     legacy_chat_context_brief,
     petition_chat_context_brief,
 )
@@ -635,6 +636,33 @@ class PlaystyleBriefTests(unittest.TestCase):
                 any(c["kind"] == "trap_remedy" and c["actor"] == "韩爌" for c in cards),
                 cards,
             )
+
+    def test_imperial_favor_memory_becomes_audience_hook(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            result = memorials.back_official(db, state, "韩爌", "comfort", day=1)
+            self.assertTrue(result["ok"], result)
+
+            payload = briefing_payload(db, state, limit=5, kind="favor")
+
+            self.assertEqual(payload["filter"], "favor")
+            self.assertGreaterEqual(payload["total"], 1)
+            card = next(c for c in payload["cards"] if c["actor"] == "韩爌")
+            self.assertEqual(card["kind"], "favor")
+            self.assertEqual(card["tab"], "audience")
+            self.assertEqual(card["cta"], "召来还恩")
+            self.assertEqual(card["meta"], "1笔")
+            self.assertEqual(card["ref_kind"], "memory")
+            self.assertIn("旧恩未报", str(card["title"]))
+            labels = [str(e["label"]) for e in card["effects"]]
+            self.assertIn("旧恩 1笔", labels)
+            self.assertTrue(any(label.startswith("信任 ") for label in labels), labels)
+
+            brief = favor_chat_context_brief(db, "韩爌", card["ref_id"])
+            self.assertIn("本次召对事项：旧恩未报", brief)
+            self.assertIn("曾受皇帝保全/复用", brief)
+            self.assertIn("不直接落库", brief)
+            self.assertIn("求赏", brief)
 
     def test_overdue_memorials_become_trap_card(self):
         with TemporaryDirectory() as tmp:

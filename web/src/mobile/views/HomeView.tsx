@@ -379,6 +379,7 @@ function kindMark(kind: string): string {
   if (kind === "trap") return "任";
   if (kind === "trap_remedy") return "担";
   if (kind === "petition") return "求";
+  if (kind === "favor") return "恩";
   if (kind === "legacy") return "政";
   return "机";
 }
@@ -430,6 +431,13 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
       { label: "听其求援", text: `朕知道你近日有难处。今日召你，不听套话，只听你要求朕替你解哪一处困局。`, prefix: true },
       { label: "给台阶", text: `朕可以给你一个台阶，但你须拿一件可验的差使来换。你愿办什么，几日能见回奏？`, prefix: true },
       { label: "问代价", text: `你来求朕护持，是为公事还是私怨？若朕应你，会得罪谁，又能换来什么？`, prefix: true },
+    ];
+  }
+  if (card.kind === "favor") {
+    return [
+      { label: "点明旧恩", text: `朕昔日曾为你留任事余地。今日召你，是要听你如何还这笔旧恩。`, prefix: true },
+      { label: "换难差", text: `旧恩不是空话。你若还愿任事，就领一件可验难差，几日内给朕回奏？`, prefix: true },
+      { label: "防其要赏", text: `你若借天恩替同党求情，也须先说清代价、担保和可查的成效。`, prefix: true },
     ];
   }
   if (card.kind === "directive_blocker") {
