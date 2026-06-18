@@ -3236,6 +3236,18 @@ class WebGame:
             candidates.sort(key=lambda c: len(c.name), reverse=True)
             self._clear_pending_dialogue_action(minister_name)
             return {"name": candidates[0].name, "generated": False}
+        if pronoun_followup:
+            recent_name = self._recent_attendant_implied_summon_name(minister_name)
+            if recent_name and recent_name != minister_name and recent_name in self.content.characters:
+                try:
+                    target, _is_temporary = self.session.summon_character(recent_name, current, allow_temporary=False)
+                except ValueError:
+                    target = None
+                if target is not None:
+                    ok, _reason = self.session.can_summon(target)
+                    if ok:
+                        self._clear_pending_dialogue_action(minister_name)
+                        return {"name": target.name, "generated": False}
         generated = self._materialize_dialogue_mention_from_text(minister_name, raw)
         if not generated:
             return {}
@@ -3283,7 +3295,14 @@ class WebGame:
     def _attendant_summon_answer(self, target_name: str, generated: bool = False) -> str:
         if generated:
             return f"奴婢遵旨。{target_name}原只是奏对里露出的名目，奴婢已按线索补入名册，这就传其趋入御前。"
-        return f"奴婢遵旨，这就传{target_name}大人趋入御前。"
+        title = f"{target_name}大人"
+        try:
+            target = self.session._character(target_name)
+            if is_eunuch_office(target.office, target.office_type):
+                title = target_name
+        except Exception:
+            pass
+        return f"奴婢遵旨，这就传{title}趋入御前。"
 
     def _dialogue_action_key(self, minister_name: str) -> str:
         return f"dialogue.pending_action.{str(minister_name or '').strip()}"

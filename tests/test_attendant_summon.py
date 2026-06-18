@@ -448,6 +448,48 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_pronoun_followup_resummons_existing_recent_implied_person(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+            game._add_runtime_character(
+                Character(
+                    name="小禄子",
+                    office="内书堂识字小火者",
+                    office_type="司礼监",
+                    faction="内廷",
+                    aliases=[],
+                    personal_skills=["传旨跑腿"],
+                    loyalty=82,
+                    ability=48,
+                    integrity=55,
+                    courage=28,
+                    style="新入御前，跪得快，回话先讲见闻，不敢妄议外朝大政",
+                    power_id="ming",
+                    status="active",
+                ),
+                "测试补档",
+            )
+            game.chat_history[attendant] = [
+                {"role": "minister", "content": "——传内书堂生徒小禄子觐见。小禄子胆子小，已在殿外候着。"}
+            ]
+
+            events = list(game.chat_stream(attendant, "人呢？我来和他说话。"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], "小禄子")
+            self.assertEqual(payload.get("registered_minister") or "", "")
+            self.assertNotIn("小禄子大人", payload["answer"])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_single_dialogue_mentioned_person_can_be_summoned_by_pronoun(self):
         game = web_app.WebGame(fresh=True)
         try:
