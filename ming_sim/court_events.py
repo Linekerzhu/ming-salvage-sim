@@ -116,6 +116,122 @@ def _create_obligation(db: GameDB, state: GameState, item: Dict[str, object], da
     )
     return f"{minister}负约待办"
 
+
+def _apply_agreement_action(db: GameDB, state: GameState, item: Dict[str, object], day: int) -> str:
+    agreement_id = int(item.get("id") or item.get("agreement_id") or 0)
+    if agreement_id <= 0:
+        return ""
+    row = db.conn.execute("SELECT * FROM negotiation_agreements WHERE id=?", (agreement_id,)).fetchone()
+    if row is None:
+        return ""
+    agreement = dict(row)
+    minister = str(agreement.get("minister_name") or "")
+    topic = str(agreement.get("core_topic") or agreement.get("topic") or "履约事项")
+    action = str(item.get("action") or "extend").strip()
+    evidence = str(item.get("evidence") or "").strip()[:240]
+    goal_id = int(agreement.get("goal_id") or 0)
+
+    if action == "extend":
+        months = max(1, min(12, int(item.get("months") or 1)))
+        due_turn = int(state.turn) + months
+        review = {
+            "phase": "court_decision",
+            "turn": int(state.turn),
+            "status": "pending",
+            "condition_status": "pending",
+            "target_status": "pending_conditions",
+            "condition_evidence": evidence or f"御前展限 {months} 月，仍待复命。",
+            "llm_used": False,
+        }
+        db.conn.execute(
+            """
+            UPDATE negotiation_agreements
+            SET status='pending', condition_status='pending', target_status='pending_conditions',
+                due_turn=?, last_checked_turn=?, auto_review_json=?, updated_at=CURRENT_TIMESTAMP
+            WHERE id=?
+            """,
+            (due_turn, int(state.turn), json.dumps(review, ensure_ascii=False), agreement_id),
+        )
+        if goal_id:
+            db.update_conversation_goal(
+                goal_id,
+                state=state,
+                event_kind="agreement_extended",
+                event_summary=evidence or f"{minister}「{topic}」奉旨展限 {months} 月。",
+                status="waiting_conditions",
+                condition_status="pending",
+                expires_turn=due_turn + 2,
+                last_delta_json={"source": "overdue_obligation", "action": "extend", "due_turn": due_turn},
+            )
+        db.record_log(state, evidence or f"{minister}「{topic}」奉旨展限 {months} 月。")
+        return f"{minister}履约展限{months}月"
+
+    if action == "fail":
+        evidence = evidence or f"御前裁断：{minister}逾期未复命，履约失期。"
+        tasks = db.conn.execute(
+            "SELECT id, status FROM negotiation_tasks WHERE agreement_id=?",
+            (agreement_id,),
+        ).fetchall()
+        for task in tasks:
+            if str(task["status"] or "pending") == "pending":
+                db.conn.execute(
+                    """
+                    UPDATE negotiation_tasks
+                    SET status='failed', evidence=?, last_checked_turn=?, updated_at=CURRENT_TIMESTAMP
+                    WHERE id=?
+                    """,
+                    (evidence, int(state.turn), int(task["id"])),
+                )
+        effect = db._apply_negotiation_political_effect(  # Centralized ledger consequence.
+            state,
+            agreement,
+            new_status="failed",
+            evidence=evidence,
+        )
+        review = {
+            "phase": "court_decision",
+            "turn": int(state.turn),
+            "status": "failed",
+            "condition_status": "failed",
+            "target_status": "failed",
+            "condition_score": 0,
+            "condition_evidence": evidence,
+            "target_evidence": evidence,
+            "llm_used": False,
+        }
+        db.conn.execute(
+            """
+            UPDATE negotiation_agreements
+            SET status='failed', condition_status='failed', target_status='failed',
+                last_checked_turn=?, resolved_turn=?, fulfillment_score=0,
+                fulfillment_evidence=?, target_evidence=?, political_effect_json=?,
+                auto_review_json=?, updated_at=CURRENT_TIMESTAMP
+            WHERE id=?
+            """,
+            (
+                int(state.turn),
+                int(state.turn),
+                evidence,
+                evidence,
+                json.dumps(effect, ensure_ascii=False),
+                json.dumps(review, ensure_ascii=False),
+                agreement_id,
+            ),
+        )
+        if goal_id:
+            db.update_conversation_goal(
+                goal_id,
+                state=state,
+                event_kind="agreement_failed",
+                event_summary=evidence,
+                status="expired",
+                condition_status="failed",
+                last_delta_json={"source": "overdue_obligation", "action": "fail", "agreement_id": agreement_id},
+            )
+        return f"{minister}履约失期"
+
+    return ""
+
 def _apply_effect(db: GameDB, state: GameState, eff: Dict[str, object], day: int) -> str:
     parts: List[str] = []
     shi = int(eff.get("shi") or 0)
@@ -209,6 +325,11 @@ def _apply_effect(db: GameDB, state: GameState, eff: Dict[str, object], day: int
     for ob in (eff.get("obligations") or []):
         if isinstance(ob, dict):
             result = _create_obligation(db, state, ob, day)
+            if result:
+                parts.append(result)
+    for ag in (eff.get("agreements") or []):
+        if isinstance(ag, dict):
+            result = _apply_agreement_action(db, state, ag, day)
             if result:
                 parts.append(result)
     db.conn.commit()
@@ -316,6 +437,14 @@ def _preview_effects(eff: Dict[str, object]) -> List[Dict[str, str]]:
             minister = str(ob.get("minister") or "").strip()
             if minister:
                 add("obligation", f"履约账本：{minister}", "neutral")
+    for ag in (eff.get("agreements") or []):
+        if not isinstance(ag, dict):
+            continue
+        action = str(ag.get("action") or "")
+        if action == "extend":
+            add("agreement", f"履约展限 {int(ag.get('months') or 1)}月", "warn")
+        elif action == "fail":
+            add("agreement", "履约追责", "bad")
 
     limit = 10
     if len(out) > limit:
@@ -594,6 +723,61 @@ def _imperial_petition(db: GameDB) -> Optional[Dict[str, object]]:
     }
 
 
+def _overdue_agreement(db: GameDB) -> Optional[Dict[str, object]]:
+    """履约失期：已到回奏期限、仍未完成的奏对承诺，转成一次君前追责抉择。"""
+
+    state = db.load_state()
+    row = db.conn.execute(
+        """
+        SELECT a.id, a.minister_name, a.topic, a.core_topic, a.target_text,
+               a.action_kind, a.promise_type, a.stakes, a.due_turn,
+               c.office, c.faction, c.emp_trust, c.grievance
+        FROM negotiation_agreements a
+        JOIN characters c ON c.name=a.minister_name
+        WHERE a.status IN ('pending', 'sealed')
+          AND a.target_status='pending_conditions'
+          AND a.due_turn>0
+          AND a.due_turn<=?
+          AND c.status='active'
+          AND c.power_id='ming'
+        ORDER BY a.due_turn ASC, a.id DESC
+        LIMIT 1
+        """,
+        (int(state.turn),),
+    ).fetchone()
+    if row is None:
+        return None
+    tasks = db.conn.execute(
+        """
+        SELECT description, task_kind, status
+        FROM negotiation_tasks
+        WHERE agreement_id=?
+        ORDER BY id
+        LIMIT 4
+        """,
+        (int(row["id"]),),
+    ).fetchall()
+    task_texts = [str(t["description"] or "") for t in tasks if str(t["description"] or "").strip()]
+    minister = str(row["minister_name"] or "")
+    topic = str(row["core_topic"] or row["topic"] or "履约事项")
+    return {
+        "agreement_id": int(row["id"]),
+        "cooldown_id": f"overdue_obligation:{int(row['id'])}",
+        "minister": minister,
+        "office": str(row["office"] or ""),
+        "faction": str(row["faction"] or ""),
+        "topic": topic,
+        "target_text": str(row["target_text"] or topic),
+        "promise_type": str(row["promise_type"] or "奏对承诺"),
+        "stakes": str(row["stakes"] or "一般政务"),
+        "due_turn": int(row["due_turn"] or 0),
+        "overdue_by": max(0, int(state.turn) - int(row["due_turn"] or 0)),
+        "trust": int(row["emp_trust"] or 0),
+        "grievance": int(row["grievance"] or 0),
+        "tasks": task_texts,
+    }
+
+
 def _meaningful_faction(name: object) -> str:
     faction = str(name or "").strip()
     return "" if faction in {"", "无", "中立"} else faction
@@ -786,6 +970,59 @@ def _defs() -> List[Dict[str, object]]:
                  "effect": lambda c: {"renshi": -3, "eunuch_power": -1,
                                       "char": [{"name": c["target"], "emp_trust": -3, "grievance": 3}],
                                       "log": f"{c['target']}被劾事，下三法司核实。"}},
+            ],
+        },
+        {
+            "id": "overdue_obligation",
+            "priority": 31,
+            "cooldown": "ctx",
+            "when": _overdue_agreement,
+            "title": lambda c: f"履约失期：{c['minister']}未复命",
+            "narrative": lambda c: (
+                f"{c['office']}{c['minister']}先前领下「{c['topic']}」，御限已至"
+                f"{'，逾期' + str(c['overdue_by']) + '月' if int(c.get('overdue_by') or 0) else ''}，"
+                f"至今未有足以交账的回奏。此事关涉{c['stakes']}，若轻轻揭过，履约账本便成虚文；"
+                "若过严，又恐人人只求自保。陛下如何处置？"
+            ),
+            "choices": [
+                {"key": "press", "label": lambda c: f"严旨催{c['minister']}，限一月复命",
+                 "hint": "不即治罪，但把账压回他身上；威令略立，臣下压力上升",
+                 "effect": lambda c: {"shi": 1, "renshi": -1,
+                                      "char": [{"name": c["minister"], "emp_trust": -2, "grievance": 4}],
+                                      "faction": ({_meaningful_faction(c.get("faction")): {"satisfaction": -1, "heat": 1}}
+                                                  if _meaningful_faction(c.get("faction")) else {}),
+                                      "agreements": [{
+                                          "id": c["agreement_id"],
+                                          "action": "extend",
+                                          "months": 1,
+                                          "evidence": f"御前严催{c['minister']}「{c['topic']}」，限一月内据实复命。"
+                                      }],
+                                      "log": f"履约失期：严催{c['minister']}「{c['topic']}」一月内复命。"}},
+                {"key": "grant_time", "label": lambda c: f"宽{c['minister']}三月，许其补办",
+                 "hint": "保任事余地：人心稍安，但君威受损，旁人也会试探边界",
+                 "effect": lambda c: {"shi": -1, "renshi": 1,
+                                      "char": [{"name": c["minister"], "emp_trust": 3, "grievance": -3}],
+                                      "faction": ({_meaningful_faction(c.get("faction")): {"satisfaction": 1}}
+                                                  if _meaningful_faction(c.get("faction")) else {}),
+                                      "agreements": [{
+                                          "id": c["agreement_id"],
+                                          "action": "extend",
+                                          "months": 3,
+                                          "evidence": f"御前宽{c['minister']}「{c['topic']}」三月，仍须补办复命。"
+                                      }],
+                                      "log": f"履约失期：宽{c['minister']}三月补办「{c['topic']}」。"}},
+                {"key": "punish", "label": lambda c: f"以失期问责，申饬{c['minister']}",
+                 "hint": "把账本做实：立威、断拖延，但寒任事之心，本人与其党会记怨",
+                 "effect": lambda c: {"shi": 2, "renshi": -2,
+                                      "char": [{"name": c["minister"], "emp_trust": -8, "grievance": 9}],
+                                      "faction": ({_meaningful_faction(c.get("faction")): {"satisfaction": -4, "heat": 3}}
+                                                  if _meaningful_faction(c.get("faction")) else {}),
+                                      "agreements": [{
+                                          "id": c["agreement_id"],
+                                          "action": "fail",
+                                          "evidence": f"御前裁断：{c['minister']}「{c['topic']}」逾期未复命，按失期问责。"
+                                      }],
+                                      "log": f"履约失期：{c['minister']}「{c['topic']}」逾期未复命，申饬问责。"}},
             ],
         },
         {
@@ -1045,11 +1282,19 @@ def evaluate_decisions(db: GameDB, state: GameState, day: int) -> Optional[Dict[
     if get_pending(db):
         return None
     for d in sorted(_defs(), key=lambda x: -int(x["priority"])):
-        if _on_cooldown(db, str(d["id"]), day):
+        if str(d.get("cooldown") or "") != "ctx" and _on_cooldown(db, str(d["id"]), day):
             continue
         ctx = d["when"](db)
         if ctx:
-            db.kv_set(KV_PENDING, json.dumps({"id": d["id"], "ctx": ctx, "day": day}, ensure_ascii=False))
+            cooldown_key = str(ctx.get("cooldown_id") or d["id"]) if isinstance(ctx, dict) else str(d["id"])
+            if _on_cooldown(db, cooldown_key, day):
+                continue
+            db.kv_set(KV_PENDING, json.dumps({
+                "id": d["id"],
+                "ctx": ctx,
+                "day": day,
+                "cooldown_key": cooldown_key,
+            }, ensure_ascii=False))
             return pending_payload(db)
     return None
 
@@ -1070,7 +1315,7 @@ def resolve_decision(db: GameDB, state: GameState, choice_key: str, day: int) ->
     effects = _preview_effects(effect)
     summary = _apply_effect(db, state, effect, day)
     cds = _cooldowns(db)
-    cds[str(d["id"])] = day
+    cds[str(p.get("cooldown_key") or d["id"])] = day
     db.kv_set(KV_COOLDOWN, json.dumps(cds, ensure_ascii=False))
     db.kv_set(KV_PENDING, "")
     return {

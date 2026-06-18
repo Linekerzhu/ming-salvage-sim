@@ -33,6 +33,46 @@ def _erupt(db, a, b, opinion=-75):
     db.conn.commit()
 
 
+def _due_agreement(db, state, minister, title="难差自证"):
+    goal_id = db.create_conversation_goal(
+        state,
+        minister_name=minister,
+        action_kind="court_commitment",
+        title=title,
+        target_text=f"{minister}须就「{title}」回奏可验结果。",
+        threshold=70,
+        score=100,
+        status="waiting_conditions",
+        condition_status="pending",
+        conditions=[{"description": "限期回奏可验证据", "status": "pending"}],
+        expires_turn=int(state.turn) + 2,
+        last_delta={"source": f"test:{minister}:{title}"},
+    )
+    agreement_id = db.create_negotiation_agreement(
+        state,
+        minister_name=minister,
+        topic=title,
+        action_kind="court_commitment",
+        status="pending",
+        stance_id=0,
+        handshake_status="sealed",
+        psychological_score=100,
+        threshold=70,
+        verbal_only=False,
+        core_topic=title,
+        target_text=f"{minister}须就「{title}」回奏可验结果。",
+        promise_type="通用奏对承诺",
+        stakes="制度名分",
+        due_turn=int(state.turn),
+        conditions="限期回奏可验证据",
+        summary=f"{minister}领下{title}",
+        tasks=["限期回奏可验证据"],
+        goal_id=goal_id,
+    )
+    db.bind_conversation_goal_agreement(goal_id, agreement_id)
+    return agreement_id, goal_id
+
+
 class TriggerTests(unittest.TestCase):
     def test_deep_rivalry_triggers_feud_decision(self):
         with TemporaryDirectory() as tmp:
@@ -98,6 +138,24 @@ class TriggerTests(unittest.TestCase):
             self.assertIn("阉党热度 +5", labels)
             demand = next(ch for ch in payload["choices"] if ch["key"] == "demand_service")
             self.assertIn(f"履约账本：{petitioner}", [str(e["label"]) for e in demand["effects"]])
+
+    def test_overdue_agreement_triggers_accountability_decision(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            minister, _ = _two_ming(db)
+            agreement_id, _goal_id = _due_agreement(db, state, minister, "共办消怨")
+
+            payload = court_events.evaluate_decisions(db, state, day)
+
+            self.assertIsNotNone(payload)
+            self.assertEqual(payload["id"], "overdue_obligation")
+            self.assertIn(minister, str(payload["title"]))
+            keys = {str(ch["key"]) for ch in payload["choices"]}
+            self.assertEqual(keys, {"press", "grant_time", "punish"})
+            press = next(ch for ch in payload["choices"] if ch["key"] == "press")
+            self.assertIn("履约展限 1月", [str(e["label"]) for e in press["effects"]])
+            pending = court_events.get_pending(db) or {}
+            self.assertEqual(str(pending.get("cooldown_key")), f"overdue_obligation:{agreement_id}")
 
 
 class ResolveTests(unittest.TestCase):
@@ -251,6 +309,78 @@ class ResolveTests(unittest.TestCase):
                 )
                 self.assertEqual(len(agreements), 1)
                 self.assertTrue(any(other in str(t["description"]) for t in agreements[0]["tasks"]))
+
+    def test_overdue_press_extends_agreement_deadline(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            minister, _ = _two_ming(db)
+            agreement_id, goal_id = _due_agreement(db, state, minister, "难差自证")
+
+            court_events.evaluate_decisions(db, state, day)
+            res = court_events.resolve_decision(db, state, "press", day=day)
+
+            self.assertTrue(res["ok"], res)
+            self.assertIn("履约展限 1月", [str(e["label"]) for e in res["effects"]])
+            row = db.conn.execute(
+                "SELECT status, condition_status, target_status, due_turn FROM negotiation_agreements WHERE id=?",
+                (agreement_id,),
+            ).fetchone()
+            self.assertEqual(str(row["status"]), "pending")
+            self.assertEqual(str(row["target_status"]), "pending_conditions")
+            self.assertEqual(int(row["due_turn"]), int(state.turn) + 1)
+            goal = db.get_conversation_goal(goal_id) or {}
+            self.assertEqual(str(goal.get("status")), "waiting_conditions")
+            self.assertEqual(int(goal.get("expires_turn") or 0), int(state.turn) + 3)
+
+    def test_overdue_punish_fails_agreement_and_goal(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            minister, _ = _two_ming(db)
+            agreement_id, goal_id = _due_agreement(db, state, minister, "共办消怨")
+
+            court_events.evaluate_decisions(db, state, day)
+            res = court_events.resolve_decision(db, state, "punish", day=day)
+
+            self.assertTrue(res["ok"], res)
+            self.assertIn("履约追责", [str(e["label"]) for e in res["effects"]])
+            row = db.conn.execute(
+                "SELECT status, condition_status, target_status, resolved_turn FROM negotiation_agreements WHERE id=?",
+                (agreement_id,),
+            ).fetchone()
+            self.assertEqual(str(row["status"]), "failed")
+            self.assertEqual(str(row["condition_status"]), "failed")
+            self.assertEqual(str(row["target_status"]), "failed")
+            self.assertEqual(int(row["resolved_turn"]), int(state.turn))
+            task = db.conn.execute(
+                "SELECT status, evidence FROM negotiation_tasks WHERE agreement_id=?",
+                (agreement_id,),
+            ).fetchone()
+            self.assertEqual(str(task["status"]), "failed")
+            self.assertIn("按失期问责", str(task["evidence"]))
+            goal = db.get_conversation_goal(goal_id) or {}
+            self.assertEqual(str(goal.get("status")), "expired")
+
+    def test_overdue_cooldown_is_scoped_per_agreement(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            first, second = _two_ming(db)
+            first_agreement, _ = _due_agreement(db, state, first, "难差自证")
+            second_agreement, _ = _due_agreement(db, state, second, "共办消怨")
+
+            first_payload = court_events.evaluate_decisions(db, state, day)
+            self.assertIsNotNone(first_payload)
+            first_pending = court_events.get_pending(db) or {}
+            first_cooldown = str(first_pending.get("cooldown_key") or "")
+            court_events.resolve_decision(db, state, "punish", day=day)
+            second_payload = court_events.evaluate_decisions(db, state, day)
+
+            self.assertIsNotNone(second_payload)
+            pending = court_events.get_pending(db) or {}
+            self.assertIn(str(pending.get("cooldown_key")), {
+                f"overdue_obligation:{first_agreement}",
+                f"overdue_obligation:{second_agreement}",
+            })
+            self.assertNotEqual(str(pending.get("cooldown_key")), first_cooldown)
 
 
 class IntegrationTests(unittest.TestCase):
