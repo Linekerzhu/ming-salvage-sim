@@ -3183,6 +3183,8 @@ class WebGame:
         for name, character in self.content.characters.items():
             if getattr(character, "status", "active") != "active":
                 continue
+            if self._is_blocked_chat_mention_term(name, character):
+                continue
             haystacks = [name, *self._linkable_character_aliases(character)]
             if any(alias and str(alias) in raw for alias in haystacks):
                 names.append(name)
@@ -3199,7 +3201,7 @@ class WebGame:
             terms = []
             for term in [name, *self._linkable_character_aliases(character)]:
                 clean = str(term or "").strip()
-                if clean != name and self._is_blocked_chat_mention_term(clean, character):
+                if self._is_blocked_chat_mention_term(clean, character):
                     continue
                 if len(clean) >= 2 and clean in raw and clean not in terms:
                     terms.append(clean)

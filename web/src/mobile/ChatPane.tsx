@@ -37,7 +37,7 @@ function mentionTerms(mentions?: ChatMention[]): Array<{ name: string; term: str
     for (const rawTerm of [name, ...((mention.terms || []) as string[])]) {
       const term = String(rawTerm || "").trim();
       if (term.length < 2) continue;
-      if (term !== name && isBlockedMentionTerm(term, name)) continue;
+      if (isBlockedMentionTerm(term, name)) continue;
       const key = `${name}:${term}`;
       if (seen.has(key)) continue;
       seen.add(key);

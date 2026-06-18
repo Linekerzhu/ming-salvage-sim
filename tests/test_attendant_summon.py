@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 
 import web_app
 from ming_sim import court, memorials
+from ming_sim.models import Character
 from ming_sim.personnel_actions import is_eunuch_office
 import ming_sim.session as session_module
 
@@ -344,6 +345,35 @@ class AttendantSummonTests(unittest.TestCase):
             personal = game._chat_message_mentions("王掌印说司礼监今日有事。")
             personal_terms = {term for item in personal for term in item["terms"]}
             self.assertIn("王掌印", personal_terms)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_chat_mentions_do_not_link_accidental_office_named_character(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            bogus = Character(
+                name="司礼监",
+                office="司礼监",
+                office_type="司礼监",
+                faction="内廷",
+                aliases=["司礼监掌印"],
+                personal_skills=[],
+                loyalty=50,
+                ability=50,
+                integrity=50,
+                courage=50,
+                style="误入人物池的官署名",
+                power_id="ming",
+            )
+            game.content.characters[bogus.name] = bogus
+
+            mentions = game._chat_message_mentions("司礼监今日递入文书，司礼监掌印候在外头。")
+
+            self.assertEqual(mentions, [])
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
