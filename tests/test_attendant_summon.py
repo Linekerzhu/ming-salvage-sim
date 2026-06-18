@@ -1948,6 +1948,38 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertTrue(any("夹腰退半步" in line for line in payload[0]["stage_directions"]))
             self.assertTrue(any("肩背微缩" in line for line in payload[0]["stage_directions"]))
             self.assertTrue(any("小禄子觐见" in line for line in payload[0]["stage_directions"]))
+            self.assertEqual(payload[0]["content"], "奴婢回陛下，小禄子在殿外候着。")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_chat_payload_persists_clean_dialogue_and_keeps_stage_cues(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            payload = game._chat_payload(
+                attendant,
+                "（躬身一礼，低声）\n\n"
+                "——传内书堂生徒小禄子觐见。\n\n"
+                "奴婢回陛下，小禄子在殿外候着。",
+            )
+
+            last = payload["history"][-1]
+            self.assertEqual(last["content"], "奴婢回陛下，小禄子在殿外候着。")
+            self.assertTrue(any("躬身一礼" in line for line in last["stage_directions"]))
+            self.assertTrue(any("小禄子觐见" in line for line in last["stage_directions"]))
+            stored = game.db.conn.execute(
+                "SELECT content, stage_directions FROM chat_messages WHERE minister_name=? AND role='minister' ORDER BY id DESC LIMIT 1",
+                (attendant,),
+            ).fetchone()
+            self.assertEqual(str(stored["content"]), "奴婢回陛下，小禄子在殿外候着。")
+            self.assertIn("小禄子觐见", str(stored["stage_directions"]))
+
+            game._restore_chat_history_cache()
+            self.assertEqual(game._recent_attendant_implied_summon_name(attendant), "小禄子")
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

@@ -3719,8 +3719,39 @@ class WebGame:
                 combined_stage = list(dict.fromkeys([*existing_stage, *stage_directions]))
                 if combined_stage:
                     item["stage_directions"] = combined_stage[:4]
+                    item["content"] = self._chat_display_text(str(item.get("content") or ""), combined_stage[:4])
             payload.append(item)
         return payload
+
+    def _chat_display_text(self, text: str, stage_directions: Optional[List[str]] = None) -> str:
+        """Remove extracted action/stage cues from the dialogue bubble text."""
+
+        display = str(text or "")
+        for direction in stage_directions or []:
+            clean = str(direction or "").strip()
+            if not clean:
+                continue
+            escaped = re.escape(clean)
+            display = re.sub(fr"\s*（{escaped}）\s*", "\n", display)
+            display = re.sub(fr"\s*（(?:动作|神态|举止|舞台|旁白)[:：]?\s*{escaped}）\s*", "\n", display)
+            display = re.sub(fr"(?m)^\s*【(?:动作|神态|举止|舞台|旁白)[:：]?\s*{escaped}】\s*$", "", display)
+            display = re.sub(fr"(?m)^\s*【(?:动作|神态|举止|舞台|旁白)】\s*{escaped}\s*$", "", display)
+            display = re.sub(fr"(?m)^\s*[*_]{{1,2}}{escaped}[*_]{{1,2}}\s*$", "", display)
+            display = re.sub(fr"(?m)^\s*[—-]+\s*{escaped}\s*$", "", display)
+        lines = []
+        stage_set = {str(line or "").strip() for line in stage_directions or [] if str(line or "").strip()}
+        for line in display.splitlines():
+            stripped = line.strip()
+            candidate = re.sub(r"^【(?:动作|神态|举止|舞台|旁白)】\s*", "", stripped)
+            candidate = re.sub(r"^\s*[*_]{1,2}(.+?)[*_]{1,2}\s*$", r"\1", candidate)
+            if self._normalize_stage_direction(candidate) in stage_set:
+                continue
+            clean = stripped.lstrip("—-").strip()
+            if re.search(r"^(?:传|宣|召|唤|叫)[^\n，。；：]{1,24}(?:觐见|入殿|进殿|进来|趋入|来见|面圣)", clean):
+                continue
+            if stripped:
+                lines.append(stripped)
+        return "\n".join(lines).strip()
 
     def _chat_stage_directions(self, text: str) -> List[str]:
         raw = str(text or "")
@@ -3935,11 +3966,15 @@ class WebGame:
         if not messages:
             try:
                 rows = self.db.conn.execute(
-                    "SELECT role, content FROM chat_messages WHERE minister_name=? ORDER BY id DESC LIMIT 12",
+                    "SELECT role, content, stage_directions FROM chat_messages WHERE minister_name=? ORDER BY id DESC LIMIT 12",
                     (minister_name,),
                 ).fetchall()
                 messages = [
-                    {"role": str(row["role"] or ""), "content": str(row["content"] or "")}
+                    {
+                        "role": str(row["role"] or ""),
+                        "content": str(row["content"] or ""),
+                        "stage_directions": self.db._chat_stage_list(row["stage_directions"] if "stage_directions" in row.keys() else "[]"),
+                    }
                     for row in reversed(rows)
                 ]
             except Exception:
@@ -3947,7 +3982,11 @@ class WebGame:
         for message in reversed(messages):
             if str(message.get("role") or "") != "minister":
                 continue
-            for name in self._extract_summoned_names_from_answer(str(message.get("content") or "")):
+            combined = "\n".join([
+                str(message.get("content") or ""),
+                *[str(line) for line in (message.get("stage_directions") or []) if str(line).strip()],
+            ])
+            for name in self._extract_summoned_names_from_answer(combined):
                 if name != minister_name:
                     return name
         return ""
@@ -5134,7 +5173,8 @@ class WebGame:
                 stage_directions.append(stage)
         if not stage_directions:
             stage_directions.extend(self._fallback_eunuch_stage_directions(minister_name, answer))
-        minister_message: Dict[str, Any] = {"role": "minister", "content": answer}
+        display_answer = self._chat_display_text(answer, stage_directions[:4]) if stage_directions else str(answer or "").strip()
+        minister_message: Dict[str, Any] = {"role": "minister", "content": display_answer}
         if stage_directions:
             minister_message["stage_directions"] = stage_directions[:4]
         self.chat_history[minister_name].append(minister_message)
@@ -5143,7 +5183,7 @@ class WebGame:
                 minister_name,
                 self.state.turn,
                 "minister",
-                answer,
+                display_answer,
                 stage_directions=stage_directions[:4],
             )
             if chat_turn_id:
