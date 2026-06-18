@@ -220,6 +220,46 @@ class RecordCastrationTests(unittest.TestCase):
             ).fetchone()
             self.assertIsNotNone(memory)
 
+    def test_complication_creates_help_goal_and_care_fulfills_it(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(db, name, forced=True, day=day)
+            db.conn.execute("DELETE FROM eunuch_lore WHERE name!=?", (name,))
+            db.conn.execute(
+                """
+                UPDATE eunuch_lore
+                SET urinary_aftereffect='漏尿，夜间须垫旧布',
+                    trauma_response='',
+                    voice_body_change='',
+                    bao_ritual='',
+                    private_fixation='',
+                    psychosexual_state=''
+                WHERE name=?
+                """,
+                (name,),
+            )
+            db.conn.commit()
+
+            evs = el.castration_complication_tick(db, state, 3)
+
+            self.assertEqual(len(evs), 1)
+            goal_id = int(evs[0]["goal_id"])
+            self.assertGreater(goal_id, 0)
+            goal = db.get_conversation_goal(goal_id)
+            self.assertEqual(goal["minister_name"], name)
+            self.assertEqual(goal["action_kind"], "eunuch_care")
+            self.assertEqual(goal["status"], "waiting_conditions")
+            self.assertIn("尿路调养", goal["title"])
+
+            result = el.apply_eunuch_care(db, state, name, mode="urinary", note="准动内库调养漏尿旧患。")
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(int(result["goal_id"]), goal_id)
+            fulfilled = db.get_conversation_goal(goal_id)
+            self.assertEqual(fulfilled["status"], "fulfilled")
+            self.assertEqual(fulfilled["condition_status"], "satisfied")
+
     def test_assignment_risk_profile_turns_old_wounds_into_dispatch_risk_and_care_mitigates(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)

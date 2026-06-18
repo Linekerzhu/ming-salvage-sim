@@ -885,6 +885,99 @@ def _complication_text(kind: str, name: str, lore: Dict[str, object]) -> Dict[st
     }
 
 
+def _ensure_complication_goal(
+    db: GameDB,
+    state: GameState,
+    name: str,
+    kind: str,
+    text: Dict[str, str],
+    effect: Dict[str, object],
+) -> int:
+    """Turn a castration complication into a trackable audience request."""
+
+    clean_name = str(name or "").strip()
+    if not clean_name or not hasattr(db, "create_conversation_goal"):
+        return 0
+    existing = db.conn.execute(
+        """
+        SELECT id FROM conversation_goals
+        WHERE minister_name=?
+          AND action_kind='eunuch_care'
+          AND status IN ('active','waiting_conditions','blocked')
+        ORDER BY id DESC LIMIT 1
+        """,
+        (clean_name,),
+    ).fetchone()
+    if existing is not None:
+        goal_id = int(existing["id"] or 0)
+        db.add_conversation_goal_event(
+            state,
+            goal_id,
+            "complication_flare",
+            status="waiting_conditions",
+            score_delta=4,
+            score_after=0,
+            summary=str(text.get("title") or "净身旧患复发")[:180],
+            payload={
+                "source": "eunuch_complication",
+                "complication": kind,
+                "effect": effect.get("delta") if isinstance(effect, dict) else {},
+                "stage_direction": str(text.get("stage") or ""),
+            },
+            commit=False,
+        )
+        return goal_id
+    label_map = {
+        "urinary": "尿路调养",
+        "trauma": "惊创抚慰",
+        "body": "体声修整",
+        "bao": "宝匣安置",
+        "fixation": "心癖安顿",
+        "psychosexual": "心相安顿",
+    }
+    label = label_map.get(kind, "内廷调养")
+    title = f"{label}求助：{clean_name}"
+    target_text = (
+        f"{clean_name}因「{text.get('title') or '净身旧患'}」主动候见。"
+        "召对时应让他说清旧患、宝匣或差遣风险，再决定动内库调养、验宝安置，"
+        "或明示仍要强派办差并承担误事风险。"
+    )
+    risk_tags = ["净身旧患", label]
+    delta = effect.get("delta") if isinstance(effect, dict) else {}
+    if isinstance(delta, dict) and delta:
+        risk_tags.append("属性波动")
+    conditions = [
+        {"description": f"召见{clean_name}，听其亲口说明{label}所求。", "status": "pending"},
+        {"description": "选择调养/宝匣安置/验宝查案，或明示暂不理会、仍照常派差。", "status": "pending"},
+    ]
+    blockers = [
+        "内库小耗与司礼监旧档会留下痕迹。",
+        "若久置不理，旧患还会继续扰动差遣、信任与怨望。",
+    ]
+    return db.create_conversation_goal(
+        state,
+        minister_name=clean_name,
+        action_kind="eunuch_care",
+        title=title,
+        target_text=target_text,
+        status="waiting_conditions",
+        condition_status="pending",
+        threshold=70,
+        score=35,
+        conditions=conditions,
+        blockers=blockers,
+        expires_turn=int(getattr(state, "turn", 0) or 0) + 2,
+        last_delta={
+            "source": "eunuch_complication",
+            "complication": kind,
+            "public_hint": target_text,
+            "risk_tags": risk_tags,
+            "stage_direction": str(text.get("stage") or ""),
+            "court_decision": {"action": "eunuch_care", "mode": kind},
+        },
+    )
+
+
 def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:
     """日 tick：净身后遗症/宝匣心结低频发作，真实扰动人物状态。
 
@@ -930,6 +1023,7 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
             continue
         effect = _apply_complication_effect(db, name, kind, lore)
         text = _complication_text(kind, name, lore)
+        goal_id = _ensure_complication_goal(db, state, name, kind, text, effect)
         outcome_bits = []
         for key, label in (
             ("emp_trust", "信任"),
@@ -968,6 +1062,7 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
             "detail": text["detail"],
             "stage_direction": text["stage"],
             "effect": outcome,
+            "goal_id": goal_id,
             "ref_kind": "character",
             "ref_id": name,
             "day": day,
@@ -1206,6 +1301,35 @@ def apply_eunuch_care(
         source_kind=source,
         source_id=source_id,
     )
+    fulfilled_goal_id = 0
+    goal_row = db.conn.execute(
+        """
+        SELECT id FROM conversation_goals
+        WHERE minister_name=?
+          AND action_kind='eunuch_care'
+          AND status IN ('active','waiting_conditions','blocked')
+        ORDER BY id DESC LIMIT 1
+        """,
+        (clean_name,),
+    ).fetchone()
+    if goal_row is not None:
+        fulfilled_goal_id = int(goal_row["id"] or 0)
+        if fulfilled_goal_id:
+            db.update_conversation_goal(
+                fulfilled_goal_id,
+                state=state,
+                event_kind="eunuch_care_fulfilled",
+                event_summary=f"{clean_name}{plan.get('label') or '内廷调养'}已奉旨处置：{outcome}",
+                status="fulfilled",
+                score=100,
+                condition_status="satisfied",
+                last_delta_json={
+                    "source": "eunuch_care",
+                    "mode": mode,
+                    "public_hint": f"{clean_name}{plan.get('label') or '内廷调养'}已奉旨处置。",
+                    "outcome": outcome,
+                },
+            )
     db.record_log(state, f"【内廷调养】{title}：{outcome}。")
     db.conn.commit()
     return {
@@ -1219,6 +1343,7 @@ def apply_eunuch_care(
         "process": process,
         "outcome": outcome,
         "delta": {key: after[key] - before[key] for key in before if after[key] != before[key]},
+        "goal_id": fulfilled_goal_id,
     }
 
 

@@ -4518,7 +4518,7 @@ class GameDB:
 
     # ----- conversation goals（奏对目的 / 心理握手状态机）-----
 
-    _GOAL_STATUSES = {"active", "waiting_conditions", "sealed", "blocked", "abandoned", "expired"}
+    _GOAL_STATUSES = {"active", "waiting_conditions", "sealed", "fulfilled", "blocked", "abandoned", "expired"}
 
     def _goal_json_list(self, raw: object) -> List[Dict[str, object]]:
         data: object
