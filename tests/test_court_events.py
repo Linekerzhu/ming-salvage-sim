@@ -137,6 +137,40 @@ def _private_distress_case(db, state):
     return actor, target
 
 
+def _blocked_goal_case(db, state):
+    minister, _other = _two_ming(db)
+    db.conn.execute(
+        "UPDATE characters SET emp_trust=42, grievance=62 WHERE name=?",
+        (minister,),
+    )
+    goal_id = db.create_conversation_goal(
+        state,
+        minister_name=minister,
+        action_kind="court_commitment",
+        title=f"举主连坐：{minister}保新人",
+        target_text=f"{minister}须为荐人共办试差并交代担保边界。",
+        threshold=70,
+        score=100,
+        status="blocked",
+        condition_status="blocked",
+        conditions=[{"description": "两月内回奏荐人试差证据。", "status": "failed"}],
+        blockers=["举主担保已逾期未复命，须召对追问责任与证据。"],
+        expires_turn=int(state.turn),
+        last_delta={
+            "source": f"patronage_accountability:{minister}:新人:joint_trial:sponsor",
+            "monthly_pressure": {
+                "kind": "overdue",
+                "label": "举主担保",
+                "turn": int(state.turn),
+                "age": 2,
+                "trust_delta": -2,
+                "grievance_delta": 5,
+            },
+        },
+    )
+    return minister, goal_id
+
+
 def _patronage_case(db):
     sponsor, candidate = _two_ming(db)
     db.conn.execute(
@@ -361,6 +395,27 @@ class TriggerTests(unittest.TestCase):
             pending = court_events.get_pending(db) or {}
             self.assertEqual(str(pending.get("cooldown_key")), f"patronage_accountability:{sponsor}:{candidate}")
 
+    def test_blocked_goal_pressure_triggers_help_decision(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            minister, goal_id = _blocked_goal_case(db, state)
+
+            payload = court_events.evaluate_decisions(db, state, day)
+
+            self.assertIsNotNone(payload)
+            self.assertEqual(payload["id"], "goal_obligation_help")
+            self.assertIn(minister, str(payload["title"]))
+            self.assertIn("旧约求裁", str(payload["title"]))
+            self.assertIn("举主担保", str(payload["narrative"]))
+            keys = {str(ch["key"]) for ch in payload["choices"]}
+            self.assertEqual(keys, {"protect", "demand_evidence", "public_rebuke", "self_prove"})
+            demand = next(ch for ch in payload["choices"] if ch["key"] == "demand_evidence")
+            self.assertIn("旧约展限 1月", [str(e["label"]) for e in demand["effects"]])
+            rebuke = next(ch for ch in payload["choices"] if ch["key"] == "public_rebuke")
+            self.assertIn("旧约追责", [str(e["label"]) for e in rebuke["effects"]])
+            pending = court_events.get_pending(db) or {}
+            self.assertEqual(str(pending.get("cooldown_key")), f"goal_obligation_help:{goal_id}")
+
 
 class ResolveTests(unittest.TestCase):
     def test_resolve_applies_effect_and_clears(self):
@@ -513,6 +568,41 @@ class ResolveTests(unittest.TestCase):
                 )
                 self.assertEqual(len(agreements), 1)
                 self.assertTrue(any(other in str(t["description"]) for t in agreements[0]["tasks"]))
+
+    def test_goal_help_demand_evidence_revives_blocked_goal(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            minister, goal_id = _blocked_goal_case(db, state)
+            court_events.evaluate_decisions(db, state, day)
+
+            res = court_events.resolve_decision(db, state, "demand_evidence", day=day)
+
+            self.assertTrue(res["ok"], res)
+            self.assertIn("旧约展限 1月", [str(e["label"]) for e in res["effects"]])
+            self.assertIn(f"{minister}旧约展限1月", str(res["effect"]))
+            goal = db.get_conversation_goal(goal_id)
+            self.assertEqual(goal["status"], "waiting_conditions")
+            self.assertEqual(goal["condition_status"], "pending")
+            self.assertGreater(int(goal["expires_turn"]), int(state.turn))
+            self.assertEqual(goal["conditions"][0]["status"], "pending")
+            self.assertEqual(goal["blockers"], [])
+            self.assertEqual(goal["last_delta"]["court_decision"]["action"], "extend")
+
+    def test_goal_help_public_rebuke_fails_goal(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            minister, goal_id = _blocked_goal_case(db, state)
+            court_events.evaluate_decisions(db, state, day)
+
+            res = court_events.resolve_decision(db, state, "public_rebuke", day=day)
+
+            self.assertTrue(res["ok"], res)
+            self.assertIn("旧约追责", [str(e["label"]) for e in res["effects"]])
+            self.assertIn(f"{minister}旧约追责", str(res["effect"]))
+            goal = db.get_conversation_goal(goal_id)
+            self.assertEqual(goal["status"], "expired")
+            self.assertEqual(goal["condition_status"], "failed")
+            self.assertEqual(goal["last_delta"]["court_decision"]["action"], "fail")
 
     def test_overdue_press_extends_agreement_deadline(self):
         with TemporaryDirectory() as tmp:

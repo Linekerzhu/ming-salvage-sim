@@ -238,6 +238,86 @@ def _apply_agreement_action(db: GameDB, state: GameState, item: Dict[str, object
     return ""
 
 
+def _revive_goal_conditions(goal: Dict[str, object], note: str) -> List[Dict[str, object]]:
+    conditions: List[Dict[str, object]] = []
+    for raw in goal.get("conditions") or []:
+        if not isinstance(raw, dict):
+            continue
+        item = dict(raw)
+        if str(item.get("status") or "") in {"pending", "failed", "blocked"}:
+            item["status"] = "pending"
+            item["evidence"] = note
+        conditions.append(item)
+    return conditions
+
+
+def _fail_goal_conditions(goal: Dict[str, object], note: str) -> List[Dict[str, object]]:
+    conditions: List[Dict[str, object]] = []
+    for raw in goal.get("conditions") or []:
+        if not isinstance(raw, dict):
+            continue
+        item = dict(raw)
+        if str(item.get("status") or "") == "pending":
+            item["status"] = "failed"
+            item["evidence"] = note
+        conditions.append(item)
+    return conditions
+
+
+def _apply_goal_action(db: GameDB, state: GameState, item: Dict[str, object], day: int) -> str:
+    goal_id = _intish(item.get("id") or item.get("goal_id"))
+    if goal_id <= 0:
+        return ""
+    goal = db.get_conversation_goal(goal_id)
+    if not goal:
+        return ""
+    minister = str(goal.get("minister_name") or "")
+    title = str(goal.get("title") or goal.get("target_text") or "旧约").strip()
+    action = str(item.get("action") or "extend").strip()
+    note = str(item.get("evidence") or item.get("note") or "").strip()[:240]
+    last_delta = dict(goal.get("last_delta") or {})
+    last_delta["court_decision"] = {
+        "source": "goal_obligation_help",
+        "action": action,
+        "turn": int(state.turn),
+        "day": int(day),
+        "note": note,
+    }
+    if action == "extend":
+        months = max(1, min(12, _intish(item.get("months"), 1)))
+        evidence = note or f"御前裁断：{minister}「{title}」展限{months}月，仍须补证复命。"
+        due_turn = int(state.turn) + months
+        db.update_conversation_goal(
+            goal_id,
+            state=state,
+            event_kind="goal_extended",
+            event_summary=evidence,
+            status="waiting_conditions",
+            condition_status="pending",
+            expires_turn=due_turn + 2,
+            conditions_json=_revive_goal_conditions(goal, evidence),
+            blockers_json=[],
+            last_delta_json={**last_delta, "due_turn": due_turn},
+        )
+        db.record_log(state, evidence)
+        return f"{minister}旧约展限{months}月"
+    if action == "fail":
+        evidence = note or f"御前裁断：{minister}「{title}」旧约失期，按负约追责。"
+        db.update_conversation_goal(
+            goal_id,
+            state=state,
+            event_kind="goal_failed",
+            event_summary=evidence,
+            status="expired",
+            condition_status="failed",
+            conditions_json=_fail_goal_conditions(goal, evidence),
+            last_delta_json=last_delta,
+        )
+        db.record_log(state, evidence)
+        return f"{minister}旧约追责"
+    return ""
+
+
 def _append_secret_order_court_line(state: GameState, prev: str, label: str, note: str) -> str:
     stamp = f"〔{period_label(state.year, state.period)}〕[{label}] "
     lines = [ln for ln in str(prev or "").split("\n") if ln.strip()]
@@ -514,6 +594,11 @@ def _apply_effect(db: GameDB, state: GameState, eff: Dict[str, object], day: int
             result = _apply_agreement_action(db, state, ag, day)
             if result:
                 parts.append(result)
+    for goal in (eff.get("goals") or []):
+        if isinstance(goal, dict):
+            result = _apply_goal_action(db, state, goal, day)
+            if result:
+                parts.append(result)
     for so in (eff.get("secret_orders") or []):
         if isinstance(so, dict):
             result = _apply_secret_order_action(db, state, so, day)
@@ -642,6 +727,14 @@ def _preview_effects(eff: Dict[str, object]) -> List[Dict[str, str]]:
             add("agreement", f"履约展限 {int(ag.get('months') or 1)}月", "warn")
         elif action == "fail":
             add("agreement", "履约追责", "bad")
+    for goal in (eff.get("goals") or []):
+        if not isinstance(goal, dict):
+            continue
+        action = str(goal.get("action") or "")
+        if action == "extend":
+            add("goal", f"旧约展限 {int(goal.get('months') or 1)}月", "warn")
+        elif action == "fail":
+            add("goal", "旧约追责", "bad")
     for so in (eff.get("secret_orders") or []):
         if not isinstance(so, dict):
             continue
@@ -1005,6 +1098,63 @@ def _overdue_agreement(db: GameDB) -> Optional[Dict[str, object]]:
         "favor_title": str(favor_head.get("title") or ""),
         "favor_outcome": str(favor_head.get("outcome") or favor_head.get("cause") or ""),
     }
+
+
+def _goal_obligation_help(db: GameDB) -> Optional[Dict[str, object]]:
+    """Blocked conversation goals can become active pleas for imperial handling."""
+
+    rows = db.list_conversation_goals(statuses=["blocked"], limit=100)
+    best: Optional[Dict[str, object]] = None
+    best_score = -10**9
+    for goal in rows:
+        goal_id = int(goal.get("id") or 0)
+        minister = str(goal.get("minister_name") or "").strip()
+        if goal_id <= 0 or not minister:
+            continue
+        last_delta = goal.get("last_delta") if isinstance(goal.get("last_delta"), dict) else {}
+        pressure = last_delta.get("monthly_pressure") if isinstance(last_delta.get("monthly_pressure"), dict) else {}
+        if not pressure:
+            continue
+        row = db.conn.execute(
+            """
+            SELECT name, office, faction, ability, integrity, emp_trust, grievance
+            FROM characters
+            WHERE name=? AND status='active' AND power_id='ming'
+            LIMIT 1
+            """,
+            (minister,),
+        ).fetchone()
+        if row is None:
+            continue
+        label = str(pressure.get("label") or "奏对旧约").strip()
+        kind = str(pressure.get("kind") or "").strip()
+        age = _intish(pressure.get("age"))
+        network_touch = pressure.get("network_touch") if isinstance(pressure.get("network_touch"), dict) else {}
+        allies = [str(item) for item in (network_touch.get("allies") or []) if str(item).strip()]
+        rivals = [str(item) for item in (network_touch.get("rivals") or []) if str(item).strip()]
+        score = 30 + age + int(row["grievance"] or 0) // 8 + (8 if kind == "overdue" else 0) + len(allies) + len(rivals)
+        if score <= best_score:
+            continue
+        best = {
+            "goal_id": goal_id,
+            "cooldown_id": f"goal_obligation_help:{goal_id}",
+            "minister": minister,
+            "office": str(row["office"] or ""),
+            "faction": str(row["faction"] or ""),
+            "ability": int(row["ability"] or 50),
+            "integrity": int(row["integrity"] or 50),
+            "trust": int(row["emp_trust"] or 0),
+            "grievance": int(row["grievance"] or 0),
+            "title": str(goal.get("title") or goal.get("target_text") or "未竟奏对"),
+            "target_text": str(goal.get("target_text") or goal.get("title") or ""),
+            "label": label,
+            "pressure_kind": kind,
+            "age": age,
+            "allies": allies[:3],
+            "rivals": rivals[:3],
+        }
+        best_score = score
+    return best
 
 
 def _meaningful_faction(name: object) -> str:
@@ -2029,6 +2179,78 @@ def _defs() -> List[Dict[str, object]]:
                                           "summary": f"御前命{c['actor']}清查{c['stem']}加派侵吞，以查弊而非一概废税。"
                                       }],
                                       "log": f"旧政反噬：命{c['actor']}清查{c['stem']}加派侵吞。"}},
+            ],
+        },
+        {
+            "id": "goal_obligation_help",
+            "priority": 30,
+            "cooldown": "ctx",
+            "when": _goal_obligation_help,
+            "title": lambda c: f"旧约求裁：{c['minister']}请陛下给话",
+            "narrative": lambda c: (
+                f"{c['office']}{c['minister']}因「{c['title']}」入殿求见。"
+                f"这笔{c['label']}已经发酵，眼下信任{c['trust']}、怨望{c['grievance']}，"
+                + (
+                    f"同党{ '、'.join(c['allies']) }替他说情，"
+                    if c.get("allies") else ""
+                )
+                + (
+                    f"政敌{ '、'.join(c['rivals']) }则等着看笑话，"
+                    if c.get("rivals") else ""
+                )
+                + "若护持，恐开脱责之门；若公开申饬，旧约账本立住，却会寒任事之心。"
+                "陛下要如何把这件旧约收束成可玩的政治后果？"
+            ),
+            "choices": [
+                {"key": "protect", "label": lambda c: f"先护持{c['minister']}，准其补办",
+                 "hint": "给台阶：人心回暖、同党安心；但会显得皇帝替人抹账，政敌不服",
+                 "effect": lambda c: {"shi": -1, "renshi": 2,
+                                      "char": [{"name": c["minister"], "emp_trust": 5, "grievance": -6}],
+                                      "faction": ({_meaningful_faction(c.get("faction")): {"satisfaction": 2, "heat": -1}}
+                                                  if _meaningful_faction(c.get("faction")) else {}),
+                                      "goals": [{
+                                          "id": c["goal_id"],
+                                          "action": "extend",
+                                          "months": 2,
+                                          "evidence": f"御前护持{c['minister']}，准其就「{c['title']}」补办两月，但仍须交账。"
+                                      }],
+                                      "log": f"旧约求裁：护持{c['minister']}，准其补办「{c['title']}」。"}},
+                {"key": "demand_evidence", "label": lambda c: f"限{c['minister']}一月补证复命",
+                 "hint": "折中：不立即治罪，但把证据压力写回旧约，后续仍会发酵",
+                 "effect": lambda c: {"shi": 1, "renshi": 1,
+                                      "char": [{"name": c["minister"], "emp_trust": -1, "grievance": 2}],
+                                      "faction": ({_meaningful_faction(c.get("faction")): {"heat": 1}}
+                                                  if _meaningful_faction(c.get("faction")) else {}),
+                                      "goals": [{
+                                          "id": c["goal_id"],
+                                          "action": "extend",
+                                          "months": 1,
+                                          "evidence": f"御前责{c['minister']}一月内补足「{c['title']}」证据、责任边界与复命说法。"
+                                      }],
+                                      "log": f"旧约求裁：限{c['minister']}一月补证复命「{c['title']}」。"}},
+                {"key": "public_rebuke", "label": lambda c: f"公开申饬{c['minister']}负约",
+                 "hint": "把账本做实：立规矩、涨君威；本人和同党会记怨，政敌得势",
+                 "effect": lambda c: {"shi": 2, "renshi": -2,
+                                      "char": [{"name": c["minister"], "emp_trust": -7, "grievance": 9}],
+                                      "faction": ({_meaningful_faction(c.get("faction")): {"satisfaction": -3, "heat": 3}}
+                                                  if _meaningful_faction(c.get("faction")) else {}),
+                                      "goals": [{
+                                          "id": c["goal_id"],
+                                          "action": "fail",
+                                          "evidence": f"御前公开申饬：{c['minister']}「{c['title']}」逾期不明，按旧约负责。"
+                                      }],
+                                      "log": f"旧约求裁：公开申饬{c['minister']}负约「{c['title']}」。"}},
+                {"key": "self_prove", "label": lambda c: f"不护不罚，令{c['minister']}自行证明",
+                 "hint": "不给护身符：保规矩、留余地；本人压力仍在，若再拖会继续反噬",
+                 "effect": lambda c: {"shi": 1, "renshi": 0,
+                                      "char": [{"name": c["minister"], "emp_trust": 1, "grievance": 1}],
+                                      "goals": [{
+                                          "id": c["goal_id"],
+                                          "action": "extend",
+                                          "months": 1,
+                                          "evidence": f"御前不护不罚，令{c['minister']}自行证明「{c['title']}」仍可交账。"
+                                      }],
+                                      "log": f"旧约求裁：令{c['minister']}自行证明「{c['title']}」。"}},
             ],
         },
         {
