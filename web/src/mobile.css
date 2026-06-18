@@ -790,6 +790,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-person-skills { display: flex; flex-wrap: wrap; gap: 6px; }
 .m-skill { font-size: 0.78rem; background: rgba(47,90,68,.14); color: var(--jade); border: 1px solid rgba(47,90,68,.3); border-radius: 999px; padding: 3px 10px; }
 .m-person-goal { margin: 3px 0; font-size: 0.84rem; color: var(--ink); }
+.m-favor-memories { display: flex; flex-direction: column; gap: 6px; }
+.m-person-favor { margin: 0; padding: 8px 9px; border: 1px solid rgba(181,134,58,.28); border-radius: 8px; background: rgba(181,134,58,.09); font-size: .82rem; line-height: 1.45; }
+.m-favor-title { display: block; color: var(--gold-deep); font-weight: 700; margin-bottom: 2px; }
+.m-favor-text { color: var(--ink); overflow-wrap: anywhere; }
 
 /* ── 御前·随侍快捷 ──────────────────────────────────────────── */
 .m-attend { display: flex; align-items: center; gap: 12px; border-left: 4px solid var(--gold-deep); }

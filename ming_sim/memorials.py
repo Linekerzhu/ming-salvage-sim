@@ -717,6 +717,58 @@ def _back_network_effects(db: GameDB, name: str, day: int) -> List[Dict[str, str
     return effects
 
 
+def _record_back_favor_memory(
+    db: GameDB,
+    state: GameState,
+    name: str,
+    kind: str,
+    spec: Dict[str, object],
+    *,
+    day: int,
+) -> int:
+    row = db.conn.execute(
+        "SELECT office, faction, status FROM characters WHERE name=?",
+        (name,),
+    ).fetchone()
+    office = str(row["office"] or "") if row else ""
+    faction = str(row["faction"] or "") if row else ""
+    label = str(spec.get("label") or kind)
+    note = str(spec.get("note") or "")
+    title = f"旧恩未报：{name}"
+    cause = f"陛下以「{label}」为{name}买单，{office}{name}由此受恩。"
+    process = note or "皇帝没有只按失败问罪，而是替其留任事余地。"
+    outcome = "此后召对须记得旧恩；若陛下托以差事，不宜装作两清。"
+    tags = [name, "旧恩", "人情债", "任事", label]
+    if faction:
+        tags.append(faction)
+    source_id = f"back:{int(state.turn)}:{int(day)}:{name}:{kind}"
+    memory_id = db.upsert_event_memory(
+        state,
+        subject_type="character",
+        subject_id=name,
+        event_type="imperial_favor",
+        title=title,
+        cause=cause,
+        process=process,
+        outcome=outcome,
+        sentiment="positive",
+        importance=4,
+        tags=tags,
+        source_kind="court_back",
+        source_id=source_id,
+        expires_turn=int(state.turn) + 36,
+    )
+    if memory_id:
+        db.add_event_memory_source(
+            memory_id,
+            "court_back",
+            source_id,
+            excerpt=f"{label}{name}：{outcome}",
+            locator={"day": int(day), "turn": int(state.turn), "kind": kind},
+        )
+    return memory_id
+
+
 def preview_back_official_effects(db: GameDB, name: str, kind: str, *, cost: int = 0) -> List[Dict[str, str]]:
     """Read-only player-facing preview for backing an official."""
     spec = _BACK_KINDS.get(kind)
@@ -771,6 +823,8 @@ def back_official(db: GameDB, state: GameState, name: str, kind: str,
             "UPDATE characters SET status='active', status_reason='败后复用', status_changed_turn=? WHERE name=?",
             (state.turn, name))
         effects.append({"kind": "court", "label": "复归在朝", "tone": "good"})
+    if _record_back_favor_memory(db, state, name, kind, spec, day=day):
+        effects.append({"kind": "memory", "label": "旧恩入账", "tone": "good"})
     db.record_log(state, f"【买单】{spec['label']}{name}。{spec['note']}")
     db.conn.commit()
     db.save_state(state)

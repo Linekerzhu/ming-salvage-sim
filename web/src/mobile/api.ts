@@ -273,10 +273,23 @@ export type CourtTie = { name: string; opinion: number; basis: string };
 export type CourtTrait = { key: string; valence: number; desc: string };
 export type CourtCastration = { bao_status: string; bao_label: string; forced: boolean; servility: number };
 export type CourtSecret = { kind: string; label: string; detail: string; severity: number; used: boolean };
+export type CourtFavorMemory = {
+  turn: number;
+  year: number;
+  period: number;
+  title: string;
+  cause: string;
+  process: string;
+  outcome: string;
+  sentiment: string;
+  importance: number;
+  tags?: string[];
+};
 export type ImpactEffect = { kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string };
 export type CourtPayload = {
   traits: CourtTrait[];
   agenda: { kind: string; title: string; target: string; intensity: number; status: string } | null;
+  favor_memories?: CourtFavorMemory[];
   allies: CourtTie[];
   rivals: CourtTie[];
   duishi?: string;

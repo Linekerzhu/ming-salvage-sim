@@ -384,6 +384,25 @@ class TrapLeverTests(unittest.TestCase):
             self.assertIn("党羽受慰 1人", labels)
             self.assertIn("政敌侧目 1人", labels)
 
+    def test_back_official_records_soft_favor_memory_for_future_dialogue(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+
+            r = memorials.back_official(db, state, "韩爌", "comfort", day=day)
+
+            self.assertTrue(r["ok"])
+            labels = [str(e["label"]) for e in r["effects"]]
+            self.assertIn("旧恩入账", labels)
+            favors = court.favor_memories(db, "韩爌")
+            self.assertEqual(len(favors), 1)
+            self.assertIn("旧恩未报", str(favors[0]["title"]))
+            self.assertIn("不宜装作两清", str(favors[0]["outcome"]))
+            payload = court.court_payload(db, "韩爌")
+            self.assertEqual(payload["favor_memories"][0]["title"], favors[0]["title"])
+            brief = court.court_brief(db, "韩爌")
+            self.assertIn("【旧恩】", brief)
+            self.assertIn("不可装作两清", brief)
+
     def test_execute_kills(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)

@@ -250,6 +250,19 @@ function PersonSheet({ name, focus, onClose }: { name: string; focus?: PersonFoc
             <p className="m-person-agenda">{court.agenda.title}</p>
           </div>
         )}
+        {(court?.favor_memories?.length ?? 0) > 0 && (
+          <div className="m-person-block">
+            <span className="m-person-h">旧恩</span>
+            <div className="m-favor-memories">
+              {court!.favor_memories!.slice(0, 3).map((m, i) => (
+                <p key={`${m.turn}-${i}`} className="m-person-favor">
+                  <span className="m-favor-title">{m.title || "旧恩未报"}</span>
+                  <span className="m-favor-text">{m.outcome || m.cause}</span>
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
         {canBack && (
           <div className="m-person-block" ref={backRef}>
             <span className="m-person-h">任事杠杆</span>

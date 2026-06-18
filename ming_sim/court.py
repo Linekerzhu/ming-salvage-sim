@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import json
 import random
 from typing import Dict, List, Optional, Tuple
 
@@ -170,6 +171,46 @@ def agenda_of(db: GameDB, name: str) -> Optional[Dict[str, object]]:
             "status": str(row["status"])}
 
 
+def favor_memories(db: GameDB, name: str, limit: int = 3) -> List[Dict[str, object]]:
+    """Recent soft hooks: imperial favors that should color future summons."""
+    try:
+        state = db.load_state()
+    except Exception:
+        state = GameState()
+    rows = db.conn.execute(
+        """
+        SELECT turn, year, period, title, cause, process, outcome, sentiment, importance, tags
+        FROM event_memories
+        WHERE subject_type='character'
+          AND subject_id=?
+          AND event_type='imperial_favor'
+          AND (expires_turn IS NULL OR expires_turn>=?)
+        ORDER BY importance DESC, turn DESC, id DESC
+        LIMIT ?
+        """,
+        (name, int(state.turn), max(1, min(8, int(limit or 3)))),
+    ).fetchall()
+    out: List[Dict[str, object]] = []
+    for row in rows:
+        try:
+            tags = json.loads(str(row["tags"] or "[]"))
+        except Exception:
+            tags = []
+        out.append({
+            "turn": int(row["turn"]),
+            "year": int(row["year"]),
+            "period": int(row["period"]),
+            "title": str(row["title"] or ""),
+            "cause": str(row["cause"] or ""),
+            "process": str(row["process"] or ""),
+            "outcome": str(row["outcome"] or ""),
+            "sentiment": str(row["sentiment"] or "positive"),
+            "importance": int(row["importance"] or 0),
+            "tags": tags if isinstance(tags, list) else [],
+        })
+    return out
+
+
 # ── 开局播种 ──────────────────────────────────────────────────────────────────
 
 def seed_court(db: GameDB, *, force: bool = False) -> Dict[str, int]:
@@ -306,6 +347,7 @@ def court_payload(db: GameDB, name: str) -> Dict[str, object]:
     return {
         "traits": traits,
         "agenda": agenda_of(db, name),
+        "favor_memories": favor_memories(db, name, limit=3),
         "allies": allies_of(db, name, limit=4),
         "rivals": rivals_of(db, name, limit=4),
         "duishi": duishi,
@@ -323,11 +365,18 @@ _KIND_CN = {"climb": "进取", "protect": "护党", "revenge": "夙怨",
 def court_brief(db: GameDB, name: str) -> str:
     """注入召对 system prompt：让 LLM 据其私心与恩怨演绎，而非给通用稳妥答案。"""
     ag = agenda_of(db, name)
+    favors = favor_memories(db, name, limit=2)
     allies = allies_of(db, name, limit=3)
     rivals = rivals_of(db, name, limit=3)
     lines: List[str] = []
     if ag and ag.get("title"):
         lines.append(f"【私心】{_KIND_CN.get(str(ag['kind']), '')}：{ag['title']}（不可明言，化作口风与条件）")
+    if favors:
+        text = "；".join(
+            f"{item.get('title') or '旧恩'}（{item.get('outcome') or item.get('cause') or '须记得皇帝昔日保全'}）"
+            for item in favors
+        )
+        lines.append(f"【旧恩】{text}：说话时要记得皇帝曾保全/复用自己，若陛下托事不可装作两清。")
     if allies:
         lines.append("【党羽】" + "、".join(f"{a['name']}（{a['basis']}）" for a in allies)
                      + "：会回护、引荐、通声气。")
