@@ -353,6 +353,149 @@ def _apply_goal_action(db: GameDB, state: GameState, item: Dict[str, object], da
     return ""
 
 
+def _is_audience_bargain_goal(goal: Dict[str, object]) -> bool:
+    action_kind = str(goal.get("action_kind") or "").strip()
+    title = str(goal.get("title") or goal.get("target_text") or "").strip()
+    target = str(goal.get("target_text") or "").strip()
+    last_delta = goal.get("last_delta") if isinstance(goal.get("last_delta"), dict) else {}
+    source = str(last_delta.get("source") or "").strip()
+    return (
+        action_kind == "audience_bargain"
+        or "audience_bargain" in source
+        or "audience_bargain_commitment" in source
+        or "旧账索证" in title
+        or "兑现旧账" in title
+        or "旧账索证" in target
+        or "兑现旧账" in target
+    )
+
+
+def _goal_help_title(ctx: Dict[str, object]) -> str:
+    if ctx.get("is_bargain"):
+        return f"旧账逼问：{ctx['minister']}请清前账"
+    return f"旧约求裁：{ctx['minister']}请陛下给话"
+
+
+def _goal_help_narrative(ctx: Dict[str, object]) -> str:
+    if ctx.get("is_bargain"):
+        source_title = str(ctx.get("context_title") or ctx.get("title") or "前番奏对").strip()
+        return (
+            f"{ctx['office']}{ctx['minister']}因前番御前旧账「{source_title}」入殿求裁。"
+            f"这不是寻常差使失期，而是陛下曾在奏对中亲自逼出的证据、兑现或让步；"
+            f"眼下信任{ctx['trust']}、怨望{ctx['grievance']}，"
+            + (
+                f"同党{ '、'.join(ctx['allies']) }替他说情，"
+                if ctx.get("allies") else ""
+            )
+            + (
+                f"政敌{ '、'.join(ctx['rivals']) }等着把这笔账做成把柄，"
+                if ctx.get("rivals") else ""
+            )
+            + "若护持，像是陛下替人抹去亲口旧账；若追责，又会让敢接话的人寒心。"
+              "要给台阶、给资源、逼证据，还是当殿作废问责？"
+        )
+    return (
+        f"{ctx['office']}{ctx['minister']}因「{ctx['title']}」入殿求见。"
+        f"这笔{ctx['label']}已经发酵，眼下信任{ctx['trust']}、怨望{ctx['grievance']}，"
+        + (
+            f"同党{ '、'.join(ctx['allies']) }替他说情，"
+            if ctx.get("allies") else ""
+        )
+        + (
+            f"政敌{ '、'.join(ctx['rivals']) }则等着看笑话，"
+            if ctx.get("rivals") else ""
+        )
+        + "若护持，恐开脱责之门；若公开申饬，旧约账本立住，却会寒任事之心。"
+          "陛下要如何把这件旧约收束成可玩的政治后果？"
+    )
+
+
+def _goal_help_label(ctx: Dict[str, object], key: str) -> str:
+    minister = str(ctx.get("minister") or "").strip()
+    if ctx.get("is_bargain"):
+        labels = {
+            "protect": f"认前话，准{minister}补清旧账",
+            "resource_support": f"拨人查证，令{minister}带责兑现",
+            "demand_evidence": f"限{minister}一月补齐旧账证据",
+            "public_rebuke": f"明示旧账作废，申饬{minister}负约",
+            "self_prove": f"不护不罚，令{minister}自证旧账",
+        }
+        return labels[key]
+    labels = {
+        "protect": f"先护持{minister}，准其补办",
+        "resource_support": f"拨给人手文书，令{minister}带责复办",
+        "demand_evidence": f"限{minister}一月补证复命",
+        "public_rebuke": f"公开申饬{minister}负约",
+        "self_prove": f"不护不罚，令{minister}自行证明",
+    }
+    return labels[key]
+
+
+def _goal_help_hint(ctx: Dict[str, object], key: str) -> str:
+    if ctx.get("is_bargain"):
+        hints = {
+            "protect": "给台阶：保住御前旧话的连续性；但政敌会说陛下亲口旧账也能抹",
+            "resource_support": "把空口旧账变成查证差使：耗小钱粮，但下月必须拿证据和结果",
+            "demand_evidence": "折中逼证：不立刻治罪，却把旧账证据压力写回履约账本",
+            "public_rebuke": "把旧账做成规矩：君威上涨，但本人和举主同党会记下这笔寒心账",
+            "self_prove": "不给护身符也不给刀：留余地，但再拖会继续发酵成怨",
+        }
+        return hints[key]
+    hints = {
+        "protect": "给台阶：人心回暖、同党安心；但会显得皇帝替人抹账，政敌不服",
+        "resource_support": "给真实资源，也给真实责任：任事心回升、国库小耗；若再无结果，后续追责更重",
+        "demand_evidence": "折中：不立即治罪，但把证据压力写回旧约，后续仍会发酵",
+        "public_rebuke": "把账本做实：立规矩、涨君威；本人和同党会记怨，政敌得势",
+        "self_prove": "不给护身符：保规矩、留余地；本人压力仍在，若再拖会继续反噬",
+    }
+    return hints[key]
+
+
+def _goal_help_evidence(ctx: Dict[str, object], key: str) -> str:
+    minister = str(ctx.get("minister") or "").strip()
+    title = str(ctx.get("title") or "旧约").strip()
+    if ctx.get("is_bargain"):
+        source_title = str(ctx.get("context_title") or title).strip()
+        evidence = {
+            "protect": f"御前认前番旧账「{source_title}」仍须清结，准{minister}补办两月，但不得再以空话搪塞。",
+            "resource_support": f"御前拨给{minister}人手文书查证旧账「{source_title}」，限一月交出证据、兑现结果与掣肘名单；再误则重责。",
+            "demand_evidence": f"御前责{minister}一月内补齐旧账「{source_title}」的人证账册、兑现进度与责任边界。",
+            "public_rebuke": f"御前明示旧账作废并公开申饬：{minister}前番承接「{source_title}」逾期不明，按负约负责。",
+            "self_prove": f"御前不护不罚，令{minister}自行证明前番旧账「{source_title}」仍可交代。",
+        }
+        return evidence[key]
+    evidence = {
+        "protect": f"御前护持{minister}，准其就「{title}」补办两月，但仍须交账。",
+        "resource_support": f"御前拨给{minister}人手文书办理「{title}」，但限一月交账；再误则重责。",
+        "demand_evidence": f"御前责{minister}一月内补足「{title}」证据、责任边界与复命说法。",
+        "public_rebuke": f"御前公开申饬：{minister}「{title}」逾期不明，按旧约负责。",
+        "self_prove": f"御前不护不罚，令{minister}自行证明「{title}」仍可交账。",
+    }
+    return evidence[key]
+
+
+def _goal_help_log(ctx: Dict[str, object], key: str) -> str:
+    minister = str(ctx.get("minister") or "").strip()
+    title = str(ctx.get("title") or "旧约").strip()
+    if ctx.get("is_bargain"):
+        logs = {
+            "protect": f"旧账逼问：认前话护持{minister}，准其补清「{title}」。",
+            "resource_support": f"旧账逼问：拨助{minister}查证兑现「{title}」，限一月交账。",
+            "demand_evidence": f"旧账逼问：限{minister}一月补齐证据「{title}」。",
+            "public_rebuke": f"旧账逼问：作废旧账并申饬{minister}负约「{title}」。",
+            "self_prove": f"旧账逼问：令{minister}自证旧账「{title}」。",
+        }
+        return logs[key]
+    logs = {
+        "protect": f"旧约求裁：护持{minister}，准其补办「{title}」。",
+        "resource_support": f"旧约求裁：拨助{minister}复办「{title}」，限一月交账。",
+        "demand_evidence": f"旧约求裁：限{minister}一月补证复命「{title}」。",
+        "public_rebuke": f"旧约求裁：公开申饬{minister}负约「{title}」。",
+        "self_prove": f"旧约求裁：令{minister}自行证明「{title}」。",
+    }
+    return logs[key]
+
+
 def _append_secret_order_court_line(state: GameState, prev: str, label: str, note: str) -> str:
     stamp = f"〔{period_label(state.year, state.period)}〕[{label}] "
     lines = [ln for ln in str(prev or "").split("\n") if ln.strip()]
@@ -1166,10 +1309,20 @@ def _goal_obligation_help(db: GameDB) -> Optional[Dict[str, object]]:
         label = str(pressure.get("label") or "奏对旧约").strip()
         kind = str(pressure.get("kind") or "").strip()
         age = _intish(pressure.get("age"))
+        is_bargain = _is_audience_bargain_goal(goal)
+        context_title = str(last_delta.get("context_title") or goal.get("title") or goal.get("target_text") or "").strip()
         network_touch = pressure.get("network_touch") if isinstance(pressure.get("network_touch"), dict) else {}
         allies = [str(item) for item in (network_touch.get("allies") or []) if str(item).strip()]
         rivals = [str(item) for item in (network_touch.get("rivals") or []) if str(item).strip()]
-        score = 30 + age + int(row["grievance"] or 0) // 8 + (8 if kind == "overdue" else 0) + len(allies) + len(rivals)
+        score = (
+            30
+            + age
+            + int(row["grievance"] or 0) // 8
+            + (8 if kind == "overdue" else 0)
+            + (10 if is_bargain else 0)
+            + len(allies)
+            + len(rivals)
+        )
         if score <= best_score:
             continue
         best = {
@@ -1186,6 +1339,8 @@ def _goal_obligation_help(db: GameDB) -> Optional[Dict[str, object]]:
             "target_text": str(goal.get("target_text") or goal.get("title") or ""),
             "label": label,
             "pressure_kind": kind,
+            "is_bargain": is_bargain,
+            "context_title": context_title,
             "age": age,
             "allies": allies[:3],
             "rivals": rivals[:3],
@@ -2246,24 +2401,11 @@ def _defs() -> List[Dict[str, object]]:
             "priority": 30,
             "cooldown": "ctx",
             "when": _goal_obligation_help,
-            "title": lambda c: f"旧约求裁：{c['minister']}请陛下给话",
-            "narrative": lambda c: (
-                f"{c['office']}{c['minister']}因「{c['title']}」入殿求见。"
-                f"这笔{c['label']}已经发酵，眼下信任{c['trust']}、怨望{c['grievance']}，"
-                + (
-                    f"同党{ '、'.join(c['allies']) }替他说情，"
-                    if c.get("allies") else ""
-                )
-                + (
-                    f"政敌{ '、'.join(c['rivals']) }则等着看笑话，"
-                    if c.get("rivals") else ""
-                )
-                + "若护持，恐开脱责之门；若公开申饬，旧约账本立住，却会寒任事之心。"
-                "陛下要如何把这件旧约收束成可玩的政治后果？"
-            ),
+            "title": _goal_help_title,
+            "narrative": _goal_help_narrative,
             "choices": [
-                {"key": "protect", "label": lambda c: f"先护持{c['minister']}，准其补办",
-                 "hint": "给台阶：人心回暖、同党安心；但会显得皇帝替人抹账，政敌不服",
+                {"key": "protect", "label": lambda c: _goal_help_label(c, "protect"),
+                 "hint": lambda c: _goal_help_hint(c, "protect"),
                  "effect": lambda c: {"shi": -1, "renshi": 2,
                                       "char": [{"name": c["minister"], "emp_trust": 5, "grievance": -6}],
                                       "faction": ({_meaningful_faction(c.get("faction")): {"satisfaction": 2, "heat": -1}}
@@ -2272,11 +2414,11 @@ def _defs() -> List[Dict[str, object]]:
                                           "id": c["goal_id"],
                                           "action": "extend",
                                           "months": 2,
-                                          "evidence": f"御前护持{c['minister']}，准其就「{c['title']}」补办两月，但仍须交账。"
+                                          "evidence": _goal_help_evidence(c, "protect")
                                       }],
-                                      "log": f"旧约求裁：护持{c['minister']}，准其补办「{c['title']}」。"}},
-                {"key": "resource_support", "label": lambda c: f"拨给人手文书，令{c['minister']}带责复办",
-                 "hint": "给真实资源，也给真实责任：任事心回升、国库小耗；若再无结果，后续追责更重",
+                                      "log": _goal_help_log(c, "protect")}},
+                {"key": "resource_support", "label": lambda c: _goal_help_label(c, "resource_support"),
+                 "hint": lambda c: _goal_help_hint(c, "resource_support"),
                  "effect": lambda c: {"shi": 1, "renshi": 2,
                                       "metrics": {"国库": -3},
                                       "char": [{"name": c["minister"], "emp_trust": 4, "grievance": -4}],
@@ -2292,11 +2434,11 @@ def _defs() -> List[Dict[str, object]]:
                                               "一月内回奏已用资源、可验证结果与剩余阻力。",
                                               "若仍不能成事，须自请处分并交代谁从中掣肘。"
                                           ],
-                                          "evidence": f"御前拨给{c['minister']}人手文书办理「{c['title']}」，但限一月交账；再误则重责。"
+                                          "evidence": _goal_help_evidence(c, "resource_support")
                                       }],
-                                      "log": f"旧约求裁：拨助{c['minister']}复办「{c['title']}」，限一月交账。"}},
-                {"key": "demand_evidence", "label": lambda c: f"限{c['minister']}一月补证复命",
-                 "hint": "折中：不立即治罪，但把证据压力写回旧约，后续仍会发酵",
+                                      "log": _goal_help_log(c, "resource_support")}},
+                {"key": "demand_evidence", "label": lambda c: _goal_help_label(c, "demand_evidence"),
+                 "hint": lambda c: _goal_help_hint(c, "demand_evidence"),
                  "effect": lambda c: {"shi": 1, "renshi": 1,
                                       "char": [{"name": c["minister"], "emp_trust": -1, "grievance": 2}],
                                       "faction": ({_meaningful_faction(c.get("faction")): {"heat": 1}}
@@ -2305,11 +2447,11 @@ def _defs() -> List[Dict[str, object]]:
                                           "id": c["goal_id"],
                                           "action": "extend",
                                           "months": 1,
-                                          "evidence": f"御前责{c['minister']}一月内补足「{c['title']}」证据、责任边界与复命说法。"
+                                          "evidence": _goal_help_evidence(c, "demand_evidence")
                                       }],
-                                      "log": f"旧约求裁：限{c['minister']}一月补证复命「{c['title']}」。"}},
-                {"key": "public_rebuke", "label": lambda c: f"公开申饬{c['minister']}负约",
-                 "hint": "把账本做实：立规矩、涨君威；本人和同党会记怨，政敌得势",
+                                      "log": _goal_help_log(c, "demand_evidence")}},
+                {"key": "public_rebuke", "label": lambda c: _goal_help_label(c, "public_rebuke"),
+                 "hint": lambda c: _goal_help_hint(c, "public_rebuke"),
                  "effect": lambda c: {"shi": 2, "renshi": -2,
                                       "char": [{"name": c["minister"], "emp_trust": -7, "grievance": 9}],
                                       "faction": ({_meaningful_faction(c.get("faction")): {"satisfaction": -3, "heat": 3}}
@@ -2317,20 +2459,20 @@ def _defs() -> List[Dict[str, object]]:
                                       "goals": [{
                                           "id": c["goal_id"],
                                           "action": "fail",
-                                          "evidence": f"御前公开申饬：{c['minister']}「{c['title']}」逾期不明，按旧约负责。"
+                                          "evidence": _goal_help_evidence(c, "public_rebuke")
                                       }],
-                                      "log": f"旧约求裁：公开申饬{c['minister']}负约「{c['title']}」。"}},
-                {"key": "self_prove", "label": lambda c: f"不护不罚，令{c['minister']}自行证明",
-                 "hint": "不给护身符：保规矩、留余地；本人压力仍在，若再拖会继续反噬",
+                                      "log": _goal_help_log(c, "public_rebuke")}},
+                {"key": "self_prove", "label": lambda c: _goal_help_label(c, "self_prove"),
+                 "hint": lambda c: _goal_help_hint(c, "self_prove"),
                  "effect": lambda c: {"shi": 1, "renshi": 0,
                                       "char": [{"name": c["minister"], "emp_trust": 1, "grievance": 1}],
                                       "goals": [{
                                           "id": c["goal_id"],
                                           "action": "extend",
                                           "months": 1,
-                                          "evidence": f"御前不护不罚，令{c['minister']}自行证明「{c['title']}」仍可交账。"
+                                          "evidence": _goal_help_evidence(c, "self_prove")
                                       }],
-                                      "log": f"旧约求裁：令{c['minister']}自行证明「{c['title']}」。"}},
+                                      "log": _goal_help_log(c, "self_prove")}},
             ],
         },
         {

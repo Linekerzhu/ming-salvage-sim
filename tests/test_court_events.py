@@ -172,6 +172,42 @@ def _blocked_goal_case(db, state):
     return minister, goal_id
 
 
+def _blocked_bargain_goal_case(db, state):
+    minister, _other = _two_ming(db)
+    db.conn.execute(
+        "UPDATE characters SET emp_trust=45, grievance=58, faction='东林' WHERE name=?",
+        (minister,),
+    )
+    goal_id = db.create_conversation_goal(
+        state,
+        minister_name=minister,
+        action_kind="audience_bargain",
+        title=f"旧账索证：{minister}",
+        target_text=f"{minister}须围绕「条件待证：{minister}」补齐人证账册与兑现进度。",
+        threshold=68,
+        score=100,
+        status="blocked",
+        condition_status="blocked",
+        conditions=[{"description": "补齐人证账册与兑现进度。", "status": "failed"}],
+        blockers=["前番御前旧账迟迟未补证，已成政敌把柄。"],
+        expires_turn=int(state.turn),
+        last_delta={
+            "source": "audience_bargain_commitment",
+            "attitude": "press",
+            "context_title": f"条件待证：{minister}",
+            "monthly_pressure": {
+                "kind": "overdue",
+                "label": "御前旧账",
+                "turn": int(state.turn),
+                "age": 3,
+                "trust_delta": -2,
+                "grievance_delta": 6,
+            },
+        },
+    )
+    return minister, goal_id
+
+
 def _patronage_case(db):
     sponsor, candidate = _two_ming(db)
     db.conn.execute(
@@ -446,6 +482,44 @@ class TriggerTests(unittest.TestCase):
             self.assertIn("旧约追责", [str(e["label"]) for e in rebuke["effects"]])
             pending = court_events.get_pending(db) or {}
             self.assertEqual(str(pending.get("cooldown_key")), f"goal_obligation_help:{goal_id}")
+
+    def test_bargain_goal_pressure_uses_old_account_dilemma(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            minister, goal_id = _blocked_bargain_goal_case(db, state)
+
+            payload = court_events.evaluate_decisions(db, state, day)
+
+            self.assertIsNotNone(payload)
+            self.assertEqual(payload["id"], "goal_obligation_help")
+            self.assertIn("旧账逼问", str(payload["title"]))
+            self.assertIn("前番御前旧账", str(payload["narrative"]))
+            self.assertIn("条件待证", str(payload["narrative"]))
+            choices = {str(ch["key"]): ch for ch in payload["choices"]}
+            self.assertEqual(set(choices), {"protect", "resource_support", "demand_evidence", "public_rebuke", "self_prove"})
+            self.assertIn("补齐旧账证据", str(choices["demand_evidence"]["label"]))
+            self.assertIn("旧账作废", str(choices["public_rebuke"]["label"]))
+            self.assertIn("查证", str(choices["resource_support"]["hint"]))
+
+            res = court_events.resolve_decision(db, state, "demand_evidence", day=day)
+
+            self.assertTrue(res["ok"], res)
+            self.assertIn("旧账逼问", str(res["title"]))
+            goal = db.get_conversation_goal(goal_id) or {}
+            self.assertEqual(goal.get("status"), "waiting_conditions")
+            self.assertIn("旧账", json.dumps(goal.get("last_delta") or {}, ensure_ascii=False))
+            event = db.conn.execute(
+                """
+                SELECT summary
+                FROM conversation_goal_events
+                WHERE goal_id=? AND event_kind='goal_extended'
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (goal_id,),
+            ).fetchone()
+            self.assertIsNotNone(event)
+            self.assertIn("条件待证", str(event["summary"]))
 
 
 class ResolveTests(unittest.TestCase):
