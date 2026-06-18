@@ -3800,12 +3800,17 @@ class WebGame:
             except Exception:
                 pass
             commitment = self._create_relationship_commitment(minister_name, actor, target, mode)
+            dialogue_goal = None
             if commitment:
                 effects.append({
                     "kind": "conversation_goal",
                     "label": f"履约账本：{commitment['owner']}",
                     "tone": "warn",
                 })
+                try:
+                    dialogue_goal = self.db.get_conversation_goal(int(commitment.get("goal_id") or 0))
+                except Exception:
+                    dialogue_goal = None
             self._clear_pending_dialogue_action(minister_name)
             if mode == "guarantee":
                 answer = (
@@ -3823,6 +3828,7 @@ class WebGame:
                     "message": message,
                     "effects": effects,
                 },
+                "dialogue_goal": dialogue_goal,
             }
         if faction:
             try:
@@ -4254,6 +4260,7 @@ class WebGame:
                 answer,
                 recruited_minister=str(dialogue_response.get("recruited_minister") or ""),
                 dialogue_effect=dialogue_response.get("dialogue_effect") if isinstance(dialogue_response.get("dialogue_effect"), dict) else None,
+                dialogue_goal=dialogue_response.get("dialogue_goal") if isinstance(dialogue_response.get("dialogue_goal"), dict) else None,
                 chat_turn_id=chat_turn_id,
             )
         context_brief = self._chat_context_brief(minister_name, context)
@@ -4367,6 +4374,7 @@ class WebGame:
                 answer,
                 recruited_minister=str(dialogue_response.get("recruited_minister") or ""),
                 dialogue_effect=dialogue_response.get("dialogue_effect") if isinstance(dialogue_response.get("dialogue_effect"), dict) else None,
+                dialogue_goal=dialogue_response.get("dialogue_goal") if isinstance(dialogue_response.get("dialogue_goal"), dict) else None,
                 chat_turn_id=chat_turn_id,
             )
             yield {"type": "done", "payload": payload}

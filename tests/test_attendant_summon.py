@@ -1199,6 +1199,9 @@ class AttendantSummonTests(unittest.TestCase):
             payload = confirm_events[-1]["payload"]
             effects = payload["dialogue_effect"]["effects"]
             self.assertIn(f"履约账本：{actor}", {str(item["label"]) for item in effects})
+            self.assertEqual(payload["dialogue_goal"]["minister_name"], actor)
+            self.assertIn("共办消怨", str(payload["dialogue_goal"]["title"]))
+            self.assertEqual(payload["dialogue_goal"]["status_label"], "待条件")
             goals = game.db.list_conversation_goals(minister_name=actor, statuses=["waiting_conditions"])
             self.assertEqual(len(goals), 1)
             self.assertIn("共办消怨", str(goals[0]["title"]))
@@ -1241,6 +1244,9 @@ class AttendantSummonTests(unittest.TestCase):
 
             payload = confirm_events[-1]["payload"]
             self.assertEqual(payload["dialogue_effect"]["title"], "人情担保")
+            self.assertEqual(payload["dialogue_goal"]["minister_name"], actor)
+            self.assertIn("人情担保", str(payload["dialogue_goal"]["title"]))
+            self.assertEqual(payload["dialogue_goal"]["status_label"], "待条件")
             goals = game.db.list_conversation_goals(minister_name=actor, statuses=["waiting_conditions"])
             self.assertEqual(len(goals), 1)
             self.assertIn("人情担保", str(goals[0]["title"]))

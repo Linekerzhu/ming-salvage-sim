@@ -11,6 +11,7 @@ type NextStep = {
   hint: string;
   tab?: Tab;
   person?: string;
+  profile?: string;
 };
 
 function cleanDisplayText(raw: string): string {
@@ -156,6 +157,14 @@ export function ChatPane({
         setNextStep({ label: "看密令进度", hint: "密令已入诏旨账", tab: "edicts" });
       } else if (resp.directive_effect?.message && onGo) {
         setNextStep({ label: "看在办诏旨", hint: "旨意执行有变化", tab: "edicts" });
+      } else if (goal?.id) {
+        const owner = String(goal.minister_name || goal.owner || goal.actor || name).trim();
+        const title = String(goal.title || "御前承诺").slice(0, 18);
+        if (owner && onOpenPerson) {
+          setNextStep({ label: "查履约档", hint: `已入履约账本：${title}`, profile: owner });
+        } else if (owner && onSummon) {
+          setNextStep({ label: "召履约人", hint: `已入履约账本：${title}`, person: owner });
+        }
       }
       onWorldChanged?.();
       if (resp.next_minister && onSummon) {
@@ -179,6 +188,11 @@ export function ChatPane({
     if (nextStep.person && onSummon) {
       setNotice(`已传召 ${nextStep.person} 觐见。`);
       onSummon(nextStep.person);
+      setNextStep(null);
+      return;
+    }
+    if (nextStep.profile && onOpenPerson) {
+      onOpenPerson(nextStep.profile);
       setNextStep(null);
       return;
     }

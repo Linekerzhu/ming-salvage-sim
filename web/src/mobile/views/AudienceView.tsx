@@ -27,7 +27,8 @@ export function AudienceView({
   const { state, refresh, worldVersion } = useGame();
   const openPerson = usePerson();
   const [eunuch, setEunuch] = useState<PublicCharacter | null | undefined>(undefined);
-  const [sheet, setSheet] = useState<"" | "summon" | "replace">("");
+  const [sheet, setSheet] = useState<"" | "summon" | "replace" | "hooks">("");
+  const [dossierOpen, setDossierOpen] = useState(false);
   const [candidates, setCandidates] = useState<Array<{ name: string; office: string; is_eunuch: boolean }>>([]);
   const [leads, setLeads] = useState<PlaystyleBriefCard[]>([]);
   const [summonHints, setSummonHints] = useState<Record<string, SummonHint>>({});
@@ -41,6 +42,10 @@ export function AudienceView({
       .then((r) => setLeads((r.cards || []).filter((card) => card.actor).slice(0, 3)))
       .catch(() => setLeads([]));
   }, [audience, worldVersion]);
+  useEffect(() => {
+    setDossierOpen(false);
+    setSheet("");
+  }, [audience]);
 
   const ministers: PublicCharacter[] = (state?.ministers || []).filter(
     (m: any) => m.status === "active" && m.name !== eunuch?.name,
@@ -86,7 +91,7 @@ export function AudienceView({
       ...(activeLead?.prompts || []),
       ...(goalSuggestion ? [goalSuggestion] : []),
     ];
-    const visibleAudienceGoals = audienceGoals.slice(0, 2);
+    const hasDossier = Boolean(activeLead || audienceGoals.length > 0);
     const dossierTone = activeLead?.tone || audienceGoalsTone(audienceGoals);
     const dossierMeta = [activeLead?.meta, audienceGoals.length ? `${audienceGoals.length} 桩旧约` : ""].filter(Boolean).join(" · ");
     const dossierTitle = activeLead?.title || audienceGoals[0]?.title || audienceGoals[0]?.goal_type || "可展开查阅";
@@ -114,69 +119,18 @@ export function AudienceView({
             ? `（${audience}正在御前随侍，本次按差使复命追问。）`
             : `（${audience} 奉召趋入，正在御前奏对。奏对完成后，由随侍送其告退。）`}
         </div>
-        {(activeLead || audienceGoals.length > 0) && (
-          <details className={`m-audience-dossier tone-${dossierTone}`} aria-label="奏对情报">
-            <summary className="m-audience-dossier-head">
-              <span>奏对情报</span>
-              <small>{dossierMeta || "本场上下文"}</small>
-              <b>{dossierTitle}</b>
-              <span className="m-disclosure-caret">卷</span>
-            </summary>
-            <div className="m-audience-dossier-body">
-              {activeLead && (
-                <section className="m-audience-dossier-section">
-                  <div className="m-audience-dossier-label">本次召对</div>
-                  <div className="m-audience-dossier-title">{activeLead.title}</div>
-                  <div className="m-audience-dossier-detail">{activeLead.detail}</div>
-                  {activeLead.stakes?.length ? (
-                    <div className="m-audience-lead-stakes" aria-label="本次召对两难">
-                      {activeLead.stakes.slice(0, 3).map((it, idx) => (
-                        <span key={`${it.label}-${idx}`} className={`m-stake-chip tone-${it.tone || "neutral"}`}>
-                          {it.label}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                  {activeLead.target && (
-                    <div className="m-lead-actions">
-                      <button className="m-lead-link" onClick={() => openPerson(activeLead.target!)}>查{activeLead.target}</button>
-                      {activeLead.target !== audience && (
-                        <button
-                          className="m-lead-link primary"
-                          onClick={() => onAudienceChange(activeLead.target!, counterpartLeadFromActive(activeLead, audience))}
-                        >
-                          传{shortName(activeLead.target)}对质
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </section>
-              )}
-              {audienceGoals.length > 0 && (
-                <section className="m-audience-dossier-section">
-                  <div className="m-audience-dossier-label">旧约在案 · {audienceGoals.length} 桩未竟</div>
-                  <div className="m-audience-goals-list">
-                    {visibleAudienceGoals.map((goal, i) => (
-                      <div key={`${goal.id || i}-${goal.title || goal.target_text || ""}`} className={`m-audience-goal tone-${goal.status || "active"}`}>
-                        <span className="m-audience-goal-title">{goal.title || goal.goal_type || "未竟奏对"}</span>
-                        <span className="m-audience-goal-meta">
-                          {[goal.status_label, goal.condition_label, goal.due_label, goal.progress_label].filter(Boolean).join(" · ")}
-                        </span>
-                        {(goal.blocker_summary || goal.pending_summary || goal.public_hint) && (
-                          <span className="m-audience-goal-note">{goal.blocker_summary || goal.pending_summary || goal.public_hint}</span>
-                        )}
-                      </div>
-                    ))}
-                    {audienceGoals.length > visibleAudienceGoals.length && (
-                      <div className="m-audience-goals-more">
-                        另有 {audienceGoals.length - visibleAudienceGoals.length} 桩未竟，查此人可看完整档案
-                      </div>
-                    )}
-                  </div>
-                </section>
-              )}
-            </div>
-          </details>
+        {hasDossier && (
+          <button
+            type="button"
+            className={`m-audience-dossier-strip tone-${dossierTone}`}
+            onClick={() => setDossierOpen(true)}
+            aria-label="打开奏对情报卷宗"
+          >
+            <span>奏对情报</span>
+            <small>{dossierMeta || "本场上下文"}</small>
+            <b>{dossierTitle}</b>
+            <span className="m-disclosure-caret">阅</span>
+          </button>
         )}
         <ChatPane
           key={isAttendantAudience ? `eunuch-lead:${audience}:${activeLead?.ref_id || ""}` : audience}
@@ -190,6 +144,17 @@ export function AudienceView({
           leadSuggestions={leadSuggestions}
           chatContext={activeLead ? chatContextFromLead(activeLead) : undefined}
         />
+        {hasDossier && dossierOpen && (
+          <AudienceDossierSheet
+            tone={dossierTone}
+            activeLead={activeLead}
+            audienceGoals={audienceGoals}
+            audience={audience}
+            openPerson={openPerson}
+            onAudienceChange={onAudienceChange}
+            onClose={() => setDossierOpen(false)}
+          />
+        )}
       </div>
     );
   }
@@ -223,57 +188,17 @@ export function AudienceView({
       </div>
       {audienceNotice && <div className="m-audience-return">{audienceNotice}</div>}
       {leads.length > 0 && (
-        <details className="m-audience-hooks" aria-label="今日候见">
-          <summary className="m-audience-hooks-head">
-            <span>随侍递话</span>
-            <small>{leads.length} 件候旨</small>
-            <b>{leads[0]?.title || "宫门外有人候旨"}</b>
-            <span className="m-disclosure-caret">卷</span>
-          </summary>
-          <div className="m-audience-hooks-list">
-            {leads.map((card, i) => {
-              const urgency = briefUrgency(card.urgency);
-              return (
-                <div key={`${card.kind}-${card.ref_id || i}`} className={`m-audience-hook tone-${card.tone || "info"}`}>
-                  <button
-                    className="m-audience-hook-main"
-                    onClick={() => {
-                      const actor = String(card.actor || "").trim();
-                      if (!actor) return;
-                      onAudienceChange(actor, leadFor(card));
-                    }}
-                  >
-                    <Portrait name={String(card.actor || "")} size={30} interactive={false} />
-                    <span className="m-audience-hook-body">
-                      <span className="m-audience-hook-title">{card.title}</span>
-                      <span className="m-audience-hook-detail">{card.detail}</span>
-                      {card.stakes?.length ? (
-                        <span className="m-audience-hook-stakes" aria-label="候见两难">
-                          {card.stakes.slice(0, 3).map((it, idx) => (
-                            <span key={`${it.label}-${idx}`} className={`m-stake-chip tone-${it.tone || "neutral"}`}>
-                              {it.label}
-                            </span>
-                          ))}
-                        </span>
-                      ) : null}
-                    </span>
-                    {urgency && <span className={`m-audience-hook-rank level-${urgency.level}`}>{urgency.label}{urgency.score}</span>}
-                  </button>
-                  <button
-                    className="m-audience-hook-act"
-                    onClick={() => {
-                      const actor = String(card.actor || "").trim();
-                      if (!actor) return;
-                      onAudienceChange(actor, leadFor(card));
-                    }}
-                  >
-                    召{shortName(card.actor)}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </details>
+        <button
+          type="button"
+          className="m-audience-hooks-strip"
+          onClick={() => setSheet("hooks")}
+          aria-label="打开随侍递话"
+        >
+          <span>随侍递话</span>
+          <small>{leads.length} 件候旨</small>
+          <b>{leads[0]?.title || "宫门外有人候旨"}</b>
+          <span className="m-disclosure-caret">阅</span>
+        </button>
       )}
       <ChatPane
         key={`eunuch:${eunuch.name}`}
@@ -289,7 +214,7 @@ export function AudienceView({
         <div className="m-sheet-backdrop" onClick={() => setSheet("")}>
           <div className="m-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="m-sheet-head">
-              <h3>{sheet === "summon" ? `命${eunuch.name}传召大臣觐见` : "改命随侍太监"}</h3>
+              <h3>{sheet === "summon" ? `命${eunuch.name}传召大臣觐见` : sheet === "replace" ? "改命随侍太监" : "随侍递话"}</h3>
               <button className="m-mini" onClick={() => setSheet("")}>关</button>
             </div>
             <div className="m-sheet-body">
@@ -318,6 +243,17 @@ export function AudienceView({
                   })}
                 </>
               )}
+              {sheet === "hooks" && (
+                <AudienceHookList
+                  leads={leads}
+                  onSelect={(card) => {
+                    const actor = String(card.actor || "").trim();
+                    if (!actor) return;
+                    onAudienceChange(actor, leadFor(card));
+                    setSheet("");
+                  }}
+                />
+              )}
               {sheet === "replace" &&
                 candidates.map((c) => (
                   <button key={c.name} className="m-sheet-row" onClick={() => doReplace(c.name)}>
@@ -328,6 +264,162 @@ export function AudienceView({
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function AudienceHookList({
+  leads,
+  onSelect,
+}: {
+  leads: PlaystyleBriefCard[];
+  onSelect: (card: PlaystyleBriefCard) => void;
+}) {
+  return (
+    <div className="m-audience-hooks-list m-audience-hooks-sheet">
+      {leads.map((card, i) => {
+        const urgency = briefUrgency(card.urgency);
+        return (
+          <div key={`${card.kind}-${card.ref_id || i}`} className={`m-audience-hook tone-${card.tone || "info"}`}>
+            <button className="m-audience-hook-main" onClick={() => onSelect(card)}>
+              <Portrait name={String(card.actor || "")} size={30} interactive={false} />
+              <span className="m-audience-hook-body">
+                <span className="m-audience-hook-title">{card.title}</span>
+                <span className="m-audience-hook-detail">{card.detail}</span>
+                {card.stakes?.length ? (
+                  <span className="m-audience-hook-stakes" aria-label="候见两难">
+                    {card.stakes.slice(0, 3).map((it, idx) => (
+                      <span key={`${it.label}-${idx}`} className={`m-stake-chip tone-${it.tone || "neutral"}`}>
+                        {it.label}
+                      </span>
+                    ))}
+                  </span>
+                ) : null}
+              </span>
+              {urgency && <span className={`m-audience-hook-rank level-${urgency.level}`}>{urgency.label}{urgency.score}</span>}
+            </button>
+            <button className="m-audience-hook-act" onClick={() => onSelect(card)}>
+              召{shortName(card.actor)}
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function AudienceDossierSheet({
+  tone,
+  activeLead,
+  audienceGoals,
+  audience,
+  openPerson,
+  onAudienceChange,
+  onClose,
+}: {
+  tone: string;
+  activeLead: AudienceLead | null;
+  audienceGoals: any[];
+  audience: string;
+  openPerson: (name: string) => void;
+  onAudienceChange: (name: string, lead?: AudienceLead | null) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="m-sheet-backdrop" onClick={onClose}>
+      <div className={`m-sheet m-audience-context-sheet tone-${tone}`} onClick={(e) => e.stopPropagation()}>
+        <div className="m-sheet-head">
+          <h3>奏对情报</h3>
+          <button className="m-mini" onClick={onClose}>收</button>
+        </div>
+        <div className="m-sheet-body m-audience-context-body">
+          <AudienceDossierBody
+            activeLead={activeLead}
+            audienceGoals={audienceGoals}
+            audience={audience}
+            openPerson={openPerson}
+            onAudienceChange={onAudienceChange}
+            onClose={onClose}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AudienceDossierBody({
+  activeLead,
+  audienceGoals,
+  audience,
+  openPerson,
+  onAudienceChange,
+  onClose,
+}: {
+  activeLead: AudienceLead | null;
+  audienceGoals: any[];
+  audience: string;
+  openPerson: (name: string) => void;
+  onAudienceChange: (name: string, lead?: AudienceLead | null) => void;
+  onClose: () => void;
+}) {
+  const visibleAudienceGoals = audienceGoals.slice(0, 3);
+  return (
+    <div className="m-audience-dossier-body">
+      {activeLead && (
+        <section className="m-audience-dossier-section">
+          <div className="m-audience-dossier-label">本次召对</div>
+          <div className="m-audience-dossier-title">{activeLead.title}</div>
+          <div className="m-audience-dossier-detail">{activeLead.detail}</div>
+          {activeLead.stakes?.length ? (
+            <div className="m-audience-lead-stakes" aria-label="本次召对两难">
+              {activeLead.stakes.slice(0, 3).map((it, idx) => (
+                <span key={`${it.label}-${idx}`} className={`m-stake-chip tone-${it.tone || "neutral"}`}>
+                  {it.label}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {activeLead.target && (
+            <div className="m-lead-actions">
+              <button className="m-lead-link" onClick={() => { onClose(); openPerson(activeLead.target!); }}>查{activeLead.target}</button>
+              {activeLead.target !== audience && (
+                <button
+                  className="m-lead-link primary"
+                  onClick={() => {
+                    onClose();
+                    onAudienceChange(activeLead.target!, counterpartLeadFromActive(activeLead, audience));
+                  }}
+                >
+                  传{shortName(activeLead.target)}对质
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+      {audienceGoals.length > 0 && (
+        <section className="m-audience-dossier-section">
+          <div className="m-audience-dossier-label">旧约在案 · {audienceGoals.length} 桩未竟</div>
+          <div className="m-audience-goals-list">
+            {visibleAudienceGoals.map((goal, i) => (
+              <div key={`${goal.id || i}-${goal.title || goal.target_text || ""}`} className={`m-audience-goal tone-${goal.status || "active"}`}>
+                <span className="m-audience-goal-title">{goal.title || goal.goal_type || "未竟奏对"}</span>
+                <span className="m-audience-goal-meta">
+                  {[goal.status_label, goal.condition_label, goal.due_label, goal.progress_label].filter(Boolean).join(" · ")}
+                </span>
+                {(goal.blocker_summary || goal.pending_summary || goal.public_hint) && (
+                  <span className="m-audience-goal-note">{goal.blocker_summary || goal.pending_summary || goal.public_hint}</span>
+                )}
+              </div>
+            ))}
+            {audienceGoals.length > visibleAudienceGoals.length && (
+              <div className="m-audience-goals-more">
+                另有 {audienceGoals.length - visibleAudienceGoals.length} 桩未竟，查此人可看完整档案
+              </div>
+            )}
+          </div>
+        </section>
       )}
     </div>
   );

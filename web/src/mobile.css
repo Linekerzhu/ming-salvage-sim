@@ -609,7 +609,30 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   color: #21180c; background: linear-gradient(180deg, #c1964d, var(--gold-deep));
   border: 1px solid rgba(92,64,22,.18); font-size: .74rem; font-weight: 900;
 }
-.m-audience-return { flex: 0 0 auto; margin: 8px var(--pad) 0; padding: 8px 12px; border: 1px solid rgba(197,157,92,.34); border-radius: 8px; background: rgba(197,157,92,.10); color: #d9c79a; font-size: 0.84rem; line-height: 1.45; }
+.m-audience-return {
+  flex: 0 0 auto; margin: 6px var(--pad) 0; padding: 6px 10px;
+  border: 1px solid rgba(197,157,92,.34); border-radius: 8px;
+  background: rgba(197,157,92,.10); color: #d9c79a; font-size: 0.78rem; line-height: 1.35;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.m-audience-dossier-strip,
+.m-audience-hooks-strip {
+  flex: 0 0 auto; display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 7px;
+  min-height: 34px; margin: 6px var(--pad) 0; padding: 5px 8px 5px 9px;
+  border: 1px solid rgba(181,134,58,.26); border-left: 4px solid var(--gold-deep); border-radius: 8px;
+  background: rgba(0,0,0,.14); text-align: left;
+}
+.m-audience-dossier-strip span,
+.m-audience-hooks-strip span { color: var(--gold); font-size: .76rem; font-weight: 900; white-space: nowrap; }
+.m-audience-dossier-strip small,
+.m-audience-hooks-strip small { color: #9c8a64; font-size: .67rem; white-space: nowrap; }
+.m-audience-dossier-strip b,
+.m-audience-hooks-strip b {
+  min-width: 0; color: #bfae86; font-size: .72rem; font-weight: 800;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.m-audience-dossier-strip.tone-danger { border-color: rgba(158,52,41,.38); border-left-color: var(--cinnabar); background: rgba(158,52,41,.08); }
+.m-audience-dossier-strip.tone-warn { border-left-color: #b5863a; background: rgba(181,134,58,.09); }
 .m-audience-hooks { flex: 0 0 auto; margin: 8px var(--pad) 0; padding: 8px 9px;
   border: 1px solid rgba(181,134,58,.24); border-radius: 8px; background: rgba(0,0,0,.16); }
 .m-audience-hooks-head { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 7px; margin-bottom: 0; cursor: pointer; list-style: none; }
@@ -638,6 +661,27 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-audience-hook-act { margin: 6px 6px 6px 0; padding: 0 9px; border-radius: 7px; min-width: 48px;
   color: #f1cf8c; background: rgba(181,134,58,.14); border: 1px solid rgba(181,134,58,.32);
   font-size: .72rem; font-weight: 800; white-space: nowrap; }
+.m-audience-hooks-sheet { gap: 7px; padding-top: 2px; }
+.m-audience-hooks-sheet .m-audience-hook {
+  background: rgba(181,134,58,.075); border-color: rgba(181,134,58,.18);
+}
+.m-audience-hooks-sheet .m-audience-hook.tone-danger {
+  background: rgba(158,52,41,.07); border-color: rgba(158,52,41,.24);
+}
+.m-audience-hooks-sheet .m-audience-hook-title { color: var(--ink); }
+.m-audience-hooks-sheet .m-audience-hook-detail { color: var(--ink-soft); }
+.m-audience-hooks-sheet .m-audience-hook-stakes .m-stake-chip {
+  color: #5c4b2e; background: rgba(181,134,58,.1); border-color: rgba(181,134,58,.22);
+}
+.m-audience-hooks-sheet .m-audience-hook-stakes .m-stake-chip.tone-good {
+  color: #24543a; background: rgba(74,128,96,.13); border-color: rgba(74,128,96,.3);
+}
+.m-audience-hooks-sheet .m-audience-hook-stakes .m-stake-chip.tone-bad {
+  color: #8a2c22; background: rgba(158,52,41,.11); border-color: rgba(158,52,41,.28);
+}
+.m-audience-hooks-sheet .m-audience-hook-act {
+  color: var(--gold-deep); background: rgba(181,134,58,.1); border-color: rgba(181,134,58,.28);
+}
 
 .m-suggestions-panel { flex: 0 0 auto; margin: 0; padding: 5px var(--pad); border-top: 1px solid rgba(200,162,74,.16); background: rgba(20,15,9,.38); }
 .m-suggestions-summary { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 7px; cursor: pointer; list-style: none; min-height: 30px; }
@@ -830,6 +874,40 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-audience-goals-more {
   padding: 5px 7px; color: #9c8a64; font-size: .68rem; font-weight: 800;
   border: 1px dashed rgba(181,134,58,.22); border-radius: 7px; background: rgba(0,0,0,.1);
+}
+.m-audience-context-sheet { max-height: min(76dvh, 620px); }
+.m-audience-context-body { padding-top: 8px; }
+.m-audience-context-body .m-audience-dossier-body {
+  max-height: none; overflow: visible; padding: 0; border-top: none;
+  color: var(--ink);
+}
+.m-audience-context-body .m-audience-dossier-section + .m-audience-dossier-section {
+  padding-top: 10px; border-top-color: rgba(74,45,20,.15);
+}
+.m-audience-context-body .m-audience-dossier-label { color: var(--gold-deep); }
+.m-audience-context-body .m-audience-dossier-title { color: var(--ink); font-size: .9rem; }
+.m-audience-context-body .m-audience-dossier-detail { color: var(--ink-soft); font-size: .84rem; }
+.m-audience-context-body .m-audience-goal {
+  background: rgba(181,134,58,.075); border-color: rgba(181,134,58,.18);
+}
+.m-audience-context-body .m-audience-goal.tone-blocked,
+.m-audience-context-body .m-audience-goal.tone-expired {
+  background: rgba(158,52,41,.065); border-color: rgba(158,52,41,.24);
+}
+.m-audience-context-body .m-audience-goal-title { color: var(--ink); font-size: .84rem; }
+.m-audience-context-body .m-audience-goal-meta { color: var(--gold-deep); }
+.m-audience-context-body .m-audience-goal-note { color: var(--ink-soft); -webkit-line-clamp: 3; }
+.m-audience-context-body .m-audience-goals-more {
+  color: var(--ink-soft); background: rgba(42,31,18,.035); border-color: rgba(74,45,20,.14);
+}
+.m-audience-context-body .m-audience-lead-stakes .m-stake-chip {
+  color: #5c4b2e; background: rgba(181,134,58,.1); border-color: rgba(181,134,58,.22);
+}
+.m-audience-context-body .m-audience-lead-stakes .m-stake-chip.tone-good {
+  color: #24543a; background: rgba(74,128,96,.13); border-color: rgba(74,128,96,.3);
+}
+.m-audience-context-body .m-audience-lead-stakes .m-stake-chip.tone-bad {
+  color: #8a2c22; background: rgba(158,52,41,.11); border-color: rgba(158,52,41,.28);
 }
 .m-disclosure-caret { justify-self: end; color: #8e7b58; border: 1px solid rgba(181,134,58,.24); border-radius: 6px; padding: 1px 5px; font-size: .64rem; font-weight: 900; }
 details[open] > summary .m-disclosure-caret { color: var(--gold); background: rgba(181,134,58,.12); }
