@@ -371,6 +371,7 @@ function AudienceDossierBody({
           <div className="m-audience-dossier-label">本次召对</div>
           <div className="m-audience-dossier-title">{activeLead.title}</div>
           <div className="m-audience-dossier-detail">{activeLead.detail}</div>
+          <AudienceDealBox lead={activeLead} />
           {activeLead.stakes?.length ? (
             <div className="m-audience-lead-stakes" aria-label="本次召对两难">
               {activeLead.stakes.slice(0, 3).map((it, idx) => (
@@ -421,6 +422,25 @@ function AudienceDossierBody({
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+function AudienceDealBox({ lead }: { lead: AudienceLead }) {
+  const items = [
+    ["所求", lead.ask || lead.motive || ""],
+    ["可逼", lead.exchange || lead.gain || ""],
+    ["代价", lead.cost || ""],
+    ["拒之", lead.refusal || ""],
+  ].filter(([, value]) => String(value || "").trim());
+  if (!items.length) return null;
+  return (
+    <div className="m-audience-deal" aria-label="御前交易条件">
+      {items.map(([label, value]) => (
+        <span key={label}>
+          <b>{label}</b>{value}
+        </span>
+      ))}
     </div>
   );
 }

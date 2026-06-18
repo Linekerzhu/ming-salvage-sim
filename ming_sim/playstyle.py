@@ -110,6 +110,89 @@ _CARD_MOTIVES = {
     "hook": "把柄可试探",
 }
 
+_CARD_DEALS = {
+    "decision": {
+        "ask": "要皇帝立判",
+        "exchange": "先交证据与担责人，再求裁断",
+        "refusal": "拖久会让各方自行串联造势",
+    },
+    "trap": {
+        "ask": "求御前尽快批红",
+        "exchange": "先批急疏，暂缓低急请托",
+        "refusal": "奏而不答会喂高避事风气",
+    },
+    "trap_remedy": {
+        "ask": "求皇帝替其买单或起复",
+        "exchange": "旧案复盘后领难差自证",
+        "refusal": "继续观望会加重百官畏事",
+    },
+    "directive_blocker": {
+        "ask": "求解释或松动旨意边界",
+        "exchange": "当面交代掣肘来源并配合主办",
+        "refusal": "暗阻会继续消磨旨意进度",
+    },
+    "directive_followup": {
+        "ask": "求认可复命口径",
+        "exchange": "交实绩、水分与下一步可验差使",
+        "refusal": "赏罚不明会让成果难以续用",
+    },
+    "monthly_followup": {
+        "ask": "求展限、资源或明旨护身",
+        "exchange": "补证据、重定期限并写入履约账",
+        "refusal": "旧约失信会转成怨望和推诿",
+    },
+    "patronage": {
+        "ask": "求皇帝采纳举荐",
+        "exchange": "举主连坐担保，新人领试差自证",
+        "refusal": "门生故旧会转入派系人情账",
+    },
+    "petition": {
+        "ask": "求体面台阶或御前护持",
+        "exchange": "领可验难差，交证据、账目或把柄",
+        "refusal": "记作被冷落，后续可能以公事泄私怨",
+    },
+    "favor": {
+        "ask": "求把旧恩兑现成护持",
+        "exchange": "用旧恩换难差、证据或效忠",
+        "refusal": "旧恩冷却后会反向要赏或观望",
+    },
+    "relationship": {
+        "ask": "求替故旧或同党留边界",
+        "exchange": "连坐担保、共办差使并交避嫌账",
+        "refusal": "人情链可能固成党援暗线",
+    },
+    "legacy": {
+        "ask": "求旧政善后或暂缓追责",
+        "exchange": "交账册、补缺口、定受益与受损者",
+        "refusal": "民怨和钱粮缺口会继续滚动",
+    },
+    "army": {
+        "ask": "求饷权、兵册或换将名分",
+        "exchange": "交兵册、受监军、限期清欠饷",
+        "refusal": "军中可能借欠饷和离心自保",
+    },
+    "faction": {
+        "ask": "求名分、官缺或一件露脸差使",
+        "exchange": "交人手、压弹章、限期办成急务",
+        "refusal": "党争热度会转成逼宫式要价",
+    },
+    "agenda": {
+        "ask": "求名分、台阶或差使",
+        "exchange": "给期限、要证据、设担保后再任用",
+        "refusal": "私图会转入结援、串供或报复",
+    },
+    "rivalry": {
+        "ask": "求皇帝划清旧怨边界",
+        "exchange": "先交证据，必要时与政敌共办",
+        "refusal": "旧怨会转成弹劾、放话或暗中掣肘",
+    },
+    "hook": {
+        "ask": "求暂不发作把柄",
+        "exchange": "用把柄换效忠、难差或线索",
+        "refusal": "逼急可能毁证或投靠他人",
+    },
+}
+
 
 def _agenda_bargain_profile(kind: str, target: str = "") -> Dict[str, str]:
     """Readable stakes for a private agenda audience.
@@ -1875,6 +1958,7 @@ def _card(
     ref_id: str = "",
     effects: Optional[List[Dict[str, str]]] = None,
     stakes: Optional[List[Dict[str, str]]] = None,
+    deal: Optional[Dict[str, str]] = None,
 ) -> BriefCard:
     card: BriefCard = {
         "kind": kind,
@@ -1893,13 +1977,13 @@ def _card(
     if effects:
         card["effects"] = effects
     stake_items = stakes if stakes is not None else _card_stakes(kind)
-    card.update(_card_contract(kind, stake_items))
+    card.update(_card_contract(kind, stake_items, deal=deal))
     if stake_items:
         card["stakes"] = stake_items
     return card
 
 
-def _card_contract(kind: str, stakes: List[Dict[str, str]]) -> Dict[str, str]:
+def _card_contract(kind: str, stakes: List[Dict[str, str]], deal: Optional[Dict[str, str]] = None) -> Dict[str, str]:
     """One-line player contract: why this hook asks for attention and what it costs."""
 
     motive = _CARD_MOTIVES.get(kind, "机变待问")
@@ -1917,6 +2001,13 @@ def _card_contract(kind: str, stakes: List[Dict[str, str]]) -> Dict[str, str]:
         out["gain"] = gain
     if cost:
         out["cost"] = cost
+    deal_profile = dict(_CARD_DEALS.get(kind, {}))
+    if deal:
+        deal_profile.update({k: v for k, v in deal.items() if str(v or "").strip()})
+    for key in ("ask", "exchange", "refusal"):
+        value = str(deal_profile.get(key) or "").strip()
+        if value:
+            out[key] = value
     return out
 
 
@@ -3757,6 +3848,11 @@ def _agenda_cards(db: GameDB, cards: List[BriefCard]) -> None:
                 ref_kind="character",
                 ref_id=name,
                 effects=effects,
+                deal={
+                    "ask": profile["ask"],
+                    "exchange": profile["exchange"],
+                    "refusal": profile["refusal"],
+                },
             )
         )
 

@@ -448,6 +448,9 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertEqual(petition["motive"], "怨望求台阶")
             self.assertEqual(petition["gain"], "护持换差")
             self.assertEqual(petition["cost"], "偏护生怨")
+            self.assertEqual(petition["ask"], "求体面台阶或御前护持")
+            self.assertIn("可验难差", str(petition["exchange"]))
+            self.assertIn("公事泄私怨", str(petition["refusal"]))
             labels = [str(e["label"]) for e in petition["effects"]]
             self.assertIn("信任 22", labels)
             self.assertIn("怨望 82", labels)
@@ -912,6 +915,9 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("查账自证", str(agenda["meta"]))
             self.assertIn("求暂缓深查", str(agenda["detail"]))
             self.assertIn("逼急可能毁账串供", str(agenda["detail"]))
+            self.assertEqual(agenda["ask"], "求暂缓深查，保住肥缺与请托线")
+            self.assertIn("吐出请托链", str(agenda["exchange"]))
+            self.assertIn("毁账串供", str(agenda["refusal"]))
 
     def test_agenda_chat_context_brief_rebuilds_from_live_db(self):
         with TemporaryDirectory() as tmp:

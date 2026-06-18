@@ -802,6 +802,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-audience-dossier-label { color: #c9b487; font-size: .68rem; font-weight: 900; }
 .m-audience-dossier-title { margin-top: 2px; color: var(--gold); font-size: .84rem; line-height: 1.35; font-weight: 900; overflow-wrap: anywhere; }
 .m-audience-dossier-detail { margin-top: 3px; color: #d6c8aa; font-size: .78rem; line-height: 1.45; overflow-wrap: anywhere; }
+.m-audience-deal { display: grid; grid-template-columns: 1fr; gap: 4px; margin-top: 7px; }
+.m-audience-deal span {
+  display: block; min-width: 0; padding: 5px 7px; border-radius: 7px;
+  color: #d6c8aa; background: rgba(181,134,58,.09); border: 1px solid rgba(181,134,58,.18);
+  font-size: .72rem; line-height: 1.38; overflow-wrap: anywhere;
+}
+.m-audience-deal b { display: inline-block; margin-right: 6px; color: var(--gold); font-size: .68rem; }
 .m-audience-dossier .m-audience-goals-list { display: flex; flex-direction: column; gap: 5px; }
 .m-audience-lead {
   flex: 0 0 auto; margin: 8px var(--pad) 0; padding: 8px 10px;
@@ -887,6 +894,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-audience-context-body .m-audience-dossier-label { color: var(--gold-deep); }
 .m-audience-context-body .m-audience-dossier-title { color: var(--ink); font-size: .9rem; }
 .m-audience-context-body .m-audience-dossier-detail { color: var(--ink-soft); font-size: .84rem; }
+.m-audience-context-body .m-audience-deal span {
+  color: var(--ink-soft); background: rgba(181,134,58,.075); border-color: rgba(181,134,58,.18);
+}
+.m-audience-context-body .m-audience-deal b { color: var(--cinnabar); }
 .m-audience-context-body .m-audience-goal {
   background: rgba(181,134,58,.075); border-color: rgba(181,134,58,.18);
 }

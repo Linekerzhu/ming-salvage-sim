@@ -221,6 +221,9 @@ export type PlaystyleBriefCard = {
   motive?: string;
   gain?: string;
   cost?: string;
+  ask?: string;
+  exchange?: string;
+  refusal?: string;
   ref_kind?: string;
   ref_id?: string;
   effects?: Array<{ kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string }>;
@@ -255,6 +258,12 @@ export type AudienceLead = {
   actor?: string;
   target?: string;
   meta?: string;
+  motive?: string;
+  gain?: string;
+  cost?: string;
+  ask?: string;
+  exchange?: string;
+  refusal?: string;
   ref_kind?: string;
   ref_id?: string;
   opening?: string;

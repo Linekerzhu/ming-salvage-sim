@@ -464,6 +464,16 @@ function briefContract(card: PlaystyleBriefCard): string {
   return parts.join(" · ");
 }
 
+function stakeLabel(card: PlaystyleBriefCard, kind: string): string {
+  const item = (card.stakes || []).find((stake) => String(stake.kind || "") === kind);
+  return String(item?.label || "").trim();
+}
+
+function shortClause(value: string, max = 26): string {
+  const text = String(value || "").replace(/\s+/g, "").trim();
+  return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
 export function briefUrgency(value?: number): { label: string; level: "danger" | "warn" | "info"; score: number } | null {
   const raw = Number(value ?? 0);
   if (!Number.isFinite(raw)) return null;
@@ -484,11 +494,44 @@ export function audienceLeadFromBrief(card: PlaystyleBriefCard, actor = card.act
     actor,
     target,
     meta: card.meta,
+    motive: card.motive,
+    gain: card.gain,
+    cost: card.cost,
+    ask: card.ask,
+    exchange: card.exchange,
+    refusal: card.refusal,
     ref_kind: card.ref_kind,
     ref_id: card.ref_id,
     opening: audienceOpeningFromBrief(card, actor, target),
-    prompts: withClosurePrompt(briefPrompts(card, actor, target), card.kind, actor, target),
+    prompts: withClosurePrompt(withBargainPrompt(briefPrompts(card, actor, target), card, actor, target), card.kind, actor, target),
     stakes: card.stakes || [],
+  };
+}
+
+function withBargainPrompt(prompts: Suggestion[], card: PlaystyleBriefCard, actor: string, target: string): Suggestion[] {
+  const prompt = bargainPromptFromCard(card, actor, target);
+  if (!prompt || prompts.some((item) => ["问所求", "问交易"].includes(item.label))) return prompts;
+  return [prompt, ...prompts];
+}
+
+function bargainPromptFromCard(card: PlaystyleBriefCard, actor = "你", target = "此事"): Suggestion | null {
+  const ask = shortClause(card.ask || stakeLabel(card, "ask") || card.motive || "");
+  const exchange = shortClause(card.exchange || card.gain || "");
+  const cost = shortClause(card.cost || "");
+  const refusal = shortClause(card.refusal || "");
+  if (!ask && !exchange && !cost && !refusal) return null;
+  const who = actor || "你";
+  const other = target || "此事";
+  const terms = [
+    ask ? `你所求「${ask}」` : "",
+    exchange ? `愿用什么换「${exchange}」` : "",
+    cost ? `朕若应允要付「${cost}」这类代价` : "",
+    refusal ? `若朕不允是否会「${refusal}」` : "",
+  ].filter(Boolean).join("；");
+  return {
+    label: "问所求",
+    text: `${who}，今日不是泛泛问策。围绕${other}，先把御前交易说清：${terms}。朕要听实话，不要只报忠心。`,
+    prefix: true,
   };
 }
 
@@ -553,67 +596,83 @@ function audienceOpeningFromBrief(card: PlaystyleBriefCard, actor = card.actor |
   const speaker = actor || "此人";
   const counterpart = target || "那人";
   const topic = briefTopic(card.title);
+  const withDeal = (line: string) => withBargainOpening(line, card);
   if (card.kind === "decision") {
-    return `${speaker}趋入御前，知道这不是寻常问安，而是有一桩请陛下裁断的事压在案上。若陛下先问人、不急下判，愿把自己的利害、证据和怕处说清。`;
+    return withDeal(`${speaker}趋入御前，知道这不是寻常问安，而是有一桩请陛下裁断的事压在案上。若陛下先问人、不急下判，愿把自己的利害、证据和怕处说清。`);
   }
   if (card.kind === "petition") {
-    return `${speaker}趋入叩首，先低声说明：今日不是空谈国事，而是带着一桩难处求陛下裁断；若陛下肯听，愿拿差使和证据来换。`;
+    return withDeal(`${speaker}趋入叩首，先低声说明：今日不是空谈国事，而是带着一桩难处求陛下裁断；若陛下肯听，愿拿差使和证据来换。`);
   }
   if (card.kind === "rivalry") {
-    return `${speaker}入殿后神色紧绷：与${counterpart}的嫌隙，外间多有添油加醋。此番愿说实情，但也要陛下给一句边界。`;
+    return withDeal(`${speaker}入殿后神色紧绷：与${counterpart}的嫌隙，外间多有添油加醋。此番愿说实情，但也要陛下给一句边界。`);
   }
   if (card.kind === "army") {
-    return `${speaker}跪奏军情：军中欠饷与人心不敢粉饰。若只问罪不问饷，兵心难稳；若只给饷不立规矩，边镇也难服朝廷。`;
+    return withDeal(`${speaker}跪奏军情：军中欠饷与人心不敢粉饰。若只问罪不问饷，兵心难稳；若只给饷不立规矩，边镇也难服朝廷。`);
   }
   if (card.kind === "faction") {
-    return `${speaker}入殿便称本派人心浮动：既有人可用，也有人借势要价。陛下若要借力，须先定名分与规矩。`;
+    return withDeal(`${speaker}入殿便称本派人心浮动：既有人可用，也有人借势要价。陛下若要借力，须先定名分与规矩。`);
   }
   if (card.kind === "legacy") {
     const fiscalSide = actor && actor === card.actor;
-    return fiscalSide
+    return withDeal(fiscalSide
       ? `${speaker}趋入便谈旧政余波：钱粮缺口是真，民怨也是真；若要蠲缓，先要说清由谁补这个窟窿。`
-      : `${speaker}入殿叩首，先指向地方承受：这项旧政在账上或许有利，在地方却已成怨。请陛下先问受损者，再问谁从中得利。`;
+      : `${speaker}入殿叩首，先指向地方承受：这项旧政在账上或许有利，在地方却已成怨。请陛下先问受损者，再问谁从中得利。`);
   }
   if (card.kind === "favor") {
-    return `${speaker}伏地称谢旧恩，表示受过陛下护持，不敢只记在心里；今日若陛下有难差，愿先听条件。`;
+    return withDeal(`${speaker}伏地称谢旧恩，表示受过陛下护持，不敢只记在心里；今日若陛下有难差，愿先听条件。`);
   }
   if (card.kind === "patronage") {
-    return target
+    return withDeal(target
       ? `${speaker}入殿先谈举荐：举荐不是一纸名帖。此番愿当面说清${counterpart}可用何处，也愿担该担的风险。`
-      : `${speaker}趋入候旨，愿受陛下试用，但也请陛下明察自己从何处来、受谁举荐。`;
+      : `${speaker}趋入候旨，愿受陛下试用，但也请陛下明察自己从何处来、受谁举荐。`);
   }
   if (card.kind === "relationship") {
-    return `${speaker}趋入后先替${counterpart}留了半句余地：这层人情不是白纸黑字的官箴，却牵着同党、故旧和担保。今日若陛下要问，愿说可担哪一步，也要说清边界。`;
+    return withDeal(`${speaker}趋入后先替${counterpart}留了半句余地：这层人情不是白纸黑字的官箴，却牵着同党、故旧和担保。今日若陛下要问，愿说可担哪一步，也要说清边界。`);
   }
   if (card.kind === "agenda") {
-    return agendaOpening(card, speaker, topic, counterpart);
+    return withDeal(agendaOpening(card, speaker, topic, counterpart));
   }
   if (card.kind === "hook") {
-    return `${speaker}入殿时明显收敛，知道陛下今日不是寻常问策；若有风闻落到自己身上，愿听陛下发问。`;
+    return withDeal(`${speaker}入殿时明显收敛，知道陛下今日不是寻常问策；若有风闻落到自己身上，愿听陛下发问。`);
   }
   if (card.kind === "trap_remedy") {
-    return `${speaker}跪奏旧事：当日办坏，不敢一味喊冤。陛下若肯再问，愿把当日卡点和今日补救一并说清。`;
+    return withDeal(`${speaker}跪奏旧事：当日办坏，不敢一味喊冤。陛下若肯再问，愿把当日卡点和今日补救一并说清。`);
   }
   if (card.kind === "monthly_followup") {
     const meta = String(card.meta || "");
     if (meta.includes("失期")) {
-      return `${speaker}趋入时先俯首请罪：旧约已经过限，今日不是求宽一句话，而是要把误在哪里、谁担责、还缺什么条件说明白。`;
+      return withDeal(`${speaker}趋入时先俯首请罪：旧约已经过限，今日不是求宽一句话，而是要把误在哪里、谁担责、还缺什么条件说明白。`);
     }
     if (meta.includes("受阻")) {
-      return `${speaker}入殿便称旧约卡住：不是全无进展，也不是已经办成；阻力、人情、钱粮或名分今日须请陛下裁断。`;
+      return withDeal(`${speaker}入殿便称旧约卡住：不是全无进展，也不是已经办成；阻力、人情、钱粮或名分今日须请陛下裁断。`);
     }
     if (meta.includes("待条件")) {
-      return `${speaker}趋入复奏，先呈待证条件：旧约差一步才能闭环，今日请陛下定是给资源、改期限，还是责其自证。`;
+      return withDeal(`${speaker}趋入复奏，先呈待证条件：旧约差一步才能闭环，今日请陛下定是给资源、改期限，还是责其自证。`);
     }
-    return `${speaker}趋入复奏，本该主动请安回话，不敢等陛下追问；旧约办到哪一步，今日照实奏来。`;
+    return withDeal(`${speaker}趋入复奏，本该主动请安回话，不敢等陛下追问；旧约办到哪一步，今日照实奏来。`);
   }
   if (card.kind === "directive_blocker") {
-    return `${speaker}入殿便称并非有意梗旨，只是此旨牵动人情、钱粮或名分。陛下若问，愿当面说清。`;
+    return withDeal(`${speaker}入殿便称并非有意梗旨，只是此旨牵动人情、钱粮或名分。陛下若问，愿当面说清。`);
   }
   if (card.kind === "directive_followup") {
-    return `${speaker}捧着复命入殿：旨意办到几分，奏报里哪些是真功、哪些只是口径，今日不敢含糊。`;
+    return withDeal(`${speaker}捧着复命入殿：旨意办到几分，奏报里哪些是真功、哪些只是口径，今日不敢含糊。`);
   }
-  return `${speaker}入殿候问，知道陛下召见不是闲谈。此事利害，请陛下发问，愿照实奏来。`;
+  return withDeal(`${speaker}入殿候问，知道陛下召见不是闲谈。此事利害，请陛下发问，愿照实奏来。`);
+}
+
+function withBargainOpening(line: string, card: PlaystyleBriefCard): string {
+  const ask = shortClause(card.ask || stakeLabel(card, "ask") || card.motive || "", 30);
+  const exchange = shortClause(card.exchange || card.gain || "", 34);
+  const cost = shortClause(card.cost || "", 22);
+  const refusal = shortClause(card.refusal || "", 30);
+  const pieces = [
+    ask ? `所求「${ask}」` : "",
+    exchange ? `可逼其「${exchange}」` : "",
+    cost ? `应下代价「${cost}」` : "",
+    refusal ? `拒之恐「${refusal}」` : "",
+  ].filter(Boolean);
+  if (!pieces.length) return line;
+  return `${line}\n御前交易：${pieces.slice(0, 4).join("；")}。`;
 }
 
 function agendaCue(card: PlaystyleBriefCard): string {
