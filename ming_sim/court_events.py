@@ -232,6 +232,98 @@ def _apply_agreement_action(db: GameDB, state: GameState, item: Dict[str, object
 
     return ""
 
+
+def _intish(value: object, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _legacy_modifiers(row) -> Dict[str, object]:
+    try:
+        data = json.loads(str(row["modifiers"] or "{}"))
+    except (TypeError, ValueError):
+        data = {}
+    return data if isinstance(data, dict) else {}
+
+
+def _append_legacy_note(hint: str, note: str) -> str:
+    hint = str(hint or "").strip()
+    note = str(note or "").strip()
+    if not note:
+        return hint[:200]
+    if note in hint:
+        return hint[:200]
+    if not hint:
+        return note[:200]
+    return f"{hint[:128]}；{note[:68]}"[:200]
+
+
+def _apply_legacy_action(db: GameDB, state: GameState, item: Dict[str, object], day: int) -> str:
+    legacy_id = _intish(item.get("id") or item.get("legacy_id"))
+    if legacy_id <= 0:
+        return ""
+    row = db.conn.execute(
+        "SELECT * FROM legacies WHERE id=? AND status='active'",
+        (legacy_id,),
+    ).fetchone()
+    if row is None:
+        return ""
+
+    action = str(item.get("action") or "soften").strip()
+    modifier = str(item.get("modifier") or "民心").strip()
+    amount = max(1, min(30, _intish(item.get("amount"), 1)))
+    modifiers = _legacy_modifiers(row)
+    name = str(row["name"] or "旧政余波")
+    current = _intish(modifiers.get(modifier), 0)
+    label = str(item.get("label") or name).strip()
+    note = str(item.get("note") or "").strip()
+
+    if action == "soften":
+        modifiers[modifier] = min(0, current + amount) if current < 0 else current + amount
+        verb = "旧政缓和"
+    elif action == "worsen":
+        modifiers[modifier] = current - amount
+        verb = "旧政加重"
+    elif action == "extend":
+        months = max(1, min(60, _intish(item.get("months"), 1)))
+        duration = _intish(row["duration_months"])
+        if duration >= 0:
+            db.conn.execute(
+                "UPDATE legacies SET duration_months=? WHERE id=?",
+                (duration + months, legacy_id),
+            )
+        verb = "余波延长"
+    else:
+        return ""
+
+    if action in {"soften", "worsen"}:
+        db.conn.execute(
+            """
+            UPDATE legacies
+            SET modifiers=?, narrative_hint=?
+            WHERE id=?
+            """,
+            (
+                json.dumps(modifiers, ensure_ascii=False),
+                _append_legacy_note(str(row["narrative_hint"] or ""), note),
+                legacy_id,
+            ),
+        )
+    elif note:
+        db.conn.execute(
+            "UPDATE legacies SET narrative_hint=? WHERE id=?",
+            (_append_legacy_note(str(row["narrative_hint"] or ""), note), legacy_id),
+        )
+    db._legacy_mod_cache = None
+    try:
+        db.record_log(state, f"【{verb}】{label}：{note or name}")
+    except Exception:
+        pass
+    return f"{verb}：{label}"
+
+
 def _apply_effect(db: GameDB, state: GameState, eff: Dict[str, object], day: int) -> str:
     parts: List[str] = []
     shi = int(eff.get("shi") or 0)
@@ -330,6 +422,11 @@ def _apply_effect(db: GameDB, state: GameState, eff: Dict[str, object], day: int
     for ag in (eff.get("agreements") or []):
         if isinstance(ag, dict):
             result = _apply_agreement_action(db, state, ag, day)
+            if result:
+                parts.append(result)
+    for lg in (eff.get("legacy") or []):
+        if isinstance(lg, dict):
+            result = _apply_legacy_action(db, state, lg, day)
             if result:
                 parts.append(result)
     db.conn.commit()
@@ -445,6 +542,17 @@ def _preview_effects(eff: Dict[str, object]) -> List[Dict[str, str]]:
             add("agreement", f"履约展限 {int(ag.get('months') or 1)}月", "warn")
         elif action == "fail":
             add("agreement", "履约追责", "bad")
+    for lg in (eff.get("legacy") or []):
+        if not isinstance(lg, dict):
+            continue
+        action = str(lg.get("action") or "soften")
+        label = str(lg.get("label") or lg.get("stem") or "旧政").strip()
+        if action == "soften":
+            add("legacy", f"旧政缓和：{label}", "good")
+        elif action == "worsen":
+            add("legacy", f"旧政加重：{label}", "bad")
+        elif action == "extend":
+            add("legacy", f"余波延长：{label}", "warn")
 
     limit = 10
     if len(out) > limit:
@@ -828,6 +936,102 @@ def _petition_opinion_effect(
     ]
 
 
+def _legacy_tax_stem(name: str, hint: str, key: str) -> str:
+    text = f"{name} {hint} {key}"
+    for stem in ("辽饷", "商税", "盐税", "矿税", "田赋"):
+        if stem in text:
+            return stem
+    if any(token in text for token in ("税", "饷", "派", "赋", "课")):
+        return "税负"
+    return ""
+
+
+def _policy_legacy_actor(db: GameDB, stem: str) -> str:
+    fiscal_first = bool(stem and any(token in stem for token in ("税", "饷", "田赋", "商税", "盐税", "矿税")))
+    order_clause = (
+        """
+        CASE
+          WHEN office LIKE '%户部%' OR office_type LIKE '%户部%' THEN 0
+          WHEN office LIKE '%内阁%' OR office_type LIKE '%内阁%' THEN 1
+          WHEN office LIKE '%都察院%' OR office_type LIKE '%都察院%' THEN 2
+          ELSE 3
+        END,
+        """
+        if fiscal_first
+        else ""
+    )
+    row = db.conn.execute(
+        f"""
+        SELECT name
+        FROM characters
+        WHERE status='active'
+          AND power_id='ming'
+          AND office_type!='后宫'
+          AND name!='崇祯'
+        ORDER BY
+          {order_clause}
+          ability DESC,
+          integrity DESC
+        LIMIT 1
+        """
+    ).fetchone()
+    return str(row["name"] or "") if row is not None else ""
+
+
+def _policy_legacy_aftershock(db: GameDB) -> Optional[Dict[str, object]]:
+    """长期政策余波：重税类 legacy 不只是静态 debuff，会周期性索要皇帝态度。"""
+
+    state = db.load_state()
+    db.expire_legacies(state)
+    rows = db.conn.execute(
+        """
+        SELECT id, name, modifiers, narrative_hint, duration_months,
+               start_month, legacy_key
+        FROM legacies
+        WHERE status='active'
+        ORDER BY id DESC
+        LIMIT 24
+        """
+    ).fetchall()
+    best: Optional[Dict[str, object]] = None
+    best_score = -10**9
+    for row in rows:
+        name = str(row["name"] or "")
+        hint = str(row["narrative_hint"] or "")
+        key = str(row["legacy_key"] or "")
+        modifiers = _legacy_modifiers(row)
+        minxin = _intish(modifiers.get("民心"))
+        duration = _intish(row["duration_months"])
+        stem = _legacy_tax_stem(name, hint, key)
+        taxish = (
+            key.startswith("directive_tax:")
+            or bool(stem)
+            or any(token in name + hint for token in ("苛税", "税负", "加派", "加征", "常税"))
+        )
+        if not taxish or minxin > -6:
+            continue
+        remaining = -1
+        if duration >= 0:
+            remaining = db.legacy_remaining_months(row, state)
+        score = abs(minxin) * 3 + (12 if duration < 0 else 0) + (8 if key.startswith("directive_tax:") else 0)
+        if score <= best_score:
+            continue
+        legacy_id = int(row["id"])
+        best = {
+            "legacy_id": legacy_id,
+            "cooldown_id": f"policy_aftershock:{legacy_id}",
+            "name": name or "旧政余波",
+            "hint": hint,
+            "stem": stem or "税负",
+            "minxin": minxin,
+            "duration": duration,
+            "remaining": remaining,
+            "actor": _policy_legacy_actor(db, stem or "税负"),
+        }
+        best_score = score
+    return best
+
+
 # ── 事件定义（涌现自活的宫廷）─────────────────────────────────────────────────
 
 def _succession_choices(ctx: Dict[str, object]) -> List[Dict[str, object]]:
@@ -1023,6 +1227,75 @@ def _defs() -> List[Dict[str, object]]:
                                           "evidence": f"御前裁断：{c['minister']}「{c['topic']}」逾期未复命，按失期问责。"
                                       }],
                                       "log": f"履约失期：{c['minister']}「{c['topic']}」逾期未复命，申饬问责。"}},
+            ],
+        },
+        {
+            "id": "policy_aftershock",
+            "priority": 29,
+            "cooldown": "ctx",
+            "when": _policy_legacy_aftershock,
+            "title": lambda c: f"旧政反噬：{c['name']}",
+            "narrative": lambda c: (
+                f"旧日旨意留下的「{c['name']}」仍在民间发酵。"
+                f"{c['hint'] or '户部称钱粮不可骤停，地方却说催科已成怨府。'}"
+                f"眼下这项遗产使民心 {c['minxin']}%，"
+                f"{'且已成永久常例' if int(c.get('duration') or 0) < 0 else '尚余' + str(c.get('remaining')) + '月'}。"
+                "若立刻蠲缓，国库与边饷要吃紧；若照旧严征，民怨会被坐实为长疮。陛下何以裁之？"
+            ),
+            "choices": [
+                {"key": "keep_collecting", "label": lambda c: f"钱粮不可骤停，{c['stem']}照旧严征",
+                 "hint": "国库立刻见长，皇命显得硬；但旧政更难回头，民怨会继续加深",
+                 "effect": lambda c: {"shi": 1, "renshi": -2,
+                                      "metrics": {"国库": 6, "民心": -2, "皇威": 1},
+                                      "legacy": [{
+                                          "id": c["legacy_id"],
+                                          "action": "worsen",
+                                          "modifier": "民心",
+                                          "amount": 2,
+                                          "label": c["stem"],
+                                          "note": f"御前裁断{c['stem']}照旧严征，旧怨更深。"
+                                      }],
+                                      "log": f"旧政反噬：{c['stem']}照旧严征，以济急需。"}},
+                {"key": "relieve_now", "label": lambda c: f"先蠲缓一半{c['stem']}，给百姓喘息",
+                 "hint": "民心立刻回暖，长期余波缓和；但钱粮短缺会压到国库与边防",
+                 "effect": lambda c: {"shi": -1, "renshi": 2,
+                                      "metrics": {"国库": -8, "民心": 4},
+                                      "legacy": [{
+                                          "id": c["legacy_id"],
+                                          "action": "soften",
+                                          "modifier": "民心",
+                                          "amount": 4,
+                                          "label": c["stem"],
+                                          "note": f"御前许先蠲缓一半{c['stem']}，民怨稍解。"
+                                      }],
+                                      "log": f"旧政反噬：先蠲缓一半{c['stem']}以苏民困。"}},
+                {"key": "audit_middlemen", "label": lambda c: f"命{c['actor']}清查加派侵吞，税额暂不全废",
+                 "hint": "折中但会形成后续账本：查出中间盘剥可缓民怨，查不出则拖成新麻烦",
+                 "available": lambda c: bool(c.get("actor")),
+                 "effect": lambda c: {"shi": 2, "renshi": 1,
+                                      "metrics": {"民心": 1},
+                                      "legacy": [{
+                                          "id": c["legacy_id"],
+                                          "action": "soften",
+                                          "modifier": "民心",
+                                          "amount": 2,
+                                          "label": c["stem"],
+                                          "note": f"御前命{c['actor']}清查{c['stem']}加派侵吞，先禁层层浮收。"
+                                      }],
+                                      "obligations": [{
+                                          "minister": c["actor"],
+                                          "title": f"清查{c['stem']}加派侵吞",
+                                          "target_text": f"{c['actor']}须就「{c['name']}」查明地方层层加派、侵吞与浮收，并回奏可执行的减负清单。",
+                                          "tasks": [
+                                              f"核出{c['stem']}现行征收、地方加派与实际入库差额。",
+                                              "列出三条可立即禁革的浮收名目，并说明会影响的边饷或国库缺口。",
+                                              "三月内回奏查核证据与处置名单，不得只称百姓困苦。"
+                                          ],
+                                          "source": f"policy_aftershock:audit:{c['legacy_id']}",
+                                          "due_turns": 3,
+                                          "summary": f"御前命{c['actor']}清查{c['stem']}加派侵吞，以查弊而非一概废税。"
+                                      }],
+                                      "log": f"旧政反噬：命{c['actor']}清查{c['stem']}加派侵吞。"}},
             ],
         },
         {

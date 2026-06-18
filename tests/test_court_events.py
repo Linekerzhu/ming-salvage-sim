@@ -1,5 +1,6 @@
 """抉择事件（CK3 化 P2）测试：触发→待决→落子→后果落库→冷却。零 LLM。"""
 
+import json
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -71,6 +72,17 @@ def _due_agreement(db, state, minister, title="难差自证"):
     )
     db.bind_conversation_goal_agreement(goal_id, agreement_id)
     return agreement_id, goal_id
+
+
+def _tax_legacy(db, state, stem="辽饷", minxin=-9, duration_months=-1):
+    return db.insert_legacy(
+        state,
+        name=f"苛税余波：{stem}",
+        modifiers={"民心": minxin},
+        narrative_hint=f"旨意加重{stem}，钱粮见长，民心恢复受压。",
+        duration_months=duration_months,
+        legacy_key=f"directive_tax:999:{stem}",
+    )
 
 
 class TriggerTests(unittest.TestCase):
@@ -156,6 +168,23 @@ class TriggerTests(unittest.TestCase):
             self.assertIn("履约展限 1月", [str(e["label"]) for e in press["effects"]])
             pending = court_events.get_pending(db) or {}
             self.assertEqual(str(pending.get("cooldown_key")), f"overdue_obligation:{agreement_id}")
+
+    def test_tax_policy_legacy_triggers_aftershock_decision(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            legacy_id = _tax_legacy(db, state)
+
+            payload = court_events.evaluate_decisions(db, state, day)
+
+            self.assertIsNotNone(payload)
+            self.assertEqual(payload["id"], "policy_aftershock")
+            self.assertIn("苛税余波：辽饷", str(payload["title"]))
+            keys = {str(ch["key"]) for ch in payload["choices"]}
+            self.assertEqual(keys, {"keep_collecting", "relieve_now", "audit_middlemen"})
+            relieve = next(ch for ch in payload["choices"] if ch["key"] == "relieve_now")
+            self.assertIn("旧政缓和：辽饷", [str(e["label"]) for e in relieve["effects"]])
+            pending = court_events.get_pending(db) or {}
+            self.assertEqual(str(pending.get("cooldown_key")), f"policy_aftershock:{legacy_id}")
 
 
 class ResolveTests(unittest.TestCase):
@@ -359,6 +388,49 @@ class ResolveTests(unittest.TestCase):
             self.assertIn("按失期问责", str(task["evidence"]))
             goal = db.get_conversation_goal(goal_id) or {}
             self.assertEqual(str(goal.get("status")), "expired")
+
+    def test_policy_aftershock_relief_softens_legacy(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            legacy_id = _tax_legacy(db, state, minxin=-9)
+            treasury_before = int(state.metrics.get("国库", 0))
+
+            court_events.evaluate_decisions(db, state, day)
+            res = court_events.resolve_decision(db, state, "relieve_now", day=day)
+
+            self.assertTrue(res["ok"], res)
+            self.assertIn("旧政缓和：辽饷", [str(e["label"]) for e in res["effects"]])
+            row = db.conn.execute("SELECT modifiers, narrative_hint FROM legacies WHERE id=?", (legacy_id,)).fetchone()
+            modifiers = json.loads(str(row["modifiers"] or "{}"))
+            self.assertEqual(int(modifiers["民心"]), -5)
+            self.assertIn("蠲缓", str(row["narrative_hint"]))
+            self.assertEqual(int(state.metrics.get("国库", 0)), treasury_before - 8)
+            self.assertIsNone(court_events.get_pending(db))
+
+    def test_policy_aftershock_audit_creates_followup_obligation(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            legacy_id = _tax_legacy(db, state, minxin=-9)
+
+            court_events.evaluate_decisions(db, state, day)
+            pending = court_events.get_pending(db) or {}
+            actor = str((pending.get("ctx") or {}).get("actor") or "")
+            self.assertTrue(actor)
+            res = court_events.resolve_decision(db, state, "audit_middlemen", day=day)
+
+            self.assertTrue(res["ok"], res)
+            labels = [str(e["label"]) for e in res["effects"]]
+            self.assertIn("旧政缓和：辽饷", labels)
+            self.assertIn(f"履约账本：{actor}", labels)
+            row = db.conn.execute("SELECT modifiers FROM legacies WHERE id=?", (legacy_id,)).fetchone()
+            modifiers = json.loads(str(row["modifiers"] or "{}"))
+            self.assertEqual(int(modifiers["民心"]), -7)
+            goals = db.list_conversation_goals(
+                minister_name=actor,
+                statuses=["waiting_conditions"],
+            )
+            self.assertEqual(len(goals), 1)
+            self.assertIn("清查辽饷加派侵吞", str(goals[0]["title"]))
 
     def test_overdue_cooldown_is_scoped_per_agreement(self):
         with TemporaryDirectory() as tmp:
