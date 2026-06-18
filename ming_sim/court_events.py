@@ -13,6 +13,7 @@ from typing import Callable, Dict, List, Optional
 from ming_sim.db import GameDB
 from ming_sim.models import GameState
 from ming_sim import court
+from ming_sim.negotiation import HANDSHAKE_SEALED, promise_type_from_terms, stakes_from_terms
 from ming_sim.upgrade_schema import (
     KV_RISK_AVERSION,
     KV_SHI,
@@ -27,6 +28,93 @@ COOLDOWN_DAYS = 60
 
 
 # ── 效果执行（声明式：选项后果是数据，统一落库）─────────────────────────────
+
+def _create_obligation(db: GameDB, state: GameState, item: Dict[str, object], day: int) -> str:
+    minister = str(item.get("minister") or "").strip()
+    if not minister:
+        return ""
+    action_kind = str(item.get("action_kind") or "court_commitment").strip()[:40]
+    title = str(item.get("title") or "御前待办").strip()[:120]
+    target_text = str(item.get("target_text") or title).strip()[:240]
+    tasks = [
+        str(task or "").strip()[:180]
+        for task in (item.get("tasks") or [])
+        if str(task or "").strip()
+    ][:6]
+    conditions = str(item.get("conditions") or "；".join(tasks)).strip()[:400]
+    due_turns = max(1, min(12, int(item.get("due_turns") or 3)))
+    source = str(item.get("source") or f"court_event:{minister}:{title}").strip()[:120]
+
+    existing = db.conn.execute(
+        """
+        SELECT id
+        FROM conversation_goals
+        WHERE minister_name=?
+          AND status IN ('active', 'waiting_conditions')
+          AND last_delta_json LIKE ?
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (minister, f"%{source}%"),
+    ).fetchone()
+    if existing is not None:
+        return f"{minister}已有待办"
+
+    last_delta = {
+        "source": source,
+        "day": int(day),
+        "kind": "court_event_obligation",
+        "tasks": tasks,
+    }
+    goal_id = db.create_conversation_goal(
+        state,
+        minister_name=minister,
+        action_kind=action_kind,
+        title=title,
+        target_text=target_text,
+        threshold=int(item.get("threshold") or 70),
+        score=100,
+        status="waiting_conditions",
+        condition_status="pending",
+        conditions=[{"description": task, "status": "pending"} for task in tasks],
+        expires_turn=int(state.turn) + due_turns + 2,
+        last_delta=last_delta,
+    )
+    if not goal_id:
+        return ""
+    agreement_id = db.create_negotiation_agreement(
+        state,
+        minister_name=minister,
+        topic=title,
+        action_kind=action_kind,
+        status="pending",
+        stance_id=0,
+        handshake_status=HANDSHAKE_SEALED,
+        psychological_score=100,
+        threshold=int(item.get("threshold") or 70),
+        verbal_only=False,
+        core_topic=title,
+        target_text=target_text,
+        promise_type=str(item.get("promise_type") or promise_type_from_terms(action_kind, conditions, tasks)),
+        stakes=str(item.get("stakes") or stakes_from_terms(action_kind, conditions, f"{title}\n{target_text}")),
+        due_turn=int(state.turn) + due_turns,
+        conditions=conditions,
+        summary=str(item.get("summary") or f"{minister}奉旨领下待办：{title}")[:300],
+        tasks=tasks,
+        goal_id=goal_id,
+    )
+    db.update_conversation_goal(
+        goal_id,
+        state=state,
+        event_kind="obligation_created",
+        event_summary=f"{minister}因朝廷裁断负下待办：{title}",
+        status="waiting_conditions",
+        condition_status="pending",
+        agreement_id=agreement_id,
+        score=100,
+        last_delta_json={**last_delta, "agreement_id": agreement_id},
+    )
+    return f"{minister}负约待办"
 
 def _apply_effect(db: GameDB, state: GameState, eff: Dict[str, object], day: int) -> str:
     parts: List[str] = []
@@ -118,6 +206,11 @@ def _apply_effect(db: GameDB, state: GameState, eff: Dict[str, object], day: int
             parts.append(f"遣{sv['eunuch']}监军")
         except Exception:
             pass
+    for ob in (eff.get("obligations") or []):
+        if isinstance(ob, dict):
+            result = _create_obligation(db, state, ob, day)
+            if result:
+                parts.append(result)
     db.conn.commit()
     db.save_state(state)
     if eff.get("log"):
@@ -218,8 +311,19 @@ def _preview_effects(eff: Dict[str, object]) -> List[Dict[str, str]]:
         add("supervise", f"遣{sv['eunuch']}监军", "neutral")
     if eff.get("daipihong_off"):
         add("daipihong", "停代批红", "good")
+    for ob in (eff.get("obligations") or []):
+        if isinstance(ob, dict):
+            minister = str(ob.get("minister") or "").strip()
+            if minister:
+                add("obligation", f"履约账本：{minister}", "neutral")
 
-    return out[:8]
+    limit = 10
+    if len(out) > limit:
+        obligations = [item for item in out if item.get("kind") == "obligation"]
+        if obligations:
+            room = max(0, limit - len(obligations))
+            return [item for item in out if item.get("kind") != "obligation"][:room] + obligations[:limit]
+    return out[:limit]
 
 
 # ── 触发条件助手 ──────────────────────────────────────────────────────────────
@@ -713,6 +817,17 @@ def _defs() -> List[Dict[str, object]]:
                  "effect": lambda c: {"shi": 1, "renshi": 3 if int(c.get("ability") or 50) >= 55 else 2,
                                       "char": [{"name": c["petitioner"], "emp_trust": 6, "grievance": -5}],
                                       "faction": _petition_faction_effect(c, petitioner_sat=1, petitioner_heat=-1),
+                                      "obligations": [{
+                                          "minister": c["petitioner"],
+                                          "title": f"难差自证：{c['petitioner']}",
+                                          "target_text": f"{c['petitioner']}因御前求援请托，须承领一件可验差使，以成效换取护持。",
+                                          "tasks": [
+                                              f"三日内回奏一件可验难差的进展、证据与下一步时限，不得只求护持。"
+                                          ],
+                                          "source": f"imperial_petition:demand_service:{c['petitioner']}",
+                                          "due_turns": 3,
+                                          "summary": f"求援不白给护身符，{c['petitioner']}须领难差自证。"
+                                      }],
                                       "log": f"许{c['petitioner']}自辩，命其领难差自证。"}},
                 {"key": "co_work", "label": lambda c: f"令{c['petitioner']}与{c['rival']}共办一事",
                  "hint": "把私怨压成公事：可降一点党争热度，但两人都不痛快，办坏了会一起怨上",
@@ -724,6 +839,32 @@ def _defs() -> List[Dict[str, object]]:
                                       "faction": _petition_faction_effect(
                                           c, petitioner_sat=-2, petitioner_heat=-3,
                                           rival_sat=-2, rival_heat=-3),
+                                      "obligations": [
+                                          {
+                                              "minister": c["petitioner"],
+                                              "title": f"共办消怨：{c['petitioner']}与{c['rival']}",
+                                              "target_text": f"{c['petitioner']}须与{c['rival']}共办一件公事，把私怨压成可验结果。",
+                                              "tasks": [
+                                                  f"三日内与{c['rival']}共同回奏共办事项、分工、风险与已办证据。",
+                                                  f"不得再以「{c['basis']}」互相阻挠，若事败须说明责任。"
+                                              ],
+                                              "source": f"imperial_petition:co_work:{c['petitioner']}:{c['rival']}",
+                                              "due_turns": 3,
+                                              "summary": f"御前责令{c['petitioner']}与{c['rival']}共办一事，以公事压私怨。"
+                                          },
+                                          {
+                                              "minister": c["rival"],
+                                              "title": f"共办消怨：{c['rival']}与{c['petitioner']}",
+                                              "target_text": f"{c['rival']}须与{c['petitioner']}共办一件公事，把私怨压成可验结果。",
+                                              "tasks": [
+                                                  f"三日内与{c['petitioner']}共同回奏共办事项、分工、风险与已办证据。",
+                                                  f"不得再以「{c['basis']}」互相阻挠，若事败须说明责任。"
+                                              ],
+                                              "source": f"imperial_petition:co_work:{c['rival']}:{c['petitioner']}",
+                                              "due_turns": 3,
+                                              "summary": f"御前责令{c['rival']}与{c['petitioner']}共办一事，以公事压私怨。"
+                                          }
+                                      ],
                                       "log": f"令{c['petitioner']}与{c['rival']}共办一事，以公事压私怨。"}},
                 {"key": "shelve", "label": lambda c: "留中不应，示以不纳私请",
                  "hint": "不为请托开门：略立规矩，却寒其任事之心，相关派系怨气升温",

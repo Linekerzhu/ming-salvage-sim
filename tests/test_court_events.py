@@ -96,6 +96,8 @@ class TriggerTests(unittest.TestCase):
             self.assertIn(f"{petitioner}信任 +10", labels)
             self.assertIn("东林满意 +4", labels)
             self.assertIn("阉党热度 +5", labels)
+            demand = next(ch for ch in payload["choices"] if ch["key"] == "demand_service")
+            self.assertIn(f"履约账本：{petitioner}", [str(e["label"]) for e in demand["effects"]])
 
 
 class ResolveTests(unittest.TestCase):
@@ -172,6 +174,83 @@ class ResolveTests(unittest.TestCase):
             labels = [str(e["label"]) for e in res["effects"]]
             self.assertIn("阉党热度 +5", labels)
             self.assertIsNone(court_events.get_pending(db))
+
+    def test_petition_demand_service_creates_followup_obligation(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            start_turn = int(state.turn)
+            petitioner, rival = _two_ming(db)
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=24, grievance=84, faction='东林' WHERE name=?",
+                (petitioner,),
+            )
+            db.conn.execute(
+                "UPDATE characters SET faction='阉党' WHERE name=?",
+                (rival,),
+            )
+            court._set_opinion(db, petitioner, rival, -78, "夺功旧怨", day)
+            court._set_opinion(db, rival, petitioner, -72, "夺功旧怨", day)
+            db.conn.commit()
+
+            court_events.evaluate_decisions(db, state, day)
+            res = court_events.resolve_decision(db, state, "demand_service", day=day)
+
+            self.assertTrue(res["ok"], res)
+            self.assertIn(f"履约账本：{petitioner}", [str(e["label"]) for e in res["effects"]])
+            self.assertIn(f"{petitioner}负约待办", str(res["effect"]))
+            goals = db.list_conversation_goals(
+                minister_name=petitioner,
+                statuses=["waiting_conditions"],
+            )
+            self.assertEqual(len(goals), 1)
+            self.assertIn("难差自证", str(goals[0]["title"]))
+            self.assertGreater(int(goals[0]["agreement_id"]), 0)
+            agreements = db.list_negotiation_agreements(
+                minister_name=petitioner,
+                action_kind="court_commitment",
+                status="pending",
+            )
+            self.assertEqual(len(agreements), 1)
+            self.assertEqual(int(agreements[0]["due_turn"]), start_turn + 3)
+            self.assertTrue(any("三日内回奏一件可验难差" in str(t["description"]) for t in agreements[0]["tasks"]))
+
+    def test_petition_co_work_binds_both_sides_to_tasks(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            petitioner, rival = _two_ming(db)
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=24, grievance=84, faction='东林' WHERE name=?",
+                (petitioner,),
+            )
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=55, grievance=20, faction='阉党' WHERE name=?",
+                (rival,),
+            )
+            court._set_opinion(db, petitioner, rival, -78, "夺功旧怨", day)
+            court._set_opinion(db, rival, petitioner, -72, "夺功旧怨", day)
+            db.conn.commit()
+
+            court_events.evaluate_decisions(db, state, day)
+            res = court_events.resolve_decision(db, state, "co_work", day=day)
+
+            self.assertTrue(res["ok"], res)
+            labels = [str(e["label"]) for e in res["effects"]]
+            self.assertIn(f"履约账本：{petitioner}", labels)
+            self.assertIn(f"履约账本：{rival}", labels)
+            for name, other in ((petitioner, rival), (rival, petitioner)):
+                goals = db.list_conversation_goals(
+                    minister_name=name,
+                    statuses=["waiting_conditions"],
+                )
+                self.assertEqual(len(goals), 1)
+                self.assertIn(other, str(goals[0]["target_text"]))
+                agreements = db.list_negotiation_agreements(
+                    minister_name=name,
+                    action_kind="court_commitment",
+                    status="pending",
+                )
+                self.assertEqual(len(agreements), 1)
+                self.assertTrue(any(other in str(t["description"]) for t in agreements[0]["tasks"]))
 
 
 class IntegrationTests(unittest.TestCase):
