@@ -20,7 +20,7 @@ import re
 from typing import Dict, List, Optional, Sequence
 
 from ming_sim.db import GameDB
-from ming_sim.models import GameState
+from ming_sim.models import GameState, period_label
 
 # 宝（势）之处置
 BAO_KEPT = "kept"        # 自赎保存，盛匣供奉
@@ -1559,6 +1559,205 @@ def bao_instability_tick(db: GameDB, state: GameState, day: int) -> List[Dict[st
             "bao_risk": score,
             "ref_kind": "character",
             "ref_id": name,
+            "day": day,
+        }]
+    return []
+
+
+def _secret_order_task_domains(order: Dict[str, object]) -> List[str]:
+    text = " ".join(
+        str(part or "")
+        for part in (
+            order.get("title"),
+            order.get("content"),
+            " ".join(str(tag) for tag in (order.get("tags") or [])),
+            order.get("result"),
+            order.get("sim_note"),
+        )
+    )
+    domains = ["investigation"]
+    if re.search(r"内廷|司礼监|东厂|宝匣|封签|官库|净房|净军", text):
+        domains.append("inner")
+    if re.search(r"边镇|军|营|辽东|山西|陕西|兵|饷", text):
+        domains.append("military")
+    if re.search(r"地方|州|县|府|乡绅|粮长|民|田|税|盐", text):
+        domains.append("local")
+    return list(dict.fromkeys(domains))
+
+
+def _secret_order_task_text(order: Dict[str, object]) -> str:
+    return "\n".join(
+        part
+        for part in (
+            str(order.get("title") or "").strip(),
+            str(order.get("content") or "").strip(),
+            " ".join(str(tag) for tag in (order.get("tags") or []) if str(tag).strip()),
+            str(order.get("result") or "").strip(),
+            str(order.get("sim_note") or "").strip(),
+        )
+        if part
+    )
+
+
+def _secret_order_has_old_wound_line(order: Dict[str, object], state: GameState) -> bool:
+    stamp = f"〔{period_label(state.year, state.period)}〕[旧患拖累]"
+    return any(str(line).startswith(stamp) for line in str(order.get("sim_note") or "").split("\n"))
+
+
+def _secret_order_has_protective_strategy(order: Dict[str, object]) -> bool:
+    text = str(order.get("sim_note") or "")
+    if re.search(r"照旧强派|不许退缩|限期硬查|硬查硬办|强派", text):
+        return False
+    return bool(re.search(r"旧患差遣|副手|分班|轮值|绕开刑房|绕开净房|外围文书|先调养再派|先调养", text))
+
+
+def _append_secret_order_old_wound_line(
+    db: GameDB,
+    state: GameState,
+    order_id: int,
+    note: str,
+    *,
+    delay_due: bool,
+) -> int:
+    row = db.conn.execute(
+        "SELECT sim_note, due_turn FROM secret_orders WHERE id=? AND status='active'",
+        (int(order_id),),
+    ).fetchone()
+    if row is None:
+        return 0
+    stamp = f"〔{period_label(state.year, state.period)}〕[旧患拖累]"
+    lines = [line for line in str(row["sim_note"] or "").split("\n") if line.strip()]
+    if any(line.startswith(stamp) for line in lines):
+        return int(row["due_turn"] or 0)
+    lines.append(f"{stamp} {str(note or '').strip()[:300]}")
+    due_before = int(row["due_turn"] or 0)
+    due_after = due_before
+    if delay_due and due_before > 0:
+        due_after = max(due_before + 1, int(getattr(state, "turn", 0) or 0) + 1)
+    db.conn.execute(
+        """
+        UPDATE secret_orders
+        SET sim_note=?, due_turn=?, updated_at=CURRENT_TIMESTAMP
+        WHERE id=?
+        """,
+        ("\n".join(lines), due_after, int(order_id)),
+    )
+    db.conn.commit()
+    return due_after
+
+
+def secret_order_old_wound_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:
+    """进行中密令的净身旧患回流。
+
+    当宦官带着漏尿、惊创、宝匣心结去办久候、刑房、封签、内廷查验类密令时，
+    旧患会写进密令进度线，重者顺延期限。玩家若已经用副手轮值、绕开触发或先调养
+    处理过，事件不会再以同样方式拖慢。
+    """
+
+    from ming_sim.timeflow import LEVEL_BLUE, LEVEL_YELLOW
+
+    ensure_schema(db)
+    day = int(day or 0)
+    if day <= 0 or day % 7 != 4:
+        return []
+    orders = db.list_secret_orders(status="active")
+    candidates: List[tuple[int, Dict[str, object], Dict[str, object], Dict[str, object], List[str]]] = []
+    for order in orders:
+        name = str(order.get("minister_name") or "").strip()
+        lore = get_lore(db, name)
+        if not name or lore is None:
+            continue
+        row = db.conn.execute(
+            "SELECT status, power_id FROM characters WHERE name=?",
+            (name,),
+        ).fetchone()
+        if row is None or str(row["status"] or "") != "active" or str(row["power_id"] or "ming") != "ming":
+            continue
+        if _secret_order_has_old_wound_line(order, state) or _secret_order_has_protective_strategy(order):
+            continue
+        task = _secret_order_task_text(order)
+        domains = _secret_order_task_domains(order)
+        risk = assignment_risk_profile(db, name, task, domains=domains)
+        if not risk:
+            continue
+        score_delta = int(risk.get("score_delta") or 0)
+        if score_delta > -6:
+            continue
+        severity = abs(score_delta) * 10 + int(order.get("importance") or 0) * 3
+        if int(order.get("due_turn") or 0) and int(order.get("due_turn") or 0) <= int(getattr(state, "turn", 0) or 0) + 1:
+            severity += 18
+        candidates.append((severity, order, lore, risk, domains))
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    for _, order, lore, risk, domains in candidates:
+        order_id = int(order.get("id") or 0)
+        name = str(order.get("minister_name") or "").strip()
+        score_delta = int(risk.get("score_delta") or 0)
+        source_id = f"{day}:{order_id}:old_wound"
+        exists = db.conn.execute(
+            """
+            SELECT 1 FROM event_memories
+            WHERE subject_type='secret_order' AND subject_id=? AND event_type='eunuch_secret_order_old_wound'
+              AND source_kind='timeflow' AND source_id=?
+            """,
+            (str(order_id), source_id),
+        ).fetchone()
+        if exists is not None:
+            continue
+        risks = [str(item) for item in (risk.get("risks") or []) if str(item).strip()]
+        stages = [str(item) for item in (risk.get("stage_cues") or []) if str(item).strip()]
+        primary_risk = risks[0] if risks else str(risk.get("note") or "净身旧患牵动密令")
+        stage = stages[0] if stages else "退到廊下定了定神，才敢继续回话。"
+        delay_due = score_delta <= -9
+        due_before = int(order.get("due_turn") or 0)
+        note = (
+            f"{name}办「{str(order.get('title') or '密令')}」时旧患发作：{primary_risk}"
+            + ("；限期顺延一月。" if delay_due and due_before else "；进度线留下风险。")
+        )
+        due_after = _append_secret_order_old_wound_line(db, state, order_id, note, delay_due=delay_due)
+        mode = _primary_care_mode_for_task(risk)
+        text = {
+            "title": f"密令旧患：{name}差事受阻",
+            "detail": (
+                f"{name}承办密令「{str(order.get('title') or '')}」时，净身旧患牵动执行。"
+                f"{primary_risk} 若不调养或改派副手，此类密差会继续拖慢。"
+            ),
+            "stage": stage,
+            "process": primary_risk,
+        }
+        goal_id = _ensure_complication_goal(db, state, name, mode, text, {"delta": {}})
+        outcome_bits = [f"密令修正{score_delta}"]
+        if delay_due and due_before:
+            outcome_bits.append(f"期限{due_before}->{due_after}")
+        outcome = "，".join(outcome_bits)
+        db.upsert_event_memory(
+            state,
+            "secret_order",
+            str(order_id),
+            "eunuch_secret_order_old_wound",
+            text["title"],
+            cause=f"{name}净身旧患牵动密令",
+            process=primary_risk,
+            outcome=outcome,
+            sentiment="negative",
+            importance=4 if delay_due else 3,
+            tags=["净身", "密令", "旧患", *domains[:3]],
+            source_kind="timeflow",
+            source_id=source_id,
+        )
+        db.record_log(state, f"【密令旧患】{text['title']}：{outcome}。")
+        db.conn.commit()
+        return [{
+            "level": LEVEL_YELLOW if delay_due and due_before else LEVEL_BLUE,
+            "kind": "eunuch_secret_order_old_wound",
+            "title": text["title"],
+            "detail": text["detail"],
+            "stage_direction": stage,
+            "effect": outcome,
+            "order_id": order_id,
+            "goal_id": goal_id,
+            "risk": risk,
+            "ref_kind": "secret_order",
+            "ref_id": str(order_id),
             "day": day,
         }]
     return []

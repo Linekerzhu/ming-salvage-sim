@@ -489,6 +489,94 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertIsNotNone(memory)
             self.assertEqual(state.metrics["内库"], 19)
 
+    def test_secret_order_old_wound_tick_delays_unprotected_eunuch_task(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(
+                db,
+                name,
+                forced=True,
+                day=day,
+                detail_text="净军房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+            )
+            task = "夜间久候盯梢刑房封签，拿问口供，查清官库旧案。"
+            order_id = db.create_secret_order(
+                state,
+                name,
+                "密查净军房封签",
+                task,
+                ["刑房", "封签", "净军房"],
+                deadline_months=1,
+            )
+            before = db.get_secret_order(order_id)
+            self.assertEqual(int(before["due_turn"]), int(state.turn) + 1)
+
+            evs = el.secret_order_old_wound_tick(db, state, 4)
+
+            self.assertEqual(len(evs), 1)
+            self.assertEqual(evs[0]["kind"], "eunuch_secret_order_old_wound")
+            self.assertEqual(evs[0]["order_id"], order_id)
+            self.assertGreater(int(evs[0]["goal_id"]), 0)
+            updated = db.get_secret_order(order_id)
+            self.assertEqual(int(updated["due_turn"]), int(before["due_turn"]) + 1)
+            self.assertIn("[旧患拖累]", str(updated["sim_note"]))
+            self.assertIn("旧患发作", str(updated["sim_note"]))
+            memory = db.conn.execute(
+                """
+                SELECT 1 FROM event_memories
+                WHERE subject_type='secret_order' AND subject_id=? AND event_type='eunuch_secret_order_old_wound'
+                """,
+                (str(order_id),),
+            ).fetchone()
+            self.assertIsNotNone(memory)
+            goal = db.get_conversation_goal(int(evs[0]["goal_id"]))
+            self.assertEqual(goal["minister_name"], name)
+            self.assertEqual(goal["action_kind"], "eunuch_care")
+            self.assertEqual(el.secret_order_old_wound_tick(db, state, 11), [])
+
+    def test_secret_order_old_wound_tick_respects_dispatch_strategy(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            state.metrics["内库"] = 20
+            db.save_state(state)
+            el.record_castration(
+                db,
+                name,
+                forced=True,
+                day=day,
+                detail_text="净军房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+            )
+            task = "夜间久候盯梢刑房封签，拿问口供，查清官库旧案。"
+            order_id = db.create_secret_order(
+                state,
+                name,
+                "密查净军房封签",
+                task,
+                ["刑房", "封签", "净军房"],
+                deadline_months=1,
+            )
+            before_due = int((db.get_secret_order(order_id) or {})["due_turn"])
+
+            strategy = el.apply_eunuch_dispatch_strategy(
+                db,
+                state,
+                name,
+                task,
+                "relay",
+                order_id=order_id,
+                domains=["investigation", "inner"],
+                note="准副手分班轮值，别硬撑坏事。",
+            )
+            self.assertTrue(strategy["ok"])
+
+            self.assertEqual(el.secret_order_old_wound_tick(db, state, 4), [])
+            updated = db.get_secret_order(order_id)
+            self.assertEqual(int(updated["due_turn"]), before_due)
+            self.assertIn("分班轮值", str(updated["sim_note"]))
+            self.assertNotIn("[旧患拖累]", str(updated["sim_note"]))
+
     def test_bao_instability_tick_creates_goal_and_is_mitigated_by_bao_care(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)

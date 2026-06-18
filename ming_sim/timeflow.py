@@ -524,12 +524,14 @@ def _tick_day(db: GameDB, state: GameState, day: int) -> DayReport:
     except ImportError:
         pass
 
-    # 净身旧患（E2a）：漏尿/石淋/幻肢痛/宝匣心结低频发作，真实扰动近侍状态。
+    # 净身旧患（E2a）：漏尿/石淋/幻肢痛/宝匣心结低频发作，真实扰动近侍状态与密令执行。
     try:
-        from ming_sim.eunuch_lore import bao_instability_tick, castration_complication_tick
+        from ming_sim.eunuch_lore import bao_instability_tick, castration_complication_tick, secret_order_old_wound_tick
         for ev in castration_complication_tick(db, state, day):
             report.events.append(ev)
         for ev in bao_instability_tick(db, state, day):
+            report.events.append(ev)
+        for ev in secret_order_old_wound_tick(db, state, day):
             report.events.append(ev)
     except ImportError:
         pass
