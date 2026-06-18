@@ -586,6 +586,21 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-caret { animation: m-blink 1s step-end infinite; }
 @keyframes m-blink { 50% { opacity: 0; } }
 .m-chat-notice { flex: 0 0 auto; margin: 0 var(--pad); padding: 7px 12px; background: rgba(47,90,68,.22); color: #a7d3ba; border: 1px solid rgba(47,90,68,.5); border-radius: 10px; font-size: 0.82rem; }
+.m-next-step {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin: 0 var(--pad) 4px; padding: 6px 7px 6px 10px;
+  border: 1px solid rgba(181,134,58,.32); border-radius: 9px;
+  background: rgba(181,134,58,.11); box-shadow: 0 2px 10px rgba(0,0,0,.2);
+}
+.m-next-step span {
+  min-width: 0; color: #d9c79a; font-size: .74rem; font-weight: 800;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.m-next-step button {
+  flex: 0 0 auto; min-height: 30px; padding: 0 10px; border-radius: 7px;
+  color: #21180c; background: linear-gradient(180deg, #c1964d, var(--gold-deep));
+  border: 1px solid rgba(92,64,22,.18); font-size: .74rem; font-weight: 900;
+}
 .m-audience-return { flex: 0 0 auto; margin: 8px var(--pad) 0; padding: 8px 12px; border: 1px solid rgba(197,157,92,.34); border-radius: 8px; background: rgba(197,157,92,.10); color: #d9c79a; font-size: 0.84rem; line-height: 1.45; }
 .m-audience-hooks { flex: 0 0 auto; margin: 8px var(--pad) 0; padding: 8px 9px;
   border: 1px solid rgba(181,134,58,.24); border-radius: 8px; background: rgba(0,0,0,.16); }

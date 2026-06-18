@@ -299,6 +299,7 @@ function Shell({ onExitMenu }: { onExitMenu: () => void }) {
               onAudienceComplete={completeAudience}
               audienceNotice={audienceNotice}
               audienceLead={audienceLead}
+              go={setTab}
             />
           )}
           {!loading && tab === "edicts" && <EdictsView summon={summonAudience} />}

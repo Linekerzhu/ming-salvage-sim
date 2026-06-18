@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { loadChat, streamChat } from "./api";
 import { Portrait } from "./Portrait";
-import type { ChatContext, ChatMention, ChatMessage, ChatResponse, Suggestion } from "./api";
+import type { ChatContext, ChatMention, ChatMessage, ChatResponse, Suggestion, Tab } from "./api";
 import { mentionSegments } from "./mentionLinks";
 
 const EMPTY_LOCAL_MESSAGES: ChatMessage[] = [];
+
+type NextStep = {
+  label: string;
+  hint: string;
+  tab?: Tab;
+  person?: string;
+};
 
 function cleanDisplayText(raw: string): string {
   return String(raw || "")
@@ -43,6 +50,7 @@ export function ChatPane({
   name,
   speakerLabel,
   onSummon,
+  onGo,
   onWorldChanged,
   onOpenPerson,
   localMessages = EMPTY_LOCAL_MESSAGES,
@@ -52,6 +60,7 @@ export function ChatPane({
   name: string;
   speakerLabel: string;
   onSummon?: (next: string) => void;
+  onGo?: (tab: Tab) => void;
   onWorldChanged?: () => void;
   onOpenPerson?: (name: string) => void;
   localMessages?: ChatMessage[];
@@ -65,6 +74,7 @@ export function ChatPane({
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [win, setWin] = useState<{ glyph: string; title: string; sub: string } | null>(null);
+  const [nextStep, setNextStep] = useState<NextStep | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -81,6 +91,7 @@ export function ChatPane({
     setStreaming("");
     setNotice("");
     setWin(null);
+    setNextStep(null);
     loadChat(name)
       .then((r) => {
         if (!alive) return;
@@ -109,6 +120,8 @@ export function ChatPane({
     if (!msg || busy) return;
     setBusy(true);
     setInput("");
+    setNotice("");
+    setNextStep(null);
     setMessages((m) => [...m, { role: "user", content: msg }]);
     setStreaming("");
     try {
@@ -134,6 +147,16 @@ export function ChatPane({
       } else {
         setWin(null);
       }
+      const minister = String(resp.recruited_minister || resp.appointed_minister || resp.registered_minister || "").trim();
+      if (minister && onSummon) {
+        setNextStep({ label: "召来验看", hint: `${minister} 已入名册`, person: minister });
+      } else if (resp.proposed_directive?.text && onGo) {
+        setNextStep({ label: "去诏旨核定", hint: "已有拟旨待批", tab: "edicts" });
+      } else if (resp.secret_order_id && onGo) {
+        setNextStep({ label: "看密令进度", hint: "密令已入诏旨账", tab: "edicts" });
+      } else if (resp.directive_effect?.message && onGo) {
+        setNextStep({ label: "看在办诏旨", hint: "旨意执行有变化", tab: "edicts" });
+      }
       onWorldChanged?.();
       if (resp.next_minister && onSummon) {
         setNotice(`已传召 ${resp.next_minister} 觐见。`);
@@ -150,6 +173,19 @@ export function ChatPane({
   const onSuggestion = (s: Suggestion) => {
     if (s.prefix) setInput(s.text);
     else void send(s.text);
+  };
+  const onNextStep = () => {
+    if (!nextStep) return;
+    if (nextStep.person && onSummon) {
+      setNotice(`已传召 ${nextStep.person} 觐见。`);
+      onSummon(nextStep.person);
+      setNextStep(null);
+      return;
+    }
+    if (nextStep.tab && onGo) {
+      onGo(nextStep.tab);
+      setNextStep(null);
+    }
   };
   const visibleSuggestions = [
     ...leadSuggestions,
@@ -201,6 +237,12 @@ export function ChatPane({
         <div className="m-win" key={`${win.title}-${win.sub}`}>
           <span className="m-win-seal">{win.glyph}</span>
           <div className="m-win-txt"><span className="m-win-title">{win.title}</span><span className="m-win-sub">{win.sub}</span></div>
+        </div>
+      )}
+      {nextStep && (
+        <div className="m-next-step">
+          <span>{nextStep.hint}</span>
+          <button type="button" onClick={onNextStep}>{nextStep.label}</button>
         </div>
       )}
       {notice && <div className="m-chat-notice">{notice}</div>}

@@ -3,7 +3,7 @@ import { useGame } from "../GameData";
 import { ChatPane } from "../ChatPane";
 import { Portrait } from "../Portrait";
 import { loadEunuch, loadEunuchCandidates, loadPlaystyleBrief, replaceEunuch } from "../api";
-import type { AudienceLead, ChatContext, PlaystyleBriefCard, PublicCharacter, Suggestion } from "../api";
+import type { AudienceLead, ChatContext, PlaystyleBriefCard, PublicCharacter, Suggestion, Tab } from "../api";
 import { usePerson } from "../personCtx";
 import { audienceLeadFromBrief, briefUrgency, closurePromptForAudience, shortName } from "./HomeView";
 
@@ -15,12 +15,14 @@ export function AudienceView({
   onAudienceComplete,
   audienceNotice,
   audienceLead,
+  go,
 }: {
   audience: string;
   onAudienceChange: (name: string, lead?: AudienceLead | null) => void;
   onAudienceComplete: (name: string) => void;
   audienceNotice?: string;
   audienceLead?: AudienceLead | null;
+  go?: (tab: Tab) => void;
 }) {
   const { state, refresh, worldVersion } = useGame();
   const openPerson = usePerson();
@@ -165,6 +167,8 @@ export function AudienceView({
           key={isAttendantAudience ? `eunuch-lead:${audience}:${activeLead?.ref_id || ""}` : audience}
           name={audience}
           speakerLabel={isAttendantAudience ? `${audience}·随侍` : audience}
+          onSummon={(next) => onAudienceChange(next)}
+          onGo={go}
           onWorldChanged={refresh}
           onOpenPerson={openPerson}
           localMessages={activeLead?.opening ? [{ role: "minister", content: activeLead.opening }] : undefined}
@@ -261,6 +265,7 @@ export function AudienceView({
         name={eunuch.name}
         speakerLabel={`${eunuch.name}·随侍`}
         onSummon={(next) => onAudienceChange(next)}
+        onGo={go}
         onWorldChanged={refresh}
         onOpenPerson={openPerson}
       />
