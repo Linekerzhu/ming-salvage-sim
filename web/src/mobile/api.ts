@@ -221,6 +221,7 @@ export type PlaystyleBriefCard = {
   ref_kind?: string;
   ref_id?: string;
   effects?: Array<{ kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string }>;
+  stakes?: Array<{ kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string }>;
 };
 export type PlaystyleBriefPayload = {
   cards: PlaystyleBriefCard[];
@@ -255,6 +256,7 @@ export type AudienceLead = {
   ref_id?: string;
   opening?: string;
   prompts?: Suggestion[];
+  stakes?: Array<{ kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string }>;
 };
 export type ChatContext = {
   kind?: string;

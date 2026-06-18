@@ -169,6 +169,15 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                     ))}
                   </span>
                 ) : null}
+                {briefLead.stakes?.length ? (
+                  <span className="m-brief-lead-stakes" aria-label="首要两难">
+                    {briefLead.stakes.slice(0, 3).map((it, idx) => (
+                      <span key={`${it.label}-${idx}`} className={`m-stake-chip tone-${it.tone || "neutral"}`}>
+                        {it.label}
+                      </span>
+                    ))}
+                  </span>
+                ) : null}
               </button>
             )}
             {briefBuckets.length > 0 && (
@@ -223,6 +232,15 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                         <span className="m-brief-effects" aria-label="预期影响">
                           {card.effects.slice(0, 6).map((it, idx) => (
                             <span key={`${it.label}-${idx}`} className={`m-effect-chip tone-${it.tone || "neutral"}`}>
+                              {it.label}
+                            </span>
+                          ))}
+                        </span>
+                      ) : null}
+                      {card.stakes?.length ? (
+                        <span className="m-brief-stakes" aria-label="奏对两难">
+                          {card.stakes.slice(0, 3).map((it, idx) => (
+                            <span key={`${it.label}-${idx}`} className={`m-stake-chip tone-${it.tone || "neutral"}`}>
                               {it.label}
                             </span>
                           ))}
@@ -435,6 +453,7 @@ export function audienceLeadFromBrief(card: PlaystyleBriefCard, actor = card.act
     ref_id: card.ref_id,
     opening: audienceOpeningFromBrief(card, actor, target),
     prompts: briefPrompts(card, actor, target),
+    stakes: card.stakes || [],
   };
 }
 

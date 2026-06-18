@@ -268,7 +268,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-brief-lead em {
   color: var(--gold-deep); font-style: normal; font-size: .68rem; font-weight: 900; white-space: nowrap;
 }
-.m-brief-lead-effects { display: flex; flex-wrap: wrap; gap: 4px; padding-left: 36px; }
+.m-brief-lead-effects,
+.m-brief-lead-stakes { display: flex; flex-wrap: wrap; gap: 4px; padding-left: 36px; }
 .m-brief-lead-effects .m-effect-chip { font-size: .64rem; padding: 1px 6px; }
 .m-brief-lead:active { transform: scale(.99); }
 .m-brief-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -319,6 +320,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .m-brief-effects {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+  margin-top: 2px; max-width: 100%;
+}
+.m-brief-stakes {
   display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
   margin-top: 2px; max-width: 100%;
 }
@@ -464,6 +469,18 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-effect-chip.tone-bad {
   color: #8a2c22; background: rgba(158,52,41,.1); border-color: rgba(158,52,41,.24);
 }
+.m-stake-chip {
+  display: inline-flex; align-items: center; min-height: 17px; max-width: 100%;
+  padding: 1px 6px; border-radius: 999px; font-size: 0.64rem; font-weight: 900;
+  color: #5c4b2e; background: rgba(181,134,58,.1); border: 1px solid rgba(181,134,58,.22);
+  white-space: nowrap;
+}
+.m-stake-chip.tone-good {
+  color: #24543a; background: rgba(74,128,96,.13); border-color: rgba(74,128,96,.3);
+}
+.m-stake-chip.tone-bad {
+  color: #8a2c22; background: rgba(158,52,41,.11); border-color: rgba(158,52,41,.28);
+}
 .m-directive-muted { font-size: 0.78rem; color: var(--ink-soft); }
 .m-blocker-clue {
   display: flex; align-items: center; flex-wrap: wrap; gap: 7px;
@@ -580,6 +597,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-audience-hook-body { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .m-audience-hook-title { color: #ead39b; font-size: .82rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .m-audience-hook-detail { color: #bfae86; font-size: .72rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.m-audience-hook-stakes { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
 .m-audience-hook-rank { justify-self: end; padding: 1px 5px; border-radius: 6px; font-size: .64rem; font-weight: 900;
   color: #375247; background: rgba(73,122,97,.18); border: 1px solid rgba(73,122,97,.28); }
 .m-audience-hook-rank.level-danger { color: #fff1de; background: #8b2d24; border-color: rgba(158,52,41,.55); }
@@ -688,6 +706,19 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .m-audience-lead-title { color: var(--gold); font-size: 0.9rem; font-weight: 800; line-height: 1.35; word-break: break-word; }
 .m-audience-lead-detail { color: #d6c8aa; font-size: 0.8rem; line-height: 1.45; margin-top: 3px; word-break: break-word; }
+.m-audience-lead-stakes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.m-audience-lead-stakes .m-stake-chip,
+.m-audience-hook-stakes .m-stake-chip {
+  color: #d4c49c; background: rgba(181,134,58,.12); border-color: rgba(181,134,58,.28);
+}
+.m-audience-lead-stakes .m-stake-chip.tone-good,
+.m-audience-hook-stakes .m-stake-chip.tone-good {
+  color: #aed4bd; background: rgba(74,128,96,.18); border-color: rgba(74,128,96,.36);
+}
+.m-audience-lead-stakes .m-stake-chip.tone-bad,
+.m-audience-hook-stakes .m-stake-chip.tone-bad {
+  color: #ebb1a5; background: rgba(158,52,41,.16); border-color: rgba(158,52,41,.36);
+}
 .m-lead-link {
   margin-top: 8px; color: #f1cf8c; border: 1px solid rgba(181,134,58,.35);
   background: rgba(181,134,58,.1); border-radius: 8px; padding: 5px 10px; font-size: 0.78rem;

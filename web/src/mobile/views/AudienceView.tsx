@@ -96,6 +96,15 @@ export function AudienceView({
             </div>
             <div className="m-audience-lead-title">{activeLead.title}</div>
             <div className="m-audience-lead-detail">{activeLead.detail}</div>
+            {activeLead.stakes?.length ? (
+              <div className="m-audience-lead-stakes" aria-label="本次召对两难">
+                {activeLead.stakes.slice(0, 3).map((it, idx) => (
+                  <span key={`${it.label}-${idx}`} className={`m-stake-chip tone-${it.tone || "neutral"}`}>
+                    {it.label}
+                  </span>
+                ))}
+              </div>
+            ) : null}
             {activeLead.target && (
               <button className="m-lead-link" onClick={() => openPerson(activeLead.target!)}>查{activeLead.target}</button>
             )}
@@ -166,6 +175,15 @@ export function AudienceView({
                     <span className="m-audience-hook-body">
                       <span className="m-audience-hook-title">{card.title}</span>
                       <span className="m-audience-hook-detail">{card.detail}</span>
+                      {card.stakes?.length ? (
+                        <span className="m-audience-hook-stakes" aria-label="候见两难">
+                          {card.stakes.slice(0, 3).map((it, idx) => (
+                            <span key={`${it.label}-${idx}`} className={`m-stake-chip tone-${it.tone || "neutral"}`}>
+                              {it.label}
+                            </span>
+                          ))}
+                        </span>
+                      ) : null}
                     </span>
                     {urgency && <span className={`m-audience-hook-rank level-${urgency.level}`}>{urgency.label}{urgency.score}</span>}
                   </button>

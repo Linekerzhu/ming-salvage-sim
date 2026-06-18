@@ -338,6 +338,8 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("信任 22", labels)
             self.assertIn("怨望 82", labels)
             self.assertIn(f"政敌 {rival}", labels)
+            stake_labels = [str(e["label"]) for e in petition["stakes"]]
+            self.assertEqual(stake_labels, ["护持换差", "偏护生怨", "问代价"])
 
     def test_petition_chat_context_brief_rebuilds_from_live_db(self):
         with TemporaryDirectory() as tmp:
@@ -614,6 +616,8 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("永久", labels)
             self.assertIn("受益 边军/户部", labels)
             self.assertIn("承压 地方百姓/士绅", labels)
+            stake_labels = [str(e["label"]) for e in card["stakes"]]
+            self.assertEqual(stake_labels, ["缓民怨", "钱粮缺口", "问谁补"])
 
             brief = legacy_chat_context_brief(db, str(card["actor"]), legacy_id)
             target_brief = legacy_chat_context_brief(db, str(card["target"]), legacy_id)

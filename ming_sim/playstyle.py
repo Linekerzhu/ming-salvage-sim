@@ -1424,6 +1424,96 @@ def _brief_urgency(card: BriefCard) -> int:
         return 0
 
 
+def _card_stakes(kind: str) -> List[Dict[str, str]]:
+    """Compact player-facing bargain cues for strategic cards.
+
+    These chips are UI translation only.  The authoritative state and LLM
+    context still come from the specific card data and chat-context builders.
+    """
+
+    profiles: Dict[str, List[Tuple[str, str, str]]] = {
+        "decision": [
+            ("gain", "可立威", "good"),
+            ("cost", "多路后患", "bad"),
+            ("ask", "先看代价", "neutral"),
+        ],
+        "trap": [
+            ("gain", "清御案", "good"),
+            ("cost", "臣下畏事", "bad"),
+            ("ask", "先批急疏", "neutral"),
+        ],
+        "trap_remedy": [
+            ("gain", "暖任事", "good"),
+            ("cost", "替人买单", "bad"),
+            ("ask", "问旧案", "neutral"),
+        ],
+        "directive_blocker": [
+            ("gain", "旨意可通", "good"),
+            ("cost", "暗阻未清", "bad"),
+            ("ask", "问谁掣肘", "neutral"),
+        ],
+        "directive_followup": [
+            ("gain", "成果续用", "good"),
+            ("cost", "奏报有水", "bad"),
+            ("ask", "论赏罚", "neutral"),
+        ],
+        "monthly_followup": [
+            ("gain", "旧约可续", "good"),
+            ("cost", "失信成怨", "bad"),
+            ("ask", "重定期限", "neutral"),
+        ],
+        "patronage": [
+            ("gain", "可得新人", "good"),
+            ("cost", "举主坐大", "bad"),
+            ("ask", "连坐担保", "neutral"),
+        ],
+        "petition": [
+            ("gain", "护持换差", "good"),
+            ("cost", "偏护生怨", "bad"),
+            ("ask", "问代价", "neutral"),
+        ],
+        "favor": [
+            ("gain", "旧恩驱动", "good"),
+            ("cost", "反向要赏", "bad"),
+            ("ask", "换难差", "neutral"),
+        ],
+        "legacy": [
+            ("gain", "缓民怨", "good"),
+            ("cost", "钱粮缺口", "bad"),
+            ("ask", "问谁补", "neutral"),
+        ],
+        "army": [
+            ("gain", "稳兵心", "good"),
+            ("cost", "主帅坐大", "bad"),
+            ("ask", "兵册监军", "neutral"),
+        ],
+        "faction": [
+            ("gain", "借派成事", "good"),
+            ("cost", "党势坐大", "bad"),
+            ("ask", "限期交账", "neutral"),
+        ],
+        "agenda": [
+            ("gain", "借私图办事", "good"),
+            ("cost", "权势坐大", "bad"),
+            ("ask", "逼其交账", "neutral"),
+        ],
+        "rivalry": [
+            ("gain", "共办降温", "good"),
+            ("cost", "旧怨不消", "bad"),
+            ("ask", "问边界", "neutral"),
+        ],
+        "hook": [
+            ("gain", "把柄可用", "good"),
+            ("cost", "逼急毁证", "bad"),
+            ("ask", "换效忠", "neutral"),
+        ],
+    }
+    return [
+        {"kind": stake_kind, "label": label, "tone": tone}
+        for stake_kind, label, tone in profiles.get(kind, [])
+    ]
+
+
 def _card(
     *,
     kind: str,
@@ -1456,6 +1546,9 @@ def _card(
     }
     if effects:
         card["effects"] = effects
+    stakes = _card_stakes(kind)
+    if stakes:
+        card["stakes"] = stakes
     return card
 
 
