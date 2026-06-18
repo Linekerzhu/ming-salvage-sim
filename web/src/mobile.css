@@ -547,6 +547,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-row-tag.warn { color: #fff; background: var(--gold-deep); }
 .m-row-tag.danger { color: #fff; background: var(--cinnabar); }
 .m-row-tag + .m-row-tag { margin-left: 6px; }
+.m-row-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.m-row-tags .m-row-tag { margin-left: 0; font-size: .68rem; padding: 1px 6px; font-weight: 800; border: 1px solid rgba(74,45,20,.12); }
+.m-row-tag.tone-warn { color: #5c3b09; background: rgba(181,134,58,.17); border-color: rgba(181,134,58,.3); }
+.m-row-tag.tone-bad { color: #8a2c22; background: rgba(158,52,41,.1); border-color: rgba(158,52,41,.26); }
 
 @media (prefers-reduced-motion: no-preference) {
   .m-content > * { animation: m-fade .22s ease; }

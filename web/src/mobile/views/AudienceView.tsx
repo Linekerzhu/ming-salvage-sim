@@ -42,6 +42,11 @@ export function AudienceView({
   const ministers: PublicCharacter[] = (state?.ministers || []).filter(
     (m: any) => m.status === "active" && m.name !== eunuch?.name,
   );
+  const summonMinisters = [...ministers].sort((a, b) => (
+    summonPriority(b.name, state?.conversation_goals, leads)
+    - summonPriority(a.name, state?.conversation_goals, leads)
+    || String(a.name || "").localeCompare(String(b.name || ""), "zh-Hans-CN")
+  ));
 
   const openReplace = async () => {
     setSheet("replace");
@@ -260,15 +265,25 @@ export function AudienceView({
               {sheet === "summon" && (
                 <>
                   <p className="m-hint" style={{ margin: "0 4px 8px" }}>随侍领命传召，大臣须臾趋入御前。</p>
-                  {ministers.map((m) => (
-                    <button key={m.name} className="m-sheet-row m-sheet-row-face" onClick={() => { onAudienceChange(m.name); setSheet(""); }}>
-                      <Portrait name={m.name} size={36} interactive={false} />
-                      <div className="m-sheet-row-id">
-                        <span className="m-row-name">{m.name}</span>
-                        <span className="m-row-sub">{[m.office, m.faction].filter(Boolean).join(" · ")}</span>
-                      </div>
-                    </button>
-                  ))}
+                  {summonMinisters.map((m) => {
+                    const tags = summonRowTags(m.name, state?.conversation_goals, leads);
+                    return (
+                      <button key={m.name} className="m-sheet-row m-sheet-row-face" onClick={() => { onAudienceChange(m.name); setSheet(""); }}>
+                        <Portrait name={m.name} size={36} interactive={false} />
+                        <div className="m-sheet-row-id">
+                          <span className="m-row-name">{m.name}</span>
+                          <span className="m-row-sub">{[m.office, m.faction].filter(Boolean).join(" · ")}</span>
+                          {tags.length > 0 && (
+                            <span className="m-row-tags">
+                              {tags.map((tag) => (
+                                <span key={tag.label} className={`m-row-tag tone-${tag.tone || "neutral"}`}>{tag.label}</span>
+                              ))}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </>
               )}
               {sheet === "replace" &&
@@ -320,6 +335,39 @@ function suggestionFromGoal(goal: any, audience: string): Suggestion {
     text: `${audience}，朕记得你旧约「${title}」尚未了结。${pressure ? `眼下是：${pressure}。` : ""}你当面说清楚：已办成什么、还缺什么证据、几日能回奏，若再误事谁担责？`,
     prefix: true,
   };
+}
+
+function summonPriority(name: string, rawGoals: unknown, leads: PlaystyleBriefCard[]): number {
+  const goals = openAudienceGoals(rawGoals, name);
+  const lead = leads.find((card) => String(card.actor || "").trim() === String(name || "").trim());
+  let score = 0;
+  if (lead) score += 100 + Number(lead.urgency || 0);
+  if (goals.some((goal) => ["blocked", "expired"].includes(String(goal?.status || "")))) score += 80;
+  score += goals.length * 12;
+  return score;
+}
+
+function summonRowTags(name: string, rawGoals: unknown, leads: PlaystyleBriefCard[]): Array<{ label: string; tone?: string }> {
+  const clean = String(name || "").trim();
+  const tags: Array<{ label: string; tone?: string }> = [];
+  const lead = leads.find((card) => String(card.actor || "").trim() === clean);
+  if (lead) {
+    tags.push({
+      label: lead.meta ? `候旨·${lead.meta}` : "候旨",
+      tone: lead.tone === "danger" ? "bad" : lead.tone === "warn" ? "warn" : "neutral",
+    });
+  }
+  const goals = openAudienceGoals(rawGoals, clean);
+  if (goals.length) {
+    const blocked = goals.some((goal) => String(goal?.status || "") === "blocked");
+    const expired = goals.some((goal) => String(goal?.status || "") === "expired");
+    const waiting = goals.some((goal) => String(goal?.status || "") === "waiting_conditions");
+    tags.push({
+      label: expired ? "旧约失期" : blocked ? "旧约受阻" : waiting ? "待证旧约" : `旧约${goals.length}`,
+      tone: expired || blocked ? "bad" : waiting ? "warn" : "neutral",
+    });
+  }
+  return tags.slice(0, 3);
 }
 
 function counterpartLeadFromActive(lead: AudienceLead, currentActor: string): AudienceLead {
