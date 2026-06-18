@@ -41,6 +41,7 @@ from ming_sim.ranks import official_rank_for
 from ming_sim.registry import (
     MinisterRegistry,
     bind_content as _bind_registry,
+    build_audience_bargain_memory_brief,
     build_monthly_followup_brief,
     build_personal_chat_memory_brief,
     build_recent_directive_memory_brief,
@@ -690,6 +691,7 @@ class GameSession:
             build_monthly_followup_brief,
             build_secret_order_brief,
             build_stance_brief,
+            build_audience_bargain_memory_brief,
             build_personal_chat_memory_brief,
         ):
             try:

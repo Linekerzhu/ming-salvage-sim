@@ -307,6 +307,61 @@ def build_personal_chat_memory_brief(character: Character, context: CourtContext
     return "\n".join(lines)
 
 
+def build_audience_bargain_memory_brief(character: Character, context: CourtContext) -> str:
+    """Private memory of how the emperor handled this NPC's recent asks."""
+
+    name = str(character.name or "").strip()
+    if not name:
+        return ""
+    try:
+        rows = context.db.conn.execute(
+            """
+            SELECT id, turn, year, period, title, cause, process, outcome,
+                   sentiment, importance, tags
+            FROM event_memories
+            WHERE subject_type='character'
+              AND subject_id=?
+              AND event_type='audience_bargain'
+              AND turn <= ?
+              AND (expires_turn IS NULL OR expires_turn >= ?)
+            ORDER BY turn DESC, importance DESC, id DESC
+            LIMIT 5
+            """,
+            (name, int(context.state.turn), int(context.state.turn)),
+        ).fetchall()
+    except Exception:
+        return ""
+    if not rows:
+        return ""
+
+    def compact(text: object, limit: int = 110) -> str:
+        raw = re.sub(r"\s+", " ", str(text or "").strip())
+        return raw if len(raw) <= limit else raw[: limit - 1] + "…"
+
+    attitude_hint = {
+        "positive": "皇帝曾给过台阶或资源：可感恩、求兑现，也可用旧恩请命，但不要把恩典当无限空白支票。",
+        "mixed": "皇帝曾附条件索证：应先交账、举证、担保或请求明确边界，口头顺从不等于条件已闭环。",
+        "negative": "皇帝曾拒请：怨望或戒心会更重，可能改用人情、程序、政敌线索或更低姿态再求机会。",
+    }
+    lines = [
+        "【御前交易旧账（隐藏；你亲历的皇帝态度，不要复述机制名）】",
+        "这些只代表你自己的记忆。它会影响你后续求恩、担责、拖延、回报或试探皇帝边界的口吻。",
+    ]
+    for row in rows:
+        sentiment = str(row["sentiment"] or "neutral")
+        hint = attitude_hint.get(sentiment, "皇帝曾留下态度：按旧事、信任和怨望自然接续，不要像第一次入殿。")
+        cause = compact(row["cause"], 70)
+        process = compact(row["process"], 90)
+        outcome = compact(row["outcome"], 100)
+        detail = "；".join(part for part in (cause, process, outcome) if part)
+        lines.append(
+            f"- {int(row['year'])}年{int(row['period'])}月「{compact(row['title'], 34)}」："
+            f"{detail or '旧账未详'}。{hint}"
+        )
+    lines.append("若皇帝重提相关事，你应承认上次御前态度，并按许诺/索证/拒请后的心理变化说话；不得装作毫无前事。")
+    return "\n".join(lines)
+
+
 def build_recent_directive_memory_brief(character: Character, context: CourtContext) -> str:
     """Recent decree lifecycle facts visible to every summoned NPC.
 

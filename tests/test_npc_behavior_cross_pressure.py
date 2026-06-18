@@ -21,6 +21,7 @@ from ming_sim import memorials
 from ming_sim.models import Character, CourtContext, GameState, LLMConfig
 from ming_sim.registry import (
     bind_content as bind_registry,
+    build_audience_bargain_memory_brief,
     build_monthly_followup_brief,
     build_personal_chat_memory_brief,
     build_stance_brief,
@@ -1375,6 +1376,54 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             self.assertIn("政敌牵动", brief)
             self.assertNotIn("臣只论钱粮", brief)
             db.conn.close()
+
+    def test_audience_bargain_memory_enters_live_dialogue_context(self) -> None:
+        with TemporaryDirectory() as tmp:
+            session = GameSession(
+                str(Path(tmp) / "npc_audience_bargain_memory.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            try:
+                han = self.content.characters["韩爌"]
+                session.db.upsert_event_memory(
+                    session.state,
+                    "character",
+                    han.name,
+                    "audience_bargain",
+                    "御前许诺",
+                    cause="求展限办差",
+                    process="准，朕暂且护持你，给你人手。",
+                    outcome="允其所求；信任 40->44，怨望 60->56",
+                    sentiment="positive",
+                    importance=3,
+                    tags=["奏对交易", "accept", "petition"],
+                    source_kind="chat_turn",
+                    source_id="unit-test",
+                )
+                session.dialogue_audit_client = lambda phase, payload: {  # type: ignore[assignment]
+                    "goal_decision": "none",
+                    "confidence": 90,
+                }
+
+                brief = build_audience_bargain_memory_brief(
+                    han,
+                    CourtContext(state=session.state, db=session.db),
+                )
+                augmented, prepared = session.prepare_chat_run(
+                    han,
+                    "朕此前给过你台阶，此事如今如何？",
+                )
+
+                self.assertIn("御前交易旧账", brief)
+                self.assertIn("御前许诺", brief)
+                self.assertIn("信任 40->44", brief)
+                self.assertIn("御前交易旧账", augmented)
+                self.assertIn("御前许诺", prepared.behavior_context)
+                self.assertIn("旧恩牵引", prepared.behavior_brief)
+            finally:
+                session.close()
 
     def test_search_memories_returns_personalized_recall_behavior_hint(self) -> None:
         with TemporaryDirectory() as tmp:
