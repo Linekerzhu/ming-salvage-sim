@@ -18,7 +18,7 @@ from ming_sim.political_reactions import (
 
 def is_eunuch_office(office: str, office_type: str = "") -> bool:
     text = f"{office or ''} {office_type or ''}"
-    return bool(re.search(r"司礼监|东厂|太监|宦官|内廷", text))
+    return bool(re.search(r"司礼监|东厂|太监|宦官|内廷|内官监|内官|御马监|御用监|尚膳监|小火者", text))
 
 
 def _json_list(raw: object) -> List[str]:

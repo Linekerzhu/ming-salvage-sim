@@ -649,6 +649,60 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_named_waiting_complaint_materializes_unlisted_palace_nickname(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+
+            events = list(game.chat_stream(attendant, "我叫了小禄子很久都没有人出现"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], "小禄子")
+            self.assertEqual(payload["registered_minister"], "小禄子")
+            row = game.db.conn.execute(
+                "SELECT office, office_type, summary FROM characters WHERE name=?",
+                ("小禄子",),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
+            self.assertIn("内廷小名补档", str(row["summary"] or ""))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_waiting_complaint_recovers_recent_roleplayed_summon_without_store(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+            game.chat_history[attendant] = [
+                {
+                    "role": "minister",
+                    "content": "——传内书堂生徒小禄子觐见。小禄子胆子小，该在殿外候着了。",
+                }
+            ]
+
+            events = list(game.chat_stream(attendant, "我叫了很久都没人出现"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], "小禄子")
+            self.assertEqual(payload["registered_minister"], "小禄子")
+            self.assertIn("小禄子", game.content.characters)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_old_dialogue_palace_nickname_waiting_profile_migrates_to_inner_court(self):
         game = web_app.WebGame(fresh=True)
         try:
@@ -1121,6 +1175,27 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
             self.assertIn("举荐来源", str(row["summary"] or ""))
             self.assertGreater(court.get_opinion(game.db, recruited, attendant), 0)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_attendant_inner_office_title_still_uses_eunuch_self_reference(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            game.db.conn.execute(
+                "UPDATE characters SET office=?, office_type=? WHERE name=?",
+                ("内官监御前", "内官监御前", attendant),
+            )
+            game.db.conn.commit()
+
+            events = list(game.chat_stream(attendant, "算了，你再招募一个小内侍吧"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            self.assertTrue(events[-1]["payload"]["answer"].startswith("奴婢回陛下"))
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

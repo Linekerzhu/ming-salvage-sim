@@ -3213,12 +3213,12 @@ class WebGame:
             r"(?:了|一下|一声)?[\u4e00-\u9fff]{2,4}(?:吧|罢|[？?，,。！!\s、]|$)",
             raw,
         ))
-        pronoun_followup = bool(re.search(r"(人呢|他呢|她呢|在哪|哪去了|带来|领来|引来|进来|入殿|我来和[他她]说话|我和[他她]说话|让[他她]进来|叫[他她]进来|传[他她])", raw))
+        followup_requested = self._attendant_summon_followup_requested(raw)
         selection_followup = self._attendant_named_selection_requested(minister_name, raw)
-        if not (summon_requested or short_named_summon or pronoun_followup or selection_followup):
+        if not (summon_requested or short_named_summon or followup_requested or selection_followup):
             return {}
         candidates: List[Character] = []
-        if summon_requested or short_named_summon or selection_followup:
+        if summon_requested or short_named_summon or selection_followup or followup_requested:
             for character in self.session.content.characters.values():
                 if character.name == minister_name:
                     continue
@@ -3236,7 +3236,7 @@ class WebGame:
             candidates.sort(key=lambda c: len(c.name), reverse=True)
             self._clear_pending_dialogue_action(minister_name)
             return {"name": candidates[0].name, "generated": False}
-        if pronoun_followup:
+        if followup_requested:
             recent_name = self._recent_attendant_implied_summon_name(minister_name)
             if recent_name and recent_name != minister_name and recent_name in self.content.characters:
                 try:
@@ -3260,6 +3260,22 @@ class WebGame:
             return {}
         self._clear_pending_dialogue_action(minister_name)
         return {"name": target.name, "generated": True}
+
+    def _attendant_summon_followup_requested(self, text: str) -> bool:
+        raw = str(text or "").strip()
+        if not raw:
+            return False
+        name = r"(?:小[\u4e00-\u9fff]{1,2}子|[\u4e00-\u9fff]{2,4})"
+        return bool(
+            re.search(
+                r"(人呢|他呢|她呢|在哪|哪去了|带来|领来|引来|进来|入殿|"
+                r"我来和[他她]说话|我和[他她]说话|让[他她]进来|叫[他她]进来|传[他她]|"
+                r"怎么还不来|还没来|还不来|没人出现|没有人出现)",
+                raw,
+            )
+            or re.search(fr"{name}.{{0,10}}(?:人呢|在哪|哪去了|怎么还不来|还没来|还不来|没来|不来|没出现|没人出现|没有人出现)", raw)
+            or re.search(fr"(?:叫|传|召|唤|找|请)(?:了|过)?[^\n，。；：]{{0,14}}?{name}[^\n，。；：]{{0,16}}?(?:很久|半天|许久)[^\n，。；：]{{0,16}}?(?:没|不|未)[^\n，。；：]{{0,8}}?(?:来|到|进|见|出现)", raw)
+        )
 
     def _attendant_named_selection_requested(self, minister_name: str, text: str) -> bool:
         """Treat a named choice from the attendant's recent suggestions as a summons.
@@ -3735,6 +3751,8 @@ class WebGame:
                 r"(?:传|宣|召|唤|叫|带|领|引)[^\n，。；：]{0,16}?(小[\u4e00-\u9fff]子)(?:觐见|入殿|进殿|进来|趋入|来见|面圣|到御前|到朕前)",
                 r"(?:传|宣|召|唤|叫|带|领|引)[^\n，。；：]{0,16}?([\u4e00-\u9fff]{2,4})(?:觐见|入殿|进殿|进来|趋入|来见|面圣|到御前|到朕前)",
                 r"(?:^|[，,。；;！!\s、])(?:找|寻|召|传|宣|请|唤|叫)(?:了|一下|一声)?([\u4e00-\u9fff]{2,4})(?:吧|罢|[？?，,。！!\s、]|$)",
+                r"(小[\u4e00-\u9fff]{1,2}子|[\u4e00-\u9fff]{2,4})(?:人呢|在哪|哪去了|怎么还不来|还没来|还不来|没来|不来|没出现|没人出现|没有人出现)",
+                r"(?:叫|传|召|唤|找|请)(?:了|过)?[^\n，。；：]{0,14}?(小[\u4e00-\u9fff]{1,2}子|[\u4e00-\u9fff]{2,4})[^\n，。；：]{0,16}?(?:很久|半天|许久)[^\n，。；：]{0,16}?(?:没|不|未)[^\n，。；：]{0,8}?(?:来|到|进|见|出现)",
                 r"^([\u4e00-\u9fff]{2,4})[，、\s]*(?:进来|入殿|进殿|趋入|觐见|来见|面圣)",
             ])
         for pattern in patterns:
@@ -3892,13 +3910,13 @@ class WebGame:
         if not candidates:
             referenced = self._referenced_unknown_dialogue_name(minister_name, raw, stored)
             candidates = [referenced] if referenced else []
-        if not candidates:
-            direct_names = self._extract_unknown_person_mentions(raw, include_command=True)
-            candidates = [name for name in direct_names if name not in self.content.characters]
             if not candidates:
-                if re.search(r"(人呢|他呢|她呢|在哪|哪去了|带来|领来|引来|进来|入殿|我来和[他她]说话|我和[他她]说话|让[他她]进来|叫[他她]进来|传[他她])", raw):
-                    recent_name = self._recent_attendant_implied_summon_name(minister_name)
-                    candidates = [recent_name] if recent_name and recent_name not in self.content.characters else []
+                direct_names = self._extract_unknown_person_mentions(raw, include_command=True)
+                candidates = [name for name in direct_names if name not in self.content.characters]
+                if not candidates:
+                    if self._attendant_summon_followup_requested(raw):
+                        recent_name = self._recent_attendant_implied_summon_name(minister_name)
+                        candidates = [recent_name] if recent_name and recent_name not in self.content.characters else []
                 if not candidates:
                     return None
         candidates.sort(key=len, reverse=True)
