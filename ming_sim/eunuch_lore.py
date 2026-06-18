@@ -2067,6 +2067,85 @@ def _bao_leverage_note(existing: str, addition: str) -> str:
     return text[:320]
 
 
+def _bao_stake_profile(lore: Dict[str, object], mode: str) -> Dict[str, object]:
+    """Gameplay value of a concrete bao case as leverage or restitution."""
+
+    raw = " ".join(
+        str(lore.get(key) or "")
+        for key in (
+            "bao_size",
+            "bao_shape",
+            "bao_texture",
+            "bao_weight",
+            "bao_preservation",
+            "bao_container",
+            "bao_ritual",
+            "note",
+        )
+    )
+    resolved = "control" if str(mode or "") == "control" else "return"
+    control = 0
+    solace = 0
+    volatility = 0
+    tags: List[str] = []
+
+    def bump(tag: str, *, ctl: int = 0, sol: int = 0, vol: int = 0) -> None:
+        nonlocal control, solace, volatility
+        control += int(ctl)
+        solace += int(sol)
+        volatility += int(vol)
+        if tag and tag not in tags:
+            tags.append(tag)
+
+    if re.search(r"偏沉粗大|约二两八钱|三两|一大一小", raw):
+        bump("宝相可验", ctl=2, sol=1, vol=1)
+    if re.search(r"小如雀卵|干瘪寒缩|轻得几乎无声|约一两二钱|瘪坠不匀", raw):
+        bump("宝相寒薄", ctl=-1, sol=-1, vol=2)
+    if re.search(r"油炸|封蜡|石灰|盐灰|封燥|封签|官库", raw):
+        bump("封存有据", ctl=2, sol=-1, vol=1)
+    if re.search(r"香料腌藏|杉木|楠木|黄杨|锡胆|描金|钥匙贴身|供奉|佛龛", raw):
+        bump("安置体面", sol=3, vol=-1)
+    if re.search(r"灰瓮|粗木|铁皮|旧案匣|白签|案袋", raw):
+        bump("官库粗封", ctl=2, sol=-2, vol=2)
+    if re.search(r"潮湿|霉坏|失匣|失签|旧布包|破锦囊|无凭", raw):
+        bump("凭据不稳", ctl=-3, sol=-2, vol=3)
+    if re.search(r"暗记官库封签|终身惦念|忌听.*全尸|打听宝匣", raw):
+        bump("心结深", ctl=1, sol=1, vol=3)
+
+    control = max(-4, min(8, control))
+    solace = max(-4, min(8, solace))
+    volatility = max(0, min(8, volatility))
+    if resolved == "control":
+        delta = {
+            "emp_trust": -max(0, 1 + volatility // 4),
+            "grievance": max(0, control + volatility),
+            "wisdom": 1 if control >= 5 else -1,
+            "luck": -1 if volatility >= 3 else 0,
+        }
+        score = max(0, min(100, 45 + control * 6 + volatility * 3 - max(0, solace) * 2))
+        tradeoff = "封签越稳越能拿捏；宝相越刺心，反噬也越深。"
+    else:
+        delta = {
+            "emp_trust": max(1, 3 + max(0, solace) // 2),
+            "grievance": -max(1, 5 + max(0, solace) + max(0, volatility - 2) // 2),
+            "wisdom": 1 if solace >= 2 else 0,
+            "luck": 1 if solace >= 3 and volatility <= 3 else 0,
+        }
+        score = max(0, min(100, 45 + solace * 7 - volatility * 3 + max(0, control) * 2))
+        tradeoff = "体面安置越足越能收心；凭据越差，越像敷衍。"
+    return {
+        "mode": resolved,
+        "control": control,
+        "solace": solace,
+        "volatility": volatility,
+        "score": score,
+        "summary": "、".join(tags[:4]) or "宝案细节未明",
+        "tradeoff": tradeoff,
+        "delta": delta,
+        "tags": tags[:6],
+    }
+
+
 def apply_bao_leverage(
     db: GameDB,
     state: GameState,
@@ -2115,6 +2194,7 @@ def apply_bao_leverage(
         if isinstance(updated, dict) and isinstance(updated.get("updated"), dict):
             lore_update = {str(k): str(v) for k, v in updated["updated"].items()}
         lore = get_lore(db, clean_name) or lore
+    stake_profile = _bao_stake_profile(lore, resolved_mode)
     before = {
         "emp_trust": int(row["emp_trust"] or 55),
         "grievance": int(row["grievance"] or 20),
@@ -2127,7 +2207,7 @@ def apply_bao_leverage(
         label = "宝案钳制"
         trait = "宝案钳制"
         bao_status = BAO_FORFEIT
-        delta = {"emp_trust": -2, "grievance": 8, "wisdom": -1, "luck": -1}
+        delta = dict(stake_profile.get("delta") or {"emp_trust": -2, "grievance": 8, "wisdom": -1, "luck": -1})
         preservation = str(lore.get("bao_preservation") or "").strip()
         container = str(lore.get("bao_container") or "").strip()
         if not preservation or not re.search(r"官库|石灰|封存|油炸|香料", preservation):
@@ -2141,7 +2221,7 @@ def apply_bao_leverage(
         title = f"宝案钳制：{clean_name}"
         cause = "御前以宝案作内廷把柄"
         stage = "听见官库封签，他喉头一紧，叩首更低。"
-        outcome_label = "短期威慑"
+        outcome_label = f"短期威慑：{stake_profile.get('summary') or '宝案入押'}"
         sentiment = "negative"
         process = f"{container}；{preservation}；{note}".strip("；")[:160]
         db.conn.execute("DELETE FROM character_traits WHERE name=? AND trait IN ('御赐宝匣','宝匣安置')", (clean_name,))
@@ -2149,7 +2229,7 @@ def apply_bao_leverage(
         label = "赐还宝匣"
         trait = "御赐宝匣"
         bao_status = BAO_KEPT
-        delta = {"emp_trust": 5, "grievance": -9, "wisdom": 1, "luck": 1}
+        delta = dict(stake_profile.get("delta") or {"emp_trust": 5, "grievance": -9, "wisdom": 1, "luck": 1})
         preservation = str(lore.get("bao_preservation") or "").strip()
         container = str(lore.get("bao_container") or "").strip()
         if not preservation or re.search(r"官库|石灰|封存|灰瓮|白签", preservation):
@@ -2163,7 +2243,7 @@ def apply_bao_leverage(
         title = f"赐还宝匣：{clean_name}"
         cause = "御前以宝匣收心降怨"
         stage = "他伏地捧匣，指节发颤，半晌才敢谢恩。"
-        outcome_label = "收心降怨"
+        outcome_label = f"收心降怨：{stake_profile.get('summary') or '宝案赐还'}"
         sentiment = "positive"
         process = f"{container}；{preservation}；{note}".strip("；")[:160]
         db.conn.execute("DELETE FROM character_traits WHERE name=? AND trait='宝案钳制'", (clean_name,))
@@ -2221,6 +2301,7 @@ def apply_bao_leverage(
         if after[key] != before[key]
     ]
     outcome_bits.append(outcome_label)
+    outcome_bits.append(f"筹码值{int(stake_profile.get('score') or 0)}")
     outcome = "，".join(outcome_bits)
     db.upsert_event_memory(
         state,
@@ -2252,6 +2333,7 @@ def apply_bao_leverage(
         "items_added": items_added,
         "process": process,
         "leverage_note": outcome_label,
+        "stake_profile": stake_profile,
     }
 
 

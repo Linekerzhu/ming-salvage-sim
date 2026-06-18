@@ -3292,6 +3292,16 @@ class WebGame:
             return False
         stored = self._load_unknown_dialogue_mentions()
         names = [name for name in stored if name and name in raw]
+        single_for_minister = [
+            name for name, value in stored.items()
+            if str(value.get("source_minister") or "") == minister_name
+        ]
+        if (
+            not names
+            and len(single_for_minister) == 1
+            and re.search(r"(?:就|要|选|挑|取)(?:他|她|这人|此人|这个|这个人|这位)(?:吧|罢|[。！？!?\s]*$)", raw)
+        ):
+            return True
         if not names:
             names = [
                 character.name
@@ -3307,7 +3317,21 @@ class WebGame:
         if re.search(selection_words, raw):
             return True
         stripped = re.sub(r"[？?，,。！!\s、]+", "", raw)
-        return any(stripped in {name, f"就{name}", f"要{name}", f"选{name}", f"传{name}", f"叫{name}"} for name in names)
+        confirm_prefixes = ("好", "好的", "行", "成", "准", "可以", "就", "要", "选", "挑", "取", "传", "叫", "带")
+        if any(
+            stripped in {name, *(f"{prefix}{name}" for prefix in confirm_prefixes), f"就{name}吧", f"要{name}吧"}
+            for name in names
+        ):
+            return True
+        if re.search(
+            r"(?:好|好的|行|成|准|可以|就|要|选|挑|取)[，,、\s]*(?:这个|那个|这位|那位)?"
+            r"(?:小[\u4e00-\u9fff]{1,2}子|[\u4e00-\u9fff]{2,4})(?:吧|罢|[。！？!?\s]*$)",
+            raw,
+        ):
+            return True
+        if len(single_for_minister) == 1 and re.search(r"(?:就|要|选|挑|取)(?:他|她|这人|此人|这个|这个人|这位)(?:吧|罢|[。！？!?\s]*$)", raw):
+            return True
+        return False
 
     def _attendant_summon_answer(self, target_name: str, generated: bool = False, source: str = "") -> str:
         if generated:
@@ -4024,6 +4048,8 @@ class WebGame:
             return rows[2][1] if len(rows) >= 3 else ""
         if len(rows) == 1 and self._attendant_summon_followup_requested(raw):
             return rows[0][1]
+        if len(rows) == 1 and re.search(r"(?:就|要|选|挑|取)(?:他|她|这人|此人|这个|这个人|这位)(?:吧|罢|[。！？!?\s]*$)", raw):
+            return rows[0][1]
         if len(rows) == 1 and re.search(r"(他|此人|这人|那人|这个人|那个人|这位|那位|此辈).{0,12}(来|入|觐|见|聊|谈|奏对|问对|进殿|入殿)", raw):
             return rows[0][1]
         return ""
@@ -4626,6 +4652,7 @@ class WebGame:
         outcome = str(result.get("outcome") or "")
         stage = str(result.get("stage_direction") or "")
         lore_update = result.get("lore_update") if isinstance(result.get("lore_update"), dict) else {}
+        stake = result.get("stake_profile") if isinstance(result.get("stake_profile"), dict) else {}
         label_map = {
             "bao_status": "宝案",
             "bao_preservation": "宝存",
@@ -4646,6 +4673,18 @@ class WebGame:
             for item in (result.get("items_added") or [])
             if str(item).strip()
         ]
+        stake_effects: List[Dict[str, str]] = []
+        if stake:
+            score = int(stake.get("score") or 0)
+            summary = str(stake.get("summary") or "宝案细节").strip()
+            tradeoff = str(stake.get("tradeoff") or "").strip()
+            stake_effects.append({
+                "kind": "bao_stake",
+                "label": f"宝案筹码{score}：{summary[:18]}",
+                "tone": "good" if score >= 65 and str(result.get("mode") or "") == "return" else "warn",
+            })
+            if tradeoff:
+                stake_effects.append({"kind": "bao_tradeoff", "label": tradeoff[:28], "tone": "neutral"})
         if str(result.get("mode") or "") == "control":
             answer = (
                 f"{self_ref}遵旨。{target}的宝案已封作官库把柄，{outcome}。"
@@ -4666,6 +4705,7 @@ class WebGame:
                 "effects": [
                     {"kind": "bao_leverage", "label": outcome or label, "tone": tone},
                     {"kind": "character", "label": f"{target}宝案入档", "tone": "info"},
+                    *stake_effects[:2],
                     *lore_effects[:5],
                     *item_effects[:2],
                 ],
