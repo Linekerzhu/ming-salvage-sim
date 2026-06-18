@@ -387,7 +387,8 @@ export const issueDecreeStream = (onDelta: (d: string) => void) =>
 export { streamChat } from "../api/client";
 
 // ── 召对 / 随侍太监 ────────────────────────────────────────────────────────
-export type ChatMessage = { role: string; content: string };
+export type ChatMention = { name: string; terms?: string[]; has_profile?: boolean; office?: string };
+export type ChatMessage = { role: string; content: string; mentions?: ChatMention[] };
 export type Suggestion = { label: string; text: string; prefix?: boolean };
 export type PublicCharacter = Record<string, any> & { name: string; office?: string; portrait_id?: string };
 

@@ -2972,7 +2972,7 @@ class WebGame:
         after_snapshot = self.db.capture_chat_rollback_snapshot()
         self.db.record_chat_turn_rollback_diffs(chat_turn_id, before_snapshot, after_snapshot)
 
-    def _attendant_summon_target(self, minister_name: str, text: str) -> str:
+    def _attendant_summon_target(self, minister_name: str, text: str) -> Dict[str, Any]:
         """Deterministic fallback for the player telling the attending eunuch to summon someone.
 
         The LLM is still allowed to use the summon_minister tool, but this path
@@ -2983,14 +2983,14 @@ class WebGame:
         try:
             from ming_sim.eunuch import get_attending_eunuch
             if minister_name != get_attending_eunuch(self.db):
-                return ""
+                return {}
         except Exception:
-            return ""
+            return {}
         raw = str(text or "").strip()
         if not raw:
-            return ""
+            return {}
         if not re.search(r"(召|传|宣|请|唤|叫).{0,12}(来|入|觐|见|奏对|问对|进殿|入殿)", raw):
-            return ""
+            return {}
         current = self.session._character(minister_name)
         candidates: List[Character] = []
         for character in self.session.content.characters.values():
@@ -3006,12 +3006,24 @@ class WebGame:
             ok, _reason = self.session.can_summon(target)
             if ok:
                 candidates.append(target)
-        if not candidates:
-            return ""
-        candidates.sort(key=lambda c: len(c.name), reverse=True)
-        return candidates[0].name
+        if candidates:
+            candidates.sort(key=lambda c: len(c.name), reverse=True)
+            return {"name": candidates[0].name, "generated": False}
+        generated = self._materialize_dialogue_mention_from_text(minister_name, raw)
+        if not generated:
+            return {}
+        try:
+            target, _is_temporary = self.session.summon_character(generated.name, current, allow_temporary=False)
+        except ValueError:
+            return {}
+        ok, _reason = self.session.can_summon(target)
+        if not ok:
+            return {}
+        return {"name": target.name, "generated": True}
 
-    def _attendant_summon_answer(self, target_name: str) -> str:
+    def _attendant_summon_answer(self, target_name: str, generated: bool = False) -> str:
+        if generated:
+            return f"奴婢遵旨。{target_name}原只是奏对里露出的名目，奴婢已按线索补入名册，这就传其趋入御前。"
         return f"奴婢遵旨，这就传{target_name}大人趋入御前。"
 
     def _dialogue_action_key(self, minister_name: str) -> str:
@@ -3085,6 +3097,251 @@ class WebGame:
                 names.append(name)
         names.sort(key=len, reverse=True)
         return list(dict.fromkeys(names))
+
+    def _chat_message_mentions(self, text: str) -> List[Dict[str, Any]]:
+        raw = str(text or "")
+        mentions: List[Dict[str, Any]] = []
+        for name in self._character_mentions_in_text(raw):
+            character = self.content.characters.get(name)
+            if character is None:
+                continue
+            terms = []
+            for term in [name, *(getattr(character, "aliases", []) or [])]:
+                clean = str(term or "").strip()
+                if len(clean) >= 2 and clean in raw and clean not in terms:
+                    terms.append(clean)
+            if not terms:
+                continue
+            mentions.append({
+                "name": name,
+                "terms": terms,
+                "has_profile": True,
+                "office": character.office,
+            })
+        return mentions
+
+    def _chat_history_payload(self, minister_name: str) -> List[Dict[str, Any]]:
+        payload: List[Dict[str, Any]] = []
+        for message in self.chat_history.get(minister_name, []):
+            item = dict(message)
+            mentions = self._chat_message_mentions(str(item.get("content") or ""))
+            if mentions:
+                item["mentions"] = mentions
+            payload.append(item)
+        return payload
+
+    def _dialogue_unknown_mentions_key(self) -> str:
+        return "dialogue.unknown_person_mentions"
+
+    def _load_unknown_dialogue_mentions(self) -> Dict[str, Dict[str, Any]]:
+        raw = self.db.kv_get(self._dialogue_unknown_mentions_key()) or "{}"
+        try:
+            data = json.loads(raw)
+        except (TypeError, ValueError):
+            return {}
+        if not isinstance(data, dict):
+            return {}
+        out: Dict[str, Dict[str, Any]] = {}
+        for name, value in data.items():
+            clean = self._normalize_dialogue_person_name(str(name or ""))
+            if not clean or clean in self.content.characters:
+                continue
+            out[clean] = value if isinstance(value, dict) else {}
+        return out
+
+    def _save_unknown_dialogue_mentions(self, mentions: Dict[str, Dict[str, Any]]) -> None:
+        cleaned = {
+            name: value
+            for name, value in mentions.items()
+            if self._normalize_dialogue_person_name(name) and name not in self.content.characters
+        }
+        self.db.kv_set(self._dialogue_unknown_mentions_key(), json.dumps(cleaned, ensure_ascii=False))
+
+    def _normalize_dialogue_person_name(self, raw_name: str) -> str:
+        name = re.sub(r"[^\u4e00-\u9fff]", "", str(raw_name or ""))
+        for suffix in ("大人", "先生", "公公", "主事", "书办", "幕客", "内侍", "太监", "小火者", "举人", "秀才", "贡生", "吏员", "百户", "千户"):
+            if name.endswith(suffix) and len(name) > len(suffix) + 1:
+                name = name[: -len(suffix)]
+                break
+        if not (2 <= len(name) <= 4):
+            return ""
+        stopwords = {
+            "陛下", "皇上", "皇帝", "圣上", "奴婢", "臣等", "臣下", "此人", "其人", "大人", "先生",
+            "朝廷", "内阁", "司礼", "司礼监", "东林", "阉党", "内廷", "外朝", "厂卫", "锦衣卫",
+            "奏对", "名册", "档案", "小火者", "太监", "内侍", "内臣", "新科", "科场", "科举",
+        }
+        if name in stopwords or any(bad in name for bad in ("陛下", "皇上", "奴婢", "朝廷", "司礼", "锦衣", "档案")):
+            return ""
+        compound_surnames = ("司马", "欧阳", "上官", "诸葛", "夏侯", "皇甫", "尉迟", "公孙", "东方", "南宫")
+        single_surnames = (
+            "赵钱孙李周吴郑王冯陈褚卫蒋沈韩杨朱秦尤许何吕施张孔曹严华金魏陶姜谢邹喻"
+            "窦章云苏潘葛范彭鲁韦马苗方任袁柳鲍史唐薛雷贺倪汤滕殷罗毕郝安常傅"
+            "卞齐康伍余顾孟黄穆萧尹姚邵汪祁毛米贝明计成戴谈宋庞纪舒屈项祝董梁"
+            "杜阮蓝闵席季贾路江童颜郭梅盛林钟徐骆高夏蔡田胡凌霍虞万管卢莫房解"
+            "应宗丁宣邓杭洪左石崔龚程邢裴陆荣翁荀羊甄封靳段焦巴侯全班秋仲宫宁"
+            "仇甘祖武符刘詹龙叶黎白蒲从赖卓蔺蒙池乔闻党翟谭劳姬申冉宰雍桑桂牛"
+            "寿尚温庄晏柴瞿阎充慕连茹习宦艾鱼向易慎廖庾衡步都耿满匡国文寇广东"
+            "欧利越师巩聂晁勾冷辛阚简饶曾沙养丰关相查后游竺权益桓公督晋楚闫法涂钦"
+        )
+        if len(name) >= 3 and name[:2] in compound_surnames:
+            return name
+        if name[0] in single_surnames:
+            return name
+        return ""
+
+    def _extract_unknown_person_mentions(self, text: str, include_command: bool = False) -> List[str]:
+        raw = str(text or "")
+        names: List[str] = []
+
+        def add(candidate: str) -> None:
+            clean = self._normalize_dialogue_person_name(candidate)
+            if not clean or clean in self.content.characters or clean in names:
+                return
+            names.append(clean)
+
+        for surname, given in re.findall(r"姓([\u4e00-\u9fff]{1,2})名([\u4e00-\u9fff]{1,2})", raw):
+            add(f"{surname}{given}")
+        patterns = [
+            r"(?:名叫|唤作|叫作|叫做|名为|名唤)([\u4e00-\u9fff]{2,4})",
+            r"([\u4e00-\u9fff]{2,4})(?:此人|其人|这个人|这人|大人|先生|公公|主事|书办|幕客|内侍|太监|小火者|举人|秀才|贡生|吏员|百户|千户|游击|把总|盐商|粮长|乡绅|儒生|胥吏|山人)",
+        ]
+        if include_command:
+            patterns.append(r"(?:找|寻|召|传|宣|请|唤|叫)([\u4e00-\u9fff]{2,4})(?:来|入|见|觐|奏对|问对|进殿|入殿)?")
+        for pattern in patterns:
+            for candidate in re.findall(pattern, raw):
+                add(str(candidate))
+        return names
+
+    def _record_unknown_dialogue_mentions(self, minister_name: str, answer: str) -> None:
+        names = self._extract_unknown_person_mentions(answer)
+        if not names:
+            return
+        stored = self._load_unknown_dialogue_mentions()
+        excerpt = re.sub(r"\s+", " ", str(answer or "")).strip()[:160]
+        changed = False
+        for name in names:
+            if name in stored or name in self.content.characters:
+                continue
+            stored[name] = {
+                "name": name,
+                "source_minister": minister_name,
+                "first_seen_turn": int(self.state.turn),
+                "excerpt": excerpt,
+            }
+            changed = True
+        if changed:
+            self._save_unknown_dialogue_mentions(stored)
+
+    def _materialize_dialogue_mention_from_text(self, minister_name: str, text: str) -> Optional[Character]:
+        stored = self._load_unknown_dialogue_mentions()
+        raw = str(text or "")
+        candidates = [name for name in stored if name in raw]
+        if not candidates:
+            candidates = [name for name in self._extract_unknown_person_mentions(raw, include_command=True) if name in stored]
+        if not candidates:
+            return None
+        candidates.sort(key=len, reverse=True)
+        name = candidates[0]
+        source = stored.get(name, {})
+        context = f"{source.get('excerpt') or ''} {raw}"
+        character = self._generate_dialogue_character(name, minister_name, context, source)
+        added = self._add_runtime_character(character, "对白线索补档")
+        self._record_recommendation_link(
+            added.name,
+            str(source.get("source_minister") or minister_name),
+            "对白线索奉旨寻访",
+            str(source.get("excerpt") or raw),
+            verified_recommender=True,
+        )
+        stored.pop(name, None)
+        self._save_unknown_dialogue_mentions(stored)
+        self.db.record_log(self.state, f"奉旨按对白线索寻访{added.name}，补入本局人物名册，可召见奏对。")
+        return added
+
+    def _generate_dialogue_character(
+        self,
+        name: str,
+        minister_name: str,
+        context: str,
+        source: Dict[str, Any],
+    ) -> Character:
+        rng = self.character_rng
+        raw = str(context or "")
+        if re.search(r"(太监|内侍|内臣|内官|小火者|内书堂|司礼监|宫里|宫中)", raw):
+            office = rng.choice(["内书堂识字小火者", "司礼监文书房小内官", "乾清宫门下随侍"])
+            office_type = "司礼监"
+            faction = rng.choice(["内廷", "皇党", "阉党"])
+            skills = ["宫禁熟习", "传旨跑腿", "察言观色", "文书抄录"]
+            style = rng.choice([
+                "新入御前，跪得快，回话先讲见闻，不敢妄议外朝大政",
+                "机灵谨慎，耳朵尖，懂宫里门道，但见识仍绕着内廷打转",
+                "识字守口，复命细碎，遇到大事会先请旨再动",
+            ])
+            summary_tail = "短板：见识多限宫禁，谈外朝容易露怯；风险：若被旧监房牵住，忠心会和内廷小圈子纠缠。"
+            loyalty = rng.randint(78, 96)
+            ability = rng.randint(42, 68)
+        elif re.search(r"(百户|千户|游击|把总|武|军|营|边|辽东|兵)", raw):
+            office = "待铨（武选访得）"
+            office_type = "待铨"
+            faction = rng.choice(["实务派", "中立", "边镇"])
+            skills = ["军务见闻", "营伍调度", "边情", "执行"]
+            style = rng.choice([
+                "行礼粗硬，话少但敢担风险，常把军中实情说得刺耳",
+                "边地气重，先看粮饷与人马，再谈名分章程",
+                "不擅辞令，却记得住营伍细账和将校脾气",
+            ])
+            summary_tail = "短板：朝堂辞令生疏，容易被文臣压住；风险：边镇旧关系未明，荐用需看军中牵连。"
+            loyalty = rng.randint(48, 76)
+            ability = rng.randint(52, 78)
+        else:
+            office = "待铨（对白寻访）"
+            office_type = "待铨"
+            faction = rng.choice(["中立", "实务派", "清流", "乡党"])
+            skills = rng.choice([
+                ["地方见闻", "文书", "说合", "举贤"],
+                ["钱粮核算", "案牍", "民情", "执行"],
+                ["幕府阅历", "情报", "机变", "文书"],
+                ["清查", "弹章", "地方阅历", "奏对"],
+            ])
+            style = rng.choice([
+                "初入御前，既想抓住机会，又怕一句话把举主牵进去",
+                "衣着朴素，回话带地方口气，看事不华丽但有棱角",
+                "先报来路再讲本事，懂得把风险摊在明面上",
+                "有幕客气，眼神活，习惯从夹缝里找可办之处",
+            ])
+            summary_tail = "短板：朝中根基浅，骤入御前容易被贴上举主标签；风险：来路未深查，可能牵出地方人情债。"
+            loyalty = rng.randint(46, 76)
+            ability = rng.randint(50, 78)
+        source_minister = str(source.get("source_minister") or minister_name or "").strip()
+        excerpt = str(source.get("excerpt") or "").strip()
+        summary = (
+            f"由{source_minister or '御前奏对'}对白中提及，后奉旨按线索寻访入京；"
+            "此人物为当前活动存档内即时补档，可召见、可任用、可进入关系网。"
+            + (f"线索：{excerpt[:90]}。" if excerpt else "")
+            + summary_tail
+        )
+        return Character(
+            name=name,
+            office=office,
+            office_type=infer_office_type_from_office(office, office_type),
+            faction=faction,
+            aliases=[],
+            personal_skills=list(dict.fromkeys(skills)),
+            loyalty=loyalty,
+            ability=ability,
+            integrity=rng.randint(42, 84),
+            courage=rng.randint(40, 80),
+            style=style,
+            birth_year=self.state.year - rng.randint(18, 55),
+            power_id="ming",
+            location=rng.choice(["京师", "南京", "山西", "陕西", "山东", "南直隶", "福建", "湖广"]),
+            status="active",
+            summary=summary[:800],
+            force=rng.randint(34, 66),
+            wisdom=rng.randint(46, 82),
+            charm=rng.randint(42, 78),
+            luck=rng.randint(36, 84),
+        )
 
     def _detect_mediation_intent(self, minister_name: str, text: str) -> Dict[str, Any]:
         raw = str(text or "").strip()
@@ -3282,7 +3539,7 @@ class WebGame:
             "minister": minister_name,
             "minister_profile": self.public_character(character),
             "undone_chat_turn_id": int(undone["id"]),
-            "history": self.chat_history.get(minister_name, []),
+            "history": self._chat_history_payload(minister_name),
             "history_limit": _web_chat_history_limit(),
             "history_truncated": len(self.chat_history.get(minister_name, [])) >= _web_chat_history_limit(),
             "directives": [self.directive_payload(row) for row in self.directive_rows()],
@@ -3314,6 +3571,7 @@ class WebGame:
         dialogue_goal: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         character = self.session._character(minister_name)
+        self._record_unknown_dialogue_mentions(minister_name, answer)
         self.chat_history[minister_name].append({"role": "minister", "content": answer})
         if minister_name not in self.session.temporary_characters:
             message_id = self.db.append_chat_message(minister_name, self.state.turn, "minister", answer)
@@ -3324,7 +3582,7 @@ class WebGame:
             "minister": minister_name,
             "minister_profile": self.public_character(character),
             "answer": answer,
-            "history": self.chat_history[minister_name],
+            "history": self._chat_history_payload(minister_name),
             "history_limit": _web_chat_history_limit(),
             "history_truncated": len(self.chat_history[minister_name]) >= _web_chat_history_limit(),
             "court_action": court_action,
@@ -3469,13 +3727,16 @@ class WebGame:
                 self.db.update_chat_turn_messages(chat_turn_id, user_message_id=message_id)
         deterministic_summon = self._attendant_summon_target(minister_name, text)
         if deterministic_summon:
-            answer = self._attendant_summon_answer(deterministic_summon)
+            target_name = str(deterministic_summon.get("name") or "")
+            generated = bool(deterministic_summon.get("generated"))
+            answer = self._attendant_summon_answer(target_name, generated=generated)
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
             return self._chat_payload(
                 minister_name,
                 answer,
                 court_action="summon",
-                next_minister=deterministic_summon,
+                next_minister=target_name,
+                registered_minister=target_name if generated else "",
                 chat_turn_id=chat_turn_id,
             )
         dialogue_response = self._dialogue_action_response(minister_name, text)
@@ -3569,14 +3830,17 @@ class WebGame:
                 self.db.update_chat_turn_messages(chat_turn_id, user_message_id=message_id)
         deterministic_summon = self._attendant_summon_target(minister_name, text)
         if deterministic_summon:
-            answer = self._attendant_summon_answer(deterministic_summon)
+            target_name = str(deterministic_summon.get("name") or "")
+            generated = bool(deterministic_summon.get("generated"))
+            answer = self._attendant_summon_answer(target_name, generated=generated)
             yield {"type": "delta", "content": answer}
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
             payload = self._chat_payload(
                 minister_name,
                 answer,
                 court_action="summon",
-                next_minister=deterministic_summon,
+                next_minister=target_name,
+                registered_minister=target_name if generated else "",
                 chat_turn_id=chat_turn_id,
             )
             yield {"type": "done", "payload": payload}
@@ -6065,7 +6329,7 @@ async def api_chat_history(minister_name: str) -> Dict[str, Any]:
     history = game.chat_history.get(minister_name, [])
     return {
         "minister": game.public_character(character),
-        "history": history,
+        "history": game._chat_history_payload(minister_name),
         "history_limit": _web_chat_history_limit(),
         "history_truncated": len(history) >= _web_chat_history_limit(),
         "suggestions": game.suggestions_for(character),

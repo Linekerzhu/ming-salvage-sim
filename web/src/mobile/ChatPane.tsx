@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { loadChat, streamChat } from "./api";
 import { Portrait } from "./Portrait";
-import type { ChatContext, ChatMessage, ChatResponse, Suggestion } from "./api";
+import type { ChatContext, ChatMention, ChatMessage, ChatResponse, Suggestion } from "./api";
 
 const EMPTY_LOCAL_MESSAGES: ChatMessage[] = [];
 
@@ -15,12 +16,72 @@ function cleanDisplayText(raw: string): string {
     .trim();
 }
 
+function mentionTerms(mentions?: ChatMention[]): Array<{ name: string; term: string }> {
+  const seen = new Set<string>();
+  const terms: Array<{ name: string; term: string }> = [];
+  for (const mention of mentions || []) {
+    const name = String(mention?.name || "").trim();
+    if (!name) continue;
+    for (const rawTerm of [name, ...((mention.terms || []) as string[])]) {
+      const term = String(rawTerm || "").trim();
+      if (term.length < 2) continue;
+      const key = `${name}:${term}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      terms.push({ name, term });
+    }
+  }
+  terms.sort((a, b) => b.term.length - a.term.length);
+  return terms;
+}
+
+function renderMentionedText(
+  text: string,
+  mentions: ChatMention[] | undefined,
+  onOpenPerson?: (name: string) => void,
+) {
+  const terms = mentionTerms(mentions);
+  if (!terms.length || !onOpenPerson) return text;
+  const out: Array<string | ReactNode> = [];
+  let pos = 0;
+  let key = 0;
+  while (pos < text.length) {
+    let best: { name: string; term: string; index: number } | null = null;
+    for (const item of terms) {
+      const index = text.indexOf(item.term, pos);
+      if (index < 0) continue;
+      if (!best || index < best.index || (index === best.index && item.term.length > best.term.length)) {
+        best = { ...item, index };
+      }
+    }
+    if (!best) {
+      out.push(text.slice(pos));
+      break;
+    }
+    if (best.index > pos) out.push(text.slice(pos, best.index));
+    out.push(
+      <button
+        key={`mention-${key++}`}
+        type="button"
+        className="m-chat-mention"
+        onClick={() => onOpenPerson(best!.name)}
+        title={`查看${best.name}档案`}
+      >
+        {best.term}
+      </button>,
+    );
+    pos = best.index + best.term.length;
+  }
+  return out;
+}
+
 // 复用于「随侍太监」与「被传召大臣」的对话气泡 UI。
 export function ChatPane({
   name,
   speakerLabel,
   onSummon,
   onWorldChanged,
+  onOpenPerson,
   localMessages = EMPTY_LOCAL_MESSAGES,
   leadSuggestions = [],
   chatContext,
@@ -29,6 +90,7 @@ export function ChatPane({
   speakerLabel: string;
   onSummon?: (next: string) => void;
   onWorldChanged?: () => void;
+  onOpenPerson?: (name: string) => void;
   localMessages?: ChatMessage[];
   leadSuggestions?: Suggestion[];
   chatContext?: ChatContext;
@@ -139,14 +201,14 @@ export function ChatPane({
           m.role === "user" ? (
             <div key={i} className="m-bubble is-emperor">
               <span className="m-bubble-who">朕</span>
-              <p className="m-bubble-text">{m.content}</p>
+              <p className="m-bubble-text">{renderMentionedText(m.content, m.mentions, onOpenPerson)}</p>
             </div>
           ) : (
             <div key={i} className="m-bubble-row">
               <Portrait name={name} size={32} />
               <div className="m-bubble is-other">
                 <span className="m-bubble-who">{speakerLabel}</span>
-                <p className="m-bubble-text">{cleanDisplayText(m.content)}</p>
+                <p className="m-bubble-text">{renderMentionedText(cleanDisplayText(m.content), m.mentions, onOpenPerson)}</p>
               </div>
             </div>
           )

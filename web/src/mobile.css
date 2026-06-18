@@ -553,6 +553,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-bubble { max-width: 84%; padding: 9px 13px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
 .m-bubble-who { display: block; font-size: 0.68rem; opacity: .7; margin-bottom: 2px; }
 .m-bubble-text { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 0.95rem; line-height: 1.5; }
+.m-chat-mention {
+  display: inline; border: 0; padding: 0 1px; margin: 0; background: transparent;
+  font: inherit; color: inherit; text-decoration: underline; text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px; cursor: pointer;
+}
+.m-bubble.is-other .m-chat-mention { color: var(--cinnabar); font-weight: 700; }
+.m-bubble.is-emperor .m-chat-mention { color: #20170b; font-weight: 700; }
 .m-bubble.is-emperor { align-self: flex-end; background: linear-gradient(180deg, #b5863a, var(--gold-deep)); color: #20170b; border-bottom-right-radius: 4px; }
 .m-bubble.is-other { align-self: flex-start; background: linear-gradient(180deg, var(--paper-2), var(--paper)); color: var(--ink); border-bottom-left-radius: 4px; }
 .m-caret { animation: m-blink 1s step-end infinite; }

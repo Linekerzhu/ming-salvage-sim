@@ -96,6 +96,65 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_chat_history_marks_known_person_mentions(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            row = game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND name!=? "
+                "ORDER BY ability DESC LIMIT 1",
+                (attendant,),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            target = str(row["name"])
+            game.chat_history[attendant] = [{"role": "minister", "content": f"可先问{target}，再看部议。"}]
+
+            history = game._chat_history_payload(attendant)
+
+            self.assertEqual(history[0]["mentions"][0]["name"], target)
+            self.assertIn(target, history[0]["mentions"][0]["terms"])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_dialogue_mentioned_unlisted_person_can_be_registered_and_summoned(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            unknown = next(name for name in ("冯小澄", "张守仁", "陆闻道") if name not in game.content.characters)
+            self.assertNotIn(unknown, game.content.characters)
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                f"奴婢听说内书堂有个识字小火者，唤作{unknown}，记性细，可先查一查。",
+            )
+
+            events = list(game.chat_stream(attendant, f"传{unknown}入殿奏对。"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], unknown)
+            self.assertEqual(payload["registered_minister"], unknown)
+            self.assertIn(unknown, game.content.characters)
+            row = game.db.conn.execute(
+                "SELECT office, office_type, summary FROM characters WHERE name=?",
+                (unknown,),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
+            self.assertIn("当前活动存档", str(row["summary"] or ""))
+            self.assertIn(unknown, {m["name"] for m in payload["history"][-1].get("mentions", [])})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_recruitment_requires_confirmation(self):
         game = web_app.WebGame(fresh=True)
         try:

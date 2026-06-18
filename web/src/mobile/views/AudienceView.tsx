@@ -96,6 +96,7 @@ export function AudienceView({
           name={audience}
           speakerLabel={isAttendantAudience ? `${audience}·随侍` : audience}
           onWorldChanged={refresh}
+          onOpenPerson={openPerson}
           leadSuggestions={activeLead?.prompts || []}
           chatContext={activeLead ? chatContextFromLead(activeLead) : undefined}
         />
@@ -137,6 +138,7 @@ export function AudienceView({
         speakerLabel={`${eunuch.name}·随侍`}
         onSummon={(next) => onAudienceChange(next)}
         onWorldChanged={refresh}
+        onOpenPerson={openPerson}
       />
 
       {sheet && (
