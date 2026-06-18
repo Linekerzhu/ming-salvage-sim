@@ -1769,6 +1769,29 @@ def _private_memory(ctx: Dict[str, object], choice: str, outcome: str, sentiment
     }
 
 
+def _resource_support_memory(ctx: Dict[str, object]) -> Dict[str, object]:
+    minister = str(ctx.get("minister") or "").strip()
+    title = str(ctx.get("title") or "旧约").strip()
+    faction = _meaningful_faction(ctx.get("faction"))
+    tags = [minister, "旧恩", "人情债", "资源复办", "旧约"]
+    if faction:
+        tags.append(faction)
+    return {
+        "subject_id": minister,
+        "event_type": "imperial_favor",
+        "title": "旧恩未报：资源复办",
+        "cause": f"陛下拨给人手文书，助{minister}复办「{title}」。",
+        "process": f"{minister}旧约受阻，御前没有只按负约问罪，而是给资源、给期限，也给更重交账责任。",
+        "outcome": "此后召对须记得这笔资源复办之恩；若再误事，不许装作两清。",
+        "sentiment": "positive",
+        "importance": 4,
+        "tags": [tag for tag in tags if tag],
+        "source_kind": "court_decision",
+        "source_id": f"resource_support:{ctx.get('goal_id') or minister}",
+        "summary": f"{minister}旧恩入账",
+    }
+
+
 def _patronage_faction_effect(
     ctx: Dict[str, object],
     *,
@@ -2259,6 +2282,7 @@ def _defs() -> List[Dict[str, object]]:
                                       "char": [{"name": c["minister"], "emp_trust": 4, "grievance": -4}],
                                       "faction": ({_meaningful_faction(c.get("faction")): {"satisfaction": 1, "heat": 1}}
                                                   if _meaningful_faction(c.get("faction")) else {}),
+                                      "memories": [_resource_support_memory(c)],
                                       "goals": [{
                                           "id": c["goal_id"],
                                           "action": "resource",

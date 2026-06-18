@@ -660,6 +660,7 @@ class ResolveTests(unittest.TestCase):
             labels = [str(e["label"]) for e in res["effects"]]
             self.assertIn("旧约拨助 1月", labels)
             self.assertIn("国库 -3", labels)
+            self.assertIn(f"{minister}旧恩入账", labels)
             self.assertIn(f"{minister}得助复办1月", str(res["effect"]))
             self.assertEqual(int(state.metrics.get("国库", 0)), treasury_before - 3)
             goal = db.get_conversation_goal(goal_id)
@@ -671,6 +672,11 @@ class ResolveTests(unittest.TestCase):
             self.assertTrue(any("已用资源" in text for text in descriptions), descriptions)
             self.assertEqual(goal["last_delta"]["court_decision"]["action"], "resource")
             self.assertIn("support_tasks", goal["last_delta"])
+            favors = court.favor_memories(db, minister, limit=3)
+            self.assertEqual(len(favors), 1)
+            self.assertIn("旧恩未报", str(favors[0]["title"]))
+            self.assertIn("资源复办之恩", str(favors[0]["outcome"]))
+            self.assertIn("不许装作两清", str(favors[0]["outcome"]))
 
     def test_goal_help_public_rebuke_fails_goal(self):
         with TemporaryDirectory() as tmp:
