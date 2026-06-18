@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 
 from ming_sim import court, court_events, memorials, timeflow
 from ming_sim.db import GameDB
-from ming_sim.playstyle import record_decision_testimony
+from ming_sim.playstyle import briefing_payload, favor_chat_context_brief, record_decision_testimony
 from ming_sim.upgrade_schema import KV_SHI, kv_int
 
 
@@ -623,6 +623,18 @@ class ResolveTests(unittest.TestCase):
             self.assertEqual(heat_after, heat_before + 5)
             labels = [str(e["label"]) for e in res["effects"]]
             self.assertIn("阉党热度 +5", labels)
+            self.assertIn(f"{petitioner}旧恩入账", labels)
+            favors = court.favor_memories(db, petitioner, limit=3)
+            self.assertEqual(len(favors), 1)
+            self.assertIn("求援护持", str(favors[0]["title"]))
+            self.assertIn("领难差", str(favors[0]["outcome"]))
+            payload = briefing_payload(db, state, limit=5, kind="favor")
+            card = next(c for c in payload["cards"] if c["actor"] == petitioner)
+            self.assertEqual(card["kind"], "favor")
+            self.assertIn("旧恩未报", str(card["title"]))
+            brief = favor_chat_context_brief(db, petitioner, str(card["ref_id"]))
+            self.assertIn("本次召对事项：旧恩未报", brief)
+            self.assertIn("求援护持", brief)
             self.assertIsNone(court_events.get_pending(db))
 
     def test_petition_demand_service_creates_followup_obligation(self):

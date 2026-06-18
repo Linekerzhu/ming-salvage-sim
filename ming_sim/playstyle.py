@@ -1807,8 +1807,8 @@ def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[
     _bargain_cards(db, state, cards)
     _monthly_followup_cards(db, state, cards)
     _patronage_cards(db, cards)
-    _petition_cards(db, cards)
     _favor_cards(db, state, cards)
+    _petition_cards(db, cards)
     _relationship_cards(db, cards)
     _policy_legacy_cards(db, state, cards)
     _agenda_cards(db, cards)
@@ -3535,7 +3535,7 @@ def _petition_cards(db: GameDB, cards: List[BriefCard]) -> None:
         name = str(row["name"])
         if any(
             str(card.get("actor") or "") == name
-            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup", "monthly_followup", "bargain"}
+            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup", "monthly_followup", "bargain", "favor"}
             for card in cards
         ):
             continue
@@ -3653,7 +3653,7 @@ def _favor_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard])
     for name in order:
         if any(
             str(card.get("actor") or "") == name
-            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup", "petition", "bargain"}
+            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup", "bargain"}
             for card in cards
         ):
             continue

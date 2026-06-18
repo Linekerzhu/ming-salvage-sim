@@ -945,10 +945,10 @@ def _preview_effects(eff: Dict[str, object]) -> List[Dict[str, str]]:
 
     limit = 10
     if len(out) > limit:
-        obligations = [item for item in out if item.get("kind") == "obligation"]
-        if obligations:
-            room = max(0, limit - len(obligations))
-            return [item for item in out if item.get("kind") != "obligation"][:room] + obligations[:limit]
+        pinned = [item for item in out if item.get("kind") in {"obligation", "memory"}]
+        if pinned:
+            room = max(0, limit - len(pinned))
+            return [item for item in out if item.get("kind") not in {"obligation", "memory"}][:room] + pinned[:limit]
     return out[:limit]
 
 
@@ -1924,6 +1924,36 @@ def _private_memory(ctx: Dict[str, object], choice: str, outcome: str, sentiment
     }
 
 
+def _petition_favor_memory(ctx: Dict[str, object]) -> Dict[str, object]:
+    petitioner = str(ctx.get("petitioner") or "").strip()
+    rival = str(ctx.get("rival") or "").strip()
+    faction = _meaningful_faction(ctx.get("faction"))
+    basis = str(ctx.get("basis") or "求援请托").strip()
+    tags = ["求援", "旧恩", "护持"]
+    if faction:
+        tags.append(faction)
+    if rival:
+        tags.append(rival)
+    return {
+        "subject_id": petitioner,
+        "event_type": "imperial_favor",
+        "title": "旧恩未报：求援护持",
+        "cause": (
+            f"{petitioner}因{basis}求陛下给台阶"
+            + (f"，牵涉政敌{rival}" if rival else "")
+            + "。"
+        ),
+        "process": "御前明旨护持，暂保其任事与名节。",
+        "outcome": "此后召对可追问其如何还恩：领难差、交证据、收束政敌旧怨或替朝廷担责。",
+        "sentiment": "positive",
+        "importance": 4,
+        "tags": [tag for tag in tags if tag],
+        "source_kind": "court_decision",
+        "source_id": f"imperial_petition:protect:{petitioner}:{rival or 'none'}",
+        "summary": f"{petitioner}旧恩入账",
+    }
+
+
 def _resource_support_memory(ctx: Dict[str, object]) -> Dict[str, object]:
     minister = str(ctx.get("minister") or "").strip()
     title = str(ctx.get("title") or "旧约").strip()
@@ -2498,6 +2528,7 @@ def _defs() -> List[Dict[str, object]]:
                                       "faction": _petition_faction_effect(
                                           c, petitioner_sat=4, petitioner_lev=1, petitioner_heat=-3,
                                           rival_sat=-4, rival_heat=5),
+                                      "memories": [_petition_favor_memory(c)],
                                       "log": f"明旨护持{c['petitioner']}，给其台阶以收任事之心。"}},
                 {"key": "demand_service", "label": lambda c: f"许其自辩，但命{c['petitioner']}领难差自证",
                  "hint": "把请托变成交易：不给白护身符，须拿可验差使来换；人心略回，仍有压力",
