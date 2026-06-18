@@ -944,6 +944,10 @@ def monthly_followup_chat_context_brief(db: GameDB, minister_name: str) -> str:
     hooks = [str(hook) for hook in (item.get("memory_hooks") or []) if str(hook).strip()]
     reasons = [str(reason) for reason in (item.get("reason_types") or []) if str(reason).strip()]
     risks = [str(tag) for tag in (item.get("risk_tags") or []) if str(tag).strip()]
+    obligation_states = [
+        state for state in (item.get("obligation_states") or [])
+        if isinstance(state, dict)
+    ]
     truth_mode = str(item.get("truth_mode") or "").strip()
     preferred = str(item.get("preferred_stance") or "").strip()
     opening = str(item.get("suggested_opening") or "").strip()
@@ -959,6 +963,29 @@ def monthly_followup_chat_context_brief(db: GameDB, minister_name: str) -> str:
         lines.append("- 记忆钩子：" + "；".join(hooks[:4]))
     if reasons:
         lines.append("- 系统理由：" + "、".join(_monthly_reason_label(reason) for reason in reasons[:5]))
+    if obligation_states:
+        for state_item in obligation_states[:3]:
+            title_text = str(state_item.get("title") or "未竟奏对")
+            status_label = str(state_item.get("status_label") or state_item.get("status") or "未定")
+            due_label = str(state_item.get("due_label") or "")
+            score = _clamp_int(state_item.get("score"), 0, 100)
+            threshold = _clamp_int(state_item.get("threshold"), 0, 100)
+            pending = [str(x) for x in (state_item.get("pending_conditions") or []) if str(x).strip()]
+            blockers = [str(x) for x in (state_item.get("blockers") or []) if str(x).strip()]
+            pressure = str(state_item.get("pressure_label") or "").strip()
+            pieces = [f"「{title_text}」", status_label]
+            if threshold:
+                pieces.append(f"心理/履约进度 {score}/{threshold}")
+            if due_label:
+                pieces.append(due_label)
+            if pending:
+                pieces.append("待证条件：" + "；".join(pending[:2]))
+            if blockers:
+                pieces.append("明面阻力：" + "；".join(blockers[:2]))
+            if pressure:
+                pieces.append(f"月度压力：{pressure}")
+            lines.append("- 旧约状态：" + "；".join(pieces))
+        lines.append("- 裁断玩法：皇帝可选择展限给资源、限期补证、公开追责或改派共办；NPC 必须承认旧约压力，不得把受阻/失期说成全无此事。")
     if truth_mode or preferred:
         lines.append(
             "- 说话倾向："
@@ -1819,7 +1846,71 @@ def _fallback_monthly_followups(
             and str(row["office_type"] or "") != "后宫"
         )
 
-    def add(name: str, reason: str, hook: str, priority: int, risks: Optional[List[str]] = None) -> None:
+    def goal_state_from_row(row: sqlite3.Row) -> Dict[str, object]:
+        status = str(row["status"] or "")
+        status_label = {
+            "active": "仍在推进",
+            "waiting_conditions": "待条件闭环",
+            "blocked": "受阻待裁",
+            "expired": "已经失期",
+        }.get(status, status or "未定")
+        try:
+            conditions_raw = json.loads(str(row["conditions_json"] or "[]"))
+        except (TypeError, ValueError):
+            conditions_raw = []
+        pending_conditions: List[str] = []
+        if isinstance(conditions_raw, list):
+            for condition in conditions_raw:
+                if not isinstance(condition, dict):
+                    continue
+                if str(condition.get("status") or "pending") == "done":
+                    continue
+                desc = str(condition.get("description") or "").strip()
+                if desc:
+                    pending_conditions.append(desc[:80])
+        try:
+            blockers_raw = json.loads(str(row["blockers_json"] or "[]"))
+        except (TypeError, ValueError):
+            blockers_raw = []
+        blockers = [str(item).strip()[:80] for item in blockers_raw if str(item).strip()] if isinstance(blockers_raw, list) else []
+        try:
+            last_delta = json.loads(str(row["last_delta_json"] or "{}"))
+        except (TypeError, ValueError):
+            last_delta = {}
+        pressure = last_delta.get("monthly_pressure") if isinstance(last_delta, dict) and isinstance(last_delta.get("monthly_pressure"), dict) else {}
+        try:
+            expires_turn = int(row["expires_turn"] or 0)
+        except (TypeError, ValueError):
+            expires_turn = 0
+        current_turn = int(getattr(state, "turn", 0) or 0)
+        if expires_turn <= 0:
+            due_label = "未设明限"
+        elif expires_turn <= current_turn:
+            due_label = f"已到第{expires_turn}月限"
+        else:
+            due_label = f"距第{expires_turn}月限尚{expires_turn - current_turn}月"
+        return {
+            "title": str(row["title"] or row["target_text"] or "未竟奏对")[:80],
+            "status": status,
+            "status_label": status_label,
+            "condition_status": str(row["condition_status"] or ""),
+            "score": _clamp_int(row["score"], 0, 100),
+            "threshold": _clamp_int(row["threshold"], 0, 100),
+            "expires_turn": expires_turn,
+            "due_label": due_label,
+            "pending_conditions": pending_conditions[:3],
+            "blockers": blockers[:3],
+            "pressure_label": str(pressure.get("label") or "").strip()[:60] if isinstance(pressure, dict) else "",
+        }
+
+    def add(
+        name: str,
+        reason: str,
+        hook: str,
+        priority: int,
+        risks: Optional[List[str]] = None,
+        obligation_state: Optional[Dict[str, object]] = None,
+    ) -> None:
         name = str(name or "").strip()
         if not active(name):
             return
@@ -1829,6 +1920,7 @@ def _fallback_monthly_followups(
             "reason_types": [],
             "memory_hooks": [],
             "risk_tags": [],
+            "obligation_states": [],
         })
         item["priority"] = int(item.get("priority") or 0) + int(priority)
         reasons = item["reason_types"] if isinstance(item.get("reason_types"), list) else []
@@ -1842,6 +1934,9 @@ def _fallback_monthly_followups(
             text = str(risk or "").strip()
             if text and text not in tags:
                 tags.append(text)
+        if obligation_state:
+            states = item["obligation_states"] if isinstance(item.get("obligation_states"), list) else []
+            states.append(obligation_state)
 
     if _table_exists(db, "secret_orders"):
         for row in _safe_fetchall(
@@ -1876,7 +1971,8 @@ def _fallback_monthly_followups(
         for row in _safe_fetchall(
             db,
             """
-            SELECT minister_name, status, title, target_text
+            SELECT minister_name, status, title, target_text, score, threshold,
+                   condition_status, conditions_json, blockers_json, expires_turn, last_delta_json
             FROM conversation_goals
             WHERE status IN ('active','waiting_conditions','blocked','expired')
             ORDER BY id DESC
@@ -1887,7 +1983,14 @@ def _fallback_monthly_followups(
             status = str(row["status"] or "")
             title = str(row["title"] or row["target_text"] or "未竟奏对")
             priority = 18 if status == "waiting_conditions" else 12 if status == "active" else 9
-            add(name, f"conversation_goal:{status}", f"未完奏对「{title}」仍需复命或请旨。", priority, ["旧约未了"])
+            add(
+                name,
+                f"conversation_goal:{status}",
+                f"未完奏对「{title}」仍需复命或请旨。",
+                priority,
+                ["旧约未了"],
+                obligation_state=goal_state_from_row(row),
+            )
 
     if _table_exists(db, "negotiation_agreements"):
         for row in _safe_fetchall(
@@ -1973,13 +2076,25 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
         reasons = [str(reason) for reason in (item.get("reason_types") or []) if str(reason).strip()]
         hooks = [str(hook) for hook in (item.get("memory_hooks") or []) if str(hook).strip()]
         risks = [str(tag) for tag in (item.get("risk_tags") or []) if str(tag).strip()]
+        obligation_states = [
+            state for state in (item.get("obligation_states") or [])
+            if isinstance(state, dict)
+        ]
         if not reasons and not hooks:
             continue
         office = _short_office(str(char["office"] or ""))
         trust = _clamp_int(char["emp_trust"], 0, 100)
         grievance = _clamp_int(char["grievance"], 0, 100)
         priority = _clamp_int(item.get("priority"), 0, 120)
-        due = any("due" in reason or "expired" in reason or "blocked" in reason for reason in reasons)
+        old_statuses = {str(state.get("status") or "") for state in obligation_states}
+        expired_old = "expired" in old_statuses
+        blocked_old = "blocked" in old_statuses
+        waiting_old = "waiting_conditions" in old_statuses
+        due = (
+            any("due" in reason or "expired" in reason or "blocked" in reason for reason in reasons)
+            or expired_old
+            or blocked_old
+        )
         secret = any("secret_order" in reason for reason in reasons)
         title = str(item.get("title") or (hooks[0] if hooks else "本月可主动请安回奏。")).strip()
         summary = str(item.get("summary") or "").strip()
@@ -1993,13 +2108,21 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
         policy_audit = any("policy_audit" in reason for reason in reasons) or any(
             token in semantic_basis for token in ("旧政", "清查", "浮收", "侵吞")
         )
-        agreement = any("agreement" in reason or "conversation_goal" in reason for reason in reasons)
+        agreement = bool(obligation_states) or any("agreement" in reason or "conversation_goal" in reason for reason in reasons)
         speech = any("stance" in reason or "speech" in reason for reason in reasons)
         urgency = min(98, 58 + priority + (8 if due else 0) + (4 if secret else 0))
         tone = "danger" if due and (secret or agreement) else "warn" if due or risks else "info"
         meta_bits = []
         if due:
             meta_bits.append("到期")
+        if expired_old:
+            meta_bits.append("失期")
+        elif blocked_old:
+            meta_bits.append("受阻")
+        elif waiting_old:
+            meta_bits.append("待条件")
+        if agreement:
+            meta_bits.append("旧约")
         if secret:
             meta_bits.append("密令")
         if patronage:
@@ -2008,11 +2131,9 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
             meta_bits.append("共办")
         if policy_audit:
             meta_bits.append("旧政")
-        if agreement:
-            meta_bits.append("旧约")
         if speech:
             meta_bits.append("口径")
-        meta = "/".join(meta_bits[:3]) or _monthly_reason_label(reasons[0] if reasons else "请安")
+        meta = "/".join(meta_bits[:4]) or _monthly_reason_label(reasons[0] if reasons else "请安")
         primary_label = _monthly_reason_label(reasons[0] if reasons else "请安")
         if patronage:
             primary_label = "举主担保"
@@ -2025,6 +2146,28 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
             {"kind": "trust", "label": f"信任 {trust}", "tone": "bad" if trust <= 36 else "neutral"},
             {"kind": "grievance", "label": f"怨望 {grievance}", "tone": "bad" if grievance >= 58 else "neutral"},
         ]
+        if expired_old:
+            effects.append({"kind": "obligation_status", "label": "旧约失期", "tone": "bad"})
+        elif blocked_old:
+            effects.append({"kind": "obligation_status", "label": "旧约受阻", "tone": "bad"})
+        elif waiting_old:
+            effects.append({"kind": "obligation_status", "label": "待证闭环", "tone": "warn"})
+        if obligation_states:
+            first_state = obligation_states[0]
+            score = _clamp_int(first_state.get("score"), 0, 100)
+            threshold = _clamp_int(first_state.get("threshold"), 0, 100)
+            if threshold:
+                effects.append({
+                    "kind": "obligation_progress",
+                    "label": f"进度 {score}/{threshold}",
+                    "tone": "bad" if score < threshold else "neutral",
+                })
+            pending = [str(x) for x in (first_state.get("pending_conditions") or []) if str(x).strip()]
+            blockers = [str(x) for x in (first_state.get("blockers") or []) if str(x).strip()]
+            if pending:
+                effects.append({"kind": "obligation_condition", "label": _short_text(f"待证：{pending[0]}", 18), "tone": "warn"})
+            elif blockers:
+                effects.append({"kind": "obligation_blocker", "label": _short_text(f"阻力：{blockers[0]}", 18), "tone": "bad"})
         if secret:
             effects.append({"kind": "secret_order", "label": "密令回奏", "tone": "bad" if due else "neutral"})
         if patronage:
@@ -2052,6 +2195,19 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
             f"{office}{name}本月有事候见。{summary or title}"
             f"{'；'.join(hooks[:2]) if hooks else ''}"
         )
+        if obligation_states:
+            state_item = obligation_states[0]
+            status_label = str(state_item.get("status_label") or "").strip()
+            due_label = str(state_item.get("due_label") or "").strip()
+            pending = [str(x) for x in (state_item.get("pending_conditions") or []) if str(x).strip()]
+            blockers = [str(x) for x in (state_item.get("blockers") or []) if str(x).strip()]
+            state_bits = [bit for bit in (status_label, due_label) if bit]
+            if pending:
+                state_bits.append(f"待证：{pending[0]}")
+            if blockers:
+                state_bits.append(f"阻力：{blockers[0]}")
+            if state_bits:
+                detail += "旧约状态：" + "；".join(state_bits) + "。"
         opening = str(item.get("suggested_opening") or "").strip()
         if opening:
             detail += f"其意在：{opening}"

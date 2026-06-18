@@ -478,6 +478,16 @@ function audienceOpeningFromBrief(card: PlaystyleBriefCard, actor = card.actor |
     return `${speaker}跪奏旧事：当日办坏，不敢一味喊冤。陛下若肯再问，愿把当日卡点和今日补救一并说清。`;
   }
   if (card.kind === "monthly_followup") {
+    const meta = String(card.meta || "");
+    if (meta.includes("失期")) {
+      return `${speaker}趋入时先俯首请罪：旧约已经过限，今日不是求宽一句话，而是要把误在哪里、谁担责、还缺什么条件说明白。`;
+    }
+    if (meta.includes("受阻")) {
+      return `${speaker}入殿便称旧约卡住：不是全无进展，也不是已经办成；阻力、人情、钱粮或名分今日须请陛下裁断。`;
+    }
+    if (meta.includes("待条件")) {
+      return `${speaker}趋入复奏，先呈待证条件：旧约差一步才能闭环，今日请陛下定是给资源、改期限，还是责其自证。`;
+    }
     return `${speaker}趋入复奏，本该主动请安回话，不敢等陛下追问；旧约办到哪一步，今日照实奏来。`;
   }
   if (card.kind === "directive_blocker") {
@@ -591,6 +601,27 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
 function monthlyFollowupPrompts(card: PlaystyleBriefCard): Suggestion[] {
   const meta = String(card.meta || "");
   const title = briefTopic(card.title);
+  if (meta.includes("失期")) {
+    return [
+      { label: "问失期", text: `旧约已过限。先说清楚：是你误事、旁人掣肘，还是朕当初给的条件不足？`, prefix: true },
+      { label: "最后期限", text: `朕可给最后一次期限，但要写明几日、何证、谁担保。你今日拿什么换这个期限？`, prefix: true },
+      { label: "当面追责", text: `若失期要问罪，先从哪里问起？你、同办之人、还是背后掣肘的人？`, prefix: true },
+    ];
+  }
+  if (meta.includes("受阻")) {
+    return [
+      { label: "问阻力", text: `你说旧约受阻。阻力究竟是钱粮、人手、名分、政敌，还是你自己不愿担责？`, prefix: true },
+      { label: "给资源价", text: `若朕给你资源或明旨，你拿什么可验成效来换？几日内回奏？`, prefix: true },
+      { label: "逼其担责", text: `朕可以裁断，但不能替你白担。若再办不成，你愿担什么责？`, prefix: true },
+    ];
+  }
+  if (meta.includes("待条件")) {
+    return [
+      { label: "核条件", text: `旧约待条件闭环。哪些条件已经成了，哪些还差证据？逐条奏来。`, prefix: true },
+      { label: "改条件", text: `若原条件太虚，今日重定：何证、何人、何限，少一样都不算履约。`, prefix: true },
+      { label: "防空口", text: `朕不要空口忠勤。你今日能拿出哪一件实证，证明不是拖延？`, prefix: true },
+    ];
+  }
   if (meta.includes("密令")) {
     return [
       { label: "先复密令", text: `先不求新恩。${title}办到哪一步？哪些是亲见证据，哪些只是风闻？`, prefix: true },

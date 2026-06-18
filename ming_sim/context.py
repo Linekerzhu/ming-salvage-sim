@@ -1225,6 +1225,65 @@ def _goal_followup_flavor(goal: Dict[str, object]) -> Dict[str, object]:
     }
 
 
+def _goal_followup_state(goal: Dict[str, object], state: GameState) -> Dict[str, object]:
+    """Compact state payload for old-promise audience pressure."""
+
+    status = str(goal.get("status") or "").strip()
+    condition_status = str(goal.get("condition_status") or "").strip()
+    status_label = {
+        "active": "仍在推进",
+        "waiting_conditions": "待条件闭环",
+        "blocked": "受阻待裁",
+        "expired": "已经失期",
+    }.get(status, status or "未定")
+    title = str(goal.get("title") or goal.get("target_text") or "未竟奏对").strip()
+    try:
+        score = int(goal.get("score") or 0)
+    except (TypeError, ValueError):
+        score = 0
+    try:
+        threshold = int(goal.get("threshold") or 0)
+    except (TypeError, ValueError):
+        threshold = 0
+    try:
+        expires_turn = int(goal.get("expires_turn") or 0)
+    except (TypeError, ValueError):
+        expires_turn = 0
+    current_turn = int(getattr(state, "turn", 0) or 0)
+    if expires_turn <= 0:
+        due_label = "未设明限"
+    elif expires_turn <= current_turn:
+        due_label = f"已到第{expires_turn}月限"
+    else:
+        due_label = f"距第{expires_turn}月限尚{expires_turn - current_turn}月"
+    pending_conditions: List[str] = []
+    for condition in goal.get("conditions") or []:
+        if not isinstance(condition, dict):
+            continue
+        if str(condition.get("status") or "pending") == "done":
+            continue
+        desc = str(condition.get("description") or "").strip()
+        if desc:
+            pending_conditions.append(desc[:80])
+    blockers = [str(item).strip()[:80] for item in (goal.get("blockers") or []) if str(item).strip()]
+    last_delta = goal.get("last_delta") if isinstance(goal.get("last_delta"), dict) else {}
+    pressure = last_delta.get("monthly_pressure") if isinstance(last_delta.get("monthly_pressure"), dict) else {}
+    pressure_label = str(pressure.get("label") or "").strip()
+    return {
+        "title": title[:80],
+        "status": status,
+        "status_label": status_label,
+        "condition_status": condition_status,
+        "score": max(0, min(100, score)),
+        "threshold": max(0, min(100, threshold)),
+        "expires_turn": expires_turn,
+        "due_label": due_label,
+        "pending_conditions": pending_conditions[:3],
+        "blockers": blockers[:3],
+        "pressure_label": pressure_label[:60],
+    }
+
+
 def build_npc_monthly_followups(
     db: GameDB,
     state: GameState,
@@ -1261,6 +1320,7 @@ def build_npc_monthly_followups(
             "memory_hooks": [],
             "risk_tags": [],
             "opening_hints": [],
+            "obligation_states": [],
         })
         return item
 
@@ -1271,6 +1331,7 @@ def build_npc_monthly_followups(
         priority: int,
         risk_tags: Optional[List[str]] = None,
         opening: str = "",
+        obligation_state: Optional[Dict[str, object]] = None,
     ) -> None:
         name = str(name or "").strip()
         if not name or not active_enough(name):
@@ -1292,6 +1353,23 @@ def build_npc_monthly_followups(
         opening_text = str(opening or "").strip()
         if opening_text and opening_text not in openings:
             openings.append(opening_text[:160])
+        if obligation_state:
+            states = item["obligation_states"] if isinstance(item.get("obligation_states"), list) else []
+            key = (
+                str(obligation_state.get("title") or ""),
+                str(obligation_state.get("status") or ""),
+                str(obligation_state.get("expires_turn") or ""),
+            )
+            if not any(
+                (
+                    str(existing.get("title") or ""),
+                    str(existing.get("status") or ""),
+                    str(existing.get("expires_turn") or ""),
+                ) == key
+                for existing in states
+                if isinstance(existing, dict)
+            ):
+                states.append(obligation_state)
 
     for goal in db.list_conversation_goals(statuses=["active", "waiting_conditions", "blocked", "expired"], limit=80):
         name = str(goal.get("minister_name") or "")
@@ -1310,6 +1388,7 @@ def build_npc_monthly_followups(
             priority,
             risk_tags,
             opening=str(flavor.get("opening") or ""),
+            obligation_state=_goal_followup_state(goal, state),
         )
 
     for agreement in db.negotiation_agreement_ledger(state, limit=80):
@@ -1396,6 +1475,11 @@ def build_npc_monthly_followups(
             "truth_mode": truth_mode,
             "personality_cue": "；".join(str(part) for part in (profile.get("decision") or [])[:3]),
             "risk_tags": risks,
+            "obligation_states": [
+                state_item
+                for state_item in (item.get("obligation_states") or [])
+                if isinstance(state_item, dict)
+            ][:4],
         }
         rows.append(row)
     rows.sort(key=lambda row: (int(row.get("priority") or 0), str(row.get("minister_name") or "")), reverse=True)

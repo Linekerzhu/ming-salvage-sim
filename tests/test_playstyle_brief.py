@@ -468,6 +468,48 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertEqual(labels.count("举主担保"), 1)
             self.assertNotIn("旧约待复", labels)
 
+    def test_blocked_monthly_followup_surfaces_old_obligation_stakes(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            name = _active_minister(db)
+            state.turn = 4
+            state.period = 4
+            db.save_state(state)
+            goal_id = db.create_conversation_goal(
+                state,
+                minister_name=name,
+                action_kind="court_commitment",
+                title="共办消怨：清查海防钱粮",
+                target_text="须与政敌共办海防钱粮，并各退一步。",
+                threshold=75,
+                score=48,
+                status="blocked",
+                condition_status="pending",
+                conditions=[{"description": "补足海防账册与同办官画押。", "status": "pending"}],
+                blockers=["户部不给旧账", "同办官推病不署名"],
+                expires_turn=4,
+                last_delta={"source": "co_work:test"},
+            )
+            self.assertTrue(goal_id)
+
+            payload = briefing_payload(db, state, limit=5, kind="monthly_followup")
+            card = next(c for c in payload["cards"] if c["kind"] == "monthly_followup" and c["actor"] == name)
+
+            self.assertIn("受阻", str(card["meta"]))
+            self.assertIn("旧约", str(card["meta"]))
+            self.assertIn("户部不给旧账", str(card["detail"]))
+            labels = [str(e["label"]) for e in card["effects"]]
+            self.assertIn("旧约受阻", labels)
+            self.assertIn("进度 48/75", labels)
+            self.assertTrue(any(label.startswith("待证：") for label in labels))
+
+            brief = monthly_followup_chat_context_brief(db, name)
+            self.assertIn("旧约状态", brief)
+            self.assertIn("受阻待裁", brief)
+            self.assertIn("补足海防账册", brief)
+            self.assertIn("户部不给旧账", brief)
+            self.assertIn("展限给资源", brief)
+
     def test_recommendation_bond_becomes_patronage_brief_card(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)
