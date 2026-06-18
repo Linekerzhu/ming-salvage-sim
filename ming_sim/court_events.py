@@ -2371,6 +2371,20 @@ def _defs() -> List[Dict[str, object]]:
                  "effect": lambda c: {"shi": 3, "renshi": -5,
                                       "char": [{"name": c["a"], "grievance": 5}, {"name": c["b"], "grievance": 5}],
                                       "log": f"廷争裁断：{c['a']}、{c['b']}各夺俸申饬。"}},
+                {"key": "inquest", "label": lambda c: "据证词廷鞫核验，限期补证",
+                 "hint": lambda c: (
+                     f"已问{c.get('_testimony_count') or 0}人：不立刻偏袒任一方，命入案者补呈可验凭据；"
+                     "若证伪，后续追责更重"
+                 ),
+                 "available": _has_decision_testimony,
+                 "effect": lambda c: {"shi": 2, "renshi": 1,
+                                      "char": _rival_feud_testimony_char_effect(c),
+                                      "opinion": [
+                                          {"a": c["a"], "b": c["b"], "delta": 4, "basis": "御前听证缓断"},
+                                          {"a": c["b"], "b": c["a"], "delta": 4, "basis": "御前听证缓断"},
+                                      ],
+                                      "obligations": _rival_feud_testimony_obligations(c),
+                                      "log": f"廷争裁断：据已问证词，命{c['a']}与{c['b']}案下补证。"}},
                 {"key": "ignore", "label": lambda c: "留中不发，由他们去",
                  "hint": "回避＝纵容党争：失威、堕任事之心",
                  "effect": lambda c: {"shi": -3, "renshi": -3,
@@ -2648,6 +2662,58 @@ def _choices_of(d: Dict[str, object], ctx: Dict[str, object]) -> List[Dict[str, 
     return out
 
 
+def _has_decision_testimony(ctx: Dict[str, object]) -> bool:
+    return int(ctx.get("_testimony_count") or 0) > 0
+
+
+def _testimony_names(ctx: Dict[str, object]) -> List[str]:
+    raw = ctx.get("_testimony_ministers")
+    if not isinstance(raw, list):
+        return []
+    names: List[str] = []
+    for item in raw:
+        name = str(item or "").strip()
+        if name and name not in names:
+            names.append(name)
+    return names[:4]
+
+
+def _rival_feud_testimony_obligations(ctx: Dict[str, object]) -> List[Dict[str, object]]:
+    a = str(ctx.get("a") or "").strip()
+    b = str(ctx.get("b") or "").strip()
+    title = f"廷鞫核证：{a}与{b}互讦" if a and b else "廷鞫核证"
+    names = _testimony_names(ctx)
+    if not names:
+        return []
+    case_key = str(ctx.get("_testimony_case_key") or f"{a}:{b}:rival_feud").strip()[:80]
+    tasks = [
+        "呈所称账册、人证、往来文书或可验名单",
+        "明言若证伪愿受何责，不许再以浮词互讦",
+        "交代本党或门生是否代为鼓噪",
+    ]
+    return [
+        {
+            "minister": name,
+            "action_kind": "evidence_inquiry",
+            "title": title,
+            "target_text": f"就{a}与{b}互讦案补呈可核证据",
+            "tasks": tasks,
+            "conditions": "；".join(tasks),
+            "due_turns": 1,
+            "source": f"decision_testimony:{case_key}:{name}",
+            "promise_type": "裁断前补证",
+            "stakes": "证实可保其奏对可信；证伪则加重御前追责与政敌反噬。",
+            "summary": f"{name}奉旨就宿敌互讦案补证，以证词换缓断。",
+        }
+        for name in names
+    ]
+
+
+def _rival_feud_testimony_char_effect(ctx: Dict[str, object]) -> List[Dict[str, object]]:
+    names = _testimony_names(ctx)
+    return [{"name": name, "emp_trust": 2, "grievance": -2} for name in names]
+
+
 def _call(v, ctx):
     """label/hint 可能是 fn(ctx)、无参 fn 或常量。统一求值。"""
     if callable(v):
@@ -2663,7 +2729,7 @@ def pending_payload(db: GameDB) -> Optional[Dict[str, object]]:
     p = get_pending(db)
     if not p:
         return None
-    ctx = p.get("ctx") or {}
+    ctx = _ctx_with_testimony(db, p)
     d = next((x for x in _defs() if x["id"] == p.get("id")), None)
     if d is None:
         return None
@@ -2709,7 +2775,7 @@ def resolve_decision(db: GameDB, state: GameState, choice_key: str, day: int) ->
     p = get_pending(db)
     if not p:
         return {"ok": False, "message": "当前无待决之事。"}
-    ctx = p.get("ctx") or {}
+    ctx = _ctx_with_testimony(db, p)
     d = next((x for x in _defs() if x["id"] == p.get("id")), None)
     if d is None:
         db.kv_set(KV_PENDING, "")
@@ -2731,3 +2797,37 @@ def resolve_decision(db: GameDB, state: GameState, choice_key: str, day: int) ->
         "effect": summary,
         "effects": effects,
     }
+
+
+def _ctx_with_testimony(db: GameDB, pending: Dict[str, object]) -> Dict[str, object]:
+    ctx = dict(pending.get("ctx") or {})
+    payload = {"id": str(pending.get("id") or "")}
+    try:
+        from ming_sim.playstyle import decision_testimonies_for_case
+
+        testimonies = decision_testimonies_for_case(db, pending, payload)
+    except Exception:
+        testimonies = []
+    names: List[str] = []
+    stances: List[str] = []
+    summaries: List[str] = []
+    for item in testimonies:
+        name = str(item.get("minister") or "").strip()
+        if name and name not in names:
+            names.append(name)
+        stance = str(item.get("stance") or "").strip()
+        if stance and stance not in stances:
+            stances.append(stance)
+        summary = str(item.get("summary") or "").strip()
+        if summary:
+            summaries.append(summary)
+    ctx["_testimony_count"] = len(testimonies)
+    ctx["_testimony_ministers"] = names
+    ctx["_testimony_stances"] = stances
+    ctx["_testimony_summary"] = "；".join(summaries[:3])
+    ctx["_testimony_case_key"] = "|".join(
+        str(part or "").strip()
+        for part in (pending.get("id"), pending.get("day"), pending.get("cooldown_key"), ctx.get("a"), ctx.get("b"))
+        if str(part or "").strip()
+    )[:160]
+    return ctx

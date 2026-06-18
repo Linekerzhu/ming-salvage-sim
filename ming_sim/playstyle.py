@@ -1208,6 +1208,16 @@ def decision_testimonies_for_pending(db: GameDB) -> List[Dict[str, object]]:
         return []
     if not isinstance(pending, dict) or not isinstance(payload, dict):
         return []
+    return decision_testimonies_for_case(db, pending, payload)
+
+
+def decision_testimonies_for_case(
+    db: GameDB,
+    pending: Dict[str, object],
+    payload: Dict[str, object],
+) -> List[Dict[str, object]]:
+    """Return testimony for a supplied pending-decision snapshot."""
+
     key = _decision_case_key(pending, payload)
     if not key:
         return []

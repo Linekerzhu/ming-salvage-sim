@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 
 from ming_sim import court, court_events, memorials, timeflow
 from ming_sim.db import GameDB
+from ming_sim.playstyle import record_decision_testimony
 from ming_sim.upgrade_schema import KV_SHI, kv_int
 
 
@@ -225,6 +226,32 @@ class TriggerTests(unittest.TestCase):
             self.assertEqual(tones["君威 +3"], "good")
             self.assertEqual(tones["任事 -5"], "bad")
 
+    def test_rival_feud_testimony_unlocks_inquest_choice(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            a, b = _two_ming(db)
+            _erupt(db, a, b)
+            payload = court_events.evaluate_decisions(db, state, day)
+            self.assertNotIn("inquest", {str(c["key"]) for c in payload["choices"]})
+
+            record_decision_testimony(
+                db,
+                state,
+                a,
+                "rival_feud",
+                f"朕未裁断前，先问你弹劾{b}有何证据？",
+                "臣有账册与人证，愿限一月查验，若虚言愿担责。",
+                target=b,
+            )
+
+            updated = court_events.pending_payload(db)
+            inquest = next(c for c in updated["choices"] if c["key"] == "inquest")
+            labels = [str(e["label"]) for e in inquest["effects"]]
+            self.assertIn("君威 +2", labels)
+            self.assertIn("任事 +1", labels)
+            self.assertIn(f"履约账本：{a}", labels)
+            self.assertIn("已问1人", str(inquest["hint"]))
+
     def test_one_pending_at_a_time(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)
@@ -433,6 +460,34 @@ class ResolveTests(unittest.TestCase):
             self.assertIn("任事 -5", labels)
             self.assertGreater(kv_int(db, KV_SHI, 55), shi_before, "各打五十大板立威，君威应升")
             self.assertIsNone(court_events.get_pending(db), "落子后待决应清空")
+
+    def test_resolve_inquest_creates_evidence_obligation(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            a, b = _two_ming(db)
+            _erupt(db, a, b)
+            court_events.evaluate_decisions(db, state, day)
+            record_decision_testimony(
+                db,
+                state,
+                a,
+                "rival_feud",
+                f"朕未裁断前，先问你弹劾{b}有何证据？",
+                "臣有账册与人证，愿限一月查验，若虚言愿担责。",
+                target=b,
+            )
+
+            res = court_events.resolve_decision(db, state, "inquest", day=day)
+
+            self.assertTrue(res["ok"])
+            labels = [str(e["label"]) for e in res["effects"]]
+            self.assertIn(f"履约账本：{a}", labels)
+            self.assertIn("补证", str(res["choice"]))
+            goals = db.list_conversation_goals(minister_name=a, statuses=["waiting_conditions"])
+            self.assertEqual(len(goals), 1)
+            self.assertIn("廷鞫核证", str(goals[0]["title"]))
+            self.assertIn("补呈可核证据", str(goals[0]["target_text"]))
+            self.assertIsNone(court_events.get_pending(db))
 
     def test_cooldown_blocks_immediate_refire(self):
         with TemporaryDirectory() as tmp:
