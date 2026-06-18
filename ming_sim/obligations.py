@@ -35,6 +35,8 @@ def _goal_label(goal: Dict[str, object]) -> str:
         return "共办回奏"
     if "policy_audit" in reason:
         return "旧政清查"
+    if "resource_support" in reason:
+        return "资源复办"
     if "secret_evidence" in reason:
         return "补证密令"
     if "favor_service" in reason:

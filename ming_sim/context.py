@@ -1166,8 +1166,17 @@ def _goal_followup_flavor(goal: Dict[str, object]) -> Dict[str, object]:
 
     title = str(goal.get("title") or goal.get("target_text") or "未竟奏对")
     last_delta = goal.get("last_delta") if isinstance(goal.get("last_delta"), dict) else {}
+    court_decision = last_delta.get("court_decision") if isinstance(last_delta.get("court_decision"), dict) else {}
     source = str((last_delta or {}).get("source") or "")
     blob = f"{source}\n{title}\n{goal.get('target_text') or ''}"
+    if str(court_decision.get("action") or "") == "resource" or isinstance(last_delta.get("support_tasks"), list):
+        return {
+            "reason_type": "resource_support_followup",
+            "hook": f"资源复办「{title}」仍需交账：须说明新拨人手、文书或银粮用在何处，哪些阻力仍未解。",
+            "priority": 6,
+            "risk_tags": ["资源复办", "国库小耗", "再误重责"],
+            "opening": "请安时先交代新拨资源如何使用、已成何事、尚有何人掣肘；不要只谢恩。",
+        }
     if "patronage_accountability" in blob or "举主" in title or "新人试差" in title or "保结荐人" in title:
         return {
             "reason_type": "patronage_followup",

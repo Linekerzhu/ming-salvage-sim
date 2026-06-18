@@ -2620,12 +2620,37 @@ def _fallback_monthly_followups(
             status = str(row["status"] or "")
             title = str(row["title"] or row["target_text"] or "未竟奏对")
             priority = 18 if status == "waiting_conditions" else 12 if status == "active" else 9
+            try:
+                last_delta = json.loads(str(row["last_delta_json"] or "{}"))
+            except (TypeError, ValueError):
+                last_delta = {}
+            court_decision = last_delta.get("court_decision") if isinstance(last_delta, dict) and isinstance(last_delta.get("court_decision"), dict) else {}
+            semantic_blob = "\n".join([
+                title,
+                str(row["target_text"] or ""),
+                str(row["conditions_json"] or ""),
+                json.dumps(last_delta, ensure_ascii=False) if isinstance(last_delta, dict) else "",
+            ])
+            resource_followup = (
+                str(court_decision.get("action") or "") == "resource"
+                or "support_tasks" in (last_delta if isinstance(last_delta, dict) else {})
+                or any(token in semantic_blob for token in ("资源复办", "新拨人手", "已用资源", "拨给人手文书"))
+            )
+            reason = "resource_support_followup" if resource_followup else f"conversation_goal:{status}"
+            hook = (
+                f"资源复办「{title}」仍需交账：须说明新拨人手、文书或银粮用在何处，哪些阻力仍未解。"
+                if resource_followup else
+                f"未完奏对「{title}」仍需复命或请旨。"
+            )
+            risks = ["资源复办", "国库小耗", "再误重责"] if resource_followup else ["旧约未了"]
+            if resource_followup:
+                priority += 6
             add(
                 name,
-                f"conversation_goal:{status}",
-                f"未完奏对「{title}」仍需复命或请旨。",
+                reason,
+                hook,
                 priority,
-                ["旧约未了"],
+                risks,
                 obligation_state=goal_state_from_row(row),
             )
 
@@ -2659,12 +2684,15 @@ def _fallback_monthly_followups(
         hooks = [str(hook) for hook in (item.get("memory_hooks") or []) if str(hook).strip()]
         reasons = [str(reason) for reason in (item.get("reason_types") or []) if str(reason).strip()]
         due = any("due" in reason or "expired" in reason or "blocked" in reason for reason in reasons)
+        resource_followup = any("resource_support" in reason for reason in reasons)
         row = {
             **item,
             "priority": int(item.get("priority") or 0),
             "title": hooks[0] if hooks else "本月可主动请安回奏。",
             "summary": "；".join(hooks[:3]),
             "suggested_opening": (
+                "请安时先交代新拨资源如何使用、已成何事、尚有何人掣肘；不要只谢恩。"
+                if resource_followup else
                 "请安时先回奏到期事项，再索要名分、人手、银粮或保全边界。"
                 if due else
                 "请安后可主动复命，请求明旨或资源，把事往前推。"
@@ -2745,6 +2773,9 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
         policy_audit = any("policy_audit" in reason for reason in reasons) or any(
             token in semantic_basis for token in ("旧政", "清查", "浮收", "侵吞")
         )
+        resource_support = any("resource_support" in reason for reason in reasons) or any(
+            token in semantic_basis for token in ("资源复办", "得助复办", "新拨人手", "新拨资源")
+        )
         agreement = bool(obligation_states) or any("agreement" in reason or "conversation_goal" in reason for reason in reasons)
         speech = any("stance" in reason or "speech" in reason for reason in reasons)
         urgency = min(98, 58 + priority + (8 if due else 0) + (4 if secret else 0))
@@ -2768,6 +2799,8 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
             meta_bits.append("共办")
         if policy_audit:
             meta_bits.append("旧政")
+        if resource_support:
+            meta_bits.append("资源")
         if speech:
             meta_bits.append("口径")
         meta = "/".join(meta_bits[:4]) or _monthly_reason_label(reasons[0] if reasons else "请安")
@@ -2776,6 +2809,8 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
             primary_label = "举主担保"
         elif co_work:
             primary_label = "共办回奏"
+        elif resource_support:
+            primary_label = "资源复办"
         elif policy_audit:
             primary_label = "旧政清查"
         effects = [
@@ -2811,9 +2846,11 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
             effects.append({"kind": "patronage", "label": "举主担保", "tone": "warn"})
         if co_work:
             effects.append({"kind": "co_work", "label": "共办回奏", "tone": "warn"})
-        if policy_audit:
+        if resource_support:
+            effects.append({"kind": "resource_support", "label": "资源复办", "tone": "warn"})
+        if policy_audit and not resource_support:
             effects.append({"kind": "policy_audit", "label": "旧政清查", "tone": "warn"})
-        if agreement and not (patronage or co_work or policy_audit):
+        if agreement and not (patronage or co_work or policy_audit or resource_support):
             effects.append({"kind": "agreement", "label": "旧约待复", "tone": "bad" if due else "neutral"})
         if speech:
             effects.append({"kind": "speech", "label": "延续口径", "tone": "neutral"})
@@ -2870,6 +2907,7 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
                     patronage=patronage,
                     co_work=co_work,
                     policy_audit=policy_audit,
+                    resource_support=resource_support,
                     due=due,
                     agreement=agreement,
                 ),
@@ -2889,6 +2927,7 @@ def _monthly_followup_stakes(
     patronage: bool = False,
     co_work: bool = False,
     policy_audit: bool = False,
+    resource_support: bool = False,
     due: bool = False,
     agreement: bool = False,
 ) -> List[Dict[str, str]]:
@@ -2923,6 +2962,12 @@ def _monthly_followup_stakes(
             ("gain", "压私怨", "good"),
             ("cost", "共办翻脸", "bad"),
             ("ask", "分工画押", "neutral"),
+        ]
+    elif resource_support:
+        profile = [
+            ("gain", "给资源", "good"),
+            ("cost", "国库小耗", "bad"),
+            ("ask", "再误重责", "neutral"),
         ]
     elif policy_audit:
         profile = [
@@ -3947,6 +3992,8 @@ def _monthly_reason_label(reason: str) -> str:
         return "共办回奏"
     if "policy_audit_followup" in text:
         return "旧政清查"
+    if "resource_support_followup" in text:
+        return "资源复办"
     if "secret_evidence_followup" in text:
         return "补证密令"
     if "favor_service_followup" in text:

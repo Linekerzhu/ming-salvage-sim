@@ -626,6 +626,53 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("户部不给旧账", brief)
             self.assertIn("展限给资源", brief)
 
+    def test_resource_supported_followup_gets_specific_labels_and_prompt(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            name = _active_minister(db)
+            state.turn = 6
+            state.period = 6
+            db.save_state(state)
+            goal_id = db.create_conversation_goal(
+                state,
+                minister_name=name,
+                action_kind="court_commitment",
+                title=f"资源复办：{name}清查海防钱粮",
+                target_text=f"{name}已得御前拨给人手文书，须把海防钱粮旧约重新办成。",
+                threshold=75,
+                score=62,
+                status="waiting_conditions",
+                condition_status="pending",
+                conditions=[
+                    {"description": "列明新拨人手、文书或银粮分别用在何处。", "status": "pending"},
+                    {"description": "一月内回奏已用资源、可验证结果与剩余阻力。", "status": "pending"},
+                ],
+                expires_turn=7,
+                last_delta={
+                    "source": f"goal_obligation_help:{name}:resource",
+                    "court_decision": {"action": "resource", "note": "御前拨给人手文书，限一月交账。"},
+                    "support_tasks": ["一月内回奏已用资源、可验证结果与剩余阻力。"],
+                },
+            )
+            self.assertTrue(goal_id)
+
+            payload = briefing_payload(db, state, limit=5, kind="monthly_followup")
+            card = next(c for c in payload["cards"] if c["kind"] == "monthly_followup" and c["actor"] == name)
+
+            self.assertIn("资源", str(card["meta"]))
+            labels = [str(e["label"]) for e in card["effects"]]
+            self.assertIn("资源复办", labels)
+            self.assertNotIn("旧约待复", labels)
+            stake_labels = [str(e["label"]) for e in card["stakes"]]
+            self.assertEqual(stake_labels, ["给资源", "国库小耗", "再误重责"])
+            self.assertIn("新拨人手", str(card["detail"]))
+
+            brief = monthly_followup_chat_context_brief(db, name)
+            self.assertIn("资源复办", brief)
+            self.assertIn("新拨人手", brief)
+            self.assertIn("已用资源", brief)
+            self.assertIn("不要只谢恩", brief)
+
     def test_recommendation_bond_becomes_patronage_brief_card(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)
