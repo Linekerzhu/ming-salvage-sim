@@ -274,7 +274,7 @@ function Shell({ onExitMenu }: { onExitMenu: () => void }) {
           {!loading && tab === "audience" && (
             <AudienceView
               audience={audienceName}
-              onAudienceChange={(name) => { setAudienceName(name); setAudienceLead(null); if (name) setAudienceNotice(""); }}
+              onAudienceChange={(name, lead) => { setAudienceName(name); setAudienceLead(lead || null); if (name) setAudienceNotice(""); }}
               onAudienceComplete={completeAudience}
               audienceNotice={audienceNotice}
               audienceLead={audienceLead}

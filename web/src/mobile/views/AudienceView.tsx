@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useGame } from "../GameData";
 import { ChatPane } from "../ChatPane";
 import { Portrait } from "../Portrait";
-import { loadEunuch, loadEunuchCandidates, replaceEunuch } from "../api";
-import type { AudienceLead, ChatContext, PublicCharacter } from "../api";
+import { loadEunuch, loadEunuchCandidates, loadPlaystyleBrief, replaceEunuch } from "../api";
+import type { AudienceLead, ChatContext, PlaystyleBriefCard, PublicCharacter } from "../api";
 import { usePerson } from "../personCtx";
+import { audienceLeadFromBrief, briefUrgency, shortName } from "./HomeView";
 
 // 召对·人治之门：皇帝只直接对话随侍太监；要见大臣，命随侍传召 → 大臣趋入奏对 → 奏对完成，由随侍收尾。
 // 随侍是必经的门与顾问（进言荐人、过滤外朝），不可绕过直挑大臣。
@@ -16,20 +17,27 @@ export function AudienceView({
   audienceLead,
 }: {
   audience: string;
-  onAudienceChange: (name: string) => void;
+  onAudienceChange: (name: string, lead?: AudienceLead | null) => void;
   onAudienceComplete: (name: string) => void;
   audienceNotice?: string;
   audienceLead?: AudienceLead | null;
 }) {
-  const { state, refresh } = useGame();
+  const { state, refresh, worldVersion } = useGame();
   const openPerson = usePerson();
   const [eunuch, setEunuch] = useState<PublicCharacter | null | undefined>(undefined);
   const [sheet, setSheet] = useState<"" | "summon" | "replace">("");
   const [candidates, setCandidates] = useState<Array<{ name: string; office: string; is_eunuch: boolean }>>([]);
+  const [leads, setLeads] = useState<PlaystyleBriefCard[]>([]);
 
   useEffect(() => {
     loadEunuch().then((r) => setEunuch(r.eunuch)).catch(() => setEunuch(null));
   }, []);
+  useEffect(() => {
+    if (audience) return;
+    loadPlaystyleBrief(3, "")
+      .then((r) => setLeads((r.cards || []).filter((card) => card.actor).slice(0, 3)))
+      .catch(() => setLeads([]));
+  }, [audience, worldVersion]);
 
   const ministers: PublicCharacter[] = (state?.ministers || []).filter(
     (m: any) => m.status === "active" && m.name !== eunuch?.name,
@@ -47,6 +55,8 @@ export function AudienceView({
       setEunuch(r.eunuch); setSheet("");
     } catch { /* ignore */ }
   };
+  const leadFor = (card: PlaystyleBriefCard) =>
+    audienceLeadFromBrief(card, String(card.actor || ""), String(card.target || ""));
 
   if (eunuch === undefined) return <div className="m-loading">正召随侍…</div>;
 
@@ -133,6 +143,48 @@ export function AudienceView({
         </div>
       </div>
       {audienceNotice && <div className="m-audience-return">{audienceNotice}</div>}
+      {leads.length > 0 && (
+        <section className="m-audience-hooks" aria-label="今日候见">
+          <div className="m-audience-hooks-head">
+            <span>随侍递话</span>
+            <small>宫门外有人候旨</small>
+          </div>
+          <div className="m-audience-hooks-list">
+            {leads.map((card, i) => {
+              const urgency = briefUrgency(card.urgency);
+              return (
+                <div key={`${card.kind}-${card.ref_id || i}`} className={`m-audience-hook tone-${card.tone || "info"}`}>
+                  <button
+                    className="m-audience-hook-main"
+                    onClick={() => {
+                      const actor = String(card.actor || "").trim();
+                      if (!actor) return;
+                      onAudienceChange(actor, leadFor(card));
+                    }}
+                  >
+                    <Portrait name={String(card.actor || "")} size={30} interactive={false} />
+                    <span className="m-audience-hook-body">
+                      <span className="m-audience-hook-title">{card.title}</span>
+                      <span className="m-audience-hook-detail">{card.detail}</span>
+                    </span>
+                    {urgency && <span className={`m-audience-hook-rank level-${urgency.level}`}>{urgency.label}{urgency.score}</span>}
+                  </button>
+                  <button
+                    className="m-audience-hook-act"
+                    onClick={() => {
+                      const actor = String(card.actor || "").trim();
+                      if (!actor) return;
+                      onAudienceChange(actor, leadFor(card));
+                    }}
+                  >
+                    召{shortName(card.actor)}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
       <ChatPane
         key={`eunuch:${eunuch.name}`}
         name={eunuch.name}

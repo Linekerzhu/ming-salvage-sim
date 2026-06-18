@@ -411,7 +411,7 @@ function kindMark(kind: string): string {
   return "机";
 }
 
-function briefUrgency(value?: number): { label: string; level: "danger" | "warn" | "info"; score: number } | null {
+export function briefUrgency(value?: number): { label: string; level: "danger" | "warn" | "info"; score: number } | null {
   const raw = Number(value ?? 0);
   if (!Number.isFinite(raw)) return null;
   const score = Math.max(0, Math.min(100, Math.round(raw)));
@@ -421,7 +421,7 @@ function briefUrgency(value?: number): { label: string; level: "danger" | "warn"
   return null;
 }
 
-function audienceLeadFromBrief(card: PlaystyleBriefCard, actor = card.actor || "", target = card.target || ""): AudienceLead {
+export function audienceLeadFromBrief(card: PlaystyleBriefCard, actor = card.actor || "", target = card.target || ""): AudienceLead {
   const followup = card.kind === "directive_followup";
   return {
     kind: card.kind,
@@ -738,7 +738,7 @@ function briefTopic(title: string): string {
   return (parts[parts.length - 1] || text || "此事").trim();
 }
 
-function shortName(name?: string): string {
+export function shortName(name?: string): string {
   const text = String(name || "").trim();
   return text.length > 3 ? `${text.slice(0, 3)}…` : text;
 }
