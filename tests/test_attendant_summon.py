@@ -788,6 +788,55 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_rivalry_context_is_actor_scoped_and_reaches_dialogue_prep(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            target = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' AND name!=? "
+                "LIMIT 1",
+                (actor,),
+            ).fetchone()["name"])
+            court._set_opinion(game.db, actor, target, -82, "夺功旧怨", 1)
+            court._set_opinion(game.db, target, actor, -74, "反劾旧怨", 1)
+            game.db.conn.commit()
+            game.session.dialogue_audit_client = lambda phase, payload: {  # type: ignore[assignment]
+                "goal_decision": "none",
+                "confidence": 90,
+            }
+            context = {
+                "kind": "rivalry",
+                "actor": actor,
+                "target": target,
+                "ref_kind": "relationship",
+                "ref_id": f"{actor}:{target}",
+            }
+
+            brief = game._chat_context_brief(actor, context)
+            mismatch = game._chat_context_brief("王承恩", context)
+            augmented, prepared = game.session.prepare_chat_run(
+                game.content.characters[actor],
+                f"朕想问你和{target}的旧怨。",
+                supplemental_context=brief,
+            )
+
+            self.assertIn("本次召对事项：政敌怨隙/调停共办", brief)
+            self.assertEqual(mismatch, "")
+            self.assertIn("调停共办", augmented)
+            self.assertIn("调停共办", prepared.behavior_context)
+            self.assertIn("NPC对话行为档案", prepared.behavior_brief)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_mediation_requires_confirmation(self):
         game = web_app.WebGame(fresh=True)
         try:

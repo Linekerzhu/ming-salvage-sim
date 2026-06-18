@@ -221,6 +221,115 @@ def petition_chat_context_brief(
     return "\n".join(lines)
 
 
+def rivalry_chat_context_brief(
+    db: GameDB,
+    minister_name: str,
+    *,
+    target: str = "",
+) -> str:
+    """Trusted context for summoning a rival pair into mediation or co-work talk."""
+
+    name = str(minister_name or "").strip()
+    other = str(target or "").strip()
+    if not name or not _table_exists(db, "characters") or not _table_exists(db, "relationships"):
+        return ""
+    minister = db.conn.execute(
+        """
+        SELECT name, office, faction, ability, integrity, emp_trust, grievance
+        FROM characters
+        WHERE name=?
+          AND status='active'
+          AND power_id='ming'
+          AND office_type!='后宫'
+          AND name!='崇祯'
+        """,
+        (name,),
+    ).fetchone()
+    if minister is None:
+        return ""
+    if not other:
+        other, _opinion, _basis = _worst_rival_of(db, name)
+    if not other or other == name:
+        return ""
+    rival = db.conn.execute(
+        """
+        SELECT name, office, faction, ability, integrity, emp_trust, grievance
+        FROM characters
+        WHERE name=?
+          AND status='active'
+          AND power_id='ming'
+          AND office_type!='后宫'
+          AND name!='崇祯'
+        """,
+        (other,),
+    ).fetchone()
+    if rival is None:
+        return ""
+    rel = db.conn.execute(
+        "SELECT opinion, basis FROM relationships WHERE a_name=? AND b_name=?",
+        (name, other),
+    ).fetchone()
+    rev = db.conn.execute(
+        "SELECT opinion, basis FROM relationships WHERE a_name=? AND b_name=?",
+        (other, name),
+    ).fetchone()
+    if rel is None and rev is None:
+        return ""
+    opinion = _clamp_int(rel["opinion"] if rel is not None else rev["opinion"], -100, 100)
+    basis = str((rel["basis"] if rel is not None else rev["basis"]) or "旧怨")
+    reverse_opinion = _clamp_int(rev["opinion"] if rev is not None else opinion, -100, 100)
+    reverse_basis = str((rev["basis"] if rev is not None else basis) or basis)
+    if opinion > -30 and reverse_opinion > -30:
+        return ""
+
+    office = _short_office(str(minister["office"] or ""))
+    rival_office = _short_office(str(rival["office"] or ""))
+    faction = str(minister["faction"] or "").strip()
+    rival_faction = str(rival["faction"] or "").strip()
+    same_faction = bool(faction and rival_faction and faction == rival_faction and faction not in {"无", "中立"})
+    cross_faction = bool(faction and rival_faction and faction != rival_faction and faction not in {"无", "中立"} and rival_faction not in {"无", "中立"})
+    trust = _clamp_int(minister["emp_trust"], 0, 100)
+    grievance = _clamp_int(minister["grievance"], 0, 100)
+    ability = _clamp_int(minister["ability"], 0, 100)
+    integrity = _clamp_int(minister["integrity"], 0, 100)
+
+    pressure_bits = []
+    if same_faction:
+        pressure_bits.append(f"同属{faction}，内斗会伤一派可用之人")
+    if cross_faction:
+        pressure_bits.append(f"{faction}与{rival_faction}会把私怨读成党争")
+    if grievance >= 60:
+        pressure_bits.append(f"{name}怨望高，容易把公事说成旧账")
+    if trust <= 40:
+        pressure_bits.append(f"{name}信任低，可能把调停当作试探或圈套")
+    if not pressure_bits:
+        pressure_bits.append("旧怨虽深，仍可用差事和赏罚压住一段")
+
+    if ability >= 70 and integrity >= 55:
+        exchange = "令二人共办一件可验难差，按结果分别赏罚"
+    elif integrity <= 42:
+        exchange = "先令其交证据或账目，不许借调停索要空名分"
+    elif same_faction:
+        exchange = "让本派长者或举主作保，二人各退一步"
+    else:
+        exchange = "先各自退一件小事，再给短限复奏"
+
+    lines = [
+        "【本次召对事项：政敌怨隙/调停共办】",
+        f"- {office}{name}被召来谈与{rival_office}{other}的怨隙；这不是普通问策，而是一次人情、党争和差事边界的谈判。",
+        f"- 关系账：{name}视{other} {opinion}（{basis}）；{other}视{name} {reverse_opinion}（{reverse_basis}）。",
+        f"- 入对者状态：御前信任 {trust}，怨望 {grievance}"
+        + (f"，派系 {faction}" if faction and faction not in {"无", "中立"} else "")
+        + "。",
+        "- 压力来源：" + "；".join(pressure_bits) + "。",
+        f"- 可谈交换：{exchange}；调停只能降温，不能把旧怨一笔勾销。",
+        "- 对话玩法：NPC 可承认一部分旧怨、推责给对方、索取边界，或要求先看皇帝是否真给赏罚；不要表现成无私和解。",
+        "- 落库边界：只有皇帝明确说合、命共办、设期限或确认双方条件，才进入调停/履约；首次试探不直接改变关系。",
+        "- 口吻要求：按本人身份、派系、信任、怨望和性格说话；不要像全知旁白解释系统。",
+    ]
+    return "\n".join(lines)
+
+
 def _request_cost_profile(
     *,
     trust: int,

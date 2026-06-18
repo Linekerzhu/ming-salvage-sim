@@ -3801,6 +3801,21 @@ class WebGame:
                 )
             except Exception:
                 return ""
+        if kind == "rivalry":
+            actor = str(context.get("actor") or context.get("ref_id") or context.get("id") or "").strip()
+            target = str(context.get("target") or "").strip()
+            if minister_name not in {actor, target}:
+                return ""
+            other = target if minister_name == actor else actor
+            try:
+                from ming_sim.playstyle import rivalry_chat_context_brief
+                return rivalry_chat_context_brief(
+                    self.db,
+                    minister_name,
+                    target=other,
+                )
+            except Exception:
+                return ""
         if kind == "favor":
             actor = str(context.get("actor") or "").strip()
             if actor and actor != minister_name:

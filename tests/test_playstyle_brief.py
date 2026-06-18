@@ -19,6 +19,7 @@ from ming_sim.playstyle import (
     monthly_followup_chat_context_brief,
     patronage_chat_context_brief,
     petition_chat_context_brief,
+    rivalry_chat_context_brief,
 )
 from ming_sim.upgrade_schema import KV_CURRENT_DAY, KV_RISK_AVERSION, kv_set_int
 
@@ -666,6 +667,34 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("关系 -80", labels)
             self.assertIn("夙仇", labels)
             self.assertIn("可借力/可失控", labels)
+
+    def test_rivalry_chat_context_brief_rebuilds_relationship_stakes(self):
+        with TemporaryDirectory() as tmp:
+            db, _state = _fresh(tmp)
+            names = [
+                str(r["name"]) for r in db.conn.execute(
+                    "SELECT name FROM characters "
+                    "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                    "LIMIT 2"
+                ).fetchall()
+            ]
+            a, b = names
+            db.conn.execute("UPDATE characters SET emp_trust=32, grievance=71, faction='东林' WHERE name=?", (a,))
+            db.conn.execute("UPDATE characters SET faction='阉党' WHERE name=?", (b,))
+            court._set_opinion(db, a, b, -82, "夺功旧怨", 1)
+            court._set_opinion(db, b, a, -74, "反劾旧怨", 1)
+            db.conn.commit()
+
+            brief = rivalry_chat_context_brief(db, a, target=b)
+
+            self.assertIn("本次召对事项：政敌怨隙/调停共办", brief)
+            self.assertIn(a, brief)
+            self.assertIn(b, brief)
+            self.assertIn("关系账", brief)
+            self.assertIn("夺功旧怨", brief)
+            self.assertIn("反劾旧怨", brief)
+            self.assertIn("调停只能降温", brief)
+            self.assertIn("首次试探不直接改变关系", brief)
 
     def test_army_autonomy_becomes_realm_hook(self):
         with TemporaryDirectory() as tmp:
