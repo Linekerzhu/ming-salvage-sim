@@ -944,6 +944,48 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             self.assertIn("已奉旨即核", rush_result)
             db.conn.close()
 
+    def test_secret_order_tool_can_apply_eunuch_dispatch_strategy(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db = GameDB(str(Path(tmp) / "npc_secret_eunuch_dispatch_tool.db"), content=self.content)
+            db.seed_static_data()
+            state = GameState(
+                year=1628,
+                period=1,
+                turn=1,
+                metrics={"国库": 100, "内库": 30, "民心": 50, "皇威": 50},
+            )
+            actor = "王承恩"
+            el.record_castration(
+                db,
+                actor,
+                forced=True,
+                day=1,
+                detail_text="净军房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+            )
+            tools = build_minister_tools(self.content.characters[actor], CourtContext(state=state, db=db))
+            issue = next(tool for tool in tools if getattr(tool, "__name__", "") == "issue_secret_order")
+            dispatch = next(tool for tool in tools if getattr(tool, "__name__", "") == "set_eunuch_dispatch_strategy")
+
+            issue_result = issue(
+                "密查净军房封签",
+                "夜间久候盯梢刑房封签，拿问口供，查清官库旧案。",
+                tags_json='["刑房","封签","净军房"]',
+                deadline_months=1,
+            )
+            order_id = int(issue_result.split("__")[2])
+
+            self.assertIn("旧患差遣可选", issue_result)
+            self.assertIn("set_eunuch_dispatch_strategy", issue_result)
+
+            dispatch_result = dispatch(order_id, strategy="relay", note="准副手轮值，别硬撑坏事。")
+
+            self.assertIn("已按王承恩净身旧患调整差遣", dispatch_result)
+            self.assertIn("旧患风险", dispatch_result)
+            updated = db.get_secret_order(order_id)
+            self.assertIn("分班轮值", updated["sim_note"])
+            self.assertEqual(state.metrics["内库"], 29)
+            db.conn.close()
+
     def test_agreement_political_effect_uses_npc_influence_not_xinpan(self) -> None:
         with TemporaryDirectory() as tmp:
             db = GameDB(str(Path(tmp) / "npc_agreement_effect.db"), content=self.content)

@@ -425,6 +425,63 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertGreater(int(after["score_delta"]), int(before["score_delta"]))
             self.assertTrue(any("尿路旧患已有御前调养" in item for item in after["mitigations"]))
 
+    def test_dispatch_strategy_relays_old_wound_secret_order_risk(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(
+                db,
+                name,
+                forced=True,
+                day=day,
+                detail_text="净军房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+            )
+            task = "夜间久候盯梢刑房封签，拿问口供，查清官库旧案。"
+            state.metrics["内库"] = 20
+            db.save_state(state)
+            order_id = db.create_secret_order(
+                state,
+                name,
+                "密查净军房封签",
+                task,
+                ["刑房", "封签", "净军房"],
+                deadline_months=1,
+            )
+
+            before = el.assignment_risk_profile(db, name, task, domains=["investigation", "inner"])
+            self.assertTrue(any(item["key"] == "relay" for item in before["dispatch_strategies"]))
+
+            result = el.apply_eunuch_dispatch_strategy(
+                db,
+                state,
+                name,
+                task,
+                "relay",
+                order_id=order_id,
+                domains=["investigation", "inner"],
+                note="准副手接力，别硬撑坏事。",
+            )
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["strategy"], "relay")
+            self.assertEqual(result["cost"], 1)
+            self.assertIn("旧患风险", result["outcome"])
+            self.assertGreater(
+                int(result["risk_after"]["score_delta"]),
+                int(result["risk_before"]["score_delta"]),
+            )
+            order = db.get_secret_order(order_id)
+            self.assertIn("分班轮值", order["sim_note"])
+            memory = db.conn.execute(
+                """
+                SELECT 1 FROM event_memories
+                WHERE subject_id=? AND event_type='eunuch_dispatch_strategy'
+                """,
+                (name,),
+            ).fetchone()
+            self.assertIsNotNone(memory)
+            self.assertEqual(state.metrics["内库"], 19)
+
     def test_timeflow_surfaces_castration_complication_events(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)

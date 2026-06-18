@@ -743,6 +743,22 @@ def build_minister_tools(character: Character, context: CourtContext):
             lines.append(f"- 驱动：{drivers}")
         if risks:
             lines.append(f"- 风险：{risks}")
+        eunuch_risk = assessment.get("eunuch_lore_risk") if isinstance(assessment.get("eunuch_lore_risk"), dict) else {}
+        strategies = [
+            item for item in (eunuch_risk.get("dispatch_strategies") if isinstance(eunuch_risk, dict) else []) or []
+            if isinstance(item, dict) and str(item.get("key") or "").strip()
+        ]
+        if strategies:
+            choices = []
+            for item in strategies[:4]:
+                label = str(item.get("label") or item.get("key") or "").strip()
+                key = str(item.get("key") or "").strip()
+                tradeoff = str(item.get("tradeoff") or "").strip()
+                cost = int(item.get("cost") or 0)
+                cost_text = f"内库{cost}" if cost else "无耗费"
+                choices.append(f"{label}/{key}（{cost_text}；{tradeoff}）")
+            lines.append("- 旧患差遣可选：" + "；".join(choices))
+            lines.append("- 若陛下明确准许某策略，调用 set_eunuch_dispatch_strategy(order_id, strategy='relay|avoid_trigger|care_first|force') 落档。")
         if behavior:
             lines.append(f"- 行为口径：{behavior}")
         return "\n".join(lines)
@@ -856,6 +872,54 @@ def build_minister_tools(character: Character, context: CourtContext):
         remain = max(0, int(rushed["due_turn"]) - int(context.state.turn))
         return f"密令 #{order['id']}「{order['title']}」已奉旨加急，限 {remain} 个月内核议。{suffix}"
 
+    def set_eunuch_dispatch_strategy(order_id: int, strategy: str = "relay", note: str = "") -> str:
+        """皇帝明确准许后，为承办宦官按净身旧患安排差遣策略。
+
+        strategy 可填：
+        relay=分班副手/轮值换班，缓解漏尿尿闭久候风险，小耗内库；
+        avoid_trigger=避开刑房、净房、封签刀声，慢但稳；
+        care_first=先调养再派，耗内库最多但最稳；
+        force=照旧强派，快而密，但怨望和失手风险加重。
+        """
+        order, err = _own_secret_order(order_id)
+        if order is None:
+            return err
+        if order["status"] != "active":
+            return f"密令 #{order['id']} 当前状态 {order['status']}，不能再调整差遣。"
+        text = "\n".join(
+            str(order.get(key) or "")
+            for key in ("title", "content", "result", "sim_note")
+            if str(order.get(key) or "").strip()
+        )
+        try:
+            assessment = secret_order_actor_assessment(context.state, context.db, order)
+            domains = assessment.get("domains") if isinstance(assessment.get("domains"), list) else []
+        except Exception:
+            domains = []
+        try:
+            from ming_sim.eunuch_lore import apply_eunuch_dispatch_strategy
+            result = apply_eunuch_dispatch_strategy(
+                context.db,
+                context.state,
+                str(order["minister_name"]),
+                text,
+                strategy,
+                order_id=int(order["id"]),
+                domains=domains,
+                note=note,
+                source="secret_order_tool",
+            )
+        except Exception as exc:
+            return f"旧患差遣安排失败：{exc}"
+        if not result.get("ok"):
+            return f"旧患差遣安排失败：{result.get('reason') or '未能落档'}"
+        before = int((result.get("risk_before") or {}).get("score_delta") or 0) if isinstance(result.get("risk_before"), dict) else 0
+        after = int((result.get("risk_after") or {}).get("score_delta") or 0) if isinstance(result.get("risk_after"), dict) else before
+        return (
+            f"密令 #{order['id']}「{order['title']}」已按{order['minister_name']}净身旧患调整差遣："
+            f"{result.get('process')}；结算：{result.get('outcome')}；旧患风险{before:+d}->{after:+d}。"
+        )
+
     def dismiss_minister() -> str:
         """结束本次召见。"""
         return "__dismiss__"
@@ -894,6 +958,7 @@ def build_minister_tools(character: Character, context: CourtContext):
         report_secret_order_progress,
         submit_secret_order_for_review,
         rush_secret_order,
+        set_eunuch_dispatch_strategy,
         dismiss_minister,
         summon_minister,
         register_unlisted_person,

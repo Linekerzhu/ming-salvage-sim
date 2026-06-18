@@ -1622,6 +1622,124 @@ def _trait_names(db: GameDB, name: str) -> set[str]:
     return {str(row["trait"] or "").strip() for row in rows if str(row["trait"] or "").strip()}
 
 
+_DISPATCH_STRATEGY_ALIASES = {
+    "relay": "relay",
+    "分班": "relay",
+    "换班": "relay",
+    "副手": "relay",
+    "轮值": "relay",
+    "avoid_trigger": "avoid_trigger",
+    "avoid": "avoid_trigger",
+    "避触发": "avoid_trigger",
+    "避刑房": "avoid_trigger",
+    "绕行": "avoid_trigger",
+    "care_first": "care_first",
+    "care": "care_first",
+    "先调养": "care_first",
+    "调养后再派": "care_first",
+    "force": "force",
+    "强派": "force",
+    "硬派": "force",
+    "照旧": "force",
+}
+
+
+def normalize_dispatch_strategy(strategy: str) -> str:
+    raw = str(strategy or "").strip().lower()
+    for key, value in _DISPATCH_STRATEGY_ALIASES.items():
+        if key.lower() in raw:
+            return value
+    if re.search(r"副手|换班|分班|轮值|接力", raw):
+        return "relay"
+    if re.search(r"避|绕|外围|不入.*(刑房|净房)", raw):
+        return "avoid_trigger"
+    if re.search(r"调养|太医|先治", raw):
+        return "care_first"
+    if re.search(r"强|硬|照旧|限期", raw):
+        return "force"
+    return "relay"
+
+
+def _dispatch_strategy_marks(text: str) -> Dict[str, bool]:
+    raw = str(text or "")
+    return {
+        "relay": bool(re.search(r"副手|换班|分班|轮值|接力|替手", raw)),
+        "avoid_trigger": bool(re.search(r"避开|绕开|外围|不入.*(刑房|净房)|先走.*文书|避.*(刀声|封签|净房|刑房)", raw)),
+        "care_first": bool(re.search(r"先调养|调养后再派|太医.*再派|先治.*再查", raw)),
+        "force": bool(re.search(r"强派|硬派|照旧硬查|照旧派|不许退|硬查|限期照办", raw)),
+    }
+
+
+def _dispatch_strategy_options(
+    lore: Dict[str, object],
+    *,
+    raw: str,
+    domain_set: set[str],
+    risks: Sequence[str],
+    score_delta: int,
+) -> List[Dict[str, object]]:
+    if not risks and score_delta >= 0:
+        return []
+    options: List[Dict[str, object]] = []
+    has_urine = bool(str(lore.get("urinary_aftereffect") or "").strip())
+    has_trigger = bool(
+        str(lore.get("trauma_response") or "").strip()
+        or str(lore.get("voice_body_change") or "").strip()
+        or str(lore.get("bao_ritual") or "").strip()
+        or str(lore.get("bao_status") or "") in {BAO_FORFEIT, BAO_LOST}
+    )
+    scheme = castration_scheme_profile(lore)
+    if has_urine and (
+        re.search(r"久候|夜守|盯梢|远行|出京|巡|缉拿|路上", raw)
+        or domain_set.intersection({"investigation", "military", "local", "inner"})
+    ):
+        options.append({
+            "key": "relay",
+            "label": "分班副手",
+            "score_relief": 4,
+            "cost": 1,
+            "cost_account": "内库",
+            "tradeoff": "少误时，但多一层耳目，风声略宽。",
+            "prompt": "准其带副手轮值，尿闭漏尿时换班，不许硬撑坏事。",
+        })
+    if has_trigger and (
+        re.search(r"刑房|净房|刀|血|拷|审|拿问|封签|宝匣|乔装|传旨", raw)
+        or domain_set.intersection({"investigation", "inner"})
+    ):
+        options.append({
+            "key": "avoid_trigger",
+            "label": "避开触发",
+            "score_relief": 3,
+            "cost": 0,
+            "cost_account": "",
+            "tradeoff": "旧患少发，但查办绕远，进展会慢。",
+            "prompt": "令其先走外围文书和线人，不入刑房净房，不当面碰封签刀声。",
+        })
+    if score_delta <= -4 or int(scheme.get("care_cost_delta") or 0) > 0:
+        options.append({
+            "key": "care_first",
+            "label": "先调养再派",
+            "score_relief": 6,
+            "cost": max(2, 4 + int(scheme.get("care_cost_delta") or 0)),
+            "cost_account": "内库",
+            "tradeoff": "最稳，耗内库，也会让差事慢半拍。",
+            "prompt": "先动太医和内库压住旧患，再令其接差。",
+        })
+    options.append({
+        "key": "force",
+        "label": "照旧强派",
+        "score_relief": -3,
+        "cost": 0,
+        "cost_account": "",
+        "tradeoff": "最快最密，怨望、失手和旧患爆发风险加重。",
+        "prompt": "不许退缩，照旧限期硬查硬办。",
+    })
+    dedup: Dict[str, Dict[str, object]] = {}
+    for option in options:
+        dedup[str(option["key"])] = option
+    return list(dedup.values())
+
+
 def assignment_risk_profile(
     db: GameDB,
     name: str,
@@ -1648,6 +1766,8 @@ def assignment_risk_profile(
     risks: List[str] = []
     mitigations: List[str] = []
     stage_cues: List[str] = []
+    strategy_marks = _dispatch_strategy_marks(raw)
+    strategy_score_adjustment = 0
 
     def add(
         delta: int,
@@ -1766,10 +1886,38 @@ def assignment_risk_profile(
             stage="反复抚平衣褶或摸索钥匙给自己定神。",
         )
 
+    if strategy_marks["relay"] and any("尿路旧患" in risk for risk in risks):
+        strategy_score_adjustment += 4
+        if "已设副手分班换班，久候漏尿误事风险下降。" not in mitigations:
+            mitigations.append("已设副手分班换班，久候漏尿误事风险下降。")
+        if "准其夹腰退半步，由副手接力轮值。" not in stage_cues:
+            stage_cues.append("准其夹腰退半步，由副手接力轮值。")
+    if strategy_marks["avoid_trigger"] and any(("惊创" in risk or "宝案心结" in risk or "体声异变" in risk) for risk in risks):
+        strategy_score_adjustment += 3
+        if "已令其绕开刑房净房、封签刀声，改走外围文书。" not in mitigations:
+            mitigations.append("已令其绕开刑房净房、封签刀声，改走外围文书。")
+    if strategy_marks["care_first"]:
+        if "已奉旨先调养再派差，旧患风险按调养结果继续折减。" not in mitigations:
+            mitigations.append("已奉旨先调养再派差，旧患风险按调养结果继续折减。")
+    if strategy_marks["force"] and risks:
+        strategy_score_adjustment -= 3
+        force_risk = "奉旨照旧强派，短期保密和速度上去，怨望与失手风险也被推高。"
+        if force_risk not in risks:
+            risks.append(force_risk)
+
     score_delta = max(-18, min(4, int(score_delta)))
+    if strategy_score_adjustment:
+        score_delta = max(-18, min(4, int(score_delta) + strategy_score_adjustment))
     if not notes and not risks and not mitigations:
         return {}
     sign = "+" if score_delta > 0 else ""
+    dispatch_strategies = _dispatch_strategy_options(
+        lore,
+        raw=raw,
+        domain_set=domain_set,
+        risks=risks,
+        score_delta=score_delta,
+    )
     return {
         "name": clean_name,
         "score_delta": score_delta,
@@ -1778,6 +1926,206 @@ def assignment_risk_profile(
         "mitigations": mitigations[:4],
         "stage_cues": stage_cues[:4],
         "condition_line": str((public_lore_payload(db, clean_name) or {}).get("condition_line") or "")[:240],
+        "dispatch_strategies": dispatch_strategies[:4],
+    }
+
+
+def _primary_care_mode_for_task(risk: Dict[str, object]) -> str:
+    risks = " ".join(str(item) for item in (risk.get("risks") or []))
+    if "尿路" in risks or "漏尿" in risks or "尿闭" in risks:
+        return "urinary"
+    if "惊创" in risks or "幻肢" in risks or "刑房" in risks:
+        return "trauma"
+    if "体声" in risks or "嗓音" in risks:
+        return "body"
+    if "宝案" in risks or "宝匣" in risks or "封签" in risks:
+        return "bao"
+    return "general"
+
+
+def apply_eunuch_dispatch_strategy(
+    db: GameDB,
+    state: GameState,
+    name: str,
+    task_text: str,
+    strategy: str,
+    *,
+    order_id: int = 0,
+    domains: Optional[Sequence[str]] = None,
+    note: str = "",
+    source: str = "dialogue",
+) -> Dict[str, object]:
+    """对白驱动的宦官差遣策略：把旧患从风险提示变成可结算取舍。"""
+    ensure_schema(db)
+    clean_name = str(name or "").strip()
+    if not clean_name:
+        return {"ok": False, "reason": "未点明承办宦官。"}
+    lore = get_lore(db, clean_name)
+    if lore is None:
+        return {"ok": False, "reason": f"{clean_name}没有净身旧档。"}
+    task = str(task_text or "").strip()
+    mode = normalize_dispatch_strategy(strategy)
+    risk_before = assignment_risk_profile(db, clean_name, task, domains=domains)
+    if not risk_before:
+        return {"ok": False, "reason": f"{clean_name}此差未触发净身旧患风险。"}
+    source_id = f"{int(getattr(state, 'turn', 0) or 0)}:{clean_name}:{mode}:{int(order_id or 0)}:{source}"
+    existed = db.conn.execute(
+        """
+        SELECT 1 FROM event_memories
+        WHERE subject_type='character' AND subject_id=? AND event_type='eunuch_dispatch_strategy'
+          AND source_kind=? AND source_id=?
+        """,
+        (clean_name, source, source_id),
+    ).fetchone()
+    if existed is not None:
+        return {"ok": False, "reason": f"{clean_name}本回合已安排过这项差遣策略。", "strategy": mode}
+    row = db.conn.execute(
+        "SELECT emp_trust, grievance, ability, wisdom, charm, luck FROM characters WHERE name=? AND status='active'",
+        (clean_name,),
+    ).fetchone()
+    if row is None:
+        return {"ok": False, "reason": f"{clean_name}不在可差遣名册中。"}
+
+    if mode == "care_first":
+        care_mode = _primary_care_mode_for_task(risk_before)
+        care = apply_eunuch_care(
+            db,
+            state,
+            clean_name,
+            mode=care_mode,
+            note=note or f"先调养再派：{task[:80]}",
+            source=f"{source}_dispatch",
+        )
+        if not care.get("ok"):
+            return {"ok": False, "reason": str(care.get("reason") or "调养未成。"), "strategy": mode}
+        strategy_note = (
+            f"[旧患差遣] 奉旨先调养再派，{clean_name}{care.get('label')}后再接此差；"
+            "先治旧患，不许硬撑误事。"
+        )
+        paid = int(care.get("cost") or 0)
+        delta = care.get("delta") if isinstance(care.get("delta"), dict) else {}
+        stage = str(care.get("stage_direction") or "")
+    else:
+        before = {
+            "emp_trust": int(row["emp_trust"] or 55),
+            "grievance": int(row["grievance"] or 20),
+            "ability": int(row["ability"] or 50),
+            "wisdom": int(row["wisdom"] or 50),
+            "charm": int(row["charm"] or 50),
+            "luck": int(row["luck"] or 50),
+        }
+        if mode == "relay":
+            plan_delta = {"emp_trust": 1, "grievance": -1}
+            cost = 1
+            strategy_note = (
+                f"[旧患差遣] 奉旨给{clean_name}副手换班、分班轮值，"
+                "尿闭漏尿时准其退半步，由替手接力；多一层耳目，风声略宽。"
+            )
+            stage = "夹腰退半步时不再硬撑，身后一名小火者接过灯牌。"
+        elif mode == "avoid_trigger":
+            plan_delta = {"emp_trust": 1}
+            cost = 0
+            strategy_note = (
+                f"[旧患差遣] 奉旨令{clean_name}避开刑房净房、封签刀声，"
+                "先走外围文书与线人；查办绕远，进展慢半拍。"
+            )
+            stage = "听见刑房二字先一僵，得旨绕行后才低声称谢。"
+        else:
+            mode = "force"
+            plan_delta = {"emp_trust": -1, "grievance": 3}
+            if int(risk_before.get("score_delta") or 0) <= -8:
+                plan_delta["ability"] = -1
+            cost = 0
+            strategy_note = (
+                f"[旧患差遣] 奉旨强派{clean_name}照旧硬查，不许因净身旧患退缩；"
+                "保密与速度优先，怨望和失手风险加重。"
+            )
+            stage = "他伏地称奴婢不敢，起身时肩背却缩得更紧。"
+        after = dict(before)
+        for key, value in plan_delta.items():
+            if key in after:
+                after[key] = _clamp_0_100(after[key] + int(value or 0))
+        db.conn.execute(
+            """
+            UPDATE characters
+            SET emp_trust=?, grievance=?, ability=?, wisdom=?, charm=?, luck=?
+            WHERE name=?
+            """,
+            (after["emp_trust"], after["grievance"], after["ability"], after["wisdom"], after["charm"], after["luck"], clean_name),
+        )
+        paid = 0
+        if cost:
+            paid = abs(db.record_issue_economy_move(
+                state,
+                "内库",
+                -cost,
+                "内廷差遣",
+                f"{clean_name}旧患差遣分班副手",
+                purpose="maintenance",
+                target_kind="character",
+                target_id=clean_name,
+                apply_legacy=False,
+            ))
+        else:
+            db.save_state(state)
+        delta = {key: after[key] - before[key] for key in before if after[key] != before[key]}
+
+    if note:
+        strategy_note = f"{strategy_note} 朱批备注：{str(note).strip()[:100]}"
+    if order_id:
+        try:
+            db.update_secret_order_sim_note(int(order_id), strategy_note, year=state.year, period=state.period)
+        except Exception:
+            pass
+    risk_after = assignment_risk_profile(db, clean_name, f"{task}\n{strategy_note}", domains=domains)
+    outcome_bits = []
+    for key, label in (
+        ("emp_trust", "信任"),
+        ("grievance", "怨望"),
+        ("ability", "才干"),
+        ("wisdom", "机敏"),
+        ("charm", "仪表"),
+        ("luck", "运势"),
+    ):
+        value = int((delta or {}).get(key) or 0) if isinstance(delta, dict) else 0
+        if value:
+            outcome_bits.append(f"{label}{value:+d}")
+    if paid:
+        outcome_bits.append(f"内库-{paid}")
+    before_score = int(risk_before.get("score_delta") or 0)
+    after_score = int((risk_after or {}).get("score_delta") or 0)
+    if before_score != after_score:
+        outcome_bits.append(f"旧患风险{before_score:+d}->{after_score:+d}")
+    outcome = "，".join(outcome_bits) or "差遣策略入档"
+    db.upsert_event_memory(
+        state,
+        "character",
+        clean_name,
+        "eunuch_dispatch_strategy",
+        f"旧患差遣：{clean_name}",
+        cause="御前按净身旧患调整密令差遣",
+        process=strategy_note,
+        outcome=outcome,
+        sentiment="negative" if mode == "force" else "mixed",
+        importance=4 if mode in {"care_first", "force"} else 3,
+        tags=["净身", "差遣", "旧患", mode],
+        source_kind=source,
+        source_id=source_id,
+    )
+    db.record_log(state, f"【旧患差遣】{clean_name}：{outcome}。")
+    db.conn.commit()
+    return {
+        "ok": True,
+        "name": clean_name,
+        "strategy": mode,
+        "order_id": int(order_id or 0),
+        "cost": paid,
+        "stage_direction": stage,
+        "process": strategy_note,
+        "outcome": outcome,
+        "delta": delta,
+        "risk_before": risk_before,
+        "risk_after": risk_after,
     }
 
 
