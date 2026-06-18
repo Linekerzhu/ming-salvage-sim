@@ -3561,13 +3561,14 @@ class WebGame:
 
     def _detect_mediation_intent(self, minister_name: str, text: str) -> Dict[str, Any]:
         raw = str(text or "").strip()
-        if not re.search(r"(调停|调和|和解|各退一步|共办|化解|缓和|息争|说合|消弭)", raw):
+        if not re.search(r"(调停|调和|和解|各退一步|共办|化解|缓和|息争|说合|消弭|担保|作保|连坐|人情)", raw):
             return {}
+        mode = "guarantee" if re.search(r"(担保|作保|连坐|人情|护着|护他|护她|护其)", raw) else "co_work"
         mentions = [name for name in self._character_mentions_in_text(raw) if name != minister_name]
         if len(mentions) >= 2:
-            return {"type": "mediation", "actor": mentions[0], "target": mentions[1]}
+            return {"type": "mediation", "actor": mentions[0], "target": mentions[1], "mode": mode}
         if len(mentions) == 1:
-            return {"type": "mediation", "actor": minister_name, "target": mentions[0]}
+            return {"type": "mediation", "actor": minister_name, "target": mentions[0], "mode": mode}
         try:
             from ming_sim import court
             rivals = court.rivals_of(self.db, minister_name, limit=1)
@@ -3579,8 +3580,8 @@ class WebGame:
         for row in faction_rows:
             faction = str(row["name"] or "")
             if faction and faction in raw:
-                return {"type": "mediation", "faction": faction}
-        return {"type": "mediation", "actor": minister_name, "target": ""}
+                return {"type": "mediation", "faction": faction, "mode": mode}
+        return {"type": "mediation", "actor": minister_name, "target": "", "mode": mode}
 
     def _proposal_answer_for_action(self, minister_name: str, action: Dict[str, Any]) -> str:
         self_ref = self._dialogue_speaker_self(minister_name)
@@ -3595,7 +3596,10 @@ class WebGame:
             actor = str(action.get("actor") or "")
             target = str(action.get("target") or "")
             faction = str(action.get("faction") or "")
+            mode = str(action.get("mode") or "")
             if actor and target:
+                if mode == "guarantee":
+                    return f"{self_ref}回陛下，{actor}与{target}这层人情可用，却不可空口护短。若陛下准，臣便按御前之意定下担保边界，令其拿一件可验小差回奏。"
                 return f"{self_ref}回陛下，{actor}与{target}的嫌隙不可一言抹平，但可先令二人各退一步、共担一桩小事。若陛下准，臣便按御前调停去说合，先把怨气压下一层。"
             if faction:
                 return f"{self_ref}回陛下，{faction}气焰一时压不尽，但可先给台阶、收锋芒。若陛下准，臣便按御前调停处置，稍降党争热度。"
@@ -3631,11 +3635,140 @@ class WebGame:
             },
         }
 
+    def _relationship_commitment_owner(self, minister_name: str, actor: str, target: str) -> tuple[str, str]:
+        if minister_name in {actor, target}:
+            owner = minister_name
+            other = target if owner == actor else actor
+            return owner, other
+        return minister_name, f"{actor}与{target}".strip("与")
+
+    def _open_relationship_commitment(self, owner: str, title: str) -> Dict[str, Any]:
+        for goal in self.db.list_conversation_goals(
+            minister_name=owner,
+            statuses=["active", "waiting_conditions", "sealed"],
+            limit=12,
+        ):
+            if str(goal.get("title") or "") == title:
+                return goal
+        return {}
+
+    def _create_relationship_commitment(
+        self,
+        minister_name: str,
+        actor: str,
+        target: str,
+        mode: str,
+    ) -> Dict[str, Any]:
+        if not (actor and target):
+            return {}
+        owner, other = self._relationship_commitment_owner(minister_name, actor, target)
+        if not owner or owner not in self.content.characters:
+            return {}
+        mode = "guarantee" if mode == "guarantee" else "co_work"
+        owner_is_party = owner in {actor, target}
+        if mode == "guarantee":
+            title = f"人情担保：{owner}护{other}" if owner_is_party else f"担保说合：{actor}护{target}"
+            target_text = (
+                f"{owner}须替{other}说清担保边界，并共办一件可验小差。"
+                if owner_is_party
+                else f"{owner}须促成{actor}替{target}说清担保边界，并定下一件可验小差。"
+            )
+            tasks = [
+                f"交代{target if not owner_is_party else other}可用之处、短板与担保边界",
+                (
+                    f"与{other}共办一件可验小差并回奏证据"
+                    if owner_is_party
+                    else f"促成{actor}与{target}共办一件可验小差并回奏证据"
+                ),
+            ]
+            stakes = "人情担保、党援坐大、连坐风险"
+            promise_type = "人情担保承诺"
+        else:
+            title = f"共办消怨：{actor}与{target}"
+            target_text = f"{owner}须推动{actor}与{target}共办一件可验小差，回奏分工、证据与旧怨是否仍相牵。"
+            tasks = [
+                f"推动{actor}与{target}共办一件可验小差",
+                "回奏分工、证据与是否仍借私怨拖延",
+            ]
+            stakes = "政敌牵制、共办翻脸、党争降温"
+            promise_type = "共办消怨承诺"
+        existing = self._open_relationship_commitment(owner, title)
+        if existing:
+            return {
+                "owner": owner,
+                "title": title,
+                "goal_id": int(existing.get("id") or 0),
+                "agreement_id": int(existing.get("agreement_id") or 0),
+                "created": False,
+            }
+        threshold = 68
+        conditions = [{"description": task, "status": "pending"} for task in tasks]
+        goal_id = self.db.create_conversation_goal(
+            self.state,
+            minister_name=owner,
+            action_kind="court_commitment",
+            title=title,
+            target_text=target_text,
+            threshold=threshold,
+            score=100,
+            status="waiting_conditions",
+            condition_status="pending",
+            conditions=conditions,
+            expires_turn=int(self.state.turn) + 3,
+            last_delta={
+                "source": "dialogue_relationship_commitment",
+                "mode": mode,
+                "actor": actor,
+                "target": target,
+                "owner": owner,
+            },
+        )
+        agreement_id = self.db.create_negotiation_agreement(
+            self.state,
+            minister_name=owner,
+            topic=title,
+            action_kind="court_commitment",
+            status="pending",
+            stance_id=0,
+            handshake_status="sealed",
+            psychological_score=100,
+            threshold=threshold,
+            verbal_only=False,
+            core_topic=title,
+            target_text=target_text,
+            promise_type=promise_type,
+            stakes=stakes,
+            due_turn=int(self.state.turn) + 2,
+            conditions="；".join(tasks),
+            summary=f"{owner}领下御前{title}，须限期回奏。",
+            tasks=tasks,
+            goal_id=goal_id,
+        )
+        self.db.bind_conversation_goal_agreement(goal_id, agreement_id)
+        self.db.add_conversation_goal_event(
+            self.state,
+            goal_id,
+            "agreement_created",
+            status="waiting_conditions",
+            score_delta=0,
+            score_after=100,
+            summary=f"已进入履约账本 #{agreement_id}",
+            payload={"agreement_id": agreement_id, "mode": mode, "actor": actor, "target": target},
+        )
+        return {
+            "owner": owner,
+            "title": title,
+            "goal_id": goal_id,
+            "agreement_id": agreement_id,
+            "created": True,
+        }
+
     def _execute_mediation_action(self, minister_name: str, action: Dict[str, Any]) -> Dict[str, Any]:
         self_ref = self._dialogue_speaker_self(minister_name)
         actor = str(action.get("actor") or "").strip()
         target = str(action.get("target") or "").strip()
         faction = str(action.get("faction") or "").strip()
+        mode = str(action.get("mode") or "co_work").strip()
         effects: List[Dict[str, str]] = []
         if actor and target and actor in self.content.characters and target in self.content.characters:
             try:
@@ -3652,12 +3785,28 @@ class WebGame:
                         effects.append({"kind": "faction_heat", "label": f"{fa}热度 -5", "tone": "good"})
             except Exception:
                 pass
+            commitment = self._create_relationship_commitment(minister_name, actor, target, mode)
+            if commitment:
+                effects.append({
+                    "kind": "conversation_goal",
+                    "label": f"履约账本：{commitment['owner']}",
+                    "tone": "warn",
+                })
             self._clear_pending_dialogue_action(minister_name)
+            if mode == "guarantee":
+                answer = (
+                    f"{self_ref}遵旨。{actor}与{target}这层人情已压成御前担保，"
+                    "不许空口护短；后头要以小差、证据和边界回奏。若坏事，便按担保追问。"
+                )
+                message = f"{actor}替{target}担保入账"
+            else:
+                answer = f"{self_ref}遵旨。{actor}与{target}旧怨未必尽消，但臣已按陛下意思递了台阶，先令二人收锋、可共事一段。若后头再相攻，便要看差事成败与陛下奖惩了。"
+                message = f"{actor}与{target}怨气稍缓"
             return {
-                "answer": f"{self_ref}遵旨。{actor}与{target}旧怨未必尽消，但臣已按陛下意思递了台阶，先令二人收锋、可共事一段。若后头再相攻，便要看差事成败与陛下奖惩了。",
+                "answer": answer,
                 "dialogue_effect": {
-                    "title": "御前调停",
-                    "message": f"{actor}与{target}怨气稍缓",
+                    "title": "人情担保" if mode == "guarantee" else "御前调停",
+                    "message": message,
                     "effects": effects,
                 },
             }

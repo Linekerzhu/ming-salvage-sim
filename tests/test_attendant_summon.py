@@ -967,6 +967,93 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_dialogue_mediation_confirmation_creates_followup_obligation(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            target = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' AND name NOT IN (?, '王承恩') "
+                "ORDER BY ability ASC LIMIT 1",
+                (actor,),
+            ).fetchone()["name"])
+
+            proposal_events = list(game.chat_stream(actor, f"若朕令你与{target}共办一件可验小差，你肯不肯？"))
+            self.assertEqual(proposal_events[-1]["type"], "done")
+            self.assertIn("若陛下准", proposal_events[-1]["payload"]["answer"])
+            self.assertEqual(game.db.list_conversation_goals(minister_name=actor, statuses=["waiting_conditions"]), [])
+
+            confirm_events = list(game.chat_stream(actor, "可以，就这么办。"))
+
+            self.assertEqual(confirm_events[-1]["type"], "done")
+            payload = confirm_events[-1]["payload"]
+            effects = payload["dialogue_effect"]["effects"]
+            self.assertIn(f"履约账本：{actor}", {str(item["label"]) for item in effects})
+            goals = game.db.list_conversation_goals(minister_name=actor, statuses=["waiting_conditions"])
+            self.assertEqual(len(goals), 1)
+            self.assertIn("共办消怨", str(goals[0]["title"]))
+            self.assertEqual(int(goals[0]["expires_turn"]), int(game.state.turn) + 3)
+            agreements = game.db.list_negotiation_agreements(
+                minister_name=actor,
+                action_kind="court_commitment",
+                status="pending",
+            )
+            self.assertEqual(len(agreements), 1)
+            self.assertIn("共办消怨", str(agreements[0]["topic"]))
+            self.assertEqual(int(agreements[0]["due_turn"]), int(game.state.turn) + 2)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_dialogue_guarantee_confirmation_creates_patronage_obligation(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            target = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' AND name NOT IN (?, '王承恩') "
+                "ORDER BY ability ASC LIMIT 1",
+                (actor,),
+            ).fetchone()["name"])
+
+            proposal_events = list(game.chat_stream(actor, f"朕知道你与{target}有一层人情，你肯替他担保到哪一步？"))
+            self.assertEqual(proposal_events[-1]["type"], "done")
+            self.assertIn("担保边界", proposal_events[-1]["payload"]["answer"])
+
+            confirm_events = list(game.chat_stream(actor, "准，你替他担保。"))
+
+            payload = confirm_events[-1]["payload"]
+            self.assertEqual(payload["dialogue_effect"]["title"], "人情担保")
+            goals = game.db.list_conversation_goals(minister_name=actor, statuses=["waiting_conditions"])
+            self.assertEqual(len(goals), 1)
+            self.assertIn("人情担保", str(goals[0]["title"]))
+            self.assertIn(target, str(goals[0]["target_text"]))
+            agreements = game.db.list_negotiation_agreements(
+                minister_name=actor,
+                action_kind="court_commitment",
+                status="pending",
+            )
+            self.assertEqual(len(agreements), 1)
+            self.assertIn("人情担保承诺", str(agreements[0]["promise_type"]))
+            self.assertIn("党援坐大", str(agreements[0]["stakes"]))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_relationship_context_surfaces_positive_tie_stakes(self):
         game = web_app.WebGame(fresh=True)
         try:
