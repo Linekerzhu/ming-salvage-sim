@@ -161,7 +161,12 @@ def _apply_agreement_action(db: GameDB, state: GameState, item: Dict[str, object
                 status="waiting_conditions",
                 condition_status="pending",
                 expires_turn=due_turn + 2,
-                last_delta_json={"source": "overdue_obligation", "action": "extend", "due_turn": due_turn},
+                last_delta_json={
+                    "source": "overdue_obligation",
+                    "action": "extend",
+                    "due_turn": due_turn,
+                    "evidence": evidence,
+                },
             )
         db.record_log(state, evidence or f"{minister}「{topic}」奉旨展限 {months} 月。")
         return f"{minister}履约展限{months}月"
@@ -868,6 +873,8 @@ def _overdue_agreement(db: GameDB) -> Optional[Dict[str, object]]:
     task_texts = [str(t["description"] or "") for t in tasks if str(t["description"] or "").strip()]
     minister = str(row["minister_name"] or "")
     topic = str(row["core_topic"] or row["topic"] or "履约事项")
+    favors = court.favor_memories(db, minister, limit=2)
+    favor_head = favors[0] if favors else {}
     return {
         "agreement_id": int(row["id"]),
         "cooldown_id": f"overdue_obligation:{int(row['id'])}",
@@ -883,6 +890,9 @@ def _overdue_agreement(db: GameDB) -> Optional[Dict[str, object]]:
         "trust": int(row["emp_trust"] or 0),
         "grievance": int(row["grievance"] or 0),
         "tasks": task_texts,
+        "favor_count": len(favors),
+        "favor_title": str(favor_head.get("title") or ""),
+        "favor_outcome": str(favor_head.get("outcome") or favor_head.get("cause") or ""),
     }
 
 
@@ -1181,14 +1191,38 @@ def _defs() -> List[Dict[str, object]]:
             "priority": 31,
             "cooldown": "ctx",
             "when": _overdue_agreement,
-            "title": lambda c: f"履约失期：{c['minister']}未复命",
+            "title": lambda c: (
+                f"忘恩负约：{c['minister']}未复命"
+                if int(c.get("favor_count") or 0) > 0 else
+                f"履约失期：{c['minister']}未复命"
+            ),
             "narrative": lambda c: (
                 f"{c['office']}{c['minister']}先前领下「{c['topic']}」，御限已至"
                 f"{'，逾期' + str(c['overdue_by']) + '月' if int(c.get('overdue_by') or 0) else ''}，"
                 f"至今未有足以交账的回奏。此事关涉{c['stakes']}，若轻轻揭过，履约账本便成虚文；"
-                "若过严，又恐人人只求自保。陛下如何处置？"
+                + (
+                    f"更要紧的是，{c['minister']}尚有「{c.get('favor_title') or '旧恩未报'}」在身，"
+                    f"{c.get('favor_outcome') or '不宜装作两清'}。若受恩者也可失约，天恩便成空话；"
+                    if int(c.get("favor_count") or 0) > 0 else
+                    ""
+                )
+                + "若过严，又恐人人只求自保。陛下如何处置？"
             ),
             "choices": [
+                {"key": "call_favor", "label": lambda c: f"点明旧恩，勒{c['minister']}一月内还账",
+                 "hint": "把天恩变成政治债：压力更强、任事不至全寒，但本人和同党会感到被拿捏",
+                 "available": lambda c: int(c.get("favor_count") or 0) > 0,
+                 "effect": lambda c: {"shi": 2, "renshi": 1,
+                                      "char": [{"name": c["minister"], "emp_trust": -1, "grievance": 6}],
+                                      "faction": ({_meaningful_faction(c.get("faction")): {"satisfaction": -2, "heat": 2}}
+                                                  if _meaningful_faction(c.get("faction")) else {}),
+                                      "agreements": [{
+                                          "id": c["agreement_id"],
+                                          "action": "extend",
+                                          "months": 1,
+                                          "evidence": f"御前点明旧恩，责{c['minister']}「{c['topic']}」一月内还账复命；不得装作两清。"
+                                      }],
+                                      "log": f"忘恩负约：点明旧恩，勒{c['minister']}一月内还账复命。"}},
                 {"key": "press", "label": lambda c: f"严旨催{c['minister']}，限一月复命",
                  "hint": "不即治罪，但把账压回他身上；威令略立，臣下压力上升",
                  "effect": lambda c: {"shi": 1, "renshi": -1,

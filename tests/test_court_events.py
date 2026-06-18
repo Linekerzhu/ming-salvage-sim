@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from ming_sim import court, court_events, timeflow
+from ming_sim import court, court_events, memorials, timeflow
 from ming_sim.db import GameDB
 from ming_sim.upgrade_schema import KV_SHI, kv_int
 
@@ -166,6 +166,31 @@ class TriggerTests(unittest.TestCase):
             self.assertEqual(keys, {"press", "grant_time", "punish"})
             press = next(ch for ch in payload["choices"] if ch["key"] == "press")
             self.assertIn("履约展限 1月", [str(e["label"]) for e in press["effects"]])
+            pending = court_events.get_pending(db) or {}
+            self.assertEqual(str(pending.get("cooldown_key")), f"overdue_obligation:{agreement_id}")
+
+    def test_overdue_favored_official_triggers_favor_debt_choice(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            minister, _ = _two_ming(db)
+            favor = memorials.back_official(db, state, minister, "comfort", day=day)
+            self.assertTrue(favor["ok"], favor)
+            agreement_id, _goal_id = _due_agreement(db, state, minister, "还恩难差")
+
+            payload = court_events.evaluate_decisions(db, state, day)
+
+            self.assertIsNotNone(payload)
+            self.assertEqual(payload["id"], "overdue_obligation")
+            self.assertIn("忘恩负约", str(payload["title"]))
+            self.assertIn("旧恩", str(payload["narrative"]))
+            keys = {str(ch["key"]) for ch in payload["choices"]}
+            self.assertEqual(keys, {"call_favor", "press", "grant_time", "punish"})
+            call = next(ch for ch in payload["choices"] if ch["key"] == "call_favor")
+            labels = [str(e["label"]) for e in call["effects"]]
+            self.assertIn("君威 +2", labels)
+            self.assertIn("任事 +1", labels)
+            self.assertIn(f"{minister}怨望 +6", labels)
+            self.assertIn("履约展限 1月", labels)
             pending = court_events.get_pending(db) or {}
             self.assertEqual(str(pending.get("cooldown_key")), f"overdue_obligation:{agreement_id}")
 
@@ -388,6 +413,41 @@ class ResolveTests(unittest.TestCase):
             self.assertIn("按失期问责", str(task["evidence"]))
             goal = db.get_conversation_goal(goal_id) or {}
             self.assertEqual(str(goal.get("status")), "expired")
+
+    def test_overdue_call_favor_extends_with_favor_evidence(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            minister, _ = _two_ming(db)
+            memorials.back_official(db, state, minister, "comfort", day=day)
+            agreement_id, goal_id = _due_agreement(db, state, minister, "还恩难差")
+            before = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (minister,),
+            ).fetchone()
+
+            court_events.evaluate_decisions(db, state, day)
+            res = court_events.resolve_decision(db, state, "call_favor", day=day)
+
+            self.assertTrue(res["ok"], res)
+            labels = [str(e["label"]) for e in res["effects"]]
+            self.assertIn("履约展限 1月", labels)
+            row = db.conn.execute(
+                "SELECT status, due_turn, auto_review_json FROM negotiation_agreements WHERE id=?",
+                (agreement_id,),
+            ).fetchone()
+            self.assertEqual(str(row["status"]), "pending")
+            self.assertEqual(int(row["due_turn"]), int(state.turn) + 1)
+            self.assertIn("不得装作两清", str(row["auto_review_json"]))
+            after = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (minister,),
+            ).fetchone()
+            self.assertEqual(int(after["emp_trust"]), max(0, int(before["emp_trust"]) - 1))
+            self.assertEqual(int(after["grievance"]), int(before["grievance"]) + 6)
+            goal = db.get_conversation_goal(goal_id) or {}
+            self.assertEqual(str(goal.get("status")), "waiting_conditions")
+            self.assertIn("不得装作两清", str(goal.get("last_delta_json")))
+            self.assertIsNone(court_events.get_pending(db))
 
     def test_policy_aftershock_relief_softens_legacy(self):
         with TemporaryDirectory() as tmp:
