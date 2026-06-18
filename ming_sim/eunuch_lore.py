@@ -1927,6 +1927,16 @@ _CARE_MODE_ALIASES = {
     "嗓音": "body",
     "体态": "body",
     "仪态": "body",
+    "psychosexual": "psychosexual",
+    "心相": "psychosexual",
+    "癖性": "psychosexual",
+    "情欲": "psychosexual",
+    "贤者": "psychosexual",
+    "性无能": "psychosexual",
+    "禁欲": "psychosexual",
+    "冷淡": "psychosexual",
+    "畸恋": "psychosexual",
+    "变态": "psychosexual",
     "bao": "bao",
     "宝": "bao",
     "宝匣": "bao",
@@ -1954,6 +1964,8 @@ def normalize_care_mode(mode: str, hint: str = "") -> str:
         return "trauma"
     if re.search(r"嗓|体态|仪态|肩背|步子", raw):
         return "body"
+    if re.search(r"贤者|性无能|不能人道|心相|癖性|情欲|禁欲|冷淡|畸恋|变态|性欲", raw):
+        return "psychosexual"
     if re.search(r"宝|匣|钥匙|官库|全尸|供奉|封签", raw):
         return "bao"
     if re.search(r"洁净|衣褶|香囊|规训|束带", raw):
@@ -1963,6 +1975,8 @@ def normalize_care_mode(mode: str, hint: str = "") -> str:
 
 def _care_plan(mode: str, lore: Dict[str, object], *, adult: bool) -> Dict[str, object]:
     mode = normalize_care_mode(mode)
+    if mode == "psychosexual" and not adult:
+        mode = "fixation"
     if mode == "urinary":
         return {
             "mode": mode,
@@ -2017,6 +2031,16 @@ def _care_plan(mode: str, lore: Dict[str, object], *, adult: bool) -> Dict[str, 
             "process": fixation,
             "stage": "反复抚平衣褶，像把一口乱气也一并按住。",
         }
+    if mode == "psychosexual":
+        return {
+            "mode": mode,
+            "label": "心相安顿",
+            "cost": 2,
+            "trait": "心相安顿",
+            "delta": {"emp_trust": 2, "grievance": -4, "charm": 1, "luck": 1},
+            "process": str(lore.get("psychosexual_state") or "以宝匣供奉、规矩差遣与近侍分寸安顿心相"),
+            "stage": "他低头听完，急促称谢，肩背却比方才松了一点。",
+        }
     return {
         "mode": "general",
         "label": "内廷调养",
@@ -2032,6 +2056,8 @@ def _hard_service_plan(mode: str, lore: Dict[str, object], *, adult: bool) -> Di
     """Plan for the negative branch: the emperor orders an old wound ignored."""
 
     mode = normalize_care_mode(mode)
+    if mode == "psychosexual" and not adult:
+        mode = "fixation"
     if mode == "urinary":
         return {
             "mode": mode,
@@ -3257,6 +3283,16 @@ def assignment_risk_profile(
             care_trait="心癖安顿",
             mitigation="心癖已有安顿，偏执走样风险下降。",
             stage="反复抚平衣褶或摸索钥匙给自己定神。",
+        )
+    psychosexual = str(lore.get("psychosexual_state") or "").strip() if _is_adult_for_lore(db, clean_name) else ""
+    if psychosexual and re.search(r"近侍|规训|训诫|封匣|宝匣|把柄|钳制|诱供|安抚|密会|恩宠|贴身|掌钥匙", raw):
+        add(
+            -2,
+            "心相旧结影响近身把柄差事",
+            f"心相旧结：{psychosexual}，近身规训、封匣把柄或安抚诱供时容易逢迎过度或怨气走样。",
+            care_trait="心相安顿",
+            mitigation="心相已有安顿，近身把柄差事的走样风险下降。",
+            stage="听见规训把柄一类话，先低头急称奴婢该死。",
         )
 
     if strategy_marks["relay"] and any("尿路旧患" in risk for risk in risks):

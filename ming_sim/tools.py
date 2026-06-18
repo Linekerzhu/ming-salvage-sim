@@ -647,7 +647,7 @@ def build_minister_tools(character: Character, context: CourtContext):
     def propose_eunuch_care(target: str, mode: str = "general", note: str = "") -> str:
         """对白驱动净身旧患照料：皇帝提到给宦官治漏尿/尿闭/幻肢痛/验宝匣时调用。
 
-        只生成待确认意图，不立刻花内库、不改人物状态。mode 可填 urinary、trauma、body、bao、fixation、general。
+        只生成待确认意图，不立刻花内库、不改人物状态。mode 可填 urinary、trauma、body、bao、fixation、psychosexual、general。
         回奏必须说明要动太医/内库/司礼监旧档，并追问陛下是否准办。
         """
         nm = (target or "").strip()
@@ -682,7 +682,7 @@ def build_minister_tools(character: Character, context: CourtContext):
     def propose_eunuch_hard_service(target: str, mode: str = "general", note: str = "") -> str:
         """对白驱动硬派净身旧患：皇帝表示不调养、照常派差时调用。
 
-        只生成待确认意图，不立刻改人物状态。mode 可填 urinary、trauma、body、bao、fixation、general。
+        只生成待确认意图，不立刻改人物状态。mode 可填 urinary、trauma、body、bao、fixation、psychosexual、general。
         回奏必须说明取舍：省内库和差期，但怨望、失手和后续旧患风险会上升。
         """
         nm = (target or "").strip()

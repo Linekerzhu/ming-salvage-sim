@@ -512,6 +512,102 @@ class RecordCastrationTests(unittest.TestCase):
             ).fetchone()
             self.assertIsNotNone(memory)
 
+    def test_psychosexual_care_is_playable_and_mitigates_assignment_risk(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(db, name, forced=True, day=day)
+            db.conn.execute(
+                """
+                UPDATE characters
+                SET emp_trust=50, grievance=40, charm=54, luck=49, birth_year=?
+                WHERE name=?
+                """,
+                (int(state.year) - 30, name),
+            )
+            db.conn.execute(
+                """
+                UPDATE eunuch_lore
+                SET psychosexual_state='贤者模式式空心麻木，欲念退潮后只剩畏冷与厌烦'
+                WHERE name=?
+                """,
+                (name,),
+            )
+            db.conn.commit()
+
+            task = "命他近身掌钥匙封匣，规训小内侍，暗查宝匣把柄。"
+            before = el.assignment_risk_profile(db, name, task, domains=["inner"])
+            self.assertTrue(any("心相旧结" in item for item in before["risks"]))
+
+            state.metrics["内库"] = 50
+            db.save_state(state)
+            care = el.apply_eunuch_care(db, state, name, mode="贤者模式", note="准心相安顿，别让他近身差事走样。")
+
+            self.assertTrue(care["ok"])
+            self.assertEqual(care["mode"], "psychosexual")
+            self.assertEqual(care["label"], "心相安顿")
+            self.assertEqual(care["trait"], "心相安顿")
+            self.assertEqual(care["cost"], 2)
+            self.assertEqual(state.metrics["内库"], 48)
+            self.assertIn("贤者模式", care["process"])
+            row = db.conn.execute(
+                "SELECT emp_trust, grievance, charm, luck FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertEqual(int(row["emp_trust"]), 52)
+            self.assertEqual(int(row["grievance"]), 36)
+            self.assertEqual(int(row["charm"]), 55)
+            self.assertEqual(int(row["luck"]), 50)
+            self.assertIsNotNone(db.conn.execute(
+                "SELECT 1 FROM character_traits WHERE name=? AND trait='心相安顿'",
+                (name,),
+            ).fetchone())
+
+            after = el.assignment_risk_profile(db, name, task, domains=["inner"])
+            self.assertGreater(int(after["score_delta"]), int(before["score_delta"]))
+            self.assertTrue(any("心相已有安顿" in item for item in after["mitigations"]))
+
+    def test_psychosexual_hard_service_alias_raises_grievance(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(db, name, forced=True, day=day)
+            db.conn.execute(
+                """
+                UPDATE characters
+                SET emp_trust=50, grievance=30, charm=54, luck=50, birth_year=?
+                WHERE name=?
+                """,
+                (int(state.year) - 30, name),
+            )
+            db.conn.execute(
+                """
+                UPDATE eunuch_lore
+                SET psychosexual_state='性无能自知，转以权柄、服从与封匣仪式代偿'
+                WHERE name=?
+                """,
+                (name,),
+            )
+            db.conn.commit()
+
+            result = el.apply_eunuch_hard_service(db, state, name, mode="性无能", note="不许调养，照旧近身办差。")
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["mode"], "psychosexual")
+            self.assertEqual(result["label"], "心相硬压")
+            self.assertEqual(result["trait"], "旧患硬派")
+            row = db.conn.execute(
+                "SELECT emp_trust, grievance, charm FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertEqual(int(row["emp_trust"]), 49)
+            self.assertEqual(int(row["grievance"]), 36)
+            self.assertEqual(int(row["charm"]), 53)
+            self.assertIsNotNone(db.conn.execute(
+                "SELECT 1 FROM event_memories WHERE subject_id=? AND event_type='eunuch_hard_service'",
+                (name,),
+            ).fetchone())
+
     def test_complication_creates_help_goal_and_care_fulfills_it(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)
