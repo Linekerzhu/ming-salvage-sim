@@ -93,6 +93,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   const activeBriefBucket = briefBuckets.find((b) => b.kind === briefKind);
   const allBriefTotal = briefBuckets.reduce((sum, b) => sum + Number(b.total || 0), 0);
   const leadUrgency = briefLead ? briefUrgency(briefLead.urgency) : null;
+  const leadContract = briefLead ? briefContract(briefLead) : "";
   const chooseBriefKind = (kind: string) => {
     setBriefKind((current) => (current === kind ? "" : kind));
     setBriefLimit(5);
@@ -169,6 +170,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                     ))}
                   </span>
                 ) : null}
+                {leadContract && <span className="m-brief-contract">{leadContract}</span>}
                 {briefLead.stakes?.length ? (
                   <span className="m-brief-lead-stakes" aria-label="首要两难">
                     {briefLead.stakes.slice(0, 3).map((it, idx) => (
@@ -213,6 +215,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
           <ul className="m-brief-list">
             {briefCards.map((card, i) => {
               const urgency = briefUrgency(card.urgency);
+              const contract = briefContract(card);
               return (
                 <li key={`${card.kind}-${card.ref_id || i}`} className={`m-brief-card tone-${card.tone || "info"}`}>
                   <button className="m-brief-main" onClick={() => openBrief(card)}>
@@ -237,6 +240,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                           ))}
                         </span>
                       ) : null}
+                      {contract && <span className="m-brief-contract">{contract}</span>}
                       {card.stakes?.length ? (
                         <span className="m-brief-stakes" aria-label="奏对两难">
                           {card.stakes.slice(0, 3).map((it, idx) => (
@@ -447,6 +451,17 @@ function kindMark(kind: string): string {
   if (kind === "favor") return "恩";
   if (kind === "legacy") return "政";
   return "机";
+}
+
+function briefContract(card: PlaystyleBriefCard): string {
+  const motive = String(card.motive || "").trim();
+  const gain = String(card.gain || "").trim();
+  const cost = String(card.cost || "").trim();
+  const parts = [];
+  if (motive) parts.push(`来意：${motive}`);
+  if (gain) parts.push(`可得：${gain}`);
+  if (cost) parts.push(`代价：${cost}`);
+  return parts.join(" · ");
 }
 
 export function briefUrgency(value?: number): { label: string; level: "danger" | "warn" | "info"; score: number } | null {

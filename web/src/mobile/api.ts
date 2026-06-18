@@ -218,6 +218,9 @@ export type PlaystyleBriefCard = {
   actor?: string;
   target?: string;
   meta?: string;
+  motive?: string;
+  gain?: string;
+  cost?: string;
   ref_kind?: string;
   ref_id?: string;
   effects?: Array<{ kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string }>;

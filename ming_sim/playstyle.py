@@ -91,6 +91,25 @@ _AGENDA_HINTS = {
     "revenge": "旧怨将化为弹劾攻势，可顺势去一人，也可能纵成朝争。",
 }
 
+_CARD_MOTIVES = {
+    "decision": "请皇帝立判",
+    "trap": "御案积压催办",
+    "trap_remedy": "旧案求补救",
+    "directive_blocker": "旨意被人掣肘",
+    "directive_followup": "复命须追问",
+    "monthly_followup": "旧约求闭环",
+    "patronage": "举荐要担保",
+    "petition": "怨望求台阶",
+    "favor": "旧恩来还账",
+    "relationship": "人情求担保",
+    "legacy": "旧政求善后",
+    "army": "军镇来要价",
+    "faction": "派系求名分",
+    "agenda": "私图可交易",
+    "rivalry": "旧怨求边界",
+    "hook": "把柄可试探",
+}
+
 
 def _agenda_bargain_profile(kind: str, target: str = "") -> Dict[str, str]:
     """Readable stakes for a private agenda audience.
@@ -1874,9 +1893,31 @@ def _card(
     if effects:
         card["effects"] = effects
     stake_items = stakes if stakes is not None else _card_stakes(kind)
+    card.update(_card_contract(kind, stake_items))
     if stake_items:
         card["stakes"] = stake_items
     return card
+
+
+def _card_contract(kind: str, stakes: List[Dict[str, str]]) -> Dict[str, str]:
+    """One-line player contract: why this hook asks for attention and what it costs."""
+
+    motive = _CARD_MOTIVES.get(kind, "机变待问")
+    gain = ""
+    cost = ""
+    for item in stakes:
+        item_kind = str(item.get("kind") or "")
+        label = str(item.get("label") or "").strip()
+        if item_kind == "gain" and label and not gain:
+            gain = label
+        elif item_kind == "cost" and label and not cost:
+            cost = label
+    out = {"motive": motive}
+    if gain:
+        out["gain"] = gain
+    if cost:
+        out["cost"] = cost
+    return out
 
 
 def _decision_active_name(db: GameDB, ctx: object, keys: Tuple[str, ...]) -> str:
