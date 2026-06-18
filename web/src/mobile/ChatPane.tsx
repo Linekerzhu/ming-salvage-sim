@@ -59,6 +59,7 @@ export function ChatPane({
   suggestionLimit = 6,
   compact = false,
   chatContext,
+  arrivalNote = "",
 }: {
   name: string;
   speakerLabel: string;
@@ -71,6 +72,7 @@ export function ChatPane({
   suggestionLimit?: number;
   compact?: boolean;
   chatContext?: ChatContext;
+  arrivalNote?: string;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -210,9 +212,11 @@ export function ChatPane({
     ...suggestions.filter((s) => !leadSuggestions.some((lead) => lead.label === s.label || lead.text === s.text)),
   ].slice(0, Math.max(0, suggestionLimit));
   const transientMessages = messages.length === 0 ? localMessages : EMPTY_LOCAL_MESSAGES;
+  const showArrival = Boolean(arrivalNote && messages.length === 0);
 
   return (
     <div className={`m-chat${compact ? " is-compact" : ""}`}>
+      {showArrival && <div className="m-arrival">{arrivalNote}</div>}
       <div className="m-chat-scroll" ref={scrollRef}>
         {messages.length + transientMessages.length === 0 && !streaming && <p className="m-empty">尚未开问。</p>}
         {[...messages, ...transientMessages].map((m, i) => (

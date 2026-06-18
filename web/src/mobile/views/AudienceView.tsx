@@ -111,6 +111,15 @@ export function AudienceView({
             </div>
           </div>
           <div className="m-audience-acts">
+            {hasDossier && (
+              <button
+                className={`m-mini m-audience-dossier-act tone-${dossierTone}`}
+                onClick={() => setDossierOpen(true)}
+                aria-label={`打开奏对情报卷宗：${dossierMeta || dossierTitle}`}
+              >
+                案牍{dossierCount}
+              </button>
+            )}
             <button className="m-mini" onClick={() => openPerson(audience)} aria-label={`查看${audience}档案`}>查档</button>
             {isAttendantAudience ? (
               <button className="m-mini m-mini-complete" onClick={() => onAudienceChange("")}>回侍</button>
@@ -119,19 +128,6 @@ export function AudienceView({
             )}
           </div>
         </div>
-        {hasDossier && (
-          <button
-            type="button"
-            className={`m-audience-brief tone-${dossierTone}`}
-            onClick={() => setDossierOpen(true)}
-            aria-label={`打开奏对情报卷宗：${dossierMeta || dossierTitle}`}
-          >
-            <span>案</span>
-            <small>{dossierCount} 条</small>
-            <b>{dossierMeta ? `${dossierMeta}：${dossierTitle}` : dossierTitle}</b>
-            <em>卷</em>
-          </button>
-        )}
         <ChatPane
           key={isAttendantAudience ? `eunuch-lead:${audience}:${activeLead?.ref_id || ""}` : audience}
           name={audience}
@@ -140,7 +136,7 @@ export function AudienceView({
           onGo={go}
           onWorldChanged={refresh}
           onOpenPerson={openPerson}
-          localMessages={localIntro ? [{ role: "minister", content: localIntro }] : undefined}
+          arrivalNote={localIntro}
           leadSuggestions={leadSuggestions}
           suggestionLimit={4}
           compact

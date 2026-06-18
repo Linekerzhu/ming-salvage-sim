@@ -372,6 +372,43 @@ class TriggerTests(unittest.TestCase):
             pending = court_events.get_pending(db) or {}
             self.assertEqual(str(pending.get("cooldown_key")), f"overdue_obligation:{agreement_id}")
 
+    def test_mature_favor_can_be_called_in_as_service_debt(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            minister, _ = _two_ming(db)
+            favor = memorials.back_official(db, state, minister, "comfort", day=day)
+            self.assertTrue(favor["ok"], favor)
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=66, grievance=32, faction='东林' WHERE name=?",
+                (minister,),
+            )
+            state.turn += 2
+            db.save_state(state)
+
+            payload = court_events.evaluate_decisions(db, state, day + 60)
+
+            self.assertIsNotNone(payload)
+            self.assertEqual(payload["id"], "favor_debt_pressure")
+            self.assertIn("旧恩求偿", str(payload["title"]))
+            self.assertIn("旧恩", str(payload["narrative"]))
+            keys = {str(ch["key"]) for ch in payload["choices"]}
+            self.assertEqual(keys, {"call_service", "renew_grace", "public_account", "let_cool"})
+            call = next(ch for ch in payload["choices"] if ch["key"] == "call_service")
+            self.assertIn(f"履约账本：{minister}", [str(e["label"]) for e in call["effects"]])
+
+            res = court_events.resolve_decision(db, state, "call_service", day=day + 60)
+
+            self.assertTrue(res["ok"], res)
+            self.assertIn(f"履约账本：{minister}", [str(e["label"]) for e in res["effects"]])
+            goals = db.list_conversation_goals(
+                minister_name=minister,
+                statuses=["waiting_conditions"],
+            )
+            self.assertEqual(len(goals), 1)
+            self.assertIn("还恩差使", str(goals[0]["title"]))
+            self.assertTrue(any("两月内回奏" in str(t["description"]) for t in goals[0]["conditions"]))
+            self.assertIsNone(court_events.evaluate_decisions(db, state, day + 61))
+
     def test_tax_policy_legacy_triggers_aftershock_decision(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)

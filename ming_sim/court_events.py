@@ -1810,6 +1810,69 @@ def _private_distress(db: GameDB) -> Optional[Dict[str, object]]:
     return None
 
 
+def _favor_debt_pressure(db: GameDB) -> Optional[Dict[str, object]]:
+    """Imperial favors can mature into an active court dilemma."""
+
+    try:
+        state = db.load_state()
+    except Exception:
+        state = GameState()
+    turn = int(getattr(state, "turn", 0) or 0)
+    rows = db.conn.execute(
+        """
+        SELECT m.id, m.subject_id, m.title, m.cause, m.process, m.outcome,
+               m.importance, m.source_id, m.turn,
+               c.office, c.faction, c.ability, c.integrity, c.emp_trust, c.grievance
+        FROM event_memories m
+        JOIN characters c ON c.name=m.subject_id
+        WHERE m.subject_type='character'
+          AND m.event_type='imperial_favor'
+          AND (m.expires_turn IS NULL OR m.expires_turn>=?)
+          AND m.turn < ?
+          AND c.status='active'
+          AND c.power_id='ming'
+          AND c.office_type!='后宫'
+          AND c.name!='崇祯'
+        ORDER BY m.importance DESC, (?-m.turn) DESC, c.grievance DESC, c.emp_trust DESC
+        LIMIT 24
+        """,
+        (turn, turn, turn),
+    ).fetchall()
+    for row in rows:
+        memory_id = int(row["id"] or 0)
+        actor = str(row["subject_id"] or "").strip()
+        if memory_id <= 0 or not actor:
+            continue
+        source = str(row["source_id"] or "").strip()
+        if source and _active_goal_exists(db, source):
+            continue
+        if _active_goal_exists(db, f"favor_debt:{memory_id}:"):
+            continue
+        rivals = court.rivals_of(db, actor, limit=2, threshold=-18)
+        allies = court.allies_of(db, actor, limit=2, threshold=18)
+        age = max(1, turn - int(row["turn"] or turn))
+        return {
+            "memory_id": memory_id,
+            "cooldown_id": f"favor_debt_pressure:{memory_id}",
+            "actor": actor,
+            "office": str(row["office"] or ""),
+            "faction": str(row["faction"] or ""),
+            "ability": int(row["ability"] or 50),
+            "integrity": int(row["integrity"] or 50),
+            "trust": int(row["emp_trust"] or 0),
+            "grievance": int(row["grievance"] or 0),
+            "title": str(row["title"] or "旧恩未报"),
+            "cause": str(row["cause"] or ""),
+            "process": str(row["process"] or ""),
+            "outcome": str(row["outcome"] or ""),
+            "importance": int(row["importance"] or 3),
+            "age": age,
+            "allies": [str(item.get("name") or "") for item in allies if str(item.get("name") or "").strip()][:2],
+            "rivals": [str(item.get("name") or "") for item in rivals if str(item.get("name") or "").strip()][:2],
+        }
+    return None
+
+
 def _patronage_accountability(db: GameDB) -> Optional[Dict[str, object]]:
     """举主担保：把“推荐来的人”从免费人才池变成可追责的人情链。"""
 
@@ -1920,6 +1983,24 @@ def _private_memory(ctx: Dict[str, object], choice: str, outcome: str, sentiment
         "importance": 4,
         "tags": ["私请", "旧恩", str(ctx.get("agenda_kind") or "")],
         "source_id": f"{ctx.get('source_id') or 'private_distress'}:{choice}",
+        "summary": f"{actor}旧恩入账",
+    }
+
+
+def _favor_debt_memory(ctx: Dict[str, object], choice: str, outcome: str) -> Dict[str, object]:
+    actor = str(ctx.get("actor") or "")
+    return {
+        "subject_id": actor,
+        "event_type": "imperial_favor",
+        "title": f"旧恩未报：{choice}",
+        "cause": str(ctx.get("cause") or ctx.get("title") or "御前旧恩").strip(),
+        "process": f"御前再裁旧恩：{choice}",
+        "outcome": outcome,
+        "sentiment": "positive",
+        "importance": 4,
+        "tags": ["旧恩", "再恩", str(ctx.get("faction") or "")],
+        "source_kind": "court_decision",
+        "source_id": f"favor_debt:{choice}:{ctx.get('memory_id') or actor}",
         "summary": f"{actor}旧恩入账",
     }
 
@@ -2748,6 +2829,75 @@ def _defs() -> List[Dict[str, object]]:
                                       "opinion": _private_opinion_effect(c, -5, "御前斥私请"),
                                       "faction": _private_faction_effect(c, sat=-4, heat=4),
                                       "log": f"斥{c['actor']}私下求援，不许开私请之门。"}},
+            ],
+        },
+        {
+            "id": "favor_debt_pressure",
+            "priority": 23,
+            "cooldown": "ctx",
+            "when": _favor_debt_pressure,
+            "title": lambda c: f"旧恩求偿：{c['actor']}试探圣意",
+            "narrative": lambda c: (
+                f"{c['office']}{c['actor']}昔日受过天恩「{c['title']}」，至今已{c['age']}月。"
+                f"旧账上写着：{c.get('cause') or '皇帝曾替其保全名节或任事余地'}；"
+                f"{c.get('outcome') or '此恩不宜装作两清'}。"
+                + (
+                    f"同道人情牵着{ '、'.join(c['allies']) }，"
+                    if c.get("allies") else ""
+                )
+                + (
+                    f"政敌{ '、'.join(c['rivals']) }也等着看陛下是否偏私，"
+                    if c.get("rivals") else ""
+                )
+                + f"眼下信任{c['trust']}、怨望{c['grievance']}。"
+                  "是把天恩变成可验差使，还是继续施恩、公开点账，或任它冷下去？"
+            ),
+            "choices": [
+                {"key": "call_service", "label": lambda c: f"点明旧恩，命{c['actor']}领差还恩",
+                 "hint": "把软人情变成硬账本：任事上升，但本人会感到被拿捏",
+                 "effect": lambda c: {"shi": 2, "renshi": 2,
+                                      "char": [{"name": c["actor"], "emp_trust": -1, "grievance": 4}],
+                                      "faction": ({_meaningful_faction(c.get("faction")): {"satisfaction": -1, "heat": 1}}
+                                                  if _meaningful_faction(c.get("faction")) else {}),
+                                      "obligations": [{
+                                          "minister": c["actor"],
+                                          "title": f"还恩差使：{c['actor']}",
+                                          "target_text": f"{c['actor']}因旧恩「{c['title']}」未报，须领一件可验差使偿还天恩。",
+                                          "tasks": [
+                                              "两月内回奏一件可验证据、成效或名单，不得只称感恩。",
+                                              "说明此差会牵动何党羽、政敌或旧案，并列担责边界。",
+                                              "若借还恩之名求赏、护党或拖延，须自请处分。"
+                                          ],
+                                          "source": f"favor_debt:{c['memory_id']}:call_service",
+                                          "due_turns": 2,
+                                          "summary": f"御前点明旧恩，命{c['actor']}领差还恩。"
+                                      }],
+                                      "log": f"旧恩求偿：命{c['actor']}领差还恩。"}},
+                {"key": "renew_grace", "label": lambda c: f"再给{c['actor']}一层恩赏",
+                 "hint": "继续收心：本人更感恩，派系也安；但旧恩越滚越大，旁人会说皇帝偏护",
+                 "effect": lambda c: {"shi": -1, "renshi": 2,
+                                      "metrics": {"国库": -2},
+                                      "char": [{"name": c["actor"], "emp_trust": 7, "grievance": -6}],
+                                      "faction": ({_meaningful_faction(c.get("faction")): {"satisfaction": 2, "heat": -1}}
+                                                  if _meaningful_faction(c.get("faction")) else {}),
+                                      "memories": [_favor_debt_memory(
+                                          c,
+                                          "再加护持",
+                                          "陛下旧恩之外又给恩赏；此人更须以差使、人脉或证据报效，不得只求保全。"
+                                      )],
+                                      "log": f"旧恩求偿：再加恩赏于{c['actor']}，暂收其心。"}},
+                {"key": "public_account", "label": lambda c: f"当众点破旧恩，令{c['actor']}自重",
+                 "hint": "立规矩：君威上涨，旧恩不再是私相授受；本人和同党会觉得难堪",
+                 "effect": lambda c: {"shi": 2, "renshi": -1,
+                                      "char": [{"name": c["actor"], "emp_trust": -3, "grievance": 7}],
+                                      "faction": ({_meaningful_faction(c.get("faction")): {"satisfaction": -2, "heat": 2}}
+                                                  if _meaningful_faction(c.get("faction")) else {}),
+                                      "log": f"旧恩求偿：当众点破{c['actor']}旧恩，令其避嫌自重。"}},
+                {"key": "let_cool", "label": lambda c: "暂不点破，让旧恩冷下去",
+                 "hint": "不花政治成本：短期无事；但旧恩不兑现，会变成观望或反向求赏",
+                 "effect": lambda c: {"shi": -1, "renshi": -1,
+                                      "char": [{"name": c["actor"], "emp_trust": -2, "grievance": 3}],
+                                      "log": f"旧恩求偿：暂不点破{c['actor']}旧恩，任其冷却。"}},
             ],
         },
         {

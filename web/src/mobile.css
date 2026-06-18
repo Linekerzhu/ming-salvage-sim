@@ -601,6 +601,16 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-audience-context-act.tone-warn {
   color: #f3d391; background: rgba(181,134,58,.24); border-color: rgba(181,134,58,.52);
 }
+.m-audience-dossier-act {
+  color: #e8c77f; background: rgba(181,134,58,.14); border-color: rgba(181,134,58,.38);
+  font-weight: 900;
+}
+.m-audience-dossier-act.tone-danger {
+  color: #ffd7c8; background: rgba(158,52,41,.22); border-color: rgba(158,52,41,.5);
+}
+.m-audience-dossier-act.tone-warn {
+  color: #f1cf8c; background: rgba(181,134,58,.22); border-color: rgba(181,134,58,.5);
+}
 .m-audience-brief {
   flex: 0 0 auto; display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 7px;
   min-height: 32px; margin: 4px var(--pad) 0; padding: 4px 8px 4px 9px;
@@ -819,7 +829,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-mem-tip { margin: 8px 0 0; font-size: 0.76rem; color: var(--ink-soft); }
 
 /* ── 召对·奏对趋入/退下 ─────────────────────────────────────── */
-.m-arrival { flex: 0 0 auto; text-align: center; color: #c9b487; font-size: 0.78rem; padding: 6px var(--pad); background: rgba(0,0,0,.18); border-bottom: 1px solid var(--gold-line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-arrival {
+  flex: 0 0 auto; text-align: center; color: #bfae86; font-size: 0.72rem; line-height: 1.25;
+  padding: 4px var(--pad); background: rgba(0,0,0,.12); border-bottom: 1px solid rgba(181,134,58,.16);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .m-audience-dossier {
   flex: 0 0 auto; margin: 6px var(--pad) 0; padding: 0;
   border: 1px solid rgba(181,134,58,.28); border-left: 4px solid var(--gold-deep);
@@ -989,6 +1003,7 @@ details[open] > summary .m-disclosure-caret { color: var(--gold); background: rg
     margin-top: 3px;
     padding-top: 3px;
     padding-bottom: 3px;
+    display: none;
   }
   .m-audience-brief b {
     font-size: .7rem;
