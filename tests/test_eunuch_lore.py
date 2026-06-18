@@ -302,6 +302,9 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertTrue(any("嗓音" in item for item in profile["stage_cues"]))
             self.assertTrue(any("失神" in item for item in profile["stage_cues"]))
             self.assertTrue(any("钥匙" in item or "宝匣" in item for item in profile["stage_cues"]))
+            self.assertIn("低文化口径", profile["dispatch_traits"])
+            self.assertIn("胆怯", profile["dispatch_traits"])
+            self.assertTrue(any("门房值房" in item for item in profile["fit_rules"]))
 
             public = el.public_lore_payload(db, name)
             self.assertEqual(public["voice_profile"]["register"], profile["register"])
@@ -318,6 +321,43 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertIn("【动作】", brief)
             self.assertIn("【神态】", brief)
             self.assertIn("夹腰", brief)
+
+    def test_voice_profile_changes_dispatch_fit(self):
+        with TemporaryDirectory() as tmp:
+            db, _, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(db, name, forced=True, day=day)
+            db.conn.execute(
+                """
+                UPDATE characters
+                SET ability=40, wisdom=36, courage=78,
+                    style='识字不多的小火者，出身寒微，粗直急躁',
+                    office='净身房候验小火者'
+                WHERE name=?
+                """,
+                (name,),
+            )
+            db.conn.commit()
+
+            public_task = el.assignment_risk_profile(
+                db,
+                name,
+                "公开传旨并与外朝官员密谈账册，劝他们交出口供。",
+                domains=["public", "bureaucracy"],
+            )
+            inner_task = el.assignment_risk_profile(
+                db,
+                name,
+                "去门上值房打听谁递话、谁吩咐，跑腿传个近身风声。",
+                domains=["inner"],
+            )
+
+            self.assertIn("低文化口径", public_task["voice_fit"]["traits"])
+            self.assertIn("急性子", public_task["voice_fit"]["traits"])
+            self.assertTrue(any("口吻错配" in item for item in public_task["risks"]))
+            self.assertTrue(any("低文化口径不合" in item for item in public_task["voice_fit"]["notes"]))
+            self.assertTrue(any("急性子不合" in item for item in public_task["voice_fit"]["notes"]))
+            self.assertTrue(any("粗直口径贴近值房门上" in item for item in inner_task["voice_fit"]["notes"]))
 
     def test_underage_lore_suppresses_psychosexual_fixations_in_dialogue_brief(self):
         with TemporaryDirectory() as tmp:

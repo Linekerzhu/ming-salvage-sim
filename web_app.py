@@ -3301,7 +3301,7 @@ class WebGame:
         if not names:
             return False
         selection_words = (
-            r"(换|另|就|要|选|挑|用|取|这个|那个|这位|那位|先把|先叫|先传|先带|"
+            r"(换|另|就|要|选|挑|取|这个|那个|这位|那位|先把|先叫|先传|先带|"
             r"看看|过目|见见|试试|问问|人呢|在哪|进来|入殿)"
         )
         if re.search(selection_words, raw):
@@ -3975,6 +3975,9 @@ class WebGame:
 
     def _record_unknown_dialogue_mentions(self, minister_name: str, answer: str) -> None:
         names = self._extract_unknown_person_mentions(answer)
+        for name in self._extract_summoned_names_from_answer(answer):
+            if name not in names:
+                names.append(name)
         if not names:
             return
         stored = self._load_unknown_dialogue_mentions()
@@ -4019,6 +4022,8 @@ class WebGame:
             return rows[1][1] if len(rows) >= 2 else rows[-1][1]
         if re.search(r"(第三个|第三位)", raw):
             return rows[2][1] if len(rows) >= 3 else ""
+        if len(rows) == 1 and self._attendant_summon_followup_requested(raw):
+            return rows[0][1]
         if len(rows) == 1 and re.search(r"(他|此人|这人|那人|这个人|那个人|这位|那位|此辈).{0,12}(来|入|觐|见|聊|谈|奏对|问对|进殿|入殿)", raw):
             return rows[0][1]
         return ""
@@ -5790,27 +5795,6 @@ class WebGame:
         user_lore_effect = self._eunuch_lore_dialogue_effect(
             self._absorb_eunuch_lore_from_text(minister_name, text)
         )
-        dialogue_response = self._dialogue_action_response(minister_name, text)
-        if dialogue_response is not None:
-            answer = str(dialogue_response.get("answer") or "")
-            answer_lore_effect = self._eunuch_lore_dialogue_effect(
-                self._absorb_eunuch_lore_from_text(minister_name, answer)
-            )
-            self._record_chat_rollback_items(chat_turn_id, before_snapshot)
-            return self._chat_payload(
-                minister_name,
-                answer,
-                court_action=str(dialogue_response.get("court_action") or ""),
-                next_minister=str(dialogue_response.get("next_minister") or ""),
-                recruited_minister=str(dialogue_response.get("recruited_minister") or ""),
-                dialogue_effect=self._combine_dialogue_effects(
-                    dialogue_response.get("dialogue_effect") if isinstance(dialogue_response.get("dialogue_effect"), dict) else None,
-                    user_lore_effect,
-                    answer_lore_effect,
-                ),
-                dialogue_goal=dialogue_response.get("dialogue_goal") if isinstance(dialogue_response.get("dialogue_goal"), dict) else None,
-                chat_turn_id=chat_turn_id,
-            )
         deterministic_summon = self._attendant_summon_target(minister_name, text)
         if deterministic_summon:
             target_name = str(deterministic_summon.get("name") or "")
@@ -5831,6 +5815,27 @@ class WebGame:
                 next_minister=target_name,
                 registered_minister=target_name if generated else "",
                 dialogue_effect=self._combine_dialogue_effects(user_lore_effect, answer_lore_effect),
+                chat_turn_id=chat_turn_id,
+            )
+        dialogue_response = self._dialogue_action_response(minister_name, text)
+        if dialogue_response is not None:
+            answer = str(dialogue_response.get("answer") or "")
+            answer_lore_effect = self._eunuch_lore_dialogue_effect(
+                self._absorb_eunuch_lore_from_text(minister_name, answer)
+            )
+            self._record_chat_rollback_items(chat_turn_id, before_snapshot)
+            return self._chat_payload(
+                minister_name,
+                answer,
+                court_action=str(dialogue_response.get("court_action") or ""),
+                next_minister=str(dialogue_response.get("next_minister") or ""),
+                recruited_minister=str(dialogue_response.get("recruited_minister") or ""),
+                dialogue_effect=self._combine_dialogue_effects(
+                    dialogue_response.get("dialogue_effect") if isinstance(dialogue_response.get("dialogue_effect"), dict) else None,
+                    user_lore_effect,
+                    answer_lore_effect,
+                ),
+                dialogue_goal=dialogue_response.get("dialogue_goal") if isinstance(dialogue_response.get("dialogue_goal"), dict) else None,
                 chat_turn_id=chat_turn_id,
             )
         context_brief = self._chat_context_brief(minister_name, context)
@@ -5941,30 +5946,6 @@ class WebGame:
         user_lore_effect = self._eunuch_lore_dialogue_effect(
             self._absorb_eunuch_lore_from_text(minister_name, text)
         )
-        dialogue_response = self._dialogue_action_response(minister_name, text)
-        if dialogue_response is not None:
-            answer = str(dialogue_response.get("answer") or "")
-            yield {"type": "delta", "content": answer}
-            answer_lore_effect = self._eunuch_lore_dialogue_effect(
-                self._absorb_eunuch_lore_from_text(minister_name, answer)
-            )
-            self._record_chat_rollback_items(chat_turn_id, before_snapshot)
-            payload = self._chat_payload(
-                minister_name,
-                answer,
-                court_action=str(dialogue_response.get("court_action") or ""),
-                next_minister=str(dialogue_response.get("next_minister") or ""),
-                recruited_minister=str(dialogue_response.get("recruited_minister") or ""),
-                dialogue_effect=self._combine_dialogue_effects(
-                    dialogue_response.get("dialogue_effect") if isinstance(dialogue_response.get("dialogue_effect"), dict) else None,
-                    user_lore_effect,
-                    answer_lore_effect,
-                ),
-                dialogue_goal=dialogue_response.get("dialogue_goal") if isinstance(dialogue_response.get("dialogue_goal"), dict) else None,
-                chat_turn_id=chat_turn_id,
-            )
-            yield {"type": "done", "payload": payload}
-            return
         deterministic_summon = self._attendant_summon_target(minister_name, text)
         if deterministic_summon:
             target_name = str(deterministic_summon.get("name") or "")
@@ -5986,6 +5967,30 @@ class WebGame:
                 next_minister=target_name,
                 registered_minister=target_name if generated else "",
                 dialogue_effect=self._combine_dialogue_effects(user_lore_effect, answer_lore_effect),
+                chat_turn_id=chat_turn_id,
+            )
+            yield {"type": "done", "payload": payload}
+            return
+        dialogue_response = self._dialogue_action_response(minister_name, text)
+        if dialogue_response is not None:
+            answer = str(dialogue_response.get("answer") or "")
+            yield {"type": "delta", "content": answer}
+            answer_lore_effect = self._eunuch_lore_dialogue_effect(
+                self._absorb_eunuch_lore_from_text(minister_name, answer)
+            )
+            self._record_chat_rollback_items(chat_turn_id, before_snapshot)
+            payload = self._chat_payload(
+                minister_name,
+                answer,
+                court_action=str(dialogue_response.get("court_action") or ""),
+                next_minister=str(dialogue_response.get("next_minister") or ""),
+                recruited_minister=str(dialogue_response.get("recruited_minister") or ""),
+                dialogue_effect=self._combine_dialogue_effects(
+                    dialogue_response.get("dialogue_effect") if isinstance(dialogue_response.get("dialogue_effect"), dict) else None,
+                    user_lore_effect,
+                    answer_lore_effect,
+                ),
+                dialogue_goal=dialogue_response.get("dialogue_goal") if isinstance(dialogue_response.get("dialogue_goal"), dict) else None,
                 chat_turn_id=chat_turn_id,
             )
             yield {"type": "done", "payload": payload}

@@ -593,6 +593,27 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
         stage_cues.append("偶尔摸袖中钥匙或避谈宝匣")
     if not stage_cues:
         stage_cues.append("垂手贴身侍立，先看皇帝脸色再回话")
+    dispatch_traits: List[str] = []
+    fit_rules: List[str] = []
+    if low_culture:
+        dispatch_traits.append("低文化口径")
+        fit_rules.append("宜门房值房、跑腿打听、近身风声；忌公开传旨、长篇文书密谈。")
+    elif clerkly:
+        dispatch_traits.append("文书口径")
+        fit_rules.append("宜名册、封签、账页、钥匙、旧档核对；不宜越权断外朝大局。")
+    else:
+        dispatch_traits.append("近侍口径")
+        fit_rules.append("宜传话、请旨、近身观察；判断须留皇帝裁断。")
+    if courage >= 72:
+        dispatch_traits.append("急性子")
+        fit_rules.append("急差敢冲，安抚密谈易冒进。")
+    elif courage <= 42:
+        dispatch_traits.append("胆怯")
+        fit_rules.append("能报小心风声，高压对质易吞字露怯。")
+    if forced or bao == BAO_FORFEIT:
+        dispatch_traits.append("强阉心结")
+    elif servility >= 65:
+        dispatch_traits.append("奴性重")
     return {
         "register": register,
         "speech_rule": speech_rule,
@@ -601,6 +622,8 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
         "forbidden_moves": list(dict.fromkeys(forbidden_moves))[:5],
         "slang": list(dict.fromkeys(slang))[:6],
         "stage_cues": list(dict.fromkeys(stage_cues))[:5],
+        "dispatch_traits": list(dict.fromkeys(dispatch_traits))[:6],
+        "fit_rules": fit_rules[:4],
     }
 
 
@@ -2749,6 +2772,7 @@ def assignment_risk_profile(
     risks: List[str] = []
     mitigations: List[str] = []
     stage_cues: List[str] = []
+    voice_fit_notes: List[str] = []
     strategy_marks = _dispatch_strategy_marks(raw)
     strategy_score_adjustment = 0
 
@@ -2876,6 +2900,72 @@ def assignment_risk_profile(
             stage="接差时先叩首称不敢退，袖中手指却攥紧。",
         )
 
+    voice_profile = _voice_profile_from_lore(db, clean_name, lore)
+    register = str(voice_profile.get("register") or "")
+    voice_traits = [str(item).strip() for item in (voice_profile.get("dispatch_traits") or []) if str(item).strip()]
+    low_culture_voice = "低文化口径" in voice_traits
+    clerkly_voice = "文书口径" in voice_traits
+    impatient_voice = "急性子" in voice_traits
+    timid_voice = "胆怯" in voice_traits
+    public_or_document_task = bool(
+        re.search(r"公开|传旨|宣旨|面见|接见|密会|说合|谈判|劝谕|口供|问话|奏对|文书|拟旨|账册|册页|奏疏|邸报", raw)
+        or domain_set.intersection({"diplomacy", "public", "bureaucracy"})
+    )
+    close_quarter_task = bool(
+        re.search(r"门上|值房|廊下|跑腿|递话|打听|风声|净房|监房|内侍|小火者|谁递话|谁吩咐", raw)
+        or "inner" in domain_set
+    )
+    clerkly_task = bool(
+        re.search(r"名册|封签|账|账页|钥匙|文书|档|册|押签|旧例|核对|查档", raw)
+        or domain_set.intersection({"bureaucracy", "inner"})
+    )
+    if low_culture_voice and public_or_document_task:
+        voice_fit_notes.append("低文化口径不合公开传旨/文书密谈")
+        add(
+            -3,
+            "低文化口径不合公开传旨文书",
+            "口吻错配：此人说话粗短，公开传旨、文书密谈或长篇问答容易露怯走样。",
+            stage="说到册页大政先请罪，句子短而乱。",
+        )
+    if low_culture_voice and close_quarter_task:
+        voice_fit_notes.append("粗直口径贴近值房门上")
+        add(
+            2,
+            "粗直口径贴近值房门上",
+            stage="讲门上值房风声时反倒利落，三两句报出谁递话。",
+        )
+    if clerkly_voice and clerkly_task:
+        voice_fit_notes.append("文书口径适合封签账册")
+        add(
+            3,
+            "文书口径适合封签账册",
+            stage="先问封签、账页和钥匙经手，再按册回话。",
+        )
+    if clerkly_voice and re.search(r"边防|军机|民变|辽东|陕西|山西|关宁|外朝大局", raw):
+        voice_fit_notes.append("文书内臣不宜越权断外朝大局")
+        add(
+            -2,
+            "文书内臣不宜越权断外朝大局",
+            "口吻错配：他能核内廷册页，却不宜替外朝大局作断。",
+            stage="话到外朝大局便收住，只敢说按册所见。",
+        )
+    if impatient_voice and re.search(r"密谈|安抚|说合|劝|诱供|缓办|潜伏|盯梢|久候|套话", raw):
+        voice_fit_notes.append("急性子不合安抚潜伏")
+        add(
+            -2,
+            "急性子不合安抚潜伏",
+            "性子冒进：安抚、说合、潜伏或套话时容易抢半句坏事。",
+            stage="急着抢半句，随即叩首收住。",
+        )
+    if timid_voice and re.search(r"拿问|对质|诏狱|刑房|廷杖|硬查|当面对证|逼问", raw):
+        voice_fit_notes.append("胆怯口径不合高压对质")
+        add(
+            -2,
+            "胆怯口径不合高压对质",
+            "胆怯露怯：高压对质、拿问或刑房问话时容易吞字退缩。",
+            stage="先称奴婢该死，才挤出半句实话。",
+        )
+
     fixation = str(lore.get("private_fixation") or "").strip()
     if fixation and re.search(r"钥匙|封匣|账册|库|规矩|搜查|翻检|洁净|衣物", raw):
         add(
@@ -2928,6 +3018,11 @@ def assignment_risk_profile(
         "stage_cues": stage_cues[:4],
         "condition_line": str((public_lore_payload(db, clean_name) or {}).get("condition_line") or "")[:240],
         "dispatch_strategies": dispatch_strategies[:4],
+        "voice_fit": {
+            "register": register,
+            "traits": voice_traits[:6],
+            "notes": voice_fit_notes[:4],
+        },
     }
 
 

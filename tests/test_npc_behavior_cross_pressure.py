@@ -897,6 +897,54 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             self.assertIn(f"order_id={order_id}", brief)
             db.conn.close()
 
+    def test_secret_order_brief_surfaces_eunuch_voice_fit(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db = GameDB(str(Path(tmp) / "npc_secret_eunuch_voice_fit.db"), content=self.content)
+            db.seed_static_data()
+            state = GameState(
+                year=1628,
+                period=1,
+                turn=1,
+                metrics={"国库": 100, "内库": 50, "民心": 50, "皇威": 50},
+            )
+            actor = "王承恩"
+            el.record_castration(db, actor, forced=True, day=1)
+            db.conn.execute(
+                """
+                UPDATE characters
+                SET ability=40, wisdom=36, courage=78,
+                    style='识字不多的小火者，出身寒微，粗直急躁'
+                WHERE name=?
+                """,
+                (actor,),
+            )
+            order_id = db.create_secret_order(
+                state,
+                actor,
+                "公开传旨密谈账册",
+                "公开传旨并与外朝官员密谈账册，劝他们交出口供。",
+                ["传旨", "账册", "口供"],
+                deadline_months=1,
+            )
+
+            assessment = secret_order_actor_assessment(state, db, db.get_secret_order(order_id) or {})
+            brief = build_secret_order_brief(
+                self.content.characters[actor],
+                CourtContext(state=state, db=db),
+            )
+            tools = build_minister_tools(self.content.characters[actor], CourtContext(state=state, db=db))
+            report = next(tool for tool in tools if getattr(tool, "__name__", "") == "report_secret_order_progress")
+            progress_result = report(order_id, "奴婢已去传旨，却在账册密谈上露怯。")
+
+            self.assertIn("低文化口径", assessment["eunuch_lore_risk"]["voice_fit"]["traits"])
+            self.assertTrue(any("口吻错配" in item for item in assessment["risks"]))
+            self.assertIn("口吻适配", brief)
+            self.assertIn("低文化口径不合", brief)
+            self.assertIn("急性子不合", brief)
+            self.assertIn("口吻适配", progress_result)
+            self.assertIn("低文化口径不合", progress_result)
+            db.conn.close()
+
     def test_secret_order_tools_return_actor_behavior_brief(self) -> None:
         with TemporaryDirectory() as tmp:
             db = GameDB(str(Path(tmp) / "npc_secret_tool_brief.db"), content=self.content)

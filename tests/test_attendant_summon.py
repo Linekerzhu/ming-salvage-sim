@@ -751,6 +751,32 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_roleplayed_summon_answer_cache_recovers_short_where_is_he_followup(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                "——传内书堂生徒小禄子觐见。小禄子胆子小，该在殿外候着了。",
+            )
+            self.assertIn("小禄子", game._load_unknown_dialogue_mentions())
+
+            events = list(game.chat_stream(attendant, "人呢"))
+
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], "小禄子")
+            self.assertEqual(payload["registered_minister"], "小禄子")
+            self.assertIn("小禄子", game.content.characters)
+            self.assertFalse(game._load_unknown_dialogue_mentions())
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_quoted_waiting_complaint_materializes_unlisted_palace_nickname(self):
         game = web_app.WebGame(fresh=True)
         try:
@@ -961,6 +987,34 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(payload["next_minister"], unknown)
             self.assertEqual(payload["registered_minister"], unknown)
             self.assertFalse(game._load_pending_dialogue_action(attendant))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_pending_recruitment_confirmation_with_named_summon_pulls_named_person(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+            game._store_pending_dialogue_action(attendant, {"type": "recruitment", "kind": "eunuch"})
+
+            events = list(game.chat_stream(attendant, "好，带小禄子过来见我"))
+
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], "小禄子")
+            self.assertEqual(payload["registered_minister"], "小禄子")
+            self.assertEqual(str(payload.get("recruited_minister") or ""), "")
+            self.assertFalse(game._load_pending_dialogue_action(attendant))
+            row = game.db.conn.execute(
+                "SELECT office, office_type, summary FROM characters WHERE name=?",
+                ("小禄子",),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

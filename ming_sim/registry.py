@@ -704,6 +704,15 @@ def build_secret_order_brief(character: Character, context: CourtContext) -> str
         ] if isinstance(eunuch_risk, dict) else []
         if risks:
             lines.append(f"    （净身旧患：{'; '.join(risks[:2])}）")
+        voice_fit = eunuch_risk.get("voice_fit") if isinstance(eunuch_risk.get("voice_fit"), dict) else {}
+        voice_notes = [
+            str(item).strip()
+            for item in (voice_fit.get("notes") or [])[:3]
+            if str(item).strip()
+        ] if isinstance(voice_fit, dict) else []
+        if voice_notes:
+            register = str(voice_fit.get("register") or "内侍口吻").strip()
+            lines.append(f"    （口吻适配：{register}；{'；'.join(voice_notes[:3])}）")
         strategies = [
             item for item in (eunuch_risk.get("dispatch_strategies") if isinstance(eunuch_risk, dict) else []) or []
             if isinstance(item, dict) and str(item.get("key") or "").strip()
