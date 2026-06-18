@@ -1407,6 +1407,10 @@ def npc_dialogue_behavior_profile(
         _bias_add(bias, reasons, "caution", 1, "旧事/履约牵引：会接续前言并计算皇帝是否兑现")
         decision.append("涉及旧约或密令时先回奏进展，再看条件是否已经闭环")
         risk_tags.append("旧事牵引")
+    if re.search(r"旧恩|人情债|昔日|朕曾|朕已|朕替|朕保|保全|复用|买单|抚恤|两清|恩典|恩赏|天恩", str(text or "")):
+        _bias_add(bias, reasons, "support", 1, "旧恩/人情债牵引：皇帝曾保全或复用，难以装作两清")
+        decision.append("若皇帝点明旧恩，应承认受恩，但仍要说清能回报的承办边界")
+        risk_tags.append("旧恩牵引")
 
     deceptive_traits = {"阳奉阴违", "善观风色", "猜忌多疑", "结党营私", "贪墨成性", "沽名钓誉"}
     if deceptive_traits.intersection(trait_markers):

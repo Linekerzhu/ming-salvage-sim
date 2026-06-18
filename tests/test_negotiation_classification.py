@@ -127,6 +127,56 @@ class NegotiationClassificationTests(unittest.TestCase):
         self.assertEqual(evasive.factors["behavior_truth_mode"], "半真半假")
         self.assertIn("话术不实", evasive.factors["behavior_risk_tags"])
 
+    def test_imperial_favor_soft_hook_can_push_commitment_over_line(self) -> None:
+        answer = "臣愿为陛下密查阉党旧案，三日内先回奏线索。"
+        plain = evaluate_negotiation(
+            None,
+            "此事须你承办，替朕密查阉党旧案。",
+            answer,
+            "caution",
+            "",
+            behavior_profile={
+                "preferred_stance": "support",
+                "truth_mode": "直陈为主",
+                "risk_tags": [],
+                "imperial_favor_count": 1,
+            },
+        )
+        hooked = evaluate_negotiation(
+            None,
+            "朕昔日曾为你保全名节，此番人情债不可装作两清。此事须你承办，替朕密查阉党旧案。",
+            answer,
+            "caution",
+            "",
+            behavior_profile={
+                "preferred_stance": "support",
+                "truth_mode": "直陈为主",
+                "risk_tags": ["旧恩牵引"],
+                "imperial_favor_count": 1,
+            },
+        )
+
+        self.assertEqual(plain.handshake_status, "none")
+        self.assertFalse(plain.factors["soft_hook_invoked"])
+        self.assertEqual(hooked.handshake_status, HANDSHAKE_SEALED)
+        self.assertTrue(hooked.factors["soft_hook_invoked"])
+        self.assertLess(hooked.threshold, plain.threshold)
+        self.assertGreater(hooked.psychological_score, plain.psychological_score)
+
+    def test_imperial_favor_soft_hook_does_not_override_identity_conversion(self) -> None:
+        result = evaluate_negotiation(
+            None,
+            "朕昔日曾保全你，此番人情债不可两清，朕欲令卿净身入内廷。",
+            "臣愿替陛下办事，但此身家大事还请三思。",
+            "caution",
+            "",
+            behavior_profile={"imperial_favor_count": 2, "soft_hook_invoked": True},
+        )
+
+        self.assertEqual(result.action_kind, "castration")
+        self.assertFalse(result.factors["soft_hook_invoked"])
+        self.assertIn("净身未明确自愿", result.blockers)
+
 
 if __name__ == "__main__":
     unittest.main()

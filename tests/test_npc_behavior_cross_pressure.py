@@ -17,6 +17,7 @@ from ming_sim.db import GameDB
 from ming_sim.dialogue_audit import post_dialogue_audit, pre_dialogue_audit
 from ming_sim.dialogue_goals import record_dialogue_effects
 from ming_sim.issues import bind_content as bind_issues
+from ming_sim import memorials
 from ming_sim.models import Character, CourtContext, GameState, LLMConfig
 from ming_sim.registry import (
     bind_content as bind_registry,
@@ -292,6 +293,63 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 self.assertIn("政敌牵动", profile["risk_tags"])
                 self.assertIn("NPC对话行为档案", payload["behavior_brief"])
                 self.assertIn("魏忠贤余党", payload["behavior_source_excerpt"])
+            db.conn.close()
+
+    def test_imperial_favor_soft_hook_is_available_to_dialogue_audit(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db = GameDB(str(Path(tmp) / "npc_audit_favor.db"), content=self.content)
+            db.seed_static_data()
+            state = GameState(
+                year=1628,
+                period=1,
+                turn=1,
+                metrics={"国库": 100, "内库": 50, "民心": 50, "皇威": 50},
+            )
+            memorials.back_official(db, state, "韩爌", "comfort", day=1)
+            han = self.content.characters["韩爌"]
+
+            class FavorAudit(CapturingAudit):
+                def post(self, payload):
+                    self.payloads["post"] = payload
+                    return {
+                        "goal_decision": "new",
+                        "goal_relation": "distinct_goal",
+                        "action_kind": "court_commitment",
+                        "title": "承办密查旧案",
+                        "target_text": "韩爌承办密查阉党旧案",
+                        "stance": "support",
+                        "handshake_status": "none",
+                        "goal_status": "active",
+                        "score_delta": 10,
+                        "score_after": 65,
+                        "threshold": 70,
+                        "conditions": [],
+                        "blockers": ["心理量表未过线（65/70）"],
+                        "explicit_consent": True,
+                        "agreement_action": "none",
+                        "confidence": 92,
+                        "public_hint": "尚差一线。",
+                        "private_reason": "原本还需更多说服。",
+                    }
+
+            audit = FavorAudit()
+            user_text = "朕昔日曾保全你，不可装作两清。此番替朕密查阉党旧案，可愿承办？"
+            answer = "臣愿为陛下承办此事，三日内先回奏线索。"
+
+            post = post_dialogue_audit(db, state, han, user_text, answer, audit_client=audit)
+            payload = audit.payloads["post"]
+            profile = payload["behavior_profile"]
+
+            self.assertTrue(payload["favor_memories"])
+            self.assertGreaterEqual(profile["imperial_favor_count"], 1)
+            self.assertTrue(profile["soft_hook_invoked"])
+            self.assertIn("旧恩牵引", profile["risk_tags"])
+            self.assertIn("旧恩软钩子", payload["behavior_brief"])
+            self.assertEqual(post.handshake_status, "sealed")
+            self.assertEqual(post.goal_status, "sealed")
+            self.assertEqual(post.agreement_action, "create_pending")
+            self.assertGreaterEqual(post.score_after, post.threshold)
+            self.assertTrue(post.raw["soft_hook"]["applied"])
             db.conn.close()
 
     def test_semantic_refine_reuses_active_goal_instead_of_creating_duplicate(self) -> None:

@@ -30,6 +30,11 @@ INNER_IDENTITY_CONVERSION_RE = (
     r"(入内廷|入宫|司礼监|太监|宦官|内臣|近侍)"
 )
 CASTRATION_CONTEXT_RE = rf"{CASTRATION_CORE_RE}|{INNER_IDENTITY_CONVERSION_RE}"
+SOFT_HOOK_RE = (
+    r"旧恩|人情债|昔日|朕曾|朕已|朕替|朕保|保全|复用|买单|抚恤|"
+    r"两清|恩典|恩赏|天恩|旧情"
+)
+SOFT_HOOK_BLOCKED_ACTIONS = {"castration", "emancipation"}
 
 
 @dataclass(frozen=True)
@@ -306,6 +311,18 @@ def evaluate_negotiation(
         score -= 4
     if "旧事牵引" in risk_tags:
         score += 2
+    try:
+        imperial_favor_count = max(0, int(behavior_profile.get("imperial_favor_count") or 0))
+    except (TypeError, ValueError):
+        imperial_favor_count = 0
+    soft_hook_invoked = bool(
+        imperial_favor_count
+        and action_kind not in SOFT_HOOK_BLOCKED_ACTIONS
+        and (bool(behavior_profile.get("soft_hook_invoked")) or bool(re.search(SOFT_HOOK_RE, combined)))
+    )
+    if soft_hook_invoked:
+        threshold = max(1, threshold - 6)
+        score += min(14, 8 + imperial_favor_count * 2)
 
     explicit_commitment = bool(re.search(r"臣愿|奴婢愿|奴才愿|小的愿|愿为陛下|臣领旨|奴婢领旨|奴才领旨|遵旨|愿领|愿奉旨|愿听圣裁|敢不奉行|臣当奉行|臣愿担此|奴婢愿办|奴婢愿替陛下", answer))
     explicit_castration = bool(re.search(r"臣愿净身|愿净身|自愿净身|愿入内廷|愿入宫禁|愿为内臣|愿作内臣|愿受此身", answer))
@@ -396,6 +413,9 @@ def evaluate_negotiation(
             "behavior_preferred": preferred,
             "behavior_truth_mode": truth_mode,
             "behavior_risk_tags": "、".join(risk_tags[:6]),
+            "imperial_favor_count": imperial_favor_count,
+            "soft_hook_invoked": soft_hook_invoked,
+            "soft_hook_threshold_delta": -6 if soft_hook_invoked else 0,
             "has_conditions": bool(tasks),
             "explicit_commitment": explicit_commitment,
             "explicit_castration": explicit_castration,

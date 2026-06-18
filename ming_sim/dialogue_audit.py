@@ -9,6 +9,7 @@ not recorded at all.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -47,6 +48,14 @@ AGREEMENT_ACTIONS = {"none", "create_achieved", "create_pending", "bind_existing
 DIRECTIVE_ACTIONS = {"none", "propose_pending"}
 INSTANT_AGREEMENT_ACTIONS = {"castration", "emancipation", "personnel"}
 IDENTITY_CONVERSION_ACTIONS = {"castration", "emancipation"}
+SOFT_HOOK_RE = re.compile(
+    r"旧恩|人情债|昔日|朕曾|朕已|朕替|朕保|保全|复用|买单|抚恤|"
+    r"两清|恩典|恩赏|天恩|旧情"
+)
+COMMITMENT_RE = re.compile(
+    r"臣愿|奴婢愿|奴才愿|小的愿|愿为陛下|臣领旨|奴婢领旨|奴才领旨|"
+    r"遵旨|愿领|愿奉旨|敢不奉行|臣当奉行|臣愿担此|奴婢愿办|奴婢愿替陛下|愿承办|愿效力"
+)
 
 
 def _compact(text: object, limit: int = 240) -> str:
@@ -121,6 +130,21 @@ def _row_dicts(rows: object, *, limit: int = 8) -> List[Dict[str, object]]:
                     clean[str(key)] = value
             out.append(clean)
     return out
+
+
+def _soft_hook_invoked(text: object) -> bool:
+    return bool(SOFT_HOOK_RE.search(str(text or "")))
+
+
+def _answer_has_commitment(text: object) -> bool:
+    return bool(COMMITMENT_RE.search(str(text or "")))
+
+
+def _payload_favor_rows(payload: Dict[str, object]) -> List[Dict[str, object]]:
+    rows = payload.get("favor_memories")
+    if not isinstance(rows, list):
+        return []
+    return [row for row in rows if isinstance(row, dict)]
 
 
 def _goal_last_delta(goal: Dict[str, object]) -> Dict[str, object]:
@@ -448,6 +472,11 @@ def _context_payload(db: Any, state: GameState, character: Character, *, active_
         relation_network = npc_network_profile(character.name, db=db, limit=12)
     except Exception:
         relation_network = {}
+    try:
+        from ming_sim.court import favor_memories
+        favors = favor_memories(db, character.name, limit=3)
+    except Exception:
+        favors = []
     return {
         "turn": {"year": state.year, "period": state.period, "turn": state.turn},
         "npc": {
@@ -469,6 +498,7 @@ def _context_payload(db: Any, state: GameState, character: Character, *, active_
         "active_issues": _row_dicts([dict(row) for row in issues], limit=12),
         "network": network[:12] if isinstance(network, list) else [],
         "relation_network": relation_network if isinstance(relation_network, dict) else {},
+        "favor_memories": favors if isinstance(favors, list) else [],
     }
 
 
@@ -486,11 +516,15 @@ def _behavior_source_text(payload: Dict[str, object], extra_text: str = "") -> s
     for row in rows[-6:]:
         if isinstance(row, dict):
             parts.append(str(row.get("content") or "")[:360])
+    favor_rows = _payload_favor_rows(payload)
+    for row in favor_rows[:3]:
+        parts.extend(str(row.get(field) or "") for field in ("title", "cause", "outcome"))
     return "\n".join(part for part in parts if part.strip())
 
 
 def _attach_behavior_context(payload: Dict[str, object], character: Character, *, text: str = "") -> None:
     source_text = _behavior_source_text(payload, text)
+    favor_rows = _payload_favor_rows(payload)
     try:
         profile = npc_dialogue_behavior_profile(character.name, text=source_text, character=character)
     except Exception:
@@ -499,9 +533,113 @@ def _attach_behavior_context(payload: Dict[str, object], character: Character, *
         brief = npc_dialogue_behavior_brief(character.name, text=source_text, character=character)
     except Exception:
         brief = ""
-    payload["behavior_profile"] = profile if isinstance(profile, dict) else {}
-    payload["behavior_brief"] = str(brief or "")[:1400]
+    profile = dict(profile) if isinstance(profile, dict) else {}
+    if favor_rows:
+        profile["imperial_favor_count"] = len(favor_rows)
+        profile["imperial_favor_titles"] = [
+            str(row.get("title") or "旧恩").strip()[:80]
+            for row in favor_rows[:3]
+            if str(row.get("title") or "旧恩").strip()
+        ]
+        if _soft_hook_invoked(text):
+            profile["soft_hook_invoked"] = True
+            risk_tags = profile.get("risk_tags") if isinstance(profile.get("risk_tags"), list) else []
+            profile["risk_tags"] = list(dict.fromkeys([*risk_tags, "旧恩牵引"]))[:8]
+            profile["soft_hooks"] = [
+                {
+                    "title": str(row.get("title") or "旧恩")[:80],
+                    "outcome": str(row.get("outcome") or row.get("cause") or "")[:160],
+                }
+                for row in favor_rows[:3]
+            ]
+    brief_text = str(brief or "")
+    if favor_rows:
+        hook_line = "旧恩软钩子：" + "；".join(
+            f"{row.get('title') or '旧恩'}（{row.get('outcome') or row.get('cause') or '须记得皇帝昔日保全'}）"
+            for row in favor_rows[:2]
+        )
+        if _soft_hook_invoked(text):
+            hook_line += "；本轮皇帝已点明旧恩，不宜装作两清。"
+        brief_text = (brief_text + "\n- " + hook_line).strip()
+    payload["behavior_profile"] = profile
+    payload["behavior_brief"] = brief_text[:1600]
     payload["behavior_source_excerpt"] = source_text[:1200]
+
+
+def _score_only_blocker(text: str) -> bool:
+    return bool(re.search(r"心理量表|分数|未过线|离握手过远", str(text or "")))
+
+
+def _apply_soft_hook_post(
+    post: PostDialogueAudit,
+    payload: Dict[str, object],
+    *,
+    user_text: str,
+    answer: str,
+) -> PostDialogueAudit:
+    """Let a remembered imperial favor act as a small, explicit dialogue hook."""
+    if not post.valid or post.goal_decision not in {"new", "continue", "switch"}:
+        return post
+    if post.action_kind in {"general", *IDENTITY_CONVERSION_ACTIONS}:
+        return post
+    favor_rows = _payload_favor_rows(payload)
+    if not favor_rows or not _soft_hook_invoked(f"{user_text}\n{answer}"):
+        return post
+    if post.stance == "oppose":
+        return post
+    if not (post.explicit_consent or _answer_has_commitment(answer)):
+        return post
+
+    blockers = list(post.blockers)
+    if any("明确拒绝" in blocker for blocker in blockers):
+        return post
+    hard_blockers = [blocker for blocker in blockers if not _score_only_blocker(blocker)]
+    if hard_blockers:
+        return post
+
+    old_threshold = int(post.threshold or 70)
+    old_score = int(post.score_after or 0)
+    favor_count = len(favor_rows)
+    threshold_delta = -6
+    bonus = min(14, 8 + favor_count * 2)
+    post.threshold = max(1, old_threshold + threshold_delta)
+    post.score_after = _clamp_int(old_score + bonus, 0, 100, old_score)
+    post.score_delta = _clamp_int(int(post.score_delta or 0) + bonus, -100, 100, post.score_delta)
+    post.blockers = [blocker for blocker in blockers if not _score_only_blocker(blocker)]
+    hook_note = f"旧恩牵引：玩家点明旧恩，{favor_rows[0].get('title') or '旧恩'}成为本轮承诺软钩子。"
+    post.private_reason = _compact("; ".join(part for part in (post.private_reason, hook_note) if part), 400)
+    if not post.public_hint:
+        post.public_hint = "旧恩被点明，对方更难装作两清。"
+
+    failed_conditions = [item for item in post.conditions if item.get("status") == "failed"]
+    pending_conditions = [item for item in post.conditions if item.get("status") == "pending"]
+    if failed_conditions:
+        post.goal_status = "blocked"
+        post.handshake_status = "blocked"
+        post.agreement_action = "none"
+    elif pending_conditions:
+        post.goal_status = "waiting_conditions"
+        post.handshake_status = "conditional"
+        post.agreement_action = "none"
+    elif post.score_after >= post.threshold:
+        post.goal_status = "sealed"
+        post.handshake_status = "sealed"
+        if post.action_kind in INSTANT_AGREEMENT_ACTIONS:
+            post.agreement_action = "create_achieved" if post.agreement_action == "none" else post.agreement_action
+        elif post.agreement_action in {"none", "create_achieved"}:
+            post.agreement_action = "create_pending"
+
+    raw = dict(post.raw or {})
+    raw["soft_hook"] = {
+        "applied": True,
+        "favor_count": favor_count,
+        "score_bonus": bonus,
+        "threshold_delta": threshold_delta,
+        "old_score": old_score,
+        "old_threshold": old_threshold,
+    }
+    post.raw = raw
+    return post
 
 
 def _call_fake(audit_client: object, phase: str, payload: Dict[str, object]) -> Optional[Dict[str, object]]:
@@ -716,13 +854,15 @@ def post_dialogue_audit(
     try:
         fake = _call_fake(audit_client, "post", payload)
         if fake is not None:
-            return _normalize_post(fake, existing_threshold=existing_threshold)
+            post = _normalize_post(fake, existing_threshold=existing_threshold)
+            return _apply_soft_hook_post(post, payload, user_text=user_text, answer=answer)
         if llm_config is None:
             return _post_failure("未配置 LLM，奏对后审不落档。")
         agent = _agent(llm_config, agno_db, phase="post", prompt=POST_AUDIT_PROMPT, max_tokens=3000)
         raw = run_agent_text(agent, json.dumps(payload, ensure_ascii=False, sort_keys=False), tag="dialogue-audit/post")
         data = parse_agent_json(raw, "奏对后审")
-        return _normalize_post(data, existing_threshold=existing_threshold)
+        post = _normalize_post(data, existing_threshold=existing_threshold)
+        return _apply_soft_hook_post(post, payload, user_text=user_text, answer=answer)
     except Exception as exc:
         return _post_failure(str(exc))
 
