@@ -613,8 +613,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   color: #f1cf8c; background: rgba(181,134,58,.14); border: 1px solid rgba(181,134,58,.32);
   font-size: .72rem; font-weight: 800; white-space: nowrap; }
 
-.m-suggestions { flex: 0 0 auto; display: flex; gap: 8px; overflow-x: auto; padding: 8px var(--pad); -webkit-overflow-scrolling: touch; }
-.m-sugg { flex: 0 0 auto; background: rgba(200,162,74,.14); color: var(--gold); border: 1px solid var(--gold-line); border-radius: 999px; padding: 8px 14px; font-size: 0.84rem; white-space: nowrap; min-height: 40px; }
+.m-suggestions-panel { flex: 0 0 auto; margin: 0; padding: 5px var(--pad); border-top: 1px solid rgba(200,162,74,.16); background: rgba(20,15,9,.38); }
+.m-suggestions-summary { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 7px; cursor: pointer; list-style: none; min-height: 30px; }
+.m-suggestions-summary::-webkit-details-marker { display: none; }
+.m-suggestions-summary span { color: var(--gold); font-size: .76rem; font-weight: 900; }
+.m-suggestions-summary small { color: #9c8a64; font-size: .68rem; }
+.m-suggestions-summary b { min-width: 0; color: #bfae86; font-size: .72rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-suggestions { display: flex; gap: 8px; overflow-x: auto; padding: 7px 0 2px; -webkit-overflow-scrolling: touch; }
+.m-sugg { flex: 0 0 auto; background: rgba(200,162,74,.14); color: var(--gold); border: 1px solid var(--gold-line); border-radius: 999px; padding: 7px 13px; font-size: 0.82rem; white-space: nowrap; min-height: 36px; }
 .m-sugg:disabled { opacity: .5; }
 
 .m-chat-input {
@@ -981,16 +987,16 @@ details[open] > summary .m-disclosure-caret { color: var(--gold); background: rg
 .m-settle { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* ── 召对·驾驭高光（说动人=被庆祝）──────────────────────────── */
-.m-win { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; margin: 0 var(--pad) 4px; padding: 10px 14px;
+.m-win { flex: 0 0 auto; display: flex; align-items: center; gap: 9px; margin: 0 var(--pad) 3px; padding: 7px 11px;
   background: linear-gradient(110deg, rgba(200,162,74,.22), rgba(158,52,41,.18)); border: 1px solid var(--gold);
-  border-radius: 12px; box-shadow: 0 4px 18px rgba(0,0,0,.4);
+  border-radius: 10px; box-shadow: 0 3px 14px rgba(0,0,0,.35);
   animation: m-win-in .4s cubic-bezier(.2,1.2,.4,1), m-flash-out .5s ease 3.7s forwards; }
-.m-win-seal { flex: 0 0 auto; width: 38px; height: 38px; line-height: 38px; text-align: center; border-radius: 8px;
-  background: linear-gradient(180deg, var(--cinnabar), #7e271d); color: #fbe9c2; font-weight: 700; font-size: 1.3rem;
+.m-win-seal { flex: 0 0 auto; width: 30px; height: 30px; line-height: 30px; text-align: center; border-radius: 7px;
+  background: linear-gradient(180deg, var(--cinnabar), #7e271d); color: #fbe9c2; font-weight: 700; font-size: 1.05rem;
   box-shadow: 0 2px 8px rgba(0,0,0,.4); transform: rotate(-4deg); }
 .m-win-txt { display: flex; flex-direction: column; gap: 2px; }
-.m-win-title { font-weight: 700; color: var(--gold); font-size: 1rem; }
-.m-win-sub { color: #d9c79a; font-size: 0.82rem; }
+.m-win-title { font-weight: 700; color: var(--gold); font-size: .88rem; }
+.m-win-sub { color: #d9c79a; font-size: 0.74rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 78vw; }
 @keyframes m-win-in { from { opacity: 0; transform: scale(.9) translateY(8px); } to { opacity: 1; transform: none; } }
 
 /* 舆图转青：治理见效的省份一过性绿色脉冲（长期爽点的即时反馈）。 */

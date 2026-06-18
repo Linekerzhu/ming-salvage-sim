@@ -206,13 +206,21 @@ export function ChatPane({
       {notice && <div className="m-chat-notice">{notice}</div>}
 
       {visibleSuggestions.length > 0 && (
-        <div className="m-suggestions">
-          {visibleSuggestions.map((s, i) => (
-            <button key={i} className="m-sugg" disabled={busy} onClick={() => onSuggestion(s)}>
-              {s.label}
-            </button>
-          ))}
-        </div>
+        <details className="m-suggestions-panel">
+          <summary className="m-suggestions-summary">
+            <span>问法</span>
+            <small>{visibleSuggestions.length} 条</small>
+            <b>{visibleSuggestions.slice(0, 3).map((s) => s.label).join(" · ")}</b>
+            <span className="m-disclosure-caret">卷</span>
+          </summary>
+          <div className="m-suggestions">
+            {visibleSuggestions.map((s, i) => (
+              <button key={i} className="m-sugg" disabled={busy} onClick={() => onSuggestion(s)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </details>
       )}
 
       <div className="m-chat-input">
