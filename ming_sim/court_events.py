@@ -251,6 +251,18 @@ def _revive_goal_conditions(goal: Dict[str, object], note: str) -> List[Dict[str
     return conditions
 
 
+def _resource_goal_conditions(goal: Dict[str, object], note: str, support_tasks: object) -> List[Dict[str, object]]:
+    conditions = _revive_goal_conditions(goal, note)
+    existing = {str(item.get("description") or "").strip() for item in conditions if isinstance(item, dict)}
+    for raw in support_tasks if isinstance(support_tasks, list) else []:
+        text = str(raw or "").strip()[:180]
+        if not text or text in existing:
+            continue
+        conditions.append({"description": text, "status": "pending", "evidence": note})
+        existing.add(text)
+    return conditions
+
+
 def _fail_goal_conditions(goal: Dict[str, object], note: str) -> List[Dict[str, object]]:
     conditions: List[Dict[str, object]] = []
     for raw in goal.get("conditions") or []:
@@ -301,6 +313,29 @@ def _apply_goal_action(db: GameDB, state: GameState, item: Dict[str, object], da
         )
         db.record_log(state, evidence)
         return f"{minister}旧约展限{months}月"
+    if action == "resource":
+        months = max(1, min(12, _intish(item.get("months"), 1)))
+        evidence = note or f"御前裁断：拨助{minister}「{title}」，限{months}月内以新资源交账。"
+        due_turn = int(state.turn) + months
+        support_tasks = item.get("support_tasks") or []
+        db.update_conversation_goal(
+            goal_id,
+            state=state,
+            event_kind="goal_resource_support",
+            event_summary=evidence,
+            status="waiting_conditions",
+            condition_status="pending",
+            expires_turn=due_turn + 2,
+            conditions_json=_resource_goal_conditions(goal, evidence, support_tasks),
+            blockers_json=[],
+            last_delta_json={
+                **last_delta,
+                "due_turn": due_turn,
+                "support_tasks": support_tasks if isinstance(support_tasks, list) else [],
+            },
+        )
+        db.record_log(state, evidence)
+        return f"{minister}得助复办{months}月"
     if action == "fail":
         evidence = note or f"御前裁断：{minister}「{title}」旧约失期，按负约追责。"
         db.update_conversation_goal(
@@ -733,6 +768,8 @@ def _preview_effects(eff: Dict[str, object]) -> List[Dict[str, str]]:
         action = str(goal.get("action") or "")
         if action == "extend":
             add("goal", f"旧约展限 {int(goal.get('months') or 1)}月", "warn")
+        elif action == "resource":
+            add("goal", f"旧约拨助 {int(goal.get('months') or 1)}月", "good")
         elif action == "fail":
             add("goal", "旧约追责", "bad")
     for so in (eff.get("secret_orders") or []):
@@ -2215,6 +2252,25 @@ def _defs() -> List[Dict[str, object]]:
                                           "evidence": f"御前护持{c['minister']}，准其就「{c['title']}」补办两月，但仍须交账。"
                                       }],
                                       "log": f"旧约求裁：护持{c['minister']}，准其补办「{c['title']}」。"}},
+                {"key": "resource_support", "label": lambda c: f"拨给人手文书，令{c['minister']}带责复办",
+                 "hint": "给真实资源，也给真实责任：任事心回升、国库小耗；若再无结果，后续追责更重",
+                 "effect": lambda c: {"shi": 1, "renshi": 2,
+                                      "metrics": {"国库": -3},
+                                      "char": [{"name": c["minister"], "emp_trust": 4, "grievance": -4}],
+                                      "faction": ({_meaningful_faction(c.get("faction")): {"satisfaction": 1, "heat": 1}}
+                                                  if _meaningful_faction(c.get("faction")) else {}),
+                                      "goals": [{
+                                          "id": c["goal_id"],
+                                          "action": "resource",
+                                          "months": 1,
+                                          "support_tasks": [
+                                              "列明新拨人手、文书或银粮分别用在何处，不得转作私恩。",
+                                              "一月内回奏已用资源、可验证结果与剩余阻力。",
+                                              "若仍不能成事，须自请处分并交代谁从中掣肘。"
+                                          ],
+                                          "evidence": f"御前拨给{c['minister']}人手文书办理「{c['title']}」，但限一月交账；再误则重责。"
+                                      }],
+                                      "log": f"旧约求裁：拨助{c['minister']}复办「{c['title']}」，限一月交账。"}},
                 {"key": "demand_evidence", "label": lambda c: f"限{c['minister']}一月补证复命",
                  "hint": "折中：不立即治罪，但把证据压力写回旧约，后续仍会发酵",
                  "effect": lambda c: {"shi": 1, "renshi": 1,

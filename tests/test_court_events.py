@@ -435,7 +435,11 @@ class TriggerTests(unittest.TestCase):
             self.assertIn("旧约求裁", str(payload["title"]))
             self.assertIn("举主担保", str(payload["narrative"]))
             keys = {str(ch["key"]) for ch in payload["choices"]}
-            self.assertEqual(keys, {"protect", "demand_evidence", "public_rebuke", "self_prove"})
+            self.assertEqual(keys, {"protect", "resource_support", "demand_evidence", "public_rebuke", "self_prove"})
+            support = next(ch for ch in payload["choices"] if ch["key"] == "resource_support")
+            support_labels = [str(e["label"]) for e in support["effects"]]
+            self.assertIn("国库 -3", support_labels)
+            self.assertIn("旧约拨助 1月", support_labels)
             demand = next(ch for ch in payload["choices"] if ch["key"] == "demand_evidence")
             self.assertIn("旧约展限 1月", [str(e["label"]) for e in demand["effects"]])
             rebuke = next(ch for ch in payload["choices"] if ch["key"] == "public_rebuke")
@@ -642,6 +646,31 @@ class ResolveTests(unittest.TestCase):
             self.assertEqual(goal["conditions"][0]["status"], "pending")
             self.assertEqual(goal["blockers"], [])
             self.assertEqual(goal["last_delta"]["court_decision"]["action"], "extend")
+
+    def test_goal_help_resource_support_adds_accountability_conditions(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            minister, goal_id = _blocked_goal_case(db, state)
+            treasury_before = int(state.metrics.get("国库", 0))
+            court_events.evaluate_decisions(db, state, day)
+
+            res = court_events.resolve_decision(db, state, "resource_support", day=day)
+
+            self.assertTrue(res["ok"], res)
+            labels = [str(e["label"]) for e in res["effects"]]
+            self.assertIn("旧约拨助 1月", labels)
+            self.assertIn("国库 -3", labels)
+            self.assertIn(f"{minister}得助复办1月", str(res["effect"]))
+            self.assertEqual(int(state.metrics.get("国库", 0)), treasury_before - 3)
+            goal = db.get_conversation_goal(goal_id)
+            self.assertEqual(goal["status"], "waiting_conditions")
+            self.assertEqual(goal["condition_status"], "pending")
+            self.assertEqual(goal["blockers"], [])
+            descriptions = [str(item.get("description") or "") for item in goal["conditions"]]
+            self.assertTrue(any("新拨人手" in text for text in descriptions), descriptions)
+            self.assertTrue(any("已用资源" in text for text in descriptions), descriptions)
+            self.assertEqual(goal["last_delta"]["court_decision"]["action"], "resource")
+            self.assertIn("support_tasks", goal["last_delta"])
 
     def test_goal_help_public_rebuke_fails_goal(self):
         with TemporaryDirectory() as tmp:
