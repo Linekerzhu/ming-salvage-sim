@@ -6133,6 +6133,23 @@ class WebGame:
         for goal in active_goals[:1]:
             title = str(goal.get("title") or goal.get("target_text") or "未完奏对")[:32]
             status = str(goal.get("status") or "")
+            last_delta = goal.get("last_delta") if isinstance(goal.get("last_delta"), dict) else {}
+            court_decision = last_delta.get("court_decision") if isinstance(last_delta.get("court_decision"), dict) else {}
+            action_kind = str(goal.get("action_kind") or "").strip()
+            if action_kind == "eunuch_care" or str(court_decision.get("action") or "") == "eunuch_care":
+                add(
+                    "问旧患",
+                    f"朕听说你因「{title}」候见。别讲空话，照奴婢本分说清：是尿路旧患、惊创失神、宝匣心结，还是差遣会误事？",
+                )
+                add(
+                    "准调养",
+                    f"若确是「{title}」牵动差事，朕可准动内库调养或验宝安置。你要哪一种，需花多少银钱，能换回什么差遣成效？",
+                )
+                add(
+                    "照常派",
+                    f"若朕不许调养，仍让你照常办差，你说清会误在哪一步；能硬撑就领责，撑不住也要现在明白回奏。",
+                )
+                continue
             add(
                 "追旧约",
                 f"朕记得你在「{title}」上已有话头。今日不许泛泛而谈：进展、卡点、可验凭据各是什么？"

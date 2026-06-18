@@ -1569,6 +1569,51 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_eunuch_old_wound_goal_surfaces_decision_suggestions(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            goal_id = game.db.create_conversation_goal(
+                game.state,
+                minister_name=attendant,
+                action_kind="eunuch_care",
+                title=f"尿路调养求助：{attendant}",
+                target_text=f"{attendant}因净身旧患主动候见，须让皇帝裁断调养、验宝或照常派差。",
+                threshold=70,
+                score=35,
+                status="waiting_conditions",
+                condition_status="pending",
+                conditions=[
+                    {"description": f"召见{attendant}亲口说明尿路旧患。", "status": "pending"},
+                    {"description": "裁断调养、验宝安置或照常派差。", "status": "pending"},
+                ],
+                expires_turn=int(game.state.turn) + 2,
+                last_delta={
+                    "source": "eunuch_complication",
+                    "complication": "urinary",
+                    "court_decision": {"action": "eunuch_care", "mode": "urinary"},
+                },
+            )
+
+            suggestions = game.suggestions_for(game.content.characters[attendant])
+
+            self.assertTrue(goal_id)
+            labels = [str(item["label"]) for item in suggestions]
+            texts = " ".join(str(item["text"]) for item in suggestions)
+            self.assertIn("问旧患", labels)
+            self.assertIn("准调养", labels)
+            self.assertIn("照常派", labels)
+            self.assertNotIn("追旧约", labels)
+            self.assertIn("奴婢本分", texts)
+            self.assertIn("内库调养", texts)
+            self.assertIn("误事", texts)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_bao_care_merges_confirmation_scheme_into_lore(self):
         game = web_app.WebGame(fresh=True)
         try:

@@ -1169,6 +1169,40 @@ def _goal_followup_flavor(goal: Dict[str, object]) -> Dict[str, object]:
     court_decision = last_delta.get("court_decision") if isinstance(last_delta.get("court_decision"), dict) else {}
     source = str((last_delta or {}).get("source") or "")
     blob = f"{source}\n{title}\n{goal.get('target_text') or ''}"
+    action_kind = str(goal.get("action_kind") or "").strip()
+    if (
+        action_kind == "eunuch_care"
+        or str(court_decision.get("action") or "") == "eunuch_care"
+        or "eunuch_complication" in blob
+        or "净身旧患" in blob
+    ):
+        complication = str(
+            last_delta.get("complication")
+            or court_decision.get("mode")
+            or ""
+        ).strip()
+        label_map = {
+            "urinary": "尿路旧患",
+            "trauma": "惊创旧患",
+            "body": "体声失仪",
+            "bao": "宝匣心结",
+            "fixation": "心癖安顿",
+            "psychosexual": "心相安顿",
+        }
+        label = label_map.get(complication, "净身旧患")
+        return {
+            "reason_type": "eunuch_old_wound_followup",
+            "hook": (
+                f"{label}「{title}」仍候御前裁断：须亲口说清症状、宝匣或差遣误事风险，"
+                "再由皇帝在调养、验宝安置、照常派差之间取舍。"
+            ),
+            "priority": 9,
+            "risk_tags": ["净身旧患", label, "内库小耗", "差遣误事"],
+            "opening": (
+                "请安时先以奴婢口吻主动说明旧患，不要讲成阁臣奏疏；"
+                "明说可求内库调养、验宝安置，或请皇帝准许仍照常办差并承担误事风险。"
+            ),
+        }
     if str(court_decision.get("action") or "") == "resource" or isinstance(last_delta.get("support_tasks"), list):
         return {
             "reason_type": "resource_support_followup",
@@ -1286,6 +1320,11 @@ def _goal_followup_state(goal: Dict[str, object], state: GameState) -> Dict[str,
     last_delta = goal.get("last_delta") if isinstance(goal.get("last_delta"), dict) else {}
     pressure = last_delta.get("monthly_pressure") if isinstance(last_delta.get("monthly_pressure"), dict) else {}
     pressure_label = str(pressure.get("label") or "").strip()
+    court_decision = last_delta.get("court_decision") if isinstance(last_delta.get("court_decision"), dict) else {}
+    action_kind = str(goal.get("action_kind") or "").strip()
+    decision_options: List[str] = []
+    if action_kind == "eunuch_care" or str(court_decision.get("action") or "") == "eunuch_care":
+        decision_options = ["内库调养", "验宝安置", "照常派差"]
     return {
         "title": title[:80],
         "status": status,
@@ -1298,6 +1337,7 @@ def _goal_followup_state(goal: Dict[str, object], state: GameState) -> Dict[str,
         "pending_conditions": pending_conditions[:3],
         "blockers": blockers[:3],
         "pressure_label": pressure_label[:60],
+        "decision_options": decision_options,
     }
 
 

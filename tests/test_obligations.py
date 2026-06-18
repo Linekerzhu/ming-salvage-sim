@@ -4,7 +4,12 @@ from tempfile import TemporaryDirectory
 
 from ming_sim import timeflow
 from ming_sim.content import GameContent
-from ming_sim.context import bind_content as bind_context, npc_dialogue_behavior_brief, npc_dialogue_behavior_profile
+from ming_sim.context import (
+    bind_content as bind_context,
+    build_npc_monthly_followups,
+    npc_dialogue_behavior_brief,
+    npc_dialogue_behavior_profile,
+)
 from ming_sim.db import GameDB
 from ming_sim.obligations import obligation_pressure_tick
 from ming_sim.upgrade_schema import DAYS_PER_MONTH, KV_CURRENT_DAY, kv_set_int
@@ -208,6 +213,45 @@ class ObligationPressureTests(unittest.TestCase):
             self.assertIn("近期旧约压力", brief)
             self.assertIn("举主担保", brief)
             self.assertIn("先主动说明旧约为何未了", brief)
+            db.conn.close()
+
+    def test_eunuch_old_wound_goal_becomes_active_help_request(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            name = "王承恩"
+            goal_id = db.create_conversation_goal(
+                state,
+                minister_name=name,
+                action_kind="eunuch_care",
+                title=f"尿路调养求助：{name}",
+                target_text=f"{name}因净身旧患主动候见，须让皇帝裁断调养、验宝或照常派差。",
+                threshold=70,
+                score=35,
+                status="waiting_conditions",
+                condition_status="pending",
+                conditions=[
+                    {"description": f"召见{name}亲口说明尿路旧患。", "status": "pending"},
+                    {"description": "裁断调养、验宝安置或照常派差。", "status": "pending"},
+                ],
+                expires_turn=int(state.turn) + 2,
+                last_delta={
+                    "source": "eunuch_complication",
+                    "complication": "urinary",
+                    "court_decision": {"action": "eunuch_care", "mode": "urinary"},
+                },
+            )
+
+            followups = build_npc_monthly_followups(db, state, limit=8)
+
+            self.assertTrue(goal_id)
+            row = next(item for item in followups if item["minister_name"] == name)
+            self.assertIn("eunuch_old_wound_followup", row["reason_types"])
+            self.assertIn("尿路旧患", " ".join(str(tag) for tag in row["risk_tags"]))
+            self.assertIn("奴婢口吻", str(row["suggested_opening"]))
+            self.assertIn("内库调养", str(row["suggested_opening"]))
+            self.assertIn("照常办差", str(row["suggested_opening"]))
+            state_payloads = row["obligation_states"]
+            self.assertTrue(any("内库调养" in str(item.get("decision_options")) for item in state_payloads))
             db.conn.close()
 
     def test_month_rollover_reports_obligation_pressure(self) -> None:
