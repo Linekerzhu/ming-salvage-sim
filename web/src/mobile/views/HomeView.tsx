@@ -249,7 +249,19 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                     </span>
                   </button>
                   <div className="m-brief-actions">
-                    {card.kind === "rivalry" && card.actor && card.target ? (
+                    {card.kind === "decision" ? (
+                      <>
+                        <button className="m-brief-action primary" onClick={() => go("desk")}>去裁断›</button>
+                        {canSummon(card.actor, activeMinisters) && (
+                          <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, card.target || "")}>召当事人</button>
+                        )}
+                        {canSummon(card.target, activeMinisters) && (
+                          <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.target!, card.actor || "")}>召牵涉人</button>
+                        )}
+                        {card.actor && <button className="m-brief-action" onClick={() => inspect(card.actor)}>查{shortName(card.actor)}</button>}
+                        {card.target && <button className="m-brief-action" onClick={() => inspect(card.target)}>查{shortName(card.target)}</button>}
+                      </>
+                    ) : card.kind === "rivalry" && card.actor && card.target ? (
                       <>
                         <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, card.target)}>召{shortName(card.actor)}</button>
                         <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.target!, card.actor)}>召{shortName(card.target)}</button>
@@ -526,6 +538,9 @@ function audienceOpeningFromBrief(card: PlaystyleBriefCard, actor = card.actor |
   const speaker = actor || "此人";
   const counterpart = target || "那人";
   const topic = briefTopic(card.title);
+  if (card.kind === "decision") {
+    return `${speaker}趋入御前，知道这不是寻常问安，而是有一桩请陛下裁断的事压在案上。若陛下先问人、不急下判，愿把自己的利害、证据和怕处说清。`;
+  }
   if (card.kind === "petition") {
     return `${speaker}趋入叩首，先低声说明：今日不是空谈国事，而是带着一桩难处求陛下裁断；若陛下肯听，愿拿差使和证据来换。`;
   }
@@ -686,6 +701,13 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
       { label: "准其护持", text: `朕可以暂护你一程，但不是白给。你先说清楚：朕应你会得罪谁，你能拿什么差使来换？`, prefix: true },
       { label: "逼其交账", text: `要朕给台阶，就先交账：人证、账目、把柄或可验差使，你今日能拿出哪一样？`, prefix: true },
       { label: "暂不护持", text: `朕今日未必应你。若朕暂不护持，你还愿不愿替朝廷办事？你的底线是什么？`, prefix: true },
+    ];
+  }
+  if (card.kind === "decision") {
+    return [
+      { label: "先听己见", text: `朕还未裁断。你先说：这桩事若按你的说法办，谁得利、谁受损、谁来担责？`, prefix: true },
+      { label: "问证据", text: `不要只讲情理。你能拿出什么人证、账册、旧约或差使成效，证明朕该信你？`, prefix: true },
+      { label: "问反噬", text: `若朕照你所请裁断，朝中谁会反扑，几日内会出什么后患？你拿什么替朕压住？`, prefix: true },
     ];
   }
   if (card.kind === "favor") {

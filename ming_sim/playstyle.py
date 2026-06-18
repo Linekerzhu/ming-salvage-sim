@@ -1561,29 +1561,92 @@ def _card(
     return card
 
 
+def _decision_active_name(db: GameDB, ctx: object, keys: Tuple[str, ...]) -> str:
+    if not isinstance(ctx, dict):
+        return ""
+    for key in keys:
+        raw = ctx.get(key)
+        candidates: List[object]
+        if isinstance(raw, list):
+            candidates = raw
+        else:
+            candidates = [raw]
+        for item in candidates:
+            if isinstance(item, dict):
+                value = item.get("name") or item.get("minister") or item.get("actor")
+            else:
+                value = item
+            row = _active_character_row(db, str(value or ""))
+            if row is not None:
+                return str(row["name"])
+    return ""
+
+
+def _decision_actor_target(db: GameDB, pending: object) -> Tuple[str, str]:
+    if not isinstance(pending, dict):
+        return "", ""
+    ctx = pending.get("ctx") or {}
+    pairs: Tuple[Tuple[Tuple[str, ...], Tuple[str, ...]], ...] = (
+        (("petitioner",), ("rival",)),
+        (("minister",), ("target", "rivals", "allies")),
+        (("actor",), ("target",)),
+        (("sponsor",), ("candidate",)),
+        (("a",), ("b",)),
+        (("eunuch",), ("target",)),
+        (("victim",), ("accuser",)),
+        (("commander",), ("supervisor_cand",)),
+        (("target",), ("eunuch",)),
+        (("candidates",), ("deceased",)),
+    )
+    for actor_keys, target_keys in pairs:
+        actor = _decision_active_name(db, ctx, actor_keys)
+        if not actor:
+            continue
+        target = _decision_active_name(db, ctx, target_keys)
+        if target == actor:
+            target = ""
+        return actor, target
+    return "", ""
+
+
 def _pending_decision_cards(db: GameDB, cards: List[BriefCard]) -> None:
     try:
-        from ming_sim.court_events import pending_payload
+        from ming_sim.court_events import get_pending, pending_payload
 
         decision = pending_payload(db)
+        pending = get_pending(db)
     except Exception:
         decision = None
+        pending = None
     if not decision:
         return
     choices = decision.get("choices") or []
+    actor, target = _decision_actor_target(db, pending)
+    narrative = str(decision.get("narrative") or "")
+    people = "；".join(item for item in (
+        f"当事：{actor}" if actor else "",
+        f"牵涉：{target}" if target else "",
+    ) if item)
+    effects = _decision_stakes(choices)
+    if target:
+        effects.insert(0, {"kind": "target", "label": f"牵涉：{target}", "tone": "neutral"})
+    if actor:
+        effects.insert(0, {"kind": "actor", "label": f"当事：{actor}", "tone": "neutral"})
     cards.append(
         _card(
             kind="decision",
             title=f"请陛下裁断：{decision.get('title')}",
-            detail=str(decision.get("narrative") or "")[:90],
+            detail=(f"{people}。{narrative}" if people else narrative)[:110],
             urgency=100,
             tone="danger",
             cta="去裁断",
             tab=_TAB_DESK,
+            actor=actor,
+            target=target,
             meta=f"{len(choices)}路待决" if choices else "待决",
             ref_kind="decision",
             ref_id=str(decision.get("id") or ""),
-            effects=_decision_stakes(choices),
+            effects=effects,
         )
     )
 

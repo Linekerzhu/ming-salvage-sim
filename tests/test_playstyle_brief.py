@@ -182,6 +182,10 @@ class PlaystyleBriefTests(unittest.TestCase):
             labels = [str(e["label"]) for e in decision["effects"]]
             self.assertEqual(decision["tab"], "desk")
             self.assertEqual(decision["meta"], "4路待决")
+            self.assertEqual(decision["actor"], a)
+            self.assertEqual(decision["target"], b)
+            self.assertIn(f"当事：{a}", labels)
+            self.assertIn(f"牵涉：{b}", labels)
             self.assertIn("牵动君威", labels)
             self.assertIn("牵动任事", labels)
             self.assertIn("信怨变化", labels)
