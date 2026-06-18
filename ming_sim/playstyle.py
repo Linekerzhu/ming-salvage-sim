@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from ming_sim.db import GameDB
 from ming_sim.models import GameState
@@ -303,6 +303,153 @@ def briefing_cards(db: GameDB, state: Optional[GameState] = None, *, limit: int 
     """Collect and rank actionable hooks from existing simulation tables."""
 
     return _select_brief_cards(_briefing_candidates(db, state), limit)
+
+
+def audience_summon_hints_payload(db: GameDB, state: Optional[GameState] = None) -> Dict[str, object]:
+    """Return compact summon-sheet pressure hints and the best dialogue lead per NPC.
+
+    The summon drawer is a player-facing routing surface, not a new simulation
+    system.  It should reuse the same strategic-brief radar as the home screen
+    so long-running policy scars, faction pressure, old promises, and active
+    dilemmas point to the same people everywhere.
+    """
+
+    if not _table_exists(db, "characters"):
+        return {"hints": {}}
+    rows = db.conn.execute(
+        """
+        SELECT name, office_type, faction, power_id, status,
+               ability, integrity, emp_trust, grievance
+        FROM characters
+        WHERE status = 'active'
+        """
+    ).fetchall()
+    active_rows: Dict[str, sqlite3.Row] = {}
+    hints: Dict[str, Dict[str, Any]] = {}
+
+    def ensure(name: str) -> Dict[str, Any]:
+        item = hints.setdefault(name, {"tags": [], "pressure_score": 0})
+        if "tags" not in item or not isinstance(item.get("tags"), list):
+            item["tags"] = []
+        item["pressure_score"] = int(item.get("pressure_score") or 0)
+        return item
+
+    def add_tag(name: str, label: str, tone: str, pressure: int = 0, *, front: bool = False) -> None:
+        clean = str(name or "").strip()
+        text = _short_text(str(label or "").strip(), 8)
+        if not clean or not text or clean not in active_rows:
+            return
+        item = ensure(clean)
+        tags = item["tags"]
+        if not isinstance(tags, list):
+            tags = []
+            item["tags"] = tags
+        if any(str(tag.get("label") or "") == text for tag in tags if isinstance(tag, dict)):
+            return
+        tag = {"label": text, "tone": tone}
+        if front:
+            tags.insert(0, tag)
+        else:
+            tags.append(tag)
+        item["pressure_score"] = int(item.get("pressure_score") or 0) + int(pressure or 0)
+
+    def set_lead(name: str, card: BriefCard) -> None:
+        clean = str(name or "").strip()
+        if not clean or clean not in active_rows:
+            return
+        item = ensure(clean)
+        current = item.get("lead")
+        if isinstance(current, dict) and _brief_urgency(current) >= _brief_urgency(card):
+            return
+        item["lead"] = card
+
+    for row in rows:
+        name = str(row["name"] or "").strip()
+        if not name:
+            continue
+        power_id = str(row["power_id"] or "ming").strip() or "ming"
+        if power_id != "ming":
+            continue
+        if str(row["office_type"] or "").strip() == "后宫":
+            continue
+        active_rows[name] = row
+
+    for card in _briefing_candidates(db, state):
+        if str(card.get("tab") or "") != _TAB_AUDIENCE:
+            continue
+        actor = str(card.get("actor") or "").strip()
+        if actor not in active_rows:
+            continue
+        kind = str(card.get("kind") or "").strip()
+        tone_raw = str(card.get("tone") or "")
+        tag_tone = "bad" if tone_raw == "danger" else "warn" if tone_raw == "warn" else "neutral"
+        urgency = _brief_urgency(card)
+        meta = str(card.get("meta") or "").strip()
+        if kind == "legacy":
+            label = f"余波{meta[:3]}" if meta else "余波"
+            pressure = 24 + urgency // 4
+        elif kind == "decision":
+            label = "待裁"
+            pressure = 32 + urgency // 4
+        elif kind == "monthly_followup":
+            label = meta or "候见"
+            pressure = 18 + urgency // 5
+        else:
+            label = _KIND_LABELS.get(kind, "机变")
+            pressure = 12 + urgency // 6
+        add_tag(actor, label, tag_tone, pressure, front=True)
+        set_lead(actor, card)
+
+    def row_int(row: sqlite3.Row, key: str, default: int) -> int:
+        try:
+            return int(row[key] if row[key] is not None else default)
+        except Exception:
+            return default
+
+    for name, row in active_rows.items():
+        grievance = row_int(row, "grievance", 20)
+        trust = row_int(row, "emp_trust", 55)
+        ability = row_int(row, "ability", 50)
+        integrity = row_int(row, "integrity", 50)
+        faction = str(row["faction"] or "").strip()
+
+        if grievance >= 72:
+            add_tag(name, f"怨{grievance}", "bad", 28)
+        elif grievance >= 55:
+            add_tag(name, f"怨{grievance}", "warn", 14)
+        if trust <= 28:
+            add_tag(name, f"信{trust}", "bad", 28)
+        elif trust <= 42:
+            add_tag(name, f"信{trust}", "warn", 14)
+        elif trust >= 72:
+            add_tag(name, f"信{trust}", "good", 0)
+        if ability >= 78:
+            add_tag(name, f"才{ability}", "good", 0)
+        if integrity <= 32:
+            add_tag(name, f"廉{integrity}", "bad", 10)
+        elif integrity >= 78:
+            add_tag(name, f"廉{integrity}", "good", 0)
+        if faction and faction not in {"无", "中立", "皇党"}:
+            add_tag(name, faction[:6], "warn", 4)
+
+    cleaned: Dict[str, Dict[str, Any]] = {}
+    for name, item in hints.items():
+        tags = [
+            tag for tag in (item.get("tags") or [])
+            if isinstance(tag, dict) and str(tag.get("label") or "").strip()
+        ][:5]
+        pressure = int(item.get("pressure_score") or 0)
+        lead = item.get("lead")
+        out: Dict[str, Any] = {}
+        if tags:
+            out["tags"] = tags
+        if pressure:
+            out["pressure_score"] = pressure
+        if isinstance(lead, dict):
+            out["lead"] = lead
+        if out:
+            cleaned[name] = out
+    return {"hints": cleaned}
 
 
 def petition_chat_context_brief(

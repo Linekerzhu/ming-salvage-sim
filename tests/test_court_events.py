@@ -7,7 +7,12 @@ from tempfile import TemporaryDirectory
 
 from ming_sim import court, court_events, memorials, timeflow
 from ming_sim.db import GameDB
-from ming_sim.playstyle import briefing_payload, favor_chat_context_brief, record_decision_testimony
+from ming_sim.playstyle import (
+    audience_summon_hints_payload,
+    briefing_payload,
+    favor_chat_context_brief,
+    record_decision_testimony,
+)
 from ming_sim.upgrade_schema import KV_SHI, kv_int
 
 
@@ -433,6 +438,26 @@ class TriggerTests(unittest.TestCase):
             self.assertIn("旧政缓和：辽饷", [str(e["label"]) for e in relieve["effects"]])
             pending = court_events.get_pending(db) or {}
             self.assertEqual(str(pending.get("cooldown_key")), f"policy_aftershock:{legacy_id}")
+
+    def test_policy_legacy_surfaces_as_summon_hint_lead(self):
+        with TemporaryDirectory() as tmp:
+            db, state, _day = _fresh(tmp)
+            legacy_id = _tax_legacy(db, state, stem="辽饷", minxin=-10, duration_months=-1)
+
+            brief = briefing_payload(db, state, limit=5, kind="legacy")
+            card = next(c for c in brief["cards"] if str(c.get("ref_id")) == str(legacy_id))
+            actor = str(card.get("actor") or "")
+            self.assertTrue(actor)
+
+            payload = audience_summon_hints_payload(db, state)
+            hint = payload["hints"].get(actor)
+
+            self.assertIsNotNone(hint)
+            labels = [str(tag.get("label") or "") for tag in hint.get("tags", [])]
+            self.assertTrue(any("余波" in label for label in labels), labels)
+            self.assertGreater(int(hint.get("pressure_score") or 0), 0)
+            self.assertEqual(str(hint.get("lead", {}).get("kind")), "legacy")
+            self.assertEqual(str(hint.get("lead", {}).get("ref_id")), str(legacy_id))
 
     def test_pending_secret_order_triggers_review_decision(self):
         with TemporaryDirectory() as tmp:

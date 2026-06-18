@@ -6788,70 +6788,10 @@ async def api_playstyle_brief(limit: int = 5, kind: str = "") -> Dict[str, Any]:
 @app.get("/api/audience/summon_hints")
 async def api_audience_summon_hints() -> Dict[str, Any]:
     """召见抽屉的轻量人情提示：只在玩家点开传召名单时加载，不塞入主状态包。"""
+    from ming_sim.playstyle import audience_summon_hints_payload
+
     game = get_game()
-    rows = game.db.conn.execute(
-        """
-        SELECT name, office_type, faction, power_id, status,
-               ability, integrity, emp_trust, grievance
-        FROM characters
-        WHERE status = 'active'
-        """
-    ).fetchall()
-
-    def row_int(row: Any, key: str, default: int) -> int:
-        try:
-            return int(row[key] if row[key] is not None else default)
-        except Exception:
-            return default
-
-    hints: Dict[str, Dict[str, Any]] = {}
-    for row in rows:
-        name = str(row["name"] or "").strip()
-        if not name:
-            continue
-        power_id = str(row["power_id"] or "ming").strip() or "ming"
-        if power_id != "ming":
-            continue
-        if str(row["office_type"] or "").strip() == "后宫":
-            continue
-
-        tags: List[Dict[str, str]] = []
-        pressure_score = 0
-        grievance = row_int(row, "grievance", 20)
-        trust = row_int(row, "emp_trust", 55)
-        ability = row_int(row, "ability", 50)
-        integrity = row_int(row, "integrity", 50)
-        faction = str(row["faction"] or "").strip()
-
-        if grievance >= 72:
-            tags.append({"label": f"怨{grievance}", "tone": "bad"})
-            pressure_score += 28
-        elif grievance >= 55:
-            tags.append({"label": f"怨{grievance}", "tone": "warn"})
-            pressure_score += 14
-        if trust <= 28:
-            tags.append({"label": f"信{trust}", "tone": "bad"})
-            pressure_score += 28
-        elif trust <= 42:
-            tags.append({"label": f"信{trust}", "tone": "warn"})
-            pressure_score += 14
-        elif trust >= 72:
-            tags.append({"label": f"信{trust}", "tone": "good"})
-        if ability >= 78:
-            tags.append({"label": f"才{ability}", "tone": "good"})
-        if integrity <= 32:
-            tags.append({"label": f"廉{integrity}", "tone": "bad"})
-            pressure_score += 10
-        elif integrity >= 78:
-            tags.append({"label": f"廉{integrity}", "tone": "good"})
-        if faction and faction not in {"无", "中立", "皇党"}:
-            tags.append({"label": faction[:6], "tone": "warn"})
-            pressure_score += 4
-
-        if tags or pressure_score:
-            hints[name] = {"tags": tags[:4], "pressure_score": pressure_score}
-
-    return _plain_payload({"hints": hints})
+    return _plain_payload(audience_summon_hints_payload(game.db, game.state))
 
 
 @app.get("/api/beliefs")

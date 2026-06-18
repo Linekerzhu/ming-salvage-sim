@@ -212,7 +212,7 @@ export function AudienceView({
                 <>
                   <p className="m-hint" style={{ margin: "0 4px 8px" }}>随侍领命传召，大臣须臾趋入御前。</p>
                   {summonMinisters.map((m) => {
-                    const summonLead = leadFromSummonRow(m.name, state?.conversation_goals, leads);
+                    const summonLead = leadFromSummonRow(m.name, state?.conversation_goals, leads, summonHints);
                     const tags = summonRowTags(m, state?.conversation_goals, leads, summonHints);
                     return (
                       <button key={m.name} className="m-sheet-row m-sheet-row-face" onClick={() => { onAudienceChange(m.name, summonLead); setSheet(""); }}>
@@ -520,11 +520,18 @@ function audienceLeadFromGoal(goal: any, actor: string): AudienceLead {
   };
 }
 
-function leadFromSummonRow(name: string, rawGoals: unknown, leads: PlaystyleBriefCard[]): AudienceLead | null {
+function leadFromSummonRow(
+  name: string,
+  rawGoals: unknown,
+  leads: PlaystyleBriefCard[],
+  hints: Record<string, SummonHint> = {},
+): AudienceLead | null {
   const clean = String(name || "").trim();
   if (!clean) return null;
   const lead = leads.find((card) => String(card.actor || "").trim() === clean);
   if (lead) return audienceLeadFromBrief(lead, clean, String(lead.target || ""));
+  const hintLead = hints[clean]?.lead;
+  if (hintLead) return audienceLeadFromBrief(hintLead, clean, String(hintLead.target || ""));
   const goal = openAudienceGoals(rawGoals, clean)[0];
   if (goal) return audienceLeadFromGoal(goal, clean);
   return null;
@@ -538,7 +545,7 @@ function summonPriority(
 ): number {
   const name = String(minister?.name || "").trim();
   const goals = openAudienceGoals(rawGoals, name);
-  const lead = leads.find((card) => String(card.actor || "").trim() === name);
+  const lead = leads.find((card) => String(card.actor || "").trim() === name) || hints[name]?.lead;
   let score = 0;
   if (lead) score += 100 + Number(lead.urgency || 0);
   if (goals.some((goal) => ["blocked", "expired"].includes(String(goal?.status || "")))) score += 80;
@@ -555,7 +562,7 @@ function summonRowTags(
 ): Array<{ label: string; tone?: string }> {
   const clean = String(minister?.name || "").trim();
   const tags: Array<{ label: string; tone?: string }> = [];
-  const lead = leads.find((card) => String(card.actor || "").trim() === clean);
+  const lead = leads.find((card) => String(card.actor || "").trim() === clean) || hints[clean]?.lead;
   if (lead) {
     tags.push({
       label: lead.meta ? `候旨·${lead.meta}` : "候旨",

@@ -286,7 +286,7 @@ export const loadPlaystyleBrief = (limit = 5, kind = ""): Promise<PlaystyleBrief
   return api<PlaystyleBriefPayload>(`/api/playstyle/brief?${qs.toString()}`);
 };
 export type SummonHintTag = { label: string; tone?: "good" | "bad" | "warn" | "neutral" | string };
-export type SummonHint = { tags?: SummonHintTag[]; pressure_score?: number };
+export type SummonHint = { tags?: SummonHintTag[]; pressure_score?: number; lead?: PlaystyleBriefCard };
 export const loadSummonHints = (): Promise<{ hints: Record<string, SummonHint> }> =>
   api<{ hints: Record<string, SummonHint> }>("/api/audience/summon_hints");
 
