@@ -403,6 +403,29 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_chat_mentions_keep_surnamed_office_titles_only(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            generic = game._chat_message_mentions("太监、知府、御史与监军都在外头候着，司礼监另递一纸。")
+            generic_terms = {term for item in generic for term in item["terms"]}
+            self.assertNotIn("太监", generic_terms)
+            self.assertNotIn("知府", generic_terms)
+            self.assertNotIn("御史", generic_terms)
+            self.assertNotIn("监军", generic_terms)
+            self.assertNotIn("司礼监", generic_terms)
+
+            named = game._chat_message_mentions("曹太监在司礼监递话，卢知府也请见。")
+            named_terms = {term for item in named for term in item["terms"]}
+            self.assertIn("曹太监", named_terms)
+            self.assertIn("卢知府", named_terms)
+            self.assertNotIn("司礼监", named_terms)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_chat_mentions_do_not_link_accidental_office_named_character(self):
         game = web_app.WebGame(fresh=True)
         try:

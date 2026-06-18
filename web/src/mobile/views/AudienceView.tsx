@@ -266,9 +266,10 @@ export function AudienceView({
                 <>
                   <p className="m-hint" style={{ margin: "0 4px 8px" }}>随侍领命传召，大臣须臾趋入御前。</p>
                   {summonMinisters.map((m) => {
+                    const summonLead = leadFromSummonRow(m.name, state?.conversation_goals, leads);
                     const tags = summonRowTags(m.name, state?.conversation_goals, leads);
                     return (
-                      <button key={m.name} className="m-sheet-row m-sheet-row-face" onClick={() => { onAudienceChange(m.name); setSheet(""); }}>
+                      <button key={m.name} className="m-sheet-row m-sheet-row-face" onClick={() => { onAudienceChange(m.name, summonLead); setSheet(""); }}>
                         <Portrait name={m.name} size={36} interactive={false} />
                         <div className="m-sheet-row-id">
                           <span className="m-row-name">{m.name}</span>
@@ -335,6 +336,49 @@ function suggestionFromGoal(goal: any, audience: string): Suggestion {
     text: `${audience}，朕记得你旧约「${title}」尚未了结。${pressure ? `眼下是：${pressure}。` : ""}你当面说清楚：已办成什么、还缺什么证据、几日能回奏，若再误事谁担责？`,
     prefix: true,
   };
+}
+
+function audienceLeadFromGoal(goal: any, actor: string): AudienceLead {
+  const title = String(goal?.title || goal?.target_text || "未竟奏对").trim();
+  const blocker = String(goal?.blocker_summary || "").trim();
+  const pending = String(goal?.pending_summary || "").trim();
+  const due = String(goal?.due_label || "").trim();
+  const status = String(goal?.status_label || goal?.status || "未定").trim();
+  const condition = String(goal?.condition_label || "").trim();
+  const detailBits = [status, condition, due, blocker || pending || String(goal?.public_hint || "").trim()].filter(Boolean);
+  const rawStatus = String(goal?.status || "").trim();
+  const severe = Boolean(blocker) || ["blocked", "expired"].includes(rawStatus);
+  return {
+    kind: "monthly_followup",
+    title: `追旧约：${title}`,
+    detail: detailBits.length ? `这桩旧约仍未了结：${detailBits.join("；")}。` : "这桩旧约仍未了结，须当面问清。",
+    tone: severe ? "danger" : rawStatus === "waiting_conditions" ? "warn" : "info",
+    actor,
+    target: "",
+    meta: blocker ? "旧约受阻" : rawStatus === "expired" ? "旧约失期" : "旧约",
+    ref_kind: "conversation_goal",
+    ref_id: String(goal?.id || ""),
+    opening: `${actor}奉召入殿，知道陛下今日不是泛问国事，而是追问旧约「${title}」。此番须把已办、未办、待证和担责说清。`,
+    prompts: [
+      suggestionFromGoal(goal, actor),
+      closurePromptForAudience("monthly_followup", actor, ""),
+    ],
+    stakes: [
+      { kind: "gain", label: "旧约闭环", tone: "good" },
+      { kind: "cost", label: blocker ? "阻力未清" : "再拖成怨", tone: "bad" },
+      { kind: "ask", label: "限期证据", tone: "neutral" },
+    ],
+  };
+}
+
+function leadFromSummonRow(name: string, rawGoals: unknown, leads: PlaystyleBriefCard[]): AudienceLead | null {
+  const clean = String(name || "").trim();
+  if (!clean) return null;
+  const lead = leads.find((card) => String(card.actor || "").trim() === clean);
+  if (lead) return audienceLeadFromBrief(lead, clean, String(lead.target || ""));
+  const goal = openAudienceGoals(rawGoals, clean)[0];
+  if (goal) return audienceLeadFromGoal(goal, clean);
+  return null;
 }
 
 function summonPriority(name: string, rawGoals: unknown, leads: PlaystyleBriefCard[]): number {
