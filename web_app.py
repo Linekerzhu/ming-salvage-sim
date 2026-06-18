@@ -4262,6 +4262,29 @@ class WebGame:
         outcome = str(result.get("outcome") or "")
         stage = str(result.get("stage_direction") or "")
         message = f"{target}{label}：{outcome}"
+        lore_update = result.get("lore_update") if isinstance(result.get("lore_update"), dict) else {}
+        label_map = {
+            "bao_preservation": "宝存",
+            "bao_container": "宝匣",
+            "bao_ritual": "仪式",
+            "bao_texture": "宝况",
+            "bao_weight": "宝重",
+            "bao_shape": "宝形",
+        }
+        lore_effects = [
+            {
+                "kind": "eunuch_lore",
+                "label": f"{label_map.get(str(key), str(key))}：{str(value)[:18]}",
+                "tone": "info",
+            }
+            for key, value in lore_update.items()
+            if str(value).strip()
+        ]
+        item_effects = [
+            {"kind": "inventory", "label": f"入库：{str(item)[:22]}", "tone": "good"}
+            for item in (result.get("items_added") or [])
+            if str(item).strip()
+        ]
         return {
             "answer": (
                 f"{self_ref}遵旨。{target}这桩{label}已入司礼监旧档，{outcome}。"
@@ -4273,6 +4296,8 @@ class WebGame:
                 "effects": [
                     {"kind": "eunuch_care", "label": outcome or label, "tone": "good"},
                     {"kind": "character", "label": f"{target}旧患入档", "tone": "info"},
+                    *lore_effects[:6],
+                    *item_effects[:2],
                 ],
                 "stage_direction": stage,
             },
@@ -4506,6 +4531,15 @@ class WebGame:
                             for part in (str(pending.get("scheme_text") or "").strip(), extra)
                             if part
                         )
+                elif pending.get("type") == "eunuch_care":
+                    pending = dict(pending)
+                    extra = str(text or "").strip()
+                    if extra:
+                        pending["note"] = " ".join(
+                            part
+                            for part in (str(pending.get("note") or "").strip(), extra)
+                            if part
+                        )
                 return self._execute_dialogue_action(minister_name, pending)
         action = (
             self._detect_castration_intent(text, minister_name)
@@ -4556,6 +4590,11 @@ class WebGame:
                     for key in ("target", "mode", "note"):
                         if not normalized.get(key):
                             normalized[key] = pending.get(key)
+                    note_parts = [
+                        str(pending.get("note") or "").strip(),
+                        str(normalized.get("note") or "").strip(),
+                    ]
+                    normalized["note"] = " ".join(dict.fromkeys(part for part in note_parts if part))
             if normalized.get("type") == "recruitment" and not normalized.get("kind"):
                 return None
             return self._execute_dialogue_action(minister_name, normalized)

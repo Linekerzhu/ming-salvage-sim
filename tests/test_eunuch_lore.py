@@ -523,6 +523,47 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertEqual(care["trait"], "宝匣安置")
             self.assertEqual(el.bao_instability_tick(db, state, 16), [])
 
+    def test_bao_care_absorbs_storage_scheme_and_grants_settlement_item(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(
+                db,
+                name,
+                forced=True,
+                day=day,
+                detail_text="奉旨宫刑，宝官库石灰封存，收白签灰瓮；暗记官库封签，终身惦念。",
+            )
+            db.conn.execute("DELETE FROM eunuch_lore WHERE name!=?", (name,))
+            db.conn.commit()
+            before_risk = el._bao_instability_score(el.get_lore(db, name), set())
+
+            care = el.apply_eunuch_care(
+                db,
+                state,
+                name,
+                mode="bao",
+                note="准验宝，改用锡胆小木匣，香料腌藏，钥匙贴身，补录宝案。",
+            )
+
+            self.assertTrue(care["ok"])
+            self.assertEqual(care["mode"], "bao")
+            self.assertEqual(care["trait"], "宝匣安置")
+            self.assertIn("宝档更新", care["outcome"])
+            self.assertEqual(care["lore_update"]["bao_container"], "锡胆小木匣")
+            self.assertEqual(care["lore_update"]["bao_preservation"], "香料腌藏")
+            self.assertEqual(care["lore_update"]["bao_ritual"], "夜半验匣，钥匙贴身")
+            self.assertIn(f"宝案安置：{name}", care["items_added"])
+
+            lore = el.get_lore(db, name)
+            self.assertEqual(lore["bao_container"], "锡胆小木匣")
+            self.assertEqual(lore["bao_preservation"], "香料腌藏")
+            self.assertEqual(lore["bao_ritual"], "夜半验匣，钥匙贴身")
+            after_risk = el._bao_instability_score(lore, {"宝匣安置"})
+            self.assertLess(after_risk, before_risk)
+            inventory_ids = {str(item["id"]) for item in db.list_player_inventory()}
+            self.assertIn(f"宝案安置：{name}", inventory_ids)
+
     def test_timeflow_surfaces_castration_complication_events(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)

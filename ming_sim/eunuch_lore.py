@@ -1660,10 +1660,8 @@ def apply_eunuch_care(
     if row is None:
         return {"ok": False, "reason": f"{clean_name}不在可照料名册中。"}
     adult = _is_adult_for_lore(db, clean_name)
-    plan = _care_plan(mode, lore, adult=adult)
-    scheme = castration_scheme_profile(lore)
-    mode = str(plan["mode"])
-    source_id = f"{int(state.turn)}:{clean_name}:{mode}:{source}"
+    requested_mode = normalize_care_mode(mode, note)
+    source_id = f"{int(state.turn)}:{clean_name}:{requested_mode}:{source}"
     existed = db.conn.execute(
         """
         SELECT 1 FROM event_memories
@@ -1673,7 +1671,21 @@ def apply_eunuch_care(
         (clean_name, source, source_id),
     ).fetchone()
     if existed is not None:
-        return {"ok": False, "reason": f"{clean_name}本回合已照料过这项旧患。", "mode": mode}
+        return {"ok": False, "reason": f"{clean_name}本回合已照料过这项旧患。", "mode": requested_mode}
+    lore_update: Dict[str, str] = {}
+    if requested_mode == "bao" and str(note or "").strip():
+        try:
+            from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
+            day = kv_int(db, KV_CURRENT_DAY, int(getattr(state, "turn", 0) or 0) * 30)
+        except Exception:
+            day = int(getattr(state, "turn", 0) or 0) * 30
+        updated = update_lore_from_text(db, clean_name, note, day=day)
+        if isinstance(updated, dict) and isinstance(updated.get("updated"), dict):
+            lore_update = {str(k): str(v) for k, v in updated["updated"].items()}
+            lore = get_lore(db, clean_name) or lore
+    plan = _care_plan(requested_mode, lore, adult=adult)
+    scheme = castration_scheme_profile(lore)
+    mode = str(plan["mode"])
 
     before = {
         "emp_trust": int(row["emp_trust"] or 55),
@@ -1738,6 +1750,27 @@ def apply_eunuch_care(
         outcome_bits.append(f"内库-{paid}")
     if scheme_cost:
         outcome_bits.append(f"方案调养{scheme_cost:+d}")
+    if lore_update:
+        label_map = {
+            "bao_preservation": "宝存",
+            "bao_container": "宝匣",
+            "bao_ritual": "仪式",
+            "bao_texture": "宝况",
+            "bao_weight": "宝重",
+            "bao_shape": "宝形",
+        }
+        updated_labels = [label_map.get(key, key) for key in lore_update]
+        outcome_bits.append(f"宝档更新：{'、'.join(updated_labels[:4])}")
+    items_added: List[str] = []
+    if mode == "bao":
+        item_id = f"宝案安置：{clean_name}"
+        exists = db.conn.execute(
+            "SELECT 1 FROM player_inventory WHERE item_id=?",
+            (item_id,),
+        ).fetchone()
+        if exists is None:
+            db.grant_player_item(item_id, state)
+            items_added.append(item_id)
     outcome = "，".join(outcome_bits) or "照料入档"
     title = f"{plan.get('label') or '内廷调养'}：{clean_name}"
     process = "；".join(part for part in (str(plan.get("process") or ""), str(note or "").strip()) if part)[:160]
@@ -1800,6 +1833,8 @@ def apply_eunuch_care(
         "delta": {key: after[key] - before[key] for key in before if after[key] != before[key]},
         "scheme_profile": scheme,
         "goal_id": fulfilled_goal_id,
+        "lore_update": lore_update,
+        "items_added": items_added,
     }
 
 

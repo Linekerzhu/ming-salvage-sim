@@ -1341,6 +1341,59 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_dialogue_bao_care_merges_confirmation_scheme_into_lore(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            row = game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' "
+                "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
+                "AND office NOT LIKE '%太监%' AND office NOT LIKE '%宦官%' "
+                "LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            name = str(row["name"])
+            game.castrate_official(
+                name,
+                force=True,
+                scheme_text="奉旨宫刑，宝官库石灰封存，收白签灰瓮；暗记官库封签，终身惦念。",
+            )
+            game.state.metrics["内库"] = 80
+            game.db.save_state(game.state)
+
+            proposal_events = list(game.chat_stream(attendant, f"替{name}查验宝匣封签。"))
+            self.assertEqual(proposal_events[-1]["type"], "done")
+            pending = game._load_pending_dialogue_action(attendant)
+            self.assertEqual(pending.get("type"), "eunuch_care")
+            self.assertEqual(pending.get("mode"), "bao")
+
+            confirm_events = list(game.chat_stream(
+                attendant,
+                "准，改用锡胆小木匣，香料腌藏，钥匙贴身，补录宝案。",
+            ))
+
+            payload = confirm_events[-1]["payload"]
+            self.assertIn(payload["dialogue_effect"]["title"], {"宝案查验", "奏对有动"})
+            labels = {str(item.get("label") or "") for item in payload["dialogue_effect"].get("effects", [])}
+            self.assertTrue(any("宝匣：锡胆小木匣" in label for label in labels))
+            self.assertTrue(any("宝存：香料腌藏" in label for label in labels))
+            self.assertTrue(any("入库：宝案安置" in label for label in labels))
+
+            castration = game.public_character(game.content.characters[name])["castration"]
+            self.assertEqual(castration["container_label"], "锡胆小木匣")
+            self.assertEqual(castration["preservation_label"], "香料腌藏")
+            self.assertEqual(castration["ritual_label"], "夜半验匣，钥匙贴身")
+            inventory_ids = {str(item["id"]) for item in game.db.list_player_inventory()}
+            self.assertIn(f"宝案安置：{name}", inventory_ids)
+            self.assertFalse(game._load_pending_dialogue_action(attendant))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_stage_directions_are_split_from_minister_chat_payload(self):
         game = web_app.WebGame(fresh=True)
         try:
