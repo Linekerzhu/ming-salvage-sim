@@ -522,7 +522,7 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
             "短句、土话、宫里切口；话可以糙，但不要现代脏话。只从殿门、监房、名册、跑腿见闻说起，"
             "遇到朝政大题要说“奴婢只听得这点风声”，不要替内阁筹划全套国策。"
         )
-        pet_phrases = ["奴婢晓得", "不敢瞒陛下", "那档子事", "小的听来的"]
+        pet_phrases = ["奴婢晓得", "不敢瞒陛下", "那档子事", "奴婢听来的"]
         allowed_moves = [
             "用值房、廊下、门上、净房、封签这些近身见闻答话",
             "承认自己不懂外朝大局，只报听来的风声和跑腿见闻",
@@ -534,6 +534,17 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
             "不要突然全知全能点评所有派系真实动机",
         ]
         slang = ["门上递话", "值房听来的", "净房旧例", "封签没对上", "那档子腌臜事"]
+        sentence_shape = "短句为主，每句十二到二十四字；先请罪或复命，再说人名、地点、谁递话。"
+        knowledge_scope = [
+            "可讲殿门、值房、廊下、净房、封签、跑腿听来的风声",
+            "大政只说“奴婢只听得这点风声，须问该部/内阁”",
+            "不得裁断辽东财政全图、六部政策蓝图或所有派系真实动机",
+        ]
+        sample_openers = [
+            "奴婢晓得，门上听来的，是...",
+            "奴婢该死，只敢说这一点...",
+            "不敢瞒陛下，值房里传的是...",
+        ]
     elif clerkly:
         register = "识字文书内臣"
         speech_rule = (
@@ -551,6 +562,17 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
             "不要越过内廷文书证据直接断大案全貌",
         ]
         slang = ["按册回话", "封签旧例", "钥匙在谁手里", "账页缺口", "值房押签"]
+        sentence_shape = "先报册页、封签、经手人，再说风险；不写外朝奏疏腔。"
+        knowledge_scope = [
+            "可讲名册、封签、账页、钥匙、值房旧例和谁经手",
+            "可给内廷执行建议，但外朝大局须转问内阁或该部",
+            "不得凭空断定六部、边镇、财政全局",
+        ]
+        sample_openers = [
+            "奴婢按册回，封签上是...",
+            "容奴婢查档，先把经手人报明...",
+            "值房里有旧例，奴婢不敢越外朝断...",
+        ]
     else:
         register = "谨慎近侍"
         speech_rule = "先复命，再说风险；话留半寸，不抢皇帝决断。"
@@ -564,24 +586,52 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
             "不要把传闻说成铁案",
         ]
         slang = ["容奴婢递话", "门外风声", "值房规矩", "不敢替陛下断"]
+        sentence_shape = "先复命，再补一条风险或传闻；句尾留给陛下裁断。"
+        knowledge_scope = [
+            "可讲近身观察、传话经过、门外风声和谁候旨",
+            "遇大政只报自己听见的线索，不替皇帝断案",
+            "不得把传闻说成铁案或替阁部拟完整章程",
+        ]
+        sample_openers = [
+            "奴婢领会，只敢照实回...",
+            "容奴婢递个话，门外风声是...",
+            "这事还得陛下定夺，奴婢看着像...",
+        ]
     if courage >= 72:
         register += " · 急性子"
         speech_rule += " 性急时可先抢半句，随即叩首收住；短促、冒进、怕误事。"
         pet_phrases.append("奴婢先说一句")
         allowed_moves.append("急时先冒出半句实话，再立刻叩首收住")
         slang.append("奴婢急着回一句")
+        sentence_shape += " 急时可抢半句，但必须立刻叩首收住。"
+        sample_openers.append("奴婢先说一句，若错了请陛下治罪...")
     elif courage <= 42:
         register += " · 胆怯"
         speech_rule += " 胆怯时吞字、停顿、先请罪再答实话。"
         pet_phrases.append("奴婢该死")
         allowed_moves.append("胆怯时吞字、停顿、先请罪，再说最小的一段实话")
         slang.append("奴婢该死")
+        sentence_shape += " 胆怯时可停顿吞字，先请罪再说最小的一段实话。"
+        sample_openers.append("奴婢该死，话说得粗，只敢回...")
     if forced or bao == BAO_FORFEIT:
         register += " · 强阉心结"
         speech_rule += " 被问到净房、封签、宝匣时表面更卑顺，底下有怨气。"
+        knowledge_scope.append("问及净房、封签、宝匣时更卑顺，但只露一点怨气，不滔滔诉苦")
     elif servility >= 65:
         register += " · 奴性重"
         speech_rule += " 请恩时更谄、更爱揣摩上意，但仍不能越职讲朝政大局。"
+        knowledge_scope.append("可揣摩皇帝喜怒，但不得把揣测说成朝政全貌")
+    style_contract = "；".join(
+        part
+        for part in (
+            "自称奴婢，禁用臣/微臣/愚臣",
+            sentence_shape,
+            "应知范围：" + "；".join(knowledge_scope[:4]),
+            "可用切口：" + "、".join(list(dict.fromkeys(slang))[:4]),
+            "禁用：" + "；".join(forbidden_moves[:3]),
+        )
+        if str(part or "").strip()
+    )
     stage_cues: List[str] = []
     if re.search(r"漏尿|尿闭|石淋|小解|夜尿", condition_blob):
         stage_cues.append("久站时夹腰缩步，嗫嚅请退半步")
@@ -616,7 +666,12 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
         dispatch_traits.append("奴性重")
     return {
         "register": register,
+        "self_address": "奴婢",
         "speech_rule": speech_rule,
+        "sentence_shape": sentence_shape,
+        "knowledge_scope": list(dict.fromkeys(knowledge_scope))[:5],
+        "style_contract": style_contract,
+        "sample_openers": list(dict.fromkeys(sample_openers))[:5],
         "pet_phrases": list(dict.fromkeys(pet_phrases))[:5],
         "allowed_moves": list(dict.fromkeys(allowed_moves))[:5],
         "forbidden_moves": list(dict.fromkeys(forbidden_moves))[:5],
@@ -1002,6 +1057,11 @@ def servility_brief(db: GameDB, name: str) -> str:
     allowed_moves = [str(item).strip() for item in (profile.get("allowed_moves") or []) if str(item).strip()]
     forbidden_moves = [str(item).strip() for item in (profile.get("forbidden_moves") or []) if str(item).strip()]
     slang = [str(item).strip() for item in (profile.get("slang") or []) if str(item).strip()]
+    style_contract = str(profile.get("style_contract") or "").strip()
+    sentence_shape = str(profile.get("sentence_shape") or "").strip()
+    self_address = str(profile.get("self_address") or "").strip()
+    knowledge_scope = [str(item).strip() for item in (profile.get("knowledge_scope") or []) if str(item).strip()]
+    sample_openers = [str(item).strip() for item in (profile.get("sample_openers") or []) if str(item).strip()]
     if register or speech_rule:
         phrase_text = f"；常用口头禅：{'、'.join(pet_phrases[:4])}" if pet_phrases else ""
         voice_rules.append(f"{register}：{speech_rule}{phrase_text}")
@@ -1011,9 +1071,22 @@ def servility_brief(db: GameDB, name: str) -> str:
         voice_rules.append("宫里切口/粗口径：" + "、".join(slang[:6]))
     if forbidden_moves:
         voice_rules.append("禁用话术：" + "；".join(forbidden_moves[:4]))
+    boundary_bits: List[str] = []
+    if self_address:
+        boundary_bits.append(f"自称只用“{self_address}”，不要自称臣、微臣、愚臣")
+    if sentence_shape:
+        boundary_bits.append("句式：" + sentence_shape)
+    if knowledge_scope:
+        boundary_bits.append("认知边界：" + "；".join(knowledge_scope[:4]))
+    if sample_openers:
+        boundary_bits.append("可仿开口：" + "；".join(sample_openers[:3]))
     stage_bits = [str(item).strip() for item in (profile.get("stage_cues") or []) if str(item).strip()]
     if voice_rules:
         parts.append("【口吻差异】" + "；".join(voice_rules))
+    if style_contract:
+        parts.append("【口吻合约】" + style_contract)
+    if boundary_bits:
+        parts.append("【说话边界】" + "；".join(boundary_bits))
     if stage_bits:
         parts.append(
             "【动作神态】动作神态必须与对白分离：优先单独写一行「【动作】...」或「【神态】...」，"
