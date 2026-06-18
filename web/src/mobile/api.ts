@@ -331,6 +331,9 @@ export type CourtCastration = {
     register?: string;
     speech_rule?: string;
     pet_phrases?: string[];
+    allowed_moves?: string[];
+    forbidden_moves?: string[];
+    slang?: string[];
     stage_cues?: string[];
   };
   scheme_profile?: {

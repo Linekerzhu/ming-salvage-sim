@@ -456,6 +456,12 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
                     {(castration.voice_profile?.pet_phrases || []).slice(0, 3).map((bit) => <i key={bit}>{bit}</i>)}
                   </span>
                 )}
+                {(castration.voice_profile?.slang || []).length > 0 && (
+                  <span className="m-castration-row">
+                    <b>切口</b>
+                    {(castration.voice_profile?.slang || []).slice(0, 3).map((bit) => <i key={bit}>{bit}</i>)}
+                  </span>
+                )}
                 {(castration.voice_profile?.stage_cues || []).length > 0 && (
                   <span className="m-castration-row">
                     <b>神态</b>

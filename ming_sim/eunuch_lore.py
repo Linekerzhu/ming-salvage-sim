@@ -490,10 +490,21 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
     if low_culture:
         register = "低文化内侍"
         speech_rule = (
-            "短句、土话、宫里切口；只从殿门、监房、名册、跑腿见闻说起，"
-            "不要替内阁筹划全套国策。"
+            "短句、土话、宫里切口；话可以糙，但不要现代脏话。只从殿门、监房、名册、跑腿见闻说起，"
+            "遇到朝政大题要说“奴婢只听得这点风声”，不要替内阁筹划全套国策。"
         )
         pet_phrases = ["奴婢晓得", "不敢瞒陛下", "那档子事", "小的听来的"]
+        allowed_moves = [
+            "用值房、廊下、门上、净房、封签这些近身见闻答话",
+            "承认自己不懂外朝大局，只报听来的风声和跑腿见闻",
+            "句子短，先请罪，再说人名、地点、谁吩咐、谁递话",
+        ]
+        forbidden_moves = [
+            "不要讲内阁大学士式长篇财政/边防总策",
+            "不要用经筵、策论、空泛忠君爱民套话撑满回答",
+            "不要突然全知全能点评所有派系真实动机",
+        ]
+        slang = ["门上递话", "值房听来的", "净房旧例", "封签没对上", "那档子腌臜事"]
     elif clerkly:
         register = "识字文书内臣"
         speech_rule = (
@@ -501,18 +512,41 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
             "不要装外朝通儒。"
         )
         pet_phrases = ["奴婢按册回", "封签上写得明白", "值房里有旧例", "容奴婢查一查档"]
+        allowed_moves = [
+            "从名册、封签、账页、钥匙、值房旧例推断",
+            "能核对谁经手、谁押签、哪份档案缺页",
+            "可给出内廷执行建议，但不替六部包办国策",
+        ]
+        forbidden_moves = [
+            "不要写成外朝清流奏疏口吻",
+            "不要越过内廷文书证据直接断大案全貌",
+        ]
+        slang = ["按册回话", "封签旧例", "钥匙在谁手里", "账页缺口", "值房押签"]
     else:
         register = "谨慎近侍"
         speech_rule = "先复命，再说风险；话留半寸，不抢皇帝决断。"
         pet_phrases = ["奴婢领会", "这事还得陛下定夺", "奴婢只敢照实回", "容奴婢递个话"]
+        allowed_moves = [
+            "先复命，再补一条风险或传闻",
+            "把判断压低成“奴婢看着像”，留皇帝裁断",
+        ]
+        forbidden_moves = [
+            "不要抢皇帝决断",
+            "不要把传闻说成铁案",
+        ]
+        slang = ["容奴婢递话", "门外风声", "值房规矩", "不敢替陛下断"]
     if courage >= 72:
         register += " · 急性子"
-        speech_rule += " 性急时可先抢半句，随即叩首收住。"
+        speech_rule += " 性急时可先抢半句，随即叩首收住；短促、冒进、怕误事。"
         pet_phrases.append("奴婢先说一句")
+        allowed_moves.append("急时先冒出半句实话，再立刻叩首收住")
+        slang.append("奴婢急着回一句")
     elif courage <= 42:
         register += " · 胆怯"
         speech_rule += " 胆怯时吞字、停顿、先请罪再答实话。"
         pet_phrases.append("奴婢该死")
+        allowed_moves.append("胆怯时吞字、停顿、先请罪，再说最小的一段实话")
+        slang.append("奴婢该死")
     if forced or bao == BAO_FORFEIT:
         register += " · 强阉心结"
         speech_rule += " 被问到净房、封签、宝匣时表面更卑顺，底下有怨气。"
@@ -534,6 +568,9 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
         "register": register,
         "speech_rule": speech_rule,
         "pet_phrases": list(dict.fromkeys(pet_phrases))[:5],
+        "allowed_moves": list(dict.fromkeys(allowed_moves))[:5],
+        "forbidden_moves": list(dict.fromkeys(forbidden_moves))[:5],
+        "slang": list(dict.fromkeys(slang))[:6],
         "stage_cues": list(dict.fromkeys(stage_cues))[:5],
     }
 
@@ -896,9 +933,18 @@ def servility_brief(db: GameDB, name: str) -> str:
     register = str(profile.get("register") or "").strip()
     speech_rule = str(profile.get("speech_rule") or "").strip()
     pet_phrases = [str(item).strip() for item in (profile.get("pet_phrases") or []) if str(item).strip()]
+    allowed_moves = [str(item).strip() for item in (profile.get("allowed_moves") or []) if str(item).strip()]
+    forbidden_moves = [str(item).strip() for item in (profile.get("forbidden_moves") or []) if str(item).strip()]
+    slang = [str(item).strip() for item in (profile.get("slang") or []) if str(item).strip()]
     if register or speech_rule:
         phrase_text = f"；常用口头禅：{'、'.join(pet_phrases[:4])}" if pet_phrases else ""
         voice_rules.append(f"{register}：{speech_rule}{phrase_text}")
+    if allowed_moves:
+        voice_rules.append("可用说法：" + "；".join(allowed_moves[:4]))
+    if slang:
+        voice_rules.append("宫里切口/粗口径：" + "、".join(slang[:6]))
+    if forbidden_moves:
+        voice_rules.append("禁用话术：" + "；".join(forbidden_moves[:4]))
     stage_bits = [str(item).strip() for item in (profile.get("stage_cues") or []) if str(item).strip()]
     if voice_rules:
         parts.append("【口吻差异】" + "；".join(voice_rules))
