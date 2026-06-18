@@ -378,6 +378,8 @@ function kindMark(kind: string): string {
   if (kind === "directive_blocker") return "阻";
   if (kind === "trap") return "任";
   if (kind === "trap_remedy") return "担";
+  if (kind === "petition") return "求";
+  if (kind === "legacy") return "政";
   return "机";
 }
 
@@ -423,6 +425,13 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
       { label: "逼其表态", text: `若朕令你暂收锋芒，同${counterpart}共办一事，你肯不肯？条件是什么？`, prefix: true },
     ];
   }
+  if (card.kind === "petition") {
+    return [
+      { label: "听其求援", text: `朕知道你近日有难处。今日召你，不听套话，只听你要求朕替你解哪一处困局。`, prefix: true },
+      { label: "给台阶", text: `朕可以给你一个台阶，但你须拿一件可验的差使来换。你愿办什么，几日能见回奏？`, prefix: true },
+      { label: "问代价", text: `你来求朕护持，是为公事还是私怨？若朕应你，会得罪谁，又能换来什么？`, prefix: true },
+    ];
+  }
   if (card.kind === "directive_blocker") {
     return [
       { label: "问掣肘", text: `朕闻${counterpart || "主办官"}承办此旨时受你牵制。你当面说清楚：是何缘故？`, prefix: true },
@@ -463,6 +472,11 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
       { label: "问派内", text: `朕今日召你，是要听${faction}的实话：眼下谁能办事，谁在借势要价？`, prefix: true },
       { label: "许以差遣", text: `若朕借${faction}办一件急务，你们要什么名分，又能给朕什么可验的成效？`, prefix: true },
       { label: "立规矩", text: `${faction}可以任事，但不可挟势。你回去告诉众人：朕给差遣，也会查账。`, prefix: true },
+    ];
+  }
+  if (card.kind === "legacy") {
+    return [
+      { label: "问余波", text: `这项旧政仍在拖动朝局。朕要听实话：它如今利在哪里，害在哪里，若要善后该从何处下手？`, prefix: true },
     ];
   }
   return [

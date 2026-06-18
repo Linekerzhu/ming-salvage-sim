@@ -1325,7 +1325,7 @@ class GameSession:
         结局不再只在月末判。幂等：只处理 outcome_status='extracted' 的，落完置 applied。
         返回 [{directive_id, applied}]。"""
         rows = self.db.conn.execute(
-            "SELECT id, outcome_delta FROM turn_directives WHERE outcome_status='extracted' ORDER BY id"
+            "SELECT id, text, outcome_delta FROM turn_directives WHERE outcome_status='extracted' ORDER BY id"
         ).fetchall()
         results: List[Dict[str, object]] = []
         for row in rows:
@@ -1343,6 +1343,20 @@ class GameSession:
                 except Exception as exc:
                     from ming_sim.token_stats import tlog
                     tlog(f"[drain_outcome] 旨意#{did} 落 delta 失败，跳过：{exc}")
+            try:
+                from ming_sim.policies import apply_directive_policy_legacies
+                policy_applied = apply_directive_policy_legacies(
+                    self.db,
+                    self.state,
+                    directive_id=did,
+                    text=str(row["text"] or ""),
+                    extracted=delta if isinstance(delta, dict) else {},
+                )
+                if policy_applied:
+                    applied.setdefault("policy_legacies", []).append(policy_applied)
+            except Exception as exc:
+                from ming_sim.token_stats import tlog
+                tlog(f"[drain_outcome] 旨意#{did} 长期政策兜底失败，跳过：{exc}")
             self.db.conn.execute(
                 "UPDATE turn_directives SET outcome_status='applied' WHERE id=?", (did,))
             self.db.conn.commit()

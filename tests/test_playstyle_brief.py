@@ -294,6 +294,61 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("水分 39", labels)
             self.assertIn("实绩 52%", labels)
 
+    def test_grievance_creates_active_petition_card(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            name = _active_minister(db)
+            rival = str(db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' AND name!=? "
+                "LIMIT 1",
+                (name,),
+            ).fetchone()["name"])
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=22, grievance=82 WHERE name=?",
+                (name,),
+            )
+            court._set_opinion(db, name, rival, -70, "夺功旧怨", 1)
+            db.conn.commit()
+
+            payload = briefing_payload(db, state, limit=5, kind="petition")
+
+            self.assertEqual(payload["filter"], "petition")
+            self.assertGreaterEqual(payload["total"], 1)
+            petition = next(c for c in payload["cards"] if c["kind"] == "petition" and c["actor"] == name)
+            self.assertEqual(petition["tab"], "audience")
+            self.assertEqual(petition["cta"], "召来听诉")
+            self.assertEqual(petition["target"], rival)
+            self.assertIn("求见", str(petition["title"]))
+            labels = [str(e["label"]) for e in petition["effects"]]
+            self.assertIn("信任 22", labels)
+            self.assertIn("怨望 82", labels)
+            self.assertIn(f"政敌 {rival}", labels)
+
+    def test_active_tax_legacy_becomes_policy_aftershock_card(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            legacy_id = db.insert_legacy(
+                state,
+                name="苛税余波：辽饷",
+                modifiers={"民心": -9},
+                narrative_hint="辽饷加派已入常例；钱粮见长，民心恢复受压。",
+                duration_months=-1,
+                legacy_key="directive_tax:7:辽饷",
+            )
+
+            payload = briefing_payload(db, state, limit=5, kind="legacy")
+
+            self.assertEqual(payload["filter"], "legacy")
+            self.assertGreaterEqual(payload["total"], 1)
+            card = next(c for c in payload["cards"] if c["ref_id"] == str(legacy_id))
+            self.assertEqual(card["tab"], "realm")
+            self.assertEqual(card["meta"], "永久")
+            self.assertIn("政策余波", str(card["title"]))
+            labels = [str(e["label"]) for e in card["effects"]]
+            self.assertIn("民心 -9%", labels)
+            self.assertIn("永久", labels)
+
     def test_agenda_near_maturity_becomes_audience_hook(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)

@@ -204,6 +204,8 @@ export type PlaystyleBriefCard = {
     | "directive_followup"
     | "trap"
     | "trap_remedy"
+    | "petition"
+    | "legacy"
     | string;
   title: string;
   detail: string;

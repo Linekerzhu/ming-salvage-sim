@@ -28,11 +28,13 @@ _KIND_PRIORITY = {
     "directive_blocker": 2,
     "directive_followup": 3,
     "trap_remedy": 4,
-    "army": 5,
-    "faction": 6,
-    "agenda": 7,
-    "rivalry": 8,
-    "hook": 9,
+    "petition": 5,
+    "legacy": 6,
+    "army": 7,
+    "faction": 8,
+    "agenda": 9,
+    "rivalry": 10,
+    "hook": 11,
 }
 
 _KIND_LABELS = {
@@ -41,6 +43,8 @@ _KIND_LABELS = {
     "directive_blocker": "诏旨",
     "directive_followup": "复命",
     "trap_remedy": "担责",
+    "petition": "求援",
+    "legacy": "余波",
     "army": "军镇",
     "faction": "派系",
     "agenda": "私图",
@@ -122,6 +126,8 @@ def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[
     _trap_remedy_cards(db, state, cards)
     _directive_blocker_cards(db, cards)
     _directive_followup_cards(db, state, cards)
+    _petition_cards(db, cards)
+    _policy_legacy_cards(db, state, cards)
     _agenda_cards(db, cards)
     _rivalry_cards(db, cards)
     _army_cards(db, cards)
@@ -783,6 +789,183 @@ def _directive_followup_cards(db: GameDB, state: Optional[GameState], cards: Lis
             break
 
 
+def _petition_cards(db: GameDB, cards: List[BriefCard]) -> None:
+    """Surface active characters who would plausibly seek imperial help.
+
+    This is the home-screen equivalent of a CK3 character coming to court with a
+    personal problem.  It uses only existing trust/grievance/relation data and
+    does not create a new action panel.
+    """
+
+    if not _table_exists(db, "characters"):
+        return
+    rows = _safe_fetchall(
+        db,
+        """
+        SELECT name, office, faction, ability, integrity, emp_trust, grievance
+        FROM characters
+        WHERE status='active'
+          AND power_id='ming'
+          AND office_type!='后宫'
+          AND name!='崇祯'
+          AND (
+            grievance>=58
+            OR emp_trust<=36
+            OR (
+              SELECT COUNT(1)
+              FROM relationships r
+              JOIN characters other ON other.name=r.b_name
+              WHERE r.a_name=characters.name
+                AND r.opinion<=-62
+                AND other.status='active'
+                AND other.power_id='ming'
+            )>=1
+          )
+        ORDER BY grievance DESC, emp_trust ASC, ability DESC
+        LIMIT 8
+        """,
+    )
+    count = 0
+    for row in rows:
+        name = str(row["name"])
+        if any(str(card.get("actor") or "") == name and str(card.get("kind") or "") in {"trap_remedy", "directive_followup"} for card in cards):
+            continue
+        office = _short_office(str(row["office"] or ""))
+        trust = _clamp_int(row["emp_trust"], 0, 100)
+        grievance = _clamp_int(row["grievance"], 0, 100)
+        faction = str(row["faction"] or "")
+        rival, opinion, basis = _worst_rival_of(db, name)
+
+        if grievance >= 72:
+            title = f"{name}求见：旧怨压身"
+            detail = (
+                f"{office}{name}怨望已至 {grievance}、信任 {trust}。"
+                "此人未必反叛，却正需要陛下给一个可下台阶的说法。"
+            )
+            urgency = 82 + min(14, (grievance - 72) // 2) + max(0, 38 - trust) // 3
+            tone = "danger" if grievance >= 84 or trust <= 25 else "warn"
+            meta = f"怨{grievance}/信{trust}"
+        elif trust <= 30:
+            title = f"{name}求自辩"
+            detail = (
+                f"{office}{name}对御前信任只余 {trust}。若放任，他会转入自保；"
+                "若召来问清，或能逼出条件与可验差使。"
+            )
+            urgency = 78 + max(0, 30 - trust)
+            tone = "warn"
+            meta = f"信{trust}"
+        else:
+            title = f"{name}求陛下护持"
+            detail = (
+                f"{office}{name}同{rival or '政敌'}嫌隙渐深。"
+                "他来求援未必全是公心，正可当面问代价、逼其交差。"
+            )
+            urgency = 74 + min(18, abs(opinion) // 4)
+            tone = "warn"
+            meta = f"怨{grievance}"
+
+        effects = [
+            {"kind": "trust", "label": f"信任 {trust}", "tone": "bad" if trust <= 36 else "neutral"},
+            {"kind": "grievance", "label": f"怨望 {grievance}", "tone": "bad" if grievance >= 58 else "neutral"},
+            {"kind": "petition", "label": "可安抚/可压榨", "tone": "neutral"},
+        ]
+        if faction and faction not in {"无", "中立"}:
+            effects.append({"kind": "faction", "label": faction, "tone": "neutral"})
+        if rival:
+            effects.append({"kind": "rivalry", "label": f"政敌 {rival}", "tone": "bad"})
+            if basis:
+                detail += f"旧因：{basis}。"
+
+        cards.append(
+            _card(
+                kind="petition",
+                title=title,
+                detail=detail,
+                urgency=urgency,
+                tone=tone,
+                cta="召来听诉",
+                tab=_TAB_AUDIENCE,
+                actor=name,
+                target=rival,
+                meta=meta,
+                ref_kind="character",
+                ref_id=name,
+                effects=effects,
+            )
+        )
+        count += 1
+        if count >= 2:
+            break
+
+
+def _policy_legacy_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard]) -> None:
+    """Expose active long-running policy scars as player-facing strategic hooks."""
+
+    if not _table_exists(db, "legacies"):
+        return
+    rows = _safe_fetchall(
+        db,
+        """
+        SELECT id, name, modifiers, narrative_hint, duration_months, start_month, legacy_key
+        FROM legacies
+        WHERE status='active'
+        ORDER BY id DESC
+        LIMIT 24
+        """,
+    )
+    count = 0
+    for row in rows:
+        name = str(row["name"] or "")
+        hint = str(row["narrative_hint"] or "")
+        key = str(row["legacy_key"] or "")
+        try:
+            modifiers = json.loads(str(row["modifiers"] or "{}"))
+        except (TypeError, ValueError):
+            modifiers = {}
+        minxin = int(modifiers.get("民心") or 0) if isinstance(modifiers, dict) else 0
+        if not (
+            key.startswith("directive_tax:")
+            or any(token in name + hint for token in ("苛税", "税负", "加派", "辽饷", "商税", "盐税", "田赋"))
+            or minxin <= -6
+        ):
+            continue
+        try:
+            duration = int(row["duration_months"] or 0)
+        except (TypeError, ValueError):
+            duration = 0
+        remaining = -1 if duration < 0 else duration
+        if state is not None and duration >= 0:
+            try:
+                remaining = db.legacy_remaining_months(row, state)
+            except Exception:
+                remaining = duration
+        duration_label = "永久" if duration < 0 else f"余{remaining}月"
+        effects: List[Dict[str, str]]
+        try:
+            from ming_sim.policies import policy_legacy_effect_labels
+            effects = policy_legacy_effect_labels(row)
+        except Exception:
+            effects = []
+        cards.append(
+            _card(
+                kind="legacy",
+                title=f"政策余波：{name}",
+                detail=hint or "此项旧政仍在拖动朝局。钱粮、民心与地方承受力不会因办结而立刻归零。",
+                urgency=68 + min(24, abs(minxin) * 2) + (8 if duration < 0 else 0),
+                tone="danger" if duration < 0 or minxin <= -10 else "warn",
+                cta="看天下",
+                tab=_TAB_REALM,
+                meta=duration_label,
+                ref_kind="legacy",
+                ref_id=str(row["id"]),
+                effects=effects,
+            )
+        )
+        count += 1
+        if count >= 2:
+            break
+
+
 def _agenda_cards(db: GameDB, cards: List[BriefCard]) -> None:
     if not _table_exists(db, "npc_agendas") or not _has_column(db, "npc_agendas", "progress"):
         return
@@ -1098,6 +1281,29 @@ def _clamp_int(value: object, low: int, high: int) -> int:
     except (TypeError, ValueError):
         num = low
     return max(low, min(high, num))
+
+
+def _worst_rival_of(db: GameDB, name: str) -> Tuple[str, int, str]:
+    if not name or not _table_exists(db, "relationships"):
+        return "", 0, ""
+    row = db.conn.execute(
+        """
+        SELECT r.b_name, r.opinion, r.basis
+        FROM relationships r
+        JOIN characters c ON c.name=r.b_name
+        WHERE r.a_name=?
+          AND r.opinion<=-55
+          AND c.status='active'
+          AND c.power_id='ming'
+          AND c.office_type!='后宫'
+        ORDER BY r.opinion ASC
+        LIMIT 1
+        """,
+        (name,),
+    ).fetchone()
+    if row is None:
+        return "", 0, ""
+    return str(row["b_name"] or ""), int(row["opinion"] or 0), str(row["basis"] or "")
 
 
 def _faction_representative(db: GameDB, faction: str) -> str:

@@ -433,6 +433,63 @@ class DrainPendingOutcomesTests(unittest.TestCase):
             finally:
                 sess.close()
 
+    def test_tax_increase_directive_leaves_persistent_burden(self):
+        """明显加派税负的旨意即使无 LLM delta，也要形成长期政策后果。"""
+        with TemporaryDirectory() as tmp:
+            sess = self._session(tmp)
+            try:
+                before = int(sess.db.get_fiscal_config().get("辽饷_base") or 0)
+                did = self._stage_done(
+                    sess,
+                    "敕曰：辽饷永为常例，各省加派辽饷以济军需，不得擅停。",
+                    {},
+                )
+
+                results = sess.drain_pending_outcomes()
+
+                after = int(sess.db.get_fiscal_config().get("辽饷_base") or 0)
+                self.assertEqual(len(results), 1)
+                self.assertGreater(after, before)
+                policy = results[0]["applied"]["policy_legacies"][0]
+                self.assertEqual(policy["stem"], "辽饷")
+                self.assertEqual(policy["duration_months"], -1)
+                self.assertLess(int(policy["modifiers"]["民心"]), 0)
+                legacy = sess.db.conn.execute(
+                    "SELECT name, duration_months, modifiers FROM legacies WHERE legacy_key=?",
+                    (f"directive_tax:{did}:辽饷",),
+                ).fetchone()
+                self.assertIsNotNone(legacy)
+                self.assertEqual(str(legacy["name"]), "苛税余波：辽饷")
+                self.assertEqual(int(legacy["duration_months"]), -1)
+                self.assertLess(int(json.loads(str(legacy["modifiers"]))["民心"]), 0)
+            finally:
+                sess.close()
+
+    def test_tax_burden_fallback_does_not_double_apply_extracted_fiscal_change(self):
+        with TemporaryDirectory() as tmp:
+            sess = self._session(tmp)
+            try:
+                before = int(sess.db.get_fiscal_config().get("辽饷_base") or 0)
+                did = self._stage_done(
+                    sess,
+                    "敕曰：辽饷永为常例，各省加派辽饷以济军需。",
+                    {"fiscal_changes": [{"key": "辽饷_base", "delta": 2, "reason": "测试明示调额"}]},
+                )
+
+                results = sess.drain_pending_outcomes()
+
+                after = int(sess.db.get_fiscal_config().get("辽饷_base") or 0)
+                self.assertEqual(after, before + 2)
+                policy = results[0]["applied"]["policy_legacies"][0]
+                self.assertEqual(policy["fiscal"]["reason"], "already_extracted")
+                self.assertEqual(policy["stem"], "辽饷")
+                self.assertIsNotNone(sess.db.conn.execute(
+                    "SELECT id FROM legacies WHERE legacy_key=?",
+                    (f"directive_tax:{did}:辽饷",),
+                ).fetchone())
+            finally:
+                sess.close()
+
     def test_drain_idempotent(self):
         """再次 drain 不重复落 delta（已 applied 不再处理）。"""
         with TemporaryDirectory() as tmp:
