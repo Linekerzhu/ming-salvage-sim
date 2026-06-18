@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from typing import Dict, List, Tuple
@@ -112,6 +113,168 @@ def _castration_traits_from_text(text: str, *, adult: bool) -> List[str]:
     return list(dict.fromkeys(traits))
 
 
+def _scheme_review_source_id(lore: Dict[str, object], scheme_profile: Dict[str, object]) -> str:
+    parts = [
+        str(scheme_profile.get("tier") or ""),
+        str(scheme_profile.get("risk_score") or ""),
+        str(scheme_profile.get("brutality") or ""),
+        str(scheme_profile.get("trauma_risk") or ""),
+        str(scheme_profile.get("surgery_risk") or ""),
+        str(scheme_profile.get("bao_security") or ""),
+    ]
+    parts.extend(
+        str(lore.get(key) or "")
+        for key in (
+            "castration_method",
+            "knife_tool",
+            "anesthesia",
+            "procedure_note",
+            "bao_size",
+            "bao_shape",
+            "bao_texture",
+            "bao_weight",
+            "bao_preservation",
+            "bao_container",
+            "bao_ritual",
+        )
+    )
+    digest = hashlib.sha1("|".join(parts).encode("utf-8")).hexdigest()[:16]
+    return f"scheme_review:{digest}"
+
+
+def _scheme_review_delta(scheme_profile: Dict[str, object]) -> Dict[str, int]:
+    if not bool(scheme_profile.get("explicit")):
+        return {}
+    risk = int(scheme_profile.get("risk_score") or 0)
+    brutality = int(scheme_profile.get("brutality") or 0)
+    trauma = int(scheme_profile.get("trauma_risk") or 0)
+    surgery = int(scheme_profile.get("surgery_risk") or 0)
+    bao_security = int(scheme_profile.get("bao_security") or 0)
+    delta = {"emp_trust": 0, "grievance": 0, "ability": 0, "wisdom": 0, "charm": 0, "luck": 0}
+    if risk >= 72:
+        delta["emp_trust"] -= 1 + (1 if brutality >= 80 else 0)
+        delta["grievance"] += 2 + (1 if trauma >= 78 else 0)
+        if surgery >= 72:
+            delta["ability"] -= 1
+        if trauma >= 80:
+            delta["luck"] -= 1
+    elif risk >= 55:
+        delta["grievance"] += 1
+        if surgery >= 68:
+            delta["charm"] -= 1
+    elif risk <= 34:
+        delta["emp_trust"] += 1
+        delta["grievance"] -= 1
+        if bao_security >= 70:
+            delta["luck"] += 1
+    return {key: value for key, value in delta.items() if value}
+
+
+def _apply_scheme_review_gameplay(
+    db: GameDB,
+    state: GameState,
+    name: str,
+    lore: Dict[str, object],
+    scheme_profile: Dict[str, object],
+) -> Dict[str, object]:
+    """Apply one-time gameplay consequences when a maintained lore scheme becomes concrete."""
+
+    if not bool(scheme_profile.get("explicit")):
+        return {}
+    delta = _scheme_review_delta(scheme_profile)
+    if not delta:
+        return {}
+    source_id = _scheme_review_source_id(lore, scheme_profile)
+    existed = db.conn.execute(
+        """
+        SELECT 1 FROM event_memories
+        WHERE subject_type='character' AND subject_id=? AND event_type='eunuch_scheme_review'
+          AND source_kind='dialogue_lore_update' AND source_id=?
+        """,
+        (name, source_id),
+    ).fetchone()
+    if existed is not None:
+        return {}
+    row = db.conn.execute(
+        "SELECT emp_trust, grievance, ability, wisdom, charm, luck FROM characters WHERE name=?",
+        (name,),
+    ).fetchone()
+    if row is None:
+        return {}
+    before = {
+        "emp_trust": int(row["emp_trust"] or 55),
+        "grievance": int(row["grievance"] or 20),
+        "ability": int(row["ability"] or 50),
+        "wisdom": int(row["wisdom"] or 50),
+        "charm": int(row["charm"] or 50),
+        "luck": int(row["luck"] or 50),
+    }
+    after = dict(before)
+    for key, value in delta.items():
+        if key in after:
+            after[key] = _clamp_0_100(after[key] + int(value or 0))
+    db.conn.execute(
+        """
+        UPDATE characters
+        SET emp_trust=?, grievance=?, ability=?, wisdom=?, charm=?, luck=?
+        WHERE name=?
+        """,
+        (
+            after["emp_trust"],
+            after["grievance"],
+            after["ability"],
+            after["wisdom"],
+            after["charm"],
+            after["luck"],
+            name,
+        ),
+    )
+    tier = str(scheme_profile.get("tier") or "方案未判")
+    risk = int(scheme_profile.get("risk_score") or 0)
+    outcome_bits = [
+        f"{label}{after[key] - before[key]:+d}"
+        for key, label in (
+            ("emp_trust", "信任"),
+            ("grievance", "怨望"),
+            ("ability", "才干"),
+            ("wisdom", "机敏"),
+            ("charm", "仪表"),
+            ("luck", "运势"),
+        )
+        if after[key] != before[key]
+    ]
+    db.upsert_event_memory(
+        state,
+        "character",
+        name,
+        "eunuch_scheme_review",
+        f"净身方案复盘：{name}",
+        cause="奏对补录净身方案",
+        process=(
+            f"{tier} 风险{risk}；酷烈{scheme_profile.get('brutality')}、"
+            f"惊创{scheme_profile.get('trauma_risk')}、伤身{scheme_profile.get('surgery_risk')}、"
+            f"宝案{scheme_profile.get('bao_security')}"
+        ),
+        outcome="，".join(outcome_bits),
+        sentiment="negative" if risk >= 55 else "positive",
+        importance=4 if risk >= 72 else 3,
+        tags=["净身", "方案复盘", tier],
+        source_kind="dialogue_lore_update",
+        source_id=source_id,
+    )
+    db.record_log(
+        state,
+        f"【净身方案复盘】{name}：{tier}（风险{risk}），{','.join(outcome_bits)}。",
+    )
+    return {
+        "tier": tier,
+        "risk_score": risk,
+        "delta": {key: after[key] - before[key] for key in before if after[key] != before[key]},
+        "effects": [str(item) for item in (scheme_profile.get("effects") or [])[:4] if str(item).strip()],
+        "source_id": source_id,
+    }
+
+
 def sync_castration_lore_gameplay(
     db: GameDB,
     state: GameState,
@@ -119,6 +282,8 @@ def sync_castration_lore_gameplay(
     lore: Dict[str, object],
     *,
     source: str = "dialogue_lore_update",
+    changed_keys: List[str] | None = None,
+    review_hint: str = "",
 ) -> Dict[str, object]:
     """Idempotently sync later lore maintenance into traits, inventory, and memory."""
     clean_name = str(name or "").strip()
@@ -179,7 +344,31 @@ def sync_castration_lore_gameplay(
         item_ids.append(f"遗失宝案：{clean_name}")
     granted = [item_id for item_id in item_ids if _grant_player_item_once(db, item_id, state)]
 
-    if new_traits or granted:
+    scheme_review: Dict[str, object] = {}
+    scheme_detail_keys = {
+        "castration_method",
+        "knife_tool",
+        "anesthesia",
+        "procedure_note",
+        "bao_size",
+        "bao_shape",
+        "bao_texture",
+        "bao_weight",
+        "bao_preservation",
+        "bao_container",
+    }
+    changed_set = {str(key) for key in (changed_keys or []) if str(key).strip()}
+    prospective = bool(re.search(r"若准|若仍准|待.{0,8}准|陛下.{0,8}准|准了再|请旨|可去|奴婢可|臣可", str(review_hint or "")))
+    if changed_set.intersection(scheme_detail_keys) and not prospective:
+        try:
+            from ming_sim.eunuch_lore import castration_scheme_profile
+            scheme_profile = castration_scheme_profile(lore)
+            if isinstance(scheme_profile, dict):
+                scheme_review = _apply_scheme_review_gameplay(db, state, clean_name, lore, scheme_profile)
+        except Exception:
+            scheme_review = {}
+
+    if new_traits or granted or scheme_review:
         db.upsert_event_memory(
             state,
             "character",
@@ -198,6 +387,10 @@ def sync_castration_lore_gameplay(
                 part for part in (
                     f"新增特质：{'、'.join(new_traits)}" if new_traits else "",
                     f"入库物件：{'、'.join(granted)}" if granted else "",
+                    (
+                        f"方案复盘：{scheme_review.get('tier')} 风险{scheme_review.get('risk_score')}"
+                        if scheme_review else ""
+                    ),
                 ) if part
             ),
             sentiment="negative" if any(t in new_traits for t in ("惊创未平", "尿路旧患", "情欲异化")) else "mixed",
@@ -213,7 +406,7 @@ def sync_castration_lore_gameplay(
             + (f"；入库{'、'.join(granted)}" if granted else ""),
         )
     db.conn.commit()
-    return {"traits_added": new_traits, "items_added": granted, "adult": adult}
+    return {"traits_added": new_traits, "items_added": granted, "adult": adult, "scheme_review": scheme_review}
 
 
 def _apply_castration_gameplay_consequences(

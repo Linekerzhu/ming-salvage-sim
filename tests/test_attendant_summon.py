@@ -2091,6 +2091,10 @@ class AttendantSummonTests(unittest.TestCase):
                 for r in game.db.conn.execute("SELECT trait FROM character_traits WHERE name=?", (name,)).fetchall()
             }
             before_inventory = {str(item["id"]) for item in game.db.list_player_inventory()}
+            before_stats = game.db.conn.execute(
+                "SELECT emp_trust, grievance, ability, luck FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
             chat_turn_id, snapshot = game._start_chat_turn(name)
 
             result = game._absorb_eunuch_lore_from_text(
@@ -2102,6 +2106,13 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertIn("gameplay", result)
             self.assertTrue(result["gameplay"]["traits_added"])
             self.assertTrue(result["gameplay"]["items_added"])
+            scheme_review = result["gameplay"].get("scheme_review")
+            self.assertTrue(scheme_review)
+            self.assertEqual(scheme_review["tier"], "酷烈高危")
+            self.assertGreaterEqual(int(scheme_review["risk_score"]), 72)
+            effect = game._eunuch_lore_dialogue_effect(result)
+            effect_labels = {str(item.get("label") or "") for item in effect.get("effects", [])}
+            self.assertTrue(any("方案复盘：酷烈高危" in label for label in effect_labels))
             game._record_chat_rollback_items(chat_turn_id, snapshot)
 
             after = game.public_character(game.content.characters[name])["castration"]
@@ -2122,6 +2133,12 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertIn("情欲异化", after_traits - before_traits)
             after_inventory = {str(item["id"]) for item in game.db.list_player_inventory()}
             self.assertIn(f"净身旧档：{name}", after_inventory - before_inventory)
+            after_stats = game.db.conn.execute(
+                "SELECT emp_trust, grievance, ability, luck FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertLessEqual(int(after_stats["emp_trust"]), int(before_stats["emp_trust"]))
+            self.assertGreater(int(after_stats["grievance"]), int(before_stats["grievance"]))
 
             game.db.undo_chat_turn(chat_turn_id)
             restored = game.public_character(game.content.characters[name])["castration"]
@@ -2135,6 +2152,14 @@ class AttendantSummonTests(unittest.TestCase):
             restored_inventory = {str(item["id"]) for item in game.db.list_player_inventory()}
             self.assertEqual(restored_traits, before_traits)
             self.assertEqual(restored_inventory, before_inventory)
+            restored_stats = game.db.conn.execute(
+                "SELECT emp_trust, grievance, ability, luck FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertEqual(int(restored_stats["emp_trust"]), int(before_stats["emp_trust"]))
+            self.assertEqual(int(restored_stats["grievance"]), int(before_stats["grievance"]))
+            self.assertEqual(int(restored_stats["ability"]), int(before_stats["ability"]))
+            self.assertEqual(int(restored_stats["luck"]), int(before_stats["luck"]))
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

@@ -1378,6 +1378,8 @@ class WebGame:
                         self.state,
                         target,
                         result.get("castration") if isinstance(result.get("castration"), dict) else {},
+                        changed_keys=list((result.get("updated") or {}).keys()) if isinstance(result.get("updated"), dict) else [],
+                        review_hint=raw,
                     )
                     if gameplay:
                         result["gameplay"] = gameplay
@@ -1439,10 +1441,16 @@ class WebGame:
                 effects.append({"kind": "eunuch_lore", "label": f"{label}：{text[:18]}", "tone": "info"})
         traits = [str(item).strip() for item in (gameplay.get("traits_added") or []) if str(item).strip()]
         items = [str(item).strip() for item in (gameplay.get("items_added") or []) if str(item).strip()]
+        scheme_review = gameplay.get("scheme_review") if isinstance(gameplay.get("scheme_review"), dict) else {}
         if traits:
             effects.append({"kind": "character_trait", "label": f"新增特质：{'、'.join(traits[:3])}", "tone": "warn"})
         if items:
             effects.append({"kind": "inventory", "label": f"入库：{'、'.join(items[:2])}", "tone": "good"})
+        if scheme_review:
+            tier = str(scheme_review.get("tier") or "方案复盘").strip()
+            risk = int(scheme_review.get("risk_score") or 0)
+            tone = "bad" if risk >= 72 else "warn" if risk >= 55 else "good"
+            effects.append({"kind": "castration_scheme", "label": f"方案复盘：{tier} 风险{risk}", "tone": tone})
         stage = ""
         castration = update.get("castration") if isinstance(update.get("castration"), dict) else {}
         profile = castration.get("voice_profile") if isinstance(castration.get("voice_profile"), dict) else {}
@@ -1454,6 +1462,8 @@ class WebGame:
             message_bits.append(f"{name}旧档更新")
         if traits:
             message_bits.append(f"新特质 {'、'.join(traits[:2])}")
+        if scheme_review:
+            message_bits.append(f"方案{scheme_review.get('tier')} 风险{scheme_review.get('risk_score')}")
         if not message_bits:
             message_bits.append("净身细节已入旧档")
         return {
