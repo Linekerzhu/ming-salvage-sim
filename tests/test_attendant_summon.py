@@ -155,6 +155,57 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_markdown_called_unlisted_person_can_be_registered_and_summoned(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            unknown = "陈贵"
+            self.assertNotIn(unknown, game.content.characters)
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                f"奴婢留心到锦衣卫南镇抚司那边一个叫**{unknown}**的试百户，武艺扎实，未必不肯近御前。",
+            )
+            stored = game._load_unknown_dialogue_mentions()
+            self.assertIn(unknown, stored)
+
+            events = list(game.chat_stream(attendant, f"叫{unknown}来见"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], unknown)
+            self.assertEqual(payload["registered_minister"], unknown)
+            row = game.db.conn.execute(
+                "SELECT office, office_type, summary FROM characters WHERE name=?",
+                (unknown,),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertIn("对白中提及", str(row["summary"] or ""))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_palace_nickname_unlisted_person_is_recorded_as_dialogue_mention(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            nickname = "小福子"
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                f"内书堂里那个叫**{nickname}**的火者，今年才十五，识字快、手脚勤。",
+            )
+
+            self.assertIn(nickname, game._load_unknown_dialogue_mentions())
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_direct_audience_suggestions_surface_personal_stakes(self):
         game = web_app.WebGame(fresh=True)
         try:

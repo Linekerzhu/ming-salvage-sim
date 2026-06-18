@@ -2989,7 +2989,7 @@ class WebGame:
         raw = str(text or "").strip()
         if not raw:
             return {}
-        if not re.search(r"(召|传|宣|请|唤|叫).{0,12}(来|入|觐|见|奏对|问对|进殿|入殿)", raw):
+        if not re.search(r"(召|传|宣|请|唤|叫|找|寻).{0,12}(来|入|觐|见|聊|谈|奏对|问对|进殿|入殿)", raw):
             return {}
         current = self.session._character(minister_name)
         candidates: List[Character] = []
@@ -3185,12 +3185,15 @@ class WebGame:
         )
         if len(name) >= 3 and name[:2] in compound_surnames:
             return name
+        if re.fullmatch(r"小[\u4e00-\u9fff]子", name):
+            return name
         if name[0] in single_surnames:
             return name
         return ""
 
     def _extract_unknown_person_mentions(self, text: str, include_command: bool = False) -> List[str]:
         raw = str(text or "")
+        scan = re.sub(r"[*_`]+", "", raw)
         names: List[str] = []
 
         def add(candidate: str) -> None:
@@ -3199,16 +3202,17 @@ class WebGame:
                 return
             names.append(clean)
 
-        for surname, given in re.findall(r"姓([\u4e00-\u9fff]{1,2})名([\u4e00-\u9fff]{1,2})", raw):
+        for surname, given in re.findall(r"姓([\u4e00-\u9fff]{1,2})名([\u4e00-\u9fff]{1,2})", scan):
             add(f"{surname}{given}")
         patterns = [
-            r"(?:名叫|唤作|叫作|叫做|名为|名唤)([\u4e00-\u9fff]{2,4})",
-            r"([\u4e00-\u9fff]{2,4})(?:此人|其人|这个人|这人|大人|先生|公公|主事|书办|幕客|内侍|太监|小火者|举人|秀才|贡生|吏员|百户|千户|游击|把总|盐商|粮长|乡绅|儒生|胥吏|山人)",
+            r"(?:名叫|唤作|叫作|叫做|名为|名唤|叫)([\u4e00-\u9fff]{2,4})(?:的|，|、|。|；|：|$)",
+            r"([\u4e00-\u9fff]{2,4})(?:此人|其人|这个人|这人|大人|先生|公公|主事|书办|幕客|内侍|太监|小火者|举人|秀才|贡生|吏员|试百户|百户|千户|游击|把总|盐商|粮长|乡绅|儒生|胥吏|山人)",
+            r"([\u4e00-\u9fff]{2,4})的(?:试百户|百户|千户|游击|把总|内侍|太监|小火者|火者|书办|幕客|胥吏|乡绅|儒生|盐商|粮长)",
         ]
         if include_command:
-            patterns.append(r"(?:找|寻|召|传|宣|请|唤|叫)([\u4e00-\u9fff]{2,4})(?:来|入|见|觐|奏对|问对|进殿|入殿)?")
+            patterns.append(r"(?:找|寻|召|传|宣|请|唤|叫)([\u4e00-\u9fff]{2,4})(?:来|入|见|觐|聊|谈|奏对|问对|进殿|入殿)?")
         for pattern in patterns:
-            for candidate in re.findall(pattern, raw):
+            for candidate in re.findall(pattern, scan):
                 add(str(candidate))
         return names
 
