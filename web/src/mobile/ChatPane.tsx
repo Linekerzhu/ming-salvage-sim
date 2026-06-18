@@ -243,16 +243,18 @@ export function ChatPane({
               <p className="m-bubble-text">{renderMentionedText(m.content, m.mentions, onOpenPerson)}</p>
             </div>
           ) : (
-            <div key={i} className="m-bubble-row">
-              <Portrait name={name} size={32} />
-              <div className="m-bubble is-other">
-                <span className="m-bubble-who">{speakerLabel}</span>
-                {m.stage_directions?.length ? (
-                  <div className="m-bubble-stage">
-                    {m.stage_directions.slice(0, 3).map((line, idx) => <span key={idx}>{line}</span>)}
-                  </div>
-                ) : null}
-                <p className="m-bubble-text">{renderMentionedText(cleanDisplayText(stripStageText(m.content, m.stage_directions)), m.mentions, onOpenPerson)}</p>
+            <div key={i} className="m-chat-block is-other">
+              {m.stage_directions?.length ? (
+                <div className="m-stage-cue" aria-label={`${speakerLabel}动作神态`}>
+                  {m.stage_directions.slice(0, 3).map((line, idx) => <span key={idx}>{line}</span>)}
+                </div>
+              ) : null}
+              <div className="m-bubble-row">
+                <Portrait name={name} size={32} />
+                <div className="m-bubble is-other">
+                  <span className="m-bubble-who">{speakerLabel}</span>
+                  <p className="m-bubble-text">{renderMentionedText(cleanDisplayText(stripStageText(m.content, m.stage_directions)), m.mentions, onOpenPerson)}</p>
+                </div>
               </div>
             </div>
           )
