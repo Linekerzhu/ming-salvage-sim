@@ -114,6 +114,7 @@ class AttendantSummonTests(unittest.TestCase):
             history = game._chat_history_payload(attendant)
 
             self.assertEqual(history[0]["mentions"][0]["name"], target)
+            self.assertEqual(history[0]["mentions"][0]["kind"], "character")
             self.assertIn(target, history[0]["mentions"][0]["terms"])
         finally:
             try:
@@ -348,6 +349,30 @@ class AttendantSummonTests(unittest.TestCase):
             personal = game._chat_message_mentions("王掌印说司礼监今日有事。")
             personal_terms = {term for item in personal for term in item["terms"]}
             self.assertIn("王掌印", personal_terms)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_chat_mentions_strip_title_only_aliases_but_keep_named_titles(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            generic = game._chat_message_mentions("首辅与次辅俱在内阁，掌印、秉笔在司礼监候旨。")
+            generic_terms = {term for item in generic for term in item["terms"]}
+            self.assertNotIn("首辅", generic_terms)
+            self.assertNotIn("次辅", generic_terms)
+            self.assertNotIn("掌印", generic_terms)
+            self.assertNotIn("秉笔", generic_terms)
+            self.assertNotIn("内阁", generic_terms)
+            self.assertNotIn("司礼监", generic_terms)
+
+            named = game._chat_message_mentions("黄首辅问内阁票拟，施次辅与王掌印在旁候旨。")
+            named_terms = {term for item in named for term in item["terms"]}
+            self.assertIn("黄首辅", named_terms)
+            self.assertIn("施次辅", named_terms)
+            self.assertIn("王掌印", named_terms)
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

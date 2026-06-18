@@ -594,7 +594,9 @@ class WebGame:
         "吏部", "户部", "礼部", "兵部", "刑部", "工部", "都察院", "翰林院", "詹事府",
         "大理寺", "太常寺", "光禄寺", "内官监", "御马监", "内书堂", "文书房", "南镇抚司",
         "南户部", "南京户部", "南京兵部", "南京礼部", "南京吏部", "南京工部", "南京刑部",
-        "尚书", "侍郎", "大学士", "掌印太监", "秉笔太监", "都指挥使", "内官", "内侍", "太监",
+        "首辅", "次辅", "阁老", "前首辅", "原首辅", "大学士", "尚书", "侍郎",
+        "掌印", "秉笔", "掌印太监", "秉笔太监", "都指挥使", "督师", "经略", "总督", "巡抚",
+        "提督", "少司马", "本兵", "都督", "指挥", "百户", "千户", "内官", "内侍", "太监",
         "司礼监掌印", "司礼监秉笔", "锦衣卫千户", "锦衣卫百户", "南镇抚司试百户",
     }
     _CHAT_MENTION_ORG_TOKENS = (
@@ -606,7 +608,14 @@ class WebGame:
     )
     _CHAT_MENTION_SURNAME_TITLE_SUFFIXES = (
         "吏部", "户部", "礼部", "兵部", "刑部", "工部",
-        "尚书", "侍郎", "掌印", "秉笔", "阁老", "厂臣", "都督", "指挥", "公公", "伴伴",
+        "首辅", "次辅", "阁老", "大学士", "尚书", "侍郎", "掌印", "秉笔",
+        "厂臣", "督师", "经略", "总督", "巡抚", "提督", "少司马", "本兵",
+        "都督", "指挥", "百户", "千户", "公公", "伴伴",
+    )
+    _CHAT_MENTION_TITLE_ONLY_SUFFIXES = (
+        "首辅", "次辅", "阁老", "大学士", "尚书", "侍郎", "掌印", "秉笔",
+        "厂臣", "督师", "经略", "总督", "巡抚", "提督", "少司马", "本兵",
+        "都督", "指挥", "百户", "千户",
     )
 
     def __init__(self, fresh: bool = False, username: str = "") -> None:
@@ -3164,6 +3173,13 @@ class WebGame:
             return True
         if clean in self._CHAT_MENTION_BLOCKED_ALIASES:
             return True
+        title_only = (
+            2 <= len(clean) <= 4
+            and any(clean.endswith(suffix) for suffix in self._CHAT_MENTION_TITLE_ONLY_SUFFIXES)
+            and not self._is_surname_title_alias(clean, character)
+        )
+        if title_only:
+            return True
         has_org_token = any(token in clean for token in self._CHAT_MENTION_ORG_TOKENS)
         if has_org_token and not self._is_surname_title_alias(clean, character):
             return True
@@ -3214,6 +3230,7 @@ class WebGame:
             if not terms:
                 continue
             mentions.append({
+                "kind": "character",
                 "name": name,
                 "terms": terms,
                 "has_profile": True,
