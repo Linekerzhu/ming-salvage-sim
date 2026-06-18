@@ -13,6 +13,7 @@ from ming_sim.playstyle import (
     _select_brief_cards,
     briefing_cards,
     briefing_payload,
+    legacy_chat_context_brief,
     petition_chat_context_brief,
 )
 from ming_sim.upgrade_schema import KV_CURRENT_DAY, KV_RISK_AVERSION, kv_set_int
@@ -376,12 +377,21 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertEqual(payload["filter"], "legacy")
             self.assertGreaterEqual(payload["total"], 1)
             card = next(c for c in payload["cards"] if c["ref_id"] == str(legacy_id))
-            self.assertEqual(card["tab"], "realm")
+            self.assertEqual(card["tab"], "audience")
+            self.assertEqual(card["cta"], "召人问余波")
+            self.assertTrue(card["actor"])
             self.assertEqual(card["meta"], "永久")
             self.assertIn("政策余波", str(card["title"]))
             labels = [str(e["label"]) for e in card["effects"]]
             self.assertIn("民心 -9%", labels)
             self.assertIn("永久", labels)
+
+            brief = legacy_chat_context_brief(db, str(card["actor"]), legacy_id)
+            self.assertIn("本次召对事项：长期政策余波", brief)
+            self.assertIn("苛税余波：辽饷", brief)
+            self.assertIn("不是新政空谈", brief)
+            self.assertIn("民心 -9%", brief)
+            self.assertIn("有代价的善后方案", brief)
 
     def test_agenda_near_maturity_becomes_audience_hook(self):
         with TemporaryDirectory() as tmp:

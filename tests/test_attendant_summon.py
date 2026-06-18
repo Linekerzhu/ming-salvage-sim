@@ -187,6 +187,60 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_legacy_context_is_actor_scoped_and_reaches_dialogue_prep(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND (office LIKE '%户部%' OR office_type LIKE '%户部%') "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            other = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' AND name!=? "
+                "ORDER BY ability DESC LIMIT 1",
+                (actor,),
+            ).fetchone()["name"])
+            legacy_id = game.db.insert_legacy(
+                game.state,
+                name="苛税余波：辽饷",
+                modifiers={"民心": -9},
+                narrative_hint="辽饷加派已入常例；钱粮见长，民心恢复受压。",
+                duration_months=-1,
+                legacy_key="directive_tax:7:辽饷",
+            )
+            game.session.dialogue_audit_client = lambda phase, payload: {  # type: ignore[assignment]
+                "goal_decision": "none",
+                "confidence": 90,
+            }
+            context = {
+                "kind": "legacy",
+                "actor": actor,
+                "ref_kind": "legacy",
+                "ref_id": str(legacy_id),
+            }
+
+            brief = game._chat_context_brief(actor, context)
+            mismatch = game._chat_context_brief(other, context)
+            augmented, prepared = game.session.prepare_chat_run(
+                game.content.characters[actor],
+                "这项旧政仍在拖动朝局，朕要听善后。",
+                supplemental_context=brief,
+            )
+
+            self.assertIn("本次召对事项：长期政策余波", brief)
+            self.assertEqual(mismatch, "")
+            self.assertIn("长期政策余波", augmented)
+            self.assertIn("长期政策余波", prepared.behavior_context)
+            self.assertIn("NPC对话行为档案", prepared.behavior_brief)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_mediation_requires_confirmation(self):
         game = web_app.WebGame(fresh=True)
         try:

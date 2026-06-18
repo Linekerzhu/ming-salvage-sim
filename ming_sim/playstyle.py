@@ -205,6 +205,72 @@ def petition_chat_context_brief(
     return "\n".join(lines)
 
 
+def legacy_chat_context_brief(
+    db: GameDB,
+    minister_name: str,
+    legacy_id: object,
+) -> str:
+    """Trusted context for discussing a long-running policy legacy in audience."""
+
+    name = str(minister_name or "").strip()
+    try:
+        lid = int(legacy_id or 0)
+    except (TypeError, ValueError):
+        lid = 0
+    if not name or lid <= 0 or not _table_exists(db, "legacies") or not _table_exists(db, "characters"):
+        return ""
+    minister = db.conn.execute(
+        """
+        SELECT name, office, office_type, faction
+        FROM characters
+        WHERE name=?
+          AND status='active'
+          AND power_id='ming'
+          AND office_type!='后宫'
+        """,
+        (name,),
+    ).fetchone()
+    if minister is None:
+        return ""
+    row = db.conn.execute(
+        """
+        SELECT id, name, modifiers, narrative_hint, duration_months, legacy_key
+        FROM legacies
+        WHERE id=? AND status='active'
+        """,
+        (lid,),
+    ).fetchone()
+    if row is None:
+        return ""
+    policy = _legacy_policy_payload(row)
+    if not policy["is_policy"]:
+        return ""
+    effects = policy_legacy_effect_labels_safe(row)
+    effect_text = "；".join(str(item.get("label") or "") for item in effects if str(item.get("label") or "").strip())
+    duration = int(policy["duration"])
+    duration_text = "永久" if duration < 0 else f"仍余{duration}月"
+    title = str(row["name"] or "旧政余波")
+    hint = str(row["narrative_hint"] or "")
+    stem = str(policy.get("stem") or "")
+    office = _short_office(str(minister["office"] or ""))
+    lines = [
+        "【本次召对事项：长期政策余波】",
+        f"- {office}{name}被召来讨论「{title}」：这是已经落库的长期后果，不是新政空谈。",
+        f"- 余波事实：{hint or '旧政仍在拖动朝局。'}",
+        f"- 持续性：{duration_text}" + (f"；当前修正：{effect_text}" if effect_text else "") + "。",
+    ]
+    if stem:
+        lines.append(
+            f"- 政策焦点：{stem}已成税负/钱粮旧账；可谈增收、民怨、地方承受、士绅阻力和善后路径。"
+        )
+    lines.extend([
+        "- NPC 应提出有代价的善后方案，例如分年蠲免、换税源、查中间侵吞、以新差事换旧政缓和；不要给无成本完美答案。",
+        "- 若皇帝要求立刻善后，先说清受益者、受损者、短期钱粮缺口与可能引发的党争。",
+        "- 只有皇帝明确命其承办或要求拟旨，才进入奏对目的或拟旨；不要把本段机制文字复述给玩家。",
+    ])
+    return "\n".join(lines)
+
+
 def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[BriefCard]:
     """Collect all actionable hooks before the home-screen outliner chooses a subset."""
 
@@ -1005,22 +1071,11 @@ def _policy_legacy_cards(db: GameDB, state: Optional[GameState], cards: List[Bri
     for row in rows:
         name = str(row["name"] or "")
         hint = str(row["narrative_hint"] or "")
-        key = str(row["legacy_key"] or "")
-        try:
-            modifiers = json.loads(str(row["modifiers"] or "{}"))
-        except (TypeError, ValueError):
-            modifiers = {}
-        minxin = int(modifiers.get("民心") or 0) if isinstance(modifiers, dict) else 0
-        if not (
-            key.startswith("directive_tax:")
-            or any(token in name + hint for token in ("苛税", "税负", "加派", "辽饷", "商税", "盐税", "田赋"))
-            or minxin <= -6
-        ):
+        policy = _legacy_policy_payload(row)
+        if not policy["is_policy"]:
             continue
-        try:
-            duration = int(row["duration_months"] or 0)
-        except (TypeError, ValueError):
-            duration = 0
+        duration = int(policy["duration"])
+        minxin = int(policy["minxin"])
         remaining = -1 if duration < 0 else duration
         if state is not None and duration >= 0:
             try:
@@ -1028,12 +1083,8 @@ def _policy_legacy_cards(db: GameDB, state: Optional[GameState], cards: List[Bri
             except Exception:
                 remaining = duration
         duration_label = "永久" if duration < 0 else f"余{remaining}月"
-        effects: List[Dict[str, str]]
-        try:
-            from ming_sim.policies import policy_legacy_effect_labels
-            effects = policy_legacy_effect_labels(row)
-        except Exception:
-            effects = []
+        effects = policy_legacy_effect_labels_safe(row)
+        actor = _policy_legacy_actor(db, row)
         cards.append(
             _card(
                 kind="legacy",
@@ -1041,8 +1092,9 @@ def _policy_legacy_cards(db: GameDB, state: Optional[GameState], cards: List[Bri
                 detail=hint or "此项旧政仍在拖动朝局。钱粮、民心与地方承受力不会因办结而立刻归零。",
                 urgency=68 + min(24, abs(minxin) * 2) + (8 if duration < 0 else 0),
                 tone="danger" if duration < 0 or minxin <= -10 else "warn",
-                cta="看天下",
-                tab=_TAB_REALM,
+                cta="召人问余波" if actor else "看天下",
+                tab=_TAB_AUDIENCE if actor else _TAB_REALM,
+                actor=actor,
                 meta=duration_label,
                 ref_kind="legacy",
                 ref_id=str(row["id"]),
@@ -1052,6 +1104,83 @@ def _policy_legacy_cards(db: GameDB, state: Optional[GameState], cards: List[Bri
         count += 1
         if count >= 2:
             break
+
+
+def _legacy_policy_payload(row) -> Dict[str, object]:
+    name = str(row["name"] or "")
+    hint = str(row["narrative_hint"] or "")
+    key = str(row["legacy_key"] or "")
+    try:
+        modifiers = json.loads(str(row["modifiers"] or "{}"))
+    except (TypeError, ValueError):
+        modifiers = {}
+    minxin = int(modifiers.get("民心") or 0) if isinstance(modifiers, dict) else 0
+    try:
+        duration = int(row["duration_months"] or 0)
+    except (TypeError, ValueError):
+        duration = 0
+    stem = _legacy_tax_stem(name, hint, key)
+    is_policy = (
+        key.startswith("directive_tax:")
+        or bool(stem)
+        or any(token in name + hint for token in ("苛税", "税负", "加派", "加征", "常税"))
+        or minxin <= -6
+    )
+    return {"is_policy": is_policy, "minxin": minxin, "duration": duration, "stem": stem}
+
+
+def _legacy_tax_stem(name: str, hint: str, key: str) -> str:
+    text = f"{name} {hint} {key}"
+    for stem in ("辽饷", "商税", "盐税", "矿税", "田赋"):
+        if stem in text:
+            return stem
+    if "税" in text or "饷" in text or "派" in text:
+        return "税负"
+    return ""
+
+
+def policy_legacy_effect_labels_safe(row) -> List[Dict[str, str]]:
+    try:
+        from ming_sim.policies import policy_legacy_effect_labels
+        return policy_legacy_effect_labels(row)
+    except Exception:
+        return []
+
+
+def _policy_legacy_actor(db: GameDB, row) -> str:
+    policy = _legacy_policy_payload(row)
+    if not policy["is_policy"] or not _table_exists(db, "characters"):
+        return ""
+    stem = str(policy.get("stem") or "")
+    fiscal_first = bool(stem and any(token in stem for token in ("税", "饷", "田赋", "商税", "盐税", "矿税")))
+    order_clause = (
+        """
+        CASE
+          WHEN office LIKE '%户部%' OR office_type LIKE '%户部%' THEN 0
+          WHEN office LIKE '%内阁%' OR office_type LIKE '%内阁%' THEN 1
+          WHEN office LIKE '%都察院%' OR office_type LIKE '%都察院%' THEN 2
+          ELSE 3
+        END,
+        """
+        if fiscal_first
+        else ""
+    )
+    row2 = db.conn.execute(
+        f"""
+        SELECT name
+        FROM characters
+        WHERE status='active'
+          AND power_id='ming'
+          AND office_type!='后宫'
+          AND name!='崇祯'
+        ORDER BY
+          {order_clause}
+          ability DESC,
+          integrity DESC
+        LIMIT 1
+        """
+    ).fetchone()
+    return str(row2["name"] or "") if row2 is not None else ""
 
 
 def _agenda_cards(db: GameDB, cards: List[BriefCard]) -> None:
