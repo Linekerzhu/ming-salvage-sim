@@ -1102,6 +1102,87 @@ def monthly_followup_chat_context_brief(db: GameDB, minister_name: str) -> str:
     return "\n".join(lines)
 
 
+def relationship_chat_context_brief(
+    db: GameDB,
+    minister_name: str,
+    *,
+    target: str = "",
+) -> str:
+    """Trusted context for summoning someone about a concrete ally/rival tie."""
+
+    name = str(minister_name or "").strip()
+    other = str(target or "").strip()
+    if not name or not other or name == other:
+        return ""
+    if not _table_exists(db, "relationships") or not _table_exists(db, "characters"):
+        return ""
+    relation = db.conn.execute(
+        """
+        SELECT opinion, basis
+        FROM relationships
+        WHERE a_name=? AND b_name=?
+        LIMIT 1
+        """,
+        (name, other),
+    ).fetchone()
+    if relation is None:
+        return ""
+    self_row = db.conn.execute(
+        """
+        SELECT name, office, faction, ability, integrity, emp_trust, grievance
+        FROM characters
+        WHERE name=? AND status='active' AND power_id='ming' AND office_type!='后宫' AND name!='崇祯'
+        """,
+        (name,),
+    ).fetchone()
+    other_row = db.conn.execute(
+        """
+        SELECT name, office, faction, emp_trust, grievance
+        FROM characters
+        WHERE name=? AND status='active' AND power_id='ming' AND office_type!='后宫'
+        """,
+        (other,),
+    ).fetchone()
+    if self_row is None or other_row is None:
+        return ""
+
+    opinion = _clamp_int(relation["opinion"], -100, 100)
+    basis = str(relation["basis"] or "人情往来")
+    office = _short_office(str(self_row["office"] or ""))
+    other_office = _short_office(str(other_row["office"] or ""))
+    faction = str(self_row["faction"] or "").strip()
+    ability = _clamp_int(self_row["ability"], 0, 100)
+    integrity = _clamp_int(self_row["integrity"], 0, 100)
+    trust = _clamp_int(self_row["emp_trust"], 0, 100)
+    grievance = _clamp_int(self_row["grievance"], 0, 100)
+    positive = opinion >= 0
+    label = "党援担保" if positive else "旧怨调停"
+    relation_line = (
+        f"- 关系焦点：{office}{name}对{other_office}{other}的好感为 {opinion}，旧因「{basis}」。"
+        "这场召对要围绕这段关系问，不是普通问策。"
+    )
+    lines = [
+        f"【本次召对事项：人情关系·{label}】",
+        relation_line,
+        f"- 当前人心：才干 {ability}，操守 {integrity}，御前信任 {trust}，怨望 {grievance}"
+        + (f"，派系 {faction}" if faction and faction not in {"无", "中立"} else "")
+        + "。",
+    ]
+    if positive:
+        lines.extend([
+            f"- 可谈玩法：皇帝可要求{name}替{other}担保、举荐、共办小差或交出避嫌条件；NPC 可以护短、讨价还价，也可把人情换成差使。",
+            "- 两难要求：党援不是免费资源。答应担保会增强人情网，也会留下植党、连坐和政敌反扑的风险。",
+            "- 口吻要求：不要把同党说成抽象资源，要以故旧、同乡、举主、门生、同道等具体人情说话。",
+        ])
+    else:
+        lines.extend([
+            f"- 可谈玩法：皇帝可追问{name}与{other}的旧怨，命其共办、各退一步，或借一方制衡另一方。",
+            "- 两难要求：调停只能降温，不能凭一句话清零旧怨；偏袒任何一方都会改变信任、怨望和派系观感。",
+            "- 口吻要求：NPC 应承认或辩解自己的私怨，同时提出边界、证据、差使或皇帝需承担的代价。",
+        ])
+    return "\n".join(lines)
+
+
 def patronage_chat_context_brief(
     db: GameDB,
     minister_name: str,

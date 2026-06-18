@@ -1006,9 +1006,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   border-radius: 7px; padding: 6px 8px; }
 .m-agenda-bargain b { display: inline-block; margin-right: 6px; color: var(--cinnabar); font-size: .72rem; }
 .m-ties { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 4px; }
-.m-tie { flex: 1 1 178px; max-width: 100%; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto;
-  align-items: center; gap: 3px 7px; padding: 5px 8px 6px 5px; border-radius: 8px;
-  border: 1px solid var(--gold-line); background: rgba(0,0,0,.04); cursor: pointer; text-align: left; }
+.m-tie { flex: 1 1 202px; max-width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch; gap: 4px; padding: 0; border-radius: 8px;
+  border: 1px solid var(--gold-line); background: rgba(0,0,0,.04); text-align: left; overflow: hidden; }
+.m-tie-open { min-width: 0; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center;
+  gap: 3px 7px; padding: 5px 4px 6px 5px; text-align: left; color: inherit; }
+.m-tie-summon { align-self: stretch; margin: 5px 6px 5px 0; padding: 0 8px; min-width: 42px; border-radius: 7px;
+  color: var(--gold-deep); background: rgba(181,134,58,.14); border: 1px solid rgba(181,134,58,.28);
+  font-size: .68rem; font-weight: 800; white-space: nowrap; }
 .m-tie.is-ally { border-color: rgba(74,128,96,.55); background: rgba(74,128,96,.1); }
 .m-tie.is-rival { border-color: rgba(158,52,41,.5); background: rgba(158,52,41,.1); }
 .m-tie-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

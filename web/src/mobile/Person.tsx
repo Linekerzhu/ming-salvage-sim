@@ -6,7 +6,7 @@ import { Portrait } from "./Portrait";
 import type { PersonFocus, PersonOpen } from "./personCtx";
 import { PersonCtx } from "./personCtx";
 import { loadCharacter, loadCourt, intrigueInvestigate, intrigueCoerce, intrigueFabricate, intrigueDiscord, courtBack } from "./api";
-import type { CourtBackKind, CourtPayload, ImpactEffect, IntriguePreviewKind } from "./api";
+import type { AudienceLead, CourtBackKind, CourtPayload, CourtTie, ImpactEffect, IntriguePreviewKind, Suggestion } from "./api";
 import { useGame } from "./GameData";
 
 const AGENDA_CN: Record<string, string> = {
@@ -14,6 +14,7 @@ const AGENDA_CN: Record<string, string> = {
 };
 
 type ImpactTag = { label: string; tone?: "good" | "warn" | "bad" | "info" };
+type PersonSummon = (name: string, lead?: AudienceLead) => void;
 
 function servilityTone(value?: number): string {
   const v = Number(value ?? 0);
@@ -81,12 +82,47 @@ function tieScore(t: { opinion?: number; strength_label?: string }): string {
   return value >= 0 ? `亲${value}` : `怨${Math.abs(value)}`;
 }
 
+function relationPrompts(owner: string, target: string, positive: boolean): Suggestion[] {
+  return positive ? [
+    { label: "问担保", text: `你与${target}有这层人情。若朕要用他办事，你愿拿什么名节、差使或期限替他担保？`, prefix: true },
+    { label: "防植党", text: `朕可以借你的人情，但不能容你借公事植党。你和${target}之间的门路、人情账，今日说清楚。`, prefix: true },
+    { label: "令共办", text: `若朕令你与${target}共办一件可验小差，既验人情也验才干，你肯不肯？条件是什么？`, prefix: true },
+  ] : [
+    { label: "追旧怨", text: `朕知道你与${target}有旧怨。今日不听泛泛分辩，只问：此怨从何起，哪一处还能退？`, prefix: true },
+    { label: "命共办", text: `若朕令你与${target}共办一差，把私怨压成公事，你肯不肯？你要朕给什么边界？`, prefix: true },
+    { label: "借制衡", text: `${target}也非全无可用。若朕借你制衡他，代价是什么，反噬会落到谁身上？`, prefix: true },
+  ];
+}
+
+function relationLead(owner: string, tie: CourtTie): AudienceLead {
+  const target = tie.name;
+  const positive = Number(tie.opinion || 0) >= 0;
+  const basis = tie.basis || (positive ? "声气相通" : "旧怨未解");
+  const score = tieScore(tie);
+  const title = positive ? `人情召对：${owner}与${target}` : `旧怨召对：${owner}与${target}`;
+  return {
+    kind: "relationship",
+    title,
+    detail: `${score} · ${basis}${tie.play_hint ? `。${tie.play_hint}` : ""}`,
+    tone: positive ? "info" : "warn",
+    actor: owner,
+    target,
+    meta: score,
+    ref_kind: "relationship",
+    ref_id: `${owner}:${target}`,
+    opening: positive
+      ? `${owner}入殿后先提到${target}：这层「${basis}」不是不能为朝廷所用，但若陛下要借人情，须先说清担保、避嫌与连坐。`
+      : `${owner}入殿时神色一紧：与${target}的「${basis}」不是一句误会能抹平。若陛下要调停或借势制衡，须先给个边界。`,
+    prompts: relationPrompts(owner, target, positive),
+  };
+}
+
 function shortText(value: unknown): string {
   const text = String(value || "无");
   return text.length > 8 ? `${text.slice(0, 8)}…` : text;
 }
 
-function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?: PersonFocus; onClose: () => void; onSummon?: (name: string) => void }) {
+function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?: PersonFocus; onClose: () => void; onSummon?: PersonSummon }) {
   const [c, setC] = useState<Record<string, any> | null>(null);
   const [court, setCourt] = useState<CourtPayload | null>(null);
   const [err, setErr] = useState(false);
@@ -123,6 +159,11 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
     if (!canSummon || !onSummon) return;
     onClose();
     onSummon(name);
+  };
+  const summonRelation = (tie: CourtTie) => {
+    if (!canSummon || !onSummon) return;
+    onClose();
+    onSummon(name, relationLead(name, tie));
   };
   async function reloadAfterAction(beforeC: Record<string, any> | null, beforeCourt: CourtPayload | null) {
     const [nextCharacter, nextCourt] = await Promise.all([
@@ -319,22 +360,28 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
             <span className="m-person-h">党羽 · 政敌</span>
             <div className="m-ties">
               {court!.allies.map((t) => (
-                <button key={`a-${t.name}`} className="m-tie is-ally" onClick={() => openPerson(t.name)}>
-                  <Portrait name={t.name} size={26} interactive={false} />
-                  <span className="m-tie-name">{t.name}</span>
-                  <span className="m-tie-score">{tieScore(t)}</span>
-                  <span className="m-tie-basis">{t.basis}</span>
-                  {t.play_hint && <span className="m-tie-hint">{t.play_hint}</span>}
-                </button>
+                <div key={`a-${t.name}`} className="m-tie is-ally">
+                  <button className="m-tie-open" onClick={() => openPerson(t.name)}>
+                    <Portrait name={t.name} size={26} interactive={false} />
+                    <span className="m-tie-name">{t.name}</span>
+                    <span className="m-tie-score">{tieScore(t)}</span>
+                    <span className="m-tie-basis">{t.basis}</span>
+                    {t.play_hint && <span className="m-tie-hint">{t.play_hint}</span>}
+                  </button>
+                  {canSummon && onSummon && <button className="m-tie-summon" onClick={() => summonRelation(t)}>召问</button>}
+                </div>
               ))}
               {court!.rivals.map((t) => (
-                <button key={`r-${t.name}`} className="m-tie is-rival" onClick={() => openPerson(t.name)}>
-                  <Portrait name={t.name} size={26} interactive={false} />
-                  <span className="m-tie-name">{t.name}</span>
-                  <span className="m-tie-score">{tieScore(t)}</span>
-                  <span className="m-tie-basis">{t.basis}</span>
-                  {t.play_hint && <span className="m-tie-hint">{t.play_hint}</span>}
-                </button>
+                <div key={`r-${t.name}`} className="m-tie is-rival">
+                  <button className="m-tie-open" onClick={() => openPerson(t.name)}>
+                    <Portrait name={t.name} size={26} interactive={false} />
+                    <span className="m-tie-name">{t.name}</span>
+                    <span className="m-tie-score">{tieScore(t)}</span>
+                    <span className="m-tie-basis">{t.basis}</span>
+                    {t.play_hint && <span className="m-tie-hint">{t.play_hint}</span>}
+                  </button>
+                  {canSummon && onSummon && <button className="m-tie-summon" onClick={() => summonRelation(t)}>召问</button>}
+                </div>
               ))}
             </div>
           </div>
@@ -453,7 +500,7 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
   );
 }
 
-export function PersonProvider({ children, onSummon }: { children: ReactNode; onSummon?: (name: string) => void }) {
+export function PersonProvider({ children, onSummon }: { children: ReactNode; onSummon?: PersonSummon }) {
   const [who, setWho] = useState<{ name: string; focus?: PersonFocus } | null>(null);
   const openPerson: PersonOpen = (target) => {
     const name = (typeof target === "string" ? target : target.name).trim();

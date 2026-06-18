@@ -908,6 +908,56 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_relationship_context_surfaces_positive_tie_stakes(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            target = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' AND name!=? "
+                "LIMIT 1",
+                (actor,),
+            ).fetchone()["name"])
+            court._set_opinion(game.db, actor, target, 64, "同乡盟友", 1)
+            court._set_opinion(game.db, target, actor, 58, "同乡盟友", 1)
+            game.db.conn.commit()
+            game.session.dialogue_audit_client = lambda phase, payload: {  # type: ignore[assignment]
+                "goal_decision": "none",
+                "confidence": 90,
+            }
+            context = {
+                "kind": "relationship",
+                "actor": actor,
+                "target": target,
+                "ref_kind": "relationship",
+                "ref_id": f"{actor}:{target}",
+            }
+
+            brief = game._chat_context_brief(actor, context)
+            mismatch = game._chat_context_brief("王承恩", context)
+            augmented, prepared = game.session.prepare_chat_run(
+                game.content.characters[actor],
+                f"朕想问你和{target}的这层人情。",
+                supplemental_context=brief,
+            )
+
+            self.assertIn("本次召对事项：人情关系·党援担保", brief)
+            self.assertIn("担保", brief)
+            self.assertIn("植党", brief)
+            self.assertEqual(mismatch, "")
+            self.assertIn("党援担保", augmented)
+            self.assertIn("党援担保", prepared.behavior_context)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_faction_context_is_representative_scoped_and_reaches_dialogue_prep(self):
         game = web_app.WebGame(fresh=True)
         try:
