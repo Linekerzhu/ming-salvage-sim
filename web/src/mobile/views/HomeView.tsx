@@ -287,6 +287,13 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                         <button className="m-brief-action" onClick={() => inspect(card.actor)}>查举主</button>
                         <button className="m-brief-action" onClick={() => inspect(card.target)}>查新人</button>
                       </>
+                    ) : card.kind === "relationship" && card.actor && card.target ? (
+                      <>
+                        <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, card.target)}>召担保人</button>
+                        <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.target!, card.actor)}>召关系人</button>
+                        <button className="m-brief-action" onClick={() => inspect(card.actor)}>查{shortName(card.actor)}</button>
+                        <button className="m-brief-action" onClick={() => inspect(card.target)}>查{shortName(card.target)}</button>
+                      </>
                     ) : card.kind === "trap_remedy" && card.actor ? (
                       <>
                         <button className="m-brief-action primary" onClick={() => inspect(card.actor, "back")}>去买单›</button>
@@ -421,6 +428,7 @@ function kindMark(kind: string): string {
   if (kind === "directive_followup") return "复";
   if (kind === "monthly_followup") return "候";
   if (kind === "patronage") return "荐";
+  if (kind === "relationship") return "情";
   if (kind === "trap") return "任";
   if (kind === "trap_remedy") return "担";
   if (kind === "petition") return "求";
@@ -476,6 +484,13 @@ export function closurePromptForAudience(kind: string, actor = "你", target = "
     return {
       label: "定下一手",
       text: `荐人不是空话。现在定下一手：${who}与${other}谁领试差、几日见证据、举主和新人各担什么责？`,
+      prefix: true,
+    };
+  }
+  if (kind === "relationship") {
+    return {
+      label: "定下一手",
+      text: `人情不是空账。现在定下一手：${who}替${other}担什么保、共办什么差、几日交证据，若坏事谁连坐？`,
       prefix: true,
     };
   }
@@ -536,6 +551,9 @@ function audienceOpeningFromBrief(card: PlaystyleBriefCard, actor = card.actor |
     return target
       ? `${speaker}入殿先谈举荐：举荐不是一纸名帖。此番愿当面说清${counterpart}可用何处，也愿担该担的风险。`
       : `${speaker}趋入候旨，愿受陛下试用，但也请陛下明察自己从何处来、受谁举荐。`;
+  }
+  if (card.kind === "relationship") {
+    return `${speaker}趋入后先替${counterpart}留了半句余地：这层人情不是白纸黑字的官箴，却牵着同党、故旧和担保。今日若陛下要问，愿说可担哪一步，也要说清边界。`;
   }
   if (card.kind === "agenda") {
     return agendaOpening(card, speaker, topic, counterpart);
@@ -704,6 +722,13 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
         ? { label: "验新人", text: `${counterpart}究竟有什么可用之处，短板在哪里？若朕给他一件试差，几日能见证据？`, prefix: true }
         : { label: "问避嫌", text: `你与${counterpart}有人情牵连。若朕用你办事，你如何避嫌、如何交账、如何不只替举主说话？`, prefix: true },
       { label: "防植党", text: `荐人可以，但不可借荐人植党。你和${counterpart}的关系、派系、人情账，今日要说清楚。`, prefix: true },
+    ];
+  }
+  if (card.kind === "relationship") {
+    return [
+      { label: "问担保", text: `朕知道你与${counterpart}有一层人情。今日说清楚：你肯替他担保到哪一步，拿什么名节或差使作保？`, prefix: true },
+      { label: "命共办", text: `若朕令你与${counterpart}共办一件可验小差，既用人情也防植党，你肯不肯？条件是什么？`, prefix: true },
+      { label: "问避嫌", text: `人情可用，也可坏政。你如何避嫌、如何交账，若${counterpart}误事你愿担什么责？`, prefix: true },
     ];
   }
   if (card.kind === "agenda") {

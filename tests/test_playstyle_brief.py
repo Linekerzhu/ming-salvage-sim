@@ -21,6 +21,7 @@ from ming_sim.playstyle import (
     monthly_followup_chat_context_brief,
     patronage_chat_context_brief,
     petition_chat_context_brief,
+    relationship_chat_context_brief,
     rivalry_chat_context_brief,
 )
 from ming_sim.upgrade_schema import KV_CURRENT_DAY, KV_RISK_AVERSION, kv_set_int
@@ -591,6 +592,70 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("当前入对者是新人", candidate_brief)
             self.assertIn("证明自己不是", candidate_brief)
             self.assertIn("不要把荐人写成免费人才池", candidate_brief)
+
+    def test_positive_relationship_becomes_guarantor_brief_card(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            names = [
+                str(r["name"]) for r in db.conn.execute(
+                    "SELECT name FROM characters "
+                    "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                    "ORDER BY ability DESC LIMIT 2"
+                ).fetchall()
+            ]
+            actor, target = names
+            db.conn.execute("DELETE FROM relationships")
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=62, grievance=18 WHERE name IN (?, ?)",
+                (actor, target),
+            )
+            court._set_opinion(db, actor, target, 68, "同乡盟友", 1)
+            court._set_opinion(db, target, actor, 46, "同乡盟友", 1)
+            db.conn.commit()
+
+            payload = briefing_payload(db, state, limit=5, kind="relationship")
+
+            self.assertEqual(payload["filter"], "relationship")
+            self.assertGreaterEqual(payload["total"], 1)
+            card = next(c for c in payload["cards"] if c["kind"] == "relationship")
+            self.assertEqual(card["tab"], "audience")
+            self.assertEqual(card["actor"], actor)
+            self.assertEqual(card["target"], target)
+            self.assertEqual(card["cta"], "召来问担保")
+            self.assertEqual(card["ref_kind"], "relationship")
+            self.assertIn("人情担保", str(card["title"]))
+            labels = [str(e["label"]) for e in card["effects"]]
+            self.assertIn("关系 68", labels)
+            self.assertIn("同乡盟友", labels)
+            self.assertIn("可担保/可植党", labels)
+            stake_labels = [str(e["label"]) for e in card["stakes"]]
+            self.assertEqual(stake_labels, ["借人情成事", "党援坐大", "连坐担保"])
+            buckets = {str(b["kind"]): b for b in payload["buckets"]}
+            self.assertEqual(buckets["relationship"]["label"], "人情")
+
+            brief = relationship_chat_context_brief(db, actor, target=target)
+            self.assertIn("本次召对事项：人情关系·党援担保", brief)
+            self.assertIn("同乡盟友", brief)
+
+    def test_recommendation_relationship_stays_patronage_not_generic_relationship(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            sponsor = _active_minister(db)
+            candidate = str(db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' AND name!=? "
+                "LIMIT 1",
+                (sponsor,),
+            ).fetchone()["name"])
+            db.conn.execute("DELETE FROM relationships")
+            court.adjust_opinion(db, sponsor, candidate, +68, "举荐入朝", day=1, reciprocal=False)
+            court.adjust_opinion(db, candidate, sponsor, +46, "举主恩义", day=1, reciprocal=False)
+
+            relationship_payload = briefing_payload(db, state, limit=5, kind="relationship")
+            patronage_payload = briefing_payload(db, state, limit=5, kind="patronage")
+
+            self.assertEqual(relationship_payload["total"], 0)
+            self.assertGreaterEqual(patronage_payload["total"], 1)
 
     def test_active_tax_legacy_becomes_policy_aftershock_card(self):
         with TemporaryDirectory() as tmp:

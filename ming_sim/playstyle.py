@@ -32,12 +32,13 @@ _KIND_PRIORITY = {
     "trap_remedy": 6,
     "petition": 7,
     "favor": 8,
-    "legacy": 9,
-    "army": 10,
-    "faction": 11,
-    "agenda": 12,
-    "rivalry": 13,
-    "hook": 14,
+    "relationship": 9,
+    "legacy": 10,
+    "army": 11,
+    "faction": 12,
+    "agenda": 13,
+    "rivalry": 14,
+    "hook": 15,
 }
 
 _KIND_LABELS = {
@@ -50,6 +51,7 @@ _KIND_LABELS = {
     "trap_remedy": "担责",
     "petition": "求援",
     "favor": "旧恩",
+    "relationship": "人情",
     "legacy": "余波",
     "army": "军镇",
     "faction": "派系",
@@ -1288,6 +1290,7 @@ def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[
     _patronage_cards(db, cards)
     _petition_cards(db, cards)
     _favor_cards(db, state, cards)
+    _relationship_cards(db, cards)
     _policy_legacy_cards(db, state, cards)
     _agenda_cards(db, cards)
     _rivalry_cards(db, cards)
@@ -1476,6 +1479,11 @@ def _card_stakes(kind: str) -> List[Dict[str, str]]:
             ("gain", "旧恩驱动", "good"),
             ("cost", "反向要赏", "bad"),
             ("ask", "换难差", "neutral"),
+        ],
+        "relationship": [
+            ("gain", "借人情成事", "good"),
+            ("cost", "党援坐大", "bad"),
+            ("ask", "连坐担保", "neutral"),
         ],
         "legacy": [
             ("gain", "缓民怨", "good"),
@@ -2888,6 +2896,112 @@ def _favor_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard])
                 ref_kind="memory",
                 ref_id=str(row["id"] or ""),
                 effects=effects,
+            )
+        )
+        count += 1
+        if count >= 2:
+            break
+
+
+def _relationship_cards(db: GameDB, cards: List[BriefCard]) -> None:
+    """Surface strong positive ties as playable guarantor / patronage bargains."""
+
+    if not _table_exists(db, "relationships") or not _table_exists(db, "characters"):
+        return
+    rows = _safe_fetchall(
+        db,
+        """
+        SELECT r.a_name, r.b_name, r.opinion, r.basis,
+               rr.opinion AS reverse_opinion, rr.basis AS reverse_basis,
+               ca.office AS a_office, ca.faction AS a_faction, ca.emp_trust AS a_trust,
+               ca.grievance AS a_grievance,
+               cb.office AS b_office, cb.faction AS b_faction, cb.emp_trust AS b_trust,
+               cb.grievance AS b_grievance
+        FROM relationships r
+        JOIN characters ca ON ca.name=r.a_name
+        JOIN characters cb ON cb.name=r.b_name
+        LEFT JOIN relationships rr ON rr.a_name=r.b_name AND rr.b_name=r.a_name
+        WHERE r.opinion>=55
+          AND ca.status='active'
+          AND cb.status='active'
+          AND ca.power_id='ming'
+          AND cb.power_id='ming'
+          AND ca.office_type!='后宫'
+          AND cb.office_type!='后宫'
+          AND ca.name!='崇祯'
+          AND cb.name!='崇祯'
+        ORDER BY r.opinion DESC, COALESCE(rr.opinion, 0) DESC, ca.ability DESC
+        LIMIT 24
+        """,
+    )
+    seen: Set[tuple[str, str]] = set()
+    count = 0
+    for row in rows:
+        actor = str(row["a_name"] or "").strip()
+        target = str(row["b_name"] or "").strip()
+        if not actor or not target or actor == target:
+            continue
+        key = tuple(sorted((actor, target)))
+        if key in seen:
+            continue
+        seen.add(key)
+        basis = str(row["basis"] or "人情往来")
+        reverse_basis = str(row["reverse_basis"] or "")
+        if any(token in f"{basis} {reverse_basis}" for token in ("举荐", "荐取", "挑补", "入京", "举主")):
+            continue
+        if any(
+            str(card.get("actor") or "") in {actor, target}
+            and str(card.get("kind") or "") in {
+                "trap_remedy", "directive_followup", "monthly_followup", "patronage",
+                "petition", "favor", "legacy", "agenda",
+            }
+            for card in cards
+        ):
+            continue
+        opinion = _clamp_int(row["opinion"], -100, 100)
+        reverse_opinion = _clamp_int(row["reverse_opinion"], -100, 100)
+        actor_office = _short_office(str(row["a_office"] or ""))
+        target_office = _short_office(str(row["b_office"] or ""))
+        actor_faction = str(row["a_faction"] or "")
+        target_faction = str(row["b_faction"] or "")
+        same_faction = bool(
+            actor_faction
+            and target_faction
+            and actor_faction == target_faction
+            and actor_faction not in {"无", "中立"}
+        )
+        trust = _clamp_int(row["a_trust"], 0, 100)
+        grievance = _clamp_int(row["a_grievance"], 0, 100)
+        effects = [
+            {"kind": "relationship", "label": f"关系 {opinion}", "tone": "good"},
+            {"kind": "basis", "label": basis[:18], "tone": "neutral"},
+            {"kind": "guarantee", "label": "可担保/可植党", "tone": "warn"},
+            {"kind": "trust", "label": f"信任 {trust}", "tone": "bad" if trust <= 36 else "neutral"},
+            {"kind": "grievance", "label": f"怨望 {grievance}", "tone": "bad" if grievance >= 58 else "neutral"},
+        ]
+        if reverse_opinion:
+            effects.append({"kind": "reverse_opinion", "label": f"回敬 {reverse_opinion}", "tone": "good" if reverse_opinion >= 40 else "neutral"})
+        if same_faction:
+            effects.append({"kind": "faction", "label": f"同派 {actor_faction}", "tone": "warn"})
+        detail = (
+            f"{actor_office}{actor}与{target_office}{target}关系深厚（{basis}，好感 {opinion}）。"
+            "可召来逼其担保、共办或交出避嫌条件；借得动人情，也会喂大党援。"
+        )
+        cards.append(
+            _card(
+                kind="relationship",
+                title=f"人情担保：{actor}护{target}",
+                detail=detail,
+                urgency=64 + min(18, opinion // 5) + (6 if same_faction else 0) + max(0, grievance - 55) // 5,
+                tone="warn" if same_faction or grievance >= 58 else "info",
+                cta="召来问担保",
+                tab=_TAB_AUDIENCE,
+                actor=actor,
+                target=target,
+                meta="同派党援" if same_faction else "人情链",
+                ref_kind="relationship",
+                ref_id=f"{actor}:{target}",
+                effects=effects[:6],
             )
         )
         count += 1
