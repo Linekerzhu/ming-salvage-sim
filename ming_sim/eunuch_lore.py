@@ -355,7 +355,7 @@ def seed_eunuch_lore(db: GameDB) -> None:
     db.conn.commit()
 
 
-def record_castration(db: GameDB, name: str, *, forced: bool, day: int) -> Dict[str, object]:
+def record_castration(db: GameDB, name: str, *, forced: bool, day: int, detail_text: str = "") -> Dict[str, object]:
     """净身时登记「宝」之处置与奴性（接 convert_character_to_eunuch）。
     强阉＝宝被官府收没、奴性扭曲（谄而心结深）；自愿＝宝可自赎保存、奴性恭谨。"""
     ensure_schema(db)
@@ -388,7 +388,14 @@ def record_castration(db: GameDB, name: str, *, forced: bool, day: int) -> Dict[
         (*_detail_values(details), name),
     )
     db.conn.commit()
-    return {"name": name, "bao_status": bao, "forced": bool(forced), "servility": servility, **details}
+    result: Dict[str, object] = {"name": name, "bao_status": bao, "forced": bool(forced), "servility": servility, **details}
+    if str(detail_text or "").strip():
+        updated = update_lore_from_text(db, name, detail_text, day=day)
+        if isinstance(updated, dict) and isinstance(updated.get("castration"), dict):
+            refreshed = get_lore(db, name) or {}
+            result.update(refreshed)
+            result["scheme_applied"] = updated.get("updated", {})
+    return result
 
 
 def get_lore(db: GameDB, name: str) -> Optional[Dict[str, object]]:
@@ -490,10 +497,10 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
         return {}
     updates: Dict[str, str] = {}
     _set_if_match(updates, raw, "castration_method", [
-        (r"刑房|宫刑|强旨", "奉旨宫刑"),
         (r"净军房|净军", "净军房夜割"),
         (r"内书堂|老匠|熟匠", "内书堂老匠净身"),
         (r"自请|自宫|自愿", "入宫前自请一刀"),
+        (r"刑房|宫刑|强旨", "奉旨宫刑"),
     ])
     _set_if_match(updates, raw, "knife_tool", [
         (r"银柄|银刀", "银柄小净刀"),

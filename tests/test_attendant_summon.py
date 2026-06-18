@@ -740,7 +740,11 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertIsNotNone(row)
             name = str(row["name"])
 
-            result = game.castrate_official(name, force=True)
+            result = game.castrate_official(
+                name,
+                force=True,
+                scheme_text="净军房行事，铜柄宫刀，无麻；宝约二两八钱，一大一小，油封后发硬，油炸封蜡，收黄杨木描金匣。",
+            )
             minister = result["minister"]
 
             self.assertEqual(minister["office"], "司礼监随堂太监")
@@ -756,6 +760,14 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertTrue(castration["voice_body_label"])
             self.assertTrue(castration["trauma_label"])
             self.assertTrue(castration["fixation_label"])
+            self.assertEqual(castration["method_label"], "净军房夜割")
+            self.assertEqual(castration["knife_label"], "铜柄宫刀")
+            self.assertEqual(castration["anesthesia_label"], "无麻，冷汗硬熬")
+            self.assertEqual(castration["bao_weight_label"], "约二两八钱")
+            self.assertEqual(castration["bao_shape_label"], "一大一小")
+            self.assertEqual(castration["bao_texture_label"], "油封后发硬")
+            self.assertEqual(castration["preservation_label"], "油炸封蜡")
+            self.assertEqual(castration["container_label"], "黄杨木描金匣")
 
             refreshed = game.public_character(game.content.characters[name])
             self.assertEqual(refreshed["office"], "司礼监随堂太监")

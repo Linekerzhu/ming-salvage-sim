@@ -1336,6 +1336,9 @@ class GameSession:
                 delta = json.loads(row["outcome_delta"] or "{}")
             except ValueError:
                 delta = {}
+            if isinstance(delta, dict):
+                delta = dict(delta)
+                delta["_directive_text"] = str(row["text"] or "")
             applied: Dict[str, object] = {}
             if isinstance(delta, dict) and delta:
                 try:

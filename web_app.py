@@ -530,6 +530,7 @@ class CustomInstitutionRequest(BaseModel):
 class CastrateRequest(BaseModel):
     name: str
     force: bool = False
+    scheme_text: str = ""
 
 
 class AgreementTaskPatch(BaseModel):
@@ -2762,7 +2763,7 @@ class WebGame:
             return False
         return bool(re.search(r"内阁|吏部|户部|礼部|兵部|刑部|工部|都察院|翰林|地方|边镇|锦衣卫|待铨|官|将|督|抚|御史|尚书|侍郎|郎中|主事|总兵|千户|百户", text))
 
-    def castrate_official(self, name: str, force: bool = False) -> Dict[str, Any]:
+    def castrate_official(self, name: str, force: bool = False, scheme_text: str = "") -> Dict[str, Any]:
         clean_name = (name or "").strip()
         character = self.content.characters.get(clean_name)
         if character is None or character.office_type == "后宫":
@@ -2805,6 +2806,7 @@ class WebGame:
             force=force,
             source=source,
             new_office=new_office,
+            lore_text=scheme_text,
         )
         if self.session.registry is not None:
             self.session.registry.register(character)
@@ -7051,7 +7053,7 @@ async def api_castrate_official(body: CastrateRequest) -> Dict[str, Any]:
     game = get_game()
     return _response_with_state(
         game,
-        game.castrate_official(body.name, force=body.force),
+        game.castrate_official(body.name, force=body.force, scheme_text=body.scheme_text),
         route="/api/recruitment/castrate",
     )
 

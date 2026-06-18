@@ -77,6 +77,30 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertIn("幻肢痛", lore["trauma_response"])
             self.assertIn("贤者模式", lore["psychosexual_state"])
 
+    def test_record_castration_applies_chosen_scheme_text_immediately(self):
+        with TemporaryDirectory() as tmp:
+            db, _, day = _fresh(tmp)
+            r = el.record_castration(
+                db,
+                "韩爌",
+                forced=True,
+                day=day,
+                detail_text=(
+                    "净军房行事，铜柄宫刀，无麻；宝约二两八钱，一大一小，"
+                    "油封后发硬，油炸封蜡，收黄杨木描金匣。"
+                ),
+            )
+            self.assertIn("scheme_applied", r)
+            lore = el.get_lore(db, "韩爌")
+            self.assertEqual(lore["castration_method"], "净军房夜割")
+            self.assertEqual(lore["knife_tool"], "铜柄宫刀")
+            self.assertEqual(lore["anesthesia"], "无麻，冷汗硬熬")
+            self.assertEqual(lore["bao_weight"], "约二两八钱")
+            self.assertEqual(lore["bao_shape"], "一大一小")
+            self.assertEqual(lore["bao_texture"], "油封后发硬")
+            self.assertEqual(lore["bao_preservation"], "油炸封蜡")
+            self.assertEqual(lore["bao_container"], "黄杨木描金匣")
+
     def test_voluntary_keeps_bao_and_lower_servility(self):
         with TemporaryDirectory() as tmp:
             db, _, day = _fresh(tmp)

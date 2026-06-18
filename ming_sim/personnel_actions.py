@@ -42,6 +42,7 @@ def convert_character_to_eunuch(
     force: bool,
     source: str,
     new_office: str = "司礼监随堂太监",
+    lore_text: str = "",
 ) -> Tuple[Character, List[Reaction]]:
     """Convert an existing Ming character into the inner-court eunuch chain."""
     clean_name = (name or "").strip()
@@ -117,7 +118,13 @@ def convert_character_to_eunuch(
     try:
         from ming_sim.eunuch_lore import record_castration
         from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
-        record_castration(db, clean_name, forced=force, day=kv_int(db, KV_CURRENT_DAY, 0))
+        record_castration(
+            db,
+            clean_name,
+            forced=force,
+            day=kv_int(db, KV_CURRENT_DAY, 0),
+            detail_text=" ".join(part for part in (source, lore_text) if str(part or "").strip()),
+        )
     except Exception:
         pass
     return character, reactions

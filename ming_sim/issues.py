@@ -1141,6 +1141,7 @@ def apply_score_extraction(
     #    并入 office_changes（section 10），LLM 误把朝臣塞这里的项一律转去 office_changes 处理。
     applied_appointments: List[Dict[str, object]] = []
     spillover_office_changes: List[Dict[str, object]] = []
+    directive_text = str(extracted.get("_directive_text") or "")
     if content is not None:
         from ming_sim.session import apply_appointment  # 延迟导入避循环
         for item in extracted.get("appointments") or []:
@@ -1214,7 +1215,10 @@ def apply_score_extraction(
             try:
                 converted, reactions = convert_character_to_eunuch(
                     db, state, content, name, force=True,
-                    source=reason[:60] or "诏处宫刑，没入内廷为奴", new_office="净军")
+                    source=reason[:60] or "诏处宫刑，没入内廷为奴",
+                    new_office="净军",
+                    lore_text=f"{directive_text} {reason}",
+                )
                 if registry is not None:
                     registry.register(converted)
                 political_reactions.extend(reactions)
@@ -1337,6 +1341,7 @@ def apply_score_extraction(
                         force=force_castration,
                         source=reason[:60] or ("强旨净身入宫" if force_castration else "自愿净身入宫"),
                         new_office=new_office,
+                        lore_text=f"{directive_text} {reason}",
                     )
                 except Exception as exc:
                     applied_office_changes.append({

@@ -704,11 +704,15 @@ class CastrationByDecreeTests(unittest.TestCase):
                     "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
                     "AND office NOT LIKE '%太监%' LIMIT 1").fetchone()
                 name = str(row["name"])
+                directive_text = (
+                    f"着将{name}处宫刑，没入内廷为奴；净军房行事，铜柄宫刀，无麻；"
+                    "宝约二两八钱，一大一小，油封后发硬，油炸封蜡，收黄杨木描金匣。"
+                )
                 sess.db.conn.execute(
                     "INSERT INTO turn_directives (turn, year, period, text, source, status, "
                     "lifecycle_status, progress, integrity_actual, integrity_reported, outcome_delta, outcome_status) "
                     "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-                    (sess.state.turn, sess.state.year, sess.state.period, f"着将{name}处宫刑，没入内廷为奴",
+                    (sess.state.turn, sess.state.year, sess.state.period, directive_text,
                      "test", "confirmed", "done", 100, 100, 100,
                      json.dumps({"character_status_changes": [{"name": name, "status": "castrated", "reason": "贪墨"}]}),
                      "extracted"))
@@ -722,6 +726,14 @@ class CastrationByDecreeTests(unittest.TestCase):
                 self.assertIsNotNone(lore)
                 self.assertTrue(lore["forced"])                                # 强阉
                 self.assertEqual(lore["bao_status"], el.BAO_FORFEIT)           # 宝官没
+                self.assertEqual(lore["castration_method"], "净军房夜割")
+                self.assertEqual(lore["knife_tool"], "铜柄宫刀")
+                self.assertEqual(lore["anesthesia"], "无麻，冷汗硬熬")
+                self.assertEqual(lore["bao_weight"], "约二两八钱")
+                self.assertEqual(lore["bao_shape"], "一大一小")
+                self.assertEqual(lore["bao_texture"], "油封后发硬")
+                self.assertEqual(lore["bao_preservation"], "油炸封蜡")
+                self.assertEqual(lore["bao_container"], "黄杨木描金匣")
             finally:
                 sess.close()
 
