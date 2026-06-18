@@ -7,7 +7,7 @@ import { PersonProvider } from "./Person";
 import { Menu } from "./Menu";
 import { Guide, guideSeen, markGuideSeen } from "./Guide";
 import { authStatus, exitToMenu, login, menuStatus, register, resolveDecision } from "./api";
-import type { AudienceLead, ChatMessage, Decision, ImpactEffect, Tab } from "./api";
+import type { AudienceLead, Decision, ImpactEffect, Tab } from "./api";
 import { HomeView } from "./views/HomeView";
 import { DeskView } from "./views/DeskView";
 import { AudienceView } from "./views/AudienceView";
@@ -240,11 +240,12 @@ function Shell({ onExitMenu }: { onExitMenu: () => void }) {
   const [guideOpen, setGuideOpen] = useState(false);
   const [audienceName, setAudienceName] = useState("");
   const [audienceLead, setAudienceLead] = useState<AudienceLead | null>(null);
-  const [eunuchLocalMessages, setEunuchLocalMessages] = useState<ChatMessage[]>([]);
+  const [audienceNotice, setAudienceNotice] = useState("");
   const { loading, error } = useGame();
   const summonAudience = (minister: string, lead?: AudienceLead) => {
     const name = minister.trim();
     if (!name) return;
+    setAudienceNotice("");
     setAudienceName(name);
     setAudienceLead(lead || null);
     setTab("audience");
@@ -252,13 +253,7 @@ function Shell({ onExitMenu }: { onExitMenu: () => void }) {
   const completeAudience = (minister: string) => {
     const name = minister.trim();
     if (!name) return;
-    setEunuchLocalMessages((messages) => [
-      ...messages,
-      {
-        role: "minister",
-        content: `奴婢回陛下，${name}大人已经告退，此番奏对已毕。陛下还有何吩咐？`,
-      },
-    ]);
+    setAudienceNotice(`奴婢回陛下，${name}大人已经告退，此番奏对已毕。`);
     setAudienceName("");
     setAudienceLead(null);
   };
@@ -278,9 +273,9 @@ function Shell({ onExitMenu }: { onExitMenu: () => void }) {
         {!loading && tab === "audience" && (
           <AudienceView
             audience={audienceName}
-            onAudienceChange={(name) => { setAudienceName(name); setAudienceLead(null); }}
+            onAudienceChange={(name) => { setAudienceName(name); setAudienceLead(null); if (name) setAudienceNotice(""); }}
             onAudienceComplete={completeAudience}
-            eunuchLocalMessages={eunuchLocalMessages}
+            audienceNotice={audienceNotice}
             audienceLead={audienceLead}
           />
         )}

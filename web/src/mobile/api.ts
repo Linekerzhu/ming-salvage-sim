@@ -68,6 +68,16 @@ export type DirectiveLifecycle = {
     progress_delta?: number;
     resistance_delta?: number;
   };
+  followup_action?: {
+    kind?: string;
+    minister?: string;
+    day?: number;
+  };
+  followup_history?: Array<{
+    kind?: string;
+    minister?: string;
+    day?: number;
+  }>;
   reported_rate: number;
   anomaly: string;
   settle_note: string;
@@ -372,6 +382,10 @@ export type ChatResponse = Record<string, any> & {
   court_action?: string;
   proposed_directive?: { id: number; text: string };
   directive_effect?: { title?: string; message?: string; kind?: string; progress_delta?: number; resistance_delta?: number };
+  dialogue_effect?: { title?: string; message?: string; effects?: ImpactEffect[] };
+  recruited_minister?: string;
+  appointed_minister?: string;
+  registered_minister?: string;
   minister_profile?: PublicCharacter;
 };
 

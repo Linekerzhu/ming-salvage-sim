@@ -6,6 +6,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import web_app
+from ming_sim import court
+from ming_sim.personnel_actions import is_eunuch_office
 import ming_sim.session as session_module
 
 
@@ -87,6 +89,70 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(payload["court_action"], "summon")
             self.assertEqual(payload["next_minister"], target)
             self.assertTrue(any(m["role"] == "user" for m in payload["history"]))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_dialogue_recruitment_requires_confirmation(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            before_names = {
+                str(row["name"])
+                for row in game.db.conn.execute("SELECT name FROM characters").fetchall()
+            }
+
+            proposal_events = list(game.chat_stream(attendant, "宫中有没有新的太监可用？"))
+            self.assertEqual(proposal_events[-1]["type"], "done")
+            self.assertIn("若准", proposal_events[-1]["payload"]["answer"])
+            mid_names = {
+                str(row["name"])
+                for row in game.db.conn.execute("SELECT name FROM characters").fetchall()
+            }
+            self.assertEqual(mid_names, before_names)
+
+            confirm_events = list(game.chat_stream(attendant, "准，就招一个。"))
+            self.assertEqual(confirm_events[-1]["type"], "done")
+            payload = confirm_events[-1]["payload"]
+            recruited = str(payload.get("recruited_minister") or "")
+            self.assertTrue(recruited)
+            self.assertNotIn(recruited, before_names)
+            row = game.db.conn.execute(
+                "SELECT office, office_type, summary FROM characters WHERE name=?",
+                (recruited,),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
+            self.assertIn("举荐来源", str(row["summary"] or ""))
+            self.assertGreater(court.get_opinion(game.db, recruited, attendant), 0)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_dialogue_mediation_requires_confirmation(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "韩爌"
+            target = "魏忠贤"
+            court.adjust_opinion(game.db, actor, target, -60, "测试旧怨", day=1, reciprocal=True)
+            before = court.get_opinion(game.db, actor, target)
+
+            proposal_events = list(game.chat_stream(actor, f"朕想调停你和{target}的旧怨。"))
+            self.assertEqual(proposal_events[-1]["type"], "done")
+            self.assertIn("若陛下准", proposal_events[-1]["payload"]["answer"])
+            self.assertEqual(court.get_opinion(game.db, actor, target), before)
+
+            confirm_events = list(game.chat_stream(actor, "准，去调停。"))
+            self.assertEqual(confirm_events[-1]["type"], "done")
+            payload = confirm_events[-1]["payload"]
+            self.assertIn("dialogue_effect", payload)
+            self.assertGreater(court.get_opinion(game.db, actor, target), before)
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

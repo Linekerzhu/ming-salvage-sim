@@ -532,6 +532,83 @@ def build_minister_tools(character: Character, context: CourtContext):
         )
         return f"__pending_unlisted_person__{payload}"
 
+    def propose_recruitment(kind: str, need: str = "", office: str = "") -> str:
+        """对白驱动用人：皇帝问有无太监/新科/可荐之人时调用。
+
+        只生成待确认意图，不新增人物。kind 填 eunuch、exam 或 recommend。
+        调用后回奏必须追问陛下是否准办，不能说已经办成。
+        """
+        k = (kind or "").strip().lower()
+        aliases = {"太监": "eunuch", "内侍": "eunuch", "科举": "exam", "新科": "exam", "举荐": "recommend"}
+        k = aliases.get(k, k)
+        if k not in {"eunuch", "exam", "recommend"}:
+            return "用人提议失败：kind 须为 eunuch/exam/recommend。"
+        payload = json.dumps(
+            {
+                "type": "recruitment",
+                "phase": "propose",
+                "kind": k,
+                "need": (need or "").strip(),
+                "office": (office or "").strip(),
+                "recommender": character.name,
+            },
+            ensure_ascii=False,
+        )
+        return f"__dialogue_action__{payload}"
+
+    def confirm_recruitment(kind: str = "", note: str = "") -> str:
+        """对白驱动用人：只有皇帝明确说准、去办、照办后才调用。
+
+        kind 可留空，Web 端会优先使用上一轮待确认意图；也可填 eunuch/exam/recommend。
+        """
+        k = (kind or "").strip().lower()
+        aliases = {"太监": "eunuch", "内侍": "eunuch", "科举": "exam", "新科": "exam", "举荐": "recommend"}
+        k = aliases.get(k, k)
+        payload = json.dumps(
+            {
+                "type": "recruitment",
+                "phase": "confirm",
+                "kind": k,
+                "note": (note or "").strip(),
+                "recommender": character.name,
+            },
+            ensure_ascii=False,
+        )
+        return f"__dialogue_action__{payload}"
+
+    def propose_mediation(actor: str = "", target: str = "", faction: str = "", condition: str = "") -> str:
+        """对白驱动调停：皇帝要某两人/某派各退一步时调用。
+
+        只生成待确认意图，不改变关系或派系热度。回奏应提出可行条件并请陛下确认。
+        """
+        payload = json.dumps(
+            {
+                "type": "mediation",
+                "phase": "propose",
+                "actor": (actor or "").strip(),
+                "target": (target or "").strip(),
+                "faction": (faction or "").strip(),
+                "condition": (condition or "").strip(),
+            },
+            ensure_ascii=False,
+        )
+        return f"__dialogue_action__{payload}"
+
+    def confirm_mediation(actor: str = "", target: str = "", faction: str = "", note: str = "") -> str:
+        """对白驱动调停：只有皇帝明确准许说合/调停后才调用。"""
+        payload = json.dumps(
+            {
+                "type": "mediation",
+                "phase": "confirm",
+                "actor": (actor or "").strip(),
+                "target": (target or "").strip(),
+                "faction": (faction or "").strip(),
+                "note": (note or "").strip(),
+            },
+            ensure_ascii=False,
+        )
+        return f"__dialogue_action__{payload}"
+
     def issue_secret_order(title: str, content: str, tags_json: str = "[]", assignee: str = "", deadline_months: int = 0) -> str:
         """皇帝下达密令，直接登记入档并返回密令编号。
 
@@ -735,6 +812,10 @@ def build_minister_tools(character: Character, context: CourtContext):
         recall_memories_by_time,
         inspect_treasury_ledger,
         propose_directive,
+        propose_recruitment,
+        confirm_recruitment,
+        propose_mediation,
+        confirm_mediation,
         issue_secret_order,
         report_secret_order_progress,
         submit_secret_order_for_review,

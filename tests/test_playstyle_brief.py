@@ -216,6 +216,45 @@ class PlaystyleBriefTests(unittest.TestCase):
             buckets = {str(b["kind"]): b for b in payload["buckets"]}
             self.assertEqual(buckets["directive_followup"]["label"], "复命")
 
+    def test_done_directive_followup_card_disappears_after_followup_action(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            name = _active_minister(db)
+            db.conn.execute(
+                """
+                INSERT INTO turn_directives
+                    (turn, year, period, text, source, status, lifecycle_status,
+                     progress, assignee, integrity_actual, integrity_reported,
+                     settle_note, outcome_status, chain)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    state.turn,
+                    state.year,
+                    state.period,
+                    "敕曰：着户部清核辽饷旧账，三日内具册以闻。",
+                    "test",
+                    "issued",
+                    "done",
+                    100,
+                    name,
+                    88,
+                    92,
+                    "臣谨奏：辽饷旧账已清出大概。",
+                    "applied",
+                    json.dumps(
+                        {"last_followup_action": {"kind": "rewarded", "minister": name, "day": 3}},
+                        ensure_ascii=False,
+                    ),
+                ),
+            )
+            db.conn.commit()
+
+            payload = briefing_payload(db, state, limit=5, kind="directive_followup")
+
+            self.assertEqual(payload["cards"], [])
+            self.assertEqual(payload["total"], 0)
+
     def test_done_directive_with_report_gap_is_urgent_followup(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)

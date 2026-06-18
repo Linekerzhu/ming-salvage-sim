@@ -3,7 +3,7 @@ import { useGame } from "../GameData";
 import { ChatPane } from "../ChatPane";
 import { Portrait } from "../Portrait";
 import { loadEunuch, loadEunuchCandidates, replaceEunuch } from "../api";
-import type { AudienceLead, ChatContext, ChatMessage, PublicCharacter } from "../api";
+import type { AudienceLead, ChatContext, PublicCharacter } from "../api";
 import { usePerson } from "../personCtx";
 
 // 召对·人治之门：皇帝只直接对话随侍太监；要见大臣，命随侍传召 → 大臣趋入奏对 → 奏对完成，由随侍收尾。
@@ -12,13 +12,13 @@ export function AudienceView({
   audience,
   onAudienceChange,
   onAudienceComplete,
-  eunuchLocalMessages,
+  audienceNotice,
   audienceLead,
 }: {
   audience: string;
   onAudienceChange: (name: string) => void;
   onAudienceComplete: (name: string) => void;
-  eunuchLocalMessages: ChatMessage[];
+  audienceNotice?: string;
   audienceLead?: AudienceLead | null;
 }) {
   const { state, refresh } = useGame();
@@ -53,6 +53,7 @@ export function AudienceView({
   // ── 奏对模式：与被传召的大臣（明确的趋入→奏对→退下）──
   if (audience) {
     const activeLead = audienceLead && (!audienceLead.actor || audienceLead.actor === audience) ? audienceLead : null;
+    const isAttendantAudience = !!eunuch?.name && audience === eunuch.name;
     return (
       <div className="m-audience-full">
         <div className="m-audience-bar">
@@ -60,15 +61,23 @@ export function AudienceView({
             <Portrait name={audience} size={40} />
             <div className="m-audience-id">
               <span className="m-audience-name">{audience}</span>
-              <span className="m-audience-role">奉召觐见</span>
+              <span className="m-audience-role">{isAttendantAudience ? "御前随侍" : "奉召觐见"}</span>
             </div>
           </div>
           <div className="m-audience-acts">
             <button className="m-mini" onClick={() => openPerson(audience)}>查此人</button>
-            <button className="m-mini m-mini-complete" onClick={() => onAudienceComplete(audience)}>奏对完成 ›</button>
+            {isAttendantAudience ? (
+              <button className="m-mini m-mini-complete" onClick={() => onAudienceChange("")}>回随侍 ›</button>
+            ) : (
+              <button className="m-mini m-mini-complete" onClick={() => onAudienceComplete(audience)}>奏对完成 ›</button>
+            )}
           </div>
         </div>
-        <div className="m-arrival">（{audience} 奉召趋入，正在御前奏对。奏对完成后，由随侍送其告退。）</div>
+        <div className="m-arrival">
+          {isAttendantAudience
+            ? `（${audience}正在御前随侍，本次按差使复命追问。）`
+            : `（${audience} 奉召趋入，正在御前奏对。奏对完成后，由随侍送其告退。）`}
+        </div>
         {activeLead && (
           <div className={`m-audience-lead tone-${activeLead.tone || "info"}`}>
             <div className="m-audience-lead-head">
@@ -83,9 +92,9 @@ export function AudienceView({
           </div>
         )}
         <ChatPane
-          key={audience}
+          key={isAttendantAudience ? `eunuch-lead:${audience}:${activeLead?.ref_id || ""}` : audience}
           name={audience}
-          speakerLabel={audience}
+          speakerLabel={isAttendantAudience ? `${audience}·随侍` : audience}
           onWorldChanged={refresh}
           leadSuggestions={activeLead?.prompts || []}
           chatContext={activeLead ? chatContextFromLead(activeLead) : undefined}
@@ -121,13 +130,13 @@ export function AudienceView({
           <button className="m-mini" onClick={openReplace}>换随侍</button>
         </div>
       </div>
+      {audienceNotice && <div className="m-audience-return">{audienceNotice}</div>}
       <ChatPane
         key={`eunuch:${eunuch.name}`}
         name={eunuch.name}
         speakerLabel={`${eunuch.name}·随侍`}
         onSummon={(next) => onAudienceChange(next)}
         onWorldChanged={refresh}
-        localMessages={eunuchLocalMessages}
       />
 
       {sheet && (

@@ -317,7 +317,11 @@ def _pose_for(character: Character) -> str:
             "mildly worried eyes", "quiet confidence", "restless political curiosity",
             "dry skeptical half-smile", "sudden alertness",
         ))
-    return f"{pose}; expression: {expression}; keep both complete hands with fingers visible and both feet visible and unobscured"
+    return (
+        f"{pose}; expression: {expression}; prioritize a close upper-body court portrait: "
+        "full head, face, neck, shoulders, upper torso and at least one complete hand visible; "
+        "do not crop the top of the head, hat, chin, hands or shoulders"
+    )
 
 
 def _age_for_prompt(character: Character, state: Optional[GameState]) -> int:
@@ -661,10 +665,11 @@ def build_portrait_spec(character: Character, state: Optional[GameState], campai
         wardrobe_guard = "Identity wardrobe guard: clothing must follow the stated office, faction, culture and social role, not a generic warrior. "
     prompt = (
         "Late Ming dynasty political strategy game character portrait, dark Romance of the Three Kingdoms style oil painting, "
-        "STRICT 2:3 vertical full-body standing cutout, head-to-toe entire figure visible including hat, sleeves, hands, robe hem and boots, "
+        "STRICT 2:3 vertical upper-body bust cutout, face-first composition; show head, hat, neck, shoulders, chest and hands, crop no lower than mid-torso, "
+        "the face must occupy 30-40% of image height and be the clear visual focus, "
         "transparent alpha background if the image model supports it; if alpha is unsupported, render on a perfectly flat solid chroma-key magenta (#ff00ff) background for local transparent cutout, no white or paper background, no backdrop, no frame, no text, no watermark, "
-        "do not crop at head, hands, waist, knees or feet. "
-        "Both complete hands with fingers and both complete feet/boots must be fully visible, not hidden by sleeves, robe hem, cloak or frame. "
+        "do not crop at head, hat, face, chin, shoulders, sleeves or hands. "
+        "At least one complete hand with fingers must be visible and not hidden by sleeves or frame; feet and full robe hem are not required. "
         "Never draw a checkerboard transparency pattern, floor plane, cast shadow, contact shadow, gradient, texture or scenery. "
         f"Character: {character.name}.{age_hint} Office/status: {character.office or character.office_type}. "
         f"Faction: {character.faction}. Personality: {character.style}. Biography clue: {character.summary}. "
@@ -675,10 +680,10 @@ def build_portrait_spec(character: Character, state: Optional[GameState], campai
         f"{variation} "
         f"Pose: {_pose_for(character)}. "
         "Historically grounded late Ming fabric texture, heavy shadows, muted cinnabar, ink black, old gold, blue-green robe colors, "
-        "painterly realism, sharp silhouette, centered full figure with safe transparent margins around crown, sleeves and feet, minimum width 512 pixels."
+        "painterly realism, sharp silhouette, centered bust figure with safe transparent margins around crown, shoulders and hands, minimum width 512 pixels."
     )
     signature = "|".join([
-        "portrait-v4-diverse-chroma-cutout",
+        "portrait-v5-close-bust-cutout",
         campaign_id,
         character.name,
         dna_seed,

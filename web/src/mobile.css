@@ -474,6 +474,20 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-blocker-k { color: var(--cinnabar); font-size: 0.72rem; font-weight: 800; }
 .m-blocker-v { color: var(--ink); font-size: 0.82rem; font-weight: 700; word-break: break-word; }
 .m-blocker-done { color: var(--jade); font-size: 0.72rem; font-weight: 800; }
+.m-followup-action {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  margin-top: 8px; padding: 6px 8px; border-radius: 8px;
+  background: rgba(74,128,96,.07); border: 1px solid rgba(74,128,96,.18);
+}
+.m-followup-k { color: var(--jade); font-size: 0.72rem; font-weight: 800; }
+.m-followup-v {
+  display: inline-flex; align-items: center; min-height: 22px; border-radius: 999px;
+  padding: 1px 8px; font-size: 0.74rem; font-weight: 800;
+  background: rgba(42,31,18,.07); border: 1px solid rgba(74,45,20,.14);
+}
+.m-followup-v.tone-good { color: #26563c; background: rgba(74,128,96,.13); border-color: rgba(74,128,96,.32); }
+.m-followup-v.tone-bad { color: #8a2c22; background: rgba(158,52,41,.11); border-color: rgba(158,52,41,.28); }
+.m-followup-day { color: var(--ink-soft); font-size: 0.72rem; font-weight: 700; }
 .m-prog { display: flex; align-items: center; gap: 6px; flex: 1; max-width: 160px; }
 .m-prog-bar { height: 6px; background: var(--gold-deep); border-radius: 3px; display: block; }
 .m-prog { position: relative; }
@@ -544,6 +558,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-caret { animation: m-blink 1s step-end infinite; }
 @keyframes m-blink { 50% { opacity: 0; } }
 .m-chat-notice { flex: 0 0 auto; margin: 0 var(--pad); padding: 7px 12px; background: rgba(47,90,68,.22); color: #a7d3ba; border: 1px solid rgba(47,90,68,.5); border-radius: 10px; font-size: 0.82rem; }
+.m-audience-return { flex: 0 0 auto; margin: 8px var(--pad) 0; padding: 8px 12px; border: 1px solid rgba(197,157,92,.34); border-radius: 8px; background: rgba(197,157,92,.10); color: #d9c79a; font-size: 0.84rem; line-height: 1.45; }
 
 .m-suggestions { flex: 0 0 auto; display: flex; gap: 8px; overflow-x: auto; padding: 8px var(--pad); -webkit-overflow-scrolling: touch; }
 .m-sugg { flex: 0 0 auto; background: rgba(200,162,74,.14); color: var(--gold); border: 1px solid var(--gold-line); border-radius: 999px; padding: 8px 14px; font-size: 0.84rem; white-space: nowrap; min-height: 40px; }
@@ -711,7 +726,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-card, .m-sec { background-image: linear-gradient(180deg, var(--paper-2), var(--paper)), radial-gradient(rgba(120,90,40,.05) 1px, transparent 1px); background-size: auto, 12px 12px; }
 
 /* ── 人物头像（有血有肉）──────────────────────────────────────── */
-.m-portrait { border-radius: 50%; object-fit: cover; object-position: 50% 22%; border: 1.5px solid var(--gold-line); background: var(--lacquer); flex: 0 0 auto; display: inline-block; vertical-align: middle; }
+.m-portrait { border-radius: 50%; object-fit: cover; object-position: 50% 10%; border: 1.5px solid var(--gold-line); background: var(--lacquer); flex: 0 0 auto; display: inline-block; vertical-align: middle; }
 .m-portrait-fb { display: inline-flex; align-items: center; justify-content: center; color: var(--gold); font-weight: 700; background: linear-gradient(180deg, #2a2118, var(--lacquer)); }
 .m-audience-who { display: flex; align-items: center; gap: 10px; }
 .m-audience-id { display: flex; flex-direction: column; line-height: 1.15; }

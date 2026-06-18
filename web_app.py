@@ -2156,7 +2156,65 @@ class WebGame:
             "minister": self.public_character(added),
         }
 
-    def recruit_exam_official(self) -> Dict[str, Any]:
+    def _active_recommender_name(self, name: str) -> str:
+        clean = str(name or "").strip()
+        if not clean:
+            return ""
+        row = self.db.conn.execute(
+            "SELECT name, status FROM characters WHERE name=? AND power_id='ming'",
+            (clean,),
+        ).fetchone()
+        if row is None or str(row["status"] or "") != "active":
+            return ""
+        return str(row["name"] or "")
+
+    def _append_character_summary_note(self, name: str, note: str) -> None:
+        clean_name = str(name or "").strip()
+        clean_note = str(note or "").strip()
+        if not clean_name or not clean_note:
+            return
+        row = self.db.conn.execute(
+            "SELECT summary FROM characters WHERE name=?",
+            (clean_name,),
+        ).fetchone()
+        if row is None:
+            return
+        summary = str(row["summary"] or "")
+        if clean_note in summary:
+            return
+        updated = f"{summary.rstrip()} {clean_note}".strip()[:800]
+        self.db.conn.execute("UPDATE characters SET summary=? WHERE name=?", (updated, clean_name))
+        self.db.conn.commit()
+        character = self.content.characters.get(clean_name)
+        if character is not None:
+            character.summary = updated
+
+    def _record_recommendation_link(
+        self,
+        name: str,
+        recommender: str,
+        basis: str,
+        evidence: str = "",
+        verified_recommender: bool = False,
+    ) -> None:
+        candidate = str(name or "").strip()
+        sponsor = str(recommender or "").strip() if verified_recommender else self._active_recommender_name(recommender)
+        if not candidate or not sponsor or candidate == sponsor:
+            return
+        try:
+            from ming_sim import court
+            day = max(0, int(self.state.turn) * 30)
+            court.adjust_opinion(self.db, sponsor, candidate, +28, basis or "举荐入朝", day=day, reciprocal=False)
+            court.adjust_opinion(self.db, candidate, sponsor, +34, "举主恩义", day=day, reciprocal=False)
+        except Exception:
+            pass
+        note_bits = [f"举荐来源：{sponsor}"]
+        if evidence:
+            note_bits.append(f"依据：{evidence[:90]}")
+        note_bits.append("风险：初入朝局，仍受举主关系牵引。")
+        self._append_character_summary_note(candidate, "；".join(note_bits))
+
+    def recruit_exam_official(self, recommender: str = "") -> Dict[str, Any]:
         rng = self.character_rng
         office = rng.choice([
             "翰林院庶吉士", "吏部主事", "户部主事", "兵部主事", "礼部主事", "工部营缮司主事",
@@ -2217,16 +2275,24 @@ class WebGame:
             power_id="ming",
             location=origin[0],
             status="active",
-            summary=f"{self.state.year}年科举新进士，{origin[1]}；{archetype['summary']}",
+            summary=(
+                f"{self.state.year}年科举新进士，{origin[1]}；{archetype['summary']}"
+                "短板：官场资历浅，遇老成部院容易被压住声气；风险：同年清议与乡党牵扯未明。"
+            ),
             force=rng.randint(35, 58),
             wisdom=wisdom,
             charm=rng.randint(48, 74),
             luck=rng.randint(42, 84),
         )
         added = self._add_runtime_character(character, "科举取士")
-        return {"message": f"新科取士：{added.name}补入{added.office}。", "minister": self.public_character(added)}
+        self._record_recommendation_link(added.name, recommender, "奉询荐取新科", "科场新进")
+        return {
+            "message": f"新科取士：{added.name}补入{added.office}。",
+            "minister": self.public_character(added),
+            "recommender": self._active_recommender_name(recommender),
+        }
 
-    def recruit_eunuch(self) -> Dict[str, Any]:
+    def recruit_eunuch(self, recommender: str = "") -> Dict[str, Any]:
         rng = self.character_rng
         office = rng.choice([
             "司礼监小火者", "司礼监随堂太监", "司礼监书办太监", "司礼监文书房小内官",
@@ -2281,25 +2347,39 @@ class WebGame:
             power_id="ming",
             location=archetype["location"],
             status="active",
-            summary=f"净身入宫的内廷新人。{archetype['summary']}太监是皇帝家奴，入仕路径正常；其能力未必压倒外朝，但忠诚与执行链清晰。",
+            summary=(
+                f"净身入宫的内廷新人。{archetype['summary']}太监是皇帝家奴，入仕路径正常；"
+                "其能力未必压倒外朝，但忠诚与执行链清晰。短板：见识多限宫禁，骤掌外事易被老吏牵着走；"
+                "风险：若被旧监房或掌印系统收拢，可能生出内廷小圈子。"
+            ),
             force=rng.randint(36, 64),
             wisdom=rng.randint(44, 74),
             charm=rng.randint(38, 70),
             luck=rng.randint(46, 84),
         )
         added = self._add_runtime_character(character, "招募太监")
-        return {"message": f"内廷募入：{added.name}补入{added.office}。", "minister": self.public_character(added)}
+        self._record_recommendation_link(added.name, recommender, "内廷挑补", "内书堂/司礼监甄选")
+        return {
+            "message": f"内廷募入：{added.name}补入{added.office}。",
+            "minister": self.public_character(added),
+            "recommender": self._active_recommender_name(recommender),
+        }
 
-    def recommend_hidden_official(self) -> Dict[str, Any]:
+    def recommend_hidden_official(self, recommender: str = "") -> Dict[str, Any]:
         rng = self.character_rng
         identities = self._character_identities()
         status_by_name = {name: identity.status for name, identity in identities.items()}
-        active_recommenders = [
-            c for c in self.content.characters.values()
-            if identities[c.name].office_type != "后宫"
-            and identities[c.name].power_id == "ming"
-            and identities[c.name].status == "active"
-        ]
+        clean_recommender = self._active_recommender_name(recommender)
+        if clean_recommender and clean_recommender in self.content.characters:
+            active_recommenders = [self.content.characters[clean_recommender]]
+        else:
+            active_recommenders = [
+                c for c in self.content.characters.values()
+                if c.name in identities
+                and identities[c.name].office_type != "后宫"
+                and identities[c.name].power_id == "ming"
+                and identities[c.name].status == "active"
+            ]
         network_hits: List[Dict[str, Any]] = []
         for recommender in active_recommenders:
             for row in npc_network_recommendations(
@@ -2332,9 +2412,17 @@ class WebGame:
             if self.session.registry is not None:
                 self.session.registry.register(chosen)
             self.maybe_queue_portrait_generation(chosen.name, "举贤发现")
+            self._record_recommendation_link(
+                chosen.name,
+                str(hit["recommender"]),
+                "人脉举荐",
+                evidence,
+                verified_recommender=True,
+            )
             return {
                 "message": f"举贤发现：{hit['recommender']}举荐{chosen.name}出仕（{evidence}）。",
                 "minister": self.public_character(chosen, status_by_name=status_by_name),
+                "recommender": str(hit["recommender"]),
             }
 
         name = self._generated_name("recommend")
@@ -2394,14 +2482,29 @@ class WebGame:
             power_id="ming",
             location=origin[0],
             status="active",
-            summary=f"由地方举荐入京的在野人物，{origin[1]}；{archetype['summary']}尚无稳固靠山。",
+            summary=(
+                f"由地方举荐入京的在野人物，{origin[1]}；{archetype['summary']}"
+                "短板：朝中根基浅，容易被举主或乡党标签牵累；风险：本领多在地方，入京后未必懂部院规矩。"
+            ),
             force=rng.randint(34, 60),
             wisdom=rng.randint(52, 82),
             charm=rng.randint(46, 78),
             luck=rng.randint(38, 86),
         )
         added = self._add_runtime_character(character, "举贤入京")
-        return {"message": f"举贤入京：{added.name}列入待铨。", "minister": self.public_character(added)}
+        sponsor = clean_recommender or (rng.choice(active_recommenders).name if active_recommenders else "")
+        self._record_recommendation_link(
+            added.name,
+            sponsor,
+            "举贤入京",
+            "地方声望/人脉风闻",
+            verified_recommender=bool(sponsor),
+        )
+        return {
+            "message": f"举贤入京：{added.name}列入待铨。",
+            "minister": self.public_character(added),
+            "recommender": sponsor,
+        }
 
     def _castration_consent_note(self, name: str) -> Optional[Dict[str, Any]]:
         agreement = self.db.has_successful_agreement(
@@ -2911,6 +3014,251 @@ class WebGame:
     def _attendant_summon_answer(self, target_name: str) -> str:
         return f"奴婢遵旨，这就传{target_name}大人趋入御前。"
 
+    def _dialogue_action_key(self, minister_name: str) -> str:
+        return f"dialogue.pending_action.{str(minister_name or '').strip()}"
+
+    def _load_pending_dialogue_action(self, minister_name: str) -> Dict[str, Any]:
+        raw = self.db.kv_get(self._dialogue_action_key(minister_name))
+        if not raw:
+            return {}
+        try:
+            data = json.loads(raw)
+        except (TypeError, ValueError):
+            return {}
+        if not isinstance(data, dict):
+            return {}
+        try:
+            if int(data.get("turn") or self.state.turn) < int(self.state.turn):
+                self._clear_pending_dialogue_action(minister_name)
+                return {}
+        except (TypeError, ValueError):
+            pass
+        return data
+
+    def _store_pending_dialogue_action(self, minister_name: str, action: Dict[str, Any]) -> None:
+        payload = dict(action)
+        payload["minister"] = minister_name
+        payload["turn"] = int(self.state.turn)
+        self.db.kv_set(self._dialogue_action_key(minister_name), json.dumps(payload, ensure_ascii=False))
+
+    def _clear_pending_dialogue_action(self, minister_name: str) -> None:
+        self.db.kv_set(self._dialogue_action_key(minister_name), "")
+
+    def _dialogue_speaker_self(self, minister_name: str) -> str:
+        try:
+            character = self.session._character(minister_name)
+            if is_eunuch_office(character.office, character.office_type):
+                return "奴婢"
+        except Exception:
+            pass
+        return "臣"
+
+    def _dialogue_confirmed(self, text: str) -> bool:
+        raw = str(text or "").strip()
+        return bool(re.search(r"(准|可|允|去办|办吧|照办|依你|依议|就这么办|就招|招一个|取一个|荐一个|说合|调停|调和|准奏)", raw))
+
+    def _dialogue_rejected(self, text: str) -> bool:
+        raw = str(text or "").strip()
+        return bool(re.search(r"(不必|暂缓|算了|不要|不可|先别|免了|罢了|否|驳回|改日)", raw))
+
+    def _detect_recruitment_intent(self, text: str) -> Dict[str, Any]:
+        raw = str(text or "").strip()
+        if not raw:
+            return {}
+        has_ask_or_order = bool(re.search(r"(有没有|可有|有无|可用|缺|找|寻|挑|招|募|取|荐|举)", raw))
+        if has_ask_or_order and re.search(r"(太监|内侍|内臣|内官|小火者|内书堂|司礼监)", raw):
+            return {"type": "recruitment", "kind": "eunuch"}
+        if has_ask_or_order and re.search(r"(科举|科场|新科|进士|庶吉士|取士|选士)", raw):
+            return {"type": "recruitment", "kind": "exam"}
+        if re.search(r"(举荐|荐人|荐才|保举|寻贤|人才|贤才|可有人|谁可用|有谁可用)", raw):
+            return {"type": "recruitment", "kind": "recommend"}
+        return {}
+
+    def _character_mentions_in_text(self, text: str) -> List[str]:
+        raw = str(text or "")
+        names = []
+        for name, character in self.content.characters.items():
+            if getattr(character, "status", "active") != "active":
+                continue
+            haystacks = [name, *(getattr(character, "aliases", []) or [])]
+            if any(alias and str(alias) in raw for alias in haystacks):
+                names.append(name)
+        names.sort(key=len, reverse=True)
+        return list(dict.fromkeys(names))
+
+    def _detect_mediation_intent(self, minister_name: str, text: str) -> Dict[str, Any]:
+        raw = str(text or "").strip()
+        if not re.search(r"(调停|调和|和解|各退一步|共办|化解|缓和|息争|说合|消弭)", raw):
+            return {}
+        mentions = [name for name in self._character_mentions_in_text(raw) if name != minister_name]
+        if len(mentions) >= 2:
+            return {"type": "mediation", "actor": mentions[0], "target": mentions[1]}
+        if len(mentions) == 1:
+            return {"type": "mediation", "actor": minister_name, "target": mentions[0]}
+        try:
+            from ming_sim import court
+            rivals = court.rivals_of(self.db, minister_name, limit=1)
+        except Exception:
+            rivals = []
+        if rivals:
+            return {"type": "mediation", "actor": minister_name, "target": str(rivals[0]["name"])}
+        faction_rows = self.db.conn.execute("SELECT name FROM factions ORDER BY heat DESC").fetchall()
+        for row in faction_rows:
+            faction = str(row["name"] or "")
+            if faction and faction in raw:
+                return {"type": "mediation", "faction": faction}
+        return {"type": "mediation", "actor": minister_name, "target": ""}
+
+    def _proposal_answer_for_action(self, minister_name: str, action: Dict[str, Any]) -> str:
+        self_ref = self._dialogue_speaker_self(minister_name)
+        kind = str(action.get("kind") or "")
+        if action.get("type") == "recruitment":
+            if kind == "eunuch":
+                return f"{self_ref}回陛下，内书堂和司礼监下头确有几个识字小火者可挑。只是人一入御前，便牵动监房旧例，奴婢不敢擅专。陛下若准，奴婢便去挑一个忠谨可用的来。"
+            if kind == "exam":
+                return f"{self_ref}回陛下，新科与庶吉士中确有可试之人。若陛下准，臣可按科场名次与部院缺口挑一人先补入朝班，试其文书与奏对。"
+            return f"{self_ref}回陛下，朝外与部院夹缝里确有几个人可荐，但荐人便有举主恩怨，不能当作无根之木。陛下若准，臣便举出一人，连同来源、短处与风险一并入档。"
+        if action.get("type") == "mediation":
+            actor = str(action.get("actor") or "")
+            target = str(action.get("target") or "")
+            faction = str(action.get("faction") or "")
+            if actor and target:
+                return f"{self_ref}回陛下，{actor}与{target}的嫌隙不可一言抹平，但可先令二人各退一步、共担一桩小事。若陛下准，臣便按御前调停去说合，先把怨气压下一层。"
+            if faction:
+                return f"{self_ref}回陛下，{faction}气焰一时压不尽，但可先给台阶、收锋芒。若陛下准，臣便按御前调停处置，稍降党争热度。"
+            return f"{self_ref}回陛下，此事需先点明双方，否则说合容易落空。陛下若要调停，请明示哪两人或哪一派。"
+        return f"{self_ref}领会陛下意思，但此事须陛下再明白准一句，臣才敢办。"
+
+    def _execute_recruitment_action(self, minister_name: str, action: Dict[str, Any]) -> Dict[str, Any]:
+        kind = str(action.get("kind") or "")
+        if kind == "eunuch":
+            result = self.recruit_eunuch(recommender=minister_name)
+            title = "内廷得人"
+            detail = f"{result['minister']['name']} 已补入{result['minister'].get('office') or '内廷'}"
+        elif kind == "exam":
+            result = self.recruit_exam_official(recommender=minister_name)
+            title = "新科得人"
+            detail = f"{result['minister']['name']} 已补入{result['minister'].get('office') or '朝班'}"
+        else:
+            result = self.recommend_hidden_official(recommender=minister_name)
+            title = "举贤得人"
+            recommender = result.get("recommender") or minister_name
+            detail = f"{recommender} 举荐 {result['minister']['name']} 入朝听用"
+        minister = result.get("minister") or {}
+        name = str(minister.get("name") or "")
+        self._clear_pending_dialogue_action(minister_name)
+        answer = f"{self._dialogue_speaker_self(minister_name)}遵旨，已办妥。{result.get('message') or detail} 新人小传已记明来源、短板与举荐风险，陛下可召见验看。"
+        return {
+            "answer": answer,
+            "recruited_minister": name,
+            "dialogue_effect": {
+                "title": title,
+                "message": detail,
+                "effects": [{"kind": "recruitment", "label": "新人可召见", "tone": "good"}],
+            },
+        }
+
+    def _execute_mediation_action(self, minister_name: str, action: Dict[str, Any]) -> Dict[str, Any]:
+        self_ref = self._dialogue_speaker_self(minister_name)
+        actor = str(action.get("actor") or "").strip()
+        target = str(action.get("target") or "").strip()
+        faction = str(action.get("faction") or "").strip()
+        effects: List[Dict[str, str]] = []
+        if actor and target and actor in self.content.characters and target in self.content.characters:
+            try:
+                from ming_sim import court
+                from ming_sim.theater import adjust_faction_heat, faction_of
+                day = max(0, int(self.state.turn) * 30)
+                before = court.get_opinion(self.db, actor, target)
+                after = court.adjust_opinion(self.db, actor, target, +18, "御前调停", day=day, reciprocal=True)
+                effects.append({"kind": "relationship", "label": f"{actor}·{target} {before}→{after}", "tone": "good"})
+                for person in (actor, target):
+                    fa = faction_of(self.db, person)
+                    if fa:
+                        adjust_faction_heat(self.db, fa, -5, "御前调停")
+                        effects.append({"kind": "faction_heat", "label": f"{fa}热度 -5", "tone": "good"})
+            except Exception:
+                pass
+            self._clear_pending_dialogue_action(minister_name)
+            return {
+                "answer": f"{self_ref}遵旨。{actor}与{target}旧怨未必尽消，但臣已按陛下意思递了台阶，先令二人收锋、可共事一段。若后头再相攻，便要看差事成败与陛下奖惩了。",
+                "dialogue_effect": {
+                    "title": "御前调停",
+                    "message": f"{actor}与{target}怨气稍缓",
+                    "effects": effects,
+                },
+            }
+        if faction:
+            try:
+                from ming_sim.theater import adjust_faction_heat
+                adjust_faction_heat(self.db, faction, -8, "御前调停")
+                self.db.adjust_factions({faction: {"satisfaction": +2, "leverage": -1}})
+                effects.append({"kind": "faction_heat", "label": f"{faction}热度 -8", "tone": "good"})
+            except Exception:
+                pass
+            self._clear_pending_dialogue_action(minister_name)
+            return {
+                "answer": f"{self_ref}遵旨。{faction}这股气势已先压下一层，但只是暂缓，不是旧怨尽解；后续还要靠差事、赏罚和人事安排慢慢消磨。",
+                "dialogue_effect": {
+                    "title": "党争稍缓",
+                    "message": f"{faction}热度下降",
+                    "effects": effects,
+                },
+            }
+        self._clear_pending_dialogue_action(minister_name)
+        return {"answer": f"{self_ref}回陛下，此事缺少双方名目，臣不敢虚报已调停。请陛下点明人名或派系，再容臣去说合。"}
+
+    def _execute_dialogue_action(self, minister_name: str, action: Dict[str, Any]) -> Dict[str, Any]:
+        if action.get("type") == "recruitment":
+            return self._execute_recruitment_action(minister_name, action)
+        if action.get("type") == "mediation":
+            return self._execute_mediation_action(minister_name, action)
+        return {"answer": self._proposal_answer_for_action(minister_name, action)}
+
+    def _dialogue_action_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
+        pending = self._load_pending_dialogue_action(minister_name)
+        if pending:
+            if self._dialogue_rejected(text):
+                self._clear_pending_dialogue_action(minister_name)
+                return {"answer": f"{self._dialogue_speaker_self(minister_name)}明白。此事暂且按下，不入档、不用人，也不惊动外朝。"}
+            if self._dialogue_confirmed(text):
+                return self._execute_dialogue_action(minister_name, pending)
+        action = self._detect_recruitment_intent(text) or self._detect_mediation_intent(minister_name, text)
+        if not action:
+            return None
+        if action.get("type") == "mediation" and not (action.get("target") or action.get("faction")):
+            return {"answer": self._proposal_answer_for_action(minister_name, action)}
+        self._store_pending_dialogue_action(minister_name, action)
+        return {"answer": self._proposal_answer_for_action(minister_name, action)}
+
+    def _dialogue_tool_response(
+        self,
+        minister_name: str,
+        action: Optional[Dict[str, Any]],
+        fallback_answer: str,
+    ) -> Optional[Dict[str, Any]]:
+        if not isinstance(action, dict) or not action:
+            return None
+        phase = str(action.get("phase") or "propose")
+        normalized = dict(action)
+        normalized.pop("phase", None)
+        if phase == "confirm":
+            pending = self._load_pending_dialogue_action(minister_name)
+            if pending and pending.get("type") == normalized.get("type"):
+                if normalized.get("type") == "recruitment" and not normalized.get("kind"):
+                    normalized["kind"] = pending.get("kind")
+                if normalized.get("type") == "mediation":
+                    for key in ("actor", "target", "faction"):
+                        if not normalized.get(key):
+                            normalized[key] = pending.get(key)
+            if normalized.get("type") == "recruitment" and not normalized.get("kind"):
+                return None
+            return self._execute_dialogue_action(minister_name, normalized)
+        if normalized.get("type") in {"recruitment", "mediation"}:
+            self._store_pending_dialogue_action(minister_name, normalized)
+            return {"answer": fallback_answer or self._proposal_answer_for_action(minister_name, normalized)}
+        return None
+
     def undo_last_chat(self, minister_name: str) -> Dict[str, Any]:
         if self.state.turn_phase not in ("summoning", "reviewing"):
             raise HTTPException(status_code=409, detail="本回合已经进入颁诏结算，不能撤回召对。")
@@ -2954,12 +3302,14 @@ class WebGame:
         proposed_directive: Optional[Dict[str, Any]] = None,
         appointed_minister: str = "",
         registered_minister: str = "",
+        recruited_minister: str = "",
         displaced_minister: str = "",
         displaced_effect: Optional[Dict[str, Any]] = None,
         secret_order_id: int = 0,
         secret_order_assignee: str = "",
         secret_order_effect: Optional[Dict[str, Any]] = None,
         directive_effect: Optional[Dict[str, Any]] = None,
+        dialogue_effect: Optional[Dict[str, Any]] = None,
         chat_turn_id: int = 0,
         dialogue_goal: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
@@ -2982,12 +3332,14 @@ class WebGame:
             "proposed_directive": proposed_directive,
             "appointed_minister": appointed_minister,
             "registered_minister": registered_minister,
+            "recruited_minister": recruited_minister,
             "displaced_minister": displaced_minister,
             "displaced_effect": displaced_effect or {},
             "secret_order_id": secret_order_id or 0,
             "secret_order_assignee": secret_order_assignee,
             "secret_order_effect": secret_order_effect or {},
             "directive_effect": directive_effect or {},
+            "dialogue_effect": dialogue_effect or {},
             "dialogue_goal": (
                 self._conversation_goal_payload_from_rows([dialogue_goal])[0]
                 if dialogue_goal else {}
@@ -3060,6 +3412,17 @@ class WebGame:
                 next_minister=deterministic_summon,
                 chat_turn_id=chat_turn_id,
             )
+        dialogue_response = self._dialogue_action_response(minister_name, text)
+        if dialogue_response is not None:
+            answer = str(dialogue_response.get("answer") or "")
+            self._record_chat_rollback_items(chat_turn_id, before_snapshot)
+            return self._chat_payload(
+                minister_name,
+                answer,
+                recruited_minister=str(dialogue_response.get("recruited_minister") or ""),
+                dialogue_effect=dialogue_response.get("dialogue_effect") if isinstance(dialogue_response.get("dialogue_effect"), dict) else None,
+                chat_turn_id=chat_turn_id,
+            )
         context_brief = self._chat_context_brief(minister_name, context)
         try:
             result = self.session.chat(
@@ -3073,6 +3436,13 @@ class WebGame:
                 self.db.abort_chat_turn(chat_turn_id, before_snapshot)
             self.chat_history[minister_name] = self.chat_history.get(minister_name, [])[:history_before_len]
             raise
+        tool_dialogue_response = self._dialogue_tool_response(
+            minister_name,
+            getattr(result, "dialogue_action", None),
+            result.answer,
+        )
+        if tool_dialogue_response is not None:
+            result.answer = str(tool_dialogue_response.get("answer") or result.answer)
         proposed = None
         if result.proposed_directive is not None:
             d = result.proposed_directive
@@ -3101,12 +3471,14 @@ class WebGame:
             court_action=result.court_action, next_minister=result.next_minister,
             proposed_directive=proposed, appointed_minister=result.appointed_minister,
             registered_minister=result.registered_minister,
+            recruited_minister=str((tool_dialogue_response or {}).get("recruited_minister") or ""),
             displaced_minister=result.displaced_minister,
             displaced_effect=result.displaced_effect,
             secret_order_id=result.secret_order_id,
             secret_order_assignee=result.secret_order_assignee,
             secret_order_effect=result.secret_order_effect,
             directive_effect=directive_effect,
+            dialogue_effect=(tool_dialogue_response or {}).get("dialogue_effect") if isinstance((tool_dialogue_response or {}).get("dialogue_effect"), dict) else None,
             chat_turn_id=chat_turn_id,
             dialogue_goal=result.dialogue_goal,
         )
@@ -3139,6 +3511,20 @@ class WebGame:
                 answer,
                 court_action="summon",
                 next_minister=deterministic_summon,
+                chat_turn_id=chat_turn_id,
+            )
+            yield {"type": "done", "payload": payload}
+            return
+        dialogue_response = self._dialogue_action_response(minister_name, text)
+        if dialogue_response is not None:
+            answer = str(dialogue_response.get("answer") or "")
+            yield {"type": "delta", "content": answer}
+            self._record_chat_rollback_items(chat_turn_id, before_snapshot)
+            payload = self._chat_payload(
+                minister_name,
+                answer,
+                recruited_minister=str(dialogue_response.get("recruited_minister") or ""),
+                dialogue_effect=dialogue_response.get("dialogue_effect") if isinstance(dialogue_response.get("dialogue_effect"), dict) else None,
                 chat_turn_id=chat_turn_id,
             )
             yield {"type": "done", "payload": payload}
@@ -3187,6 +3573,7 @@ class WebGame:
             secret_order_id = 0
             secret_order_assignee = ""
             secret_order_effect: Dict[str, Any] = {}
+            dialogue_tool_action: Dict[str, Any] = {}
             if run_output is not None:
                 for tool_exec in getattr(run_output, "tools", None) or []:
                     res = str(getattr(tool_exec, "result", "") or "")
@@ -3212,6 +3599,22 @@ class WebGame:
                         if registered and summon_after:
                             court_action = "summon"
                             next_minister = registered
+                    elif res.startswith("__dialogue_action__") or tool_name in {
+                        "propose_recruitment",
+                        "confirm_recruitment",
+                        "propose_mediation",
+                        "confirm_mediation",
+                    }:
+                        payload_json = res.removeprefix("__dialogue_action__").strip()
+                        if not payload_json:
+                            args = getattr(tool_exec, "arguments", {}) or getattr(tool_exec, "tool_args", {}) or {}
+                            payload_json = json.dumps(args, ensure_ascii=False)
+                        try:
+                            action = json.loads(payload_json) if payload_json else {}
+                        except (TypeError, ValueError):
+                            action = {}
+                        if isinstance(action, dict):
+                            dialogue_tool_action = action
                     elif tool_name == "summon_minister" or res.startswith("__summon__"):
                         target_name = res.removeprefix("__summon__").strip()
                         if not target_name:
@@ -3252,6 +3655,19 @@ class WebGame:
                                 secret_order_assignee or minister_name,
                             )
                     # 密令结案不再走大臣工具，由月末推演 + extractor 写入
+            dialogue_tool_response = self._dialogue_tool_response(
+                minister_name,
+                dialogue_tool_action,
+                answer,
+            )
+            if dialogue_tool_response is not None:
+                updated_answer = str(dialogue_tool_response.get("answer") or answer)
+                if updated_answer != answer:
+                    extra = updated_answer[len(answer):] if updated_answer.startswith(answer) else f"\n{updated_answer}"
+                    if extra:
+                        chunks.append(extra)
+                        yield {"type": "delta", "content": extra}
+                    answer = updated_answer
             dialogue_goal = self.session.record_dialogue_after_chat(
                 character,
                 text,
@@ -3276,12 +3692,14 @@ class WebGame:
                 minister_name, answer, court_action=court_action, next_minister=next_minister,
                 proposed_directive=proposed, appointed_minister=appointed,
                 registered_minister=registered,
+                recruited_minister=str((dialogue_tool_response or {}).get("recruited_minister") or ""),
                 displaced_minister=displaced,
                 displaced_effect=displaced_effect,
                 secret_order_id=secret_order_id,
                 secret_order_assignee=secret_order_assignee,
                 secret_order_effect=secret_order_effect,
                 directive_effect=directive_effect,
+                dialogue_effect=(dialogue_tool_response or {}).get("dialogue_effect") if isinstance((dialogue_tool_response or {}).get("dialogue_effect"), dict) else None,
                 chat_turn_id=chat_turn_id,
                 dialogue_goal=dialogue_goal,
             )

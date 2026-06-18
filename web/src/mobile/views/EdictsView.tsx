@@ -84,12 +84,14 @@ function DirectiveCard({ d, today, onActed, ministers, activeMinisters, summon }
   const anomalyLabel = directiveAnomalyLabel(d.anomaly);
   const assignee = String(d.assignee || "").trim();
   const canReachAssignee = !!assignee && activeMinisters.has(assignee);
-  const canSummonAssignee = live && canReachAssignee && !!summon;
+  const canFollowupAssignee = live || d.status === "done";
+  const canSummonAssignee = canFollowupAssignee && canReachAssignee && !!summon;
   const clue = d.blocker_clue || {};
   const clueName = String(clue.name || clue.label || "").trim();
   const canSummonClue = live && clue.kind === "person" && clueName && activeMinisters.has(clueName) && !!summon;
   const optionsByAction = new Map((d.intervention_options || []).map((opt) => [opt.action, opt]));
   const blockerAction = blockerActionLabel(d.blocker_action);
+  const followupActions = followupActionLabels(d);
 
   const act = async (action: string, extra?: Record<string, unknown>) => {
     if (busy) return;
@@ -126,7 +128,7 @@ function DirectiveCard({ d, today, onActed, ministers, activeMinisters, summon }
         <div className="m-directive-acts" aria-label="主办官动作">
           {canSummonAssignee && (
             <button className="m-directive-act primary" onClick={() => summon!(assignee, directiveAudienceLead(d, today))}>
-              召主办
+              {d.status === "done" ? "召复盘" : "召主办"}
             </button>
           )}
           {canReachAssignee && (
@@ -170,6 +172,15 @@ function DirectiveCard({ d, today, onActed, ministers, activeMinisters, summon }
       )}
       {live && (
         <div className="m-prog-track"><span className="m-prog-fill" style={{ width: `${d.progress}%` }} /></div>
+      )}
+      {followupActions.length > 0 && (
+        <div className="m-followup-action" aria-label="复命追问状态">
+          <span className="m-followup-k">追问</span>
+          {followupActions.slice(0, 4).map((it, idx) => (
+            <span key={`${it.label}-${idx}`} className={`m-followup-v tone-${it.tone}`}>{it.label}</span>
+          ))}
+          {d.followup_action?.day ? <span className="m-followup-day">最近第 {d.followup_action.day} 日</span> : null}
+        </div>
       )}
       <OutcomeSummary items={d.outcome_summary} />
       {d.settle_note && <p className="m-settle">{d.settle_note}</p>}
@@ -247,13 +258,17 @@ function directiveAudienceLead(d: DirectiveLifecycle, today: number): AudienceLe
   const anomaly = directiveAnomalyLabel(d.anomaly);
   const eta = Number(d.eta_day || 0) - today;
   const etaText = Number(d.eta_day || 0) > 0 ? (eta < 0 ? `逾期 ${-eta} 日` : `余 ${eta} 日`) : "未定期";
+  const done = d.status === "done";
+  const followup = followupActionLabel(d.followup_action);
   return {
     kind: "directive",
-    title: d.status === "stalled" ? "旨意停摆，召主办问罪" : "追问在办旨意",
-    detail: `${statusLabel} · ${progress}% · ${shortDirectiveText(d.text, 54)}`,
-    tone: d.status === "stalled" ? "danger" : "warn",
+    title: done ? "复命后追问" : d.status === "stalled" ? "旨意停摆，召主办问罪" : "追问在办旨意",
+    detail: done
+      ? `${statusLabel} · 奏报 ${Math.max(0, Math.min(100, Number(d.reported_rate || 0)))}% · ${shortDirectiveText(d.text, 54)}`
+      : `${statusLabel} · ${progress}% · ${shortDirectiveText(d.text, 54)}`,
+    tone: done ? "info" : d.status === "stalled" ? "danger" : "warn",
     actor: d.assignee,
-    meta: anomaly || etaText,
+    meta: done ? followup?.label || "复命" : anomaly || etaText,
     ref_kind: "directive",
     ref_id: String(d.id),
     prompts: directivePrompts(d, anomaly),
@@ -262,6 +277,13 @@ function directiveAudienceLead(d: DirectiveLifecycle, today: number): AudienceLe
 
 function directivePrompts(d: DirectiveLifecycle, anomaly: string): Suggestion[] {
   const text = shortDirectiveText(d.text, 34);
+  if (d.status === "done") {
+    return [
+      { label: "问水分", text: `朕看过「${text}」的复命。真实成效如何，奏报里有没有水分？`, prefix: true },
+      { label: "奖有功", text: `此事办得有功，朕要明赏。你说清谁最该记功，后续还需给什么名分？`, prefix: true },
+      { label: "续下一手", text: `此事复命之后，下一步还缺什么，交给谁续办？`, prefix: true },
+    ];
+  }
   const prompts: Suggestion[] = [
     { label: "问进度", text: `朕交你承办的「${text}」，眼下到底办到几分？把实数奏来。`, prefix: true },
     { label: "问阻力", text: `此旨阻力在何处？是谁不肯配合，是钱粮、人手，还是你自己畏难？`, prefix: true },
@@ -301,6 +323,26 @@ function blockerActionLabel(raw?: DirectiveLifecycle["blocker_action"]): string 
     : raw.action === "bargain_blocker" ? "已协调" : "已处置";
   const day = Number(raw.day || 0) > 0 ? ` · 第${raw.day}日` : "";
   return `${verb}${raw.label}${day}`;
+}
+
+function followupActionLabel(raw?: DirectiveLifecycle["followup_action"]): { label: string; tone: string } | null {
+  const kind = String(raw?.kind || "");
+  if (!kind) return null;
+  if (kind === "rewarded") return { label: "已奖叙", tone: "good" };
+  if (kind === "accounted") return { label: "功过已核", tone: "good" };
+  if (kind === "followup_evasive") return { label: "避责未清", tone: "bad" };
+  if (kind === "next_step") return { label: "已有续办", tone: "good" };
+  return { label: "已点过", tone: "neutral" };
+}
+
+function followupActionLabels(d: DirectiveLifecycle): Array<{ label: string; tone: string }> {
+  const history = Array.isArray(d.followup_history) ? d.followup_history : [];
+  const labels = history
+    .map((item) => followupActionLabel(item))
+    .filter((item): item is { label: string; tone: string } => !!item);
+  if (labels.length) return labels;
+  const last = followupActionLabel(d.followup_action);
+  return last ? [last] : [];
 }
 
 function shortDirectiveText(text: string, limit: number): string {

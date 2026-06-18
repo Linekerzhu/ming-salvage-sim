@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 from ming_sim import court, lifecycle, timeflow
 from ming_sim.db import GameDB
 from ming_sim.scheduler import process_pending
-from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
+from ming_sim.upgrade_schema import KV_CURRENT_DAY, KV_RISK_AVERSION, kv_int
 
 
 def _fresh(tmp: str):
@@ -217,6 +217,213 @@ class TickTests(unittest.TestCase):
             self.assertIn("奏报口径是否有水分", brief)
             self.assertIn("下一步可续办", brief)
             self.assertEqual(lifecycle.directive_chat_context_brief(db, "韩爌", did), "")
+
+    def test_done_directive_followup_reward_changes_trust_without_reopening(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "令袁崇焕整顿辽东军饷，十日内具奏欠饷实数与裁汰方案。")
+            db.conn.execute("UPDATE characters SET emp_trust=50, grievance=30 WHERE name='袁崇焕'")
+            db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='done', "
+                "progress=100, integrity_actual=90, integrity_reported=92, "
+                "settle_note=?, outcome_status='applied', chain=? WHERE id=?",
+                (
+                    "袁崇焕",
+                    "臣谨奏：辽东军饷已清出大概，欠饷册可呈御览。",
+                    json.dumps({"resistance": 20, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            db.conn.commit()
+            risk_before = kv_int(db, KV_RISK_AVERSION, 40)
+
+            effect = lifecycle.apply_directive_audience_pressure(
+                db,
+                state,
+                "袁崇焕",
+                did,
+                "朕看了你的复命，此事办得有功，准记功嘉奖。",
+                "臣不敢居功，愿继续清册具奏。",
+            )
+
+            self.assertEqual(effect["kind"], "rewarded")
+            self.assertIn("信任+4", effect["message"])
+            ch = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name='袁崇焕'"
+            ).fetchone()
+            row = db.conn.execute(
+                "SELECT lifecycle_status, progress, chain FROM turn_directives WHERE id=?", (did,)
+            ).fetchone()
+            item = [p for p in lifecycle.lifecycle_payload(db) if p["id"] == did][0]
+            self.assertEqual(int(ch["emp_trust"]), 54)
+            self.assertEqual(int(ch["grievance"]), 27)
+            self.assertEqual(str(row["lifecycle_status"]), "done")
+            self.assertEqual(int(row["progress"]), 100)
+            self.assertEqual(json.loads(row["chain"])["last_followup_action"]["kind"], "rewarded")
+            self.assertEqual(item["followup_action"]["kind"], "rewarded")
+            self.assertEqual(item["followup_action"]["minister"], "袁崇焕")
+            self.assertEqual(kv_int(db, KV_RISK_AVERSION, 40), risk_before - 1)
+            brief = lifecycle.directive_chat_context_brief(db, "袁崇焕", did)
+            self.assertIn("最近御前追问", brief)
+            self.assertIn("已奖叙记功", brief)
+            self.assertIn("不得再装作未受恩赏", brief)
+
+    def test_done_directive_followup_same_kind_does_not_stack_across_days(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "令袁崇焕整顿辽东军饷，十日内具奏欠饷实数与裁汰方案。")
+            db.conn.execute("UPDATE characters SET emp_trust=50, grievance=30 WHERE name='袁崇焕'")
+            db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='done', "
+                "progress=100, integrity_actual=90, integrity_reported=92, chain=? WHERE id=?",
+                (
+                    "袁崇焕",
+                    json.dumps({"resistance": 20, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            db.conn.commit()
+            first = lifecycle.apply_directive_audience_pressure(
+                db,
+                state,
+                "袁崇焕",
+                did,
+                "朕看了你的复命，此事办得有功，准记功嘉奖。",
+                "臣不敢居功，愿继续清册具奏。",
+            )
+            risk_after_first = kv_int(db, KV_RISK_AVERSION, 40)
+            db.kv_set(KV_CURRENT_DAY, "2")
+            second = lifecycle.apply_directive_audience_pressure(
+                db,
+                state,
+                "袁崇焕",
+                did,
+                "朕再赏你此事有功，准记功嘉奖。",
+                "臣叩谢天恩。",
+            )
+
+            ch = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name='袁崇焕'"
+            ).fetchone()
+            chain = json.loads(db.conn.execute(
+                "SELECT chain FROM turn_directives WHERE id=?", (did,)
+            ).fetchone()["chain"])
+            self.assertEqual(first["kind"], "rewarded")
+            self.assertEqual(second["kind"], "already_followed_up")
+            self.assertIn("不再重复增减利害", second["message"])
+            self.assertEqual(int(ch["emp_trust"]), 54)
+            self.assertEqual(int(ch["grievance"]), 27)
+            self.assertEqual(kv_int(db, KV_RISK_AVERSION, 40), risk_after_first)
+            self.assertEqual(chain["last_followup_action"]["day"], 2)
+            self.assertEqual(len([x for x in chain["followup_history"] if x["kind"] == "rewarded"]), 1)
+
+    def test_done_directive_followup_evasive_accountability_raises_caution(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "令袁崇焕整顿辽东军饷，十日内具奏欠饷实数与裁汰方案。")
+            db.conn.execute("UPDATE characters SET emp_trust=50, grievance=30 WHERE name='袁崇焕'")
+            db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='done', "
+                "progress=100, integrity_actual=55, integrity_reported=91, chain=? WHERE id=?",
+                (
+                    "袁崇焕",
+                    json.dumps({"resistance": 20, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            db.conn.commit()
+            risk_before = kv_int(db, KV_RISK_AVERSION, 40)
+
+            effect = lifecycle.apply_directive_audience_pressure(
+                db,
+                state,
+                "袁崇焕",
+                did,
+                "朕问你奏报水分，是否虚报不实？",
+                "臣未闻其详，此非臣一人可知，实难以明言。",
+            )
+
+            self.assertEqual(effect["kind"], "followup_evasive")
+            ch = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name='袁崇焕'"
+            ).fetchone()
+            row = db.conn.execute(
+                "SELECT lifecycle_status, progress, chain FROM turn_directives WHERE id=?", (did,)
+            ).fetchone()
+            self.assertEqual(int(ch["emp_trust"]), 50)
+            self.assertEqual(int(ch["grievance"]), 33)
+            self.assertEqual(str(row["lifecycle_status"]), "done")
+            self.assertEqual(int(row["progress"]), 100)
+            self.assertEqual(json.loads(row["chain"])["last_followup_action"]["kind"], "followup_evasive")
+            self.assertEqual(kv_int(db, KV_RISK_AVERSION, 40), risk_before + 1)
+
+    def test_done_directive_followup_next_step_records_chain_without_progress(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "令袁崇焕整顿辽东军饷，十日内具奏欠饷实数与裁汰方案。")
+            db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='done', "
+                "progress=100, integrity_actual=88, integrity_reported=90, chain=? WHERE id=?",
+                (
+                    "袁崇焕",
+                    json.dumps({"resistance": 20, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            db.conn.commit()
+
+            effect = lifecycle.apply_directive_audience_pressure(
+                db,
+                state,
+                "袁崇焕",
+                did,
+                "此事复命之后，下一步还缺什么，交给谁续办？",
+                "臣请以户部清册为底，续令兵部会同核验。",
+            )
+
+            row = db.conn.execute(
+                "SELECT lifecycle_status, progress, chain FROM turn_directives WHERE id=?", (did,)
+            ).fetchone()
+            self.assertEqual(effect["kind"], "next_step")
+            self.assertEqual(str(row["lifecycle_status"]), "done")
+            self.assertEqual(int(row["progress"]), 100)
+            self.assertEqual(json.loads(row["chain"])["last_followup_action"]["kind"], "next_step")
+
+    def test_done_directive_followup_history_keeps_multiple_kinds(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "令袁崇焕整顿辽东军饷，十日内具奏欠饷实数与裁汰方案。")
+            db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='done', "
+                "progress=100, integrity_actual=88, integrity_reported=90, chain=? WHERE id=?",
+                (
+                    "袁崇焕",
+                    json.dumps({"resistance": 20, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            db.conn.commit()
+            lifecycle.apply_directive_audience_pressure(
+                db,
+                state,
+                "袁崇焕",
+                did,
+                "此事办得有功，准记功嘉奖。",
+                "臣叩谢天恩。",
+            )
+            lifecycle.apply_directive_audience_pressure(
+                db,
+                state,
+                "袁崇焕",
+                did,
+                "此事复命之后，下一步还缺什么，交给谁续办？",
+                "臣请以户部清册为底，续令兵部会同核验。",
+            )
+
+            item = [p for p in lifecycle.lifecycle_payload(db) if p["id"] == did][0]
+            kinds = [str(x.get("kind") or "") for x in item["followup_history"]]
+            self.assertEqual(kinds, ["rewarded", "next_step"])
+            self.assertEqual(item["followup_action"]["kind"], "next_step")
 
     def test_directive_audience_pressure_moves_live_directive(self):
         with TemporaryDirectory() as tmp:

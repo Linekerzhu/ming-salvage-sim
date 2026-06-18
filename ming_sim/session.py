@@ -131,6 +131,7 @@ class ChatTurnResult:
     secret_order_id: int = 0       # 本轮新建密令 id（0=未下密令）
     secret_order_assignee: str = ""  # 真实承办人，可能不是当前奏对者
     secret_order_effect: Dict[str, object] = field(default_factory=dict)
+    dialogue_action: Dict[str, object] = field(default_factory=dict)
     dialogue_goal: Dict[str, object] = field(default_factory=dict)
 
 
@@ -900,6 +901,21 @@ class GameSession:
                     if summon_after:
                         result.court_action = "summon"
                         result.next_minister = registered
+            elif tool_result.startswith("__dialogue_action__") or tool_name in {
+                "propose_recruitment",
+                "confirm_recruitment",
+                "propose_mediation",
+                "confirm_mediation",
+            }:
+                payload = tool_result.removeprefix("__dialogue_action__").strip()
+                if not payload:
+                    payload = _tool_args_json(tool_exec)
+                try:
+                    action = json.loads(payload) if payload else {}
+                except (TypeError, ValueError):
+                    action = {}
+                if isinstance(action, dict):
+                    result.dialogue_action = action
             elif tool_name == "issue_secret_order" or tool_result.startswith("__secret_order_registered__") or tool_result.startswith("__secret_order__"):
                 if tool_result.startswith("__secret_order_registered__"):
                     # 工具已直接落库，提取 order_id

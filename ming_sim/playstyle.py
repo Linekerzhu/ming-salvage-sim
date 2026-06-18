@@ -698,6 +698,7 @@ def _directive_followup_cards(db: GameDB, state: Optional[GameState], cards: Lis
         """
         SELECT d.id, d.turn, d.text, d.assignee, d.progress, d.integrity_actual,
                d.integrity_reported, d.settle_note, d.outcome_status,
+               d.chain,
                c.office, c.status AS character_status
         FROM turn_directives d
         LEFT JOIN characters c ON c.name=d.assignee
@@ -719,6 +720,9 @@ def _directive_followup_cards(db: GameDB, state: Optional[GameState], cards: Lis
         if not assignee:
             continue
         did = int(row["id"] or 0)
+        meta = _json_dict(row["chain"])
+        if isinstance(meta.get("last_followup_action"), dict):
+            continue
         directive = _short_text(str(row["text"] or ""), 34)
         settle = _short_text(str(row["settle_note"] or ""), 60)
         actual = _clamp_int(row["integrity_actual"], 0, 100)

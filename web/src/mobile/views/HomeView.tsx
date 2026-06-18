@@ -250,7 +250,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                     ) : card.kind === "directive_followup" ? (
                       <>
                         {canSummon(card.actor, activeMinisters) && (
-                          <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, "")}>召主办</button>
+                          <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, "")}>召复盘</button>
                         )}
                         <button className="m-brief-action primary" onClick={() => go("edicts")}>看诏旨›</button>
                         {card.actor && <button className="m-brief-action" onClick={() => inspect(card.actor)}>查主办</button>}
@@ -392,9 +392,10 @@ function briefUrgency(value?: number): { label: string; level: "danger" | "warn"
 }
 
 function audienceLeadFromBrief(card: PlaystyleBriefCard, actor = card.actor || "", target = card.target || ""): AudienceLead {
+  const followup = card.kind === "directive_followup";
   return {
     kind: card.kind,
-    title: card.title,
+    title: followup ? "复命后追问" : card.title,
     detail: card.detail,
     tone: card.tone,
     actor,

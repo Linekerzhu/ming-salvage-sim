@@ -317,6 +317,25 @@ def _json_dict(raw: object) -> Dict[str, object]:
     return data if isinstance(data, dict) else {}
 
 
+def _followup_action_brief(raw: object) -> str:
+    data = raw if isinstance(raw, dict) else {}
+    kind = str(data.get("kind") or "")
+    minister = str(data.get("minister") or "").strip()
+    day = int(data.get("day") or 0)
+    label = {
+        "rewarded": "已奖叙记功，差使可作为资历，不得再装作未受恩赏",
+        "accounted": "已核过功过与奏报水分，后续说法须承认可据此赏罚",
+        "followup_evasive": "追问时避责未清，疑点仍在，不得粉饰成全无争议",
+        "next_step": "已问出续办方向，后续应承接下一手而不是重说已结之事",
+        "reviewed": "已被御前点过，后续应承认此事已经复盘",
+    }.get(kind, "")
+    if not label:
+        return ""
+    who = f"{minister}：" if minister else ""
+    when = f"第{day}日，" if day > 0 else ""
+    return f"{when}{who}{label}"
+
+
 def _anomaly_label(raw: object) -> str:
     kind = str(_json_dict(raw).get("kind") or "")
     return {"block": "封驳抗命", "delay": "迟滞拖延", "surprise": "实情有变"}.get(kind, "")
@@ -367,11 +386,15 @@ def directive_chat_context_brief(db: GameDB, minister_name: str, directive_id: o
     settle_note = str(item.get("settle_note") or "").strip()
     if settle_note:
         lines.append(f"最近复命/处置摘录：{settle_note[:180]}")
+    followup_brief = _followup_action_brief(item.get("followup_action"))
+    if followup_brief:
+        lines.append(f"最近御前追问：{followup_brief}。")
     if is_done:
         lines.append(
             "回答规则：你必须承认这道旨意已经复命；不得继续说成未办、未接办或全无进展。"
             "这是复命后的御前追问：按你的身份与私心说明成效、奏报口径是否有水分、谁有功谁有过、"
             "余波风险和下一步可续办之事；可请赏、请罪、推责或请求另下一道旨意，但不要把已复命之事重置成在办。"
+            "若上方已有最近御前追问结论，必须承接该结论，不得推翻成未奖、未核或未问。"
         )
     else:
         lines.append(
@@ -491,6 +514,142 @@ def _delta_label(name: str, value: int, *, good_positive: bool = True) -> Dict[s
     return _effect(f"{name} {signed}", tone)
 
 
+def _followup_history(meta: Dict[str, object]) -> List[Dict[str, object]]:
+    raw = meta.get("followup_history")
+    if isinstance(raw, list):
+        return [x for x in raw if isinstance(x, dict)]
+    last = meta.get("last_followup_action")
+    return [last] if isinstance(last, dict) else []
+
+
+def _record_followup_action(meta: Dict[str, object], *, kind: str, minister_name: str, day: int) -> None:
+    item = {"kind": kind, "minister": minister_name, "day": int(day)}
+    history = _followup_history(meta)
+    if not any(str(x.get("kind") or "") == kind for x in history):
+        history.append(item)
+    meta["followup_history"] = history[-8:]
+    meta["last_followup_action"] = item
+
+
+def _apply_done_directive_followup(
+    db: GameDB,
+    row,
+    did: int,
+    minister_name: str,
+    user_text: str,
+    answer: str,
+) -> Dict[str, object]:
+    """Record post-completion accountability without reopening a done directive."""
+
+    prompt = str(user_text or "")
+    reply = str(answer or "")
+    combined = f"{prompt}\n{reply}"
+    if not _has_any(
+        combined,
+        (
+            "复命", "成效", "实效", "办得", "办成", "水分", "虚报", "不实", "查账",
+            "核实", "功过", "赏", "奖", "嘉", "记功", "责", "罪", "罚", "申饬",
+            "下一步", "续办", "后续", "余波", "续旨", "交给谁",
+        ),
+    ):
+        return {}
+
+    day = kv_int(db, KV_CURRENT_DAY, 1)
+    meta = _chain_meta(row)
+    assignee = str(row["assignee"] or "").strip()
+    evade = _has_any(reply, ("不知", "未闻", "非臣", "不归臣", "无从", "不能", "难以", "未接"))
+    accountability = _has_any(
+        prompt,
+        ("问责", "责", "罪", "水分", "虚报", "不实", "欺", "罚", "申饬", "查账", "核实", "实效", "功过"),
+    )
+    praise = _has_any(prompt, ("赏", "奖", "嘉", "记功", "褒", "慰", "辛苦", "有功", "办得好", "论功"))
+    next_step = _has_any(prompt, ("下一步", "续办", "再下一道", "接着", "后续", "余波", "还缺", "交给谁", "限期", "续旨"))
+
+    if evade and accountability:
+        kind = "followup_evasive"
+    elif accountability:
+        kind = "accounted"
+    elif praise:
+        kind = "rewarded"
+    elif next_step:
+        kind = "next_step"
+    else:
+        kind = "reviewed"
+
+    if any(str(item.get("kind") or "") == kind for item in _followup_history(meta)):
+        _record_followup_action(meta, kind=kind, minister_name=minister_name, day=day)
+        _save_chain_meta(db, did, meta)
+        db.conn.commit()
+        return {
+            "directive_id": did,
+            "kind": "already_followed_up",
+            "title": "已入案",
+            "message": f"这道旨意的{minister_name}复命追问已经入案，再问可作口供，不再重复增减利害。",
+            "effects": [_effect("不重复结算", "neutral", "followup")],
+        }
+
+    effects: List[Dict[str, object]] = []
+    if kind == "rewarded":
+        if assignee:
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=MIN(100, emp_trust+4), "
+                "grievance=MAX(0, grievance-3) WHERE name=?",
+                (assignee,),
+            )
+        adjust_belief(db, KV_RISK_AVERSION, -1, f"复命奖叙旨意#{did}", day=day)
+        title = "功过已明"
+        message = f"御前明示奖叙，{minister_name}这件差使结成资历（信任+4，怨气-3，任事观望-1）。"
+        effects = [
+            _delta_label("信任", +4),
+            _delta_label("怨气", -3, good_positive=False),
+            _delta_label("任事观望", -1, good_positive=False),
+        ]
+    elif kind == "followup_evasive":
+        if assignee:
+            db.conn.execute("UPDATE characters SET grievance=MIN(100, grievance+3) WHERE name=?", (assignee,))
+        adjust_belief(db, KV_RISK_AVERSION, +1, f"复命追问旨意#{did}避重就轻", day=day)
+        title = "复命未清"
+        message = f"{minister_name}对水分与功过仍避重就轻，案虽结而疑未散（怨气+3，任事观望+1）。"
+        effects = [
+            _delta_label("怨气", +3, good_positive=False),
+            _delta_label("任事观望", +1, good_positive=False),
+        ]
+    elif kind == "accounted":
+        if assignee:
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=MIN(100, emp_trust+2), "
+                "grievance=MIN(100, grievance+1) WHERE name=?",
+                (assignee,),
+            )
+        adjust_belief(db, KV_RISK_AVERSION, -1, f"复命核实旨意#{did}", day=day)
+        title = "水分入账"
+        message = f"御前把{minister_name}的功过和奏报水分记入案牍，日后可据此赏罚（信任+2，怨气+1，任事观望-1）。"
+        effects = [
+            _delta_label("信任", +2),
+            _delta_label("怨气", +1, good_positive=False),
+            _delta_label("任事观望", -1, good_positive=False),
+        ]
+    elif kind == "next_step":
+        title = "余波成案"
+        message = f"{minister_name}已把复命余波说到下一手，后续可另下旨接续追办。"
+        effects = [_effect("续办线索入案", "good", "followup")]
+    else:
+        title = "复命已阅"
+        message = f"这道旨意已被御前点过，若要形成利害，还需明示赏、罚、核实或续办。"
+        effects = [_effect("复命追问入案", "neutral", "followup")]
+
+    _record_followup_action(meta, kind=kind, minister_name=minister_name, day=day)
+    _save_chain_meta(db, did, meta)
+    db.conn.commit()
+    return {
+        "directive_id": did,
+        "kind": kind,
+        "title": title,
+        "message": message,
+        "effects": effects,
+    }
+
+
 def apply_directive_audience_pressure(
     db: GameDB,
     state: GameState,
@@ -510,10 +669,15 @@ def apply_directive_audience_pressure(
     except (TypeError, ValueError):
         return {}
     row = db.conn.execute("SELECT * FROM turn_directives WHERE id=?", (did,)).fetchone()
-    if row is None or str(row["lifecycle_status"]) not in LIVE_STATUSES:
+    if row is None:
         return {}
     assignee = str(row["assignee"] or "").strip()
     if assignee and assignee != minister_name:
+        return {}
+    status = str(row["lifecycle_status"] or "")
+    if status == "done":
+        return _apply_done_directive_followup(db, row, did, minister_name, user_text, answer)
+    if status not in LIVE_STATUSES:
         return {}
 
     combined = f"{user_text}\n{answer}"
@@ -526,7 +690,6 @@ def apply_directive_audience_pressure(
     forceful = _has_any(user_text, ("进度", "实数", "几分", "阻力", "停滞", "责", "期限"))
     day = kv_int(db, KV_CURRENT_DAY, 1)
     meta = _chain_meta(row)
-    status = str(row["lifecycle_status"] or "")
     anomaly = _anomaly_label(row["anomaly"] or "")
     blocker_clue = _extract_blocker_clue(db, answer, assignee or minister_name)
 
@@ -1251,6 +1414,8 @@ def lifecycle_payload(db: GameDB, *, include_done: bool = True, limit: int = 40)
             "chain": meta.get("chain") or [],
             "blocker_clue": meta.get("blocker_clue") if isinstance(meta.get("blocker_clue"), dict) else {},
             "blocker_action": meta.get("last_blocker_action") if isinstance(meta.get("last_blocker_action"), dict) else {},
+            "followup_action": meta.get("last_followup_action") if isinstance(meta.get("last_followup_action"), dict) else {},
+            "followup_history": _followup_history(meta),
             "reported_rate": int(row["integrity_reported"]),
             "anomaly": str(row["anomaly"] or ""),
             "settle_note": str(row["settle_note"] or ""),

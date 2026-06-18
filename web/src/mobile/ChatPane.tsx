@@ -96,8 +96,10 @@ export function ChatPane({
       const committed = goal.committed || ["committed", "fulfilled", "达成", "promised"].includes(String(goal.status || ""));
       if (resp.directive_effect?.message) {
         setWin({ glyph: "督", title: resp.directive_effect.title || "旨意有动", sub: String(resp.directive_effect.message).slice(0, 42) });
-      } else if (resp.appointed_minister || resp.registered_minister) {
-        setWin({ glyph: "擢", title: "得人", sub: `${resp.appointed_minister || resp.registered_minister} 入朝听用` });
+      } else if (resp.dialogue_effect?.message) {
+        setWin({ glyph: resp.recruited_minister ? "擢" : "调", title: resp.dialogue_effect.title || "奏对有动", sub: String(resp.dialogue_effect.message).slice(0, 42) });
+      } else if (resp.recruited_minister || resp.appointed_minister || resp.registered_minister) {
+        setWin({ glyph: "擢", title: "得人", sub: `${resp.recruited_minister || resp.appointed_minister || resp.registered_minister} 入朝听用` });
       } else if (resp.proposed_directive?.text) {
         setWin({ glyph: "旨", title: `${name}俯首拟旨`, sub: String(resp.proposed_directive.text).slice(0, 22) + "…（往「诏旨」核定颁布）" });
       } else if (resp.secret_order_id) {
