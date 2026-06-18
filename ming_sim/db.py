@@ -1581,6 +1581,7 @@ class GameDB:
                     (row["name"], row["office"], row["office_type"], "存档迁移"),
                 )
         self._reconcile_character_office_types()
+        self._reconcile_dialogue_palace_nicknames()
 
         if not self.table_has_rows("factions"):
             for faction in self.content.factions.values():
@@ -1789,6 +1790,131 @@ class GameDB:
             )
             if name in self.content.characters:
                 self.content.characters[name].office_type = new_type
+            changed += 1
+        if changed:
+            self.conn.commit()
+        return changed
+
+    def _reconcile_dialogue_palace_nicknames(self) -> int:
+        """迁移旧档：把对白即时补档的“小X子”从泛化待铨修回内廷候用身份。"""
+
+        def parse_small_age(text: str) -> int:
+            value = str(text or "").strip().replace("两", "二").replace("〇", "零")
+            if value.isdigit():
+                age = int(value)
+                return age if 1 <= age <= 90 else 0
+            digits = {"零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
+            if "十" in value:
+                left, _, right = value.partition("十")
+                tens = digits.get(left, 1) if left else 1
+                ones = digits.get(right[:1], 0) if right else 0
+                age = tens * 10 + ones
+                return age if 1 <= age <= 90 else 0
+            if value in digits:
+                return digits[value]
+            return 0
+
+        def mentioned_age(name: str, summary: str) -> int:
+            snippets = [summary]
+            try:
+                row = self.conn.execute(
+                    """
+                    SELECT group_concat(content, ' ') AS text
+                    FROM (
+                        SELECT content FROM chat_messages
+                        WHERE content LIKE ?
+                        ORDER BY id DESC
+                        LIMIT 40
+                    )
+                    """,
+                    (f"%{name}%",),
+                ).fetchone()
+                if row and row["text"]:
+                    snippets.append(str(row["text"]))
+            except sqlite3.Error:
+                pass
+            blob = " ".join(snippets)
+            patterns = [
+                rf"{re.escape(name)}[^\n。；]{{0,80}}(?:今年|年方|刚满|才|不过)[^零〇一二两三四五六七八九十\d]{{0,4}}(\d{{1,2}}|[零〇一二两三四五六七八九十]{{1,4}})",
+                r"(?:今年|年方|刚满|才|不过)[^零〇一二两三四五六七八九十\d]{0,4}(\d{1,2}|[零〇一二两三四五六七八九十]{1,4})",
+            ]
+            for pattern in patterns:
+                match = re.search(pattern, blob)
+                if not match:
+                    continue
+                age = parse_small_age(match.group(1))
+                if 8 <= age <= 17:
+                    return age
+            return 12
+
+        try:
+            state_row = self.conn.execute("SELECT year FROM game_state LIMIT 1").fetchone()
+            current_year = int(state_row["year"] or 1627) if state_row else 1627
+        except Exception:
+            current_year = 1627
+        rows = self.conn.execute(
+            """
+            SELECT name, office, office_type, faction, summary, status_reason, birth_year
+            FROM characters
+            WHERE power_id='ming' AND status='active'
+            """
+        ).fetchall()
+        changed = 0
+        for row in rows:
+            name = str(row["name"] or "").strip()
+            if not re.fullmatch(r"小[\u4e00-\u9fff]{1,2}子", name):
+                continue
+            office = str(row["office"] or "")
+            office_type = str(row["office_type"] or "")
+            if office_type not in {"待铨", "未仕"} and not office.startswith("待铨"):
+                continue
+            summary = str(row["summary"] or "")
+            reason = str(row["status_reason"] or "")
+            if not re.search(r"(当前活动存档|对白线索|对白中提及|奏对里露出|按线索寻访)", f"{summary} {reason}"):
+                continue
+            faction = str(row["faction"] or "")
+            new_faction = faction if faction in {"内廷", "皇党", "阉党"} else "内廷"
+            new_office = "内书堂识字小火者"
+            new_type = "司礼监"
+            birth_year = int(row["birth_year"] or 0)
+            age = current_year - birth_year if birth_year else 0
+            new_birth_year = birth_year
+            if not (8 <= age <= 17):
+                new_birth_year = current_year - mentioned_age(name, summary)
+            new_summary = summary
+            if "内廷小名补档" not in new_summary:
+                new_summary = (
+                    new_summary.rstrip()
+                    + " 旧档修正：此人为内廷小名补档，按内书堂/司礼监候用新人管理；"
+                    "尚需查明净身、宝况与监房牵连。"
+                ).strip()
+            self.conn.execute(
+                """
+                UPDATE characters
+                SET office=?, office_type=?, faction=?, birth_year=?, summary=?
+                WHERE name=?
+                """,
+                (new_office, new_type, new_faction, new_birth_year, new_summary[:1000], name),
+            )
+            self.conn.execute(
+                """
+                INSERT INTO character_offices (character_name, office_title, office_type, source)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(character_name) DO UPDATE SET
+                    office_title = excluded.office_title,
+                    office_type = excluded.office_type,
+                    source = excluded.source,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+                (name, new_office, new_type, "旧档修正：内廷小名补档"),
+            )
+            if name in self.content.characters:
+                character = self.content.characters[name]
+                character.office = new_office
+                character.office_type = new_type
+                character.faction = new_faction
+                character.birth_year = new_birth_year
+                character.summary = new_summary[:1000]
             changed += 1
         if changed:
             self.conn.commit()

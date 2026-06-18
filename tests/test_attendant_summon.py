@@ -447,6 +447,63 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_old_dialogue_palace_nickname_waiting_profile_migrates_to_inner_court(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            name = "小禄子"
+            self.assertNotIn(name, game.content.characters)
+            game.db.add_character(
+                game.state,
+                Character(
+                    name=name,
+                    office="待铨（对白寻访）",
+                    office_type="待铨",
+                    faction="清流",
+                    aliases=[],
+                    personal_skills=[],
+                    loyalty=60,
+                    ability=55,
+                    integrity=60,
+                    courage=50,
+                    style="陛下点名，底细待察",
+                    power_id="ming",
+                    birth_year=1599,
+                    status="active",
+                    summary="由王承恩对白中提及，后奉旨按线索寻访入京；此人物为当前活动存档内即时补档。",
+                ),
+                source="对白线索补档",
+            )
+            game.db.conn.execute(
+                "INSERT INTO chat_messages (minister_name, turn, role, content) VALUES (?, ?, ?, ?)",
+                ("王承恩", game.state.turn, "minister", "陛下，小禄子今年十一，保定府人，原是逃荒到京的孤儿。"),
+            )
+            game.db.conn.commit()
+
+            changed = game.db._reconcile_dialogue_palace_nicknames()
+
+            self.assertEqual(changed, 1)
+            row = game.db.conn.execute(
+                "SELECT office, office_type, faction, birth_year, summary FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
+            self.assertEqual(str(row["faction"] or ""), "内廷")
+            self.assertEqual(int(game.state.year) - int(row["birth_year"]), 11)
+            self.assertIn("内廷小名补档", str(row["summary"] or ""))
+            office_row = game.db.conn.execute(
+                "SELECT office_title, office_type, source FROM character_offices WHERE character_name=?",
+                (name,),
+            ).fetchone()
+            self.assertIsNotNone(office_row)
+            self.assertEqual(str(office_row["office_type"] or ""), "司礼监")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_direct_command_does_not_fold_arrival_words_into_new_name(self):
         game = web_app.WebGame(fresh=True)
         try:
