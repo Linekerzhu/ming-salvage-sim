@@ -532,11 +532,13 @@ def build_minister_tools(character: Character, context: CourtContext):
         )
         return f"__pending_unlisted_person__{payload}"
 
-    def propose_recruitment(kind: str, need: str = "", office: str = "") -> str:
-        """对白驱动用人：皇帝问有无太监/新科/可荐之人时调用。
+    def propose_recruitment(kind: str, need: str = "", office: str = "", trigger_quote: str = "") -> str:
+        """对白驱动用人：只有皇帝明确要求找/招/挑/荐/补“新人”时调用。
 
         只生成待确认意图，不新增人物。kind 填 eunuch、exam 或 recommend。
         调用后回奏必须追问陛下是否准办，不能说已经办成。
+        不得因“朝中谁可用”“人才如何”“党羽/政敌/关系网/荐人担保”等信息咨询调用。
+        trigger_quote 必须摘录玩家原话里要求生成新人的短句；没有可摘录证据时不要调用。
         """
         k = (kind or "").strip().lower()
         aliases = {"太监": "eunuch", "内侍": "eunuch", "科举": "exam", "新科": "exam", "举荐": "recommend"}
@@ -550,16 +552,19 @@ def build_minister_tools(character: Character, context: CourtContext):
                 "kind": k,
                 "need": (need or "").strip(),
                 "office": (office or "").strip(),
+                "trigger_quote": (trigger_quote or "").strip(),
                 "recommender": character.name,
             },
             ensure_ascii=False,
         )
         return f"__dialogue_action__{payload}"
 
-    def confirm_recruitment(kind: str = "", note: str = "") -> str:
-        """对白驱动用人：只有皇帝明确说准、去办、照办后才调用。
+    def confirm_recruitment(kind: str = "", note: str = "", trigger_quote: str = "") -> str:
+        """对白驱动用人：只有上一轮已有用人提议，且皇帝明确批准执行后才调用。
 
         kind 可留空，Web 端会优先使用上一轮待确认意图；也可填 eunuch/exam/recommend。
+        如果皇帝只是追问“谁合适/说来听听/再议”，不得调用。
+        trigger_quote 摘录玩家批准执行的短句，如“准，去办”“好，你去招募”。
         """
         k = (kind or "").strip().lower()
         aliases = {"太监": "eunuch", "内侍": "eunuch", "科举": "exam", "新科": "exam", "举荐": "recommend"}
@@ -570,6 +575,7 @@ def build_minister_tools(character: Character, context: CourtContext):
                 "phase": "confirm",
                 "kind": k,
                 "note": (note or "").strip(),
+                "trigger_quote": (trigger_quote or "").strip(),
                 "recommender": character.name,
             },
             ensure_ascii=False,

@@ -3416,6 +3416,11 @@ class WebGame:
         return bool(re.search(r"(不必|暂缓|算了|不要|不可|先别|免了|罢了|否|驳回|改日)", raw))
 
     def _detect_recruitment_intent(self, text: str) -> Dict[str, Any]:
+        # Recruitment mutates the activity save by creating new NPCs, so normal
+        # play should use the LLM tool + semantic audit path instead of keyword
+        # interception.  This legacy fallback is opt-in for local diagnostics.
+        if os.environ.get("MING_SIM_ENABLE_RECRUITMENT_REGEX_FALLBACK", "").strip().lower() not in ("1", "true", "yes"):
+            return {}
         raw = str(text or "").strip()
         if not raw:
             return {}
@@ -3479,9 +3484,82 @@ class WebGame:
                 return {"type": "recruitment", "kind": "eunuch", "recovered": True}
             if re.search(r"(新科|庶吉士|科场|进士|取士|补入朝班)", answer):
                 return {"type": "recruitment", "kind": "exam", "recovered": True}
-            if re.search(r"(举荐|荐人|举出一人|来源、短处与风险|无根之木)", answer):
+            if re.search(r"(举荐|荐人|荐才|保举|访贤|寻贤|荐出|举出).{0,24}(?:一人|一个|新人|可试差)", answer):
                 return {"type": "recruitment", "kind": "recommend", "recovered": True}
         return {}
+
+    def _recruitment_explicitly_blocked(self, text: str) -> bool:
+        raw = str(text or "").strip()
+        if not raw:
+            return True
+        return bool(re.search(
+            r"(?:不是|并非|不要|不必|不用|暂不|先不|别|勿|毋).{0,18}(?:招|募|荐|举|保举|找新人|添人|荐新人|生人)"
+            r"|(?:只是|只|不过|单是).{0,12}(?:问|聊|说|谈|议|听|看)"
+            r"|不要荐新人|别再荐新人|先说现有人|不是要荐人|不是要招人",
+            raw,
+        ))
+
+    def _recruitment_semantic_gate(
+        self,
+        minister_name: str,
+        action: Dict[str, Any],
+        user_text: str,
+        phase: str,
+        pending_action: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        if action.get("type") != "recruitment":
+            return {"allow": True, "kind": str(action.get("kind") or ""), "phase": phase, "confidence": 100}
+        if self._recruitment_explicitly_blocked(user_text):
+            return {
+                "allow": False,
+                "kind": "",
+                "phase": "none",
+                "confidence": 100,
+                "private_reason": "玩家明示只是询问或不要招募/举荐新人。",
+            }
+        normalized = dict(action)
+        normalized["phase"] = phase
+        kind = str(normalized.get("kind") or (pending_action or {}).get("kind") or "").strip()
+        if kind not in {"eunuch", "exam", "recommend"}:
+            return {"allow": False, "kind": kind, "phase": "none", "confidence": 100, "private_reason": "用人类型无效。"}
+        normalized["kind"] = kind
+        if phase == "confirm" and not (
+            isinstance(pending_action, dict)
+            and pending_action.get("type") == "recruitment"
+            and str(pending_action.get("kind") or "") in {"eunuch", "exam", "recommend"}
+        ):
+            return {"allow": False, "kind": kind, "phase": "none", "confidence": 100, "private_reason": "没有待确认的用人意图。"}
+        try:
+            from ming_sim.dialogue_audit import recruitment_intent_audit
+
+            character = self.session._character(minister_name)
+            review = recruitment_intent_audit(
+                self.db,
+                self.state,
+                character,
+                user_text,
+                normalized,
+                pending_action=pending_action if isinstance(pending_action, dict) else None,
+                llm_config=self.session.llm_config,
+                agno_db=self.session.agno_db,
+                audit_client=self.session.dialogue_audit_client,
+            )
+        except Exception as exc:
+            review = {
+                "allow": False,
+                "kind": kind,
+                "phase": "none",
+                "confidence": 0,
+                "private_reason": str(exc),
+            }
+        if review.get("allow") and review.get("phase") != phase:
+            review = dict(review)
+            review["allow"] = False
+            review["private_reason"] = (
+                str(review.get("private_reason") or "").strip()
+                or f"审计阶段不匹配：{review.get('phase')} != {phase}"
+            )
+        return review
 
     def _castration_topic_mentioned(self, text: str) -> bool:
         raw = str(text or "").strip()
@@ -5048,6 +5126,21 @@ class WebGame:
                 self._clear_pending_dialogue_action(minister_name)
                 return {"answer": f"{self._dialogue_speaker_self(minister_name)}明白。此事暂且按下，不入档、不用人，也不惊动外朝。"}
             if self._dialogue_confirmed(text):
+                if pending.get("type") == "recruitment":
+                    review = self._recruitment_semantic_gate(
+                        minister_name,
+                        {
+                            "type": "recruitment",
+                            "phase": "confirm",
+                            "kind": pending.get("kind"),
+                            "note": text,
+                        },
+                        text,
+                        "confirm",
+                        pending,
+                    )
+                    if not review.get("allow"):
+                        return None
                 if pending.get("type") == "castration":
                     pending = dict(pending)
                     extra = str(text or "").strip()
@@ -5093,7 +5186,6 @@ class WebGame:
             or self._detect_bao_leverage_intent(text, minister_name)
             or self._detect_eunuch_hard_service_intent(text, minister_name)
             or self._detect_eunuch_care_intent(text, minister_name)
-            or self._detect_recruitment_intent(text)
             or self._detect_mediation_intent(minister_name, text)
         )
         if not action:
@@ -5169,6 +5261,18 @@ class WebGame:
                     normalized["note"] = " ".join(dict.fromkeys(part for part in note_parts if part))
             if normalized.get("type") == "recruitment" and not normalized.get("kind"):
                 return None
+            if normalized.get("type") == "recruitment":
+                if not (pending and pending.get("type") == "recruitment"):
+                    return None
+                review = self._recruitment_semantic_gate(minister_name, normalized, user_text, "confirm", pending)
+                if not review.get("allow"):
+                    return None
+                if review.get("kind"):
+                    normalized["kind"] = review.get("kind")
+                if review.get("trigger_quote"):
+                    normalized["trigger_quote"] = review.get("trigger_quote")
+                if review.get("private_reason"):
+                    normalized["semantic_reason"] = review.get("private_reason")
             if normalized.get("type") == "castration" and not self._castration_action_is_valid(
                 minister_name,
                 normalized,
@@ -5183,6 +5287,16 @@ class WebGame:
                 }
             return self._execute_dialogue_action(minister_name, normalized)
         if normalized.get("type") in {"recruitment", "mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
+            if normalized.get("type") == "recruitment":
+                review = self._recruitment_semantic_gate(minister_name, normalized, user_text, "propose")
+                if not review.get("allow"):
+                    return None
+                if review.get("kind"):
+                    normalized["kind"] = review.get("kind")
+                if review.get("trigger_quote"):
+                    normalized["trigger_quote"] = review.get("trigger_quote")
+                if review.get("private_reason"):
+                    normalized["semantic_reason"] = review.get("private_reason")
             if normalized.get("type") == "castration":
                 normalized["force"] = True
                 if not str(normalized.get("scheme_text") or "").strip():

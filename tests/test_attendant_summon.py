@@ -68,6 +68,25 @@ class AttendantSummonTests(unittest.TestCase):
                 os.environ[key] = value
         self.tmp.cleanup()
 
+    def _recruitment_audit(self, *, allow=True, kind="eunuch", confidence=95):
+        def audit(phase, payload):
+            if phase != "recruitment_intent":
+                return None
+            action = payload.get("tool_action") or {}
+            action_phase = str(action.get("phase") or "propose")
+            return {
+                "allow": allow,
+                "phase": action_phase if allow else "none",
+                "kind": kind if allow else "",
+                "requires_confirmation": action_phase == "propose",
+                "trigger_quote": str(action.get("trigger_quote") or payload.get("user_text") or "")[:80],
+                "public_hint": "",
+                "private_reason": "test semantic gate",
+                "confidence": confidence if allow else 95,
+            }
+
+        return audit
+
     def test_stream_chat_summon_command_returns_next_minister_without_llm_tool(self):
         game = web_app.WebGame(fresh=True)
         try:
@@ -689,12 +708,126 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_ambiguous_who_is_usable_does_not_open_recommendation_pool(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            game.session.dialogue_audit_client = self._recruitment_audit(allow=False)
+
+            response = game._dialogue_tool_response(
+                attendant,
+                {
+                    "type": "recruitment",
+                    "phase": "propose",
+                    "kind": "recommend",
+                    "trigger_quote": "朝中还有谁可用",
+                },
+                "奴婢试着荐一人。",
+                "朝中还有谁可用？先说现有人，不要荐新人。",
+            )
+
+            self.assertIsNone(response)
+            self.assertEqual(game._load_pending_dialogue_action(attendant), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_recommendation_chain_question_does_not_create_pending_recruitment(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            game.session.dialogue_audit_client = self._recruitment_audit(allow=False)
+
+            response = game._dialogue_tool_response(
+                attendant,
+                {
+                    "type": "recruitment",
+                    "phase": "propose",
+                    "kind": "recommend",
+                    "trigger_quote": "门生举荐链",
+                },
+                "奴婢可举荐一人。",
+                "你怎么看韩爌的门生举荐链，别再荐新人。",
+            )
+
+            self.assertIsNone(response)
+            self.assertEqual(game._load_pending_dialogue_action(attendant), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_recruitment_confirm_without_pending_is_ignored(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            game.session.dialogue_audit_client = self._recruitment_audit(allow=True, kind="recommend")
+
+            response = game._dialogue_tool_response(
+                attendant,
+                {
+                    "type": "recruitment",
+                    "phase": "confirm",
+                    "kind": "recommend",
+                    "trigger_quote": "准",
+                },
+                "臣遵旨荐人。",
+                "准。",
+            )
+
+            self.assertIsNone(response)
+            self.assertEqual(game._load_pending_dialogue_action(attendant), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_pending_recruitment_followup_question_does_not_execute(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            game.session.dialogue_audit_client = self._recruitment_audit(allow=False)
+            game._store_pending_dialogue_action(attendant, {"type": "recruitment", "kind": "eunuch"})
+            before = game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"]
+
+            response = game._dialogue_action_response(attendant, "好，你说谁合适？")
+
+            after = game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"]
+            self.assertIsNone(response)
+            self.assertEqual(after, before)
+            self.assertEqual(game._load_pending_dialogue_action(attendant).get("kind"), "eunuch")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_colloquial_recruitment_confirmation_brings_new_eunuch_to_audience(self):
         game = web_app.WebGame(fresh=True)
         try:
             attendant = "王承恩"
-            first = game.chat(attendant, "算了，你再招募一个小内侍吧")
+            game.session.dialogue_audit_client = self._recruitment_audit(allow=True, kind="eunuch")
+            first = game._dialogue_tool_response(
+                attendant,
+                {
+                    "type": "recruitment",
+                    "phase": "propose",
+                    "kind": "eunuch",
+                    "trigger_quote": "再招募一个小内侍吧",
+                },
+                "",
+                "算了，你再招募一个小内侍吧",
+            )
 
+            self.assertIsNotNone(first)
             self.assertIn("陛下若准", first["answer"])
             self.assertEqual(game._load_pending_dialogue_action(attendant).get("kind"), "eunuch")
 
@@ -1354,14 +1487,25 @@ class AttendantSummonTests(unittest.TestCase):
         game = web_app.WebGame(fresh=True)
         try:
             attendant = "王承恩"
+            game.session.dialogue_audit_client = self._recruitment_audit(allow=True, kind="eunuch")
             before_names = {
                 str(row["name"])
                 for row in game.db.conn.execute("SELECT name FROM characters").fetchall()
             }
 
-            proposal_events = list(game.chat_stream(attendant, "宫中有没有新的太监可用？"))
-            self.assertEqual(proposal_events[-1]["type"], "done")
-            self.assertIn("若准", proposal_events[-1]["payload"]["answer"])
+            proposal = game._dialogue_tool_response(
+                attendant,
+                {
+                    "type": "recruitment",
+                    "phase": "propose",
+                    "kind": "eunuch",
+                    "trigger_quote": "有没有新的太监可用",
+                },
+                "",
+                "宫中有没有新的太监可用？",
+            )
+            self.assertIsNotNone(proposal)
+            self.assertIn("若准", proposal["answer"])
             mid_names = {
                 str(row["name"])
                 for row in game.db.conn.execute("SELECT name FROM characters").fetchall()
@@ -1396,16 +1540,27 @@ class AttendantSummonTests(unittest.TestCase):
         game = web_app.WebGame(fresh=True)
         try:
             attendant = "王承恩"
+            game.session.dialogue_audit_client = self._recruitment_audit(allow=True, kind="eunuch")
             game.db.conn.execute(
                 "UPDATE characters SET office=?, office_type=? WHERE name=?",
                 ("内官监御前", "内官监御前", attendant),
             )
             game.db.conn.commit()
 
-            events = list(game.chat_stream(attendant, "算了，你再招募一个小内侍吧"))
+            proposal = game._dialogue_tool_response(
+                attendant,
+                {
+                    "type": "recruitment",
+                    "phase": "propose",
+                    "kind": "eunuch",
+                    "trigger_quote": "再招募一个小内侍吧",
+                },
+                "",
+                "算了，你再招募一个小内侍吧",
+            )
 
-            self.assertEqual(events[-1]["type"], "done")
-            self.assertTrue(events[-1]["payload"]["answer"].startswith("奴婢回陛下"))
+            self.assertIsNotNone(proposal)
+            self.assertTrue(proposal["answer"].startswith("奴婢回陛下"))
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
@@ -1417,8 +1572,19 @@ class AttendantSummonTests(unittest.TestCase):
         game = web_app.WebGame(fresh=True)
         try:
             attendant = "王承恩"
-            proposal_events = list(game.chat_stream(attendant, "算了，你再招募一个小内侍吧"))
-            self.assertEqual(proposal_events[-1]["type"], "done")
+            game.session.dialogue_audit_client = self._recruitment_audit(allow=True, kind="eunuch")
+            proposal = game._dialogue_tool_response(
+                attendant,
+                {
+                    "type": "recruitment",
+                    "phase": "propose",
+                    "kind": "eunuch",
+                    "trigger_quote": "再招募一个小内侍吧",
+                },
+                "",
+                "算了，你再招募一个小内侍吧",
+            )
+            self.assertIsNotNone(proposal)
             pending = game._load_pending_dialogue_action(attendant)
             self.assertEqual(pending.get("type"), "recruitment")
             self.assertEqual(pending.get("kind"), "eunuch")

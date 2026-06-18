@@ -48,6 +48,7 @@ AGREEMENT_ACTIONS = {"none", "create_achieved", "create_pending", "bind_existing
 DIRECTIVE_ACTIONS = {"none", "propose_pending"}
 INSTANT_AGREEMENT_ACTIONS = {"castration", "emancipation", "personnel"}
 IDENTITY_CONVERSION_ACTIONS = {"castration", "emancipation"}
+RECRUITMENT_KINDS = {"eunuch", "exam", "recommend"}
 SOFT_HOOK_RE = re.compile(
     r"旧恩|人情债|昔日|朕曾|朕已|朕替|朕保|保全|复用|买单|抚恤|"
     r"两清|恩典|恩赏|天恩|旧情"
@@ -443,6 +444,31 @@ def _normalize_post(data: Dict[str, object], *, existing_threshold: int = 70) ->
     )
 
 
+def _normalize_recruitment_intent(data: Dict[str, object]) -> Dict[str, object]:
+    kind = _enum(data.get("kind"), RECRUITMENT_KINDS, "")
+    raw_confidence = data.get("confidence")
+    try:
+        parsed_confidence = float(raw_confidence)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        parsed_confidence = 0.0
+    if 0 < parsed_confidence <= 1:
+        confidence = _clamp_int(parsed_confidence * 100)
+    else:
+        confidence = _clamp_int(raw_confidence)
+    allow = bool(data.get("allow")) and kind in RECRUITMENT_KINDS and confidence >= CONFIDENCE_FLOOR
+    return {
+        "allow": allow,
+        "kind": kind,
+        "confidence": confidence,
+        "phase": _enum(data.get("phase"), {"propose", "confirm", "none"}, "none"),
+        "requires_confirmation": bool(data.get("requires_confirmation", True)),
+        "trigger_quote": _compact(data.get("trigger_quote"), 120),
+        "public_hint": _compact(data.get("public_hint"), 180),
+        "private_reason": _compact(data.get("private_reason"), 500),
+        "raw": data,
+    }
+
+
 def _context_payload(db: Any, state: GameState, character: Character, *, active_goal: Optional[Dict[str, object]] = None) -> Dict[str, object]:
     try:
         goals = db.list_conversation_goals(minister_name=character.name, limit=8)
@@ -774,6 +800,44 @@ JSON 字段：
 """.strip()
 
 
+RECRUITMENT_INTENT_PROMPT = """
+你是明末历史策略游戏的“对白驱动用人审计官”。你只输出 JSON，不写 Markdown。
+任务：阅读玩家本轮原话、NPC、近期上下文、工具动作和待确认动作，判断是否允许“招募/举荐/科举取士”管道改变人物库。
+
+核心原则：
+- 这是语义判定，不按关键词机械触发。只有玩家明确要求“找/招/挑/荐/保举/访求/取士/补一个新人/带一个新人来”时，才可 allow=true。
+- 玩家只是问“朝中谁可用”“某人门生举荐链如何”“党羽/政敌/关系网怎么看”“有没有水分/风声/人才问题”，通常是信息咨询，不是生成新人。
+- 玩家要求召见一个已提到的具体名字，应走召见/补档管道，不是 recruit/recommend 新人池。
+- phase=propose 只能生成待确认意图，不落库；requires_confirmation 必须为 true。
+- phase=confirm 必须有 pending_action.type=recruitment，并且玩家本轮语义是在批准上一轮方案；闲聊、追问“谁合适”、比较候选、说“先别/不要/只是问问”都不算确认。
+- kind=eunuch 仅用于新太监/内侍/小火者/内书堂候用之人。
+- kind=exam 仅用于科举、新科进士、庶吉士、取士。
+- kind=recommend 仅用于命臣工举荐、访贤、荐才，且必须是“新增可建档人物”，不是评价现有大臣。
+- trigger_quote 必须引用玩家原话中最能证明该意图的短句；没有可引用证据时 allow=false。
+
+判例：
+- “宫中有没有新的太监可用？” => allow=true, phase=propose, kind=eunuch。
+- “再招募一个小内侍吧” => allow=true, phase=propose, kind=eunuch。
+- “命众臣荐人，给朕举荐一个可试差的新人” => allow=true, phase=propose, kind=recommend。
+- “朝中还有谁可用？先说现有人，不要荐新人。” => allow=false。
+- “你怎么看韩爌的门生举荐链，别再荐新人。” => allow=false。
+- “好，你去招募。” 且 pending_action 是 recruitment/eunuch => allow=true, phase=confirm, kind=eunuch。
+- “好，你说谁合适？” 且 pending_action 是 recruitment => allow=false；这是追问，不是批准执行。
+
+JSON 字段：
+{
+  "allow": false,
+  "phase": "none|propose|confirm",
+  "kind": "eunuch|exam|recommend|",
+  "requires_confirmation": true,
+  "trigger_quote": "玩家原文短句",
+  "public_hint": "一句玩家可见提示",
+  "private_reason": "审计理由，说明为什么是/不是生成新人",
+  "confidence": 0
+}
+""".strip()
+
+
 def _agent(llm_config: LLMConfig, agno_db: object, *, phase: str, prompt: str, max_tokens: int = 2200) -> Agent:
     del agno_db
     cfg = llm_for_role(llm_config, "dialogue_audit")
@@ -781,6 +845,7 @@ def _agent(llm_config: LLMConfig, agno_db: object, *, phase: str, prompt: str, m
         "pre": "llm.dialogue_pre_audit",
         "post": "llm.dialogue_post_audit",
         "condition": "llm.dialogue_condition_audit",
+        "recruitment_intent": "llm.dialogue_recruitment_intent",
     }.get(phase, "llm.dialogue_condition_audit")
     return Agent(
         name=f"奏对审计-{phase}",
@@ -830,6 +895,67 @@ def pre_dialogue_audit(
         return _normalize_pre(data)
     except Exception as exc:
         return _audit_failure(str(exc))
+
+
+def recruitment_intent_audit(
+    db: Any,
+    state: GameState,
+    character: Character,
+    user_text: str,
+    action: Dict[str, object],
+    *,
+    pending_action: Optional[Dict[str, object]] = None,
+    llm_config: Optional[LLMConfig] = None,
+    agno_db: object = None,
+    audit_client: object = None,
+) -> Dict[str, object]:
+    payload = _context_payload(db, state, character)
+    payload["user_text"] = user_text
+    payload["tool_action"] = {
+        key: value
+        for key, value in (action or {}).items()
+        if key in {"type", "phase", "kind", "need", "office", "recommender", "note", "trigger_quote"}
+    }
+    payload["pending_action"] = {
+        key: value
+        for key, value in (pending_action or {}).items()
+        if key in {"type", "kind", "need", "office", "recommender", "note", "trigger_quote"}
+    }
+    _attach_behavior_context(payload, character, text=user_text)
+    try:
+        fake = _call_fake(audit_client, "recruitment_intent", payload)
+        if fake is not None:
+            return _normalize_recruitment_intent(fake)
+        if llm_config is None:
+            return _normalize_recruitment_intent({
+                "allow": False,
+                "phase": "none",
+                "kind": "",
+                "confidence": 0,
+                "private_reason": "未配置 LLM，用人管道不落库。",
+            })
+        agent = _agent(
+            llm_config,
+            agno_db,
+            phase="recruitment_intent",
+            prompt=RECRUITMENT_INTENT_PROMPT,
+            max_tokens=900,
+        )
+        raw = run_agent_text(
+            agent,
+            json.dumps(payload, ensure_ascii=False, sort_keys=False),
+            tag="dialogue-audit/recruitment-intent",
+        )
+        data = parse_agent_json(raw, "用人意图审计")
+        return _normalize_recruitment_intent(data)
+    except Exception as exc:
+        return _normalize_recruitment_intent({
+            "allow": False,
+            "phase": "none",
+            "kind": "",
+            "confidence": 0,
+            "private_reason": str(exc),
+        })
 
 
 def post_dialogue_audit(
