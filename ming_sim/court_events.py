@@ -11,7 +11,7 @@ import json
 from typing import Callable, Dict, List, Optional
 
 from ming_sim.db import GameDB
-from ming_sim.models import GameState
+from ming_sim.models import GameState, period_label
 from ming_sim import court
 from ming_sim.negotiation import HANDSHAKE_SEALED, promise_type_from_terms, stakes_from_terms
 from ming_sim.upgrade_schema import (
@@ -238,6 +238,63 @@ def _apply_agreement_action(db: GameDB, state: GameState, item: Dict[str, object
     return ""
 
 
+def _append_secret_order_court_line(state: GameState, prev: str, label: str, note: str) -> str:
+    stamp = f"〔{period_label(state.year, state.period)}〕[{label}] "
+    lines = [ln for ln in str(prev or "").split("\n") if ln.strip()]
+    lines.append(f"{stamp}{str(note or '').strip()[:300]}")
+    return "\n".join(lines)
+
+
+def _apply_secret_order_action(db: GameDB, state: GameState, item: Dict[str, object], day: int) -> str:
+    order_id = _intish(item.get("id") or item.get("order_id"))
+    if order_id <= 0:
+        return ""
+    row = db.conn.execute(
+        "SELECT id, title, status, result FROM secret_orders WHERE id=?",
+        (order_id,),
+    ).fetchone()
+    if row is None:
+        return ""
+    status = str(row["status"] or "")
+    if status not in {"active", "pending_review"}:
+        return ""
+    action = str(item.get("action") or "close").strip()
+    title = str(row["title"] or "密令")
+    label = str(item.get("label") or "圣裁").strip()[:24] or "圣裁"
+    note = str(item.get("note") or "").strip() or "御前裁断，归档存照。"
+    result = _append_secret_order_court_line(state, str(row["result"] or ""), label, note)
+
+    if action == "extend":
+        months = max(1, min(12, _intish(item.get("months"), 1)))
+        due_turn = int(state.turn) + months
+        db.conn.execute(
+            """
+            UPDATE secret_orders
+            SET status='active', due_turn=?, result=?, updated_at=CURRENT_TIMESTAMP
+            WHERE id=?
+            """,
+            (due_turn, result, order_id),
+        )
+        return f"密令续查{months}月：{title}"
+
+    if action == "close":
+        new_status = str(item.get("status") or "done").strip()
+        if new_status not in {"done", "failed"}:
+            new_status = "done"
+        db.conn.execute(
+            """
+            UPDATE secret_orders
+            SET status=?, result=?, turn_closed=?, updated_at=CURRENT_TIMESTAMP
+            WHERE id=?
+            """,
+            (new_status, result, int(state.turn), order_id),
+        )
+        verb = "密令结案" if new_status == "done" else "密令封存"
+        return f"{verb}：{title}"
+
+    return ""
+
+
 def _intish(value: object, default: int = 0) -> int:
     try:
         return int(value)
@@ -429,6 +486,11 @@ def _apply_effect(db: GameDB, state: GameState, eff: Dict[str, object], day: int
             result = _apply_agreement_action(db, state, ag, day)
             if result:
                 parts.append(result)
+    for so in (eff.get("secret_orders") or []):
+        if isinstance(so, dict):
+            result = _apply_secret_order_action(db, state, so, day)
+            if result:
+                parts.append(result)
     for lg in (eff.get("legacy") or []):
         if isinstance(lg, dict):
             result = _apply_legacy_action(db, state, lg, day)
@@ -547,6 +609,15 @@ def _preview_effects(eff: Dict[str, object]) -> List[Dict[str, str]]:
             add("agreement", f"履约展限 {int(ag.get('months') or 1)}月", "warn")
         elif action == "fail":
             add("agreement", "履约追责", "bad")
+    for so in (eff.get("secret_orders") or []):
+        if not isinstance(so, dict):
+            continue
+        action = str(so.get("action") or "")
+        if action == "extend":
+            add("secret_order", f"密令续查 {int(so.get('months') or 1)}月", "warn")
+        elif action == "close":
+            status = str(so.get("status") or "done")
+            add("secret_order", "密令结案" if status == "done" else "密令封存", "good" if status == "done" else "bad")
     for lg in (eff.get("legacy") or []):
         if not isinstance(lg, dict):
             continue
@@ -1092,6 +1163,88 @@ def _policy_legacy_aftershock(db: GameDB) -> Optional[Dict[str, object]]:
     return best
 
 
+def _latest_secret_order_line(text: object) -> str:
+    lines = [ln.strip() for ln in str(text or "").split("\n") if ln.strip()]
+    if not lines:
+        return ""
+    return lines[-1][-180:]
+
+
+def _secret_order_tags(raw: object) -> List[str]:
+    try:
+        data = json.loads(str(raw or "[]"))
+    except (TypeError, ValueError):
+        data = []
+    if not isinstance(data, list):
+        return []
+    return [str(item).strip() for item in data if str(item).strip()][:6]
+
+
+def _secret_order_review(db: GameDB) -> Optional[Dict[str, object]]:
+    """到期密令核议：暗线不能只进日志，要变成玩家亲自担责的公开/密押/问责/封存选择。"""
+
+    row = db.conn.execute(
+        """
+        SELECT so.id, so.minister_name, so.title, so.content, so.tags, so.importance,
+               so.result, so.sim_note, so.turn_issued, so.due_turn,
+               c.office, c.faction, c.emp_trust, c.grievance, c.ability, c.integrity
+        FROM secret_orders so
+        LEFT JOIN characters c ON c.name=so.minister_name
+        WHERE so.status='pending_review'
+        ORDER BY so.importance DESC,
+                 CASE WHEN so.due_turn>0 THEN so.due_turn ELSE so.turn_issued END ASC,
+                 so.id DESC
+        LIMIT 1
+        """
+    ).fetchone()
+    if row is None:
+        return None
+    sim_note = str(row["sim_note"] or "")
+    result = str(row["result"] or "")
+    leak = any(token in sim_note for token in ("泄", "走漏", "风声", "反弹", "惊动"))
+    thin = not any(token in result for token in ("证", "账", "供", "名单", "实据", "拿获", "查明"))
+    tags = _secret_order_tags(row["tags"])
+    return {
+        "order_id": int(row["id"]),
+        "cooldown_id": f"secret_order_review:{int(row['id'])}",
+        "minister": str(row["minister_name"] or ""),
+        "office": str(row["office"] or ""),
+        "faction": str(row["faction"] or ""),
+        "title": str(row["title"] or "密令"),
+        "content": str(row["content"] or ""),
+        "tags": "、".join(tags),
+        "importance": int(row["importance"] or 4),
+        "claim": _latest_secret_order_line(result) or "承办人只称事已可办，未附详证。",
+        "sim_note": _latest_secret_order_line(sim_note),
+        "leak": leak,
+        "thin": thin,
+        "trust": int(row["emp_trust"] or 0),
+        "grievance": int(row["grievance"] or 0),
+        "ability": int(row["ability"] or 50),
+        "integrity": int(row["integrity"] or 50),
+    }
+
+
+def _secret_order_faction_effect(
+    ctx: Dict[str, object],
+    *,
+    sat: int = 0,
+    lev: int = 0,
+    heat: int = 0,
+) -> Dict[str, Dict[str, int]]:
+    faction = _meaningful_faction(ctx.get("faction"))
+    if not faction:
+        return {}
+    out: Dict[str, int] = {}
+    if sat:
+        out["satisfaction"] = sat
+    if lev:
+        out["leverage"] = lev
+    if heat:
+        out["heat"] = heat
+    return {faction: out} if out else {}
+
+
 # ── 事件定义（涌现自活的宫廷）─────────────────────────────────────────────────
 
 def _succession_choices(ctx: Dict[str, object]) -> List[Dict[str, object]]:
@@ -1234,6 +1387,99 @@ def _defs() -> List[Dict[str, object]]:
                  "effect": lambda c: {"renshi": -3, "eunuch_power": -1,
                                       "char": [{"name": c["target"], "emp_trust": -3, "grievance": 3}],
                                       "log": f"{c['target']}被劾事，下三法司核实。"}},
+            ],
+        },
+        {
+            "id": "secret_order_review",
+            "priority": 32,
+            "cooldown": "ctx",
+            "when": _secret_order_review,
+            "title": lambda c: f"密令核议：{c['minister']}回奏「{c['title']}」",
+            "narrative": lambda c: (
+                f"{c['office']}{c['minister']}所承密令「{c['title']}」已到核议。"
+                f"承办自述：{c['claim']}。"
+                + (f"暗线另报：{c['sim_note']}。" if c.get("sim_note") else "")
+                + (f"此案关涉{c['tags']}，" if c.get("tags") else "")
+                + (
+                    "风声已有走漏，若公开收网，或能立威，却也会惊动余党；"
+                    if c.get("leak") else
+                    "事尚在暗处，若公开收网，朝中会知道陛下另有耳目；"
+                )
+                + (
+                    "且证据尚薄，贸然拿人会留下罗织之议。"
+                    if c.get("thin") else
+                    "证据已有几分轮廓，但仍要陛下替这条暗线担责。"
+                )
+                + "此事是收，是押，是问责承办，还是压下封存？"
+            ),
+            "choices": [
+                {"key": "publish", "label": lambda c: "据密令公开收网，拿结果立威",
+                 "hint": "把暗线变成明案：皇威上升、密探体系显形；若风声已泄或证据太薄，民心和任事会受损",
+                 "effect": lambda c: {"shi": 3, "renshi": -2 if c.get("thin") else -1,
+                                      "metrics": {"皇威": 2, "民心": -2 if c.get("thin") else -1},
+                                      "char": [{"name": c["minister"], "emp_trust": 3, "grievance": 1}],
+                                      "faction": _secret_order_faction_effect(c, sat=1, heat=2 if c.get("leak") else 1),
+                                      "secret_orders": [{
+                                          "id": c["order_id"],
+                                          "action": "close",
+                                          "status": "done",
+                                          "label": "圣裁公开",
+                                          "note": f"据{c['minister']}密令回奏，准予公开收网；成败由朝廷担责。"
+                                      }],
+                                      "log": f"密令核议：准{c['minister']}所奏，公开收网「{c['title']}」。"}},
+                {"key": "seal_continue", "label": lambda c: "仍密押续查，两月后再议",
+                 "hint": "不急着亮牌：暗线继续发酵，承办人有空间；但皇帝显得迟疑，拖久可能再生反弹",
+                 "effect": lambda c: {"shi": -1, "renshi": 2,
+                                      "char": [{"name": c["minister"], "emp_trust": 2, "grievance": 2}],
+                                      "faction": _secret_order_faction_effect(c, sat=1),
+                                      "secret_orders": [{
+                                          "id": c["order_id"],
+                                          "action": "extend",
+                                          "months": 2,
+                                          "label": "密押续查",
+                                          "note": f"御前不许贸然公开，命{c['minister']}继续密押续查，两月后再行核议。"
+                                      }],
+                                      "log": f"密令核议：命{c['minister']}继续密押续查「{c['title']}」。"}},
+                {"key": "question_assignee", "label": lambda c: f"召{c['minister']}问责，限一月补证",
+                 "hint": "把暗线压回承办人身上：保留案件，也形成履约账本；本人会承压记怨",
+                 "effect": lambda c: {"shi": 2, "renshi": 1,
+                                      "char": [{"name": c["minister"], "emp_trust": -3, "grievance": 6}],
+                                      "faction": _secret_order_faction_effect(c, sat=-2, heat=1),
+                                      "secret_orders": [{
+                                          "id": c["order_id"],
+                                          "action": "extend",
+                                          "months": 1,
+                                          "label": "补证问责",
+                                          "note": f"御前召{c['minister']}问责，命其一月内补足「{c['title']}」人证、物证与处置名单。"
+                                      }],
+                                      "obligations": [{
+                                          "minister": c["minister"],
+                                          "title": f"补证密令：{c['title']}",
+                                          "target_text": f"{c['minister']}须就密令「{c['title']}」补足可公开核验的人证、物证与处置名单。",
+                                          "tasks": [
+                                              "一月内回奏至少两条可核验证据，不得只称风闻。",
+                                              "列明若公开收网会惊动何人、牵连何派、损益何在。",
+                                              "说明继续密押、公开处置、压下封存三种方案的后果。"
+                                          ],
+                                          "source": f"secret_order_review:question:{c['order_id']}",
+                                          "due_turns": 1,
+                                          "summary": f"御前命{c['minister']}补证密令「{c['title']}」，一月内复命。"
+                                      }],
+                                      "log": f"密令核议：召{c['minister']}问责，限一月补证「{c['title']}」。"}},
+                {"key": "bury", "label": lambda c: "压下不发，封存此案",
+                 "hint": "止损：避免暗线曝光和罗织之议；但承办人寒心，君威受损，后续线索也断了",
+                 "effect": lambda c: {"shi": -2, "renshi": -2,
+                                      "metrics": {"皇威": -1},
+                                      "char": [{"name": c["minister"], "emp_trust": -5, "grievance": 7}],
+                                      "faction": _secret_order_faction_effect(c, sat=-1),
+                                      "secret_orders": [{
+                                          "id": c["order_id"],
+                                          "action": "close",
+                                          "status": "failed",
+                                          "label": "压下封存",
+                                          "note": f"御前以证据不足或牵连过广为由，压下「{c['title']}」不发，档案封存。"
+                                      }],
+                                      "log": f"密令核议：压下{c['minister']}所承「{c['title']}」，封存不发。"}},
             ],
         },
         {

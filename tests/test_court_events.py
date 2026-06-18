@@ -85,6 +85,31 @@ def _tax_legacy(db, state, stem="辽饷", minxin=-9, duration_months=-1):
     )
 
 
+def _pending_secret_order(db, state, minister, title="密查内库侵冒"):
+    order_id = db.create_secret_order(
+        state,
+        minister_name=minister,
+        title=title,
+        content="暗查内库票拟、内臣传递与户部兑银之间是否有人侵冒。",
+        tags=["内库", "阉党", "钱粮"],
+        importance=5,
+        deadline_months=1,
+    )
+    ok = db.submit_secret_order_for_review(
+        order_id,
+        "已得一册兑银底账与两名小吏口供，但牵连尚未尽明。",
+        state.year,
+        state.period,
+    )
+    assert ok
+    db.conn.execute(
+        "UPDATE secret_orders SET sim_note=? WHERE id=?",
+        ("〔崇祯元年1月〕风声略泄，内库有人连夜焚毁旧簿。", order_id),
+    )
+    db.conn.commit()
+    return order_id
+
+
 class TriggerTests(unittest.TestCase):
     def test_deep_rivalry_triggers_feud_decision(self):
         with TemporaryDirectory() as tmp:
@@ -218,6 +243,26 @@ class TriggerTests(unittest.TestCase):
             self.assertIn("旧政缓和：辽饷", [str(e["label"]) for e in relieve["effects"]])
             pending = court_events.get_pending(db) or {}
             self.assertEqual(str(pending.get("cooldown_key")), f"policy_aftershock:{legacy_id}")
+
+    def test_pending_secret_order_triggers_review_decision(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            minister, _ = _two_ming(db)
+            order_id = _pending_secret_order(db, state, minister)
+
+            payload = court_events.evaluate_decisions(db, state, day)
+
+            self.assertIsNotNone(payload)
+            self.assertEqual(payload["id"], "secret_order_review")
+            self.assertIn(minister, str(payload["title"]))
+            self.assertIn("密令核议", str(payload["title"]))
+            self.assertIn("风声", str(payload["narrative"]))
+            keys = {str(ch["key"]) for ch in payload["choices"]}
+            self.assertEqual(keys, {"publish", "seal_continue", "question_assignee", "bury"})
+            seal = next(ch for ch in payload["choices"] if ch["key"] == "seal_continue")
+            self.assertIn("密令续查 2月", [str(e["label"]) for e in seal["effects"]])
+            pending = court_events.get_pending(db) or {}
+            self.assertEqual(str(pending.get("cooldown_key")), f"secret_order_review:{order_id}")
 
 
 class ResolveTests(unittest.TestCase):
@@ -514,6 +559,56 @@ class ResolveTests(unittest.TestCase):
             )
             self.assertEqual(len(goals), 1)
             self.assertIn("清查辽饷加派侵吞", str(goals[0]["title"]))
+
+    def test_secret_order_seal_continue_reopens_long_tail(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            minister, _ = _two_ming(db)
+            order_id = _pending_secret_order(db, state, minister)
+
+            court_events.evaluate_decisions(db, state, day)
+            res = court_events.resolve_decision(db, state, "seal_continue", day=day)
+
+            self.assertTrue(res["ok"], res)
+            labels = [str(e["label"]) for e in res["effects"]]
+            self.assertIn("密令续查 2月", labels)
+            row = db.conn.execute(
+                "SELECT status, due_turn, result, turn_closed FROM secret_orders WHERE id=?",
+                (order_id,),
+            ).fetchone()
+            self.assertEqual(str(row["status"]), "active")
+            self.assertEqual(int(row["due_turn"]), int(state.turn) + 2)
+            self.assertIn("密押续查", str(row["result"]))
+            self.assertIsNone(row["turn_closed"])
+            self.assertIsNone(court_events.get_pending(db))
+
+    def test_secret_order_question_creates_evidence_obligation(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            minister, _ = _two_ming(db)
+            order_id = _pending_secret_order(db, state, minister)
+
+            court_events.evaluate_decisions(db, state, day)
+            res = court_events.resolve_decision(db, state, "question_assignee", day=day)
+
+            self.assertTrue(res["ok"], res)
+            labels = [str(e["label"]) for e in res["effects"]]
+            self.assertIn("密令续查 1月", labels)
+            self.assertIn(f"履约账本：{minister}", labels)
+            row = db.conn.execute(
+                "SELECT status, due_turn, result FROM secret_orders WHERE id=?",
+                (order_id,),
+            ).fetchone()
+            self.assertEqual(str(row["status"]), "active")
+            self.assertEqual(int(row["due_turn"]), int(state.turn) + 1)
+            self.assertIn("补证问责", str(row["result"]))
+            goals = db.list_conversation_goals(
+                minister_name=minister,
+                statuses=["waiting_conditions"],
+            )
+            self.assertEqual(len(goals), 1)
+            self.assertIn("补证密令", str(goals[0]["title"]))
+            self.assertTrue(any("可核验证据" in str(t["description"]) for t in goals[0]["conditions"]))
 
     def test_overdue_cooldown_is_scoped_per_agreement(self):
         with TemporaryDirectory() as tmp:
