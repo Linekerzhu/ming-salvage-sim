@@ -1028,6 +1028,62 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_decision_chat_effect_records_testimony(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            names = [
+                str(r["name"]) for r in game.db.conn.execute(
+                    "SELECT name FROM characters "
+                    "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                    "LIMIT 2"
+                ).fetchall()
+            ]
+            a, b = names
+            court._set_opinion(game.db, a, b, -75, "夺功旧怨", 1)
+            court._set_opinion(game.db, b, a, -70, "反劾旧怨", 1)
+            memorials.create_memorial(
+                game.db,
+                game.state,
+                day=1,
+                author_name=a,
+                org="都察院",
+                kind="弹章",
+                urgency=3,
+                summary=f"{a}劾{b}",
+                ref_kind="character",
+                ref_id=b,
+            )
+            court_events.evaluate_decisions(game.db, game.state, 1)
+            context = {
+                "kind": "decision",
+                "actor": a,
+                "target": b,
+                "ref_kind": "decision",
+                "ref_id": "rival_feud",
+            }
+
+            effect = game._decision_chat_effect(
+                a,
+                context,
+                f"朕未裁断前，先问你弹劾{b}有何证据？",
+                "臣有账册与人证，愿限三日查验，若虚言愿担责。",
+            )
+
+            from ming_sim.playstyle import decision_testimonies_for_pending
+
+            testimonies = decision_testimonies_for_pending(game.db)
+            self.assertEqual(effect["title"], "证词入案")
+            self.assertEqual(effect["effects"][0]["label"], "当事人入案")
+            self.assertEqual(len(testimonies), 1)
+            self.assertEqual(testimonies[0]["minister"], a)
+            self.assertIn("账册", str(testimonies[0]["summary"]))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_mediation_confirmation_creates_followup_obligation(self):
         game = web_app.WebGame(fresh=True)
         try:

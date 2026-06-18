@@ -4172,6 +4172,34 @@ class WebGame:
         except Exception:
             return {}
 
+    def _decision_chat_effect(
+        self,
+        minister_name: str,
+        context: Optional[Dict[str, Any]],
+        user_text: str,
+        answer: str,
+    ) -> Dict[str, Any]:
+        if not isinstance(context, dict):
+            return {}
+        kind = str(context.get("kind") or "").strip()
+        ref_kind = str(context.get("ref_kind") or "").strip()
+        if kind != "decision" and ref_kind != "decision":
+            return {}
+        ref_id = context.get("ref_id") or context.get("id")
+        try:
+            from ming_sim.playstyle import record_decision_testimony
+            return record_decision_testimony(
+                self.db,
+                self.state,
+                minister_name,
+                ref_id,
+                user_text,
+                answer,
+                target=str(context.get("target") or ""),
+            )
+        except Exception:
+            return {}
+
     def chat(self, minister_name: str, message: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         if minister_name not in self.content.characters and minister_name not in self.session.temporary_characters:
             raise HTTPException(status_code=404, detail=f"未找到大臣：{minister_name}")
@@ -4256,6 +4284,12 @@ class WebGame:
         if proposed is None:
             proposed = self._fallback_pending_directive(character, text, result.answer)
         directive_effect = self._directive_chat_effect(minister_name, context, text, result.answer)
+        decision_effect = self._decision_chat_effect(minister_name, context, text, result.answer)
+        tool_dialogue_effect = (
+            (tool_dialogue_response or {}).get("dialogue_effect")
+            if isinstance((tool_dialogue_response or {}).get("dialogue_effect"), dict)
+            else None
+        )
         self._record_chat_rollback_items(chat_turn_id, before_snapshot)
         return self._chat_payload(
             minister_name, result.answer,
@@ -4269,7 +4303,7 @@ class WebGame:
             secret_order_assignee=result.secret_order_assignee,
             secret_order_effect=result.secret_order_effect,
             directive_effect=directive_effect,
-            dialogue_effect=(tool_dialogue_response or {}).get("dialogue_effect") if isinstance((tool_dialogue_response or {}).get("dialogue_effect"), dict) else None,
+            dialogue_effect=tool_dialogue_effect or decision_effect,
             chat_turn_id=chat_turn_id,
             dialogue_goal=result.dialogue_goal,
         )
@@ -4475,6 +4509,12 @@ class WebGame:
             if proposed is None:
                 proposed = self._fallback_pending_directive(character, text, answer)
             directive_effect = self._directive_chat_effect(minister_name, context, text, answer)
+            decision_effect = self._decision_chat_effect(minister_name, context, text, answer)
+            tool_dialogue_effect = (
+                (dialogue_tool_response or {}).get("dialogue_effect")
+                if isinstance((dialogue_tool_response or {}).get("dialogue_effect"), dict)
+                else None
+            )
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
             for portrait_name, reason in (
                 (appointed, "吏部铨选"),
@@ -4493,7 +4533,7 @@ class WebGame:
                 secret_order_assignee=secret_order_assignee,
                 secret_order_effect=secret_order_effect,
                 directive_effect=directive_effect,
-                dialogue_effect=(dialogue_tool_response or {}).get("dialogue_effect") if isinstance((dialogue_tool_response or {}).get("dialogue_effect"), dict) else None,
+                dialogue_effect=tool_dialogue_effect or decision_effect,
                 chat_turn_id=chat_turn_id,
                 dialogue_goal=dialogue_goal,
             )
@@ -6672,8 +6712,13 @@ async def api_character_detail(character_name: str) -> Dict[str, Any]:
 async def api_decision() -> Dict[str, Any]:
     """当前待决的抉择事件（CK3 化 P2）。无则 {decision: None}。"""
     from ming_sim.court_events import pending_payload
+    from ming_sim.playstyle import decision_testimonies_for_pending
     game = get_game()
-    return _plain_payload({"decision": pending_payload(game.db)})
+    decision = pending_payload(game.db)
+    if isinstance(decision, dict):
+        decision = dict(decision)
+        decision["testimonies"] = decision_testimonies_for_pending(game.db)
+    return _plain_payload({"decision": decision})
 
 
 @app.post("/api/decision/resolve")

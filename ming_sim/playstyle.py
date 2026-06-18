@@ -21,6 +21,7 @@ _TAB_AUDIENCE = "audience"
 _TAB_REALM = "realm"
 _TAB_DESK = "desk"
 _TAB_EDICTS = "edicts"
+KV_DECISION_TESTIMONIES = "playstyle.decision_testimonies"
 
 _KIND_PRIORITY = {
     "decision": 0,
@@ -1193,6 +1194,222 @@ def decision_chat_context_brief(
         "- 口吻要求：按身份、派系、信任、怨望和人物性格说话；不得假装已经知道皇帝最终会选哪一策。",
     ])
     return "\n".join(lines)
+
+
+def decision_testimonies_for_pending(db: GameDB) -> List[Dict[str, object]]:
+    """Return testimony already gathered for the current pending decision."""
+
+    try:
+        from ming_sim.court_events import get_pending, pending_payload
+
+        pending = get_pending(db)
+        payload = pending_payload(db)
+    except Exception:
+        return []
+    if not isinstance(pending, dict) or not isinstance(payload, dict):
+        return []
+    key = _decision_case_key(pending, payload)
+    if not key:
+        return []
+    store = _load_decision_testimony_store(db)
+    items = store.get(key)
+    if not isinstance(items, list):
+        return []
+    cleaned: List[Dict[str, object]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("minister") or "").strip()
+        summary = str(item.get("summary") or "").strip()
+        if not name or not summary:
+            continue
+        cleaned.append({
+            "minister": name,
+            "role": str(item.get("role") or "问询人").strip() or "问询人",
+            "target": str(item.get("target") or "").strip(),
+            "ask": str(item.get("ask") or "").strip(),
+            "summary": summary,
+            "stance": str(item.get("stance") or "陈情").strip() or "陈情",
+            "turn": _clamp_int(item.get("turn"), 0, 1000000),
+            "day": _clamp_int(item.get("day"), 0, 1000000),
+        })
+    return cleaned[-8:]
+
+
+def record_decision_testimony(
+    db: GameDB,
+    state: GameState,
+    minister_name: str,
+    decision_id: object = "",
+    user_text: str = "",
+    answer: str = "",
+    *,
+    target: str = "",
+) -> Dict[str, object]:
+    """Persist a summoned person's pre-decision testimony as case-file context."""
+
+    name = str(minister_name or "").strip()
+    if not name:
+        return {}
+    try:
+        from ming_sim.court_events import get_pending, pending_payload
+
+        pending = get_pending(db)
+        payload = pending_payload(db)
+    except Exception:
+        return {}
+    if not isinstance(pending, dict) or not isinstance(payload, dict):
+        return {}
+    payload_id = str(payload.get("id") or "").strip()
+    expected_id = str(decision_id or "").strip()
+    if expected_id and payload_id and expected_id != payload_id:
+        return {}
+
+    actor, extracted_target = _decision_actor_target(db, pending)
+    explicit_target = str(target or "").strip()
+    if explicit_target and _active_character_row(db, explicit_target) is None:
+        explicit_target = ""
+    related = {item for item in (actor, extracted_target, explicit_target) if item}
+    if related and name not in related:
+        return {}
+    if not related and _active_character_row(db, name) is None:
+        return {}
+
+    key = _decision_case_key(pending, payload)
+    if not key:
+        return {}
+    summary = _short_text(answer, 180)
+    if not summary:
+        return {}
+    other = ""
+    for candidate in (explicit_target, extracted_target, actor):
+        if candidate and candidate != name:
+            other = candidate
+            break
+    role = "当事人" if name == actor else "牵涉人" if name in {extracted_target, explicit_target} else "问询人"
+    stance = _decision_testimony_stance(user_text, answer)
+    try:
+        day = int(pending.get("day") or db.kv_get("upgrade.current_day") or 0)
+    except (TypeError, ValueError):
+        day = 0
+    item: Dict[str, object] = {
+        "minister": name,
+        "role": role,
+        "target": other,
+        "ask": _short_text(user_text, 90),
+        "summary": summary,
+        "stance": stance,
+        "turn": int(getattr(state, "turn", 0) or 0),
+        "day": day,
+    }
+    store = _load_decision_testimony_store(db)
+    items = [x for x in store.get(key, []) if isinstance(x, dict)]
+    items = [x for x in items if str(x.get("minister") or "") != name]
+    items.append(item)
+    store[key] = items[-8:]
+    _prune_decision_testimony_store(store, keep_key=key)
+    db.kv_set(KV_DECISION_TESTIMONIES, json.dumps(store, ensure_ascii=False, sort_keys=True))
+    title = str(payload.get("title") or "裁断").strip()
+    return {
+        "title": "证词入案",
+        "message": f"{name}的奏对已入「{_short_text(title, 18)}」案卷。",
+        "effects": [
+            {"kind": "decision_testimony", "label": f"{role}入案", "tone": "neutral"},
+            {"kind": "stance", "label": stance, "tone": "neutral"},
+        ],
+    }
+
+
+_DECISION_CASE_CTX_KEYS: Tuple[str, ...] = (
+    "agreement_id",
+    "goal_id",
+    "source_id",
+    "legacy_id",
+    "order_id",
+    "army_id",
+    "a",
+    "b",
+    "petitioner",
+    "rival",
+    "actor",
+    "target",
+    "sponsor",
+    "candidate",
+    "minister",
+    "victim",
+    "accuser",
+    "eunuch",
+    "commander",
+    "supervisor_cand",
+    "deceased",
+)
+
+
+def _decision_case_key(pending: Dict[str, object], payload: Dict[str, object]) -> str:
+    ctx = pending.get("ctx") if isinstance(pending.get("ctx"), dict) else {}
+    parts = [
+        str(pending.get("id") or payload.get("id") or "").strip(),
+        str(pending.get("day") or "").strip(),
+        str(pending.get("cooldown_key") or "").strip(),
+    ]
+    if isinstance(ctx, dict):
+        for key in _DECISION_CASE_CTX_KEYS:
+            value = ctx.get(key)
+            if value in (None, "", []):
+                continue
+            if isinstance(value, (list, tuple)):
+                text = ",".join(str(x).strip() for x in value if str(x).strip())
+            elif isinstance(value, dict):
+                text = json.dumps(value, ensure_ascii=False, sort_keys=True)
+            else:
+                text = str(value).strip()
+            if text:
+                parts.append(f"{key}={text}")
+    return "|".join(part for part in parts if part)[:600]
+
+
+def _load_decision_testimony_store(db: GameDB) -> Dict[str, List[Dict[str, object]]]:
+    try:
+        data = json.loads(db.kv_get(KV_DECISION_TESTIMONIES) or "{}")
+    except (TypeError, ValueError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    store: Dict[str, List[Dict[str, object]]] = {}
+    for key, value in data.items():
+        if not isinstance(key, str) or not isinstance(value, list):
+            continue
+        store[key] = [item for item in value if isinstance(item, dict)]
+    return store
+
+
+def _prune_decision_testimony_store(store: Dict[str, List[Dict[str, object]]], *, keep_key: str) -> None:
+    if len(store) <= 12:
+        return
+    keys = sorted(
+        store,
+        key=lambda key: max((_clamp_int(item.get("turn"), 0, 1000000) for item in store.get(key, []) if isinstance(item, dict)), default=0),
+    )
+    for key in keys:
+        if len(store) <= 12:
+            break
+        if key != keep_key:
+            store.pop(key, None)
+
+
+def _decision_testimony_stance(user_text: str, answer: str) -> str:
+    text = f"{user_text}\n{answer}"
+    checks = (
+        ("证据", ("证", "账", "账册", "人证", "物证", "旧约", "实据", "查验", "查账")),
+        ("担责", ("担责", "连坐", "担保", "愿担", "请罪", "领罪")),
+        ("党争", ("反扑", "政敌", "同党", "清流", "阉党", "党争", "党羽")),
+        ("求护", ("求", "保全", "护持", "台阶", "保住", "恳请")),
+        ("自辩", ("不敢", "不是", "冤", "辩", "辩白", "开脱")),
+    )
+    for label, needles in checks:
+        if any(needle in text for needle in needles):
+            return label
+    return "陈情"
 
 
 def relationship_chat_context_brief(

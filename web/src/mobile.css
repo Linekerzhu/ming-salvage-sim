@@ -1149,6 +1149,18 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-decision-title { margin: 8px 0 8px 52px; font-size: 1.16rem; font-weight: 800; color: #5a1e16; }
 .m-decision-narr { margin: 0 0 14px; font-size: .94rem; line-height: 1.66; color: #3a2f1c;
   text-align: justify; }
+.m-decision-testimony { margin: -3px 0 13px; padding: 10px 11px; border: 1px solid rgba(125,78,26,.32);
+  border-radius: 8px; background: rgba(255,249,235,.52); box-shadow: inset 0 1px 0 rgba(255,255,255,.45); }
+.m-decision-testimony-title { margin-bottom: 6px; font-size: .72rem; font-weight: 800; letter-spacing: 0;
+  color: #8a4b24; }
+.m-decision-testimony-row + .m-decision-testimony-row { margin-top: 8px; padding-top: 8px;
+  border-top: 1px dashed rgba(125,78,26,.26); }
+.m-decision-testimony-meta { display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
+  font-size: .72rem; color: #7b6137; }
+.m-decision-testimony-meta span:not(:first-child) { padding: 1px 6px; border-radius: 999px;
+  background: rgba(132,91,43,.12); }
+.m-decision-testimony-name { font-weight: 800; color: #5a1e16; }
+.m-decision-testimony p { margin: 4px 0 0; font-size: .82rem; line-height: 1.45; color: #3a2f1c; }
 .m-decision-choices { display: flex; flex-direction: column; gap: 9px; }
 .m-decision-choice { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 11px 14px;
   border-radius: 11px; border: 1px solid var(--gold-deep); background: rgba(255,250,238,.7); cursor: pointer;

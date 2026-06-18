@@ -337,7 +337,23 @@ export const frontierSupervisor = (army_id: string, opts?: { eunuch?: string; re
 
 // 抉择事件（CK3 化 P2）：朝局张力弹出的"请陛下裁断"。
 export type DecisionChoice = { key: string; label: string; hint: string; effects?: ImpactEffect[] };
-export type Decision = { id: string; title: string; narrative: string; choices: DecisionChoice[] };
+export type DecisionTestimony = {
+  minister: string;
+  role?: string;
+  target?: string;
+  ask?: string;
+  summary?: string;
+  stance?: string;
+  turn?: number;
+  day?: number;
+};
+export type Decision = {
+  id: string;
+  title: string;
+  narrative: string;
+  choices: DecisionChoice[];
+  testimonies?: DecisionTestimony[];
+};
 export const loadDecision = (): Promise<{ decision: Decision | null }> =>
   api<{ decision: Decision | null }>("/api/decision");
 export const resolveDecision = (choice: string) =>

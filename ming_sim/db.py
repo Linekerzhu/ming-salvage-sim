@@ -4065,6 +4065,7 @@ class GameDB:
         "xinpan_logs": "id",
         "negotiation_agreements": "id",
         "negotiation_tasks": "id",
+        "kv_store": "key",
     }
 
     def _row_dict(self, row: sqlite3.Row) -> Dict[str, Any]:

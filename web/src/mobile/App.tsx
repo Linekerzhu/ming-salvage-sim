@@ -7,7 +7,7 @@ import { PersonProvider } from "./Person";
 import { Menu } from "./Menu";
 import { Guide, guideSeen, markGuideSeen } from "./Guide";
 import { authStatus, exitToMenu, login, menuStatus, register, resolveDecision } from "./api";
-import type { AudienceLead, Decision, ImpactEffect, Tab } from "./api";
+import type { AudienceLead, Decision, DecisionTestimony, ImpactEffect, Tab } from "./api";
 import { HomeView } from "./views/HomeView";
 import { DeskView } from "./views/DeskView";
 import { AudienceView } from "./views/AudienceView";
@@ -181,6 +181,26 @@ function DecisionEffectChips({ items }: { items?: ImpactEffect[] }) {
   );
 }
 
+function DecisionTestimonyPanel({ items }: { items?: DecisionTestimony[] }) {
+  const shown = (items || []).filter((item) => item.minister && item.summary).slice(-3);
+  if (!shown.length) return null;
+  return (
+    <section className="m-decision-testimony" aria-label="裁断前问询">
+      <div className="m-decision-testimony-title">已问入案</div>
+      {shown.map((item, i) => (
+        <div key={`${item.minister}-${i}`} className="m-decision-testimony-row">
+          <div className="m-decision-testimony-meta">
+            <span className="m-decision-testimony-name">{item.minister}</span>
+            <span>{item.role || "问询人"}</span>
+            {item.stance && <span>{item.stance}</span>}
+          </div>
+          <p>{item.summary}</p>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function DecisionModal() {
   const { decision, refresh, desk } = useGame();
   const [busy, setBusy] = useState(false);
@@ -212,6 +232,7 @@ function DecisionModal() {
         <div className="m-decision-seal">裁<br />断</div>
         <h2 className="m-decision-title">{active.title}</h2>
         <p className="m-decision-narr">{active.narrative}</p>
+        <DecisionTestimonyPanel items={active.testimonies} />
         {done ? (
           <div className="m-decision-done">
             <p className="m-decision-chosen">已断：{done.choice}</p>

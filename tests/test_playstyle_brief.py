@@ -18,10 +18,12 @@ from ming_sim.playstyle import (
     favor_chat_context_brief,
     faction_chat_context_brief,
     decision_chat_context_brief,
+    decision_testimonies_for_pending,
     legacy_chat_context_brief,
     monthly_followup_chat_context_brief,
     patronage_chat_context_brief,
     petition_chat_context_brief,
+    record_decision_testimony,
     relationship_chat_context_brief,
     rivalry_chat_context_brief,
 )
@@ -234,6 +236,62 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("牵涉人", target_brief)
             self.assertEqual(mismatch, "")
             self.assertEqual(wrong_id, "")
+
+    def test_decision_testimony_records_only_related_people(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            names = [
+                str(r["name"]) for r in db.conn.execute(
+                    "SELECT name FROM characters "
+                    "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                    "LIMIT 3"
+                ).fetchall()
+            ]
+            a, b, other = names
+            court._set_opinion(db, a, b, -75, "夺功旧怨", 1)
+            court._set_opinion(db, b, a, -70, "反劾旧怨", 1)
+            memorials.create_memorial(
+                db,
+                state,
+                day=1,
+                author_name=a,
+                org="都察院",
+                kind="弹章",
+                urgency=3,
+                summary=f"{a}劾{b}",
+                ref_kind="character",
+                ref_id=b,
+            )
+            court_events.evaluate_decisions(db, state, 1)
+
+            effect = record_decision_testimony(
+                db,
+                state,
+                a,
+                "rival_feud",
+                f"朕未裁断前，先问你弹劾{b}有何证据？",
+                "臣有账册与人证，愿限三日查验，若虚言愿担责。",
+                target=b,
+            )
+            mismatch = record_decision_testimony(
+                db,
+                state,
+                other,
+                "rival_feud",
+                "你怎么看？",
+                "臣只是旁听，并不涉案。",
+                target=b,
+            )
+            testimonies = decision_testimonies_for_pending(db)
+
+            self.assertEqual(effect["title"], "证词入案")
+            self.assertEqual(mismatch, {})
+            self.assertEqual(len(testimonies), 1)
+            self.assertEqual(testimonies[0]["minister"], a)
+            self.assertEqual(testimonies[0]["role"], "当事人")
+            self.assertEqual(testimonies[0]["target"], b)
+            self.assertEqual(testimonies[0]["stance"], "证据")
+            self.assertIn("账册", str(testimonies[0]["summary"]))
 
     def test_done_directive_creates_followup_brief_card(self):
         with TemporaryDirectory() as tmp:

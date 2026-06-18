@@ -52,6 +52,23 @@ class RollbackGateTests(unittest.TestCase):
             kv_set_int(db, KV_CURRENT_DAY, kv_int(db, KV_CURRENT_DAY, 0) + 1)
             self.assertFalse(db.can_undo_last_chat_turn("韩爌", state.turn))
 
+    def test_chat_rollback_restores_kv_store(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            db.kv_set("test.rollback.kv", "before")
+            turn_id = db.create_chat_turn(state, "韩爌", "session-x", 0)
+            before = db.capture_chat_rollback_snapshot()
+            db.kv_set("test.rollback.kv", "after")
+            db.record_chat_turn_rollback_diffs(
+                turn_id,
+                before,
+                db.capture_chat_rollback_snapshot(),
+            )
+
+            db.undo_chat_turn(turn_id)
+
+            self.assertEqual(db.kv_get("test.rollback.kv"), "before")
+
 
 class MonthOpenRoutineTests(unittest.TestCase):
     def test_faction_heat_decays_at_month_open(self):
