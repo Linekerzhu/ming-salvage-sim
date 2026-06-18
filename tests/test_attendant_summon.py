@@ -419,6 +419,34 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_direct_palace_nickname_summon_without_prior_mention_gets_inner_court_profile(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+
+            events = list(game.chat_stream(attendant, "带小禄子过来见我"))
+
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], "小禄子")
+            self.assertEqual(payload["registered_minister"], "小禄子")
+            row = game.db.conn.execute(
+                "SELECT office, office_type, faction, birth_year, summary FROM characters WHERE name=?",
+                ("小禄子",),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
+            self.assertIn(str(row["faction"] or ""), {"内廷", "皇党", "阉党"})
+            self.assertLessEqual(int(game.state.year) - int(row["birth_year"]), 16)
+            self.assertIn("当前活动存档", str(row["summary"] or ""))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_direct_command_does_not_fold_arrival_words_into_new_name(self):
         game = web_app.WebGame(fresh=True)
         try:
@@ -834,6 +862,37 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
             self.assertIn("举荐来源", str(row["summary"] or ""))
             self.assertGreater(court.get_opinion(game.db, recruited, attendant), 0)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_attendant_recruitment_cloud_phrase_confirms_and_summons(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            proposal_events = list(game.chat_stream(attendant, "算了，你再招募一个小内侍吧"))
+            self.assertEqual(proposal_events[-1]["type"], "done")
+            pending = game._load_pending_dialogue_action(attendant)
+            self.assertEqual(pending.get("type"), "recruitment")
+            self.assertEqual(pending.get("kind"), "eunuch")
+
+            confirm_events = list(game.chat_stream(attendant, "好，你去招募"))
+
+            payload = confirm_events[-1]["payload"]
+            recruited = str(payload.get("recruited_minister") or "")
+            self.assertTrue(recruited)
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], recruited)
+            self.assertFalse(game._load_pending_dialogue_action(attendant))
+            row = game.db.conn.execute(
+                "SELECT office, office_type FROM characters WHERE name=?",
+                (recruited,),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

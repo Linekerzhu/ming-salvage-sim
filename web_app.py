@@ -3826,8 +3826,9 @@ class WebGame:
     ) -> Character:
         rng = self.character_rng
         raw = str(context or "")
-        if re.search(r"(太监|内侍|内臣|内官|小火者|内书堂|司礼监|宫里|宫中)", raw):
-            office = rng.choice(["内书堂识字小火者", "司礼监文书房小内官", "乾清宫门下随侍"])
+        palace_nickname = bool(re.fullmatch(r"小[\u4e00-\u9fff]{1,2}子", str(name or "")))
+        if palace_nickname or re.search(r"(太监|内侍|内臣|内官|小火者|内书堂|司礼监|宫里|宫中)", raw):
+            office = rng.choice(["内书堂识字小火者", "司礼监文书房小内官", "乾清宫门下随侍", "净身房候验小火者"])
             office_type = "司礼监"
             faction = rng.choice(["内廷", "皇党", "阉党"])
             skills = ["宫禁熟习", "传旨跑腿", "察言观色", "文书抄录"]
@@ -3839,7 +3840,11 @@ class WebGame:
             summary_tail = "短板：见识多限宫禁，谈外朝容易露怯；风险：若被旧监房牵住，忠心会和内廷小圈子纠缠。"
             loyalty = rng.randint(78, 96)
             ability = rng.randint(42, 68)
-            min_age, max_age = (11, 17) if re.search(r"(小火者|生徒|小内官|小内侍|刚满|年纪|今年)", raw) else (18, 55)
+            min_age, max_age = (
+                (10, 16)
+                if palace_nickname or re.search(r"(小火者|生徒|小内官|小内侍|刚满|年纪|今年)", raw)
+                else (18, 55)
+            )
         elif re.search(r"(百户|千户|游击|把总|武|军|营|边|辽东|兵)", raw):
             office = "待铨（武选访得）"
             office_type = "待铨"
