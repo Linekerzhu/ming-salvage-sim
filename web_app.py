@@ -3533,7 +3533,11 @@ class WebGame:
         out: Dict[str, Dict[str, Any]] = {}
         for name, value in data.items():
             clean = self._normalize_dialogue_person_name(str(name or ""))
-            if not clean or clean in self.content.characters:
+            if (
+                not clean
+                or clean in self.content.characters
+                or (clean.startswith(("蒙", "奉")) and clean[1:] in self.content.characters)
+            ):
                 continue
             out[clean] = value if isinstance(value, dict) else {}
         return out
@@ -3542,7 +3546,9 @@ class WebGame:
         cleaned = {
             name: value
             for name, value in mentions.items()
-            if self._normalize_dialogue_person_name(name) and name not in self.content.characters
+            if self._normalize_dialogue_person_name(name)
+            and name not in self.content.characters
+            and not (str(name or "").startswith(("蒙", "奉")) and str(name or "")[1:] in self.content.characters)
         }
         self.db.kv_set(self._dialogue_unknown_mentions_key(), json.dumps(cleaned, ensure_ascii=False))
 
@@ -4530,6 +4536,14 @@ class WebGame:
         dialogue_goal: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         character = self.session._character(minister_name)
+        if not court_action:
+            implied_summon = self._attendant_answer_summon_target(minister_name, answer)
+            if implied_summon:
+                next_minister = str(implied_summon.get("name") or "")
+                if next_minister:
+                    court_action = "summon"
+                    if implied_summon.get("generated"):
+                        registered_minister = registered_minister or next_minister
         self._record_unknown_dialogue_mentions(minister_name, answer)
         stage_directions: List[str] = []
         if isinstance(dialogue_effect, dict):

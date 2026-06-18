@@ -237,6 +237,26 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_unknown_dialogue_mentions_drop_legacy_honorific_prefix_names(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            game.db.kv_set(
+                game._dialogue_unknown_mentions_key(),
+                '{"蒙王承恩":{"name":"蒙王承恩","source_minister":"小顺子","excerpt":"蒙王承恩公公提携"},'
+                '"刘忠":{"name":"刘忠","source_minister":"王承恩","excerpt":"一个叫刘忠的小火者"}}',
+            )
+
+            stored = game._load_unknown_dialogue_mentions()
+
+            self.assertNotIn("蒙王承恩", stored)
+            self.assertIn("刘忠", stored)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_unknown_dialogue_mentions_capture_palace_nicknames_from_suggestions(self):
         game = web_app.WebGame(fresh=True)
         try:
@@ -283,6 +303,39 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
             self.assertIn("当前活动存档", str(row["summary"] or ""))
             self.assertEqual(int(game.state.year) - int(row["birth_year"]), 11)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_chat_payload_falls_back_when_attendant_roleplays_summon(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+
+            payload = game._chat_payload(
+                attendant,
+                "（躬身一礼，转身朝殿外廊下唤了一声）\n\n"
+                "——传内书堂生徒小禄子觐见。\n\n"
+                "（回身垂手）陛下，小禄子今年十一，保定府人，胆子小，见了生人不敢抬头。",
+            )
+
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], "小禄子")
+            self.assertEqual(payload["registered_minister"], "小禄子")
+            self.assertIn("小禄子", game.content.characters)
+            self.assertFalse(game._load_unknown_dialogue_mentions())
+            row = game.db.conn.execute(
+                "SELECT office, office_type, birth_year, summary FROM characters WHERE name=?",
+                ("小禄子",),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
+            self.assertEqual(int(game.state.year) - int(row["birth_year"]), 11)
+            self.assertIn("当前活动存档", str(row["summary"] or ""))
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
