@@ -182,6 +182,44 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertEqual(int(row2["charm"]), 57)
             self.assertEqual(int(row2["grievance"]), 22)
 
+    def test_apply_eunuch_care_costs_inner_treasury_and_softens_old_wound(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(db, name, forced=True, day=day)
+            state.metrics["内库"] = 50
+            db.save_state(state)
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=50, grievance=40, ability=55, charm=54 WHERE name=?",
+                (name,),
+            )
+            db.conn.commit()
+
+            result = el.apply_eunuch_care(db, state, name, mode="urinary", note="请太医治尿闭旧患。")
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["mode"], "urinary")
+            self.assertEqual(result["cost"], 3)
+            self.assertEqual(state.metrics["内库"], 47)
+            row = db.conn.execute(
+                "SELECT emp_trust, grievance, ability, charm FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertEqual(int(row["emp_trust"]), 52)
+            self.assertEqual(int(row["grievance"]), 34)
+            self.assertEqual(int(row["ability"]), 56)
+            self.assertEqual(int(row["charm"]), 55)
+            trait = db.conn.execute(
+                "SELECT 1 FROM character_traits WHERE name=? AND trait='旧患调养'",
+                (name,),
+            ).fetchone()
+            self.assertIsNotNone(trait)
+            memory = db.conn.execute(
+                "SELECT 1 FROM event_memories WHERE subject_id=? AND event_type='eunuch_care'",
+                (name,),
+            ).fetchone()
+            self.assertIsNotNone(memory)
+
     def test_timeflow_surfaces_castration_complication_events(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)

@@ -910,6 +910,8 @@ class GameSession:
                 "confirm_castration",
                 "propose_mediation",
                 "confirm_mediation",
+                "propose_eunuch_care",
+                "confirm_eunuch_care",
             }:
                 payload = tool_result.removeprefix("__dialogue_action__").strip()
                 if not payload:

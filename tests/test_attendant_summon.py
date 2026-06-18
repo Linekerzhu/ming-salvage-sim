@@ -888,6 +888,97 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_dialogue_eunuch_care_requires_confirmation_and_rolls_back(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            row = game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' "
+                "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
+                "AND office NOT LIKE '%太监%' AND office NOT LIKE '%宦官%' "
+                "LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            name = str(row["name"])
+            game.castrate_official(
+                name,
+                force=True,
+                scheme_text="净军房无麻，宝油炸封蜡；近来漏尿尿闭，嗓音尖薄，幻肢痛。",
+            )
+            game.state.metrics["内库"] = 80
+            game.db.save_state(game.state)
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=50, grievance=40, ability=55, charm=54 WHERE name=?",
+                (name,),
+            )
+            game.db.conn.commit()
+            before_ledger_count = int(game.db.conn.execute("SELECT COUNT(*) c FROM economy_ledger").fetchone()["c"])
+
+            proposal_events = list(game.chat_stream(attendant, f"给{name}请太医治一治尿闭漏尿旧患。"))
+            self.assertEqual(proposal_events[-1]["type"], "done")
+            self.assertIn("若准", proposal_events[-1]["payload"]["answer"])
+            pending = game._load_pending_dialogue_action(attendant)
+            self.assertEqual(pending.get("type"), "eunuch_care")
+            self.assertEqual(pending.get("target"), name)
+            self.assertEqual(pending.get("mode"), "urinary")
+            mid_row = game.db.conn.execute(
+                "SELECT emp_trust, grievance, ability, charm FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertEqual(int(mid_row["grievance"]), 40)
+            self.assertEqual(game.state.metrics["内库"], 80)
+
+            confirm_events = list(game.chat_stream(attendant, "准，去请太医调养。"))
+            self.assertEqual(confirm_events[-1]["type"], "done")
+            payload = confirm_events[-1]["payload"]
+            self.assertEqual(payload["dialogue_effect"]["title"], "尿路调养")
+            self.assertIn("内库-3", payload["dialogue_effect"]["message"])
+            after_row = game.db.conn.execute(
+                "SELECT emp_trust, grievance, ability, charm FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertEqual(int(after_row["emp_trust"]), 52)
+            self.assertEqual(int(after_row["grievance"]), 34)
+            self.assertEqual(int(after_row["ability"]), 56)
+            self.assertEqual(int(after_row["charm"]), 55)
+            self.assertEqual(game.state.metrics["内库"], 77)
+            self.assertIsNotNone(game.db.conn.execute(
+                "SELECT 1 FROM character_traits WHERE name=? AND trait='旧患调养'",
+                (name,),
+            ).fetchone())
+            self.assertIsNotNone(game.db.conn.execute(
+                "SELECT 1 FROM event_memories WHERE subject_id=? AND event_type='eunuch_care'",
+                (name,),
+            ).fetchone())
+
+            game.undo_last_chat(attendant)
+            restored_row = game.db.conn.execute(
+                "SELECT emp_trust, grievance, ability, charm FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertEqual(int(restored_row["emp_trust"]), 50)
+            self.assertEqual(int(restored_row["grievance"]), 40)
+            self.assertEqual(int(restored_row["ability"]), 55)
+            self.assertEqual(int(restored_row["charm"]), 54)
+            self.assertEqual(game.state.metrics["内库"], 80)
+            restored_ledger_count = int(game.db.conn.execute("SELECT COUNT(*) c FROM economy_ledger").fetchone()["c"])
+            self.assertEqual(restored_ledger_count, before_ledger_count)
+            self.assertIsNone(game.db.conn.execute(
+                "SELECT 1 FROM character_traits WHERE name=? AND trait='旧患调养'",
+                (name,),
+            ).fetchone())
+            self.assertIsNone(game.db.conn.execute(
+                "SELECT 1 FROM event_memories WHERE subject_id=? AND event_type='eunuch_care'",
+                (name,),
+            ).fetchone())
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_stage_directions_are_split_from_minister_chat_payload(self):
         game = web_app.WebGame(fresh=True)
         try:

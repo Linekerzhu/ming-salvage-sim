@@ -644,6 +644,41 @@ def build_minister_tools(character: Character, context: CourtContext):
         )
         return f"__dialogue_action__{payload}"
 
+    def propose_eunuch_care(target: str, mode: str = "general", note: str = "") -> str:
+        """对白驱动净身旧患照料：皇帝提到给宦官治漏尿/尿闭/幻肢痛/验宝匣时调用。
+
+        只生成待确认意图，不立刻花内库、不改人物状态。mode 可填 urinary、trauma、body、bao、fixation、general。
+        回奏必须说明要动太医/内库/司礼监旧档，并追问陛下是否准办。
+        """
+        nm = (target or "").strip()
+        if not nm:
+            return "旧患照料提议失败：target 不能为空。"
+        payload = json.dumps(
+            {
+                "type": "eunuch_care",
+                "phase": "propose",
+                "target": nm,
+                "mode": (mode or "general").strip(),
+                "note": (note or "").strip(),
+            },
+            ensure_ascii=False,
+        )
+        return f"__dialogue_action__{payload}"
+
+    def confirm_eunuch_care(target: str = "", mode: str = "", note: str = "") -> str:
+        """对白驱动净身旧患照料：只有皇帝明确准许后才调用，Web 端才会结算。"""
+        payload = json.dumps(
+            {
+                "type": "eunuch_care",
+                "phase": "confirm",
+                "target": (target or "").strip(),
+                "mode": (mode or "").strip(),
+                "note": (note or "").strip(),
+            },
+            ensure_ascii=False,
+        )
+        return f"__dialogue_action__{payload}"
+
     def issue_secret_order(title: str, content: str, tags_json: str = "[]", assignee: str = "", deadline_months: int = 0) -> str:
         """皇帝下达密令，直接登记入档并返回密令编号。
 
@@ -853,6 +888,8 @@ def build_minister_tools(character: Character, context: CourtContext):
         confirm_castration,
         propose_mediation,
         confirm_mediation,
+        propose_eunuch_care,
+        confirm_eunuch_care,
         issue_secret_order,
         report_secret_order_progress,
         submit_secret_order_for_review,

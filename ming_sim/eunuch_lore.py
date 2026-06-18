@@ -975,6 +975,253 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
     return []
 
 
+_CARE_MODE_ALIASES = {
+    "urinary": "urinary",
+    "尿路": "urinary",
+    "漏尿": "urinary",
+    "尿闭": "urinary",
+    "石淋": "urinary",
+    "小解": "urinary",
+    "trauma": "trauma",
+    "惊创": "trauma",
+    "幻肢": "trauma",
+    "噩梦": "trauma",
+    "ptsd": "trauma",
+    "体声": "body",
+    "body": "body",
+    "嗓音": "body",
+    "体态": "body",
+    "仪态": "body",
+    "bao": "bao",
+    "宝": "bao",
+    "宝匣": "bao",
+    "验宝": "bao",
+    "官库": "bao",
+    "全尸": "bao",
+    "fixation": "fixation",
+    "隐癖": "fixation",
+    "怪癖": "fixation",
+    "洁净": "fixation",
+    "调养": "general",
+    "医治": "general",
+    "general": "general",
+}
+
+
+def normalize_care_mode(mode: str, hint: str = "") -> str:
+    raw = f"{mode or ''} {hint or ''}".strip().lower()
+    for key, value in _CARE_MODE_ALIASES.items():
+        if key.lower() in raw:
+            return value
+    if re.search(r"尿|漏|石淋|小解", raw):
+        return "urinary"
+    if re.search(r"幻肢|噩梦|PTSD|ptsd|惊|刀声|按肩|压惊", raw):
+        return "trauma"
+    if re.search(r"嗓|体态|仪态|肩背|步子", raw):
+        return "body"
+    if re.search(r"宝|匣|钥匙|官库|全尸|供奉|封签", raw):
+        return "bao"
+    if re.search(r"洁净|衣褶|香囊|规训|束带", raw):
+        return "fixation"
+    return "general"
+
+
+def _care_plan(mode: str, lore: Dict[str, object], *, adult: bool) -> Dict[str, object]:
+    mode = normalize_care_mode(mode)
+    if mode == "urinary":
+        return {
+            "mode": mode,
+            "label": "尿路调养",
+            "cost": 3,
+            "trait": "旧患调养",
+            "delta": {"emp_trust": 2, "grievance": -6, "ability": 1, "charm": 1},
+            "process": str(lore.get("urinary_aftereffect") or "遣太医以热砖、汤药调理小解旧患"),
+            "stage": "垂手夹腰叩谢，回话仍短，却明显松了一口气。",
+        }
+    if mode == "trauma":
+        return {
+            "mode": mode,
+            "label": "惊创抚慰",
+            "cost": 2,
+            "trait": "惊创抚慰",
+            "delta": {"emp_trust": 3, "grievance": -5, "wisdom": 1},
+            "process": str(lore.get("trauma_response") or "命熟内侍避开刀声净房旧话，以香汤压惊"),
+            "stage": "听见不再追问净房二字，肩背慢慢放低。",
+        }
+    if mode == "body":
+        return {
+            "mode": mode,
+            "label": "体声修整",
+            "cost": 2,
+            "trait": "仪态修整",
+            "delta": {"emp_trust": 1, "grievance": -3, "charm": 1},
+            "process": str(lore.get("voice_body_change") or "令内书堂教其收声、缓步、少久跪"),
+            "stage": "先尖声应是，旋即压低嗓子，谨慎退半步。",
+        }
+    if mode == "bao":
+        kept = str(lore.get("bao_status") or "") == BAO_KEPT
+        return {
+            "mode": mode,
+            "label": "宝匣安置" if kept else "宝案查验",
+            "cost": 2,
+            "trait": "宝匣安置",
+            "delta": {"emp_trust": 2 if kept else 1, "grievance": -5 if kept else -3, "wisdom": 1},
+            "process": str(lore.get("bao_ritual") or ("赐香料修匣、重封钥匙" if kept else "命官库查封签、补录宝案去处")),
+            "stage": "手在袖中摸了摸钥匙或封签，额头伏得更低。",
+        }
+    if mode == "fixation":
+        fixation = str(lore.get("private_fixation") or "以规矩压住旧创心悸")
+        if not adult and re.search(r"受罚|束缚|羞辱|调教|畸恋|情欲|肉欲|性", fixation):
+            fixation = "以洁净衣褶、香囊压住旧创心悸"
+        return {
+            "mode": mode,
+            "label": "心癖安顿",
+            "cost": 1,
+            "trait": "心癖安顿",
+            "delta": {"emp_trust": 1, "grievance": -3},
+            "process": fixation,
+            "stage": "反复抚平衣褶，像把一口乱气也一并按住。",
+        }
+    return {
+        "mode": "general",
+        "label": "内廷调养",
+        "cost": 4,
+        "trait": "御前调养",
+        "delta": {"emp_trust": 2, "grievance": -4, "ability": 1},
+        "process": "命太医看旧创，内库支药，司礼监记一笔调养档",
+        "stage": "叩首称谢，口里仍说奴婢不敢劳动陛下。",
+    }
+
+
+def apply_eunuch_care(
+    db: GameDB,
+    state: GameState,
+    name: str,
+    *,
+    mode: str = "general",
+    note: str = "",
+    source: str = "dialogue",
+) -> Dict[str, object]:
+    """对白驱动照料净身旧患：花内库小钱，缓解怨望/能力损伤并写入记忆。"""
+    ensure_schema(db)
+    clean_name = str(name or "").strip()
+    if not clean_name:
+        return {"ok": False, "reason": "未点明照料对象。"}
+    lore = get_lore(db, clean_name)
+    if lore is None:
+        return {"ok": False, "reason": f"{clean_name}没有净身旧档。"}
+    row = db.conn.execute(
+        "SELECT emp_trust, grievance, ability, wisdom, charm, luck, birth_year FROM characters WHERE name=? AND status='active'",
+        (clean_name,),
+    ).fetchone()
+    if row is None:
+        return {"ok": False, "reason": f"{clean_name}不在可照料名册中。"}
+    adult = _is_adult_for_lore(db, clean_name)
+    plan = _care_plan(mode, lore, adult=adult)
+    mode = str(plan["mode"])
+    source_id = f"{int(state.turn)}:{clean_name}:{mode}:{source}"
+    existed = db.conn.execute(
+        """
+        SELECT 1 FROM event_memories
+        WHERE subject_type='character' AND subject_id=? AND event_type='eunuch_care'
+          AND source_kind=? AND source_id=?
+        """,
+        (clean_name, source, source_id),
+    ).fetchone()
+    if existed is not None:
+        return {"ok": False, "reason": f"{clean_name}本回合已照料过这项旧患。", "mode": mode}
+
+    before = {
+        "emp_trust": int(row["emp_trust"] or 55),
+        "grievance": int(row["grievance"] or 20),
+        "ability": int(row["ability"] or 50),
+        "wisdom": int(row["wisdom"] or 50),
+        "charm": int(row["charm"] or 50),
+        "luck": int(row["luck"] or 50),
+    }
+    delta = dict(plan.get("delta") or {})
+    after = dict(before)
+    for key, value in delta.items():
+        if key in after:
+            after[key] = _clamp_0_100(after[key] + int(value or 0))
+    db.conn.execute(
+        """
+        UPDATE characters
+        SET emp_trust=?, grievance=?, ability=?, wisdom=?, charm=?, luck=?
+        WHERE name=?
+        """,
+        (after["emp_trust"], after["grievance"], after["ability"], after["wisdom"], after["charm"], after["luck"], clean_name),
+    )
+    trait = str(plan.get("trait") or "").strip()
+    if trait:
+        db.conn.execute(
+            "INSERT OR IGNORE INTO character_traits (name, trait, valence) VALUES (?,?,?)",
+            (clean_name, trait, 1),
+        )
+    cost = max(0, int(plan.get("cost") or 0))
+    paid = 0
+    if cost:
+        paid = abs(db.record_issue_economy_move(
+            state,
+            "内库",
+            -cost,
+            "内廷调养",
+            f"{clean_name}{plan.get('label') or '旧患调养'}",
+            purpose="maintenance",
+            target_kind="character",
+            target_id=clean_name,
+            apply_legacy=False,
+        ))
+    else:
+        db.save_state(state)
+    outcome_bits = [
+        f"{label}{after[key] - before[key]:+d}"
+        for key, label in (
+            ("emp_trust", "信任"),
+            ("grievance", "怨望"),
+            ("ability", "才干"),
+            ("wisdom", "机敏"),
+            ("charm", "仪表"),
+            ("luck", "运势"),
+        )
+        if after[key] != before[key]
+    ]
+    if paid:
+        outcome_bits.append(f"内库-{paid}")
+    outcome = "，".join(outcome_bits) or "照料入档"
+    title = f"{plan.get('label') or '内廷调养'}：{clean_name}"
+    process = "；".join(part for part in (str(plan.get("process") or ""), str(note or "").strip()) if part)[:160]
+    db.upsert_event_memory(
+        state,
+        "character",
+        clean_name,
+        "eunuch_care",
+        title,
+        cause="御前照料净身旧患",
+        process=process,
+        outcome=outcome,
+        sentiment="positive" if int(after["grievance"]) <= int(before["grievance"]) else "mixed",
+        importance=4,
+        tags=["净身", "调养", mode, str(plan.get("label") or "")],
+        source_kind=source,
+        source_id=source_id,
+    )
+    db.record_log(state, f"【内廷调养】{title}：{outcome}。")
+    db.conn.commit()
+    return {
+        "ok": True,
+        "name": clean_name,
+        "mode": mode,
+        "label": str(plan.get("label") or "内廷调养"),
+        "cost": paid,
+        "trait": trait,
+        "stage_direction": str(plan.get("stage") or ""),
+        "process": process,
+        "outcome": outcome,
+        "delta": {key: after[key] - before[key] for key in before if after[key] != before[key]},
+    }
+
+
 # ── 民间募新宦官（E2d）：灾年民困，良家子自宫求进、卖身入宫充内侍 ──
 _RECRUIT_SURNAMES = "王李张刘陈杨赵黄周吴徐孙马朱"
 _RECRUIT_GIVEN = ("进忠", "永贞", "国泰", "得禄", "承恩", "守义", "小顺", "三才", "应元",

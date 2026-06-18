@@ -3207,7 +3207,7 @@ class WebGame:
 
     def _dialogue_confirmed(self, text: str) -> bool:
         raw = str(text or "").strip()
-        return bool(re.search(r"(准|可|允|去办|办吧|照办|依你|依议|照你说|就这么办|去招|招募|就招|招一个|挑一个|取一个|带一个|领一个|找一个|荐一个|说合|调停|调和|准奏)", raw))
+        return bool(re.search(r"(准|可|允|去办|办吧|照办|依你|依议|照你说|就这么办|去招|招募|就招|招一个|挑一个|取一个|带一个|领一个|找一个|荐一个|说合|调停|调和|准奏|请太医|治一治|调养|验宝|安抚|照料)", raw))
 
     def _dialogue_rejected(self, text: str) -> bool:
         raw = str(text or "").strip()
@@ -3252,6 +3252,31 @@ class WebGame:
         except Exception:
             return {}
         return {"type": "castration", "target": target, "scheme_text": raw, "force": True}
+
+    def _detect_eunuch_care_intent(self, text: str, minister_name: str = "") -> Dict[str, Any]:
+        raw = str(text or "").strip()
+        if not raw:
+            return {}
+        if not re.search(r"(调养|医治|治一治|太医|药|热砖|汤药|照料|安抚|压惊|旧患|漏尿|尿闭|石淋|小解|幻肢|PTSD|噩梦|刀声|按肩|嗓音|体态|验宝|宝匣|查宝|官库|全尸|封签)", raw, flags=re.IGNORECASE):
+            return {}
+        mentions = [name for name in self._character_mentions_in_text(raw)]
+        target = mentions[0] if mentions else ""
+        if not target and minister_name in self.content.characters:
+            try:
+                if self._public_castration_payload(minister_name):
+                    target = minister_name
+            except Exception:
+                target = ""
+        if not target:
+            return {}
+        try:
+            from ming_sim.eunuch_lore import get_lore, normalize_care_mode
+            if get_lore(self.db, target) is None:
+                return {}
+            mode = normalize_care_mode("", raw)
+        except Exception:
+            return {}
+        return {"type": "eunuch_care", "target": target, "mode": mode, "note": raw}
 
     def _summon_handler_character(self, minister_name: str) -> Optional[Character]:
         """Return a character allowed to carry direct summon commands.
@@ -3904,6 +3929,23 @@ class WebGame:
                 f"{self_ref}拟按「{scheme_hint}」办，宝况、刀具、麻醉与宝匣都会入档。"
                 f"陛下若准，{self_ref}才敢传净军房行事；若还要改刀具、麻醉、宝匣材质或后患记档，也可现在明示。"
             )
+        if action.get("type") == "eunuch_care":
+            target = str(action.get("target") or "")
+            mode = str(action.get("mode") or "general")
+            label_map = {
+                "urinary": "尿路调养",
+                "trauma": "惊创抚慰",
+                "body": "体声修整",
+                "bao": "宝匣安置",
+                "fixation": "心癖安顿",
+                "general": "内廷调养",
+            }
+            label = label_map.get(mode, "内廷调养")
+            return (
+                f"{self_ref}回陛下，{target}这桩{label}可以办，但要动内库、太医或司礼监旧档，"
+                "办了便会入记忆账：能压怨、增信，也可能留下旁人议论。"
+                f"陛下若准，{self_ref}就按{label}去处置。"
+            )
         return f"{self_ref}领会陛下意思，但此事须陛下再明白准一句，臣才敢办。"
 
     def _execute_recruitment_action(self, minister_name: str, action: Dict[str, Any]) -> Dict[str, Any]:
@@ -3981,6 +4023,46 @@ class WebGame:
                     {"kind": "castration", "label": "净身旧档已入册", "tone": "bad"},
                     {"kind": "character", "label": f"{target} 可召见", "tone": "warn"},
                 ],
+            },
+        }
+
+    def _execute_eunuch_care_action(self, minister_name: str, action: Dict[str, Any]) -> Dict[str, Any]:
+        self_ref = self._dialogue_speaker_self(minister_name)
+        target = str(action.get("target") or "").strip()
+        mode = str(action.get("mode") or "general").strip()
+        note = str(action.get("note") or "").strip()
+        try:
+            from ming_sim.eunuch_lore import apply_eunuch_care
+            result = apply_eunuch_care(
+                self.db,
+                self.state,
+                target,
+                mode=mode,
+                note=note,
+                source="dialogue",
+            )
+        except Exception as exc:
+            result = {"ok": False, "reason": str(exc)}
+        self._clear_pending_dialogue_action(minister_name)
+        if not result.get("ok"):
+            return {"answer": f"{self_ref}回陛下，此事暂办不得：{result.get('reason') or '旧患调养未成'}。"}
+        label = str(result.get("label") or "内廷调养")
+        outcome = str(result.get("outcome") or "")
+        stage = str(result.get("stage_direction") or "")
+        message = f"{target}{label}：{outcome}"
+        return {
+            "answer": (
+                f"{self_ref}遵旨。{target}这桩{label}已入司礼监旧档，{outcome}。"
+                "旧患未必根除，但他会记得陛下问过这处隐痛。"
+            ),
+            "dialogue_effect": {
+                "title": label,
+                "message": message,
+                "effects": [
+                    {"kind": "eunuch_care", "label": outcome or label, "tone": "good"},
+                    {"kind": "character", "label": f"{target}旧患入档", "tone": "info"},
+                ],
+                "stage_direction": stage,
             },
         }
 
@@ -4192,6 +4274,8 @@ class WebGame:
             return self._execute_castration_action(minister_name, action)
         if action.get("type") == "mediation":
             return self._execute_mediation_action(minister_name, action)
+        if action.get("type") == "eunuch_care":
+            return self._execute_eunuch_care_action(minister_name, action)
         return {"answer": self._proposal_answer_for_action(minister_name, action)}
 
     def _dialogue_action_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
@@ -4213,6 +4297,7 @@ class WebGame:
                 return self._execute_dialogue_action(minister_name, pending)
         action = (
             self._detect_castration_intent(text, minister_name)
+            or self._detect_eunuch_care_intent(text, minister_name)
             or self._detect_recruitment_intent(text)
             or self._detect_mediation_intent(minister_name, text)
         )
@@ -4255,10 +4340,14 @@ class WebGame:
                     for key in ("actor", "target", "faction"):
                         if not normalized.get(key):
                             normalized[key] = pending.get(key)
+                if normalized.get("type") == "eunuch_care":
+                    for key in ("target", "mode", "note"):
+                        if not normalized.get(key):
+                            normalized[key] = pending.get(key)
             if normalized.get("type") == "recruitment" and not normalized.get("kind"):
                 return None
             return self._execute_dialogue_action(minister_name, normalized)
-        if normalized.get("type") in {"recruitment", "mediation", "castration"}:
+        if normalized.get("type") in {"recruitment", "mediation", "castration", "eunuch_care"}:
             if normalized.get("type") == "castration":
                 normalized["force"] = True
             self._store_pending_dialogue_action(minister_name, normalized)
@@ -5238,6 +5327,8 @@ class WebGame:
                         "confirm_castration",
                         "propose_mediation",
                         "confirm_mediation",
+                        "propose_eunuch_care",
+                        "confirm_eunuch_care",
                     }:
                         payload_json = res.removeprefix("__dialogue_action__").strip()
                         if not payload_json:
