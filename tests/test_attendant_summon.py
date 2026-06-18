@@ -343,6 +343,53 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_chat_payload_routes_when_attendant_tells_unlisted_person_to_enter(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+
+            payload = game._chat_payload(
+                attendant,
+                "（躬身一礼，侧身让出殿门方向，朝外招了招手）\n\n"
+                "小禄子，进来吧。陛下问你话，照实答就是。\n\n"
+                "（一个瘦小的身影低着头蹭进殿来，跪伏在地，浑身发抖，不敢抬头。）",
+            )
+
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], "小禄子")
+            self.assertEqual(payload["registered_minister"], "小禄子")
+            self.assertIn("小禄子", game.content.characters)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_chat_payload_routes_when_attendant_says_person_waits_outside(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+
+            payload = game._chat_payload(
+                attendant,
+                "回陛下——奴婢方才已传了口谕，小禄子该在殿外候着了。"
+                "想必是头一回面圣，腿软不敢进来。奴婢这就去领他进来。",
+            )
+
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], "小禄子")
+            self.assertEqual(payload["registered_minister"], "小禄子")
+            self.assertIn("小禄子", game.content.characters)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_named_selection_from_attendant_shortlist_summons_unlisted_person(self):
         game = web_app.WebGame(fresh=True)
         try:
