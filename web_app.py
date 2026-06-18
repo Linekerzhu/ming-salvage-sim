@@ -1347,28 +1347,29 @@ class WebGame:
     def _absorb_eunuch_lore_from_text(self, minister_name: str, text: str) -> Dict[str, Any]:
         clean = str(minister_name or "").strip()
         raw = str(text or "").strip()
-        if not clean or not raw:
+        if not raw:
             return {}
-        try:
-            character = self.session._character(clean)
-        except Exception:
-            return {}
-        try:
-            office, office_type, faction = self._current_office_identity(character)
-        except Exception:
-            office, office_type, faction = character.office, character.office_type, character.faction
-        if not (
-            is_eunuch_office(str(office or ""), str(office_type or ""))
-            or bool(re.search(r"太监|宦官|内官|内廷", str(faction or "")))
-        ):
+        mentioned = [name for name in self._character_mentions_in_text(raw) if name != clean]
+        candidates = mentioned or ([clean] if clean else [])
+        if not candidates:
             return {}
         try:
             from ming_sim.eunuch_lore import update_lore_from_text
             day = int(self.db.kv_get("upgrade.current_day") or 0)
-            result = update_lore_from_text(self.db, clean, raw, day=day)
+            targets: Dict[str, Dict[str, Any]] = {}
+            for target in candidates:
+                result = update_lore_from_text(self.db, target, raw, day=day)
+                if isinstance(result, dict) and result.get("updated"):
+                    targets[target] = result
         except Exception:
-            result = {}
-        return result if isinstance(result, dict) else {}
+            targets = {}
+        if not targets:
+            return {}
+        primary_name = clean if clean in targets else next(iter(targets))
+        primary = dict(targets[primary_name])
+        primary["targets"] = targets
+        primary["updated_targets"] = list(targets.keys())
+        return primary
 
     def public_character(
         self,

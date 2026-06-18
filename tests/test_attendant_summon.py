@@ -786,7 +786,7 @@ class AttendantSummonTests(unittest.TestCase):
 
             result = game._absorb_eunuch_lore_from_text(
                 name,
-                "承恩的宝匣改用黑漆楠木匣，宝用油炸封蜡，约二两八钱，一大一小，油封后发硬。"
+                "他的宝匣改用黑漆楠木匣，宝用油炸封蜡，约二两八钱，一大一小，油封后发硬。"
                 "他近来漏尿尿闭，嗓音尖薄，幻肢痛发作，还有贤者模式。",
             )
             self.assertIn("updated", result)
@@ -808,6 +808,46 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(restored["container_label"], before["container_label"])
             self.assertEqual(restored["preservation_label"], before["preservation_label"])
             self.assertEqual(restored["psychosexual_label"], before["psychosexual_label"])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_eunuch_lore_updates_named_third_person_without_touching_speaker(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            rows = game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' "
+                "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
+                "AND office NOT LIKE '%太监%' AND office NOT LIKE '%宦官%' "
+                "LIMIT 2"
+            ).fetchall()
+            self.assertGreaterEqual(len(rows), 2)
+            speaker = str(rows[0]["name"])
+            target = str(rows[1]["name"])
+            game.castrate_official(speaker, force=True)
+            game.castrate_official(target, force=True)
+            before_speaker = game.public_character(game.content.characters[speaker])["castration"]
+
+            result = game._absorb_eunuch_lore_from_text(
+                speaker,
+                f"{target}的宝匣改用黄杨木描金匣，香料腌藏。近来结石尿闭，按肩会僵住，已有性无能。",
+            )
+
+            self.assertEqual(result["updated_targets"], [target])
+            after_target = game.public_character(game.content.characters[target])["castration"]
+            self.assertEqual(after_target["container_label"], "黄杨木描金匣")
+            self.assertEqual(after_target["preservation_label"], "香料腌藏")
+            self.assertIn("尿闭", after_target["urine_label"])
+            self.assertIn("按肩", after_target["trauma_label"])
+            self.assertIn("性无能", after_target["psychosexual_label"])
+            after_speaker = game.public_character(game.content.characters[speaker])["castration"]
+            self.assertEqual(after_speaker["container_label"], before_speaker["container_label"])
+            self.assertEqual(after_speaker["preservation_label"], before_speaker["preservation_label"])
+            self.assertEqual(after_speaker["psychosexual_label"], before_speaker["psychosexual_label"])
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
