@@ -204,8 +204,16 @@ class TriggerTests(unittest.TestCase):
             self.assertIsNotNone(payload)
             self.assertEqual(payload["id"], "policy_aftershock")
             self.assertIn("苛税余波：辽饷", str(payload["title"]))
+            self.assertIn("求见", str(payload["narrative"]))
+            pending_ctx = (court_events.get_pending(db) or {}).get("ctx") or {}
+            actor = str(pending_ctx.get("actor") or "")
+            self.assertTrue(actor)
+            self.assertIn(actor, str(payload["title"]))
+            self.assertIn(actor, str(payload["narrative"]))
             keys = {str(ch["key"]) for ch in payload["choices"]}
             self.assertEqual(keys, {"keep_collecting", "relieve_now", "audit_middlemen"})
+            keep = next(ch for ch in payload["choices"] if ch["key"] == "keep_collecting")
+            self.assertIn(f"{actor}怨望 +5", [str(e["label"]) for e in keep["effects"]])
             relieve = next(ch for ch in payload["choices"] if ch["key"] == "relieve_now")
             self.assertIn("旧政缓和：辽饷", [str(e["label"]) for e in relieve["effects"]])
             pending = court_events.get_pending(db) or {}
@@ -456,15 +464,30 @@ class ResolveTests(unittest.TestCase):
             treasury_before = int(state.metrics.get("国库", 0))
 
             court_events.evaluate_decisions(db, state, day)
+            actor = str(((court_events.get_pending(db) or {}).get("ctx") or {}).get("actor") or "")
+            self.assertTrue(actor)
+            before = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (actor,),
+            ).fetchone()
             res = court_events.resolve_decision(db, state, "relieve_now", day=day)
 
             self.assertTrue(res["ok"], res)
-            self.assertIn("旧政缓和：辽饷", [str(e["label"]) for e in res["effects"]])
+            labels = [str(e["label"]) for e in res["effects"]]
+            self.assertIn("旧政缓和：辽饷", labels)
+            self.assertIn(f"{actor}信任 +4", labels)
+            self.assertIn(f"{actor}怨望 -5", labels)
             row = db.conn.execute("SELECT modifiers, narrative_hint FROM legacies WHERE id=?", (legacy_id,)).fetchone()
             modifiers = json.loads(str(row["modifiers"] or "{}"))
             self.assertEqual(int(modifiers["民心"]), -5)
             self.assertIn("蠲缓", str(row["narrative_hint"]))
             self.assertEqual(int(state.metrics.get("国库", 0)), treasury_before - 8)
+            after = db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (actor,),
+            ).fetchone()
+            self.assertEqual(int(after["emp_trust"]), min(100, int(before["emp_trust"]) + 4))
+            self.assertEqual(int(after["grievance"]), max(0, int(before["grievance"]) - 5))
             self.assertIsNone(court_events.get_pending(db))
 
     def test_policy_aftershock_audit_creates_followup_obligation(self):

@@ -946,6 +946,38 @@ def _petition_opinion_effect(
     ]
 
 
+def _policy_actor_char_effect(ctx: Dict[str, object], trust: int = 0, grievance: int = 0) -> List[Dict[str, object]]:
+    actor = str(ctx.get("actor") or "")
+    if not actor:
+        return []
+    out: Dict[str, object] = {"name": actor}
+    if trust:
+        out["emp_trust"] = trust
+    if grievance:
+        out["grievance"] = grievance
+    return [out]
+
+
+def _policy_actor_faction_effect(
+    ctx: Dict[str, object],
+    *,
+    sat: int = 0,
+    lev: int = 0,
+    heat: int = 0,
+) -> Dict[str, Dict[str, int]]:
+    faction = _meaningful_faction(ctx.get("actor_faction"))
+    if not faction:
+        return {}
+    out: Dict[str, int] = {}
+    if sat:
+        out["satisfaction"] = sat
+    if lev:
+        out["leverage"] = lev
+    if heat:
+        out["heat"] = heat
+    return {faction: out} if out else {}
+
+
 def _legacy_tax_stem(name: str, hint: str, key: str) -> str:
     text = f"{name} {hint} {key}"
     for stem in ("辽饷", "商税", "盐税", "矿税", "田赋"):
@@ -956,7 +988,7 @@ def _legacy_tax_stem(name: str, hint: str, key: str) -> str:
     return ""
 
 
-def _policy_legacy_actor(db: GameDB, stem: str) -> str:
+def _policy_legacy_actor_context(db: GameDB, stem: str) -> Dict[str, object]:
     fiscal_first = bool(stem and any(token in stem for token in ("税", "饷", "田赋", "商税", "盐税", "矿税")))
     order_clause = (
         """
@@ -972,7 +1004,7 @@ def _policy_legacy_actor(db: GameDB, stem: str) -> str:
     )
     row = db.conn.execute(
         f"""
-        SELECT name
+        SELECT name, office, faction, emp_trust, grievance, ability, integrity
         FROM characters
         WHERE status='active'
           AND power_id='ming'
@@ -985,7 +1017,17 @@ def _policy_legacy_actor(db: GameDB, stem: str) -> str:
         LIMIT 1
         """
     ).fetchone()
-    return str(row["name"] or "") if row is not None else ""
+    if row is None:
+        return {}
+    return {
+        "name": str(row["name"] or ""),
+        "office": str(row["office"] or ""),
+        "faction": str(row["faction"] or ""),
+        "trust": int(row["emp_trust"] or 0),
+        "grievance": int(row["grievance"] or 0),
+        "ability": int(row["ability"] or 50),
+        "integrity": int(row["integrity"] or 50),
+    }
 
 
 def _policy_legacy_aftershock(db: GameDB) -> Optional[Dict[str, object]]:
@@ -1027,6 +1069,8 @@ def _policy_legacy_aftershock(db: GameDB) -> Optional[Dict[str, object]]:
         if score <= best_score:
             continue
         legacy_id = int(row["id"])
+        actor = _policy_legacy_actor_context(db, stem or "税负")
+        actor_name = str(actor.get("name") or "")
         best = {
             "legacy_id": legacy_id,
             "cooldown_id": f"policy_aftershock:{legacy_id}",
@@ -1036,7 +1080,13 @@ def _policy_legacy_aftershock(db: GameDB) -> Optional[Dict[str, object]]:
             "minxin": minxin,
             "duration": duration,
             "remaining": remaining,
-            "actor": _policy_legacy_actor(db, stem or "税负"),
+            "actor": actor_name,
+            "actor_office": str(actor.get("office") or ""),
+            "actor_faction": str(actor.get("faction") or ""),
+            "actor_trust": int(actor.get("trust") or 0),
+            "actor_grievance": int(actor.get("grievance") or 0),
+            "actor_ability": int(actor.get("ability") or 50),
+            "actor_integrity": int(actor.get("integrity") or 50),
         }
         best_score = score
     return best
@@ -1268,19 +1318,36 @@ def _defs() -> List[Dict[str, object]]:
             "priority": 29,
             "cooldown": "ctx",
             "when": _policy_legacy_aftershock,
-            "title": lambda c: f"旧政反噬：{c['name']}",
+            "title": lambda c: (
+                f"旧政求裁：{c['actor']}奏{c['name']}"
+                if c.get("actor") else
+                f"旧政反噬：{c['name']}"
+            ),
             "narrative": lambda c: (
-                f"旧日旨意留下的「{c['name']}」仍在民间发酵。"
+                (
+                    f"{c.get('actor_office') or ''}{c['actor']}求见，称自己夹在催科、边饷与民怨之间："
+                    if c.get("actor") else
+                    ""
+                )
+                + f"旧日旨意留下的「{c['name']}」仍在民间发酵。"
                 f"{c['hint'] or '户部称钱粮不可骤停，地方却说催科已成怨府。'}"
                 f"眼下这项遗产使民心 {c['minxin']}%，"
                 f"{'且已成永久常例' if int(c.get('duration') or 0) < 0 else '尚余' + str(c.get('remaining')) + '月'}。"
-                "若立刻蠲缓，国库与边饷要吃紧；若照旧严征，民怨会被坐实为长疮。陛下何以裁之？"
+                + (
+                    f"{c['actor']}现信任{c.get('actor_trust')}、怨望{c.get('actor_grievance')}，"
+                    "若没有圣意担责，便会把这笔民怨记在朝廷和自己头上。"
+                    if c.get("actor") else
+                    ""
+                )
+                + "若立刻蠲缓，国库与边饷要吃紧；若照旧严征，民怨会被坐实为长疮。陛下何以裁之？"
             ),
             "choices": [
                 {"key": "keep_collecting", "label": lambda c: f"钱粮不可骤停，{c['stem']}照旧严征",
                  "hint": "国库立刻见长，皇命显得硬；但旧政更难回头，民怨会继续加深",
                  "effect": lambda c: {"shi": 1, "renshi": -2,
                                       "metrics": {"国库": 6, "民心": -2, "皇威": 1},
+                                      "char": _policy_actor_char_effect(c, trust=1, grievance=5),
+                                      "faction": _policy_actor_faction_effect(c, sat=-2, heat=1),
                                       "legacy": [{
                                           "id": c["legacy_id"],
                                           "action": "worsen",
@@ -1294,6 +1361,8 @@ def _defs() -> List[Dict[str, object]]:
                  "hint": "民心立刻回暖，长期余波缓和；但钱粮短缺会压到国库与边防",
                  "effect": lambda c: {"shi": -1, "renshi": 2,
                                       "metrics": {"国库": -8, "民心": 4},
+                                      "char": _policy_actor_char_effect(c, trust=4, grievance=-5),
+                                      "faction": _policy_actor_faction_effect(c, sat=2, heat=-1),
                                       "legacy": [{
                                           "id": c["legacy_id"],
                                           "action": "soften",
@@ -1308,6 +1377,8 @@ def _defs() -> List[Dict[str, object]]:
                  "available": lambda c: bool(c.get("actor")),
                  "effect": lambda c: {"shi": 2, "renshi": 1,
                                       "metrics": {"民心": 1},
+                                      "char": _policy_actor_char_effect(c, trust=2, grievance=2),
+                                      "faction": _policy_actor_faction_effect(c, sat=-1),
                                       "legacy": [{
                                           "id": c["legacy_id"],
                                           "action": "soften",
