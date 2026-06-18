@@ -3368,7 +3368,7 @@ class WebGame:
 
     def _dialogue_confirmed(self, text: str) -> bool:
         raw = str(text or "").strip()
-        return bool(re.search(r"(准|可|允|去办|办吧|照办|依你|依议|照你说|就这么办|去招|招募|就招|招一个|挑一个|取一个|带一个|领一个|找一个|荐一个|说合|调停|调和|准奏|请太医|治一治|调养|验宝|安抚|照料)", raw))
+        return bool(re.search(r"(准|可|允|去办|办吧|照办|依你|依议|照你说|就这么办|去招|招募|就招|招一个|挑一个|取一个|带一个|领一个|找一个|荐一个|说合|调停|调和|准奏|请太医|治一治|调养|验宝|赐还|归还|发还|钳制|拿捏|封存|安抚|照料)", raw))
 
     def _dialogue_rejected(self, text: str) -> bool:
         raw = str(text or "").strip()
@@ -3438,6 +3438,31 @@ class WebGame:
         except Exception:
             return {}
         return {"type": "eunuch_care", "target": target, "mode": mode, "note": raw}
+
+    def _detect_bao_leverage_intent(self, text: str, minister_name: str = "") -> Dict[str, Any]:
+        raw = str(text or "").strip()
+        if not raw or not re.search(r"(宝|宝匣|宝案|全尸|封签|官库)", raw):
+            return {}
+        return_intent = bool(re.search(r"(赐还|归还|发还|交还|还给|自藏|自己收|钥匙给|还他全尸|还其全尸)", raw))
+        control_intent = bool(re.search(r"(钳制|拿捏|把柄|官库封存|押在官库|不赐还|封签拿住|以宝制|收着.{0,8}宝)", raw))
+        if not (return_intent or control_intent):
+            return {}
+        mentions = [name for name in self._character_mentions_in_text(raw)]
+        target = ""
+        try:
+            from ming_sim.eunuch_lore import get_lore, normalize_bao_leverage_mode
+            for name in mentions:
+                if get_lore(self.db, name) is not None:
+                    target = name
+                    break
+            if not target and minister_name in self.content.characters and get_lore(self.db, minister_name) is not None:
+                target = minister_name
+            if not target:
+                return {}
+            mode = normalize_bao_leverage_mode("control" if control_intent else "return", raw)
+        except Exception:
+            return {}
+        return {"type": "bao_leverage", "target": target, "mode": mode, "note": raw}
 
     def _summon_handler_character(self, minister_name: str) -> Optional[Character]:
         """Return a character allowed to carry direct summon commands.
@@ -4180,6 +4205,20 @@ class WebGame:
                 "办了便会入记忆账：能压怨、增信，也可能留下旁人议论。"
                 f"陛下若准，{self_ref}就按{label}去处置。"
             )
+        if action.get("type") == "bao_leverage":
+            target = str(action.get("target") or "")
+            mode = str(action.get("mode") or "return")
+            if mode == "control":
+                return (
+                    f"{self_ref}回陛下，{target}的宝案若押在官库作把柄，短期最能让他不敢违拗；"
+                    "只是这等钳制会把怨望刻深，日后遇封签宝匣差事更易失神反噬。"
+                    f"陛下若准，{self_ref}才敢封作官库钳制。"
+                )
+            return (
+                f"{self_ref}回陛下，若把{target}的宝匣赐还本人，便是给他留全尸念想，能收心降怨；"
+                "只是官库也少一枚拿捏他的把柄。"
+                f"陛下若准，{self_ref}就重封宝匣、交钥匙给他。"
+            )
         return f"{self_ref}领会陛下意思，但此事须陛下再明白准一句，臣才敢办。"
 
     def _execute_recruitment_action(self, minister_name: str, action: Dict[str, Any]) -> Dict[str, Any]:
@@ -4341,6 +4380,77 @@ class WebGame:
                     {"kind": "eunuch_care", "label": outcome or label, "tone": "good"},
                     {"kind": "character", "label": f"{target}旧患入档", "tone": "info"},
                     *lore_effects[:6],
+                    *item_effects[:2],
+                ],
+                "stage_direction": stage,
+            },
+        }
+
+    def _execute_bao_leverage_action(self, minister_name: str, action: Dict[str, Any]) -> Dict[str, Any]:
+        self_ref = self._dialogue_speaker_self(minister_name)
+        target = str(action.get("target") or "").strip()
+        mode = str(action.get("mode") or "return").strip()
+        note = str(action.get("note") or "").strip()
+        try:
+            from ming_sim.eunuch_lore import apply_bao_leverage
+            result = apply_bao_leverage(
+                self.db,
+                self.state,
+                target,
+                mode=mode,
+                note=note,
+                source="dialogue",
+            )
+        except Exception as exc:
+            result = {"ok": False, "reason": str(exc)}
+        self._clear_pending_dialogue_action(minister_name)
+        if not result.get("ok"):
+            return {"answer": f"{self_ref}回陛下，此事暂办不得：{result.get('reason') or '宝案未成'}。"}
+        label = str(result.get("label") or "宝匣筹码")
+        outcome = str(result.get("outcome") or "")
+        stage = str(result.get("stage_direction") or "")
+        lore_update = result.get("lore_update") if isinstance(result.get("lore_update"), dict) else {}
+        label_map = {
+            "bao_status": "宝案",
+            "bao_preservation": "宝存",
+            "bao_container": "宝匣",
+            "bao_ritual": "仪式",
+        }
+        lore_effects = [
+            {
+                "kind": "eunuch_lore",
+                "label": f"{label_map.get(str(key), str(key))}：{str(value)[:18]}",
+                "tone": "info",
+            }
+            for key, value in lore_update.items()
+            if str(value).strip()
+        ]
+        item_effects = [
+            {"kind": "inventory", "label": f"入库：{str(item)[:22]}", "tone": "good"}
+            for item in (result.get("items_added") or [])
+            if str(item).strip()
+        ]
+        if str(result.get("mode") or "") == "control":
+            answer = (
+                f"{self_ref}遵旨。{target}的宝案已封作官库把柄，{outcome}。"
+                "这能压他一时，却不是无价之物；往后封签宝匣差事须防怨气反扑。"
+            )
+            tone = "bad"
+        else:
+            answer = (
+                f"{self_ref}遵旨。{target}的宝匣已重封赐还，{outcome}。"
+                "他未必立刻成忠仆，但这笔全尸念想会记在心里。"
+            )
+            tone = "good"
+        return {
+            "answer": answer,
+            "dialogue_effect": {
+                "title": label,
+                "message": f"{target}{label}：{outcome}",
+                "effects": [
+                    {"kind": "bao_leverage", "label": outcome or label, "tone": tone},
+                    {"kind": "character", "label": f"{target}宝案入档", "tone": "info"},
+                    *lore_effects[:5],
                     *item_effects[:2],
                 ],
                 "stage_direction": stage,
@@ -4557,6 +4667,8 @@ class WebGame:
             return self._execute_mediation_action(minister_name, action)
         if action.get("type") == "eunuch_care":
             return self._execute_eunuch_care_action(minister_name, action)
+        if action.get("type") == "bao_leverage":
+            return self._execute_bao_leverage_action(minister_name, action)
         return {"answer": self._proposal_answer_for_action(minister_name, action)}
 
     def _dialogue_action_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
@@ -4584,9 +4696,19 @@ class WebGame:
                             for part in (str(pending.get("note") or "").strip(), extra)
                             if part
                         )
+                elif pending.get("type") == "bao_leverage":
+                    pending = dict(pending)
+                    extra = str(text or "").strip()
+                    if extra:
+                        pending["note"] = " ".join(
+                            part
+                            for part in (str(pending.get("note") or "").strip(), extra)
+                            if part
+                        )
                 return self._execute_dialogue_action(minister_name, pending)
         action = (
             self._detect_castration_intent(text, minister_name)
+            or self._detect_bao_leverage_intent(text, minister_name)
             or self._detect_eunuch_care_intent(text, minister_name)
             or self._detect_recruitment_intent(text)
             or self._detect_mediation_intent(minister_name, text)
@@ -4639,10 +4761,19 @@ class WebGame:
                         str(normalized.get("note") or "").strip(),
                     ]
                     normalized["note"] = " ".join(dict.fromkeys(part for part in note_parts if part))
+                if normalized.get("type") == "bao_leverage":
+                    for key in ("target", "mode", "note"):
+                        if not normalized.get(key):
+                            normalized[key] = pending.get(key)
+                    note_parts = [
+                        str(pending.get("note") or "").strip(),
+                        str(normalized.get("note") or "").strip(),
+                    ]
+                    normalized["note"] = " ".join(dict.fromkeys(part for part in note_parts if part))
             if normalized.get("type") == "recruitment" and not normalized.get("kind"):
                 return None
             return self._execute_dialogue_action(minister_name, normalized)
-        if normalized.get("type") in {"recruitment", "mediation", "castration", "eunuch_care"}:
+        if normalized.get("type") in {"recruitment", "mediation", "castration", "eunuch_care", "bao_leverage"}:
             if normalized.get("type") == "castration":
                 normalized["force"] = True
             self._store_pending_dialogue_action(minister_name, normalized)
@@ -5036,8 +5167,12 @@ class WebGame:
             for item in effect.get("effects") or []:
                 if isinstance(item, dict):
                     merged_items.append(item)
+        primary_title = next(
+            (str(effect.get("title") or "").strip() for effect in cleaned if str(effect.get("title") or "").strip()),
+            "奏对有动",
+        )
         merged: Dict[str, Any] = {
-            "title": "奏对有动",
+            "title": primary_title,
             "message": "；".join(messages)[:120],
             "effects": merged_items[:10],
         }
@@ -5699,6 +5834,8 @@ class WebGame:
                         "confirm_mediation",
                         "propose_eunuch_care",
                         "confirm_eunuch_care",
+                        "propose_bao_leverage",
+                        "confirm_bao_leverage",
                     }:
                         payload_json = res.removeprefix("__dialogue_action__").strip()
                         if not payload_json:

@@ -1399,7 +1399,11 @@ def _bao_instability_score(lore: Dict[str, object], traits: set[str]) -> int:
     scheme = castration_scheme_profile(lore)
     if bool(scheme.get("explicit")) and int(scheme.get("risk_score") or 0) >= 72:
         score += 6
-    if traits.intersection({"宝匣安置", "御前调养"}):
+    if "宝案钳制" in traits:
+        score += 22
+    if "御赐宝匣" in traits:
+        score -= 80
+    elif traits.intersection({"宝匣安置", "御前调养"}):
         score -= 60
     return max(0, min(100, int(score)))
 
@@ -1881,6 +1885,235 @@ def _care_plan(mode: str, lore: Dict[str, object], *, adult: bool) -> Dict[str, 
     }
 
 
+_BAO_LEVERAGE_ALIASES = {
+    "return": "return",
+    "赐还": "return",
+    "归还": "return",
+    "发还": "return",
+    "交还": "return",
+    "还给": "return",
+    "自藏": "return",
+    "自己收": "return",
+    "钥匙给": "return",
+    "control": "control",
+    "钳制": "control",
+    "拿捏": "control",
+    "把柄": "control",
+    "官库封存": "control",
+    "押在官库": "control",
+    "收着他的宝": "control",
+    "不赐还": "control",
+    "封签拿住": "control",
+    "以宝制": "control",
+}
+
+
+def normalize_bao_leverage_mode(mode: str, hint: str = "") -> str:
+    raw = f"{mode or ''} {hint or ''}".strip()
+    if re.search(r"钳制|拿捏|把柄|官库封存|押在官库|不赐还|封签拿住|以宝制|收着.{0,6}宝", raw):
+        return "control"
+    for key, value in _BAO_LEVERAGE_ALIASES.items():
+        if key and key in raw:
+            return value
+    if re.search(r"赐还|归还|发还|交还|还给|自藏|自己收|钥匙给|还他全尸|全尸", raw):
+        return "return"
+    return "return"
+
+
+def _bao_leverage_note(existing: str, addition: str) -> str:
+    parts = [str(existing or "").strip(), str(addition or "").strip()]
+    text = "；".join(part for part in parts if part)
+    return text[:320]
+
+
+def apply_bao_leverage(
+    db: GameDB,
+    state: GameState,
+    name: str,
+    *,
+    mode: str = "return",
+    note: str = "",
+    source: str = "dialogue",
+) -> Dict[str, object]:
+    """对白驱动宝匣筹码：赐还收心，或官库封存拿捏。
+
+    这是策略结算，不是护理：同一只宝匣既可换忠心，也可作把柄。
+    """
+    ensure_schema(db)
+    clean_name = str(name or "").strip()
+    if not clean_name:
+        return {"ok": False, "reason": "未点明宝匣所系之人。"}
+    lore = get_lore(db, clean_name)
+    if lore is None:
+        return {"ok": False, "reason": f"{clean_name}没有净身旧档。"}
+    row = db.conn.execute(
+        "SELECT emp_trust, grievance, ability, wisdom, charm, luck FROM characters WHERE name=? AND status='active'",
+        (clean_name,),
+    ).fetchone()
+    if row is None:
+        return {"ok": False, "reason": f"{clean_name}不在可处置名册中。"}
+    resolved_mode = normalize_bao_leverage_mode(mode, note)
+    source_id = f"{int(state.turn)}:{clean_name}:{resolved_mode}:{source}"
+    existed = db.conn.execute(
+        """
+        SELECT 1 FROM event_memories
+        WHERE subject_type='character' AND subject_id=? AND event_type='eunuch_bao_leverage'
+          AND source_kind=? AND source_id=?
+        """,
+        (clean_name, source, source_id),
+    ).fetchone()
+    if existed is not None:
+        return {"ok": False, "reason": f"{clean_name}本回合宝案已处置。", "mode": resolved_mode}
+    try:
+        day = int(getattr(state, "turn", 0) or 0) * 30
+    except Exception:
+        day = 0
+    lore_update: Dict[str, str] = {}
+    if str(note or "").strip():
+        updated = update_lore_from_text(db, clean_name, note, day=day)
+        if isinstance(updated, dict) and isinstance(updated.get("updated"), dict):
+            lore_update = {str(k): str(v) for k, v in updated["updated"].items()}
+        lore = get_lore(db, clean_name) or lore
+    before = {
+        "emp_trust": int(row["emp_trust"] or 55),
+        "grievance": int(row["grievance"] or 20),
+        "ability": int(row["ability"] or 50),
+        "wisdom": int(row["wisdom"] or 50),
+        "charm": int(row["charm"] or 50),
+        "luck": int(row["luck"] or 50),
+    }
+    if resolved_mode == "control":
+        label = "宝案钳制"
+        trait = "宝案钳制"
+        bao_status = BAO_FORFEIT
+        delta = {"emp_trust": -2, "grievance": 8, "wisdom": -1, "luck": -1}
+        preservation = str(lore.get("bao_preservation") or "").strip()
+        container = str(lore.get("bao_container") or "").strip()
+        if not preservation or not re.search(r"官库|石灰|封存|油炸|香料", preservation):
+            preservation = "官库石灰封存"
+            lore_update.setdefault("bao_preservation", preservation)
+        if not container or not re.search(r"铁皮|灰瓮|官库|白签", container):
+            container = "铁皮锁匣"
+            lore_update.setdefault("bao_container", container)
+        ritual = "官库封签作御前把柄，终身惦念"
+        item_id = f"官库宝案把柄：{clean_name}"
+        title = f"宝案钳制：{clean_name}"
+        cause = "御前以宝案作内廷把柄"
+        stage = "听见官库封签，他喉头一紧，叩首更低。"
+        outcome_label = "短期威慑"
+        sentiment = "negative"
+        process = f"{container}；{preservation}；{note}".strip("；")[:160]
+        db.conn.execute("DELETE FROM character_traits WHERE name=? AND trait IN ('御赐宝匣','宝匣安置')", (clean_name,))
+    else:
+        label = "赐还宝匣"
+        trait = "御赐宝匣"
+        bao_status = BAO_KEPT
+        delta = {"emp_trust": 5, "grievance": -9, "wisdom": 1, "luck": 1}
+        preservation = str(lore.get("bao_preservation") or "").strip()
+        container = str(lore.get("bao_container") or "").strip()
+        if not preservation or re.search(r"官库|石灰|封存|灰瓮|白签", preservation):
+            preservation = "香料腌藏"
+            lore_update.setdefault("bao_preservation", preservation)
+        if not container or re.search(r"灰瓮|旧案|白签|粗木|铁皮", container):
+            container = "锡胆小木匣"
+            lore_update.setdefault("bao_container", container)
+        ritual = "御前赐还，钥匙贴身，望来世全尸"
+        item_id = f"御赐宝匣：{clean_name}"
+        title = f"赐还宝匣：{clean_name}"
+        cause = "御前以宝匣收心降怨"
+        stage = "他伏地捧匣，指节发颤，半晌才敢谢恩。"
+        outcome_label = "收心降怨"
+        sentiment = "positive"
+        process = f"{container}；{preservation}；{note}".strip("；")[:160]
+        db.conn.execute("DELETE FROM character_traits WHERE name=? AND trait='宝案钳制'", (clean_name,))
+        db.conn.execute(
+            "INSERT OR IGNORE INTO character_traits (name, trait, valence) VALUES (?,?,?)",
+            (clean_name, "宝匣安置", 1),
+        )
+    after = dict(before)
+    for key, value in delta.items():
+        after[key] = _clamp_0_100(after[key] + int(value or 0))
+    db.conn.execute(
+        """
+        UPDATE characters
+        SET emp_trust=?, grievance=?, ability=?, wisdom=?, charm=?, luck=?
+        WHERE name=?
+        """,
+        (after["emp_trust"], after["grievance"], after["ability"], after["wisdom"], after["charm"], after["luck"], clean_name),
+    )
+    db.conn.execute(
+        """
+        UPDATE eunuch_lore
+        SET bao_status=?, bao_preservation=?, bao_container=?, bao_ritual=?, note=?
+        WHERE name=?
+        """,
+        (
+            bao_status,
+            preservation,
+            container,
+            ritual,
+            _bao_leverage_note(str(lore.get("note") or ""), note),
+            clean_name,
+        ),
+    )
+    lore_update["bao_status"] = bao_status
+    lore_update["bao_preservation"] = preservation
+    lore_update["bao_container"] = container
+    lore_update["bao_ritual"] = ritual
+    db.conn.execute(
+        "INSERT OR IGNORE INTO character_traits (name, trait, valence) VALUES (?,?,?)",
+        (clean_name, trait, 1 if resolved_mode == "return" else -1),
+    )
+    exists = db.conn.execute("SELECT 1 FROM player_inventory WHERE item_id=?", (item_id,)).fetchone()
+    items_added: List[str] = []
+    if exists is None:
+        db.grant_player_item(item_id, state)
+        items_added.append(item_id)
+    outcome_bits = [
+        f"{label_name}{after[key] - before[key]:+d}"
+        for key, label_name in (
+            ("emp_trust", "信任"),
+            ("grievance", "怨望"),
+            ("wisdom", "机敏"),
+            ("luck", "运势"),
+        )
+        if after[key] != before[key]
+    ]
+    outcome_bits.append(outcome_label)
+    outcome = "，".join(outcome_bits)
+    db.upsert_event_memory(
+        state,
+        "character",
+        clean_name,
+        "eunuch_bao_leverage",
+        title,
+        cause=cause,
+        process=process,
+        outcome=outcome,
+        sentiment=sentiment,
+        importance=4,
+        tags=["净身", "宝匣", "筹码", resolved_mode, label],
+        source_kind=source,
+        source_id=source_id,
+    )
+    db.record_log(state, f"【宝匣筹码】{title}：{outcome}。")
+    db.conn.commit()
+    return {
+        "ok": True,
+        "name": clean_name,
+        "mode": resolved_mode,
+        "label": label,
+        "trait": trait,
+        "stage_direction": stage,
+        "outcome": outcome,
+        "delta": {key: after[key] - before[key] for key in before if after[key] != before[key]},
+        "lore_update": lore_update,
+        "items_added": items_added,
+        "process": process,
+        "leverage_note": outcome_label,
+    }
+
+
 def apply_eunuch_care(
     db: GameDB,
     state: GameState,
@@ -2336,7 +2569,7 @@ def assignment_risk_profile(
                 -4,
                 "宝案心结牵动内廷查验",
                 f"宝案心结：{label}，遇官库封签、验宝或净房旧案容易怨气上涌。",
-                care_trait="宝匣安置",
+                care_trait="宝匣安置|御赐宝匣",
                 mitigation="宝案已奉旨查验安置，封签刺激稍缓。",
                 stage="听见封签宝匣会摸袖中钥匙或避开视线。",
             )
@@ -2345,6 +2578,13 @@ def assignment_risk_profile(
                 2,
                 "宝匣自藏使其在内廷规矩里较能定神",
                 stage="遇内廷封匣旧例会先摸钥匙定神。",
+            )
+        if "宝案钳制" in traits:
+            add(
+                -3,
+                "宝案钳制使其惧而不安",
+                "宝案钳制：官库封签是把柄，遇封签宝匣差事容易失神或怨气反扑。",
+                stage="听见官库封签便喉头一紧，叩首更低。",
             )
 
     fixation = str(lore.get("private_fixation") or "").strip()

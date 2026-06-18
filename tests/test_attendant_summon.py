@@ -1540,6 +1540,70 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_dialogue_bao_leverage_return_requires_confirmation_and_executes(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            row = game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' "
+                "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
+                "AND office NOT LIKE '%太监%' AND office NOT LIKE '%宦官%' "
+                "LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            name = str(row["name"])
+            game.castrate_official(
+                name,
+                force=True,
+                scheme_text="奉旨宫刑，宝官库石灰封存，收白签灰瓮；暗记官库封签，终身惦念。",
+            )
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=40, grievance=50, wisdom=55, luck=50 WHERE name=?",
+                (name,),
+            )
+            game.db.conn.commit()
+
+            proposal_events = list(game.chat_stream(attendant, f"把{name}的宝匣赐还给他，钥匙给他自己收。"))
+
+            self.assertEqual(proposal_events[-1]["type"], "done")
+            proposal = proposal_events[-1]["payload"]
+            self.assertIn("若准", proposal["answer"])
+            pending = game._load_pending_dialogue_action(attendant)
+            self.assertEqual(pending.get("type"), "bao_leverage")
+            self.assertEqual(pending.get("target"), name)
+            self.assertEqual(pending.get("mode"), "return")
+            mid = game.db.conn.execute("SELECT emp_trust, grievance FROM characters WHERE name=?", (name,)).fetchone()
+            self.assertEqual(int(mid["emp_trust"]), 40)
+            self.assertEqual(int(mid["grievance"]), 50)
+
+            confirm_events = list(game.chat_stream(
+                attendant,
+                "准，改用锡胆小木匣，香料腌藏，钥匙贴身。",
+            ))
+
+            payload = confirm_events[-1]["payload"]
+            self.assertEqual(payload["dialogue_effect"]["title"], "赐还宝匣")
+            self.assertIn("信任+5", payload["dialogue_effect"]["message"])
+            self.assertIn("怨望-9", payload["dialogue_effect"]["message"])
+            labels = {str(item.get("label") or "") for item in payload["dialogue_effect"].get("effects", [])}
+            self.assertTrue(any("御赐宝匣" in label for label in labels))
+            self.assertTrue(any("宝匣：锡胆小木匣" in label for label in labels))
+            castration = game.public_character(game.content.characters[name])["castration"]
+            self.assertEqual(castration["bao_status"], "kept")
+            self.assertEqual(castration["container_label"], "锡胆小木匣")
+            self.assertEqual(castration["preservation_label"], "香料腌藏")
+            self.assertIn("赐还", castration["ritual_label"])
+            inventory_ids = {str(item["id"]) for item in game.db.list_player_inventory()}
+            self.assertIn(f"御赐宝匣：{name}", inventory_ids)
+            self.assertFalse(game._load_pending_dialogue_action(attendant))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_stage_directions_are_split_from_minister_chat_payload(self):
         game = web_app.WebGame(fresh=True)
         try:

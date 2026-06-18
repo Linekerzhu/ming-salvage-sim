@@ -679,6 +679,53 @@ def build_minister_tools(character: Character, context: CourtContext):
         )
         return f"__dialogue_action__{payload}"
 
+    def propose_bao_leverage(target: str, mode: str = "return", note: str = "") -> str:
+        """对白驱动宝匣筹码：皇帝提到赐还宝匣或用官库封签钳制时调用。
+
+        只生成待确认意图，不立刻改变宝案、人物数值或风险。mode 可填 return/control。
+        回奏必须说明取舍：赐还收心降怨但少把柄；钳制见效快但加深怨望和后续宝案风险。
+        """
+        nm = (target or "").strip()
+        if not nm:
+            return "宝匣筹码提议失败：target 不能为空。"
+        m = (mode or "return").strip().lower()
+        if m in {"赐还", "归还", "发还", "交还"}:
+            m = "return"
+        if m in {"钳制", "把柄", "官库", "封存"}:
+            m = "control"
+        if m not in {"return", "control"}:
+            m = "return"
+        payload = json.dumps(
+            {
+                "type": "bao_leverage",
+                "phase": "propose",
+                "target": nm,
+                "mode": m,
+                "note": (note or "").strip(),
+            },
+            ensure_ascii=False,
+        )
+        return f"__dialogue_action__{payload}"
+
+    def confirm_bao_leverage(target: str = "", mode: str = "", note: str = "") -> str:
+        """对白驱动宝匣筹码：只有皇帝明确准许后才调用，Web 端才会结算。"""
+        m = (mode or "").strip().lower()
+        if m in {"赐还", "归还", "发还", "交还"}:
+            m = "return"
+        if m in {"钳制", "把柄", "官库", "封存"}:
+            m = "control"
+        payload = json.dumps(
+            {
+                "type": "bao_leverage",
+                "phase": "confirm",
+                "target": (target or "").strip(),
+                "mode": m,
+                "note": (note or "").strip(),
+            },
+            ensure_ascii=False,
+        )
+        return f"__dialogue_action__{payload}"
+
     def issue_secret_order(title: str, content: str, tags_json: str = "[]", assignee: str = "", deadline_months: int = 0) -> str:
         """皇帝下达密令，直接登记入档并返回密令编号。
 
@@ -954,6 +1001,8 @@ def build_minister_tools(character: Character, context: CourtContext):
         confirm_mediation,
         propose_eunuch_care,
         confirm_eunuch_care,
+        propose_bao_leverage,
+        confirm_bao_leverage,
         issue_secret_order,
         report_secret_order_progress,
         submit_secret_order_for_review,

@@ -659,6 +659,93 @@ class RecordCastrationTests(unittest.TestCase):
             inventory_ids = {str(item["id"]) for item in db.list_player_inventory()}
             self.assertIn(f"宝案安置：{name}", inventory_ids)
 
+    def test_bao_leverage_return_reduces_grievance_and_future_instability(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(
+                db,
+                name,
+                forced=True,
+                day=day,
+                detail_text="奉旨宫刑，宝官库石灰封存，收白签灰瓮；暗记官库封签，终身惦念。",
+            )
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=40, grievance=50, wisdom=55, luck=50 WHERE name=?",
+                (name,),
+            )
+            db.conn.commit()
+            before_risk = el._bao_instability_score(el.get_lore(db, name), set())
+
+            result = el.apply_bao_leverage(
+                db,
+                state,
+                name,
+                mode="return",
+                note="赐还宝匣，改用锡胆小木匣，香料腌藏，钥匙贴身。",
+            )
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["mode"], "return")
+            self.assertEqual(result["trait"], "御赐宝匣")
+            self.assertEqual(result["delta"]["emp_trust"], 5)
+            self.assertEqual(result["delta"]["grievance"], -9)
+            row = db.conn.execute("SELECT emp_trust, grievance FROM characters WHERE name=?", (name,)).fetchone()
+            self.assertEqual(int(row["emp_trust"]), 45)
+            self.assertEqual(int(row["grievance"]), 41)
+            lore = el.get_lore(db, name)
+            self.assertEqual(lore["bao_status"], el.BAO_KEPT)
+            self.assertEqual(lore["bao_container"], "锡胆小木匣")
+            self.assertEqual(lore["bao_preservation"], "香料腌藏")
+            self.assertIn("赐还", lore["bao_ritual"])
+            after_risk = el._bao_instability_score(lore, {"御赐宝匣"})
+            self.assertLess(after_risk, before_risk)
+            self.assertIn(f"御赐宝匣：{name}", {str(item["id"]) for item in db.list_player_inventory()})
+            self.assertIsNotNone(db.conn.execute(
+                "SELECT 1 FROM event_memories WHERE subject_id=? AND event_type='eunuch_bao_leverage'",
+                (name,),
+            ).fetchone())
+
+    def test_bao_leverage_control_raises_grievance_and_assignment_risk(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(
+                db,
+                name,
+                forced=True,
+                day=day,
+                detail_text="奉旨宫刑，宝官库石灰封存，收白签灰瓮；暗记官库封签，终身惦念。",
+            )
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=60, grievance=20, wisdom=55, luck=55 WHERE name=?",
+                (name,),
+            )
+            db.conn.commit()
+            before_risk = el._bao_instability_score(el.get_lore(db, name), set())
+
+            result = el.apply_bao_leverage(
+                db,
+                state,
+                name,
+                mode="control",
+                note="将他的宝押在官库封存，铁皮锁匣，封签拿住作把柄。",
+            )
+
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["mode"], "control")
+            self.assertEqual(result["trait"], "宝案钳制")
+            self.assertEqual(result["delta"]["emp_trust"], -2)
+            self.assertEqual(result["delta"]["grievance"], 8)
+            lore = el.get_lore(db, name)
+            self.assertEqual(lore["bao_status"], el.BAO_FORFEIT)
+            self.assertIn("官库封签", lore["bao_ritual"])
+            after_risk = el._bao_instability_score(lore, {"宝案钳制"})
+            self.assertGreater(after_risk, before_risk)
+            profile = el.assignment_risk_profile(db, name, "命其查官库封签宝匣旧案", domains=["inner"])
+            self.assertTrue(any("宝案钳制" in item for item in profile["risks"]))
+            self.assertIn(f"官库宝案把柄：{name}", {str(item["id"]) for item in db.list_player_inventory()})
+
     def test_timeflow_surfaces_castration_complication_events(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)
