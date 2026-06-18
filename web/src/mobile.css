@@ -800,7 +800,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-person-style { margin: 0; font-size: 0.9rem; line-height: 1.65; color: var(--ink); }
 .m-person-skills { display: flex; flex-wrap: wrap; gap: 6px; }
 .m-skill { font-size: 0.78rem; background: rgba(47,90,68,.14); color: var(--jade); border: 1px solid rgba(47,90,68,.3); border-radius: 999px; padding: 3px 10px; }
-.m-person-goal { margin: 3px 0; font-size: 0.84rem; color: var(--ink); }
+.m-person-goal { display: flex; flex-direction: column; gap: 3px; margin: 6px 0; padding: 8px 9px;
+  border: 1px solid rgba(181,134,58,.24); border-radius: 8px; background: rgba(255,255,255,.18); color: var(--ink); }
+.m-person-goal.tone-blocked, .m-person-goal.tone-expired { border-color: rgba(158,52,41,.32); background: rgba(158,52,41,.08); }
+.m-person-goal-title { font-size: .84rem; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.m-person-goal-meta { font-size: .74rem; color: var(--gold-deep); font-weight: 700; }
+.m-person-goal-note { font-size: .76rem; color: var(--ink-soft); line-height: 1.42; overflow-wrap: anywhere; }
 .m-favor-memories { display: flex; flex-direction: column; gap: 6px; }
 .m-person-favor { margin: 0; padding: 8px 9px; border: 1px solid rgba(181,134,58,.28); border-radius: 8px; background: rgba(181,134,58,.09); font-size: .82rem; line-height: 1.45; }
 .m-favor-title { display: block; color: var(--gold-deep); font-weight: 700; margin-bottom: 2px; }

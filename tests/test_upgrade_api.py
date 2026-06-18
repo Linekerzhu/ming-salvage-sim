@@ -188,7 +188,12 @@ class UpgradeApiSmokeTests(unittest.TestCase):
                 "id": 1,
                 "minister_name": "毕自严",
                 "title": "核实财政草案",
+                "status": "blocked",
+                "condition_status": "pending",
                 "score": 0,
+                "threshold": 70,
+                "expires_turn": max(1, game.state.turn),
+                "blockers": ["户部未交旧账"],
                 "conditions": [{"description": "明旨授权", "status": "pending"}],
                 "last_delta": {
                     "audit": {"private_reason": "x" * 2000, "pre_audit": {"raw": "huge"}},
@@ -203,6 +208,11 @@ class UpgradeApiSmokeTests(unittest.TestCase):
             self.assertEqual(payload["public_hint"], "毕自严领旨。")
             self.assertEqual(payload["audit_confidence"], 85)
             self.assertEqual(payload["pending_conditions"][0]["description"], "明旨授权")
+            self.assertEqual(payload["status_label"], "受阻")
+            self.assertEqual(payload["condition_label"], "待证")
+            self.assertIn("第", payload["due_label"])
+            self.assertEqual(payload["blocker_summary"], "户部未交旧账")
+            self.assertEqual(payload["pending_summary"], "明旨授权")
 
             r = client.get("/favicon.ico")
             self.assertEqual(r.status_code, 204)

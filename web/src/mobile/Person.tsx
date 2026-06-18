@@ -426,7 +426,15 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
           <div className="m-person-block">
             <span className="m-person-h">与朕奏对</span>
             {c.conversation_goals.slice(0, 4).map((g: any, i: number) => (
-              <p key={i} className="m-person-goal">{g.title || g.goal_type}{g.progress != null ? ` · ${g.progress}%` : ""}</p>
+              <div key={i} className={`m-person-goal tone-${g.status || "active"}`}>
+                <span className="m-person-goal-title">{g.title || g.goal_type || "未竟奏对"}</span>
+                <span className="m-person-goal-meta">
+                  {[g.status_label, g.condition_label, g.due_label, g.progress_label].filter(Boolean).join(" · ")}
+                </span>
+                {(g.blocker_summary || g.pending_summary || g.public_hint) && (
+                  <span className="m-person-goal-note">{g.blocker_summary || g.pending_summary || g.public_hint}</span>
+                )}
+              </div>
             ))}
           </div>
         )}

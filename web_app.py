@@ -1211,7 +1211,24 @@ class WebGame:
         }
 
     def _conversation_goal_payload_from_rows(self, rows: List[Dict[str, Any]] | List[Any]) -> List[Dict[str, Any]]:
+        status_labels = {
+            "active": "推进中",
+            "waiting_conditions": "待条件",
+            "blocked": "受阻",
+            "expired": "失期",
+            "sealed": "已立约",
+            "fulfilled": "已履约",
+            "abandoned": "已放弃",
+        }
+        condition_labels = {
+            "none": "无条件",
+            "pending": "待证",
+            "satisfied": "已满足",
+            "failed": "未满足",
+            "blocked": "受阻",
+        }
         out: List[Dict[str, Any]] = []
+        current_turn = int(getattr(self.state, "turn", 0) or 0)
         for row in rows:
             item = dict(row)
             last_delta: Dict[str, Any] = {}
@@ -1236,11 +1253,28 @@ class WebGame:
             item.pop("last_delta", None)
             item.pop("_rn", None)
             item["progress_label"] = f"{int(item.get('score') or 0)}%"
+            status = str(item.get("status") or "").strip()
+            condition_status = str(item.get("condition_status") or "").strip()
+            item["status_label"] = status_labels.get(status, status or "未定")
+            item["condition_label"] = condition_labels.get(condition_status, condition_status or "")
+            try:
+                expires_turn = int(item.get("expires_turn") or 0)
+            except (TypeError, ValueError):
+                expires_turn = 0
+            if expires_turn <= 0:
+                item["due_label"] = ""
+            elif expires_turn <= current_turn:
+                item["due_label"] = f"已到第{expires_turn}月限"
+            else:
+                item["due_label"] = f"余{expires_turn - current_turn}月"
+            blockers = [str(x).strip() for x in (item.get("blockers") or []) if str(x).strip()]
+            item["blocker_summary"] = blockers[0] if blockers else ""
             pending = [
                 cond for cond in (item.get("conditions") or [])
                 if isinstance(cond, dict) and str(cond.get("status") or "pending") != "done"
             ]
             item["pending_conditions"] = pending
+            item["pending_summary"] = str(pending[0].get("description") or "").strip() if pending else ""
             out.append(item)
         return out
 
