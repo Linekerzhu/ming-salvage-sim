@@ -5,6 +5,18 @@ import { Portrait } from "./Portrait";
 import type { ChatContext, ChatMention, ChatMessage, ChatResponse, Suggestion } from "./api";
 
 const EMPTY_LOCAL_MESSAGES: ChatMessage[] = [];
+const BLOCKED_MENTION_TERMS = new Set([
+  "朝廷", "内廷", "外朝", "宫中", "宫里", "厂卫",
+  "内阁", "司礼", "司礼监", "东厂", "锦衣卫", "北镇抚司", "南镇抚司", "镇抚司",
+  "吏部", "户部", "礼部", "兵部", "刑部", "工部", "都察院", "翰林院", "詹事府",
+  "大理寺", "太常寺", "光禄寺", "内官监", "御马监", "内书堂", "文书房", "南镇抚司",
+  "尚书", "侍郎", "大学士", "掌印太监", "秉笔太监", "司礼监掌印", "司礼监秉笔",
+]);
+const ORG_MENTION_TOKENS = [
+  "司礼监", "东厂", "锦衣卫", "镇抚司", "内阁", "都察院", "翰林院", "詹事府",
+  "大理寺", "太常寺", "光禄寺", "内官监", "御马监", "内书堂", "文书房", "南京",
+];
+const SURNAME_TITLE_SUFFIXES = ["尚书", "侍郎", "掌印", "秉笔", "阁老", "厂臣", "都督", "指挥", "公公", "伴伴"];
 
 function cleanDisplayText(raw: string): string {
   return String(raw || "")
@@ -25,6 +37,7 @@ function mentionTerms(mentions?: ChatMention[]): Array<{ name: string; term: str
     for (const rawTerm of [name, ...((mention.terms || []) as string[])]) {
       const term = String(rawTerm || "").trim();
       if (term.length < 2) continue;
+      if (term !== name && isBlockedMentionTerm(term, name)) continue;
       const key = `${name}:${term}`;
       if (seen.has(key)) continue;
       seen.add(key);
@@ -33,6 +46,15 @@ function mentionTerms(mentions?: ChatMention[]): Array<{ name: string; term: str
   }
   terms.sort((a, b) => b.term.length - a.term.length);
   return terms;
+}
+
+function isSurnameTitleAlias(term: string, name: string) {
+  return Boolean(name && term.startsWith(name.slice(0, 1)) && term.length <= 4 && SURNAME_TITLE_SUFFIXES.some((suffix) => term.endsWith(suffix)));
+}
+
+function isBlockedMentionTerm(term: string, name: string) {
+  if (BLOCKED_MENTION_TERMS.has(term)) return true;
+  return ORG_MENTION_TOKENS.some((token) => term.includes(token)) && !isSurnameTitleAlias(term, name);
 }
 
 function renderMentionedText(

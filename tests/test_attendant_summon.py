@@ -273,6 +273,84 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_stale_recruitment_pending_does_not_block_named_unlisted_summon(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            unknown = "陈贵"
+            self.assertNotIn(unknown, game.content.characters)
+            game._store_pending_dialogue_action(attendant, {"type": "recruitment", "kind": "eunuch"})
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                f"奴婢留心到锦衣卫南镇抚司那边一个叫**{unknown}**的试百户，武艺扎实，未必不肯近御前。",
+            )
+
+            events = list(game.chat_stream(attendant, f"{unknown}？我要找他聊聊"))
+
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], unknown)
+            self.assertEqual(payload["registered_minister"], unknown)
+            self.assertFalse(game._load_pending_dialogue_action(attendant))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_eunuch_can_handle_named_summon_even_when_not_current_attendant(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            from ming_sim.eunuch import set_attending_eunuch
+            attendant = "王承恩"
+            unknown = "陈贵"
+            switched = set_attending_eunuch(game.db, "曹化淳")
+            self.assertTrue(switched["ok"])
+            self.assertNotEqual(game.db.kv_get("upgrade.attending_eunuch"), attendant)
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                f"奴婢留心到锦衣卫南镇抚司那边一个叫**{unknown}**的试百户，武艺扎实。",
+            )
+
+            events = list(game.chat_stream(attendant, f"叫{unknown}来见"))
+
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], unknown)
+            self.assertEqual(payload["registered_minister"], unknown)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_chat_mentions_strip_organization_title_aliases(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            character = game.content.characters["王承恩"]
+            character.aliases = list(character.aliases or []) + ["司礼监", "司礼监掌印", "王掌印"]
+
+            org_mentions = game._chat_message_mentions("司礼监掌印今日递文，司礼监另有旧案。")
+            self.assertEqual(org_mentions, [])
+
+            mixed = game._chat_message_mentions("司礼监掌印今日递文，王承恩在旁候旨。")
+            terms = {term for item in mixed for term in item["terms"]}
+            self.assertIn("王承恩", terms)
+            self.assertNotIn("司礼监", terms)
+            self.assertNotIn("司礼监掌印", terms)
+
+            personal = game._chat_message_mentions("王掌印说司礼监今日有事。")
+            personal_terms = {term for item in personal for term in item["terms"]}
+            self.assertIn("王掌印", personal_terms)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_palace_nickname_unlisted_person_is_recorded_as_dialogue_mention(self):
         game = web_app.WebGame(fresh=True)
         try:

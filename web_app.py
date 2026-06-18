@@ -592,9 +592,10 @@ class WebGame:
         "朝廷", "内廷", "外朝", "宫中", "宫里", "厂卫",
         "内阁", "司礼", "司礼监", "东厂", "锦衣卫", "北镇抚司", "南镇抚司", "镇抚司",
         "吏部", "户部", "礼部", "兵部", "刑部", "工部", "都察院", "翰林院", "詹事府",
-        "大理寺", "太常寺", "光禄寺", "内官监", "御马监", "内书堂", "文书房",
+        "大理寺", "太常寺", "光禄寺", "内官监", "御马监", "内书堂", "文书房", "南镇抚司",
         "南户部", "南京户部", "南京兵部", "南京礼部", "南京吏部", "南京工部", "南京刑部",
         "尚书", "侍郎", "大学士", "掌印太监", "秉笔太监", "都指挥使", "内官", "内侍", "太监",
+        "司礼监掌印", "司礼监秉笔", "锦衣卫千户", "锦衣卫百户", "南镇抚司试百户",
     }
     _CHAT_MENTION_ORG_TOKENS = (
         "司礼监", "东厂", "锦衣卫", "镇抚司", "内阁", "都察院", "翰林院", "詹事府",
@@ -2997,18 +2998,14 @@ class WebGame:
         without emitting a tool call.
         """
 
-        try:
-            from ming_sim.eunuch import get_attending_eunuch
-            if minister_name != get_attending_eunuch(self.db):
-                return {}
-        except Exception:
+        current = self._summon_handler_character(minister_name)
+        if current is None:
             return {}
         raw = str(text or "").strip()
         if not raw:
             return {}
         if not re.search(r"(召|传|宣|请|唤|叫|找|寻).{0,12}(来|入|觐|见|聊|谈|奏对|问对|进殿|入殿)", raw):
             return {}
-        current = self.session._character(minister_name)
         candidates: List[Character] = []
         for character in self.session.content.characters.values():
             if character.name == minister_name:
@@ -3025,6 +3022,7 @@ class WebGame:
                 candidates.append(target)
         if candidates:
             candidates.sort(key=lambda c: len(c.name), reverse=True)
+            self._clear_pending_dialogue_action(minister_name)
             return {"name": candidates[0].name, "generated": False}
         generated = self._materialize_dialogue_mention_from_text(minister_name, raw)
         if not generated:
@@ -3036,6 +3034,7 @@ class WebGame:
         ok, _reason = self.session.can_summon(target)
         if not ok:
             return {}
+        self._clear_pending_dialogue_action(minister_name)
         return {"name": target.name, "generated": True}
 
     def _attendant_summon_answer(self, target_name: str, generated: bool = False) -> str:
@@ -3103,21 +3102,76 @@ class WebGame:
             return {"type": "recruitment", "kind": "recommend"}
         return {}
 
+    def _summon_handler_character(self, minister_name: str) -> Optional[Character]:
+        """Return a character allowed to carry direct summon commands.
+
+        The appointed attendant is the normal path, but a player may still be
+        speaking to another eunuch-like courtier in the attendant hub. Those
+        characters should be able to fetch someone instead of merely roleplaying
+        compliance and leaving the UI on the wrong speaker.
+        """
+        clean = str(minister_name or "").strip()
+        if not clean:
+            return None
+        try:
+            from ming_sim.eunuch import get_attending_eunuch
+            if clean == get_attending_eunuch(self.db):
+                return self.session._character(clean)
+        except Exception:
+            pass
+        try:
+            character = self.session._character(clean)
+        except Exception:
+            return None
+        try:
+            office, office_type, _faction = self._current_office_identity(character)
+        except Exception:
+            office, office_type = character.office, character.office_type
+        try:
+            from ming_sim.eunuch import is_eunuch_like
+            if is_eunuch_like(office, office_type):
+                return character
+        except Exception:
+            pass
+        if is_eunuch_office(office, office_type):
+            return character
+        return None
+
     def _is_surname_title_alias(self, alias: str, character: Character) -> bool:
         name = str(getattr(character, "name", "") or "")
         if not name or not alias.startswith(name[:1]) or len(alias) > 4:
             return False
         return any(alias.endswith(suffix) for suffix in self._CHAT_MENTION_SURNAME_TITLE_SUFFIXES)
 
+    def _raw_character_aliases(self, character: Character) -> List[str]:
+        raw_aliases = getattr(character, "aliases", []) or []
+        if isinstance(raw_aliases, str):
+            try:
+                parsed = json.loads(raw_aliases)
+            except (TypeError, ValueError):
+                parsed = re.split(r"[，,、\s]+", raw_aliases)
+            raw_aliases = parsed
+        if not isinstance(raw_aliases, list):
+            return []
+        return [str(term or "").strip() for term in raw_aliases if str(term or "").strip()]
+
+    def _is_blocked_chat_mention_term(self, term: str, character: Character) -> bool:
+        clean = str(term or "").strip()
+        if not clean:
+            return True
+        if clean in self._CHAT_MENTION_BLOCKED_ALIASES:
+            return True
+        has_org_token = any(token in clean for token in self._CHAT_MENTION_ORG_TOKENS)
+        if has_org_token and not self._is_surname_title_alias(clean, character):
+            return True
+        return False
+
     def _linkable_character_aliases(self, character: Character) -> List[str]:
         aliases: List[str] = []
-        for term in getattr(character, "aliases", []) or []:
-            clean = str(term or "").strip()
+        for clean in self._raw_character_aliases(character):
             if len(clean) < 2 or clean == getattr(character, "name", ""):
                 continue
-            if clean in self._CHAT_MENTION_BLOCKED_ALIASES:
-                continue
-            if any(token in clean for token in self._CHAT_MENTION_ORG_TOKENS) and not self._is_surname_title_alias(clean, character):
+            if self._is_blocked_chat_mention_term(clean, character):
                 continue
             if clean not in aliases:
                 aliases.append(clean)
@@ -3145,6 +3199,8 @@ class WebGame:
             terms = []
             for term in [name, *self._linkable_character_aliases(character)]:
                 clean = str(term or "").strip()
+                if clean != name and self._is_blocked_chat_mention_term(clean, character):
+                    continue
                 if len(clean) >= 2 and clean in raw and clean not in terms:
                     terms.append(clean)
             if not terms:
@@ -3247,7 +3303,10 @@ class WebGame:
             r"([\u4e00-\u9fff]{2,4})的(?:试百户|百户|千户|游击|把总|内侍|太监|小火者|火者|书办|幕客|胥吏|乡绅|儒生|盐商|粮长)",
         ]
         if include_command:
-            patterns.append(r"(?:找|寻|召|传|宣|请|唤|叫)([\u4e00-\u9fff]{2,4})(?:来|入|见|觐|聊|谈|奏对|问对|进殿|入殿)?")
+            patterns.extend([
+                r"^([\u4e00-\u9fff]{2,4})[？?，,、\s]*(?:朕要|我要|想要|要)?(?:找|寻|召|传|宣|请|唤|叫).{0,8}(?:来|入|见|觐|聊|谈|奏对|问对|进殿|入殿)",
+                r"(?:找|寻|召|传|宣|请|唤|叫)([\u4e00-\u9fff]{2,4})(?:来|入|见|觐|聊|谈|奏对|问对|进殿|入殿)",
+            ])
         for pattern in patterns:
             for candidate in re.findall(pattern, scan):
                 add(str(candidate))
@@ -3313,10 +3372,20 @@ class WebGame:
             referenced = self._referenced_unknown_dialogue_name(minister_name, raw, stored)
             candidates = [referenced] if referenced else []
         if not candidates:
-            return None
+            direct_names = self._extract_unknown_person_mentions(raw, include_command=True)
+            candidates = [name for name in direct_names if name not in self.content.characters]
+            if not candidates:
+                return None
         candidates.sort(key=len, reverse=True)
         name = candidates[0]
         source = stored.get(name, {})
+        if not source:
+            source = {
+                "name": name,
+                "source_minister": minister_name,
+                "first_seen_turn": int(self.state.turn),
+                "excerpt": raw[:160],
+            }
         context = f"{source.get('excerpt') or ''} {raw}"
         character = self._generate_dialogue_character(name, minister_name, context, source)
         added = self._add_runtime_character(character, "对白线索补档")
