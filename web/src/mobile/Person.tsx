@@ -70,9 +70,15 @@ function EffectChips({ items, limit = 6 }: { items?: ImpactEffect[]; limit?: num
 }
 
 function tieSignature(court: CourtPayload): string {
-  const allies = (court.allies || []).map((t) => `${t.name}:${t.opinion}:${t.basis}`).join("|");
-  const rivals = (court.rivals || []).map((t) => `${t.name}:${t.opinion}:${t.basis}`).join("|");
+  const allies = (court.allies || []).map((t) => `${t.name}:${t.opinion}:${t.basis}:${t.strength_label || ""}:${t.play_hint || ""}`).join("|");
+  const rivals = (court.rivals || []).map((t) => `${t.name}:${t.opinion}:${t.basis}:${t.strength_label || ""}:${t.play_hint || ""}`).join("|");
   return `${allies}::${rivals}`;
+}
+
+function tieScore(t: { opinion?: number; strength_label?: string }): string {
+  if (t.strength_label) return t.strength_label;
+  const value = Number(t.opinion || 0);
+  return value >= 0 ? `亲${value}` : `怨${Math.abs(value)}`;
 }
 
 function shortText(value: unknown): string {
@@ -316,14 +322,18 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
                 <button key={`a-${t.name}`} className="m-tie is-ally" onClick={() => openPerson(t.name)}>
                   <Portrait name={t.name} size={26} interactive={false} />
                   <span className="m-tie-name">{t.name}</span>
+                  <span className="m-tie-score">{tieScore(t)}</span>
                   <span className="m-tie-basis">{t.basis}</span>
+                  {t.play_hint && <span className="m-tie-hint">{t.play_hint}</span>}
                 </button>
               ))}
               {court!.rivals.map((t) => (
                 <button key={`r-${t.name}`} className="m-tie is-rival" onClick={() => openPerson(t.name)}>
                   <Portrait name={t.name} size={26} interactive={false} />
                   <span className="m-tie-name">{t.name}</span>
+                  <span className="m-tie-score">{tieScore(t)}</span>
                   <span className="m-tie-basis">{t.basis}</span>
+                  {t.play_hint && <span className="m-tie-hint">{t.play_hint}</span>}
                 </button>
               ))}
             </div>

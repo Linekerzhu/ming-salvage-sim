@@ -105,6 +105,52 @@ def adjust_opinion(db: GameDB, a: str, b: str, delta: int, basis: str = "", *, d
     return new
 
 
+def _relation_strength_label(opinion: int) -> str:
+    value = abs(int(opinion or 0))
+    if int(opinion or 0) >= 0:
+        if value >= 80:
+            return "死党"
+        if value >= 60:
+            return "深援"
+        if value >= 40:
+            return "可借力"
+        return "浅交"
+    if value >= 80:
+        return "死敌"
+    if value >= 60:
+        return "深怨"
+    if value >= 40:
+        return "敌意显"
+    return "浅怨"
+
+
+def _relation_play_hint(opinion: int) -> str:
+    value = int(opinion or 0)
+    if value >= 60:
+        return "可请其担保/荐人，但会坐实党援。"
+    if value >= 40:
+        return "可借力试差，先要连坐担保。"
+    if value >= 0:
+        return "可先探口风，不宜径托大事。"
+    hurt = abs(value)
+    if hurt >= 60:
+        return "可召双方共办/调停，偏袒会结怨。"
+    if hurt >= 40:
+        return "可借其制衡，也可设小差调停消怨。"
+    return "可先问旧因，留调停余地。"
+
+
+def _relation_payload(row) -> Dict[str, object]:
+    opinion = int(row["opinion"])
+    return {
+        "name": str(row["name"]),
+        "opinion": opinion,
+        "basis": str(row["basis"]),
+        "strength_label": _relation_strength_label(opinion),
+        "play_hint": _relation_play_hint(opinion),
+    }
+
+
 def allies_of(db: GameDB, name: str, limit: int = 4, threshold: int = 18) -> List[Dict[str, object]]:
     rows = db.conn.execute(
         "SELECT r.b_name AS name, r.opinion, r.basis FROM relationships r "
@@ -113,7 +159,7 @@ def allies_of(db: GameDB, name: str, limit: int = 4, threshold: int = 18) -> Lis
         "ORDER BY r.opinion DESC LIMIT ?",
         (name, int(threshold), int(limit)),
     ).fetchall()
-    return [{"name": str(r["name"]), "opinion": int(r["opinion"]), "basis": str(r["basis"])} for r in rows]
+    return [_relation_payload(r) for r in rows]
 
 
 def rivals_of(db: GameDB, name: str, limit: int = 4, threshold: int = -18) -> List[Dict[str, object]]:
@@ -124,7 +170,7 @@ def rivals_of(db: GameDB, name: str, limit: int = 4, threshold: int = -18) -> Li
         "ORDER BY r.opinion ASC LIMIT ?",
         (name, int(threshold), int(limit)),
     ).fetchall()
-    return [{"name": str(r["name"]), "opinion": int(r["opinion"]), "basis": str(r["basis"])} for r in rows]
+    return [_relation_payload(r) for r in rows]
 
 
 # ── 个人私心推导 ──────────────────────────────────────────────────────────────

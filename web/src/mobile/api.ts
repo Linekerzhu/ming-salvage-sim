@@ -272,7 +272,7 @@ export const loadPlaystyleBrief = (limit = 5, kind = ""): Promise<PlaystyleBrief
 };
 
 // 活的宫廷：某官员的私心 + 党羽 + 政敌（双向好感网络）。
-export type CourtTie = { name: string; opinion: number; basis: string };
+export type CourtTie = { name: string; opinion: number; basis: string; strength_label?: string; play_hint?: string };
 export type CourtTrait = { key: string; valence: number; desc: string };
 export type CourtCastration = { bao_status: string; bao_label: string; forced: boolean; servility: number };
 export type CourtSecret = { kind: string; label: string; detail: string; severity: number; used: boolean };

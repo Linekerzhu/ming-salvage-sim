@@ -192,6 +192,29 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_unknown_dialogue_mentions_ignore_office_names(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            unknown = next(name for name in ("陈小贵", "沈小贵", "陆小贵") if name not in game.content.characters)
+
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                f"南镇抚司有个锦衣卫试百户，叫{unknown}，胆气尚可，可先带到偏殿问话。",
+            )
+
+            stored = game._load_unknown_dialogue_mentions()
+            self.assertIn(unknown, stored)
+            self.assertNotIn("南镇抚司", stored)
+            self.assertNotIn("锦衣卫", stored)
+            self.assertNotIn("试百户", stored)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_single_dialogue_mentioned_person_can_be_summoned_by_pronoun(self):
         game = web_app.WebGame(fresh=True)
         try:

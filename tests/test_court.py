@@ -88,6 +88,10 @@ class OpinionTests(unittest.TestCase):
             rivals = court.rivals_of(db, hero, limit=5)
             self.assertEqual([a["name"] for a in allies][:2], [names[1], names[2]])
             self.assertEqual(rivals[0]["name"], names[3])
+            self.assertEqual(allies[0]["strength_label"], "深援")
+            self.assertIn("担保", str(allies[0]["play_hint"]))
+            self.assertEqual(rivals[0]["strength_label"], "敌意显")
+            self.assertIn("调停", str(rivals[0]["play_hint"]))
 
 
 class AgendaTests(unittest.TestCase):

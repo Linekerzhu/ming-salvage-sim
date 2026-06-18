@@ -46,6 +46,7 @@ function mentionTerms(mentions?: ChatMention[]): Array<{ name: string; term: str
     if (mention?.kind && mention.kind !== "character") continue;
     const name = String(mention?.name || "").trim();
     if (!name) continue;
+    if (isBlockedMentionName(name)) continue;
     for (const rawTerm of [name, ...((mention.terms || []) as string[])]) {
       const term = String(rawTerm || "").trim();
       if (term.length < 2) continue;
@@ -58,6 +59,13 @@ function mentionTerms(mentions?: ChatMention[]): Array<{ name: string; term: str
   }
   terms.sort((a, b) => b.term.length - a.term.length);
   return terms;
+}
+
+function isBlockedMentionName(name: string) {
+  if (BLOCKED_MENTION_TERMS.has(name)) return true;
+  if (ORG_MENTION_TOKENS.some((token) => name.includes(token))) return true;
+  if (name.length >= 2 && name.length <= 8 && ORG_MENTION_SUFFIXES.some((suffix) => name.endsWith(suffix))) return true;
+  return false;
 }
 
 function isSurnameTitleAlias(term: string, name: string) {
