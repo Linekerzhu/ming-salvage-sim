@@ -601,8 +601,27 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-audience-context-act.tone-warn {
   color: #f3d391; background: rgba(181,134,58,.24); border-color: rgba(181,134,58,.52);
 }
+.m-audience-brief {
+  flex: 0 0 auto; display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 7px;
+  min-height: 32px; margin: 4px var(--pad) 0; padding: 4px 8px 4px 9px;
+  border: 1px solid rgba(181,134,58,.24); border-left: 3px solid var(--gold-deep); border-radius: 8px;
+  background: rgba(20,15,9,.5); text-align: left; box-shadow: 0 2px 10px rgba(0,0,0,.14);
+}
+.m-audience-brief span { color: var(--gold); font-size: .76rem; font-weight: 900; white-space: nowrap; }
+.m-audience-brief small { color: #9c8a64; font-size: .66rem; font-weight: 800; white-space: nowrap; }
+.m-audience-brief b {
+  min-width: 0; color: #cbb98d; font-size: .72rem; font-weight: 800;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.m-audience-brief em {
+  color: #8f805f; font-style: normal; border: 1px solid rgba(181,134,58,.24);
+  border-radius: 6px; padding: 1px 5px; font-size: .64rem; font-weight: 900;
+}
+.m-audience-brief.tone-danger { border-color: rgba(158,52,41,.34); border-left-color: var(--cinnabar); background: rgba(76,22,16,.34); }
+.m-audience-brief.tone-warn { border-left-color: #b5863a; background: rgba(72,49,18,.34); }
 
 .m-chat { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.m-chat.is-compact .m-chat-scroll { padding-top: 9px; gap: 8px; }
 .m-chat-scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: var(--pad); display: flex; flex-direction: column; gap: 10px; }
 .m-bubble { max-width: 84%; padding: 9px 13px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
 .m-bubble-who { display: block; font-size: 0.68rem; opacity: .7; margin-bottom: 2px; }
@@ -709,6 +728,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 .m-suggestions-panel { flex: 0 0 auto; margin: 0; padding: 5px var(--pad); border-top: 1px solid rgba(200,162,74,.16); background: rgba(20,15,9,.38); }
+.m-chat.is-compact .m-suggestions-panel { padding-top: 3px; padding-bottom: 3px; }
 .m-suggestions-summary { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 7px; cursor: pointer; list-style: none; min-height: 30px; }
 .m-suggestions-summary::-webkit-details-marker { display: none; }
 .m-suggestions-summary span { color: var(--gold); font-size: .76rem; font-weight: 900; }
@@ -907,7 +927,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   padding: 5px 7px; color: #9c8a64; font-size: .68rem; font-weight: 800;
   border: 1px dashed rgba(181,134,58,.22); border-radius: 7px; background: rgba(0,0,0,.1);
 }
-.m-audience-context-sheet { max-height: min(76dvh, 620px); }
+.m-audience-context-sheet { max-height: min(70dvh, 620px); }
 .m-audience-context-body { padding-top: 8px; }
 .m-audience-context-body .m-audience-dossier-body {
   max-height: none; overflow: visible; padding: 0; border-top: none;
@@ -964,6 +984,15 @@ details[open] > summary .m-disclosure-caret { color: var(--gold); background: rg
     padding-inline: 8px;
     font-size: .74rem;
   }
+  .m-audience-brief {
+    min-height: 29px;
+    margin-top: 3px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+  }
+  .m-audience-brief b {
+    font-size: .7rem;
+  }
   .m-suggestions-panel {
     padding-top: 3px;
     padding-bottom: 3px;
@@ -992,6 +1021,9 @@ details[open] > summary .m-disclosure-caret { color: var(--gold); background: rg
   }
   .m-audience-hook-detail {
     -webkit-line-clamp: 1;
+  }
+  .m-audience-context-sheet {
+    max-height: min(64dvh, 520px);
   }
 }
 

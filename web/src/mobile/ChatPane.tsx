@@ -56,6 +56,8 @@ export function ChatPane({
   onOpenPerson,
   localMessages = EMPTY_LOCAL_MESSAGES,
   leadSuggestions = [],
+  suggestionLimit = 6,
+  compact = false,
   chatContext,
 }: {
   name: string;
@@ -66,6 +68,8 @@ export function ChatPane({
   onOpenPerson?: (name: string) => void;
   localMessages?: ChatMessage[];
   leadSuggestions?: Suggestion[];
+  suggestionLimit?: number;
+  compact?: boolean;
   chatContext?: ChatContext;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -204,11 +208,11 @@ export function ChatPane({
   const visibleSuggestions = [
     ...leadSuggestions,
     ...suggestions.filter((s) => !leadSuggestions.some((lead) => lead.label === s.label || lead.text === s.text)),
-  ].slice(0, 6);
+  ].slice(0, Math.max(0, suggestionLimit));
   const transientMessages = messages.length === 0 ? localMessages : EMPTY_LOCAL_MESSAGES;
 
   return (
-    <div className="m-chat">
+    <div className={`m-chat${compact ? " is-compact" : ""}`}>
       <div className="m-chat-scroll" ref={scrollRef}>
         {messages.length + transientMessages.length === 0 && !streaming && <p className="m-empty">尚未开问。</p>}
         {[...messages, ...transientMessages].map((m, i) => (

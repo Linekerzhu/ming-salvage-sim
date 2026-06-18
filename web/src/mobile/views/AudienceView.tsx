@@ -96,6 +96,7 @@ export function AudienceView({
     const dossierMeta = [activeLead?.meta, audienceGoals.length ? `${audienceGoals.length} 桩旧约` : ""].filter(Boolean).join(" · ");
     const dossierTitle = activeLead?.title || audienceGoals[0]?.title || audienceGoals[0]?.goal_type || "可展开查阅";
     const dossierCount = (activeLead ? 1 : 0) + audienceGoals.length;
+    const localIntro = compactAudienceOpening(activeLead, audienceGoals, audience);
     return (
       <div className="m-audience-full">
         <div className="m-audience-bar">
@@ -111,16 +112,6 @@ export function AudienceView({
           </div>
           <div className="m-audience-acts">
             <button className="m-mini" onClick={() => openPerson(audience)} aria-label={`查看${audience}档案`}>查档</button>
-            {hasDossier && (
-              <button
-                type="button"
-                className={`m-mini m-audience-context-act tone-${dossierTone}`}
-                onClick={() => setDossierOpen(true)}
-                aria-label={`打开奏对情报卷宗：${dossierMeta || dossierTitle}`}
-              >
-                卷宗{dossierCount > 1 ? dossierCount : ""}
-              </button>
-            )}
             {isAttendantAudience ? (
               <button className="m-mini m-mini-complete" onClick={() => onAudienceChange("")}>回侍</button>
             ) : (
@@ -128,6 +119,19 @@ export function AudienceView({
             )}
           </div>
         </div>
+        {hasDossier && (
+          <button
+            type="button"
+            className={`m-audience-brief tone-${dossierTone}`}
+            onClick={() => setDossierOpen(true)}
+            aria-label={`打开奏对情报卷宗：${dossierMeta || dossierTitle}`}
+          >
+            <span>案</span>
+            <small>{dossierCount} 条</small>
+            <b>{dossierMeta ? `${dossierMeta}：${dossierTitle}` : dossierTitle}</b>
+            <em>卷</em>
+          </button>
+        )}
         <ChatPane
           key={isAttendantAudience ? `eunuch-lead:${audience}:${activeLead?.ref_id || ""}` : audience}
           name={audience}
@@ -136,8 +140,10 @@ export function AudienceView({
           onGo={go}
           onWorldChanged={refresh}
           onOpenPerson={openPerson}
-          localMessages={activeLead?.opening ? [{ role: "minister", content: activeLead.opening }] : undefined}
+          localMessages={localIntro ? [{ role: "minister", content: localIntro }] : undefined}
           leadSuggestions={leadSuggestions}
+          suggestionLimit={4}
+          compact
           chatContext={activeLead ? chatContextFromLead(activeLead) : undefined}
         />
         {hasDossier && dossierOpen && (
@@ -431,6 +437,16 @@ function AudienceDealBox({ lead }: { lead: AudienceLead }) {
       ))}
     </div>
   );
+}
+
+function compactAudienceOpening(activeLead: AudienceLead | null, audienceGoals: any[], audience: string): string {
+  if (!activeLead) return "";
+  const title = String(activeLead.title || activeLead.detail || "本次奏对").trim();
+  const meta = String(activeLead.meta || "").trim();
+  const goalCount = audienceGoals.length;
+  const pressure = goalCount ? `另有${goalCount}桩旧约压在案头` : "";
+  const suffix = [meta, pressure].filter(Boolean).join("；");
+  return `${audience}趋入殿中。案由：「${title}」${suffix ? `（${suffix}）` : ""}。`;
 }
 
 function chatContextFromLead(lead: AudienceLead): ChatContext {
