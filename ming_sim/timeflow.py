@@ -654,6 +654,13 @@ def advance_days(db: GameDB, state: GameState, days: int, *,
                     report.events.append(ev)
             except ImportError:
                 pass
+            # 奏对承诺发酵：玩家不追问旧约，NPC 会记账、疑惧或怨望。
+            try:
+                from ming_sim.obligations import obligation_pressure_tick
+                for ev in obligation_pressure_tick(db, state, new_day):
+                    report.events.append(ev)
+            except ImportError:
+                pass
             reports.append(report)
             advanced += 1
             _month_events_append(db, report.events)
