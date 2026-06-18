@@ -858,6 +858,29 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   padding: 8px 9px 9px; border-top: 1px solid rgba(181,134,58,.18);
 }
 .m-audience-dossier-section + .m-audience-dossier-section { padding-top: 8px; border-top: 1px dashed rgba(181,134,58,.24); }
+.m-audience-dossier-panel {
+  display: block; overflow: hidden; border: 1px solid rgba(181,134,58,.24);
+  border-radius: 9px; background: rgba(0,0,0,.12);
+}
+.m-audience-dossier-panel + .m-audience-dossier-panel { margin-top: 2px; }
+.m-audience-context-summary {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center;
+  gap: 7px; min-height: 36px; padding: 7px 8px; cursor: pointer; list-style: none;
+}
+.m-audience-context-summary::-webkit-details-marker { display: none; }
+.m-audience-context-summary span:first-child {
+  color: var(--gold); font-size: .74rem; font-weight: 900; white-space: nowrap;
+}
+.m-audience-context-summary b {
+  min-width: 0; color: #d6c48f; font-size: .78rem; font-weight: 900;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.m-audience-context-summary small {
+  color: #9c8a64; font-size: .66rem; font-weight: 900; white-space: nowrap;
+}
+.m-audience-context-detail-body {
+  padding: 0 8px 8px; border-top: 1px solid rgba(181,134,58,.14);
+}
 .m-audience-dossier-label { color: #c9b487; font-size: .68rem; font-weight: 900; }
 .m-audience-dossier-title { margin-top: 2px; color: var(--gold); font-size: .84rem; line-height: 1.35; font-weight: 900; overflow-wrap: anywhere; }
 .m-audience-dossier-detail { margin-top: 3px; color: #d6c8aa; font-size: .78rem; line-height: 1.45; overflow-wrap: anywhere; }
@@ -941,7 +964,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   padding: 5px 7px; color: #9c8a64; font-size: .68rem; font-weight: 800;
   border: 1px dashed rgba(181,134,58,.22); border-radius: 7px; background: rgba(0,0,0,.1);
 }
-.m-audience-context-sheet { max-height: min(70dvh, 620px); }
+.m-audience-context-backdrop { background: rgba(0,0,0,.46); }
+.m-audience-context-sheet { max-height: min(56dvh, 520px); }
 .m-audience-context-body { padding-top: 8px; }
 .m-audience-context-body .m-audience-dossier-body {
   max-height: none; overflow: visible; padding: 0; border-top: none;
@@ -949,6 +973,24 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .m-audience-context-body .m-audience-dossier-section + .m-audience-dossier-section {
   padding-top: 10px; border-top-color: rgba(74,45,20,.15);
+}
+.m-audience-context-body .m-audience-dossier-panel {
+  background: rgba(181,134,58,.055); border-color: rgba(181,134,58,.18);
+}
+.m-audience-context-body .m-audience-dossier-panel[open] {
+  background: rgba(181,134,58,.075);
+}
+.m-audience-context-body .m-audience-context-summary {
+  min-height: 38px; padding: 8px 9px;
+}
+.m-audience-context-body .m-audience-context-summary span:first-child {
+  color: var(--gold-deep);
+}
+.m-audience-context-body .m-audience-context-summary b {
+  color: var(--ink); font-size: .84rem;
+}
+.m-audience-context-body .m-audience-context-detail-body {
+  border-top-color: rgba(74,45,20,.12); padding: 0 9px 9px;
 }
 .m-audience-context-body .m-audience-dossier-label { color: var(--gold-deep); }
 .m-audience-context-body .m-audience-dossier-title { color: var(--ink); font-size: .9rem; }
@@ -1038,7 +1080,26 @@ details[open] > summary .m-disclosure-caret { color: var(--gold); background: rg
     -webkit-line-clamp: 1;
   }
   .m-audience-context-sheet {
-    max-height: min(64dvh, 520px);
+    max-height: min(46dvh, 420px);
+  }
+  .m-audience-context-backdrop {
+    background: rgba(0,0,0,.34);
+  }
+  .m-audience-context-body .m-audience-context-summary {
+    min-height: 34px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  .m-audience-context-body .m-audience-context-summary b,
+  .m-audience-context-body .m-audience-dossier-title {
+    font-size: .8rem;
+  }
+  .m-audience-context-body .m-audience-dossier-detail {
+    font-size: .78rem;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .m-audience-context-body .m-audience-goal-note {
+    -webkit-line-clamp: 2;
   }
 }
 
