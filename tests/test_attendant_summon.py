@@ -1154,6 +1154,47 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_dialogue_lore_maintenance_surfaces_as_chat_effect(self):
+        from ming_sim import eunuch_lore as el
+
+        game = web_app.WebGame(fresh=True)
+        try:
+            name = "韩爌"
+            el.record_castration(game.db, name, forced=True, day=0)
+
+            events = list(game.chat_stream(
+                name,
+                "以后韩爌的宝用黑漆楠木匣，油炸封蜡，约二两八钱，一大一小；"
+                "近来漏尿尿闭，嗓音尖薄，幻肢痛，钥匙贴身。请先记入旧档。",
+            ))
+
+            payload = events[-1]["payload"]
+            effect = payload["dialogue_effect"]
+            self.assertEqual(effect["title"], "净身旧档入案")
+            self.assertIn("韩爌旧档更新", effect["message"])
+            labels = {str(item["label"]) for item in effect["effects"]}
+            self.assertTrue(any("宝匣：黑漆楠木匣" in label for label in labels))
+            self.assertTrue(any("宝存：油炸封蜡" in label for label in labels))
+            self.assertTrue(any("尿路：" in label and "尿闭" in label for label in labels))
+            self.assertTrue(any("新增特质" in label and "尿路旧患" in label for label in labels))
+            self.assertTrue(payload["history"][-1].get("stage_directions"))
+            stage_text = " ".join(payload["history"][-1]["stage_directions"])
+            self.assertTrue("钥匙" in stage_text or "夹腰" in stage_text)
+
+            castration = el.public_lore_payload(game.db, name)
+            self.assertIsNotNone(castration)
+            self.assertEqual(castration["container_label"], "黑漆楠木匣")
+            self.assertEqual(castration["preservation_label"], "油炸封蜡")
+            self.assertIn("漏尿", castration["urine_label"])
+            self.assertIn("嗓音尖薄", castration["voice_body_label"])
+            self.assertIn("幻肢痛", castration["trauma_label"])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_eunuch_care_requires_confirmation_and_rolls_back(self):
         game = web_app.WebGame(fresh=True)
         try:

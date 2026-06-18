@@ -805,6 +805,7 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
         (r"盗汗|夜半", "阴雨旧创牵痛，夜半盗汗"),
     ])
     _set_if_match(updates, raw, "urinary_aftereffect", [
+        (r"漏尿.{0,8}尿闭|尿闭.{0,8}漏尿", "漏尿兼尿闭，夜间须垫旧布，冬日易闭"),
         (r"漏尿", "漏尿，夜间须垫旧布"),
         (r"尿闭|尿线|小便不通", "尿线细弱，冬日易尿闭"),
         (r"结石|石淋", "石淋反复，痛时额汗如豆"),
