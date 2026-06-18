@@ -672,6 +672,11 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("进度 91%", labels)
             self.assertIn("强度 92", labels)
             self.assertIn("自肥敛财", labels)
+            self.assertIn("查账自证", labels)
+            self.assertIn("肥缺续命", labels)
+            self.assertIn("查账自证", str(agenda["meta"]))
+            self.assertIn("求暂缓深查", str(agenda["detail"]))
+            self.assertIn("逼急可能毁账串供", str(agenda["detail"]))
 
     def test_agenda_chat_context_brief_rebuilds_from_live_db(self):
         with TemporaryDirectory() as tmp:
@@ -695,6 +700,10 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("强度 92", brief)
             self.assertIn("御前信任", brief)
             self.assertIn("钱粮/请托风闻", brief)
+            self.assertIn("交易画像", brief)
+            self.assertIn("查账自证", brief)
+            self.assertIn("接受代价", brief)
+            self.assertIn("拒绝风险", brief)
             self.assertIn("首次追问不直接落库", brief)
 
     def test_rivalry_card_surfaces_opinion_and_basis(self):

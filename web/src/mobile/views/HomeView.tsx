@@ -469,7 +469,7 @@ function audienceOpeningFromBrief(card: PlaystyleBriefCard, actor = card.actor |
       : `${speaker}趋入候旨，愿受陛下试用，但也请陛下明察自己从何处来、受谁举荐。`;
   }
   if (card.kind === "agenda") {
-    return `${speaker}被召入殿，先行自辩：外间说近来有「${topic}」之图，不敢全认，也不敢全辩，请陛下问。`;
+    return agendaOpening(card, speaker, topic, counterpart);
   }
   if (card.kind === "hook") {
     return `${speaker}入殿时明显收敛，知道陛下今日不是寻常问策；若有风闻落到自己身上，愿听陛下发问。`;
@@ -497,6 +497,85 @@ function audienceOpeningFromBrief(card: PlaystyleBriefCard, actor = card.actor |
     return `${speaker}捧着复命入殿：旨意办到几分，奏报里哪些是真功、哪些只是口径，今日不敢含糊。`;
   }
   return `${speaker}入殿候问，知道陛下召见不是闲谈。此事利害，请陛下发问，愿照实奏来。`;
+}
+
+function agendaCue(card: PlaystyleBriefCard): string {
+  const effectLabels = (card.effects || []).map((it) => String(it.label || "")).join(" ");
+  return `${card.title || ""} ${card.detail || ""} ${card.meta || ""} ${effectLabels}`;
+}
+
+function agendaOpening(card: PlaystyleBriefCard, speaker: string, topic: string, counterpart: string): string {
+  const cue = agendaCue(card);
+  if (cue.includes("自肥") || cue.includes("查账") || cue.includes("请托") || cue.includes("肥缺")) {
+    return `${speaker}被召入殿，先不敢谈功劳，只说账目与请托多是外间讹传；若陛下要查，愿拿一件差使自证清白。`;
+  }
+  if (cue.includes("护党") || cue.includes("植党") || cue.includes("门生") || cue.includes("故旧")) {
+    return `${speaker}趋入先替同党分辩：门生故旧未必都是私援。只是官缺、人情和担保三样，今日恐怕都绕不开。`;
+  }
+  if (cue.includes("拥兵") || cue.includes("军镇") || cue.includes("兵册") || cue.includes("欠饷")) {
+    return `${speaker}跪奏军中事：兵册、欠饷与亲信将领都可交代，但若陛下压得太急，军心未必受得住。`;
+  }
+  if (cue.includes("避祸") || cue.includes("旧案") || cue.includes("洗白")) {
+    return `${speaker}伏地请罪，称旧案还有可辩之处；若陛下给一条活路，愿拿新功、同谋或把柄来换。`;
+  }
+  if (cue.includes("复仇") || cue.includes("弹劾") || cue.includes("政敌")) {
+    return `${speaker}入殿便压着火气，说弹劾${counterpart}是为公义，不是私怨；但证据要如何呈、刀要落到哪里，须听陛下裁断。`;
+  }
+  if (cue.includes("进取") || cue.includes("求名位") || cue.includes("大差")) {
+    return `${speaker}被召入殿，先请陛下给一件能见真章的差使；只是功成之后的名位和避嫌规矩，也须今日说清。`;
+  }
+  return `${speaker}被召入殿，先行自辩：外间说近来有「${topic}」之图，不敢全认，也不敢全辩，请陛下问。`;
+}
+
+function agendaPrompts(card: PlaystyleBriefCard, topic: string, counterpart: string): Suggestion[] {
+  const cue = agendaCue(card);
+  if (cue.includes("自肥") || cue.includes("查账") || cue.includes("请托") || cue.includes("肥缺")) {
+    return [
+      { label: "查账自证", text: `朕闻你近来有「${topic}」之势。今日先不问忠心，先问账目：请托、出入、经手人，哪一项能立刻交出来？`, prefix: true },
+      { label: "限期补亏", text: `若朕暂不深究，你拿几日、多少证据、哪笔亏空来换？空口清白，朕不收。`, prefix: true },
+      { label: "断肥缺", text: `你若还想任事，就先把肥缺和人情线切开。哪些人替你关说，哪些人该一并查？`, prefix: true },
+    ];
+  }
+  if (cue.includes("护党") || cue.includes("植党") || cue.includes("门生") || cue.includes("故旧")) {
+    return [
+      { label: "问担保", text: `你护门生故旧，朕可以听。但你愿拿什么官声、差使和期限替他们连坐担保？`, prefix: true },
+      { label: "命共办", text: `若朕令你与敌派共办一事，既验才干也验私心，你肯不肯？条件是什么？`, prefix: true },
+      { label: "断官缺", text: `官缺不是党中私物。你今日说清楚：哪些人可用，哪些只是借你的门路求官？`, prefix: true },
+    ];
+  }
+  if (cue.includes("拥兵") || cue.includes("军镇") || cue.includes("兵册") || cue.includes("欠饷")) {
+    return [
+      { label: "索兵册", text: `朕今日要看兵册、饷册和亲信将领名单。哪些听朝廷，哪些只听你？`, prefix: true },
+      { label: "遣监军", text: `若朕遣监军、换亲信、补欠饷三策并行，哪一策最稳，哪一策会激变？`, prefix: true },
+      { label: "限期交权", text: `军心可安，但兵权不可私握。你几日内能交出什么权柄，换朕暂不动你？`, prefix: true },
+    ];
+  }
+  if (cue.includes("避祸") || cue.includes("旧案") || cue.includes("洗白")) {
+    return [
+      { label: "旧案换功", text: `旧案朕可以再听一次，但你须拿新功来换。几日内能办成什么，谁替你担保？`, prefix: true },
+      { label: "交出同谋", text: `要台阶，就交把柄。旧案里谁同谋、谁受益、谁如今还能查？`, prefix: true },
+      { label: "不给空赦", text: `朕不会白赦旧过。若不给你台阶，你会转投谁、牵连谁？照实说。`, prefix: true },
+    ];
+  }
+  if (cue.includes("复仇") || cue.includes("弹劾") || cue.includes("政敌")) {
+    return [
+      { label: "先要证据", text: `你要劾${counterpart}，先把证据、人证、私怨三样分开。哪一样能经得住廷议？`, prefix: true },
+      { label: "压成共办", text: `若朕不准你立刻动刀，而令你同${counterpart}共办一差，你肯不肯？你怕什么？`, prefix: true },
+      { label: "问借刀价", text: `朕若准你这一刀，朝中谁会得利，谁会反扑？你拿什么替朕压住后患？`, prefix: true },
+    ];
+  }
+  if (cue.includes("进取") || cue.includes("求名位") || cue.includes("大差")) {
+    return [
+      { label: "许难差", text: `你求用，朕可给难差，不先给名位。你要几日办成，拿什么证据回奏？`, prefix: true },
+      { label: "功后再迁", text: `名位可谈，但须功成之后。若办不成，你愿降什么责，断哪些私援？`, prefix: true },
+      { label: "查党援", text: `你声望渐起，朕要知道是谁在推你。党援、人情、门路，今日说清楚。`, prefix: true },
+    ];
+  }
+  return [
+    { label: "追问私心", text: `朕闻你近来有「${topic}」之势。你自己说，是为国任事，还是另有所图？`, prefix: true },
+    { label: "令其交账", text: `若朕现在用你办事，你准备如何避嫌、如何交账？`, prefix: true },
+    { label: "问党援钱粮", text: `此事牵动谁的党援和钱粮？把实话说清楚。`, prefix: true },
+  ];
 }
 
 function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", target = card.target || "他人"): Suggestion[] {
@@ -559,11 +638,7 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
     ];
   }
   if (card.kind === "agenda") {
-    return [
-      { label: "追问私心", text: `朕闻你近来有「${topic}」之势。你自己说，是为国任事，还是另有所图？`, prefix: true },
-      { label: "令其交账", text: `若朕现在用你办事，你准备如何避嫌、如何交账？`, prefix: true },
-      { label: "问党援钱粮", text: `此事牵动谁的党援和钱粮？把实话说清楚。`, prefix: true },
-    ];
+    return agendaPrompts(card, topic, counterpart);
   }
   if (card.kind === "trap_remedy") {
     return [

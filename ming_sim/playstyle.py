@@ -89,6 +89,75 @@ _AGENDA_HINTS = {
 }
 
 
+def _agenda_bargain_profile(kind: str, target: str = "") -> Dict[str, str]:
+    """Readable stakes for a private agenda audience.
+
+    The card should feel like a court bargain: what this person wants, what the
+    emperor can demand, and what either answer costs.
+    """
+
+    target_text = str(target or "").strip()
+    revenge_target = target_text or "政敌"
+    profiles: Dict[str, Dict[str, str]] = {
+        "climb": {
+            "ask": "求名位或一件能露脸的大差",
+            "exchange": "先领冷硬难差，功成再迁，并交避嫌账",
+            "cost": "许之可得能臣，却会助长声望与党援",
+            "refusal": "拒之可能转投派系，在外攒名望要价",
+            "risk_label": "求名位",
+            "cost_label": "声望坐大",
+        },
+        "enrich": {
+            "ask": "求暂缓深查，保住肥缺与请托线",
+            "exchange": "查账自证、吐出请托链，限期补亏空",
+            "cost": "许之能换钱粮线索，却等于给贪名官员续命",
+            "refusal": "逼急可能毁账串供，短期更难追赃",
+            "risk_label": "查账自证",
+            "cost_label": "肥缺续命",
+        },
+        "protect": {
+            "ask": "求保门生故旧，替本党争官缺名分",
+            "exchange": "举荐连坐担保，或命其与敌派共办一差",
+            "cost": "许之能借派系办事，也会让党援更固",
+            "refusal": "拒之会激出抱团怨气，暗中梗旨",
+            "risk_label": "植党担保",
+            "cost_label": "党援更固",
+        },
+        "entrench": {
+            "ask": "求饷权、兵册和换将名分",
+            "exchange": "交兵册、受监军、换亲信，限期清欠饷",
+            "cost": "许之可暂稳军心，却让边镇更像私人根基",
+            "refusal": "压得过急可能军中哗动，借欠饷自保",
+            "risk_label": "军镇制衡",
+            "cost_label": "兵权坐大",
+        },
+        "survive": {
+            "ask": "求台阶，求旧案暂不深究",
+            "exchange": "交同谋把柄，领一件见血新功",
+            "cost": "许之能换效忠，但清议会疑皇帝护短",
+            "refusal": "拒之可能破罐破摔，投靠敌派自保",
+            "risk_label": "旧案洗白",
+            "cost_label": "清议疑护短",
+        },
+        "revenge": {
+            "ask": f"求准弹劾，借皇帝清算{revenge_target}",
+            "exchange": f"先交证据，压住私怨，必要时与{revenge_target}共办差",
+            "cost": "许之可借刀整肃，也会点燃朝争旧怨",
+            "refusal": "拒之会转入清议放话，暗中逼宫",
+            "risk_label": "借刀复仇",
+            "cost_label": "朝争点火",
+        },
+    }
+    return profiles.get(kind, {
+        "ask": "求名分、求台阶或求差使",
+        "exchange": "给期限、要证据、设担保，再看能否任用",
+        "cost": "许之有短期收益，也会留下人情账",
+        "refusal": "拒之可能转成怨望或暗中掣肘",
+        "risk_label": "私图交易",
+        "cost_label": "人情留账",
+    })
+
+
 def briefing_payload(
     db: GameDB,
     state: Optional[GameState] = None,
@@ -796,6 +865,7 @@ def agenda_chat_context_brief(
     agenda_target = str(target or row["target_name"] or "").strip()
     if not agenda_target and kind == "revenge":
         agenda_target, _, _ = _worst_rival_of(db, name)
+    profile = _agenda_bargain_profile(kind, agenda_target)
 
     posture = {
         "climb": "此人想求用、求大差、求更高名位；他会把私图包装成替皇帝任事。",
@@ -821,6 +891,9 @@ def agenda_chat_context_brief(
         f"- 私图判断：{hint}",
         f"- 对话底色：{posture}",
         f"- 可用玩法：{bargain}",
+        f"- 交易画像：他最可能求「{profile['ask']}」；皇帝可逼其「{profile['exchange']}」。",
+        f"- 接受代价：{profile['cost']}",
+        f"- 拒绝风险：{profile['refusal']}",
     ]
     if faction and faction not in {"无", "中立"}:
         lines.append(f"- 派系牵连：{name}属{faction}；皇帝若拉拢或压制，可能影响本派满意、热度与党援。")
@@ -2814,12 +2887,16 @@ def _agenda_cards(db: GameDB, cards: List[BriefCard]) -> None:
         progress = int(row["progress"] or 0)
         intensity = int(row["intensity"] or 50)
         label = _AGENDA_LABELS.get(kind, str(row["title"] or "私心将成"))
+        agenda_target = str(row["target_name"] or "")
+        profile = _agenda_bargain_profile(kind, agenda_target)
         prefix = "将成局" if progress >= 85 else "有苗头"
         risky = kind in {"enrich", "protect", "entrench", "revenge"}
         effects = [
             {"kind": "agenda_progress", "label": f"进度 {progress}%", "tone": "bad" if progress >= 85 else "neutral"},
             {"kind": "agenda_intensity", "label": f"强度 {intensity}", "tone": "bad" if intensity >= 75 else "neutral"},
             {"kind": "agenda_kind", "label": label, "tone": "bad" if risky else "neutral"},
+            {"kind": "agenda_bargain", "label": profile["risk_label"], "tone": "warn" if risky else "neutral"},
+            {"kind": "agenda_cost", "label": profile["cost_label"], "tone": "bad" if progress >= 85 else "warn"},
         ]
         if faction and faction not in {"无", "中立"}:
             effects.append({"kind": "faction", "label": faction, "tone": "neutral"})
@@ -2827,14 +2904,18 @@ def _agenda_cards(db: GameDB, cards: List[BriefCard]) -> None:
             _card(
                 kind="agenda",
                 title=f"{name}{prefix}：{label}",
-                detail=f"{office}{name}近来动作渐密。{_AGENDA_HINTS.get(kind, '可召来探口风，再决定拉拢、压制或借力。')}",
+                detail=(
+                    f"{office}{name}近来动作渐密。{_AGENDA_HINTS.get(kind, '可召来探口风，再决定拉拢、压制或借力。')}"
+                    f" 他多半要「{profile['ask']}」；可逼其「{profile['exchange']}」。"
+                    f" 若拒绝，{profile['refusal']}。"
+                ),
                 urgency=progress + intensity // 6,
                 tone="warn" if progress < 85 else "danger",
                 cta="召来问对",
                 tab=_TAB_AUDIENCE,
                 actor=name,
-                target=str(row["target_name"] or ""),
-                meta=f"{progress}%",
+                target=agenda_target,
+                meta=f"{progress}%/{profile['risk_label']}",
                 ref_kind="character",
                 ref_id=name,
                 effects=effects,
