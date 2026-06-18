@@ -620,6 +620,80 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_inner_court_water_question_does_not_trigger_recruitment_intent(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            text = (
+                "朕看过「敕谕内官监：近有河间府幼童一名，年约八九岁，拟充王体乾养子」"
+                "的复命。真实成效如何，奏报里有没有水分？"
+            )
+
+            self.assertEqual(game._detect_recruitment_intent(text), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_colloquial_recruitment_confirmation_brings_new_eunuch_to_audience(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            first = game.chat(attendant, "算了，你再招募一个小内侍吧")
+
+            self.assertIn("陛下若准", first["answer"])
+            self.assertEqual(game._load_pending_dialogue_action(attendant).get("kind"), "eunuch")
+
+            events = list(game.chat_stream(attendant, "好的，先把人带来我看看"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            payload = events[-1]["payload"]
+            recruited = str(payload.get("recruited_minister") or "")
+            self.assertTrue(recruited)
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], recruited)
+            self.assertIn(recruited, game.content.characters)
+            self.assertFalse(game._load_pending_dialogue_action(attendant))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_recruitment_confirmation_recovers_when_pending_marker_is_missing(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            game.chat_history[attendant] = [
+                {
+                    "role": "minister",
+                    "content": (
+                        "奴婢回陛下，内书堂和司礼监下头确有几个识字小火者可挑。"
+                        "只是人一入御前，便牵动监房旧例，奴婢不敢擅专。"
+                        "陛下若准，奴婢便去挑一个忠谨可用的来。"
+                    ),
+                }
+            ]
+            self.assertFalse(game._load_pending_dialogue_action(attendant))
+
+            events = list(game.chat_stream(attendant, "好，你去招募"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            payload = events[-1]["payload"]
+            recruited = str(payload.get("recruited_minister") or "")
+            self.assertTrue(recruited)
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], recruited)
+            self.assertIn(recruited, game.content.characters)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_name_first_palace_nickname_summon_gets_inner_court_identity_note(self):
         game = web_app.WebGame(fresh=True)
         try:

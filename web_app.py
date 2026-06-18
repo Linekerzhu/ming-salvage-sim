@@ -3368,7 +3368,11 @@ class WebGame:
 
     def _dialogue_confirmed(self, text: str) -> bool:
         raw = str(text or "").strip()
-        return bool(re.search(r"(准|可|允|去办|办吧|照办|依你|依议|照你说|就这么办|去招|招募|就招|招一个|挑一个|取一个|带一个|领一个|找一个|荐一个|说合|调停|调和|准奏|请太医|治一治|调养|验宝|赐还|归还|发还|钳制|拿捏|封存|安抚|照料)", raw))
+        if re.search(r"(准|可|允|去办|办吧|照办|依你|依议|照你说|就这么办|去招|招募|就招|招一个|挑一个|取一个|带一个|领一个|找一个|荐一个|说合|调停|调和|准奏|请太医|治一治|调养|验宝|赐还|归还|发还|钳制|拿捏|封存|安抚|照料)", raw):
+            return True
+        if re.search(r"(?:^|[，,。；;！!\s、])(?:好|好的|行|成|准了)(?:[，,。；;！!\s、]|$)", raw):
+            return True
+        return bool(re.search(r"(?:先)?(?:把)?(?:人|他|她|此人|这人|那人|这位|那位|新人).{0,8}(?:带|领|引)(?:来|过来|入殿|进来|到御前|到朕前)", raw))
 
     def _dialogue_rejected(self, text: str) -> bool:
         raw = str(text or "").strip()
@@ -3378,13 +3382,68 @@ class WebGame:
         raw = str(text or "").strip()
         if not raw:
             return {}
-        has_ask_or_order = bool(re.search(r"(有没有|可有|有无|可用|缺|找|寻|挑|招|募|取|荐|举)", raw))
-        if has_ask_or_order and re.search(r"(太监|内侍|内臣|内官|小火者|内书堂|司礼监)", raw):
+        ask_people = bool(re.search(
+            r"(?:有没有|可有|有无|还有没有|缺不缺).{0,18}"
+            r"(?:新(?:的)?|可用|人手|人选|人才|贤才|苗子|太监|内侍|内臣|内官(?!监)|"
+            r"小火者|小内侍|生徒|娃娃|年幼|年轻|小一点)",
+            raw,
+        ))
+        recruit_order = bool(
+            re.search(
+                r"(?:找|寻|挑|招|募|取|荐|举).{0,18}"
+                r"(?:人|才|新人|苗子|太监|内侍|内臣|内官(?!监)|小火者|小内侍|生徒|娃娃)",
+                raw,
+            )
+            or re.search(r"(?:人手|人选|人才|贤才|苗子).{0,18}(?:找|寻|挑|招|募|取|荐|举)", raw)
+        )
+        eunuch_subject = bool(re.search(r"(太监|内侍|内臣|内官(?!监)|小火者|小内侍|内书堂|司礼监|净身房|新太监|新内侍)", raw))
+        if eunuch_subject and (ask_people or recruit_order or re.search(r"(新太监|新内侍|小内侍|小太监)", raw)):
             return {"type": "recruitment", "kind": "eunuch"}
-        if has_ask_or_order and re.search(r"(科举|科场|新科|进士|庶吉士|取士|选士)", raw):
+        if (ask_people or recruit_order) and re.search(r"(科举|科场|新科|进士|庶吉士|取士|选士)", raw):
             return {"type": "recruitment", "kind": "exam"}
         if re.search(r"(举荐|荐人|荐才|保举|寻贤|人才|贤才|可有人|谁可用|有谁可用)", raw):
             return {"type": "recruitment", "kind": "recommend"}
+        return {}
+
+    def _recent_minister_answer_texts(self, minister_name: str, limit: int = 6) -> List[str]:
+        texts: List[str] = []
+        for message in reversed(self.chat_history.get(minister_name, [])):
+            if str(message.get("role") or "") != "minister":
+                continue
+            content = str(message.get("content") or "").strip()
+            if content:
+                texts.append(content)
+            if len(texts) >= limit:
+                return texts
+        try:
+            rows = self.db.conn.execute(
+                "SELECT content FROM chat_messages WHERE minister_name=? AND role='minister' "
+                "ORDER BY id DESC LIMIT ?",
+                (minister_name, limit),
+            ).fetchall()
+        except Exception:
+            rows = []
+        for row in rows:
+            content = str(row["content"] or "").strip()
+            if content and content not in texts:
+                texts.append(content)
+        return texts[:limit]
+
+    def _recover_pending_dialogue_action_from_recent_answer(self, minister_name: str, text: str) -> Dict[str, Any]:
+        """Recover a two-step dialogue action when a legacy save or refresh lost its KV marker."""
+
+        if not self._dialogue_confirmed(text):
+            return {}
+        for answer in self._recent_minister_answer_texts(minister_name):
+            proposal_like = re.search(r"(陛下若准|若陛下准|若准|不敢擅专|不能当作无根之木)", answer)
+            if not proposal_like:
+                continue
+            if re.search(r"(内书堂|司礼监|小火者|小内侍|内侍|太监|内官(?!监))", answer) and re.search(r"(挑|招|募|取|带|领).{0,18}(?:一个|一人|小火者|内侍|太监|来)", answer):
+                return {"type": "recruitment", "kind": "eunuch", "recovered": True}
+            if re.search(r"(新科|庶吉士|科场|进士|取士|补入朝班)", answer):
+                return {"type": "recruitment", "kind": "exam", "recovered": True}
+            if re.search(r"(举荐|荐人|举出一人|来源、短处与风险|无根之木)", answer):
+                return {"type": "recruitment", "kind": "recommend", "recovered": True}
         return {}
 
     def _detect_castration_intent(self, text: str, minister_name: str = "") -> Dict[str, Any]:
@@ -4769,6 +4828,9 @@ class WebGame:
                             if part
                         )
                 return self._execute_dialogue_action(minister_name, pending)
+        recovered = self._recover_pending_dialogue_action_from_recent_answer(minister_name, text)
+        if recovered:
+            return self._execute_dialogue_action(minister_name, recovered)
         action = (
             self._detect_castration_intent(text, minister_name)
             or self._detect_bao_leverage_intent(text, minister_name)
