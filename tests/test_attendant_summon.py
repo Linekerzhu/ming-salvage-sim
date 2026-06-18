@@ -1642,11 +1642,11 @@ class AttendantSummonTests(unittest.TestCase):
 
             payload = events[-1]["payload"]
             effect = payload["dialogue_effect"]
-            self.assertEqual(effect["title"], "净身旧档入案")
+            self.assertEqual(effect["title"], "内廷旧档补记")
             self.assertIn("韩爌旧档更新", effect["message"])
             labels = {str(item["label"]) for item in effect["effects"]}
-            self.assertTrue(any("宝匣：黑漆楠木匣" in label for label in labels))
-            self.assertTrue(any("宝存：油炸封蜡" in label for label in labels))
+            self.assertTrue(any("匣藏：黑漆楠木匣" in label for label in labels))
+            self.assertTrue(any("封存：油炸封蜡" in label for label in labels))
             self.assertTrue(any("尿路：" in label and "尿闭" in label for label in labels))
             self.assertTrue(any("新增特质" in label and "尿路旧患" in label for label in labels))
             self.assertTrue(payload["history"][-1].get("stage_directions"))
@@ -1775,14 +1775,14 @@ class AttendantSummonTests(unittest.TestCase):
                 minister_name=attendant,
                 action_kind="eunuch_care",
                 title=f"尿路调养求助：{attendant}",
-                target_text=f"{attendant}因净身旧患主动候见，须让皇帝裁断调养、验宝或照常派差。",
+                target_text=f"{attendant}因内廷旧疾主动候见，须让皇帝裁断调养、查验或照常派差。",
                 threshold=70,
                 score=35,
                 status="waiting_conditions",
                 condition_status="pending",
                 conditions=[
                     {"description": f"召见{attendant}亲口说明尿路旧患。", "status": "pending"},
-                    {"description": "裁断调养、验宝安置或照常派差。", "status": "pending"},
+                    {"description": "裁断调养、查验安置或照常派差。", "status": "pending"},
                 ],
                 expires_turn=int(game.state.turn) + 2,
                 last_delta={
@@ -1797,7 +1797,7 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertTrue(goal_id)
             labels = [str(item["label"]) for item in suggestions]
             texts = " ".join(str(item["text"]) for item in suggestions)
-            self.assertIn("问旧患", labels)
+            self.assertIn("问隐情", labels)
             self.assertIn("准调养", labels)
             self.assertIn("照常派", labels)
             self.assertNotIn("追旧约", labels)
@@ -1838,7 +1838,7 @@ class AttendantSummonTests(unittest.TestCase):
                 minister_name=name,
                 action_kind="eunuch_care",
                 title=f"尿路调养求助：{name}",
-                target_text=f"{name}因净身旧患主动候见。",
+                target_text=f"{name}因内廷旧疾主动候见。",
                 threshold=70,
                 score=35,
                 status="waiting_conditions",
@@ -1929,8 +1929,8 @@ class AttendantSummonTests(unittest.TestCase):
             payload = confirm_events[-1]["payload"]
             self.assertIn(payload["dialogue_effect"]["title"], {"宝案查验", "奏对有动"})
             labels = {str(item.get("label") or "") for item in payload["dialogue_effect"].get("effects", [])}
-            self.assertTrue(any("宝匣：锡胆小木匣" in label for label in labels))
-            self.assertTrue(any("宝存：香料腌藏" in label for label in labels))
+            self.assertTrue(any("匣藏：锡胆小木匣" in label for label in labels))
+            self.assertTrue(any("封存：香料腌藏" in label for label in labels))
             self.assertTrue(any("入库：宝案安置" in label for label in labels))
 
             castration = game.public_character(game.content.characters[name])["castration"]
@@ -2145,6 +2145,9 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(refreshed["office"], "司礼监随堂太监")
             self.assertEqual(refreshed["castration"]["bao_status"], "forfeit")
             self.assertTrue(any(tag["label"] == "内廷奴籍" for tag in refreshed["identity_tags"]))
+            self.assertTrue(any(tag["label"] == "内廷旧档" for tag in refreshed["identity_tags"]))
+            public_labels = " ".join(str(tag.get("label") or "") for tag in refreshed["identity_tags"])
+            self.assertNotRegex(public_labels, r"净身|宝")
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

@@ -26,11 +26,9 @@ function servilityTone(value?: number): string {
 
 function castrationQuick(info?: CourtCastration | null): string {
   if (!info) return "";
-  return [
-    info.forced ? "强旨净身" : "自愿净身",
-    info.bao_label || "宝况未录",
-    `心相：${servilityTone(info.servility)}`,
-  ].filter(Boolean).join(" · ");
+  const risk = Number(info.scheme_profile?.risk_score ?? 0);
+  const hint = risk >= 72 ? "旧患较重" : risk >= 55 ? "旧患有案" : "旧档存照";
+  return ["内廷旧档", hint].join(" · ");
 }
 
 function castrationBits(info: CourtCastration | null | undefined, keys: Array<keyof CourtCastration>): string[] {
@@ -278,7 +276,7 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
             <span className="m-person-name">{name}</span>
             <span className="m-person-sub">{c ? [c.office || c.office_type, c.faction].filter(Boolean).join(" · ") : "…"}</span>
             <span className="m-person-sub2">{c ? [c.status_label, c.age_label].filter(Boolean).join(" · ") : ""}</span>
-            {castration && <span className={`m-person-sub3 ${castration.forced ? "tone-bad" : "tone-good"}`}>{castrationQuick(castration)}</span>}
+            {castration && <span className="m-person-sub3">{castrationQuick(castration)}</span>}
           </div>
           {canSummon && onSummon && <button className="m-person-summon" onClick={summonThisPerson}>召来问对</button>}
           <button className="m-mini" onClick={onClose}>关</button>
@@ -412,64 +410,65 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
             <span className="m-person-h">内廷旧事</span>
             {castration && (
               <p className="m-person-castration">
-                <span className={castration.forced ? "tv-bad" : "tv-good"}>
-                  {castration.forced ? "强旨净身" : "自愿净身"}
-                </span>
-                {castration.bao_label && <span className="m-bao">· {castration.bao_label}</span>}
-                <span className="m-serv">· 心相：{servilityTone(castration.servility)}</span>
+                <span>内廷旧档</span>
+                <span className="m-serv">· {castration.scheme_profile?.risk_score && castration.scheme_profile.risk_score >= 72 ? "旧患较重" : "旧患存案"}</span>
+                <span className="m-serv">· 口吻：{servilityTone(castration.servility)}</span>
               </p>
             )}
             {castration && (
-              <div className="m-castration-ledger" aria-label="净身旧档">
-                {castration.procedure_line && <span className="m-castration-note">{castration.procedure_line}</span>}
-                {castration.scheme_profile?.tier && (
-                  <span className="m-castration-row">
-                    <b>方案</b>
-                    <i>{castration.scheme_profile.tier}</i>
-                    {typeof castration.scheme_profile.risk_score === "number" && <i>风险{castration.scheme_profile.risk_score}</i>}
-                    {!!castration.scheme_profile.care_cost_delta && <i>调养{castration.scheme_profile.care_cost_delta > 0 ? "+" : ""}{castration.scheme_profile.care_cost_delta}</i>}
-                    {(castration.scheme_profile.effects || []).slice(0, 2).map((bit) => <i key={bit}>{bit}</i>)}
-                  </span>
-                )}
-                {castrationBits(castration, ["method_label", "knife_label", "anesthesia_label"]).length > 0 && (
-                  <span className="m-castration-row">
-                    <b>净法</b>
-                    {castrationBits(castration, ["method_label", "knife_label", "anesthesia_label"]).map((bit) => <i key={bit}>{bit}</i>)}
-                  </span>
-                )}
-                {castrationBits(castration, ["bao_size_label", "bao_shape_label", "bao_texture_label", "bao_weight_label", "preservation_label", "container_label"]).length > 0 && (
-                  <span className="m-castration-row">
-                    <b>宝档</b>
-                    {castrationBits(castration, ["bao_size_label", "bao_shape_label", "bao_texture_label", "bao_weight_label", "preservation_label", "container_label"]).map((bit) => <i key={bit}>{bit}</i>)}
-                  </span>
-                )}
-                {castrationBits(castration, ["aftereffect_label", "urine_label", "voice_body_label", "trauma_label", "fixation_label", "psychosexual_label"]).length > 0 && (
-                  <span className="m-castration-row">
-                    <b>后患</b>
-                    {castrationBits(castration, ["aftereffect_label", "urine_label", "voice_body_label", "trauma_label", "fixation_label", "psychosexual_label"]).map((bit) => <i key={bit}>{bit}</i>)}
-                  </span>
-                )}
-                {(castration.voice_profile?.register || (castration.voice_profile?.pet_phrases || []).length > 0) && (
-                  <span className="m-castration-row">
-                    <b>口吻</b>
-                    {castration.voice_profile?.register && <i>{castration.voice_profile.register}</i>}
-                    {(castration.voice_profile?.pet_phrases || []).slice(0, 3).map((bit) => <i key={bit}>{bit}</i>)}
-                  </span>
-                )}
-                {(castration.voice_profile?.slang || []).length > 0 && (
-                  <span className="m-castration-row">
-                    <b>切口</b>
-                    {(castration.voice_profile?.slang || []).slice(0, 3).map((bit) => <i key={bit}>{bit}</i>)}
-                  </span>
-                )}
-                {(castration.voice_profile?.stage_cues || []).length > 0 && (
-                  <span className="m-castration-row">
-                    <b>神态</b>
-                    {(castration.voice_profile?.stage_cues || []).slice(0, 2).map((bit) => <i key={bit}>{bit}</i>)}
-                  </span>
-                )}
-                {castration.ritual_label && <span className="m-castration-note">{castration.ritual_label}</span>}
-              </div>
+              <details className="m-castration-details">
+                <summary>查看旧档细目</summary>
+                <div className="m-castration-ledger" aria-label="内廷旧档细目">
+                  {castration.procedure_line && <span className="m-castration-note">{castration.procedure_line}</span>}
+                  {castration.scheme_profile?.tier && (
+                    <span className="m-castration-row">
+                      <b>风险</b>
+                      <i>{castration.scheme_profile.tier}</i>
+                      {typeof castration.scheme_profile.risk_score === "number" && <i>风险{castration.scheme_profile.risk_score}</i>}
+                      {!!castration.scheme_profile.care_cost_delta && <i>调养{castration.scheme_profile.care_cost_delta > 0 ? "+" : ""}{castration.scheme_profile.care_cost_delta}</i>}
+                      {(castration.scheme_profile.effects || []).slice(0, 2).map((bit) => <i key={bit}>{bit}</i>)}
+                    </span>
+                  )}
+                  {castrationBits(castration, ["method_label", "knife_label", "anesthesia_label"]).length > 0 && (
+                    <span className="m-castration-row">
+                      <b>旧制</b>
+                      {castrationBits(castration, ["method_label", "knife_label", "anesthesia_label"]).map((bit) => <i key={bit}>{bit}</i>)}
+                    </span>
+                  )}
+                  {castrationBits(castration, ["bao_size_label", "bao_shape_label", "bao_texture_label", "bao_weight_label", "preservation_label", "container_label"]).length > 0 && (
+                    <span className="m-castration-row">
+                      <b>封存</b>
+                      {castrationBits(castration, ["bao_size_label", "bao_shape_label", "bao_texture_label", "bao_weight_label", "preservation_label", "container_label"]).map((bit) => <i key={bit}>{bit}</i>)}
+                    </span>
+                  )}
+                  {castrationBits(castration, ["aftereffect_label", "urine_label", "voice_body_label", "trauma_label", "fixation_label", "psychosexual_label"]).length > 0 && (
+                    <span className="m-castration-row">
+                      <b>后患</b>
+                      {castrationBits(castration, ["aftereffect_label", "urine_label", "voice_body_label", "trauma_label", "fixation_label", "psychosexual_label"]).map((bit) => <i key={bit}>{bit}</i>)}
+                    </span>
+                  )}
+                  {(castration.voice_profile?.register || (castration.voice_profile?.pet_phrases || []).length > 0) && (
+                    <span className="m-castration-row">
+                      <b>口吻</b>
+                      {castration.voice_profile?.register && <i>{castration.voice_profile.register}</i>}
+                      {(castration.voice_profile?.pet_phrases || []).slice(0, 3).map((bit) => <i key={bit}>{bit}</i>)}
+                    </span>
+                  )}
+                  {(castration.voice_profile?.slang || []).length > 0 && (
+                    <span className="m-castration-row">
+                      <b>暗语</b>
+                      {(castration.voice_profile?.slang || []).slice(0, 3).map((bit) => <i key={bit}>{bit}</i>)}
+                    </span>
+                  )}
+                  {(castration.voice_profile?.stage_cues || []).length > 0 && (
+                    <span className="m-castration-row">
+                      <b>神态</b>
+                      {(castration.voice_profile?.stage_cues || []).slice(0, 2).map((bit) => <i key={bit}>{bit}</i>)}
+                    </span>
+                  )}
+                  {castration.ritual_label && <span className="m-castration-note">{castration.ritual_label}</span>}
+                </div>
+              </details>
             )}
             {court?.duishi && (
               <p className="m-person-duishi">

@@ -669,7 +669,7 @@ class RecordCastrationTests(unittest.TestCase):
                 minister_name=name,
                 action_kind="eunuch_care",
                 title=f"尿路调养求助：{name}",
-                target_text=f"{name}因净身旧患主动候见。",
+                target_text=f"{name}因内廷旧疾主动候见。",
                 threshold=70,
                 score=35,
                 status="waiting_conditions",

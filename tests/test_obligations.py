@@ -224,14 +224,14 @@ class ObligationPressureTests(unittest.TestCase):
                 minister_name=name,
                 action_kind="eunuch_care",
                 title=f"尿路调养求助：{name}",
-                target_text=f"{name}因净身旧患主动候见，须让皇帝裁断调养、验宝或照常派差。",
+                target_text=f"{name}因内廷旧疾主动候见，须让皇帝裁断调养、查验或照常派差。",
                 threshold=70,
                 score=35,
                 status="waiting_conditions",
                 condition_status="pending",
                 conditions=[
                     {"description": f"召见{name}亲口说明尿路旧患。", "status": "pending"},
-                    {"description": "裁断调养、验宝安置或照常派差。", "status": "pending"},
+                    {"description": "裁断调养、查验安置或照常派差。", "status": "pending"},
                 ],
                 expires_turn=int(state.turn) + 2,
                 last_delta={

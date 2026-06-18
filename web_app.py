@@ -1395,23 +1395,23 @@ class WebGame:
         return primary
 
     def _eunuch_lore_dialogue_effect(self, update: Dict[str, Any]) -> Dict[str, Any]:
-        """Turn deterministic castration-lore maintenance into visible chat feedback."""
+        """Turn deterministic inner-court lore maintenance into restrained chat feedback."""
         if not isinstance(update, dict) or not update.get("updated"):
             return {}
         name = str(update.get("name") or "").strip()
         changed = update.get("updated") if isinstance(update.get("updated"), dict) else {}
         gameplay = update.get("gameplay") if isinstance(update.get("gameplay"), dict) else {}
         label_map = {
-            "castration_method": "流程",
+            "castration_method": "旧制",
             "knife_tool": "刀具",
             "anesthesia": "麻醉",
-            "procedure_note": "净身",
-            "bao_size": "宝形",
-            "bao_shape": "宝形",
-            "bao_texture": "宝况",
-            "bao_weight": "宝重",
-            "bao_preservation": "宝存",
-            "bao_container": "宝匣",
+            "procedure_note": "旧制",
+            "bao_size": "形制",
+            "bao_shape": "形制",
+            "bao_texture": "成色",
+            "bao_weight": "轻重",
+            "bao_preservation": "封存",
+            "bao_container": "匣藏",
             "bao_ritual": "执念",
             "aftereffect": "后患",
             "urinary_aftereffect": "尿路",
@@ -1445,7 +1445,11 @@ class WebGame:
         if traits:
             effects.append({"kind": "character_trait", "label": f"新增特质：{'、'.join(traits[:3])}", "tone": "warn"})
         if items:
-            effects.append({"kind": "inventory", "label": f"入库：{'、'.join(items[:2])}", "tone": "good"})
+            quiet_items = [
+                item.replace("净身旧档", "内廷旧档").replace("官没宝匣", "官库旧匣").replace("遗失宝案", "旧匣遗失")
+                for item in items
+            ]
+            effects.append({"kind": "inventory", "label": f"入库：{'、'.join(quiet_items[:2])}", "tone": "good"})
         if scheme_review:
             tier = str(scheme_review.get("tier") or "方案复盘").strip()
             risk = int(scheme_review.get("risk_score") or 0)
@@ -1465,9 +1469,9 @@ class WebGame:
         if scheme_review:
             message_bits.append(f"方案{scheme_review.get('tier')} 风险{scheme_review.get('risk_score')}")
         if not message_bits:
-            message_bits.append("净身细节已入旧档")
+            message_bits.append("旧档细节已补记")
         return {
-            "title": "净身旧档入案",
+            "title": "内廷旧档补记",
             "message": "；".join(message_bits)[:120],
             "effects": effects[:12],
             "stage_direction": stage,
@@ -1520,13 +1524,12 @@ class WebGame:
         )
         if castration_payload:
             payload["castration"] = castration_payload
+            scheme_profile = castration_payload.get("scheme_profile") if isinstance(castration_payload.get("scheme_profile"), dict) else {}
+            risk_score = int(scheme_profile.get("risk_score") or 0) if isinstance(scheme_profile, dict) else 0
             payload["identity_tags"] = [
                 {"label": "内廷奴籍", "tone": "warn"},
-                {
-                    "label": "强旨净身" if castration_payload.get("forced") else "自愿净身",
-                    "tone": "bad" if castration_payload.get("forced") else "good",
-                },
-                {"label": str(castration_payload.get("bao_label") or "宝况未录"), "tone": "info"},
+                {"label": "内廷旧档", "tone": "info"},
+                {"label": "旧患较重" if risk_score >= 72 else "旧患线索", "tone": "warn" if risk_score >= 72 else "neutral"},
             ]
         if include_detail:
             active_skill_grants = self.db.active_skill_grants(character.name)
@@ -6428,12 +6431,12 @@ class WebGame:
             action_kind = str(goal.get("action_kind") or "").strip()
             if action_kind == "eunuch_care" or str(court_decision.get("action") or "") == "eunuch_care":
                 add(
-                    "问旧患",
-                    f"朕听说你因「{title}」候见。别讲空话，照奴婢本分说清：是尿路旧患、惊创失神、宝匣心结，还是差遣会误事？",
+                    "问隐情",
+                    f"朕听说你因「{title}」候见。别讲空话，照奴婢本分说清：是身上旧疾、惊创失神、旧匣心结，还是差遣会误事？",
                 )
                 add(
                     "准调养",
-                    f"若确是「{title}」牵动差事，朕可准动内库调养或验宝安置。你要哪一种，需花多少银钱，能换回什么差遣成效？",
+                    f"若确是「{title}」牵动差事，朕可准动内库调养或查验安置。你要哪一种，需花多少银钱，能换回什么差遣成效？",
                 )
                 add(
                     "照常派",

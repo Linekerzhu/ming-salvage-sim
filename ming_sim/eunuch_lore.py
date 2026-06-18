@@ -1328,7 +1328,7 @@ def _ensure_complication_goal(
             status="waiting_conditions",
             score_delta=4,
             score_after=0,
-            summary=str(text.get("title") or "净身旧患复发")[:180],
+            summary=str(text.get("title") or "内廷旧疾复发")[:180],
             payload={
                 "source": "eunuch_complication",
                 "complication": kind,
@@ -1342,24 +1342,24 @@ def _ensure_complication_goal(
         "urinary": "尿路调养",
         "trauma": "惊创抚慰",
         "body": "体声修整",
-        "bao": "宝匣安置",
+        "bao": "旧匣安置",
         "fixation": "心癖安顿",
         "psychosexual": "心相安顿",
     }
     label = label_map.get(kind, "内廷调养")
     title = f"{label}求助：{clean_name}"
     target_text = (
-        f"{clean_name}因「{text.get('title') or '净身旧患'}」主动候见。"
-        "召对时应让他说清旧患、宝匣或差遣风险，再决定动内库调养、验宝安置，"
+        f"{clean_name}因「{text.get('title') or '内廷旧疾'}」主动候见。"
+        "召对时应让他说清旧患、旧匣或差遣风险，再决定动内库调养、查验安置，"
         "或明示仍要强派办差并承担误事风险。"
     )
-    risk_tags = ["净身旧患", label]
+    risk_tags = ["内廷旧疾", label]
     delta = effect.get("delta") if isinstance(effect, dict) else {}
     if isinstance(delta, dict) and delta:
         risk_tags.append("属性波动")
     conditions = [
         {"description": f"召见{clean_name}，听其亲口说明{label}所求。", "status": "pending"},
-        {"description": "选择调养/宝匣安置/验宝查案，或明示暂不理会、仍照常派差。", "status": "pending"},
+        {"description": "选择调养/旧匣安置/查验旧案，或明示暂不理会、仍照常派差。", "status": "pending"},
     ]
     blockers = [
         "内库小耗与司礼监旧档会留下痕迹。",
@@ -1397,8 +1397,8 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
     from ming_sim.timeflow import LEVEL_BLUE
     ensure_schema(db)
     day = int(day or 0)
-    regular_window = day % 6 == 3
-    scheme_surge_window = day % 6 == 1
+    regular_window = day % 12 == 3
+    scheme_surge_window = day % 12 == 7
     if day <= 0 or not (regular_window or scheme_surge_window):
         return []
     rows = db.conn.execute(
@@ -1457,11 +1457,11 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
                 scheme_tags.append(tier)
             if scheme_surge:
                 text["detail"] = (
-                    f"{text['detail']}（净身方案压着旧患，未调养便提前发作；"
+                    f"{text['detail']}（旧制方案压着旧患，未调养便提前发作；"
                     f"方案画像：{tier or '高危'}，风险{int(scheme.get('risk_score') or 0)}。）"
                 )
             elif int(scheme.get("risk_score") or 0) >= 62:
-                text["detail"] = f"{text['detail']}（净身方案旧患留痕明显。）"
+                text["detail"] = f"{text['detail']}（旧制方案旧患留痕明显。）"
         goal_id = _ensure_complication_goal(db, state, name, kind, text, effect)
         outcome_bits = []
         for key, label in (
@@ -1478,7 +1478,7 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
         if scheme_surge:
             outcome_bits.append("方案压迫")
         outcome = "，".join(outcome_bits) or "只留内廷传闻"
-        tags = ["净身", "旧患", "宝匣", kind, *scheme_tags]
+        tags = ["内廷旧疾", "旧患", "匣藏", kind, *scheme_tags]
         if scheme_surge:
             tags.append("方案压迫")
         db.upsert_event_memory(
@@ -1487,7 +1487,7 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
             name,
             "eunuch_complication",
             text["title"],
-            cause="净身旧患/宝匣心结发作",
+            cause="内廷旧疾/匣藏心结发作",
             process=text["process"],
             outcome=outcome,
             sentiment="negative" if kind in {"urinary", "trauma", "body", "psychosexual"} else "mixed",
@@ -1496,7 +1496,7 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
             source_kind="timeflow",
             source_id=source_id,
         )
-        db.record_log(state, f"【净身旧患】{text['title']}：{outcome}。")
+        db.record_log(state, f"【内廷旧疾】{text['title']}：{outcome}。")
         db.conn.commit()
         return [{
             "level": LEVEL_BLUE,
