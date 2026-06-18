@@ -330,6 +330,138 @@ def rivalry_chat_context_brief(
     return "\n".join(lines)
 
 
+def faction_chat_context_brief(
+    db: GameDB,
+    minister_name: str,
+    *,
+    faction: str = "",
+) -> str:
+    """Trusted context for audience with a representative of a heated faction."""
+
+    name = str(minister_name or "").strip()
+    requested = str(faction or "").strip()
+    if not name or not _table_exists(db, "characters") or not _table_exists(db, "factions"):
+        return ""
+    minister = db.conn.execute(
+        """
+        SELECT name, office, faction, ability, integrity, emp_trust, grievance
+        FROM characters
+        WHERE name=?
+          AND status='active'
+          AND power_id='ming'
+          AND office_type!='后宫'
+          AND name!='崇祯'
+        """,
+        (name,),
+    ).fetchone()
+    if minister is None:
+        return ""
+    own_faction = str(minister["faction"] or "").strip()
+    fac = requested or own_faction
+    if not fac or fac in {"无", "中立"}:
+        return ""
+    if own_faction and own_faction not in {"无", "中立"} and own_faction != fac:
+        return ""
+
+    has_heat = _has_column(db, "factions", "heat")
+    heat_expr = "heat" if has_heat else "20"
+    row = db.conn.execute(
+        f"SELECT name, satisfaction, leverage, agenda, {heat_expr} AS heat FROM factions WHERE name=?",
+        (fac,),
+    ).fetchone()
+    if row is None:
+        return ""
+    sat = _clamp_int(row["satisfaction"], 0, 100)
+    lev = _clamp_int(row["leverage"], 0, 100)
+    heat = _clamp_int(row["heat"], 0, 100)
+    agenda = str(row["agenda"] or "求取任事空间")
+    representative = _faction_representative(db, fac)
+    office = _short_office(str(minister["office"] or ""))
+    trust = _clamp_int(minister["emp_trust"], 0, 100)
+    grievance = _clamp_int(minister["grievance"], 0, 100)
+    ability = _clamp_int(minister["ability"], 0, 100)
+    integrity = _clamp_int(minister["integrity"], 0, 100)
+
+    member_rows = _safe_fetchall(
+        db,
+        """
+        SELECT name, office, ability, grievance
+        FROM characters
+        WHERE faction=?
+          AND status='active'
+          AND power_id='ming'
+          AND office_type!='后宫'
+        ORDER BY
+          CASE
+            WHEN office_type IN ('内阁','司礼监','东厂') THEN 0
+            WHEN office LIKE '%尚书%' OR office LIKE '%大学士%' THEN 1
+            ELSE 2
+          END,
+          ability DESC,
+          grievance DESC
+        LIMIT 4
+        """,
+        (fac,),
+    )
+    members = [
+        f"{_short_office(str(member['office'] or ''))}{str(member['name'] or '')}"
+        for member in member_rows
+        if str(member["name"] or "").strip()
+    ]
+
+    pressure_bits = []
+    if lev >= 68:
+        pressure_bits.append("势力已足以挟事要价")
+    if sat <= 28:
+        pressure_bits.append("满意低，容易借题串联")
+    if heat >= 62:
+        pressure_bits.append("党争热度高，一纸任免也会被读成信号")
+    if trust <= 40:
+        pressure_bits.append(f"{name}御前信任低，会先试探皇帝是否真给边界")
+    if grievance >= 60:
+        pressure_bits.append(f"{name}怨望高，可能把派系公议说成个人旧账")
+    if not pressure_bits:
+        pressure_bits.append("派势未必失控，但可借力也会长其筹码")
+
+    if lev >= 70 and sat <= 35:
+        bargain = "给一件难差和有限名分，换该派暂收锋芒；办坏则连坐问责"
+    elif heat >= 62:
+        bargain = "先让代表压住弹章和串联，再用短限差事检验诚意"
+    elif sat <= 28:
+        bargain = "给台阶不直接给实权，要求交出可验人手或证据"
+    else:
+        bargain = "借其办急务，但明说功成不等于派系坐大"
+
+    cost_bits = []
+    if lev >= 68:
+        cost_bits.append("借力会让该派筹码更重")
+    if heat >= 62:
+        cost_bits.append("压错人会激起敌派或本派反噬")
+    if integrity <= 42:
+        cost_bits.append("代表本人可能把名分私用")
+    if not cost_bits:
+        cost_bits.append("皇帝须拿名分、差遣或查账权作抵押")
+
+    lines = [
+        "【本次召对事项：派系压力/借力安抚】",
+        f"- {office}{name}被召来谈{fac}之势；这不是普通问政，而是皇帝同一派代表谈条件、压热度或借力任事。",
+        f"- 派系盘面：满意 {sat}，势力 {lev}，党争热度 {heat}；所求：{agenda}。",
+        f"- 入对者状态：御前信任 {trust}，怨望 {grievance}，能力 {ability}，清廉 {integrity}。",
+        "- 压力来源：" + "；".join(pressure_bits) + "。",
+        f"- 可谈交换：{bargain}；代价是{'；'.join(cost_bits)}。",
+    ]
+    if members:
+        lines.append("- 派内可点名人物：" + "；".join(members) + "。")
+    if representative and representative != name:
+        lines.append(f"- 注意：{representative}更像{fac}台面代表，{name}入对时可能替本派说话，也可能借派势为自己要价。")
+    lines.extend([
+        "- 对话玩法：NPC 应提出派内要价、愿交出的筹码和不肯退让的底线；皇帝可安抚、借力、拆派或命其交证据。",
+        "- 落库边界：只有皇帝明确命该派承办、设期限、给名分、查账或调停，才进入旨意/履约/调停；首次问话不直接改变派系数值。",
+        "- 口吻要求：按本人身份、派系、信任、怨望和性格说话；不要像全知旁白解释系统。",
+    ])
+    return "\n".join(lines)
+
+
 def _request_cost_profile(
     *,
     trust: int,
@@ -2495,8 +2627,8 @@ def _faction_cards(db: GameDB, cards: List[BriefCard]) -> None:
                 detail=detail,
                 urgency=urgency,
                 tone=tone,
-                cta="看御案",
-                tab=_TAB_DESK,
+                cta="召代表问势" if representative else "看御案",
+                tab=_TAB_AUDIENCE if representative else _TAB_DESK,
                 actor=representative,
                 meta=f"势{lev}/怨{100 - sat}",
                 ref_kind="faction",

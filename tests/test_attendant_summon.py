@@ -837,6 +837,58 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_faction_context_is_representative_scoped_and_reaches_dialogue_prep(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            row = game.db.conn.execute(
+                "SELECT name, faction FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' AND faction NOT IN ('无','中立','') "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            actor = str(row["name"])
+            faction = str(row["faction"])
+            game.db.conn.execute(
+                "UPDATE factions SET leverage=88, satisfaction=20, heat=74 WHERE name=?",
+                (faction,),
+            )
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=33, grievance=69 WHERE name=?",
+                (actor,),
+            )
+            game.db.conn.commit()
+            game.session.dialogue_audit_client = lambda phase, payload: {  # type: ignore[assignment]
+                "goal_decision": "none",
+                "confidence": 90,
+            }
+            context = {
+                "kind": "faction",
+                "actor": actor,
+                "ref_kind": "faction",
+                "ref_id": faction,
+            }
+
+            brief = game._chat_context_brief(actor, context)
+            mismatch = game._chat_context_brief("王承恩", context)
+            augmented, prepared = game.session.prepare_chat_run(
+                game.content.characters[actor],
+                f"朕要问{faction}近来的气焰。",
+                supplemental_context=brief,
+            )
+
+            self.assertIn("本次召对事项：派系压力/借力安抚", brief)
+            self.assertEqual(mismatch, "")
+            self.assertIn("派系压力", augmented)
+            self.assertIn("派系压力", prepared.behavior_context)
+            self.assertIn("NPC对话行为档案", prepared.behavior_brief)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_mediation_requires_confirmation(self):
         game = web_app.WebGame(fresh=True)
         try:

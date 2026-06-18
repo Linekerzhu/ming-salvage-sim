@@ -15,6 +15,7 @@ from ming_sim.playstyle import (
     briefing_cards,
     briefing_payload,
     favor_chat_context_brief,
+    faction_chat_context_brief,
     legacy_chat_context_brief,
     monthly_followup_chat_context_brief,
     patronage_chat_context_brief,
@@ -761,7 +762,8 @@ class PlaystyleBriefTests(unittest.TestCase):
 
             cards = briefing_cards(db, state, limit=8)
             faction_card = next(c for c in cards if c["kind"] == "faction" and c["ref_id"] == faction)
-            self.assertEqual(faction_card["tab"], "desk")
+            self.assertEqual(faction_card["tab"], "audience")
+            self.assertEqual(faction_card["cta"], "召代表问势")
             self.assertTrue(faction_card["actor"])
             representative = db.conn.execute(
                 "SELECT faction, status, power_id FROM characters WHERE name=?",
@@ -776,6 +778,38 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("势力 92", labels)
             self.assertIn("怨气 82", labels)
             self.assertTrue(any(label.startswith("代表 ") for label in labels), labels)
+
+    def test_faction_chat_context_brief_rebuilds_pressure_stakes(self):
+        with TemporaryDirectory() as tmp:
+            db, _state = _fresh(tmp)
+            row = db.conn.execute(
+                "SELECT name, faction FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND faction NOT IN ('无','中立','') "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            name = str(row["name"])
+            faction = str(row["faction"])
+            db.conn.execute(
+                "UPDATE factions SET leverage=88, satisfaction=20, heat=74 WHERE name=?",
+                (faction,),
+            )
+            db.conn.execute(
+                "UPDATE characters SET emp_trust=33, grievance=69 WHERE name=?",
+                (name,),
+            )
+            db.conn.commit()
+
+            brief = faction_chat_context_brief(db, name, faction=faction)
+
+            self.assertIn("本次召对事项：派系压力/借力安抚", brief)
+            self.assertIn(faction, brief)
+            self.assertIn("满意 20", brief)
+            self.assertIn("势力 88", brief)
+            self.assertIn("党争热度 74", brief)
+            self.assertIn("可谈交换", brief)
+            self.assertIn("首次问话不直接改变派系数值", brief)
 
     def test_high_risk_aversion_becomes_trap_card(self):
         with TemporaryDirectory() as tmp:
