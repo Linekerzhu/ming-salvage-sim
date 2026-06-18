@@ -240,7 +240,7 @@ def legacy_chat_context_brief(
         return ""
     row = db.conn.execute(
         """
-        SELECT id, name, modifiers, narrative_hint, duration_months, legacy_key
+        SELECT id, name, modifiers, narrative_hint, duration_months, start_month, legacy_key
         FROM legacies
         WHERE id=? AND status='active'
         """,
@@ -254,7 +254,13 @@ def legacy_chat_context_brief(
     effects = policy_legacy_effect_labels_safe(row)
     effect_text = "；".join(str(item.get("label") or "") for item in effects if str(item.get("label") or "").strip())
     duration = int(policy["duration"])
-    duration_text = "永久" if duration < 0 else f"仍余{duration}月"
+    remaining = -1 if duration < 0 else duration
+    if duration >= 0:
+        try:
+            remaining = db.legacy_remaining_months(row, db.load_state())
+        except Exception:
+            remaining = duration
+    duration_text = "永久" if duration < 0 else f"仍余{remaining}月"
     title = str(row["name"] or "旧政余波")
     hint = str(row["narrative_hint"] or "")
     stem = str(policy.get("stem") or "")
@@ -271,6 +277,7 @@ def legacy_chat_context_brief(
         )
     lines.extend([
         "- NPC 应提出有代价的善后方案，例如分年蠲免、换税源、查中间侵吞、以新差事换旧政缓和；不要给无成本完美答案。",
+        "- 奏对抓手：必须点明至少一类受益者/受损者（如户部、边军、地方胥吏、士绅、百姓）和一个可追问责任人；不要只谈抽象民心。",
         "- 若皇帝要求立刻善后，先说清受益者、受损者、短期钱粮缺口与可能引发的党争。",
         "- 只有皇帝明确命其承办或要求拟旨，才进入奏对目的或拟旨；不要把本段机制文字复述给玩家。",
     ])
@@ -1488,13 +1495,20 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
         priority = _clamp_int(item.get("priority"), 0, 120)
         due = any("due" in reason or "expired" in reason or "blocked" in reason for reason in reasons)
         secret = any("secret_order" in reason for reason in reasons)
-        patronage = any("patronage" in reason for reason in reasons)
-        co_work = any("co_work" in reason for reason in reasons)
-        policy_audit = any("policy_audit" in reason for reason in reasons)
-        agreement = any("agreement" in reason or "conversation_goal" in reason for reason in reasons)
-        speech = any("stance" in reason or "speech" in reason for reason in reasons)
         title = str(item.get("title") or (hooks[0] if hooks else "本月可主动请安回奏。")).strip()
         summary = str(item.get("summary") or "").strip()
+        semantic_basis = " ".join([*reasons, title, summary, *hooks])
+        patronage = any("patronage" in reason for reason in reasons) or any(
+            token in semantic_basis for token in ("举主", "举荐", "荐人", "保新人")
+        )
+        co_work = any("co_work" in reason for reason in reasons) or any(
+            token in semantic_basis for token in ("共办", "同办", "试差")
+        )
+        policy_audit = any("policy_audit" in reason for reason in reasons) or any(
+            token in semantic_basis for token in ("旧政", "清查", "浮收", "侵吞")
+        )
+        agreement = any("agreement" in reason or "conversation_goal" in reason for reason in reasons)
+        speech = any("stance" in reason or "speech" in reason for reason in reasons)
         urgency = min(98, 58 + priority + (8 if due else 0) + (4 if secret else 0))
         tone = "danger" if due and (secret or agreement) else "warn" if due or risks else "info"
         meta_bits = []
@@ -1513,8 +1527,15 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
         if speech:
             meta_bits.append("口径")
         meta = "/".join(meta_bits[:3]) or _monthly_reason_label(reasons[0] if reasons else "请安")
+        primary_label = _monthly_reason_label(reasons[0] if reasons else "请安")
+        if patronage:
+            primary_label = "举主担保"
+        elif co_work:
+            primary_label = "共办回奏"
+        elif policy_audit:
+            primary_label = "旧政清查"
         effects = [
-            {"kind": "monthly_followup", "label": _monthly_reason_label(reasons[0] if reasons else "请安"), "tone": "bad" if due else "neutral"},
+            {"kind": "monthly_followup", "label": primary_label, "tone": "bad" if due else "neutral"},
             {"kind": "trust", "label": f"信任 {trust}", "tone": "bad" if trust <= 36 else "neutral"},
             {"kind": "grievance", "label": f"怨望 {grievance}", "tone": "bad" if grievance >= 58 else "neutral"},
         ]

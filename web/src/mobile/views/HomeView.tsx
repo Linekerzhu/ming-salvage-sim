@@ -520,7 +520,9 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
   }
   if (card.kind === "legacy") {
     return [
-      { label: "问余波", text: `这项旧政仍在拖动朝局。朕要听实话：它如今利在哪里，害在哪里，若要善后该从何处下手？`, prefix: true },
+      { label: "问利害", text: `这项旧政仍在拖动朝局。朕要听实话：它如今利在哪里，害在哪里，谁因它得利，谁因它受损？`, prefix: true },
+      { label: "查浮收", text: `朕不只听民怨二字。你指出这项旧政里谁加派、谁吞没、谁借题肥私，几日内能给证据？`, prefix: true },
+      { label: "议蠲缓", text: `若朕准蠲缓或改税源，国库缺口、边饷缺口由谁补？你拿一个有期限、有代价的善后方案来。`, prefix: true },
     ];
   }
   return [

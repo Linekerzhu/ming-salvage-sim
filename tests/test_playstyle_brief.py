@@ -561,6 +561,31 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("不是新政空谈", brief)
             self.assertIn("民心 -9%", brief)
             self.assertIn("有代价的善后方案", brief)
+            self.assertIn("受益者/受损者", brief)
+
+    def test_legacy_chat_context_uses_live_remaining_months(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            legacy_id = db.insert_legacy(
+                state,
+                name="苛税余波：练饷",
+                modifiers={"民心": -6},
+                narrative_hint="练饷暂行，地方仍在观望。",
+                duration_months=6,
+                legacy_key="directive_tax:8:练饷",
+            )
+            actor = _active_minister(db)
+            state.next_period()
+            state.next_period()
+            db.save_state(state)
+
+            payload = briefing_payload(db, state, limit=5, kind="legacy")
+            card = next(c for c in payload["cards"] if c["ref_id"] == str(legacy_id))
+            self.assertEqual(card["meta"], "余4月")
+
+            brief = legacy_chat_context_brief(db, actor, legacy_id)
+            self.assertIn("持续性：仍余4月", brief)
+            self.assertNotIn("仍余6月", brief)
 
     def test_agenda_near_maturity_becomes_audience_hook(self):
         with TemporaryDirectory() as tmp:
