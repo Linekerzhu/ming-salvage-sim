@@ -1542,6 +1542,10 @@ class AttendantSummonTests(unittest.TestCase):
                 "臣谨遵。",
             )
             self.assertEqual(press["title"], "御前索证")
+            self.assertEqual(
+                game.db.list_conversation_goals(minister_name=actor, statuses=["waiting_conditions"]),
+                [],
+            )
             after_press = game.db.conn.execute(
                 "SELECT emp_trust, grievance FROM characters WHERE name=?",
                 (actor,),
@@ -1561,12 +1565,84 @@ class AttendantSummonTests(unittest.TestCase):
                 "臣不敢再言。",
             )
             self.assertEqual(refused["title"], "御前拒请")
+            self.assertEqual(
+                game.db.list_conversation_goals(minister_name=actor, statuses=["waiting_conditions"]),
+                [],
+            )
             after_refused = game.db.conn.execute(
                 "SELECT emp_trust, grievance FROM characters WHERE name=?",
                 (actor,),
             ).fetchone()
             self.assertEqual(int(after_refused["emp_trust"]), 48)
             self.assertEqual(int(after_refused["grievance"]), 55)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_audience_bargain_followup_creates_obligation_and_rolls_back(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            from ming_sim.context import build_npc_monthly_followups
+
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=52, grievance=54 WHERE name=?",
+                (actor,),
+            )
+            game.db.conn.commit()
+            chat_turn_id, before_snapshot = game._start_chat_turn(actor)
+            context = {
+                "kind": "bargain",
+                "actor": actor,
+                "title": f"条件待证：{actor}",
+                "ref_kind": "memory",
+                "ref_id": "42",
+            }
+
+            effect = game._bargain_chat_effect(
+                actor,
+                context,
+                "先拿出账册和担保，限期三日再说。",
+                "臣谨遵。",
+                chat_turn_id,
+            )
+            game._record_chat_rollback_items(chat_turn_id, before_snapshot)
+
+            labels = {str(item["label"]) for item in effect["effects"]}
+            self.assertIn("履约账本：旧账索证入账", labels)
+            goals = game.db.list_conversation_goals(minister_name=actor, statuses=["waiting_conditions"])
+            self.assertEqual(len(goals), 1)
+            goal = goals[0]
+            self.assertEqual(goal["action_kind"], "audience_bargain")
+            self.assertIn("旧账索证", str(goal["title"]))
+            self.assertEqual(int(goal["expires_turn"]), int(game.state.turn) + 3)
+            self.assertTrue(any("账册" in str(item.get("description") or "") for item in goal["conditions"]))
+            agreements = game.db.list_negotiation_agreements(
+                minister_name=actor,
+                action_kind="audience_bargain",
+                status="pending",
+            )
+            self.assertEqual(len(agreements), 1)
+            self.assertEqual(agreements[0]["promise_type"], "旧账索证")
+            self.assertEqual(int(agreements[0]["due_turn"]), int(game.state.turn) + 2)
+            followups = build_npc_monthly_followups(game.db, game.state, limit=8)
+            actor_followup = next(item for item in followups if str(item.get("minister_name") or "") == actor)
+            self.assertIn("bargain_followup", actor_followup["reason_types"])
+            self.assertTrue(any("御前旧账" in str(tag) for tag in actor_followup["risk_tags"]))
+
+            game.db.undo_chat_turn(chat_turn_id)
+            self.assertEqual(game.db.list_conversation_goals(minister_name=actor), [])
+            self.assertEqual(
+                game.db.list_negotiation_agreements(minister_name=actor, action_kind="audience_bargain"),
+                [],
+            )
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

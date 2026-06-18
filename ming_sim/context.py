@@ -1217,6 +1217,14 @@ def _goal_followup_flavor(goal: Dict[str, object]) -> Dict[str, object]:
             "risk_tags": ["旧恩未报", "私请余波"],
             "opening": "请安时先承认旧恩未报，再说可验证据、成效和愿担的责任。",
         }
+    if "audience_bargain" in blob or "audience_bargain_commitment" in blob or "旧账索证" in title or "兑现旧账" in title:
+        return {
+            "reason_type": "bargain_followup",
+            "hook": f"御前旧账「{title}」仍需复命：须说明证据、兑现成效、拖延责任和会牵动谁。",
+            "priority": 6,
+            "risk_tags": ["御前旧账", "证据压力", "再拖成怨"],
+            "opening": "请安时先提旧账，不要泛泛谢恩；逐条说明证据、兑现、期限和担责人。",
+        }
     if "imperial_petition:demand_service" in blob or "难差自证" in title:
         return {
             "reason_type": "petition_service_followup",

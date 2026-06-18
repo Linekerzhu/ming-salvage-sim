@@ -4308,6 +4308,123 @@ class WebGame:
             return not allowed_names or minister_name in allowed_names
         return not actor or actor == minister_name
 
+    def _open_bargain_commitment(self, minister_name: str, title: str) -> Dict[str, Any]:
+        for goal in self.db.list_conversation_goals(
+            minister_name=minister_name,
+            statuses=["active", "waiting_conditions", "sealed", "blocked"],
+            limit=16,
+        ):
+            if str(goal.get("action_kind") or "") == "audience_bargain" and str(goal.get("title") or "") == title:
+                return goal
+        return {}
+
+    def _create_bargain_commitment(
+        self,
+        minister_name: str,
+        context: Optional[Dict[str, Any]],
+        attitude: str,
+        user_text: str,
+        chat_turn_id: int = 0,
+    ) -> Dict[str, Any]:
+        if not isinstance(context, dict) or str(context.get("kind") or "").strip() != "bargain":
+            return {}
+        if attitude not in {"accept", "press"}:
+            return {}
+        context_title = str(context.get("title") or context.get("meta") or "御前旧账").strip()
+        memory_id = str(context.get("ref_id") or context.get("id") or "").strip()
+        if attitude == "press":
+            title = f"旧账索证：{minister_name}"
+            target_text = f"{minister_name}须围绕「{context_title}」补交证据、账册或担保，再由御前裁定是否兑现。"
+            tasks = [
+                f"补交「{context_title}」相关账册、人证或担保",
+                "说明证据不足时愿领何责、由谁连坐担保",
+            ]
+            promise_type = "旧账索证"
+            stakes = "证据压力、拖延成怨、担保连坐"
+            message = "旧账索证入账"
+        else:
+            title = f"兑现旧账：{minister_name}"
+            target_text = f"{minister_name}须把「{context_title}」兑现为可验差使、成效或回报，避免旧恩变空账。"
+            tasks = [
+                f"说明「{context_title}」兑现成何项差使、资源或回报",
+                "限期回奏实际成效、受益者与外朝代价",
+            ]
+            promise_type = "旧账兑现"
+            stakes = "旧账兑现、私恩成债、派系要价"
+            message = "旧账兑现入账"
+        existing = self._open_bargain_commitment(minister_name, title)
+        if existing:
+            return {
+                "goal_id": int(existing.get("id") or 0),
+                "agreement_id": int(existing.get("agreement_id") or 0),
+                "title": title,
+                "message": message,
+                "created": False,
+            }
+        threshold = 68
+        conditions = [{"description": task, "status": "pending"} for task in tasks]
+        goal_id = self.db.create_conversation_goal(
+            self.state,
+            minister_name=minister_name,
+            action_kind="audience_bargain",
+            title=title,
+            target_text=target_text,
+            threshold=threshold,
+            score=100,
+            status="waiting_conditions",
+            condition_status="pending",
+            conditions=conditions,
+            expires_turn=int(self.state.turn) + 3,
+            source_chat_turn_id=chat_turn_id,
+            last_delta={
+                "source": "audience_bargain_commitment",
+                "attitude": attitude,
+                "memory_id": memory_id,
+                "context_title": context_title,
+                "user_text": str(user_text or "")[:120],
+            },
+        )
+        agreement_id = self.db.create_negotiation_agreement(
+            self.state,
+            minister_name=minister_name,
+            topic=title,
+            action_kind="audience_bargain",
+            status="pending",
+            stance_id=0,
+            handshake_status="sealed",
+            psychological_score=100,
+            threshold=threshold,
+            verbal_only=False,
+            core_topic=title,
+            target_text=target_text,
+            promise_type=promise_type,
+            stakes=stakes,
+            due_turn=int(self.state.turn) + 2,
+            conditions="；".join(tasks),
+            summary=f"{minister_name}领下御前{promise_type}，须限期回奏。",
+            tasks=tasks,
+            goal_id=goal_id,
+        )
+        self.db.bind_conversation_goal_agreement(goal_id, agreement_id)
+        self.db.add_conversation_goal_event(
+            self.state,
+            goal_id,
+            "agreement_created",
+            status="waiting_conditions",
+            score_delta=0,
+            score_after=100,
+            summary=f"{message}，进入履约账本 #{agreement_id}",
+            payload={"agreement_id": agreement_id, "attitude": attitude, "memory_id": memory_id},
+            source_chat_turn_id=chat_turn_id,
+        )
+        return {
+            "goal_id": goal_id,
+            "agreement_id": agreement_id,
+            "title": title,
+            "message": message,
+            "created": True,
+        }
+
     def _bargain_chat_effect(
         self,
         minister_name: str,
@@ -4402,19 +4519,27 @@ class WebGame:
                 f"信任 {before_trust}->{after_trust}，怨望 {before_grievance}->{after_grievance}。"
             ),
         )
+        commitment = self._create_bargain_commitment(minister_name, context, attitude, user_text, chat_turn_id)
         trust_tone = "good" if after_trust >= before_trust else "bad"
         grievance_tone = "good" if after_grievance <= before_grievance else "bad"
+        effects = [
+            {"kind": "trust", "label": f"信任 {before_trust}->{after_trust}", "tone": trust_tone},
+            {"kind": "grievance", "label": f"怨望 {before_grievance}->{after_grievance}", "tone": grievance_tone},
+            {"kind": "memory", "label": "交易入记忆", "tone": "neutral"},
+        ]
+        if commitment:
+            effects.append({
+                "kind": "conversation_goal",
+                "label": f"履约账本：{str(commitment.get('message') or '旧账')}",
+                "tone": "warn",
+            })
         return {
             "title": str(spec["title"]),
             "message": (
                 f"{minister_name}记下御前态度：信任 {before_trust}->{after_trust}，"
                 f"怨望 {before_grievance}->{after_grievance}"
             ),
-            "effects": [
-                {"kind": "trust", "label": f"信任 {before_trust}->{after_trust}", "tone": trust_tone},
-                {"kind": "grievance", "label": f"怨望 {before_grievance}->{after_grievance}", "tone": grievance_tone},
-                {"kind": "memory", "label": "交易入记忆", "tone": "neutral"},
-            ],
+            "effects": effects,
         }
 
     def chat(self, minister_name: str, message: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:

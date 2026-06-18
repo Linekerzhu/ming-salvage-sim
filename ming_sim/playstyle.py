@@ -4389,6 +4389,8 @@ def _monthly_reason_label(reason: str) -> str:
         return "补证密令"
     if "favor_service_followup" in text:
         return "偿恩差使"
+    if "bargain_followup" in text:
+        return "旧账复命"
     if "petition_service_followup" in text:
         return "难差自证"
     if "secret_order_due" in text:
