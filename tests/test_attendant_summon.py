@@ -1288,6 +1288,9 @@ class AttendantSummonTests(unittest.TestCase):
             ))
             self.assertEqual(proposal_events[-1]["type"], "done")
             self.assertIn("若准", proposal_events[-1]["payload"]["answer"])
+            self.assertIn("方案画像", proposal_events[-1]["payload"]["answer"])
+            self.assertIn("调养成本", proposal_events[-1]["payload"]["answer"])
+            self.assertIn("差遣风险", proposal_events[-1]["payload"]["answer"])
             pending = game._load_pending_dialogue_action(attendant)
             self.assertEqual(pending.get("type"), "castration")
             self.assertEqual(pending.get("target"), name)
@@ -1306,6 +1309,11 @@ class AttendantSummonTests(unittest.TestCase):
             payload = confirm_events[-1]["payload"]
             self.assertEqual(payload["dialogue_effect"]["title"], "强旨净身")
             self.assertIn("净身旧档", payload["answer"])
+            self.assertIn("方案画像", payload["answer"])
+            self.assertIn("差遣风险", payload["answer"])
+            effect_labels = {str(item.get("label") or "") for item in payload["dialogue_effect"].get("effects", [])}
+            self.assertTrue(any("方案：酷烈高危" in label for label in effect_labels))
+            self.assertTrue(any("后续调养成本+4" in label for label in effect_labels))
             minister = game.public_character(game.content.characters[name])
             self.assertEqual(minister["office"], "司礼监随堂太监")
             self.assertEqual(minister["office_type"], "司礼监")

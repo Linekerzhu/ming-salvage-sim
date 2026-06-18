@@ -4150,6 +4150,60 @@ class WebGame:
                 return {"type": "mediation", "faction": faction, "mode": mode}
         return {"type": "mediation", "actor": minister_name, "target": "", "mode": mode}
 
+    def _castration_scheme_preview(self, scheme_text: str, *, forced: bool = True) -> Dict[str, Any]:
+        try:
+            from ming_sim.eunuch_lore import BAO_FORFEIT, BAO_KEPT, castration_scheme_profile
+            lore = {
+                "forced": bool(forced),
+                "bao_status": BAO_FORFEIT if forced else BAO_KEPT,
+                "note": f"御前方案 {scheme_text or ''}".strip(),
+                "castration_method": "",
+                "knife_tool": "",
+                "anesthesia": "",
+                "procedure_note": "",
+                "bao_preservation": "",
+                "bao_container": "",
+                "bao_ritual": "",
+                "aftereffect": "",
+                "urinary_aftereffect": "",
+                "voice_body_change": "",
+                "trauma_response": "",
+            }
+            return castration_scheme_profile(lore)
+        except Exception:
+            return {}
+
+    def _castration_scheme_summary(self, profile: Dict[str, Any]) -> str:
+        if not isinstance(profile, dict) or not profile:
+            return ""
+        tier = str(profile.get("tier") or "").strip()
+        risk = int(profile.get("risk_score") or 0)
+        brutality = int(profile.get("brutality") or 0)
+        trauma = int(profile.get("trauma_risk") or 0)
+        surgery = int(profile.get("surgery_risk") or 0)
+        bao = int(profile.get("bao_security") or 0)
+        care = int(profile.get("care_cost_delta") or 0)
+        care_text = f"，调养成本{care:+d}" if care else ""
+        return f"方案画像：{tier or '未明'}，风险{risk}，酷烈{brutality}/惊创{trauma}/伤身{surgery}/宝案{bao}{care_text}"
+
+    def _castration_scheme_effects(self, profile: Dict[str, Any]) -> List[Dict[str, str]]:
+        if not isinstance(profile, dict) or not profile:
+            return []
+        tier = str(profile.get("tier") or "").strip()
+        risk = int(profile.get("risk_score") or 0)
+        care = int(profile.get("care_cost_delta") or 0)
+        effects: List[Dict[str, str]] = [
+            {"kind": "castration_scheme", "label": f"方案：{tier or '未明'} 风险{risk}", "tone": "bad" if risk >= 72 else "warn" if risk >= 55 else "neutral"},
+            {"kind": "castration_scheme", "label": f"酷烈{int(profile.get('brutality') or 0)} 惊创{int(profile.get('trauma_risk') or 0)} 伤身{int(profile.get('surgery_risk') or 0)}", "tone": "warn"},
+            {"kind": "castration_scheme", "label": f"宝案安全{int(profile.get('bao_security') or 0)}", "tone": "good" if int(profile.get("bao_security") or 0) >= 70 else "neutral"},
+        ]
+        if care:
+            effects.append({"kind": "castration_scheme", "label": f"后续调养成本{care:+d}", "tone": "bad" if care > 0 else "good"})
+        for text in (profile.get("effects") or [])[:3]:
+            if str(text).strip():
+                effects.append({"kind": "castration_scheme_rule", "label": str(text)[:32], "tone": "neutral"})
+        return effects
+
     def _proposal_answer_for_action(self, minister_name: str, action: Dict[str, Any]) -> str:
         self_ref = self._dialogue_speaker_self(minister_name)
         kind = str(action.get("kind") or "")
@@ -4174,6 +4228,8 @@ class WebGame:
         if action.get("type") == "castration":
             target = str(action.get("target") or "")
             scheme = str(action.get("scheme_text") or "")
+            profile = self._castration_scheme_preview(scheme, forced=True)
+            profile_summary = self._castration_scheme_summary(profile)
             scheme_hint = "、".join(
                 part for part in (
                     "净军房" if "净军" in scheme else "",
@@ -4186,6 +4242,8 @@ class WebGame:
             return (
                 f"{self_ref}回陛下，{target}若真要净身入内廷，便是奇辱重罚，外朝必知这是强旨。"
                 f"{self_ref}拟按「{scheme_hint}」办，宝况、刀具、麻醉与宝匣都会入档。"
+                + (f"{profile_summary}。" if profile_summary else "")
+                + "这不是单纯换官名，后头会影响漏尿尿闭、惊创、调养成本和差遣风险。"
                 f"陛下若准，{self_ref}才敢传净军房行事；若还要改刀具、麻醉、宝匣材质或后患记档，也可现在明示。"
             )
         if action.get("type") == "eunuch_care":
@@ -4305,18 +4363,23 @@ class WebGame:
                 if value and value not in labels:
                     labels.append(value)
         detail = "、".join(labels[:6]) or "净身旧档已入册"
+        scheme_profile = castration.get("scheme_profile") if isinstance(castration, dict) else {}
+        scheme_summary = self._castration_scheme_summary(scheme_profile if isinstance(scheme_profile, dict) else {})
+        scheme_effects = self._castration_scheme_effects(scheme_profile if isinstance(scheme_profile, dict) else {})
         self._clear_pending_dialogue_action(minister_name)
         return {
             "answer": (
                 f"{self_ref}遵旨。{target}已净身入内廷，净身旧档按御前方案写明：{detail}。"
-                "宝况、宝匣、后患与私癖已入档，陛下可查其人物档案。"
+                + (f"{scheme_summary}。" if scheme_summary else "")
+                + "宝况、宝匣、后患与私癖已入档；后续旧患发作、调养成本与差遣风险都会按此方案走。"
             ),
             "dialogue_effect": {
                 "title": "强旨净身",
-                "message": f"{target}入内廷：{detail}",
+                "message": f"{target}入内廷：{detail}" + (f"；{scheme_summary}" if scheme_summary else ""),
                 "effects": [
                     {"kind": "castration", "label": "净身旧档已入册", "tone": "bad"},
                     {"kind": "character", "label": f"{target} 可召见", "tone": "warn"},
+                    *scheme_effects[:6],
                 ],
             },
         }
