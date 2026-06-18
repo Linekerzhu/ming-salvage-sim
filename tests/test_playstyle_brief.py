@@ -407,6 +407,8 @@ class PlaystyleBriefTests(unittest.TestCase):
             labels = [str(e["label"]) for e in card["effects"]]
             self.assertIn("密令到期", labels)
             self.assertIn("密令回奏", labels)
+            stake_labels = [str(e["label"]) for e in card["stakes"]]
+            self.assertEqual(stake_labels, ["密令续查", "惊动线索", "补人证"])
             buckets = {str(b["kind"]): b for b in payload["buckets"]}
             self.assertEqual(buckets["monthly_followup"]["label"], "候见")
 
@@ -469,6 +471,8 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("举主担保", labels)
             self.assertEqual(labels.count("举主担保"), 1)
             self.assertNotIn("旧约待复", labels)
+            stake_labels = [str(e["label"]) for e in card["stakes"]]
+            self.assertEqual(stake_labels, ["验新人", "举主坐大", "连坐担保"])
 
     def test_blocked_monthly_followup_surfaces_old_obligation_stakes(self):
         with TemporaryDirectory() as tmp:
@@ -504,6 +508,8 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("旧约受阻", labels)
             self.assertIn("进度 48/75", labels)
             self.assertTrue(any(label.startswith("待证：") for label in labels))
+            stake_labels = [str(e["label"]) for e in card["stakes"]]
+            self.assertEqual(stake_labels, ["裁断阻力", "皇帝背书", "补证据"])
 
             brief = monthly_followup_chat_context_brief(db, name)
             self.assertIn("旧约状态", brief)

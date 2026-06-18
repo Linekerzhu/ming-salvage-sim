@@ -1529,6 +1529,7 @@ def _card(
     ref_kind: str = "",
     ref_id: str = "",
     effects: Optional[List[Dict[str, str]]] = None,
+    stakes: Optional[List[Dict[str, str]]] = None,
 ) -> BriefCard:
     card: BriefCard = {
         "kind": kind,
@@ -1546,9 +1547,9 @@ def _card(
     }
     if effects:
         card["effects"] = effects
-    stakes = _card_stakes(kind)
-    if stakes:
-        card["stakes"] = stakes
+    stake_items = stakes if stakes is not None else _card_stakes(kind)
+    if stake_items:
+        card["stakes"] = stake_items
     return card
 
 
@@ -2472,11 +2473,93 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
                 ref_kind="monthly_followup",
                 ref_id=name,
                 effects=deduped_effects[:6],
+                stakes=_monthly_followup_stakes(
+                    expired=expired_old,
+                    blocked=blocked_old,
+                    waiting=waiting_old,
+                    secret=secret,
+                    patronage=patronage,
+                    co_work=co_work,
+                    policy_audit=policy_audit,
+                    due=due,
+                    agreement=agreement,
+                ),
             )
         )
         count += 1
         if count >= 2:
             break
+
+
+def _monthly_followup_stakes(
+    *,
+    expired: bool = False,
+    blocked: bool = False,
+    waiting: bool = False,
+    secret: bool = False,
+    patronage: bool = False,
+    co_work: bool = False,
+    policy_audit: bool = False,
+    due: bool = False,
+    agreement: bool = False,
+) -> List[Dict[str, str]]:
+    """Make old-promise audience hooks read as different bargains, not one status bucket."""
+
+    if expired:
+        profile = [
+            ("gain", "最后展限", "good"),
+            ("cost", "问罪伤怨", "bad"),
+            ("ask", "谁担责", "neutral"),
+        ]
+    elif blocked:
+        profile = [
+            ("gain", "裁断阻力", "good"),
+            ("cost", "皇帝背书", "bad"),
+            ("ask", "补证据", "neutral"),
+        ]
+    elif secret:
+        profile = [
+            ("gain", "密令续查", "good"),
+            ("cost", "惊动线索", "bad"),
+            ("ask", "补人证", "neutral"),
+        ]
+    elif patronage:
+        profile = [
+            ("gain", "验新人", "good"),
+            ("cost", "举主坐大", "bad"),
+            ("ask", "连坐担保", "neutral"),
+        ]
+    elif co_work:
+        profile = [
+            ("gain", "压私怨", "good"),
+            ("cost", "共办翻脸", "bad"),
+            ("ask", "分工画押", "neutral"),
+        ]
+    elif policy_audit:
+        profile = [
+            ("gain", "查中间人", "good"),
+            ("cost", "钱粮缺口", "bad"),
+            ("ask", "账册限期", "neutral"),
+        ]
+    elif waiting:
+        profile = [
+            ("gain", "闭环旧约", "good"),
+            ("cost", "空口拖延", "bad"),
+            ("ask", "核条件", "neutral"),
+        ]
+    elif due or agreement:
+        profile = [
+            ("gain", "旧约可续", "good"),
+            ("cost", "失信成怨", "bad"),
+            ("ask", "重定期限", "neutral"),
+        ]
+    else:
+        profile = [
+            ("gain", "主动复命", "good"),
+            ("cost", "听后要断", "bad"),
+            ("ask", "问下一手", "neutral"),
+        ]
+    return [{"kind": kind, "label": label, "tone": tone} for kind, label, tone in profile]
 
 
 def _patronage_cards(db: GameDB, cards: List[BriefCard]) -> None:
