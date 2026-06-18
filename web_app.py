@@ -4323,7 +4323,28 @@ class WebGame:
             agenda = None
         if agenda and str(agenda.get("status") or "active") == "active":
             title = str(agenda.get("title") or "私心")[:42]
-            add("问私心", f"朕闻你近来有「{title}」之势。你自己说，是为国任事，还是另有所图？若朕用你，如何避嫌交账？")
+            kind = str(agenda.get("kind") or "")
+            target = str(agenda.get("target_name") or agenda.get("target") or "")
+            try:
+                from ming_sim.playstyle import _agenda_bargain_profile
+                profile = _agenda_bargain_profile(kind, target)
+            except Exception:
+                profile = {
+                    "ask": "求名分、求台阶或求差使",
+                    "exchange": "给期限、要证据、设担保，再看能否任用",
+                    "cost": "许之有短期收益，也会留下人情账",
+                    "refusal": "拒之可能转成怨望或暗中掣肘",
+                }
+            add(
+                "问私心",
+                f"朕闻你近来有「{title}」之势。你多半要求「{profile['ask']}」。"
+                f"今日自己说，是为国任事，还是另有所图？",
+            )
+            add(
+                "设交易",
+                f"若朕给你边界或差使，你须先「{profile['exchange']}」。"
+                f"你做得到，还是要朕替你担下「{profile['cost']}」？",
+            )
 
         if court is not None:
             try:
@@ -4352,7 +4373,7 @@ class WebGame:
                 basis = str(allies[0].get("basis") or "声气相通")[:28]
                 add("问党羽", f"你与{ally}声气相通（{basis}）。若朕让你荐人或办事，如何保证不是借公事植党？")
 
-        return suggestions[:3]
+        return suggestions[:4]
 
     def suggestions_for(self, character: Character) -> List[Dict[str, Any]]:
         suggestions: List[Dict[str, Any]] = self._audience_stake_suggestions(character)

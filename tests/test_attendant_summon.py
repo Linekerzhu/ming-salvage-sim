@@ -467,12 +467,16 @@ class AttendantSummonTests(unittest.TestCase):
 
             suggestions = game.suggestions_for(game.session._character(actor))
             labels = {str(item["label"]) for item in suggestions}
+            texts = {str(item["label"]): str(item["text"]) for item in suggestions}
 
             self.assertIn("问私心", labels)
+            self.assertIn("设交易", labels)
             self.assertIn("问政敌", labels)
             self.assertIn("点旧恩", labels)
             self.assertIn("拟旨", labels)
             self.assertIn("下密令", labels)
+            self.assertIn("保门生故旧", texts["问私心"])
+            self.assertIn("举荐连坐担保", texts["设交易"])
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
