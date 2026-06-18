@@ -357,7 +357,11 @@ def directive_execution_assessments(
         actor_score = _actor_fit_score(actor_row, domains)
         actor_domain_bonus = _actor_domain_bonus(actor_row, domains)
         trait_modifier, trait_note, trait_risks = _actor_trait_modifier(db, actor, domains)
-        actor_adjusted = _clamp_int(actor_score + actor_domain_bonus + trait_modifier, 0, 100)
+        eunuch_risk = _eunuch_assignment_profile(db, actor, text, domains)
+        eunuch_modifier = int(eunuch_risk.get("score_delta") or 0) if isinstance(eunuch_risk, dict) else 0
+        eunuch_note = str(eunuch_risk.get("note") or "") if isinstance(eunuch_risk, dict) else ""
+        eunuch_risks = list(eunuch_risk.get("risks") or []) if isinstance(eunuch_risk, dict) else []
+        actor_adjusted = _clamp_int(actor_score + actor_domain_bonus + trait_modifier + eunuch_modifier, 0, 100)
         relationship_score, relationship_note = _relationship_score(db, state, actor)
         faction_score, faction_note = _faction_score(db, actor_row)
         stance_score, stance_note = _stance_score(db, getattr(state, "turn", 0), actor, text)
@@ -380,13 +384,15 @@ def directive_execution_assessments(
         )
         risks = [
             *trait_risks,
-            *[risk for risk in stance_risks if risk not in trait_risks],
-            *[risk for risk in risks if risk not in trait_risks and risk not in stance_risks],
+            *[risk for risk in eunuch_risks if risk not in trait_risks],
+            *[risk for risk in stance_risks if risk not in trait_risks and risk not in eunuch_risks],
+            *[risk for risk in risks if risk not in trait_risks and risk not in stance_risks and risk not in eunuch_risks],
         ]
         drivers = [
             f"班子执行力{institution_score}",
             f"承办人适配{actor_adjusted}",
             trait_note,
+            eunuch_note,
             relationship_note,
             faction_note,
             stance_note,
@@ -403,6 +409,7 @@ def directive_execution_assessments(
             "actor_score": actor_adjusted,
             "trait_modifier": trait_modifier,
             "trait_note": trait_note,
+            "eunuch_lore_risk": eunuch_risk,
             "relationship_score": relationship_score,
             "faction_score": faction_score,
             "stance_score": stance_score,
@@ -440,7 +447,11 @@ def secret_order_actor_assessment(
     actor_score = _actor_fit_score(actor_row, domains)
     actor_domain_bonus = _actor_domain_bonus(actor_row, domains)
     trait_modifier, trait_note, trait_risks = _actor_trait_modifier(db, actor, domains)
-    actor_adjusted = _clamp_int(actor_score + actor_domain_bonus + trait_modifier, 0, 100)
+    eunuch_risk = _eunuch_assignment_profile(db, actor, text, domains)
+    eunuch_modifier = int(eunuch_risk.get("score_delta") or 0) if isinstance(eunuch_risk, dict) else 0
+    eunuch_note = str(eunuch_risk.get("note") or "") if isinstance(eunuch_risk, dict) else ""
+    eunuch_risks = list(eunuch_risk.get("risks") or []) if isinstance(eunuch_risk, dict) else []
+    actor_adjusted = _clamp_int(actor_score + actor_domain_bonus + trait_modifier + eunuch_modifier, 0, 100)
     relationship_score, relationship_note = _relationship_score(db, state, actor)
     faction_score, faction_note = _faction_score(db, actor_row)
     stance_score, stance_note = _stance_score(db, getattr(state, "turn", 0), actor, text)
@@ -483,7 +494,8 @@ def secret_order_actor_assessment(
     ][:4]
     risks = [
         *trait_risks,
-        *[risk for risk in stance_risks if risk not in trait_risks],
+        *[risk for risk in eunuch_risks if risk not in trait_risks],
+        *[risk for risk in stance_risks if risk not in trait_risks and risk not in eunuch_risks],
     ]
     if actor_row is None:
         risks.append("密令承办人不在当前名册，核议应从严。")
@@ -503,6 +515,7 @@ def secret_order_actor_assessment(
         "actor_score": actor_adjusted,
         "trait_modifier": trait_modifier,
         "trait_note": trait_note,
+        "eunuch_lore_risk": eunuch_risk,
         "relationship_score": relationship_score,
         "faction_score": faction_score,
         "stance_score": stance_score,
@@ -510,6 +523,7 @@ def secret_order_actor_assessment(
             part for part in (
                 f"密令承办适配{actor_adjusted}",
                 trait_note,
+                eunuch_note,
                 relationship_note,
                 faction_note,
                 stance_note,
@@ -667,6 +681,15 @@ def _actor_domain_bonus(row: Optional[Dict[str, Any]], domains: Sequence[str]) -
     if "general" in domains:
         return 0
     return -10
+
+
+def _eunuch_assignment_profile(db: Any, actor: str, text: str, domains: Sequence[str]) -> Dict[str, Any]:
+    try:
+        from ming_sim.eunuch_lore import assignment_risk_profile
+        profile = assignment_risk_profile(db, actor, text, domains=domains)
+    except Exception:
+        profile = {}
+    return profile if isinstance(profile, dict) else {}
 
 
 def _relationship_score(db: Any, state: Any, actor: str) -> tuple[int, str]:

@@ -220,6 +220,32 @@ class RecordCastrationTests(unittest.TestCase):
             ).fetchone()
             self.assertIsNotNone(memory)
 
+    def test_assignment_risk_profile_turns_old_wounds_into_dispatch_risk_and_care_mitigates(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(
+                db,
+                name,
+                forced=True,
+                day=day,
+                detail_text="净军房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+            )
+            task = "密查刑房封签，夜间久候盯梢，拿问口供。"
+
+            before = el.assignment_risk_profile(db, name, task, domains=["investigation", "inner"])
+
+            self.assertLess(int(before["score_delta"]), 0)
+            self.assertTrue(any("尿路旧患" in item for item in before["risks"]))
+            self.assertTrue(any("惊创未平" in item for item in before["risks"]))
+            self.assertTrue(before["stage_cues"])
+
+            el.apply_eunuch_care(db, state, name, mode="urinary", note="先治尿闭漏尿，再派久候盯梢。")
+            after = el.assignment_risk_profile(db, name, task, domains=["investigation", "inner"])
+
+            self.assertGreater(int(after["score_delta"]), int(before["score_delta"]))
+            self.assertTrue(any("尿路旧患已有御前调养" in item for item in after["mitigations"]))
+
     def test_timeflow_surfaces_castration_complication_events(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)

@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Sequence
 
 from ming_sim.db import GameDB
 from ming_sim.models import GameState
@@ -1219,6 +1219,162 @@ def apply_eunuch_care(
         "process": process,
         "outcome": outcome,
         "delta": {key: after[key] - before[key] for key in before if after[key] != before[key]},
+    }
+
+
+def _trait_names(db: GameDB, name: str) -> set[str]:
+    try:
+        rows = db.conn.execute(
+            "SELECT trait FROM character_traits WHERE name=?",
+            ((name or "").strip(),),
+        ).fetchall()
+    except Exception:
+        return set()
+    return {str(row["trait"] or "").strip() for row in rows if str(row["trait"] or "").strip()}
+
+
+def assignment_risk_profile(
+    db: GameDB,
+    name: str,
+    task_text: str = "",
+    *,
+    domains: Optional[Sequence[str]] = None,
+) -> Dict[str, object]:
+    """Translate eunuch lore into concrete dispatch/secret-order risk.
+
+    This keeps the castration/bao details playable: the same old wound can be a
+    bad fit for long surveillance, prison work, confiscated-bao inquiries, or a
+    public-facing errand. Dialogue care traits soften the corresponding risk.
+    """
+
+    clean_name = str(name or "").strip()
+    lore = get_lore(db, clean_name)
+    if not clean_name or lore is None:
+        return {}
+    raw = str(task_text or "")
+    domain_set = {str(domain or "").strip() for domain in (domains or []) if str(domain or "").strip()}
+    traits = _trait_names(db, clean_name)
+    score_delta = 0
+    notes: List[str] = []
+    risks: List[str] = []
+    mitigations: List[str] = []
+    stage_cues: List[str] = []
+
+    def add(
+        delta: int,
+        note: str,
+        risk: str = "",
+        *,
+        care_trait: str = "",
+        mitigation: str = "",
+        stage: str = "",
+    ) -> None:
+        nonlocal score_delta
+        adjusted = int(delta)
+        if adjusted < 0 and care_trait and care_trait in traits:
+            relief = min(abs(adjusted), 4)
+            adjusted += relief
+            if mitigation and mitigation not in mitigations:
+                mitigations.append(mitigation)
+            note = f"{note}已调养缓和"
+        if adjusted == 0 and delta < 0:
+            return
+        score_delta += adjusted
+        if note and note not in notes:
+            notes.append(note)
+        if adjusted < 0 and risk and risk not in risks:
+            risks.append(risk)
+        if stage and stage not in stage_cues:
+            stage_cues.append(stage)
+
+    urine = str(lore.get("urinary_aftereffect") or "").strip()
+    if urine:
+        hard_wait = bool(
+            re.search(r"久候|夜守|盯梢|跟踪|远行|出京|巡|缉拿|路上|边镇|陕西|山西|辽东", raw)
+            or domain_set.intersection({"investigation", "military", "local"})
+        )
+        add(
+            -5 if hard_wait else -2,
+            "尿路旧患牵制久候远行",
+            f"尿路旧患：{urine}，久候盯梢、远行或连夜差遣易误时。",
+            care_trait="旧患调养",
+            mitigation="尿路旧患已有御前调养，久候误事风险下降。",
+            stage="久候会夹腰缩步，需给副手或准其换班。",
+        )
+
+    trauma = str(lore.get("trauma_response") or "").strip()
+    if trauma:
+        prison_pressure = bool(
+            re.search(r"刑房|净房|净军|刀|血|拷|审|拿问|下狱|诏狱|廷杖|抄家|封签", raw)
+            or "investigation" in domain_set
+        )
+        add(
+            -6 if prison_pressure else -2,
+            "惊创旧梦影响高压查办",
+            f"惊创未平：{trauma}，刑房、拿问、封签或净房线索会触发失神。",
+            care_trait="惊创抚慰",
+            mitigation="惊创已受抚慰，刑房旧梦触发概率下降。",
+            stage="听见刑房、刀声、净房旧话会短暂失神。",
+        )
+
+    body = str(lore.get("voice_body_change") or "").strip()
+    if body and (
+        re.search(r"乔装|潜入|外出|传旨|密会|面见|跑腿|见人|口供", raw)
+        or domain_set.intersection({"investigation", "local", "inner"})
+    ):
+        add(
+            -3,
+            "体声异变影响乔装接触",
+            f"体声异变：{body}，乔装、问话或公开传旨时容易露怯。",
+            care_trait="仪态修整",
+            mitigation="体声仪态已修整，露怯风险下降。",
+            stage="话急时嗓音发尖、肩背微缩。",
+        )
+
+    bao_status = str(lore.get("bao_status") or "")
+    ritual = str(lore.get("bao_ritual") or "").strip()
+    bao_touch = bool(re.search(r"宝|宝匣|封签|官库|旧案|净房|司礼监|内廷|验身|验宝", raw) or "inner" in domain_set)
+    if bao_touch:
+        if bao_status in {BAO_FORFEIT, BAO_LOST}:
+            label = "宝为官没" if bao_status == BAO_FORFEIT else "宝已遗失"
+            add(
+                -4,
+                "宝案心结牵动内廷查验",
+                f"宝案心结：{label}，遇官库封签、验宝或净房旧案容易怨气上涌。",
+                care_trait="宝匣安置",
+                mitigation="宝案已奉旨查验安置，封签刺激稍缓。",
+                stage="听见封签宝匣会摸袖中钥匙或避开视线。",
+            )
+        elif ritual:
+            add(
+                2,
+                "宝匣自藏使其在内廷规矩里较能定神",
+                stage="遇内廷封匣旧例会先摸钥匙定神。",
+            )
+
+    fixation = str(lore.get("private_fixation") or "").strip()
+    if fixation and re.search(r"钥匙|封匣|账册|库|规矩|搜查|翻检|洁净|衣物", raw):
+        add(
+            -2,
+            "心癖会让差事偏执走样",
+            f"心癖牵动：{fixation}，翻检、封匣或库房差事可能过度偏执。",
+            care_trait="心癖安顿",
+            mitigation="心癖已有安顿，偏执走样风险下降。",
+            stage="反复抚平衣褶或摸索钥匙给自己定神。",
+        )
+
+    score_delta = max(-18, min(4, int(score_delta)))
+    if not notes and not risks and not mitigations:
+        return {}
+    sign = "+" if score_delta > 0 else ""
+    return {
+        "name": clean_name,
+        "score_delta": score_delta,
+        "note": f"净身旧患修正{sign}{score_delta}（{'、'.join(notes[:4])}）" if notes else "",
+        "risks": risks[:6],
+        "mitigations": mitigations[:4],
+        "stage_cues": stage_cues[:4],
+        "condition_line": str((public_lore_payload(db, clean_name) or {}).get("condition_line") or "")[:240],
     }
 
 

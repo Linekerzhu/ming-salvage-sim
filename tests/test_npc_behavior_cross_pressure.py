@@ -17,7 +17,7 @@ from ming_sim.db import GameDB
 from ming_sim.dialogue_audit import post_dialogue_audit, pre_dialogue_audit
 from ming_sim.dialogue_goals import record_dialogue_effects
 from ming_sim.issues import bind_content as bind_issues
-from ming_sim import memorials
+from ming_sim import eunuch_lore as el, memorials
 from ming_sim.models import Character, CourtContext, GameState, LLMConfig
 from ming_sim.registry import (
     bind_content as bind_registry,
@@ -818,6 +818,42 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             self.assertEqual([], unrelated["stance_risks"])
             self.assertIn("未命中本旨", unrelated["drivers"][-1])
             self.assertFalse(any("钱谦益" in item for item in unrelated["risks"]))
+            db.conn.close()
+
+    def test_secret_order_actor_assessment_carries_eunuch_old_wound_dispatch_risks(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db = GameDB(str(Path(tmp) / "npc_secret_eunuch_wound_risk.db"), content=self.content)
+            db.seed_static_data()
+            state = GameState(
+                year=1628,
+                period=1,
+                turn=1,
+                metrics={"国库": 100, "内库": 50, "民心": 50, "皇威": 50},
+            )
+            actor = "王承恩"
+            el.record_castration(
+                db,
+                actor,
+                forced=True,
+                day=1,
+                detail_text="净军房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+            )
+            order_id = db.create_secret_order(
+                state,
+                actor,
+                "密查净军房封签",
+                "夜间久候盯梢刑房封签，拿问口供，查清官库旧案。",
+                ["刑房", "封签", "净军房"],
+                deadline_months=1,
+            )
+
+            assessment = secret_order_actor_assessment(state, db, db.get_secret_order(order_id) or {})
+
+            self.assertIn("eunuch_lore_risk", assessment)
+            self.assertLess(int(assessment["eunuch_lore_risk"]["score_delta"]), 0)
+            self.assertTrue(any("尿路旧患" in item for item in assessment["risks"]))
+            self.assertTrue(any("惊创未平" in item for item in assessment["risks"]))
+            self.assertTrue(any("净身旧患修正" in item for item in assessment["drivers"]))
             db.conn.close()
 
     def test_secret_order_tools_return_actor_behavior_brief(self) -> None:
