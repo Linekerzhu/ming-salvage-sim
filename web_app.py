@@ -1345,13 +1345,76 @@ class WebGame:
             payload = None
         return payload if isinstance(payload, dict) else None
 
+    def _eunuch_lore_text_has_detail(self, text: str) -> bool:
+        raw = str(text or "").strip()
+        return bool(re.search(
+            r"宝匣|宝用|宝约|宝案|旧匣|封蜡|油炸|石灰|香料|盐灰|楠木|杉木|黄杨|锡胆|灰瓮|"
+            r"一大一小|二两|三两|一两|油封|发硬|漏尿|尿闭|尿频|尿线|小便不通|石淋|"
+            r"嗓音|尖嗓|尖薄|肩背|腰腹|久跪|幻肢|幻痛|噩梦|按肩|磨刀|"
+            r"贤者模式|性无能|不能人道|禁欲|净军房行事|奉旨宫刑|无麻|铜柄|银柄|檀柄|"
+            r"钥匙贴身|补录宝案|查验宝匣|赐还宝匣|押在官库封存",
+            raw,
+            flags=re.IGNORECASE,
+        ))
+
+    def _eunuch_lore_text_has_write_intent(self, text: str) -> bool:
+        raw = str(text or "").strip()
+        return bool(re.search(
+            r"记入旧档|记入档|记档|补记|补录|登记|入档|补档|请先记|"
+            r"改用.{0,12}(?:匣|宝匣|木匣|灰瓮)|(?:宝|旧匣).{0,8}改用|"
+            r"宝用|宝约|宝押|封存|收.{0,8}(?:匣|灰瓮|官库)|查验宝匣|赐还宝匣|"
+            r"净军房行事|奉旨宫刑|补录宝案|钥匙贴身",
+            raw,
+        ))
+
+    def _eunuch_lore_text_is_casual_query(self, text: str) -> bool:
+        raw = str(text or "").strip()
+        if self._eunuch_lore_text_has_write_intent(raw):
+            return False
+        return bool(re.search(
+            r"(?:只是|只|不过|随便|单是).{0,12}(?:问|聊|说|谈|听|看|打听)"
+            r"|(?:什么|何处|何人|谁|有何|有没有|可有|是否|怎么看|如何|风声|传闻|消息|旧案).{0,18}(?:吗|[？?])?",
+            raw,
+        ))
+
+    def _eunuch_lore_text_looks_like_minister_answer(self, text: str) -> bool:
+        raw = str(text or "").strip()
+        if not raw:
+            return False
+        return bool(re.search(
+            r"^(?:【动作】[^\n]{0,80}\n)?(?:臣|奴婢|奴才|小的|卑职|微臣).{0,12}"
+            r"(?:回|遵旨|领旨|以为|听闻|不敢|这就|谨)",
+            raw,
+        ) or re.search(r"^.{0,18}回陛下", raw))
+
+    def _eunuch_lore_default_speaker_allowed(self, text: str) -> bool:
+        raw = str(text or "").strip()
+        if self._eunuch_lore_text_is_casual_query(raw):
+            return False
+        if not self._eunuch_lore_text_has_detail(raw):
+            return False
+        return self._eunuch_lore_text_has_write_intent(raw) or bool(re.search(
+            r"(?:我|臣|奴婢|奴才|小的|本人|自己|你|你的|卿|此人|这人|他|他的).{0,24}"
+            r"(?:宝|宝匣|旧匣|漏尿|尿闭|嗓音|幻肢|净军房|宫刑|无麻|贤者模式|性无能)",
+            raw,
+        ))
+
     def _absorb_eunuch_lore_from_text(self, minister_name: str, text: str) -> Dict[str, Any]:
         clean = str(minister_name or "").strip()
         raw = str(text or "").strip()
         if not raw:
             return {}
-        mentioned = [name for name in self._character_mentions_in_text(raw) if name != clean]
+        if self._eunuch_lore_text_looks_like_minister_answer(raw) and not self._eunuch_lore_text_has_write_intent(raw):
+            return {}
+        if self._eunuch_lore_text_is_casual_query(raw):
+            return {}
+        if not self._eunuch_lore_text_has_detail(raw):
+            return {}
+        all_mentions = self._character_mentions_in_text(raw)
+        mentioned = [name for name in all_mentions if name != clean]
         candidates = list(mentioned)
+        if not candidates and clean and clean in all_mentions and self._eunuch_lore_text_has_write_intent(raw):
+            candidates = [clean]
         if not candidates:
             try:
                 pending = self._load_pending_dialogue_action(clean)
@@ -1361,7 +1424,7 @@ class WebGame:
                 target = str(pending.get("target") or "").strip()
                 if target:
                     candidates = [target]
-        if not candidates and clean:
+        if not candidates and clean and self._eunuch_lore_default_speaker_allowed(raw):
             candidates = [clean]
         if not candidates:
             return {}

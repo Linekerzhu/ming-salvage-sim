@@ -2322,6 +2322,112 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_attendant_lore_reply_terms_do_not_maintain_old_file(self):
+        from ming_sim import eunuch_lore as el
+
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            el.record_castration(game.db, attendant, forced=False, day=0)
+            game.db.conn.execute(
+                """
+                UPDATE eunuch_lore
+                SET castration_method='', procedure_note='', bao_preservation='', private_fixation=''
+                WHERE name=?
+                """,
+                (attendant,),
+            )
+            game.db.conn.commit()
+            before = {
+                key: str((el.get_lore(game.db, attendant) or {}).get(key) or "")
+                for key in ("castration_method", "procedure_note", "bao_preservation", "private_fixation")
+            }
+
+            result = game._absorb_eunuch_lore_from_text(
+                attendant,
+                "奴婢回陛下，内书堂和司礼监旧档里多是名册、官库旧案、封签钥匙，"
+                "奴婢只敢替陛下打听风声。",
+            )
+
+            self.assertEqual(result, {})
+            lore = el.get_lore(game.db, attendant)
+            after = {
+                key: str(lore[key] or "")
+                for key in ("castration_method", "procedure_note", "bao_preservation", "private_fixation")
+            }
+            self.assertEqual(after, before)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_attendant_casual_lore_question_does_not_update_old_file(self):
+        from ming_sim import eunuch_lore as el
+
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            el.record_castration(game.db, attendant, forced=False, day=0)
+            game.db.conn.execute(
+                """
+                UPDATE eunuch_lore
+                SET castration_method='', procedure_note='', bao_preservation='', private_fixation=''
+                WHERE name=?
+                """,
+                (attendant,),
+            )
+            game.db.conn.commit()
+            before = {
+                key: str((el.get_lore(game.db, attendant) or {}).get(key) or "")
+                for key in ("castration_method", "procedure_note", "bao_preservation", "private_fixation")
+            }
+
+            result = game._absorb_eunuch_lore_from_text(
+                attendant,
+                "王承恩，司礼监旧档、内书堂和官库那边有什么风声？钥匙可在谁手里？",
+            )
+
+            self.assertEqual(result, {})
+            lore = el.get_lore(game.db, attendant)
+            after = {
+                key: str(lore[key] or "")
+                for key in ("castration_method", "procedure_note", "bao_preservation", "private_fixation")
+            }
+            self.assertEqual(after, before)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_attendant_explicit_lore_order_still_updates_old_file(self):
+        from ming_sim import eunuch_lore as el
+
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            el.record_castration(game.db, attendant, forced=False, day=0)
+
+            result = game._absorb_eunuch_lore_from_text(
+                attendant,
+                "请把王承恩的宝匣改用黑漆楠木匣，油炸封蜡，钥匙贴身，记入旧档。",
+            )
+
+            self.assertIn("updated", result)
+            lore = el.get_lore(game.db, attendant)
+            self.assertEqual(str(lore["bao_container"] or ""), "黑漆楠木匣")
+            self.assertEqual(str(lore["bao_preservation"] or ""), "油炸封蜡")
+            self.assertEqual(str(lore["bao_ritual"] or ""), "夜半验匣，钥匙贴身")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_eunuch_lore_updates_from_dialogue_text_and_rolls_back(self):
         game = web_app.WebGame(fresh=True)
         try:

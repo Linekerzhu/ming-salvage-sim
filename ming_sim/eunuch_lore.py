@@ -889,7 +889,7 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
     updates: Dict[str, str] = {}
     _set_if_match(updates, raw, "castration_method", [
         (r"净军房|净军", "净军房夜割"),
-        (r"内书堂|老匠|熟匠", "内书堂老匠净身"),
+        (r"内书堂.{0,12}(?:老匠|熟匠|细净|净身)|(?:老匠|熟匠).{0,12}(?:净身|细净|一刀)", "内书堂老匠净身"),
         (r"自请|自宫|自愿", "入宫前自请一刀"),
         (r"刑房|宫刑|强旨", "奉旨宫刑"),
     ])
@@ -908,7 +908,7 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
     ])
     _set_if_match(updates, raw, "procedure_note", [
         (r"押入|封案|换.*号衣", "奉旨押入净军房，验名封案，事毕即换内廷号衣"),
-        (r"验名|官库|收签", "刑房立案，番役守门，宝由官库收签"),
+        (r"(?:验名|收签|封案).{0,12}(?:宝|净军|刑房|官库)|(?:宝|净军|刑房).{0,12}(?:验名|收签|封案|官库)", "刑房立案，番役守门，宝由官库收签"),
         (r"沐浴|焚香|宝匣交", "先沐浴焚香，再请老匠细净，宝匣交本人收执"),
         (r"身契|改名|随堂", "入宫前签身契，净后改名，随堂听差"),
     ])
@@ -941,7 +941,7 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
         (r"石灰", "石灰封燥"),
         (r"香料|香灰|香丸", "香料腌藏"),
         (r"盐灰|粗盐", "盐灰同封"),
-        (r"官库", "官库石灰封存"),
+        (r"(?:宝|旧匣).{0,8}官库|官库.{0,8}(?:石灰|封|收|宝)", "官库石灰封存"),
     ])
     _set_if_match(updates, raw, "bao_container", [
         (r"楠木", "黑漆楠木匣"),
@@ -984,7 +984,7 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
     ])
     private_patterns = [
         (r"洁净|爱干净", "洁净癖，衣褶不齐便不安"),
-        (r"钥匙|封匣|掌管.*匣", "偏爱掌管钥匙与封匣"),
+        (r"钥匙贴身|宝匣.{0,8}钥匙|封匣|掌管.*匣", "偏爱掌管钥匙与封匣"),
         (r"恋香|香味", "恋香压惊，厌恶血腥旧味"),
     ]
     if _is_adult_for_lore(db, name):
