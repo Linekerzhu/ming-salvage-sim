@@ -17,6 +17,7 @@ from ming_sim.playstyle import (
     briefing_payload,
     favor_chat_context_brief,
     faction_chat_context_brief,
+    decision_chat_context_brief,
     legacy_chat_context_brief,
     monthly_followup_chat_context_brief,
     patronage_chat_context_brief,
@@ -189,6 +190,50 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn("牵动君威", labels)
             self.assertIn("牵动任事", labels)
             self.assertIn("信怨变化", labels)
+
+    def test_decision_chat_context_rebuilds_pending_case(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            names = [
+                str(r["name"]) for r in db.conn.execute(
+                    "SELECT name FROM characters "
+                    "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                    "LIMIT 3"
+                ).fetchall()
+            ]
+            a, b, other = names
+            court._set_opinion(db, a, b, -75, "夺功旧怨", 1)
+            court._set_opinion(db, b, a, -70, "反劾旧怨", 1)
+            memorials.create_memorial(
+                db,
+                state,
+                day=1,
+                author_name=a,
+                org="都察院",
+                kind="弹章",
+                urgency=3,
+                summary=f"{a}劾{b}",
+                ref_kind="character",
+                ref_id=b,
+            )
+            payload = court_events.evaluate_decisions(db, state, 1)
+            self.assertIsNotNone(payload)
+
+            brief = decision_chat_context_brief(db, a, "rival_feud", target=b)
+            target_brief = decision_chat_context_brief(db, b, "rival_feud", target=a)
+            mismatch = decision_chat_context_brief(db, other, "rival_feud", target=b)
+            wrong_id = decision_chat_context_brief(db, a, "not_current", target=b)
+
+            self.assertIn("本次召对事项：裁断前问话", brief)
+            self.assertIn("御前已有待决事件", brief)
+            self.assertIn(a, brief)
+            self.assertIn(b, brief)
+            self.assertIn("可见裁断路数", brief)
+            self.assertIn("影响：", brief)
+            self.assertIn("只有玩家去「御案/裁断」选择裁断选项", brief)
+            self.assertIn("牵涉人", target_brief)
+            self.assertEqual(mismatch, "")
+            self.assertEqual(wrong_id, "")
 
     def test_done_directive_creates_followup_brief_card(self):
         with TemporaryDirectory() as tmp:

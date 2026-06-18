@@ -4013,6 +4013,18 @@ class WebGame:
             return self._auto_chat_context_brief(minister_name)
         kind = str(context.get("kind") or "").strip()
         ref_kind = str(context.get("ref_kind") or "").strip()
+        if kind == "decision" or ref_kind == "decision":
+            ref_id = context.get("ref_id") or context.get("id")
+            try:
+                from ming_sim.playstyle import decision_chat_context_brief
+                return decision_chat_context_brief(
+                    self.db,
+                    minister_name,
+                    ref_id,
+                    target=str(context.get("target") or ""),
+                )
+            except Exception:
+                return ""
         if kind == "directive" or ref_kind == "directive":
             ref_id = context.get("ref_id") or context.get("id")
             try:

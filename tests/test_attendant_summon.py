@@ -6,7 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import web_app
-from ming_sim import court, memorials
+from ming_sim import court, court_events, memorials
 from ming_sim.models import Character
 from ming_sim.personnel_actions import is_eunuch_office
 import ming_sim.session as session_module
@@ -682,6 +682,67 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(mismatch, "")
             self.assertIn("主动求援请托", augmented)
             self.assertIn("主动求援请托", prepared.behavior_context)
+            self.assertIn("NPC对话行为档案", prepared.behavior_brief)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_decision_context_reaches_dialogue_prep(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            names = [
+                str(r["name"]) for r in game.db.conn.execute(
+                    "SELECT name FROM characters "
+                    "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                    "LIMIT 3"
+                ).fetchall()
+            ]
+            a, b, other = names
+            court._set_opinion(game.db, a, b, -75, "夺功旧怨", 1)
+            court._set_opinion(game.db, b, a, -70, "反劾旧怨", 1)
+            memorials.create_memorial(
+                game.db,
+                game.state,
+                day=1,
+                author_name=a,
+                org="都察院",
+                kind="弹章",
+                urgency=3,
+                summary=f"{a}劾{b}",
+                ref_kind="character",
+                ref_id=b,
+            )
+            court_events.evaluate_decisions(game.db, game.state, 1)
+            game.session.dialogue_audit_client = lambda phase, payload: {  # type: ignore[assignment]
+                "goal_decision": "none",
+                "confidence": 90,
+            }
+            context = {
+                "kind": "decision",
+                "actor": a,
+                "target": b,
+                "ref_kind": "decision",
+                "ref_id": "rival_feud",
+            }
+
+            brief = game._chat_context_brief(a, context)
+            target_brief = game._chat_context_brief(b, context)
+            mismatch = game._chat_context_brief(other, context)
+            augmented, prepared = game.session.prepare_chat_run(
+                game.content.characters[a],
+                "朕还未裁断，先听你把证据和怕处说清。",
+                supplemental_context=brief,
+            )
+
+            self.assertIn("本次召对事项：裁断前问话", brief)
+            self.assertIn("可见裁断路数", brief)
+            self.assertIn("牵涉人", target_brief)
+            self.assertEqual(mismatch, "")
+            self.assertIn("裁断前问话", augmented)
+            self.assertIn("裁断前问话", prepared.behavior_context)
             self.assertIn("NPC对话行为档案", prepared.behavior_brief)
         finally:
             try:

@@ -1104,6 +1104,97 @@ def monthly_followup_chat_context_brief(db: GameDB, minister_name: str) -> str:
     return "\n".join(lines)
 
 
+def decision_chat_context_brief(
+    db: GameDB,
+    minister_name: str,
+    decision_id: object = "",
+    *,
+    target: str = "",
+) -> str:
+    """Trusted context for summoning an actor before resolving a pending court decision."""
+
+    name = str(minister_name or "").strip()
+    if not name:
+        return ""
+    try:
+        from ming_sim.court_events import get_pending, pending_payload
+
+        pending = get_pending(db)
+        payload = pending_payload(db)
+    except Exception:
+        return ""
+    if not isinstance(pending, dict) or not isinstance(payload, dict):
+        return ""
+    payload_id = str(payload.get("id") or "").strip()
+    expected_id = str(decision_id or "").strip()
+    if expected_id and payload_id and expected_id != payload_id:
+        return ""
+
+    actor, extracted_target = _decision_actor_target(db, pending)
+    explicit_target = str(target or "").strip()
+    if explicit_target and _active_character_row(db, explicit_target) is None:
+        explicit_target = ""
+    related = {item for item in (actor, extracted_target, explicit_target) if item}
+    if related and name not in related:
+        return ""
+    if not related and _active_character_row(db, name) is None:
+        return ""
+
+    other = ""
+    for candidate in (explicit_target, extracted_target, actor):
+        if candidate and candidate != name:
+            other = candidate
+            break
+    role = "当事人" if name == actor else "牵涉人" if name in {extracted_target, explicit_target} else "可问询人物"
+    self_row = _active_character_row(db, name)
+    other_row = _active_character_row(db, other) if other else None
+    office = _short_office(str(self_row["office"] or "")) if self_row is not None else ""
+    faction = str(self_row["faction"] or "").strip() if self_row is not None else ""
+    ability = _clamp_int(self_row["ability"], 0, 100) if self_row is not None else 0
+    integrity = _clamp_int(self_row["integrity"], 0, 100) if self_row is not None else 0
+    trust = _clamp_int(self_row["emp_trust"], 0, 100) if self_row is not None else 0
+    grievance = _clamp_int(self_row["grievance"], 0, 100) if self_row is not None else 0
+    other_office = _short_office(str(other_row["office"] or "")) if other_row is not None else ""
+    title = str(payload.get("title") or "请陛下裁断").strip()
+    narrative = _short_text(str(payload.get("narrative") or ""), 320)
+    choices = [item for item in (payload.get("choices") or []) if isinstance(item, dict)]
+
+    lines = [
+        "【本次召对事项：裁断前问话】",
+        f"- 御前已有待决事件「{title}」。皇帝此刻先召{name}问话，不等于已经裁断。",
+        f"- 当前入对身份：{office}{name}是这桩裁断里的{role}。"
+        + (f"牵涉对象：{other_office}{other}。" if other else ""),
+        f"- 当前人心：才干 {ability}，操守 {integrity}，御前信任 {trust}，怨望 {grievance}"
+        + (f"，派系 {faction}" if faction and faction not in {"无", "中立"} else "")
+        + "。",
+    ]
+    if narrative:
+        lines.append(f"- 案情表面叙事：{narrative}")
+    if choices:
+        lines.append("- 可见裁断路数：")
+        for idx, choice in enumerate(choices[:5], start=1):
+            label = str(choice.get("label") or choice.get("key") or "一策").strip()
+            hint = str(choice.get("hint") or "").strip()
+            effects = [
+                str(eff.get("label") or "").strip()
+                for eff in (choice.get("effects") or [])
+                if isinstance(eff, dict) and str(eff.get("label") or "").strip()
+            ]
+            parts = [f"{idx}. {label}"]
+            if hint:
+                parts.append(hint)
+            if effects:
+                parts.append("影响：" + "、".join(effects[:4]))
+            lines.append("  " + "；".join(parts))
+    lines.extend([
+        "- 对话玩法：NPC 应从自己的身份和利害出发，先陈述证据、怕处、反噬和可担责任；不要像旁白逐条解释选项。",
+        "- 皇帝可以追问：谁得利、谁受损、证据是什么、几日能验、若裁错谁担责、政敌或同党会如何反扑。",
+        "- 落库边界：本轮召对只是在裁断前听人；只有玩家去「御案/裁断」选择裁断选项，才真正结算该事件。",
+        "- 口吻要求：按身份、派系、信任、怨望和人物性格说话；不得假装已经知道皇帝最终会选哪一策。",
+    ])
+    return "\n".join(lines)
+
+
 def relationship_chat_context_brief(
     db: GameDB,
     minister_name: str,
