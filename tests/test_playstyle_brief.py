@@ -16,6 +16,7 @@ from ming_sim.playstyle import (
     briefing_payload,
     favor_chat_context_brief,
     legacy_chat_context_brief,
+    monthly_followup_chat_context_brief,
     petition_chat_context_brief,
 )
 from ming_sim.upgrade_schema import KV_CURRENT_DAY, KV_RISK_AVERSION, kv_set_int
@@ -361,6 +362,65 @@ class PlaystyleBriefTests(unittest.TestCase):
             self.assertIn(rival, brief)
             self.assertIn("夺功旧怨", brief)
             self.assertIn("不要直接落库", brief)
+
+    def test_monthly_followup_becomes_audience_brief_card(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            name = _active_minister(db)
+            state.turn = 1
+            db.create_secret_order(
+                state,
+                name,
+                "密查阉党旧案",
+                "查魏忠贤余党旧案。",
+                ["魏忠贤", "阉党"],
+                deadline_months=1,
+            )
+            state.turn = 2
+            state.period = 2
+            db.save_state(state)
+
+            payload = briefing_payload(db, state, limit=5, kind="monthly_followup")
+
+            self.assertEqual(payload["filter"], "monthly_followup")
+            self.assertGreaterEqual(payload["total"], 1)
+            card = next(c for c in payload["cards"] if c["kind"] == "monthly_followup" and c["actor"] == name)
+            self.assertEqual(card["tab"], "audience")
+            self.assertEqual(card["cta"], "召来请安")
+            self.assertEqual(card["ref_kind"], "monthly_followup")
+            self.assertIn("候见", str(card["title"]))
+            self.assertIn("密令", str(card["meta"]))
+            labels = [str(e["label"]) for e in card["effects"]]
+            self.assertIn("密令到期", labels)
+            self.assertIn("密令回奏", labels)
+            buckets = {str(b["kind"]): b for b in payload["buckets"]}
+            self.assertEqual(buckets["monthly_followup"]["label"], "候见")
+
+    def test_monthly_followup_chat_context_brief_rebuilds_from_live_db(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            name = _active_minister(db)
+            state.turn = 1
+            db.create_secret_order(
+                state,
+                name,
+                "密查阉党旧案",
+                "查魏忠贤余党旧案。",
+                ["魏忠贤", "阉党"],
+                deadline_months=1,
+            )
+            state.turn = 2
+            state.period = 2
+            db.save_state(state)
+
+            brief = monthly_followup_chat_context_brief(db, name)
+
+            self.assertIn("本次召对事项：本月主动候见", brief)
+            self.assertIn("不是普通被动问策", brief)
+            self.assertIn("密查阉党旧案", brief)
+            self.assertIn("密令到期", brief)
+            self.assertIn("主动复命或诉难处", brief)
+            self.assertIn("不要给无成本完美答案", brief)
 
     def test_active_tax_legacy_becomes_policy_aftershock_card(self):
         with TemporaryDirectory() as tmp:

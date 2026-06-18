@@ -255,6 +255,13 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                         <button className="m-brief-action primary" onClick={() => go("edicts")}>看诏旨›</button>
                         {card.actor && <button className="m-brief-action" onClick={() => inspect(card.actor)}>查主办</button>}
                       </>
+                    ) : card.kind === "monthly_followup" ? (
+                      <>
+                        {canSummon(card.actor, activeMinisters) && (
+                          <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, "")}>召请安</button>
+                        )}
+                        {card.actor && <button className="m-brief-action" onClick={() => inspect(card.actor)}>查此人</button>}
+                      </>
                     ) : card.kind === "trap_remedy" && card.actor ? (
                       <>
                         <button className="m-brief-action primary" onClick={() => inspect(card.actor, "back")}>去买单›</button>
@@ -376,6 +383,8 @@ function kindMark(kind: string): string {
   if (kind === "hook") return "柄";
   if (kind === "rivalry") return "怨";
   if (kind === "directive_blocker") return "阻";
+  if (kind === "directive_followup") return "复";
+  if (kind === "monthly_followup") return "候";
   if (kind === "trap") return "任";
   if (kind === "trap_remedy") return "担";
   if (kind === "petition") return "求";
@@ -452,6 +461,13 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
       { label: "问成效", text: `朕看了你的复命。此旨究竟办成到哪一步，哪里是真功，哪里只是奏报口径？`, prefix: true },
       { label: "论赏罚", text: `这桩差事既已复命，朕要定赏罚。你自己说：该奖谁，该问谁，下一步还缺什么？`, prefix: true },
       { label: "续下一手", text: `若朕要顺着这桩成果再下一道旨，你以为应接着办什么，交给谁办，限期几日？`, prefix: true },
+    ];
+  }
+  if (card.kind === "monthly_followup") {
+    return [
+      { label: "听其请安", text: `朕准你请安。你本月主动求见，先说清楚：是复命、求资源，还是要朕给一道明旨？`, prefix: true },
+      { label: "问卡点", text: `你这桩事拖到今日，卡在钱粮、人手、名分，还是有人暗中掣肘？照实奏来。`, prefix: true },
+      { label: "设回奏期", text: `朕可以给你边界和名分，但要有期限、有证据。你几日内能拿什么来回奏？`, prefix: true },
     ];
   }
   if (card.kind === "agenda") {

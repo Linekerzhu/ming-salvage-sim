@@ -27,15 +27,16 @@ _KIND_PRIORITY = {
     "trap": 1,
     "directive_blocker": 2,
     "directive_followup": 3,
-    "trap_remedy": 4,
-    "petition": 5,
-    "favor": 6,
-    "legacy": 7,
-    "army": 8,
-    "faction": 9,
-    "agenda": 10,
-    "rivalry": 11,
-    "hook": 12,
+    "monthly_followup": 4,
+    "trap_remedy": 5,
+    "petition": 6,
+    "favor": 7,
+    "legacy": 8,
+    "army": 9,
+    "faction": 10,
+    "agenda": 11,
+    "rivalry": 12,
+    "hook": 13,
 }
 
 _KIND_LABELS = {
@@ -43,6 +44,7 @@ _KIND_LABELS = {
     "trap": "御案",
     "directive_blocker": "诏旨",
     "directive_followup": "复命",
+    "monthly_followup": "候见",
     "trap_remedy": "担责",
     "petition": "求援",
     "favor": "旧恩",
@@ -448,6 +450,63 @@ def favor_chat_context_brief(
     return "\n".join(lines)
 
 
+def monthly_followup_chat_context_brief(db: GameDB, minister_name: str) -> str:
+    """Trusted context for an NPC who has a month-start reason to seek audience."""
+
+    name = str(minister_name or "").strip()
+    if not name:
+        return ""
+    try:
+        state = db.load_state()
+    except Exception:
+        return ""
+    followups = _monthly_followups_for_brief(db, state, limit=30)
+    item = next((row for row in followups if str(row.get("minister_name") or "") == name), None)
+    if not isinstance(item, dict):
+        return ""
+
+    title = str(item.get("title") or "本月可主动请安回奏。").strip()
+    summary = str(item.get("summary") or "").strip()
+    hooks = [str(hook) for hook in (item.get("memory_hooks") or []) if str(hook).strip()]
+    reasons = [str(reason) for reason in (item.get("reason_types") or []) if str(reason).strip()]
+    risks = [str(tag) for tag in (item.get("risk_tags") or []) if str(tag).strip()]
+    truth_mode = str(item.get("truth_mode") or "").strip()
+    preferred = str(item.get("preferred_stance") or "").strip()
+    opening = str(item.get("suggested_opening") or "").strip()
+    cue = str(item.get("personality_cue") or "").strip()
+    lines = [
+        "【本次召对事项：本月主动候见】",
+        f"- {name}不是普通被动问策；他本月有理由主动请安、复命、求资源或求明旨。",
+        f"- 候见主因：{title}",
+    ]
+    if summary and summary != title:
+        lines.append(f"- 线索摘要：{summary}")
+    if hooks:
+        lines.append("- 记忆钩子：" + "；".join(hooks[:4]))
+    if reasons:
+        lines.append("- 系统理由：" + "、".join(_monthly_reason_label(reason) for reason in reasons[:5]))
+    if truth_mode or preferred:
+        lines.append(
+            "- 说话倾向："
+            + (f"{truth_mode}" if truth_mode else "按处境取舍真话")
+            + (f"；立场偏{preferred}" if preferred else "")
+            + "。"
+        )
+    if opening:
+        lines.append(f"- 开场意图：{opening}")
+    if cue:
+        lines.append(f"- 性格/风险提示：{cue}")
+    if risks:
+        lines.append("- 风险标签：" + "、".join(risks[:6]))
+    lines.extend([
+        "- 对话玩法：NPC 应先主动复命或诉难处，再请皇帝给名分、人手、银粮、期限或保全边界；不要等玩家逐条逼问。",
+        "- 两难要求：提出的方案必须有代价，可能牵动政敌、同党、钱粮、旧约或密令风险；不要给无成本完美答案。",
+        "- 落库边界：只有皇帝明确命其承办、设期限、要求拟旨或双方确认条件，才进入奏对目的/履约账本；普通请安不直接落库。",
+        "- 口吻要求：按身份、派系、信任、怨望和人物性格说话；不要像全知旁白解释系统。",
+    ])
+    return "\n".join(lines)
+
+
 def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[BriefCard]:
     """Collect all actionable hooks before the home-screen outliner chooses a subset."""
 
@@ -457,6 +516,7 @@ def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[
     _trap_remedy_cards(db, state, cards)
     _directive_blocker_cards(db, cards)
     _directive_followup_cards(db, state, cards)
+    _monthly_followup_cards(db, state, cards)
     _petition_cards(db, cards)
     _favor_cards(db, state, cards)
     _policy_legacy_cards(db, state, cards)
@@ -1121,6 +1181,275 @@ def _directive_followup_cards(db: GameDB, state: Optional[GameState], cards: Lis
             break
 
 
+def _monthly_followups_for_brief(
+    db: GameDB,
+    state: GameState,
+    *,
+    limit: int = 12,
+) -> List[Dict[str, object]]:
+    """Build month-start followups, falling back when global content is not bound."""
+
+    safe_limit = max(1, min(30, int(limit or 12)))
+    try:
+        from ming_sim.context import build_npc_monthly_followups
+
+        rows = build_npc_monthly_followups(db, state, limit=safe_limit)
+        if rows:
+            return rows
+    except Exception:
+        pass
+    return _fallback_monthly_followups(db, state, limit=safe_limit)
+
+
+def _fallback_monthly_followups(
+    db: GameDB,
+    state: GameState,
+    *,
+    limit: int,
+) -> List[Dict[str, object]]:
+    """Minimal deterministic followups from persisted ledgers only."""
+
+    turn = int(getattr(state, "turn", 0) or 0)
+    bucket: Dict[str, Dict[str, object]] = {}
+
+    def active(name: str) -> bool:
+        if not name or not _table_exists(db, "characters"):
+            return False
+        row = db.conn.execute(
+            """
+            SELECT status, power_id, office_type
+            FROM characters
+            WHERE name=?
+            """,
+            (name,),
+        ).fetchone()
+        if row is None:
+            return False
+        return (
+            str(row["status"] or "active") == "active"
+            and str(row["power_id"] or "ming") == "ming"
+            and str(row["office_type"] or "") != "后宫"
+        )
+
+    def add(name: str, reason: str, hook: str, priority: int, risks: Optional[List[str]] = None) -> None:
+        name = str(name or "").strip()
+        if not active(name):
+            return
+        item = bucket.setdefault(name, {
+            "minister_name": name,
+            "priority": 0,
+            "reason_types": [],
+            "memory_hooks": [],
+            "risk_tags": [],
+        })
+        item["priority"] = int(item.get("priority") or 0) + int(priority)
+        reasons = item["reason_types"] if isinstance(item.get("reason_types"), list) else []
+        if reason and reason not in reasons:
+            reasons.append(reason)
+        hooks = item["memory_hooks"] if isinstance(item.get("memory_hooks"), list) else []
+        if hook and hook not in hooks:
+            hooks.append(hook[:140])
+        tags = item["risk_tags"] if isinstance(item.get("risk_tags"), list) else []
+        for risk in risks or []:
+            text = str(risk or "").strip()
+            if text and text not in tags:
+                tags.append(text)
+
+    if _table_exists(db, "secret_orders"):
+        for row in _safe_fetchall(
+            db,
+            """
+            SELECT id, minister_name, title, due_turn, status
+            FROM secret_orders
+            WHERE status IN ('active','pending_review')
+            ORDER BY
+              CASE WHEN due_turn>0 AND due_turn<=? THEN 0 ELSE 1 END,
+              id DESC
+            LIMIT 40
+            """,
+            (turn,),
+        ):
+            name = str(row["minister_name"] or "")
+            title = str(row["title"] or "密令")
+            due = bool(int(row["due_turn"] or 0) and int(row["due_turn"] or 0) <= turn)
+            status = str(row["status"] or "")
+            if status == "pending_review":
+                add(name, "secret_order_pending_review", f"密令 #{row['id']}「{title}」已候月末核议，应回奏裁断结果。", 22, ["密令核议"])
+            else:
+                add(
+                    name,
+                    "secret_order_due" if due else "secret_order_active",
+                    f"密令 #{row['id']}「{title}」{'已到限期' if due else '仍在查办'}，应请安回奏进展。",
+                    26 if due else 13,
+                    ["密令回奏"],
+                )
+
+    if _table_exists(db, "conversation_goals"):
+        for row in _safe_fetchall(
+            db,
+            """
+            SELECT minister_name, status, title, target_text
+            FROM conversation_goals
+            WHERE status IN ('active','waiting_conditions','blocked','expired')
+            ORDER BY id DESC
+            LIMIT 60
+            """,
+        ):
+            name = str(row["minister_name"] or "")
+            status = str(row["status"] or "")
+            title = str(row["title"] or row["target_text"] or "未竟奏对")
+            priority = 18 if status == "waiting_conditions" else 12 if status == "active" else 9
+            add(name, f"conversation_goal:{status}", f"未完奏对「{title}」仍需复命或请旨。", priority, ["旧约未了"])
+
+    if _table_exists(db, "negotiation_agreements"):
+        for row in _safe_fetchall(
+            db,
+            """
+            SELECT minister_name, status, target_status, core_topic, topic, due_turn
+            FROM negotiation_agreements
+            WHERE status IN ('pending','sealed')
+              AND COALESCE(target_status, '')!='achieved'
+            ORDER BY due_turn ASC, id DESC
+            LIMIT 60
+            """,
+        ):
+            name = str(row["minister_name"] or "")
+            topic = str(row["core_topic"] or row["topic"] or "履约事项")
+            due_turn = int(row["due_turn"] or 0)
+            due = bool(due_turn and due_turn <= turn)
+            target_status = str(row["target_status"] or row["status"] or "")
+            add(
+                name,
+                "agreement_due" if due else f"agreement:{target_status}",
+                f"履约账本「{topic}」{'已到回奏时限' if due else '仍待推进'}。",
+                24 if due else 14,
+                ["履约压力"],
+            )
+
+    rows: List[Dict[str, object]] = []
+    for name, item in bucket.items():
+        hooks = [str(hook) for hook in (item.get("memory_hooks") or []) if str(hook).strip()]
+        reasons = [str(reason) for reason in (item.get("reason_types") or []) if str(reason).strip()]
+        due = any("due" in reason or "expired" in reason or "blocked" in reason for reason in reasons)
+        row = {
+            **item,
+            "priority": int(item.get("priority") or 0),
+            "title": hooks[0] if hooks else "本月可主动请安回奏。",
+            "summary": "；".join(hooks[:3]),
+            "suggested_opening": (
+                "请安时先回奏到期事项，再索要名分、人手、银粮或保全边界。"
+                if due else
+                "请安后可主动复命，请求明旨或资源，把事往前推。"
+            ),
+            "preferred_stance": "caution" if due else "neutral",
+            "truth_mode": "按利害取舍真话",
+            "personality_cue": "从本人掌握的事实与利害说起，不要表现得无所不知",
+            "risk_tags": list(item.get("risk_tags") or [])[:6],
+        }
+        rows.append(row)
+    rows.sort(key=lambda row: (int(row.get("priority") or 0), str(row.get("minister_name") or "")), reverse=True)
+    return rows[:limit]
+
+
+def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard]) -> None:
+    """Surface NPCs who have month-start reasons to come seek audience."""
+
+    if state is None or not _table_exists(db, "characters"):
+        return
+    followups = _monthly_followups_for_brief(db, state, limit=12)
+
+    count = 0
+    for item in followups:
+        name = str(item.get("minister_name") or "").strip()
+        if not name:
+            continue
+        if any(
+            str(card.get("actor") or "") == name
+            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup"}
+            for card in cards
+        ):
+            continue
+        char = db.conn.execute(
+            """
+            SELECT office, faction, emp_trust, grievance
+            FROM characters
+            WHERE name=?
+              AND status='active'
+              AND power_id='ming'
+              AND office_type!='后宫'
+            """,
+            (name,),
+        ).fetchone()
+        if char is None:
+            continue
+        reasons = [str(reason) for reason in (item.get("reason_types") or []) if str(reason).strip()]
+        hooks = [str(hook) for hook in (item.get("memory_hooks") or []) if str(hook).strip()]
+        risks = [str(tag) for tag in (item.get("risk_tags") or []) if str(tag).strip()]
+        if not reasons and not hooks:
+            continue
+        office = _short_office(str(char["office"] or ""))
+        trust = _clamp_int(char["emp_trust"], 0, 100)
+        grievance = _clamp_int(char["grievance"], 0, 100)
+        priority = _clamp_int(item.get("priority"), 0, 120)
+        due = any("due" in reason or "expired" in reason or "blocked" in reason for reason in reasons)
+        secret = any("secret_order" in reason for reason in reasons)
+        agreement = any("agreement" in reason or "conversation_goal" in reason for reason in reasons)
+        speech = any("stance" in reason or "speech" in reason for reason in reasons)
+        title = str(item.get("title") or (hooks[0] if hooks else "本月可主动请安回奏。")).strip()
+        summary = str(item.get("summary") or "").strip()
+        urgency = min(98, 58 + priority + (8 if due else 0) + (4 if secret else 0))
+        tone = "danger" if due and (secret or agreement) else "warn" if due or risks else "info"
+        meta_bits = []
+        if due:
+            meta_bits.append("到期")
+        if secret:
+            meta_bits.append("密令")
+        if agreement:
+            meta_bits.append("旧约")
+        if speech:
+            meta_bits.append("口径")
+        meta = "/".join(meta_bits[:3]) or _monthly_reason_label(reasons[0] if reasons else "请安")
+        effects = [
+            {"kind": "monthly_followup", "label": _monthly_reason_label(reasons[0] if reasons else "请安"), "tone": "bad" if due else "neutral"},
+            {"kind": "trust", "label": f"信任 {trust}", "tone": "bad" if trust <= 36 else "neutral"},
+            {"kind": "grievance", "label": f"怨望 {grievance}", "tone": "bad" if grievance >= 58 else "neutral"},
+        ]
+        if secret:
+            effects.append({"kind": "secret_order", "label": "密令回奏", "tone": "bad" if due else "neutral"})
+        if agreement:
+            effects.append({"kind": "agreement", "label": "旧约待复", "tone": "bad" if due else "neutral"})
+        if speech:
+            effects.append({"kind": "speech", "label": "延续口径", "tone": "neutral"})
+        if risks:
+            effects.append({"kind": "risk", "label": risks[0], "tone": "bad" if due else "neutral"})
+        detail = (
+            f"{office}{name}本月有事候见。{summary or title}"
+            f"{'；'.join(hooks[:2]) if hooks else ''}"
+        )
+        opening = str(item.get("suggested_opening") or "").strip()
+        if opening:
+            detail += f"其意在：{opening}"
+        cards.append(
+            _card(
+                kind="monthly_followup",
+                title=f"{name}候见：{_short_text(title, 24)}",
+                detail=_short_text(detail, 150),
+                urgency=urgency,
+                tone=tone,
+                cta="召来请安",
+                tab=_TAB_AUDIENCE,
+                actor=name,
+                meta=meta,
+                ref_kind="monthly_followup",
+                ref_id=name,
+                effects=effects[:6],
+            )
+        )
+        count += 1
+        if count >= 2:
+            break
+
+
 def _petition_cards(db: GameDB, cards: List[BriefCard]) -> None:
     """Surface active characters who would plausibly seek imperial help.
 
@@ -1160,7 +1489,11 @@ def _petition_cards(db: GameDB, cards: List[BriefCard]) -> None:
     count = 0
     for row in rows:
         name = str(row["name"])
-        if any(str(card.get("actor") or "") == name and str(card.get("kind") or "") in {"trap_remedy", "directive_followup"} for card in cards):
+        if any(
+            str(card.get("actor") or "") == name
+            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup", "monthly_followup"}
+            for card in cards
+        ):
             continue
         office = _short_office(str(row["office"] or ""))
         trust = _clamp_int(row["emp_trust"], 0, 100)
@@ -1371,6 +1704,12 @@ def _policy_legacy_cards(db: GameDB, state: Optional[GameState], cards: List[Bri
         duration_label = "永久" if duration < 0 else f"余{remaining}月"
         effects = policy_legacy_effect_labels_safe(row)
         actor = _policy_legacy_actor(db, row)
+        if actor and any(
+            str(card.get("actor") or "") == actor
+            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup", "monthly_followup", "petition", "favor"}
+            for card in cards
+        ):
+            continue
         cards.append(
             _card(
                 kind="legacy",
@@ -1490,6 +1829,12 @@ def _agenda_cards(db: GameDB, cards: List[BriefCard]) -> None:
     )
     for row in rows:
         name = str(row["name"])
+        if any(
+            str(card.get("actor") or "") == name
+            and str(card.get("kind") or "") in {"trap_remedy", "directive_followup", "monthly_followup", "petition", "favor", "legacy"}
+            for card in cards
+        ):
+            continue
         kind = str(row["kind"] or "")
         office = _short_office(str(row["office"] or ""))
         faction = str(row["faction"] or "")
@@ -1784,6 +2129,35 @@ def _clamp_int(value: object, low: int, high: int) -> int:
     except (TypeError, ValueError):
         num = low
     return max(low, min(high, num))
+
+
+def _monthly_reason_label(reason: str) -> str:
+    text = str(reason or "")
+    if "secret_order_due" in text:
+        return "密令到期"
+    if "secret_order_pending_review" in text:
+        return "密令核议"
+    if "secret_order_active" in text:
+        return "密令在办"
+    if "agreement_due" in text:
+        return "履约到期"
+    if text.startswith("agreement:"):
+        return "履约待推"
+    if "conversation_goal:waiting_conditions" in text:
+        return "旧约待复"
+    if "conversation_goal:active" in text:
+        return "奏对未完"
+    if "conversation_goal:blocked" in text:
+        return "奏对受阻"
+    if "conversation_goal:expired" in text:
+        return "奏对失期"
+    if "last_month_stance" in text:
+        return "上月口径"
+    if "speech_continuity" in text:
+        return "话术延续"
+    if "gazette_mentioned" in text:
+        return "邸报点名"
+    return "主动请安"
 
 
 def _worst_rival_of(db: GameDB, name: str) -> Tuple[str, int, str]:

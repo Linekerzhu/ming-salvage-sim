@@ -202,6 +202,7 @@ export type PlaystyleBriefCard = {
     | "hook"
     | "directive_blocker"
     | "directive_followup"
+    | "monthly_followup"
     | "trap"
     | "trap_remedy"
     | "petition"
