@@ -121,6 +121,41 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_chat_mentions_ignore_office_aliases_but_keep_personal_aliases(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+
+            office_only = game._chat_message_mentions("司礼监今日递入文书，东厂另有密报。")
+            self.assertEqual(office_only, [])
+
+            mixed = game._chat_message_mentions("司礼监今日递入文书，王承恩在旁候旨。")
+            self.assertIn(attendant, {item["name"] for item in mixed})
+            self.assertNotIn("司礼监", {term for item in mixed for term in item["terms"]})
+
+            personal_alias = game._chat_message_mentions("王伴伴说内书堂有人可用。")
+            self.assertIn(attendant, {item["name"] for item in personal_alias})
+            self.assertIn("王伴伴", {term for item in personal_alias for term in item["terms"]})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_attendant_summon_ignores_office_aliases(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            result = game._attendant_summon_target("王承恩", "叫司礼监来见。")
+
+            self.assertEqual(result, {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_mentioned_unlisted_person_can_be_registered_and_summoned(self):
         game = web_app.WebGame(fresh=True)
         try:
@@ -148,6 +183,56 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
             self.assertIn("当前活动存档", str(row["summary"] or ""))
             self.assertIn(unknown, {m["name"] for m in payload["history"][-1].get("mentions", [])})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_single_dialogue_mentioned_person_can_be_summoned_by_pronoun(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            unknown = next(name for name in ("冯小澄", "张守仁", "陆闻道") if name not in game.content.characters)
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                f"奴婢听说内书堂有个识字小火者，唤作{unknown}，手脚勤快。",
+            )
+
+            events = list(game.chat_stream(attendant, "叫他来见。"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], unknown)
+            self.assertEqual(payload["registered_minister"], unknown)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_multiple_dialogue_mentioned_people_can_be_summoned_by_ordinal(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            first = next(name for name in ("冯小澄", "张守仁", "陆闻道") if name not in game.content.characters)
+            second = "小福子"
+            self.assertNotIn(second, game.content.characters)
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                f"奴婢留心到一个叫{first}的试百户，另有一个叫{second}的火者，皆可查访。",
+            )
+
+            events = list(game.chat_stream(attendant, "叫第二个来见。"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], second)
+            self.assertEqual(payload["registered_minister"], second)
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

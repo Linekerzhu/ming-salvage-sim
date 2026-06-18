@@ -588,6 +588,23 @@ class SignalRequest(BaseModel):
 class WebGame:
     """Web 端会话包装：持一个 GameSession + 网页专属态（聊天历史、收藏）。"""
 
+    _CHAT_MENTION_BLOCKED_ALIASES = {
+        "朝廷", "内廷", "外朝", "宫中", "宫里", "厂卫",
+        "内阁", "司礼", "司礼监", "东厂", "锦衣卫", "北镇抚司", "南镇抚司", "镇抚司",
+        "吏部", "户部", "礼部", "兵部", "刑部", "工部", "都察院", "翰林院", "詹事府",
+        "大理寺", "太常寺", "光禄寺", "内官监", "御马监", "内书堂", "文书房",
+        "南户部", "南京户部", "南京兵部", "南京礼部", "南京吏部", "南京工部", "南京刑部",
+        "尚书", "侍郎", "大学士", "掌印太监", "秉笔太监", "都指挥使", "内官", "内侍", "太监",
+    }
+    _CHAT_MENTION_ORG_TOKENS = (
+        "司礼监", "东厂", "锦衣卫", "镇抚司", "内阁", "都察院", "翰林院", "詹事府",
+        "大理寺", "太常寺", "光禄寺", "内官监", "御马监", "内书堂", "文书房", "南京",
+    )
+    _CHAT_MENTION_SURNAME_TITLE_SUFFIXES = (
+        "吏部", "户部", "礼部", "兵部", "刑部", "工部",
+        "尚书", "侍郎", "掌印", "秉笔", "阁老", "厂臣", "都督", "指挥", "公公", "伴伴",
+    )
+
     def __init__(self, fresh: bool = False, username: str = "") -> None:
         """实例化 = 真正进入游戏。无 API key 直接抛 LLMUnavailable。
         fresh=True：先清空主 DB（新游戏）再建 session。"""
@@ -2996,7 +3013,7 @@ class WebGame:
         for character in self.session.content.characters.values():
             if character.name == minister_name:
                 continue
-            haystacks = [character.name, *(getattr(character, "aliases", []) or [])]
+            haystacks = [character.name, *self._linkable_character_aliases(character)]
             if not any(alias and str(alias) in raw for alias in haystacks):
                 continue
             try:
@@ -3086,13 +3103,33 @@ class WebGame:
             return {"type": "recruitment", "kind": "recommend"}
         return {}
 
+    def _is_surname_title_alias(self, alias: str, character: Character) -> bool:
+        name = str(getattr(character, "name", "") or "")
+        if not name or not alias.startswith(name[:1]) or len(alias) > 4:
+            return False
+        return any(alias.endswith(suffix) for suffix in self._CHAT_MENTION_SURNAME_TITLE_SUFFIXES)
+
+    def _linkable_character_aliases(self, character: Character) -> List[str]:
+        aliases: List[str] = []
+        for term in getattr(character, "aliases", []) or []:
+            clean = str(term or "").strip()
+            if len(clean) < 2 or clean == getattr(character, "name", ""):
+                continue
+            if clean in self._CHAT_MENTION_BLOCKED_ALIASES:
+                continue
+            if any(token in clean for token in self._CHAT_MENTION_ORG_TOKENS) and not self._is_surname_title_alias(clean, character):
+                continue
+            if clean not in aliases:
+                aliases.append(clean)
+        return aliases
+
     def _character_mentions_in_text(self, text: str) -> List[str]:
         raw = str(text or "")
         names = []
         for name, character in self.content.characters.items():
             if getattr(character, "status", "active") != "active":
                 continue
-            haystacks = [name, *(getattr(character, "aliases", []) or [])]
+            haystacks = [name, *self._linkable_character_aliases(character)]
             if any(alias and str(alias) in raw for alias in haystacks):
                 names.append(name)
         names.sort(key=len, reverse=True)
@@ -3106,7 +3143,7 @@ class WebGame:
             if character is None:
                 continue
             terms = []
-            for term in [name, *(getattr(character, "aliases", []) or [])]:
+            for term in [name, *self._linkable_character_aliases(character)]:
                 clean = str(term or "").strip()
                 if len(clean) >= 2 and clean in raw and clean not in terms:
                     terms.append(clean)
@@ -3230,11 +3267,41 @@ class WebGame:
                 "name": name,
                 "source_minister": minister_name,
                 "first_seen_turn": int(self.state.turn),
+                "mention_index": len(stored),
                 "excerpt": excerpt,
             }
             changed = True
         if changed:
             self._save_unknown_dialogue_mentions(stored)
+
+    def _referenced_unknown_dialogue_name(
+        self,
+        minister_name: str,
+        text: str,
+        stored: Dict[str, Dict[str, Any]],
+    ) -> str:
+        raw = str(text or "")
+        if not stored:
+            return ""
+        rows = [
+            (idx, name, value)
+            for idx, (name, value) in enumerate(stored.items())
+            if str(value.get("source_minister") or "") == minister_name
+        ]
+        if not rows:
+            rows = [(idx, name, value) for idx, (name, value) in enumerate(stored.items())]
+        rows.sort(key=lambda item: (int(item[2].get("first_seen_turn") or 0), int(item[2].get("mention_index") or item[0])), reverse=False)
+        if not rows:
+            return ""
+        if re.search(r"(头一个|第一个|第一位|头一位|前一个|前头那个|前面那个)", raw):
+            return rows[0][1]
+        if re.search(r"(第二个|第二位|另一个|后一个|后头那个|后面那个)", raw):
+            return rows[1][1] if len(rows) >= 2 else rows[-1][1]
+        if re.search(r"(第三个|第三位)", raw):
+            return rows[2][1] if len(rows) >= 3 else ""
+        if len(rows) == 1 and re.search(r"(他|此人|这人|那人|这个人|那个人|这位|那位|此辈).{0,12}(来|入|觐|见|聊|谈|奏对|问对|进殿|入殿)", raw):
+            return rows[0][1]
+        return ""
 
     def _materialize_dialogue_mention_from_text(self, minister_name: str, text: str) -> Optional[Character]:
         stored = self._load_unknown_dialogue_mentions()
@@ -3242,6 +3309,9 @@ class WebGame:
         candidates = [name for name in stored if name in raw]
         if not candidates:
             candidates = [name for name in self._extract_unknown_person_mentions(raw, include_command=True) if name in stored]
+        if not candidates:
+            referenced = self._referenced_unknown_dialogue_name(minister_name, raw, stored)
+            candidates = [referenced] if referenced else []
         if not candidates:
             return None
         candidates.sort(key=len, reverse=True)
