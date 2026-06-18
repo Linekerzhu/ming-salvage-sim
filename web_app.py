@@ -3480,18 +3480,77 @@ class WebGame:
                 return {"type": "recruitment", "kind": "recommend", "recovered": True}
         return {}
 
+    def _castration_topic_mentioned(self, text: str) -> bool:
+        raw = str(text or "").strip()
+        return bool(re.search(r"(净身|宫刑|腐刑|去势|阉割|阉了|阉掉|发净军|没入内廷|入宫为奴|入内廷为奴)", raw))
+
+    def _castration_explicit_order(self, text: str) -> bool:
+        raw = str(text or "").strip()
+        if not raw or not self._castration_topic_mentioned(raw):
+            return False
+        if re.search(
+            r"(?:不是|并非|不要|不必|不用|暂不|先不|别|毋|勿).{0,16}"
+            r"(?:办|传|行事|净身|宫刑|腐刑|去势|阉|发净军|惊动净军房|入内廷为奴|入宫为奴)"
+            r"|(?:只是|只|不过|单是).{0,12}(?:问|聊|说|谈|议|听|看)",
+            raw,
+        ):
+            return False
+        if "阉党" in raw and not re.search(r"(净身|宫刑|腐刑|去势|阉割|阉了|阉掉|发净军|没入内廷|入宫为奴|入内廷为奴)", raw):
+            return False
+        return bool(re.search(
+            r"(?:把|将|令|命|着|使|让|准令|下旨|发旨|传旨|拿|押|发|送|没入|处以|施以|施|办了|照办)"
+            r".{0,28}(?:净身|宫刑|腐刑|去势|阉割|阉了|阉掉|发净军|入内廷为奴|入宫为奴|没入内廷)"
+            r"|(?:净身|宫刑|腐刑|去势|阉割|阉了|阉掉).{0,28}(?:入内廷|入宫为奴|为奴|发净军|行事|照办|办了)"
+            r"|(?:发净军|没入内廷|入宫为奴|入内廷为奴)",
+            raw,
+        ))
+
+    def _castration_targets_current_speaker(self, text: str) -> bool:
+        raw = str(text or "").strip()
+        if not self._castration_explicit_order(raw):
+            return False
+        return bool(re.search(
+            r"(?:令卿|命卿|让卿|使卿|着卿|令你|命你|让你|使你|着你|把你|将你|卿|你)"
+            r".{0,20}(?:净身|宫刑|腐刑|去势|阉|入内廷|入宫为奴)"
+            r"|(?:净身|宫刑|腐刑|去势|阉).{0,20}(?:卿|你)",
+            raw,
+        ))
+
+    def _castration_action_is_valid(
+        self,
+        minister_name: str,
+        action: Dict[str, Any],
+        user_text: str = "",
+    ) -> bool:
+        if action.get("type") != "castration":
+            return True
+        target = str(action.get("target") or "").strip()
+        if not target:
+            return False
+        raw = str(user_text or action.get("scheme_text") or "").strip()
+        if not self._castration_explicit_order(raw):
+            return False
+        mentions = self._character_mentions_in_text(raw) if raw else []
+        if target == minister_name and target not in mentions and not self._castration_targets_current_speaker(raw):
+            return False
+        character = self.content.characters.get(target)
+        if character is None:
+            return False
+        try:
+            return self._castration_applicable(character)
+        except Exception:
+            return False
+
     def _detect_castration_intent(self, text: str, minister_name: str = "") -> Dict[str, Any]:
         raw = str(text or "").strip()
-        if not raw or not re.search(r"(净身|宫刑|腐刑|去势|阉割|阉了|阉掉|发净军|没入内廷|入宫为奴|入内廷为奴)", raw):
-            return {}
-        if "阉党" in raw and not re.search(r"(净身|宫刑|腐刑|去势|阉割|阉了|阉掉|发净军|没入内廷|入宫为奴|入内廷为奴)", raw):
+        if not self._castration_explicit_order(raw):
             return {}
         mentions = [name for name in self._character_mentions_in_text(raw) if name != minister_name]
         target = mentions[0] if mentions else ""
         if not target and minister_name in self.content.characters:
             try:
                 character = self.session._character(minister_name)
-                if self._castration_applicable(character):
+                if self._castration_targets_current_speaker(raw) and self._castration_applicable(character):
                     target = minister_name
             except Exception:
                 target = ""
@@ -4410,7 +4469,8 @@ class WebGame:
                 ) if part
             ) or "按内廷旧例拟一套净身、验宝、封匣章程"
             return (
-                f"{self_ref}回陛下，{target}若真要净身入内廷，便是奇辱重罚，外朝必知这是强旨。"
+                f"{self_ref}回陛下，若只是问旧例，{self_ref}只作旧例回话，不会惊动净军房。"
+                f"{target}若真要净身入内廷，便是极端身份处置，外朝也会视作强旨重罚。"
                 f"{self_ref}拟按「{scheme_hint}」办，宝况、刀具、麻醉与宝匣都会入档。"
                 + (f"{profile_summary}。" if profile_summary else "")
                 + "这不是单纯换官名，后头会影响漏尿尿闭、惊创、调养成本和差遣风险。"
@@ -5045,6 +5105,7 @@ class WebGame:
         minister_name: str,
         action: Optional[Dict[str, Any]],
         fallback_answer: str,
+        user_text: str = "",
     ) -> Optional[Dict[str, Any]]:
         if not isinstance(action, dict) or not action:
             return None
@@ -5053,6 +5114,10 @@ class WebGame:
         normalized.pop("phase", None)
         if phase == "confirm":
             pending = self._load_pending_dialogue_action(minister_name)
+            if normalized.get("type") == "castration" and not (
+                pending and pending.get("type") == "castration"
+            ):
+                return None
             if pending and pending.get("type") == normalized.get("type"):
                 if normalized.get("type") == "recruitment" and not normalized.get("kind"):
                     normalized["kind"] = pending.get("kind")
@@ -5101,10 +5166,26 @@ class WebGame:
                     normalized["note"] = " ".join(dict.fromkeys(part for part in note_parts if part))
             if normalized.get("type") == "recruitment" and not normalized.get("kind"):
                 return None
+            if normalized.get("type") == "castration" and not self._castration_action_is_valid(
+                minister_name,
+                normalized,
+                str(normalized.get("scheme_text") or ""),
+            ):
+                self._clear_pending_dialogue_action(minister_name)
+                return {
+                    "answer": (
+                        f"{self._dialogue_speaker_self(minister_name)}回陛下，方才那话像是旧例闲谈，"
+                        "没有清楚到可传净军房行事。此事暂不入档；若真要办，请重新点明某人并下严旨。"
+                    )
+                }
             return self._execute_dialogue_action(minister_name, normalized)
         if normalized.get("type") in {"recruitment", "mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
             if normalized.get("type") == "castration":
                 normalized["force"] = True
+                if not str(normalized.get("scheme_text") or "").strip():
+                    normalized["scheme_text"] = str(user_text or "").strip()
+                if not self._castration_action_is_valid(minister_name, normalized, user_text):
+                    return None
             self._store_pending_dialogue_action(minister_name, normalized)
             return {"answer": fallback_answer or self._proposal_answer_for_action(minister_name, normalized)}
         return None
@@ -5945,6 +6026,7 @@ class WebGame:
             minister_name,
             getattr(result, "dialogue_action", None),
             result.answer,
+            text,
         )
         if tool_dialogue_response is not None:
             result.answer = str(tool_dialogue_response.get("answer") or result.answer)
@@ -6223,6 +6305,7 @@ class WebGame:
                 minister_name,
                 dialogue_tool_action,
                 answer,
+                text,
             )
             if dialogue_tool_response is not None:
                 updated_answer = str(dialogue_tool_response.get("answer") or answer)

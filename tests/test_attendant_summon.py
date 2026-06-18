@@ -1536,6 +1536,96 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_casual_castration_talk_does_not_create_pending_action(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            row = game.db.conn.execute(
+                "SELECT name, office, office_type FROM characters "
+                "WHERE status='active' AND power_id='ming' "
+                "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
+                "AND office NOT LIKE '%太监%' AND office NOT LIKE '%宦官%' "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            name = str(row["name"])
+            before_office = str(row["office"])
+            before_office_type = str(row["office_type"])
+            text = f"只是聊聊{name}若净身入内廷的旧例，不是要办，别惊动净军房。"
+
+            self.assertIsNone(game._dialogue_action_response(attendant, text))
+            self.assertEqual(game._load_pending_dialogue_action(attendant), {})
+
+            tool_response = game._dialogue_tool_response(
+                attendant,
+                {
+                    "type": "castration",
+                    "phase": "propose",
+                    "target": name,
+                    "scheme_text": text,
+                    "force": True,
+                },
+                "奴婢遵旨。",
+                text,
+            )
+            self.assertIsNone(tool_response)
+            self.assertEqual(game._load_pending_dialogue_action(attendant), {})
+            after = game.db.conn.execute(
+                "SELECT office, office_type FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertIsNotNone(after)
+            self.assertEqual(str(after["office"]), before_office)
+            self.assertEqual(str(after["office_type"]), before_office_type)
+            self.assertFalse(is_eunuch_office(str(after["office"]), str(after["office_type"])))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_castration_confirm_tool_requires_pending_action(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            row = game.db.conn.execute(
+                "SELECT name, office, office_type FROM characters "
+                "WHERE status='active' AND power_id='ming' "
+                "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
+                "AND office NOT LIKE '%太监%' AND office NOT LIKE '%宦官%' "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            name = str(row["name"])
+            response = game._dialogue_tool_response(
+                attendant,
+                {
+                    "type": "castration",
+                    "phase": "confirm",
+                    "target": name,
+                    "scheme_text": f"把{name}净身入内廷。",
+                    "force": True,
+                },
+                "奴婢这就去办。",
+                "准，照办。",
+            )
+            self.assertIsNone(response)
+            after = game.db.conn.execute(
+                "SELECT office, office_type FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertIsNotNone(after)
+            self.assertEqual(str(after["office"]), str(row["office"]))
+            self.assertEqual(str(after["office_type"]), str(row["office_type"]))
+            self.assertFalse(is_eunuch_office(str(after["office"]), str(after["office_type"])))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_lore_maintenance_surfaces_as_chat_effect(self):
         from ming_sim import eunuch_lore as el
 

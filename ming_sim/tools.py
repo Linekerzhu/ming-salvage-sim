@@ -577,9 +577,10 @@ def build_minister_tools(character: Character, context: CourtContext):
         return f"__dialogue_action__{payload}"
 
     def propose_castration(target: str, scheme_text: str = "") -> str:
-        """对白驱动净身：皇帝提到把某人净身/宫刑/入内廷时调用。
+        """对白驱动净身：只有皇帝明确点名并拟下严旨净身/宫刑/入内廷为奴时调用。
 
         只生成待确认意图，不执行净身。scheme_text 可记录刀具、麻醉、宝况、保存手段、宝匣等方案。
+        闲聊净身旧例、询问太监来源、谈已净身者旧患，或说“不是要办/不要办/别惊动净军房”时不得调用。
         回奏必须说明风险并追问陛下是否准办。
         """
         nm = (target or "").strip()
@@ -598,7 +599,7 @@ def build_minister_tools(character: Character, context: CourtContext):
         return f"__dialogue_action__{payload}"
 
     def confirm_castration(target: str = "", scheme_text: str = "") -> str:
-        """对白驱动净身：只有皇帝明确准许后才调用，Web 端才会执行身份转换。"""
+        """对白驱动净身：必须已有待确认净身意图，且皇帝明确说准/照办后才调用。"""
         payload = json.dumps(
             {
                 "type": "castration",
