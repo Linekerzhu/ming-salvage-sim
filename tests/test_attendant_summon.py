@@ -1447,6 +1447,133 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_audience_bargain_attitude_records_memory_and_rolls_back(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=40, grievance=60 WHERE name=?",
+                (actor,),
+            )
+            game.db.conn.commit()
+            chat_turn_id, before_snapshot = game._start_chat_turn(actor)
+
+            effect = game._bargain_chat_effect(
+                actor,
+                {"kind": "petition", "actor": actor, "title": "求展限办差"},
+                "准，朕暂且护持你，给你人手。",
+                "臣叩谢天恩。",
+                chat_turn_id,
+            )
+            game._record_chat_rollback_items(chat_turn_id, before_snapshot)
+
+            self.assertEqual(effect["title"], "御前许诺")
+            self.assertIn("交易入记忆", {str(item["label"]) for item in effect["effects"]})
+            after = game.db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (actor,),
+            ).fetchone()
+            self.assertEqual(int(after["emp_trust"]), 44)
+            self.assertEqual(int(after["grievance"]), 56)
+            memory = game.db.conn.execute(
+                """
+                SELECT * FROM event_memories
+                WHERE subject_id=? AND event_type='audience_bargain' AND source_kind='chat_turn'
+                """,
+                (actor,),
+            ).fetchone()
+            self.assertIsNotNone(memory)
+            log = game.db.conn.execute(
+                "SELECT message FROM turn_logs WHERE message LIKE ?",
+                (f"%【奏对交易】{actor}%",),
+            ).fetchone()
+            self.assertIsNotNone(log)
+
+            game.db.undo_chat_turn(chat_turn_id)
+            restored = game.db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (actor,),
+            ).fetchone()
+            self.assertEqual(int(restored["emp_trust"]), 40)
+            self.assertEqual(int(restored["grievance"]), 60)
+            rolled_memory = game.db.conn.execute(
+                """
+                SELECT * FROM event_memories
+                WHERE subject_id=? AND event_type='audience_bargain' AND source_kind='chat_turn'
+                """,
+                (actor,),
+            ).fetchone()
+            self.assertIsNone(rolled_memory)
+            rolled_log = game.db.conn.execute(
+                "SELECT message FROM turn_logs WHERE message LIKE ?",
+                (f"%【奏对交易】{actor}%",),
+            ).fetchone()
+            self.assertIsNone(rolled_log)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_audience_bargain_press_and_refuse_have_distinct_deltas(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            context = {"kind": "agenda", "actor": actor, "title": "求借势办事"}
+
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=50, grievance=50 WHERE name=?",
+                (actor,),
+            )
+            game.db.conn.commit()
+            press = game._bargain_chat_effect(
+                actor,
+                context,
+                "先拿出账册和担保，限期三日再说。",
+                "臣谨遵。",
+            )
+            self.assertEqual(press["title"], "御前索证")
+            after_press = game.db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (actor,),
+            ).fetchone()
+            self.assertEqual(int(after_press["emp_trust"]), 51)
+            self.assertEqual(int(after_press["grievance"]), 52)
+
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=50, grievance=50 WHERE name=?",
+                (actor,),
+            )
+            game.db.conn.commit()
+            refused = game._bargain_chat_effect(
+                actor,
+                context,
+                "不准，此事驳回。",
+                "臣不敢再言。",
+            )
+            self.assertEqual(refused["title"], "御前拒请")
+            after_refused = game.db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (actor,),
+            ).fetchone()
+            self.assertEqual(int(after_refused["emp_trust"]), 48)
+            self.assertEqual(int(after_refused["grievance"]), 55)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
 
 if __name__ == "__main__":
     unittest.main()

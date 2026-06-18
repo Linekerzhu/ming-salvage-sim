@@ -4220,6 +4220,192 @@ class WebGame:
         except Exception:
             return {}
 
+    def _combine_dialogue_effects(self, *effects: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        cleaned: List[Dict[str, Any]] = []
+        for effect in effects:
+            if not isinstance(effect, dict) or not effect:
+                continue
+            items = effect.get("effects")
+            normalized_items = items if isinstance(items, list) else []
+            title = str(effect.get("title") or "").strip()
+            message = str(effect.get("message") or "").strip()
+            if not title and not message and not normalized_items:
+                continue
+            clone = dict(effect)
+            clone["effects"] = normalized_items
+            cleaned.append(clone)
+        if not cleaned:
+            return {}
+        if len(cleaned) == 1:
+            return cleaned[0]
+        messages: List[str] = []
+        merged_items: List[Dict[str, Any]] = []
+        for effect in cleaned:
+            message = str(effect.get("message") or effect.get("title") or "").strip()
+            if message and message not in messages:
+                messages.append(message)
+            for item in effect.get("effects") or []:
+                if isinstance(item, dict):
+                    merged_items.append(item)
+        return {
+            "title": "奏对有动",
+            "message": "；".join(messages)[:120],
+            "effects": merged_items[:10],
+        }
+
+    def _bargain_attitude(self, user_text: str) -> str:
+        raw = re.sub(r"\s+", "", str(user_text or ""))
+        if not raw:
+            return ""
+        refuse_terms = (
+            "不准", "不可", "不允", "不许", "驳回", "休想", "不能给", "不答应",
+            "暂不", "先不", "不护", "不保", "免谈", "驳了",
+        )
+        if any(term in raw for term in refuse_terms):
+            return "refuse"
+        press_terms = (
+            "先交", "拿出", "自证", "证据", "账册", "担保", "限期", "几日",
+            "谁担责", "交账", "画押", "共办", "试差", "条件", "验明",
+        )
+        if any(term in raw for term in press_terms):
+            return "press"
+        accept_terms = (
+            "朕准", "准了", "准你", "准其", "可以", "允了", "依你", "照办",
+            "答应", "就这么办", "给你", "护持", "展限", "拨给", "许你",
+        )
+        if any(term in raw for term in accept_terms):
+            return "accept"
+        if re.search(r"(^|[，。；、,;])准([，。；、,;]|$)", str(user_text or "")):
+            return "accept"
+        return ""
+
+    def _bargain_context_applies(self, minister_name: str, context: Optional[Dict[str, Any]]) -> bool:
+        if not isinstance(context, dict):
+            return False
+        kind = str(context.get("kind") or "").strip()
+        ref_kind = str(context.get("ref_kind") or "").strip()
+        allowed = {
+            "petition", "agenda", "favor", "monthly_followup", "legacy",
+            "rivalry", "faction", "army", "patronage", "relationship",
+        }
+        if kind not in allowed and ref_kind not in allowed:
+            return False
+        actor = str(context.get("actor") or "").strip()
+        target = str(context.get("target") or "").strip()
+        if kind in {"rivalry", "patronage", "relationship", "legacy"} or ref_kind in {"relationship", "legacy"}:
+            allowed_names = {name for name in (actor, target) if name}
+            return not allowed_names or minister_name in allowed_names
+        return not actor or actor == minister_name
+
+    def _bargain_chat_effect(
+        self,
+        minister_name: str,
+        context: Optional[Dict[str, Any]],
+        user_text: str,
+        answer: str = "",
+        chat_turn_id: int = 0,
+    ) -> Dict[str, Any]:
+        if not self._bargain_context_applies(minister_name, context):
+            return {}
+        attitude = self._bargain_attitude(user_text)
+        if not attitude:
+            return {}
+        row = self.db.conn.execute(
+            "SELECT emp_trust, grievance FROM characters WHERE name=? AND status='active'",
+            (minister_name,),
+        ).fetchone()
+        if row is None:
+            return {}
+        before_trust = max(0, min(100, int(row["emp_trust"] or 55)))
+        before_grievance = max(0, min(100, int(row["grievance"] or 20)))
+        specs = {
+            "accept": {
+                "title": "御前许诺",
+                "log": "允其所求",
+                "trust_delta": +4,
+                "grievance_delta": -4,
+                "sentiment": "positive",
+            },
+            "press": {
+                "title": "御前索证",
+                "log": "准而索证",
+                "trust_delta": +1,
+                "grievance_delta": +2,
+                "sentiment": "mixed",
+            },
+            "refuse": {
+                "title": "御前拒请",
+                "log": "拒其所求",
+                "trust_delta": -2,
+                "grievance_delta": +5,
+                "sentiment": "negative",
+            },
+        }
+        spec = specs[attitude]
+        after_trust = max(0, min(100, before_trust + int(spec["trust_delta"])))
+        after_grievance = max(0, min(100, before_grievance + int(spec["grievance_delta"])))
+        self.db.conn.execute(
+            "UPDATE characters SET emp_trust=?, grievance=? WHERE name=?",
+            (after_trust, after_grievance, minister_name),
+        )
+        context_title = str((context or {}).get("title") or (context or {}).get("meta") or "御前奏对").strip()
+        source_kind = "chat_turn" if chat_turn_id else "dialogue"
+        if chat_turn_id:
+            source_id = str(chat_turn_id)
+        else:
+            digest = hashlib.sha1(f"{self.state.turn}:{minister_name}:{user_text}".encode("utf-8")).hexdigest()[:12]
+            source_id = f"{self.state.turn}:{minister_name}:{digest}"
+        memory_id = self.db.upsert_event_memory(
+            self.state,
+            "character",
+            minister_name,
+            "audience_bargain",
+            str(spec["title"]),
+            cause=context_title,
+            process=str(user_text or "")[:80],
+            outcome=(
+                f"{spec['log']}；信任 {before_trust}->{after_trust}，"
+                f"怨望 {before_grievance}->{after_grievance}"
+            ),
+            sentiment=str(spec["sentiment"]),
+            importance=3,
+            tags=["奏对交易", attitude, str((context or {}).get("kind") or (context or {}).get("ref_kind") or "")],
+            source_kind=source_kind,
+            source_id=source_id,
+        )
+        if memory_id:
+            excerpt = f"朕：{str(user_text or '')[:90]}"
+            if answer:
+                excerpt = f"{excerpt} / {minister_name}：{str(answer or '')[:80]}"
+            self.db.add_event_memory_source(
+                memory_id,
+                source_kind,
+                source_id,
+                excerpt=excerpt,
+                locator={"minister": minister_name, "context": context_title},
+            )
+        self.db.record_log(
+            self.state,
+            (
+                f"【奏对交易】{minister_name}：{spec['log']}。"
+                f"信任 {before_trust}->{after_trust}，怨望 {before_grievance}->{after_grievance}。"
+            ),
+        )
+        trust_tone = "good" if after_trust >= before_trust else "bad"
+        grievance_tone = "good" if after_grievance <= before_grievance else "bad"
+        return {
+            "title": str(spec["title"]),
+            "message": (
+                f"{minister_name}记下御前态度：信任 {before_trust}->{after_trust}，"
+                f"怨望 {before_grievance}->{after_grievance}"
+            ),
+            "effects": [
+                {"kind": "trust", "label": f"信任 {before_trust}->{after_trust}", "tone": trust_tone},
+                {"kind": "grievance", "label": f"怨望 {before_grievance}->{after_grievance}", "tone": grievance_tone},
+                {"kind": "memory", "label": "交易入记忆", "tone": "neutral"},
+            ],
+        }
+
     def chat(self, minister_name: str, message: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         if minister_name not in self.content.characters and minister_name not in self.session.temporary_characters:
             raise HTTPException(status_code=404, detail=f"未找到大臣：{minister_name}")
@@ -4306,10 +4492,16 @@ class WebGame:
             proposed = self._fallback_pending_directive(character, text, result.answer)
         directive_effect = self._directive_chat_effect(minister_name, context, text, result.answer)
         decision_effect = self._decision_chat_effect(minister_name, context, text, result.answer)
+        bargain_effect = self._bargain_chat_effect(minister_name, context, text, result.answer, chat_turn_id)
         tool_dialogue_effect = (
             (tool_dialogue_response or {}).get("dialogue_effect")
             if isinstance((tool_dialogue_response or {}).get("dialogue_effect"), dict)
             else None
+        )
+        dialogue_effect = self._combine_dialogue_effects(
+            tool_dialogue_effect,
+            decision_effect,
+            bargain_effect,
         )
         self._record_chat_rollback_items(chat_turn_id, before_snapshot)
         return self._chat_payload(
@@ -4324,7 +4516,7 @@ class WebGame:
             secret_order_assignee=result.secret_order_assignee,
             secret_order_effect=result.secret_order_effect,
             directive_effect=directive_effect,
-            dialogue_effect=tool_dialogue_effect or decision_effect,
+            dialogue_effect=dialogue_effect,
             chat_turn_id=chat_turn_id,
             dialogue_goal=result.dialogue_goal,
         )
@@ -4532,10 +4724,16 @@ class WebGame:
                 proposed = self._fallback_pending_directive(character, text, answer)
             directive_effect = self._directive_chat_effect(minister_name, context, text, answer)
             decision_effect = self._decision_chat_effect(minister_name, context, text, answer)
+            bargain_effect = self._bargain_chat_effect(minister_name, context, text, answer, chat_turn_id)
             tool_dialogue_effect = (
                 (dialogue_tool_response or {}).get("dialogue_effect")
                 if isinstance((dialogue_tool_response or {}).get("dialogue_effect"), dict)
                 else None
+            )
+            dialogue_effect = self._combine_dialogue_effects(
+                tool_dialogue_effect,
+                decision_effect,
+                bargain_effect,
             )
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
             for portrait_name, reason in (
@@ -4555,7 +4753,7 @@ class WebGame:
                 secret_order_assignee=secret_order_assignee,
                 secret_order_effect=secret_order_effect,
                 directive_effect=directive_effect,
-                dialogue_effect=tool_dialogue_effect or decision_effect,
+                dialogue_effect=dialogue_effect,
                 chat_turn_id=chat_turn_id,
                 dialogue_goal=dialogue_goal,
             )
