@@ -3126,12 +3126,17 @@ class WebGame:
             re.search(fr"{summon_verb}.{{0,16}}{summon_arrival}", raw)
             or re.search(fr"^[\u4e00-\u9fff]{{2,4}}[？?，,、\s]*{direct_arrival}", raw)
         )
+        short_named_summon = bool(re.search(
+            r"(?:^|[，,。；;！!\s、])(?:找|寻|召|传|宣|请|唤|叫)"
+            r"(?:了|一下|一声)?[\u4e00-\u9fff]{2,4}(?:吧|罢|[？?，,。！!\s、]|$)",
+            raw,
+        ))
         pronoun_followup = bool(re.search(r"(人呢|他呢|她呢|在哪|哪去了|带来|领来|引来|进来|入殿|我来和[他她]说话|我和[他她]说话|让[他她]进来|叫[他她]进来|传[他她])", raw))
         selection_followup = self._attendant_named_selection_requested(minister_name, raw)
-        if not (summon_requested or pronoun_followup or selection_followup):
+        if not (summon_requested or short_named_summon or pronoun_followup or selection_followup):
             return {}
         candidates: List[Character] = []
-        if summon_requested or selection_followup:
+        if summon_requested or short_named_summon or selection_followup:
             for character in self.session.content.characters.values():
                 if character.name == minister_name:
                     continue
@@ -3580,6 +3585,7 @@ class WebGame:
                 r"把([\u4e00-\u9fff]{2,4}?)(?:带|领|引|拉).{0,6}(?:见面|过来|面圣|面前|御前|朕前|来|到|入|见|觐|进殿|入殿)",
                 r"(?:传|宣|召|唤|叫|带|领|引)[^\n，。；：]{0,16}?(小[\u4e00-\u9fff]子)(?:觐见|入殿|进殿|进来|趋入|来见|面圣|到御前|到朕前)",
                 r"(?:传|宣|召|唤|叫|带|领|引)[^\n，。；：]{0,16}?([\u4e00-\u9fff]{2,4})(?:觐见|入殿|进殿|进来|趋入|来见|面圣|到御前|到朕前)",
+                r"(?:^|[，,。；;！!\s、])(?:找|寻|召|传|宣|请|唤|叫)(?:了|一下|一声)?([\u4e00-\u9fff]{2,4})(?:吧|罢|[？?，,。！!\s、]|$)",
                 r"^([\u4e00-\u9fff]{2,4})[，、\s]*(?:进来|入殿|进殿|趋入|觐见|来见|面圣)",
             ])
         for pattern in patterns:
@@ -3879,11 +3885,19 @@ class WebGame:
             loyalty = rng.randint(46, 76)
             ability = rng.randint(50, 78)
             min_age, max_age = (18, 60)
+        birth_year = self._dialogue_birth_year(raw, default_min_age=min_age, default_max_age=max_age)
+        age = max(0, int(self.state.year) - int(birth_year))
         source_minister = str(source.get("source_minister") or minister_name or "").strip()
         excerpt = str(source.get("excerpt") or "").strip()
+        if palace_nickname:
+            identity_note = f"内廷小名补档，约{age}岁，按内书堂/司礼监候用小火者管理；"
+        elif is_eunuch_office(office, office_type):
+            identity_note = f"内廷补档，约{age}岁，按宫中候用内侍管理；"
+        else:
+            identity_note = ""
         summary = (
             f"由{source_minister or '御前奏对'}对白中提及，后奉旨按线索寻访入京；"
-            "此人物为当前活动存档内即时补档，可召见、可任用、可进入关系网。"
+            f"{identity_note}此人物为当前活动存档内即时补档，可召见、可任用、可进入关系网。"
             + (f"线索：{excerpt[:90]}。" if excerpt else "")
             + summary_tail
         )
@@ -3899,7 +3913,7 @@ class WebGame:
             integrity=rng.randint(42, 84),
             courage=rng.randint(40, 80),
             style=style,
-            birth_year=self._dialogue_birth_year(raw, default_min_age=min_age, default_max_age=max_age),
+            birth_year=birth_year,
             power_id="ming",
             location=rng.choice(["京师", "南京", "山西", "陕西", "山东", "南直隶", "福建", "湖广"]),
             status="active",

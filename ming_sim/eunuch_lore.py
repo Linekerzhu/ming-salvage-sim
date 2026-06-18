@@ -452,6 +452,99 @@ _BAO_LABEL = {BAO_KEPT: "宝匣自藏（望来世全尸）", BAO_FORFEIT: "宝�
               BAO_LOST: "宝已遗失（客死无凭）"}
 
 
+def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> Dict[str, object]:
+    """Stable eunuch voice/stage profile derived from stats and castration lore."""
+
+    try:
+        row = db.conn.execute(
+            "SELECT ability, wisdom, courage, style, office, office_type FROM characters WHERE name=?",
+            ((name or "").strip(),),
+        ).fetchone()
+    except Exception:
+        row = None
+    ability = int(row["ability"] or 50) if row else 50
+    wisdom = int(row["wisdom"] or 50) if row and "wisdom" in row.keys() else 50
+    courage = int(row["courage"] or 50) if row else 50
+    style = str(row["style"] or "") if row else ""
+    office = str(row["office"] or "") if row else ""
+    office_type = str(row["office_type"] or "") if row else ""
+    servility = int(lore.get("servility") or 45)
+    forced = bool(lore.get("forced"))
+    bao = str(lore.get("bao_status") or "")
+    condition_blob = " ".join(
+        str(lore.get(key) or "")
+        for key in (
+            "urinary_aftereffect",
+            "voice_body_change",
+            "trauma_response",
+            "private_fixation",
+            "bao_ritual",
+        )
+    )
+    low_culture = bool(
+        ability <= 48
+        or wisdom <= 45
+        or re.search(r"小火者|生徒|识字不多|出身寒微|粗|怯|逃荒", f"{style} {office}")
+    )
+    clerkly = bool(wisdom >= 70 or ability >= 70 or re.search(r"文书|内书堂|识字|司礼监", f"{style} {office} {office_type}"))
+    if low_culture:
+        register = "低文化内侍"
+        speech_rule = (
+            "短句、土话、宫里切口；只从殿门、监房、名册、跑腿见闻说起，"
+            "不要替内阁筹划全套国策。"
+        )
+        pet_phrases = ["奴婢晓得", "不敢瞒陛下", "那档子事", "小的听来的"]
+    elif clerkly:
+        register = "识字文书内臣"
+        speech_rule = (
+            "会说名册、封签、账页、钥匙、值房规矩；判断仍从内廷文书和传旨差使出发，"
+            "不要装外朝通儒。"
+        )
+        pet_phrases = ["奴婢按册回", "封签上写得明白", "值房里有旧例", "容奴婢查一查档"]
+    else:
+        register = "谨慎近侍"
+        speech_rule = "先复命，再说风险；话留半寸，不抢皇帝决断。"
+        pet_phrases = ["奴婢领会", "这事还得陛下定夺", "奴婢只敢照实回", "容奴婢递个话"]
+    if courage >= 72:
+        register += " · 急性子"
+        speech_rule += " 性急时可先抢半句，随即叩首收住。"
+        pet_phrases.append("奴婢先说一句")
+    elif courage <= 42:
+        register += " · 胆怯"
+        speech_rule += " 胆怯时吞字、停顿、先请罪再答实话。"
+        pet_phrases.append("奴婢该死")
+    if forced or bao == BAO_FORFEIT:
+        register += " · 强阉心结"
+        speech_rule += " 被问到净房、封签、宝匣时表面更卑顺，底下有怨气。"
+    elif servility >= 65:
+        register += " · 奴性重"
+        speech_rule += " 请恩时更谄、更爱揣摩上意，但仍不能越职讲朝政大局。"
+    stage_cues: List[str] = []
+    if re.search(r"漏尿|尿闭|石淋|小解|夜尿", condition_blob):
+        stage_cues.append("久站时夹腰缩步，嗫嚅请退半步")
+    if re.search(r"嗓音|尖薄|破声|体态|肩背|步子", condition_blob):
+        stage_cues.append("说急了嗓音发尖，肩背微缩")
+    if re.search(r"幻肢|PTSD|噩梦|刀声|净房|按肩", condition_blob, flags=re.IGNORECASE):
+        stage_cues.append("听见刀、净房、验身旧话会短暂失神")
+    if re.search(r"宝匣|钥匙|供奉|封签", condition_blob) or bao in {BAO_KEPT, BAO_FORFEIT}:
+        stage_cues.append("偶尔摸袖中钥匙或避谈宝匣")
+    if not stage_cues:
+        stage_cues.append("垂手贴身侍立，先看皇帝脸色再回话")
+    return {
+        "register": register,
+        "speech_rule": speech_rule,
+        "pet_phrases": list(dict.fromkeys(pet_phrases))[:5],
+        "stage_cues": list(dict.fromkeys(stage_cues))[:5],
+    }
+
+
+def eunuch_voice_profile(db: GameDB, name: str) -> Optional[Dict[str, object]]:
+    lore = get_lore(db, name)
+    if lore is None:
+        return None
+    return _voice_profile_from_lore(db, name, lore)
+
+
 def public_lore_payload(db: GameDB, name: str) -> Optional[Dict[str, object]]:
     """人物档案/前端公开用：把净身旧档折成稳定 payload。"""
     lore = get_lore(db, name)
@@ -505,6 +598,7 @@ def public_lore_payload(db: GameDB, name: str) -> Optional[Dict[str, object]]:
         ) if part
     )
     payload["procedure_line"] = str(payload["procedure_label"] or "")
+    payload["voice_profile"] = _voice_profile_from_lore(db, name, lore)
     return payload
 
 
@@ -690,36 +784,15 @@ def servility_brief(db: GameDB, name: str) -> str:
             f"净身旧档：{details.get('detail_line') or '旧档不全'}；"
             f"{details.get('condition_line') or '后遗未详'}。"
         )
-    try:
-        row = db.conn.execute(
-            "SELECT ability, wisdom, courage, style FROM characters WHERE name=?",
-            (name,),
-        ).fetchone()
-    except Exception:
-        row = None
-    ability = int(row["ability"] or 50) if row else 50
-    wisdom = int(row["wisdom"] or 50) if row and "wisdom" in row.keys() else 50
-    courage = int(row["courage"] or 50) if row else 50
-    style = str(row["style"] or "") if row else ""
+    profile = eunuch_voice_profile(db, name) or {}
     voice_rules: List[str] = []
-    if ability <= 48 or wisdom <= 45 or re.search(r"小火者|出身寒微|识字不多|粗|怯", style):
-        voice_rules.append("口吻偏低文化小内侍：短句、土话、宫里切口，不要讲内阁大学士式大道理；可说“奴婢晓得”“不敢瞒陛下”“那档子事”。")
-    elif wisdom >= 70 or "文书" in style:
-        voice_rules.append("口吻可稍识字：会讲账册、名册、封签，但仍从内廷见闻出发，不装外朝通儒。")
-    if courage >= 70:
-        voice_rules.append("性子急时先抢一句复命，再赶紧收住请罪。")
-    elif courage <= 42:
-        voice_rules.append("胆怯时吞字、停顿、先请饶命再答实话。")
-    condition_line = str((details or {}).get("condition_line") or "")
-    stage_bits: List[str] = []
-    if "漏尿" in condition_line or "尿闭" in condition_line or "石淋" in condition_line:
-        stage_bits.append("久站会夹腿、缩腰或嗫嚅请退半步。")
-    if "嗓音" in condition_line or "体态" in condition_line:
-        stage_bits.append("说急了嗓音发尖、肩背微缩。")
-    if "幻肢" in condition_line or "PTSD" in condition_line or "噩梦" in condition_line:
-        stage_bits.append("听见刀、净房、验身、封匣等词时短暂失神。")
-    if "宝匣" in condition_line or "钥匙" in condition_line or bao in {BAO_KEPT, BAO_FORFEIT}:
-        stage_bits.append("偶尔摸袖中钥匙或避谈宝匣。")
+    register = str(profile.get("register") or "").strip()
+    speech_rule = str(profile.get("speech_rule") or "").strip()
+    pet_phrases = [str(item).strip() for item in (profile.get("pet_phrases") or []) if str(item).strip()]
+    if register or speech_rule:
+        phrase_text = f"；常用口头禅：{'、'.join(pet_phrases[:4])}" if pet_phrases else ""
+        voice_rules.append(f"{register}：{speech_rule}{phrase_text}")
+    stage_bits = [str(item).strip() for item in (profile.get("stage_cues") or []) if str(item).strip()]
     if voice_rules:
         parts.append("【口吻差异】" + "；".join(voice_rules))
     if stage_bits:

@@ -447,6 +447,66 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_short_palace_nickname_summon_without_prior_mention_gets_summoned(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+
+            events = list(game.chat_stream(attendant, "叫小禄子"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], "小禄子")
+            self.assertEqual(payload["registered_minister"], "小禄子")
+            row = game.db.conn.execute(
+                "SELECT office, office_type, faction, birth_year, summary FROM characters WHERE name=?",
+                ("小禄子",),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
+            self.assertIn(str(row["faction"] or ""), {"内廷", "皇党", "阉党"})
+            self.assertLessEqual(int(game.state.year) - int(row["birth_year"]), 16)
+            self.assertIn("当前活动存档", str(row["summary"] or ""))
+            self.assertIn("内廷小名补档", str(row["summary"] or ""))
+            self.assertIn("候用小火者", str(row["summary"] or ""))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_name_first_palace_nickname_summon_gets_inner_court_identity_note(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小顺子", game.content.characters)
+
+            events = list(game.chat_stream(attendant, "小顺子叫来我见见"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            payload = events[-1]["payload"]
+            self.assertEqual(payload["court_action"], "summon")
+            self.assertEqual(payload["next_minister"], "小顺子")
+            self.assertEqual(payload["registered_minister"], "小顺子")
+            row = game.db.conn.execute(
+                "SELECT office, office_type, birth_year, summary FROM characters WHERE name=?",
+                ("小顺子",),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertTrue(is_eunuch_office(str(row["office"]), str(row["office_type"])))
+            self.assertLessEqual(int(game.state.year) - int(row["birth_year"]), 16)
+            self.assertIn("内廷小名补档", str(row["summary"] or ""))
+            self.assertIn("候用小火者", str(row["summary"] or ""))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_old_dialogue_palace_nickname_waiting_profile_migrates_to_inner_court(self):
         game = web_app.WebGame(fresh=True)
         try:

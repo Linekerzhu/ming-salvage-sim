@@ -327,6 +327,12 @@ export type CourtCastration = {
   detail_line?: string;
   condition_line?: string;
   procedure_line?: string;
+  voice_profile?: {
+    register?: string;
+    speech_rule?: string;
+    pet_phrases?: string[];
+    stage_cues?: string[];
+  };
 };
 export type CourtSecret = { kind: string; label: string; detail: string; severity: number; used: boolean };
 export type CourtFavorMemory = {

@@ -440,6 +440,19 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
                     {castrationBits(castration, ["aftereffect_label", "urine_label", "voice_body_label", "trauma_label", "fixation_label", "psychosexual_label"]).map((bit) => <i key={bit}>{bit}</i>)}
                   </span>
                 )}
+                {(castration.voice_profile?.register || (castration.voice_profile?.pet_phrases || []).length > 0) && (
+                  <span className="m-castration-row">
+                    <b>口吻</b>
+                    {castration.voice_profile?.register && <i>{castration.voice_profile.register}</i>}
+                    {(castration.voice_profile?.pet_phrases || []).slice(0, 3).map((bit) => <i key={bit}>{bit}</i>)}
+                  </span>
+                )}
+                {(castration.voice_profile?.stage_cues || []).length > 0 && (
+                  <span className="m-castration-row">
+                    <b>神态</b>
+                    {(castration.voice_profile?.stage_cues || []).slice(0, 2).map((bit) => <i key={bit}>{bit}</i>)}
+                  </span>
+                )}
                 {castration.ritual_label && <span className="m-castration-note">{castration.ritual_label}</span>}
               </div>
             )}

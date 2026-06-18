@@ -121,6 +121,54 @@ class RecordCastrationTests(unittest.TestCase):
             self.assertIn("匣中供奉", volun_brief)       # 自藏宝匣望来世
             self.assertNotEqual(forced_brief, volun_brief)
 
+    def test_voice_profile_drives_public_payload_and_servility_brief(self):
+        with TemporaryDirectory() as tmp:
+            db, _, day = _fresh(tmp)
+            name = "韩爌"
+            el.record_castration(db, name, forced=True, day=day)
+            db.conn.execute(
+                """
+                UPDATE characters
+                SET ability=42, wisdom=38, courage=35,
+                    style='识字不多的小火者，出身寒微，胆怯'
+                WHERE name=?
+                """,
+                (name,),
+            )
+            db.conn.execute(
+                """
+                UPDATE eunuch_lore
+                SET urinary_aftereffect='漏尿尿闭，冬夜尤难久站',
+                    voice_body_change='嗓音尖薄，肩背微缩',
+                    trauma_response='幻肢痛，听见净房旧话会失神',
+                    bao_ritual='宝匣封签由官库收着，钥匙声最刺耳'
+                WHERE name=?
+                """,
+                (name,),
+            )
+            db.conn.commit()
+
+            profile = el.eunuch_voice_profile(db, name)
+            self.assertIsNotNone(profile)
+            self.assertIn("低文化内侍", str(profile["register"]))
+            self.assertIn("胆怯", str(profile["register"]))
+            self.assertIn("强阉心结", str(profile["register"]))
+            self.assertIn("不要替内阁", str(profile["speech_rule"]))
+            self.assertIn("奴婢晓得", profile["pet_phrases"])
+            self.assertTrue(any("夹腰" in item for item in profile["stage_cues"]))
+            self.assertTrue(any("嗓音" in item for item in profile["stage_cues"]))
+            self.assertTrue(any("失神" in item for item in profile["stage_cues"]))
+            self.assertTrue(any("钥匙" in item or "宝匣" in item for item in profile["stage_cues"]))
+
+            public = el.public_lore_payload(db, name)
+            self.assertEqual(public["voice_profile"]["register"], profile["register"])
+            brief = el.servility_brief(db, name)
+            self.assertIn("【口吻差异】", brief)
+            self.assertIn("低文化内侍", brief)
+            self.assertIn("奴婢晓得", brief)
+            self.assertIn("【动作神态】", brief)
+            self.assertIn("夹腰", brief)
+
     def test_no_lore_brief_is_empty(self):
         with TemporaryDirectory() as tmp:
             db, _, _ = _fresh(tmp)
