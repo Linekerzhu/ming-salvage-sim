@@ -12,7 +12,7 @@ import { HomeView } from "./views/HomeView";
 import { DeskView } from "./views/DeskView";
 import { AudienceView } from "./views/AudienceView";
 import { EdictsView } from "./views/EdictsView";
-import { RealmView } from "./views/RealmView";
+import { PolicyCenterView } from "./views/RealmView";
 
 const PERIOD_CN = ["", "正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "冬", "腊"];
 
@@ -90,7 +90,7 @@ const TABS: Array<{ key: Tab; label: string; glyph: string }> = [
   { key: "desk", label: "御案", glyph: "案" },
   { key: "audience", label: "召对", glyph: "召" },
   { key: "edicts", label: "诏旨", glyph: "诏" },
-  { key: "realm", label: "天下", glyph: "天" },
+  { key: "policy", label: "国策", glyph: "策" },
 ];
 
 function BottomNav({ active, go }: { active: Tab; go: (t: Tab) => void }) {
@@ -303,7 +303,7 @@ function Shell({ onExitMenu }: { onExitMenu: () => void }) {
             />
           )}
           {!loading && tab === "edicts" && <EdictsView summon={summonAudience} />}
-          {!loading && tab === "realm" && <RealmView />}
+          {!loading && tab === "policy" && <PolicyCenterView />}
         </main>
         <BottomNav active={tab} go={setTab} />
         <DecisionModal />

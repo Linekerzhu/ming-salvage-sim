@@ -310,6 +310,7 @@ class PolicyDirectiveGateTests(unittest.TestCase):
     def test_tracker_close_cannot_bypass_doctrine_conflict_gate(self):
         with TemporaryDirectory() as tmp:
             db, state, _day = _fresh(tmp)
+            bind_issues_content(GameContent.load())
             policies.ensure_doctrine_legacy(db, state, "ancestral_conservatism")
             created = policies.ensure_doctrine_issue(db, state, "open_sea_trade")
             issue_id = int(created["issue_id"])

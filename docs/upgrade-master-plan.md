@@ -94,8 +94,8 @@
 
 ## S2 指令生命周期与经手链条（P5 的机制化）
 
-状态机：`draft → issued → in_transit(lead_days) → executing → done/aborted`，
-executing 期间每旬一次**执行检定**。
+状态机：`draft → issued(成命即时) → in_transit(传旨/送达 lead_days) → executing(承办 exec_days) → done/aborted`，
+executing 期间每旬一次**执行检定**。`lead_days` 不得解释为“下达耗时”；同日直接处置可令 `lead_days=0`、`exec_days=0/1`。完整修订见 [旨意周期与回报机制重排](./decree-cycle-and-reports.md)。
 
 **经手链条**：颁诏时规则层生成执行链（主办官员 → 经手官署 → 地方官），
 逐环计算 `利益受损度`（政策类别 × 该官员派系立场 × 个人利益标签）。颁诏界面

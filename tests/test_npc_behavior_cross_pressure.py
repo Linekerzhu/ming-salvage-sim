@@ -10,6 +10,7 @@ from ming_sim.context import (
     bind_content as bind_context,
     npc_dialogue_behavior_brief,
     npc_dialogue_behavior_profile,
+    npc_dialogue_voice_contract,
     npc_network_recommendations,
     npc_relation_perspective,
 )
@@ -181,6 +182,26 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
         self.assertIn("边镇军务人物", man)
         self.assertIn("军饷、粮草、兵心", man)
         self.assertIn("空旨无粮", man)
+        self.assertIn("本轮话术自检", wang)
+        self.assertIn("第一段就要露出至少一个本人的差异锚点", bi)
+
+    def test_dialogue_voice_contract_is_system_level_and_distinct(self) -> None:
+        wang = npc_dialogue_voice_contract("王承恩")
+        bi = npc_dialogue_voice_contract("毕自严")
+        xu = npc_dialogue_voice_contract("徐光启")
+        man = npc_dialogue_voice_contract("满桂")
+
+        self.assertIn("人物声音合约", wang)
+        self.assertIn("不是通用大臣模板", wang)
+        self.assertIn("内廷近侍/司礼监人物", wang)
+        self.assertIn("宫禁传闻", wang)
+        self.assertIn("户部钱粮人物", bi)
+        self.assertIn("钱粮来源、额度、去向", bi)
+        self.assertIn("工部营造/格物实测人物", xu)
+        self.assertIn("实测证据", xu)
+        self.assertIn("边镇军务人物", man)
+        self.assertIn("军饷、粮草、兵心", man)
+        self.assertIn("至少显出一个与本人身份/职掌/关系相关的差异锚点", man)
 
     def test_dialogue_behavior_profile_exposes_role_policy_for_systemic_checks(self) -> None:
         wang = npc_dialogue_behavior_profile("王承恩", text="辽东军饷短缺，卿怎么看？")

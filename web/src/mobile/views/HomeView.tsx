@@ -7,8 +7,13 @@ import { usePerson } from "../personCtx";
 import { OutcomeSummary } from "./EdictsView";
 
 const INFORMATIONAL_KINDS = ["复命", "捷报"];
-const BRIEF_TABS: Tab[] = ["home", "desk", "audience", "edicts", "realm"];
+const BRIEF_TABS: Tab[] = ["home", "desk", "audience", "edicts", "policy"];
 type BriefBucket = { kind: string; label: string; shown: number; total: number; hidden: number; rank_level?: string; rank_label?: string; rank_count?: number };
+
+function normalizeBriefTab(tab: PlaystyleBriefCard["tab"]): Tab {
+  if (tab === "realm") return "policy";
+  return BRIEF_TABS.includes(tab as Tab) ? (tab as Tab) : "audience";
+}
 
 function ActiveDoctrinePolicies({ legacies }: { legacies?: any[] }) {
   const doctrines = (legacies || [])
@@ -96,7 +101,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
       inspect(card.actor, "back");
       return;
     }
-    const to = BRIEF_TABS.includes(card.tab) ? card.tab : "audience";
+    const to = normalizeBriefTab(card.tab);
     if (to === "audience" && card.actor) {
       summonFromBrief(card, card.actor, card.target || "");
       return;
@@ -360,7 +365,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                         {canSummon(card.target, activeMinisters) && (
                           <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.target!, card.actor)}>召{shortName(card.target)}</button>
                         )}
-                        <button className="m-brief-action" onClick={() => go("realm")}>看天下</button>
+                        <button className="m-brief-action" onClick={() => go("policy")}>看国策</button>
                       </>
                     ) : card.tab === "audience" && card.actor ? (
                       <>
@@ -370,7 +375,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                       </>
                     ) : card.kind === "army" ? (
                       <>
-                        <button className="m-brief-action primary" onClick={() => go("realm")}>看天下›</button>
+                        <button className="m-brief-action primary" onClick={() => go("policy")}>看国策›</button>
                         {canSummon(card.actor, activeMinisters) && (
                           <>
                             <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, "")}>召主帅</button>
@@ -419,7 +424,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
               </li>
             ))}
           </ul>
-          <button className="m-chip" onClick={() => go("realm")}>看中兴气象 ›</button>
+          <button className="m-chip" onClick={() => go("policy")}>看国策中枢 ›</button>
         </section>
       )}
 
@@ -462,7 +467,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
 function FeedItem({ e, openPerson, go }: { e: TickEvent; openPerson: (n: string) => void; go: (t: Tab) => void }) {
   const isChar = e.ref_kind === "character" && !!e.ref_id;
   const route: Tab | null =
-    e.ref_kind === "directive" ? "edicts" : e.ref_kind === "issue" ? "realm" : null;
+    e.ref_kind === "directive" ? "edicts" : e.ref_kind === "issue" ? "policy" : null;
   const clickable = isChar || route != null;
   const onClick = () => {
     if (isChar) openPerson(e.ref_id);
@@ -482,7 +487,7 @@ function FeedItem({ e, openPerson, go }: { e: TickEvent; openPerson: (n: string)
         </span>
         {e.detail && <span className="m-feed-detail">{e.detail}</span>}
       </span>
-      {clickable && <span className="m-feed-go">{isChar ? "识此人" : route === "edicts" ? "看诏旨" : "看天下"} ›</span>}
+      {clickable && <span className="m-feed-go">{isChar ? "识此人" : route === "edicts" ? "看诏旨" : "看国策"} ›</span>}
     </li>
   );
 }

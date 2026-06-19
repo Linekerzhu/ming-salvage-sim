@@ -54,7 +54,8 @@ def calc_province_fiscal(
     返回 (国库月收合计, 内库月收合计, 明细列表)。
     """
     rows = db.conn.execute(
-        "SELECT id, name, unrest, gentry_resistance, tax_per_turn, fiscal FROM regions"
+        "SELECT id, name, unrest, gentry_resistance, public_support, military_pressure, "
+        "controlled_by, tax_per_turn, fiscal FROM regions"
     ).fetchall()
     if not rows:
         raise SystemExit("calc_province_fiscal: regions 表无数据，中止。")
@@ -75,6 +76,9 @@ def calc_province_fiscal(
         name         = str(row["name"])
         unrest       = int(row["unrest"])
         gentry       = int(row["gentry_resistance"])
+        public_support = int(row["public_support"])
+        military_pressure = int(row["military_pressure"])
+        controlled_by = str(row["controlled_by"] or "ming")
         tax_base     = int(row["tax_per_turn"])   # 省级月税基准（万两）
         fiscal: dict = json.loads(row["fiscal"] or "{}")
 
@@ -82,6 +86,7 @@ def calc_province_fiscal(
         liao_xiang   = fiscal.get("liao_xiang", 0)
         salt_tax     = fiscal.get("salt_tax", 0)
         commerce_tax = fiscal.get("commerce_tax", 0)
+        corruption   = int(fiscal.get("corruption", 50) or 50)
 
         # 综合到账率（单一系数，上限1.0，改革后可接近满额）；再乘势耦合系数
         eff = _province_efficiency(fiscal, gentry, unrest) * shi_factor
@@ -112,6 +117,13 @@ def calc_province_fiscal(
         details.append({
             "region_id":       region_id,
             "name":            name,
+            "controlled_by":    controlled_by,
+            "tax_base":         tax_base,
+            "田赋基数":          tian_fu_base,
+            "辽饷基数":          int(liao_xiang),
+            "盐税基数":          int(salt_tax),
+            "商税基数":          int(commerce_tax),
+            "皇庄田":            int(huang_tian or 0),
             "田赋":            tian_fu,
             "辽饷":            liao,
             "盐税":            salt,
@@ -119,6 +131,13 @@ def calc_province_fiscal(
             "皇庄":            huang_income,
             "province_total":  province_guo,
             "efficiency":      round(eff, 3),
+            "liao_efficiency": round(liao_eff, 3),
+            "shi_factor":      round(shi_factor, 3),
+            "corruption":      corruption,
+            "gentry_resistance": gentry,
+            "unrest":          unrest,
+            "public_support":  public_support,
+            "military_pressure": military_pressure,
         })
 
     return guo_ku_total, nei_ku_total, details

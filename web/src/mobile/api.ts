@@ -3,7 +3,7 @@ import { api, streamJsonSse } from "../api/client";
 import { decodeMapNodes, decodeOrganizationPayload, normalizeGameState } from "../api/payloads";
 
 // ── 类型（贴后端形状，按需扩展，宽松处用 any）───────────────────────────────
-export type Tab = "home" | "desk" | "audience" | "edicts" | "realm";
+export type Tab = "home" | "desk" | "audience" | "edicts" | "policy";
 
 export type TimeStatus = {
   current_day: number;
@@ -207,6 +207,54 @@ export const loadTime = async (): Promise<TimeStatus> => {
 
 export const loadDesk = (): Promise<DeskPayload> => api<DeskPayload>("/api/desk");
 
+export type FiscalCenterPayload = Record<string, any> & {
+  unit?: string;
+  revenue_sources?: any[];
+  expense_sources?: any[];
+  revenue_family_rows?: any[];
+  expense_family_rows?: any[];
+  province_tax_rows?: any[];
+  army_pay_rows?: any[];
+  net_by_account?: Record<string, any>;
+  account_cards?: any[];
+  ledger_movements?: any[];
+  ledger_summary?: Record<string, any>;
+  totals?: Record<string, number>;
+  explainers?: any[];
+  money_questions?: any[];
+  player_model?: Record<string, string>;
+};
+
+export type PolicyCenterPayload = Record<string, any> & {
+  route_summary?: { orthodox?: number; contested?: number; latent?: number };
+  routes?: any[];
+  orthodox?: any[];
+  contested?: any[];
+  latent?: any[];
+  strategic_snapshot?: Record<string, any>;
+  workstreams?: Record<string, any[]>;
+  inner_court_tools?: Record<string, any>;
+};
+
+export type StatecraftCenterPayload = Record<string, any> & {
+  model?: Record<string, string>;
+  topbar?: any[];
+  economy_lanes?: any[];
+  capacity_rows?: any[];
+  building_capacity_rows?: any[];
+  bureaucracy_rows?: any[];
+  bottlenecks?: any[];
+  source_links?: Record<string, string>;
+};
+
+const unwrapPanel = <T,>(raw: any): T => (raw?.data || raw?.payload || raw) as T;
+export const loadFiscalCenter = async (): Promise<FiscalCenterPayload> =>
+  unwrapPanel<FiscalCenterPayload>(await api<any>("/api/fiscal_center"));
+export const loadPolicyCenter = async (): Promise<PolicyCenterPayload> =>
+  unwrapPanel<PolicyCenterPayload>(await api<any>("/api/policy_center"));
+export const loadStatecraftCenter = async (): Promise<StatecraftCenterPayload> =>
+  unwrapPanel<StatecraftCenterPayload>(await api<any>("/api/statecraft_center"));
+
 // 司礼监代批红（宦官恶趣味 E1）：开＝御案积压由内廷廓清（省精力），代价＝权阉之势涨、阉党自固。
 export type DaipihongStatus = { on: boolean; eunuch_power: number; keeper: string | null; keeper_upright: boolean };
 export const loadDaipihong = (): Promise<DaipihongStatus> =>
@@ -250,7 +298,7 @@ export type PlaystyleBriefCard = {
   urgency: number;
   tone: "danger" | "warn" | "info" | string;
   cta: string;
-  tab: Tab;
+  tab: Tab | "realm" | string;
   actor?: string;
   target?: string;
   meta?: string;

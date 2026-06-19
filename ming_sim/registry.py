@@ -20,6 +20,7 @@ from ming_sim.content import GameContent
 from ming_sim.context import (
     character_age_label,
     character_context_with_db,
+    npc_dialogue_voice_contract,
     npc_network_brief,
     npc_relation_perspective,
 )
@@ -948,6 +949,7 @@ def create_minister_agent(
         if extra_traits_str:
             cultivate_desc += f"性情逐渐变化：{extra_traits_str}。"
         network_brief = npc_network_brief(character.name, year=context.state.year)
+        voice_contract = npc_dialogue_voice_contract(character.name, character=character)
         instructions = [
             c.game_world_prompt,
             c.consort_agent_prompt,
@@ -955,6 +957,7 @@ def create_minister_agent(
             f"人物特质：{'、'.join(character.personal_skills)}。个人简介：{character.summary}"
             + (f"\n{cultivate_desc}" if cultivate_desc else ""),
             persona_self_address_rule(character),
+            voice_contract,
             network_brief,
             f"你与皇帝的对话在后宫寝殿；同一回合复召时接续此前对话，不要重置记忆。",
             f"当前为 {context.state.year} 年 {context.state.period} 月。",
@@ -1028,12 +1031,14 @@ def create_minister_agent(
             foundation_brief = agent_block(character.name)
         except Exception:
             foundation_brief = ""
+        voice_contract = npc_dialogue_voice_contract(character.name, character=character)
         instructions = [
             c.game_world_prompt,
             c.minister_agent_prompt,
             f"你当前扮演：{character_context_with_db(character, context.db, context.state.year)}，"
             f"任事处：{_duty_location(character.office, character.office_type, 'active')}。",
             persona_self_address_rule(character),
+            voice_contract,
             network_brief,
             foundation_brief,
             info_scope_brief,

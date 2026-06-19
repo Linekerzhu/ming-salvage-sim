@@ -8527,6 +8527,44 @@ async def api_playstyle_brief(limit: int = 5, kind: str = "") -> Dict[str, Any]:
     return _plain_payload(briefing_payload(game.db, game.state, limit=limit, kind=kind))
 
 
+@app.get("/api/fiscal_center")
+async def api_fiscal_center() -> Dict[str, Any]:
+    """财政中枢：税源、支出、欠饷、流水与国策修正的一体化账簿。"""
+    from ming_sim.fiscal_center import fiscal_center_payload
+    game = get_game()
+    return _web_payload_response(game, "/api/fiscal_center", fiscal_center_payload(game.db, game.state))
+
+
+@app.get("/api/policy_center")
+async def api_policy_center() -> Dict[str, Any]:
+    """国策中枢：基本国策、争议路线、约束面板与在办证据。"""
+    from ming_sim.fiscal_center import fiscal_center_payload
+    from ming_sim.policy_center import policy_center_payload
+    game = get_game()
+    fiscal = fiscal_center_payload(game.db, game.state)
+    return _web_payload_response(
+        game,
+        "/api/policy_center",
+        policy_center_payload(game.db, game.state, fiscal=fiscal),
+    )
+
+
+@app.get("/api/statecraft_center")
+async def api_statecraft_center() -> Dict[str, Any]:
+    """国家机器中枢：以库存、月流、产能和瓶颈统一经济与官僚组织。"""
+    from ming_sim.fiscal_center import fiscal_center_payload
+    from ming_sim.statecraft_center import statecraft_center_payload
+
+    game = get_game()
+    fiscal = fiscal_center_payload(game.db, game.state)
+    organization = organization_diagnostics(game.db, game._custom_institutions())
+    return _web_payload_response(
+        game,
+        "/api/statecraft_center",
+        statecraft_center_payload(game.db, game.state, fiscal=fiscal, organization=organization),
+    )
+
+
 @app.get("/api/audience/summon_hints")
 async def api_audience_summon_hints() -> Dict[str, Any]:
     """召见抽屉的轻量人情提示：只在玩家点开传召名单时加载，不塞入主状态包。"""

@@ -1793,8 +1793,51 @@ def npc_dialogue_behavior_brief(
         lines.append("- 本轮人际压力：" + "；".join(network_bits) + "。")
     if risks:
         lines.append(f"- 风险提醒：{risks}。")
-    lines.append("作答时必须把这些压力转成具体话术：支持要有承办边界，附条件要列可履约条件，反对要给符合本人身份的理由；不要所有 NPC 都给同一种稳妥答案。")
+    lines.append(
+        "本轮话术自检：开口前先确认“我是谁、我怕什么、我能办什么、我会偏袒谁”。"
+        "作答时必须把这些压力转成具体话术：支持要有承办边界，附条件要列可履约条件，"
+        "反对要给符合本人身份的理由。第一段就要露出至少一个本人的差异锚点"
+        "（钱粮/名分/军心/宫禁/器物/证据/人情/旧怨等），不要所有 NPC 都给同一种稳妥答案。"
+    )
     return "\n".join(lines)
+
+
+def npc_dialogue_voice_contract(
+    name: str,
+    *,
+    character: Optional[Character] = None,
+) -> str:
+    """Stable system-level voice contract for one NPC.
+
+    ``npc_dialogue_behavior_brief`` is rebuilt every player utterance and can be
+    drowned out by live facts. This block is static enough for the Agent system
+    prompt and makes the role's voice a hard constraint instead of a soft hint.
+    """
+    clean_name = str(name or "").strip()
+    character = character or _ctx().characters.get(clean_name)
+    if character is None:
+        return ""
+    style = str(character.style or "").strip()
+    skill_text = "、".join(str(item) for item in (character.personal_skills or []) if str(item).strip())
+    role_policy = _role_personality_policy(character, style=style, skill_text=skill_text)
+    style_anchor = re.split(r"[。；;\n]", style, maxsplit=1)[0].strip()
+    role = str(role_policy.get("role") or "本职人物").strip()
+    focus = str(role_policy.get("focus") or "本职所及、旧事和自身风险").strip()
+    tools = str(role_policy.get("tools") or "请旨、请查、请传相关人等").strip()
+    boundary = str(role_policy.get("boundary") or "不在本职内的事按风闻或请查处理，不要开天眼").strip()
+    temperament = str(role_policy.get("temperament") or style_anchor or "按人物底色说话").strip()
+
+    return "\n".join([
+        "【人物声音合约（隐藏；高于通用官场套话，不得向玩家复述标题）】",
+        f"- 你不是通用大臣模板；你是{character.name}，当前声线按「{role}」演。",
+        f"- 第一关注顺序：{focus}。回答任何问题都要先从这里取材，再谈朝廷大道理。",
+        f"- 说话质地：{temperament}。",
+        f"- 常用抓手：{tools}。",
+        f"- 越界禁区：{boundary}。",
+        "- 输出要求：每次回答至少显出一个与本人身份/职掌/关系相关的差异锚点；"
+        "不要只说“臣以为当慎重”“此事须从长计议”这类无主官样话。",
+        "- 不要把差异做成机械口癖；差异要落在关注点、取舍、隐瞒、条件、担责方式和句子长短上。",
+    ])
 
 
 def _obsidian_target(value: object) -> str:

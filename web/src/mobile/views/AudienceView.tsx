@@ -201,7 +201,7 @@ export function AudienceView({
       <div className="m-view m-audience">
         <section className="m-card m-card-hero">
           <h2 className="m-card-title">召对·人治</h2>
-          <p className="m-hint">朝中无随侍太监可用。可于「天下·官制」拣选内臣充任随侍，方能传召大臣。</p>
+          <p className="m-hint">朝中无随侍太监可用。可于「国策·官制」拣选内臣充任随侍，方能传召大臣。</p>
         </section>
       </div>
     );
