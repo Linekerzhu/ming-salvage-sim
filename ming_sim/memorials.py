@@ -1080,21 +1080,14 @@ def _memorial_action_effects(
         refer.append(_preview_effect("交部核拨", "good", "directive"))
 
     if policy_doctrine:
-        route_delta = 12
         try:
             from ming_sim import policies
-            route_delta = int((policies.load_policy_doctrines() or {}).get("memorial_issue_delta") or 12)
+            route_preview = policies.doctrine_memorial_action_preview(policy_doctrine)
         except Exception:
-            route_delta = 12
-        reverse_delta = max(4, route_delta // 2)
-        direction = str(policy_doctrine.get("direction") or "")
-        if direction == "oppose":
-            approve.append(_preview_effect(f"路线 -{route_delta}", "bad", "doctrine"))
-            deny.append(_preview_effect(f"路线 +{reverse_delta}", "good", "doctrine"))
-        else:
-            approve.append(_preview_effect(f"路线 +{route_delta}", "good", "doctrine"))
-            deny.append(_preview_effect(f"路线 -{reverse_delta}", "bad", "doctrine"))
-        refer.append(_preview_effect("可转成旨意路线", "good", "doctrine"))
+            route_preview = {}
+        approve.extend(route_preview.get("approve") or [])
+        deny.extend(route_preview.get("deny") or [])
+        refer.extend(route_preview.get("refer") or [])
 
     if kind not in ("告变", "弹章"):
         deny.append(_preview_effect("上疏人怨", "bad", "court"))

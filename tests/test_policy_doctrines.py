@@ -474,6 +474,27 @@ class PolicyMemorialIntegrationTests(unittest.TestCase):
             self.assertGreaterEqual(int(route["bar_value"]), 1)
             self.assertEqual(route["state_label"], "路线争议")
             self.assertEqual(route["author_stance"]["stance"], "support")
+            base = int((policies.load_policy_doctrines().get("memorial_issue_delta") or 12))
+            approve_labels = [str(effect["label"]) for effect in item["action_effects"]["approve"]]
+            deny_labels = [str(effect["label"]) for effect in item["action_effects"]["deny"]]
+            self.assertIn(f"路线 +{base}", approve_labels)
+            self.assertIn(f"路线 -{max(4, base // 2)}", deny_labels)
+
+    def test_doctrine_memorial_action_preview_matches_delta_rule(self):
+        base = int((policies.load_policy_doctrines().get("memorial_issue_delta") or 12))
+        reverse = max(4, base // 2)
+
+        support = policies.doctrine_memorial_action_preview({"direction": "support"})
+        self.assertEqual(policies.doctrine_memorial_action_delta("support", "approve"), base)
+        self.assertEqual(policies.doctrine_memorial_action_delta("support", "deny"), -reverse)
+        self.assertEqual(support["approve"][0]["label"], f"路线 +{base}")
+        self.assertEqual(support["deny"][0]["label"], f"路线 -{reverse}")
+
+        oppose = policies.doctrine_memorial_action_preview({"direction": "oppose"})
+        self.assertEqual(policies.doctrine_memorial_action_delta("oppose", "approve"), -base)
+        self.assertEqual(policies.doctrine_memorial_action_delta("oppose", "deny"), reverse)
+        self.assertEqual(oppose["approve"][0]["label"], f"路线 -{base}")
+        self.assertEqual(oppose["deny"][0]["label"], f"路线 +{reverse}")
 
     def test_desk_payload_marks_route_memorial_reform_readiness(self):
         with TemporaryDirectory() as tmp:

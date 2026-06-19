@@ -636,14 +636,11 @@ def apply_memorial_doctrine_effect(
     doctrine_id = str(issue["origin_ref"] or "")
     doctrine = doctrine_by_id(doctrine_id) or {}
     kind = str(memorial_row["kind"] or "")
+    direction = doctrine_memorial_direction(kind)
     approve = str(action) == "approve"
-    cfg = load_policy_doctrines()
-    base = int(cfg.get("memorial_issue_delta") or 12)
-    # 支持性奏疏获准推进路线；反对性弹章获准阻滞路线。驳回时反向小幅波动。
-    if kind == "弹章":
-        delta = -base if approve else max(4, base // 2)
-    else:
-        delta = base if approve else -max(4, base // 2)
+    delta = doctrine_memorial_action_delta(direction, str(action))
+    if not delta:
+        return {}
     result = {"doctrine_id": doctrine_id, "delta_bar": delta, "issue_id": int(issue["id"])}
     issue_result = ensure_doctrine_issue(
         db,
@@ -669,6 +666,49 @@ def apply_memorial_doctrine_effect(
     if factions:
         result["factions"] = factions
     return result
+
+
+def doctrine_memorial_direction(kind: str) -> str:
+    """Return whether a memorial kind pushes or resists its attached route."""
+
+    return "oppose" if str(kind or "") == "弹章" else "support"
+
+
+def doctrine_memorial_action_delta(direction: str, action: str) -> int:
+    """Route bar delta for deciding a doctrine memorial.
+
+    Supportive memorial approved => route advances; rejected => route loses
+    ground. Opposition memorial approved => route is checked; rejected =>
+    route gains legitimacy. Refer/shelve do not move the issue bar directly.
+    """
+
+    act = str(action or "")
+    if act not in {"approve", "deny"}:
+        return 0
+    base = int((load_policy_doctrines().get("memorial_issue_delta") or 12))
+    reverse = max(4, base // 2)
+    opposes = str(direction or "") == "oppose"
+    if act == "approve":
+        return -base if opposes else base
+    return reverse if opposes else -reverse
+
+
+def doctrine_memorial_action_preview(policy_doctrine: Dict[str, object]) -> Dict[str, List[Dict[str, str]]]:
+    """Player-facing route previews for desk actions, using real delta rules."""
+
+    if not policy_doctrine:
+        return {}
+    direction = str(policy_doctrine.get("direction") or "support")
+    out: Dict[str, List[Dict[str, str]]] = {"approve": [], "deny": [], "refer": []}
+    for action in ("approve", "deny"):
+        delta = doctrine_memorial_action_delta(direction, action)
+        if not delta:
+            continue
+        tone = "good" if delta > 0 else "bad"
+        sign = "+" if delta > 0 else ""
+        out[action].append({"kind": "doctrine", "label": f"路线 {sign}{delta}", "tone": tone})
+    out["refer"].append({"kind": "doctrine", "label": "可转成旨意路线", "tone": "good"})
+    return {key: value for key, value in out.items() if value}
 
 
 def _apply_doctrine_memorial_faction_reaction(
