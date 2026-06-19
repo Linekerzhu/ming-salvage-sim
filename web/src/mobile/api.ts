@@ -653,6 +653,26 @@ export const loadOrganizations = async (): Promise<{ institutions: OrgInstitutio
   const decoded = decodeOrganizationPayload<Record<string, any>>(raw.data || raw.state || raw) || {};
   return { institutions: (decoded.institutions as OrgInstitution[]) || [], unassigned: (decoded.unassigned as any[]) || [] };
 };
+export const fillOrganizationVacancy = async (
+  institution_id: string,
+  slot_title: string,
+  method = "auto",
+): Promise<{ message?: string; organizations?: { institutions?: OrgInstitution[]; unassigned?: any[] }; state?: GameState }> => {
+  const raw = await api<Record<string, any>>("/api/organizations/fill_vacancy", {
+    method: "POST",
+    body: JSON.stringify({ institution_id, slot_title, method }),
+  });
+  const wireOrgs = raw.organizations || raw.data?.organizations || raw.state?.organizations || {};
+  const organizations = decodeOrganizationPayload<Record<string, any>>(wireOrgs) || {};
+  return {
+    ...raw,
+    message: String(raw.message || raw.data?.message || ""),
+    organizations: {
+      institutions: (organizations.institutions as OrgInstitution[]) || [],
+      unassigned: (organizations.unassigned as any[]) || [],
+    },
+  };
+};
 
 // 建筑（城防/仓廪/工坊）：来自 /api/map 的节点嵌套，展平为列表。condition 严重度上色。
 export type Building = Record<string, any> & {

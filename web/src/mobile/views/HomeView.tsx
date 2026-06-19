@@ -1,8 +1,17 @@
 import { useEffect, useState } from "react";
 import { useGame } from "../GameData";
 import { Portrait } from "../Portrait";
-import { loadEunuch, loadPlaystyleBrief } from "../api";
-import type { AudienceLead, PlaystyleBriefCard, PublicCharacter, Suggestion, Tab, TickEvent } from "../api";
+import { loadEunuch, loadFiscalCenter, loadOrganizations, loadPlaystyleBrief } from "../api";
+import type {
+  AudienceLead,
+  FiscalCenterPayload,
+  OrgInstitution,
+  PlaystyleBriefCard,
+  PublicCharacter,
+  Suggestion,
+  Tab,
+  TickEvent,
+} from "../api";
 import { usePerson } from "../personCtx";
 import { OutcomeSummary } from "./EdictsView";
 
@@ -39,6 +48,80 @@ function ActiveDoctrinePolicies({ legacies }: { legacies?: any[] }) {
   );
 }
 
+function ImperialQuestions({
+  state,
+  fiscal,
+  organizations,
+  go,
+}: {
+  state: any;
+  fiscal: FiscalCenterPayload | null;
+  organizations: OrgInstitution[] | null;
+  go: (t: Tab) => void;
+}) {
+  const legacies = (state?.legacies || []) as any[];
+  const doctrines = legacies
+    .map((legacy) => ({ legacy, doctrine: legacy?.policy_doctrine }))
+    .filter((item) => item.doctrine?.id);
+  const policyNames = doctrines.slice(0, 3).map(({ legacy, doctrine }) => String(doctrine.name || legacy.name || "")).filter(Boolean);
+  const policyLine = policyNames.length ? policyNames.join("、") : "尚未确立正统国策";
+  const policyDetail = doctrines[0]?.doctrine?.summary || "国策页会把争议路线、财政约束、军队压力放在同一张账上。";
+
+  const accounts = fiscal?.net_by_account || {};
+  const guo = accounts["国库"] || {};
+  const income = Number(guo.income_total || 0);
+  const expense = Number(guo.expense_total || 0);
+  const net = Number(guo.net || 0);
+  const gap = Number((fiscal?.totals || {}).cash_gap_next_month || guo.cash_gap_next_month || 0);
+  const revenueRows = Array.isArray(fiscal?.revenue_family_rows) && fiscal!.revenue_family_rows!.length
+    ? fiscal!.revenue_family_rows!
+    : (Array.isArray(fiscal?.revenue_sources) ? fiscal!.revenue_sources! : []);
+  const sourceLine = revenueRows
+    .slice(0, 3)
+    .map((row: any) => String(row.family || row.category || row.name || row.label || "税源"))
+    .filter(Boolean)
+    .join("、");
+  const fallbackMoney = state?.metrics ? `国库 ${Number(state.metrics["国库"] || 0)} 万两，内库 ${Number(state.metrics["内库"] || 0)} 万两。` : "财政中枢载入中。";
+  const moneyLine = fiscal
+    ? `月入 ${formatWan(income)}，月支 ${formatWan(expense)}，月净 ${formatSignedWan(net)}。`
+    : fallbackMoney;
+  const moneyDetail = fiscal
+    ? `${sourceLine ? `主要来源：${sourceLine}。` : "税源账簿可展开到省。"}${gap > 0 ? ` 下月缺口 ${formatWan(gap)}。` : " 下月暂不缺口。"}`
+    : "进入国策页查看田赋、辽饷、盐商税和内库固定项。";
+
+  const activeCount = ((state?.ministers || []) as PublicCharacter[]).filter((m) => m.status === "active").length;
+  const held = organizations ? organizations.reduce((sum, inst) => sum + Number(inst.holder_count || 0), 0) : activeCount;
+  const vacancies = organizations ? organizations.reduce((sum, inst) => sum + Number(inst.vacancy_count || 0), 0) : 0;
+  const weakInstitutions = organizations ? organizations.filter((inst) => Number(inst.readiness || 0) < 65).length : 0;
+  const officeLine = organizations
+    ? `组织图在任 ${held} 席，空缺 ${vacancies} 席。`
+    : `在朝可用 ${held} 人，组织图载入中。`;
+  const officeDetail = vacancies > 0
+    ? `进入官制逐席补官：补一人、开科取士、举贤入京或起复旧臣。${weakInstitutions > 0 ? ` ${weakInstitutions} 个衙门运转偏弱。` : ""}`
+    : "官缺已清，可继续用奏对、御案和诏旨分派差事。";
+
+  const rows = [
+    { q: "大明执行什么国策？", a: policyLine, detail: policyDetail, cta: "看国策影响", tab: "policy" as Tab },
+    { q: "钱从哪里来？", a: moneyLine, detail: moneyDetail, cta: "看钱粮账", tab: "policy" as Tab },
+    { q: "有多少官，怎么任免？", a: officeLine, detail: officeDetail, cta: vacancies > 0 ? "补官缺" : "看官制", tab: "policy" as Tab },
+  ];
+  return (
+    <section className="m-card m-questions" aria-label="国策财政官制总览">
+      <h2 className="m-card-title">三问总览</h2>
+      <div className="m-question-list">
+        {rows.map((row) => (
+          <button key={row.q} type="button" className="m-question-row" onClick={() => go(row.tab)}>
+            <span className="m-question-q">{row.q}</span>
+            <b>{row.a}</b>
+            <small>{row.detail}</small>
+            <em>{row.cta} ›</em>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: string, lead?: AudienceLead) => void }) {
   const { state, desk, lifecycle, recentEvents, zhongxing, worldVersion } = useGame();
   const openPerson = usePerson();
@@ -50,9 +133,17 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   const [briefRanks, setBriefRanks] = useState<Array<{ level: string; label: string; count: number }>>([]);
   const [briefLimit, setBriefLimit] = useState(5);
   const [briefKind, setBriefKind] = useState("");
+  const [fiscalCenter, setFiscalCenter] = useState<FiscalCenterPayload | null>(null);
+  const [organizations, setOrganizations] = useState<OrgInstitution[] | null>(null);
   useEffect(() => {
     loadEunuch().then((r) => setEunuch(r.eunuch)).catch(() => setEunuch(null));
   }, []);
+  useEffect(() => {
+    let alive = true;
+    loadFiscalCenter().then((r) => { if (alive) setFiscalCenter(r); }).catch(() => { if (alive) setFiscalCenter(null); });
+    loadOrganizations().then((r) => { if (alive) setOrganizations(r.institutions); }).catch(() => { if (alive) setOrganizations(null); });
+    return () => { alive = false; };
+  }, [worldVersion]);
   useEffect(() => {
     loadPlaystyleBrief(briefLimit, briefKind)
       .then((r) => {
@@ -123,6 +214,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   const allBriefTotal = briefBuckets.reduce((sum, b) => sum + Number(b.total || 0), 0);
   const leadUrgency = briefLead ? briefUrgency(briefLead.urgency) : null;
   const leadContract = briefLead ? briefContract(briefLead) : "";
+  const leadResolution = briefLead ? briefResolution(briefLead) : [];
   const chooseBriefKind = (kind: string) => {
     setBriefKind((current) => (current === kind ? "" : kind));
     setBriefLimit(5);
@@ -152,6 +244,8 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
           ))}
         </ul>
       </section>
+
+      <ImperialQuestions state={state} fiscal={fiscalCenter} organizations={organizations} go={go} />
 
       <ActiveDoctrinePolicies legacies={state?.legacies} />
 
@@ -211,6 +305,11 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                     ))}
                   </span>
                 ) : null}
+                {leadResolution.length > 0 && (
+                  <span className="m-brief-resolution">
+                    消除条件：{leadResolution.slice(0, 2).join("；")}
+                  </span>
+                )}
               </button>
             )}
             {briefBuckets.length > 0 && (
@@ -247,6 +346,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
             {briefCards.map((card, i) => {
               const urgency = briefUrgency(card.urgency);
               const contract = briefContract(card);
+              const resolution = briefResolution(card);
               return (
                 <li key={`${card.kind}-${card.ref_id || i}`} className={`m-brief-card tone-${card.tone || "info"}`}>
                   <button className="m-brief-main" onClick={() => openBrief(card)}>
@@ -281,6 +381,11 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                           ))}
                         </span>
                       ) : null}
+                      {resolution.length > 0 && (
+                        <span className="m-brief-resolution">
+                          消除条件：{resolution.slice(0, 2).join("；")}
+                        </span>
+                      )}
                     </span>
                   </button>
                   <div className="m-brief-actions">
@@ -533,6 +638,58 @@ function briefContract(card: PlaystyleBriefCard): string {
   if (gain) parts.push(`可得：${gain}`);
   if (cost) parts.push(`代价：${cost}`);
   return parts.join(" · ");
+}
+
+function formatWan(value: number): string {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return "0 万两";
+  return `${Math.round(n)} 万两`;
+}
+
+function formatSignedWan(value: number): string {
+  const n = Number(value || 0);
+  const prefix = n > 0 ? "+" : "";
+  return `${prefix}${Math.round(n)} 万两`;
+}
+
+function briefResolution(card: PlaystyleBriefCard): string[] {
+  const actor = card.actor ? `召${shortName(card.actor)}` : "召当事人";
+  const target = card.target ? `召${shortName(card.target)}` : "召牵涉人";
+  const cta = String(card.cta || "").trim();
+  switch (String(card.kind || "")) {
+    case "decision":
+      return ["去御案裁断；必要时先召当事人问证", "批红后此项从风向移入已决"];
+    case "directive_blocker":
+      return ["去诏旨催办、换人、加拨或撤回", "阻力处理后不再占据风向"];
+    case "directive_followup":
+      return ["召主办复盘实绩和水分", "确认复命后转入御案记录"];
+    case "monthly_followup":
+    case "bargain":
+      return [`${actor}清旧约`, "兑现、改限、补证或明拒"];
+    case "army":
+      return ["看国策里的财政/军队约束", "补饷、遣监军或召主帅定限"];
+    case "faction":
+      return ["看御案或召派系代表", "给差使、压弹章或定边界"];
+    case "rivalry":
+      return [`${actor}与${card.target ? shortName(card.target) : "对方"}对质`, "定谁承办、谁退让、谁担责"];
+    case "hook":
+      return [`查${card.actor ? shortName(card.actor) : "此人"}档案`, "用把柄换效忠、线索或退场"];
+    case "legacy":
+      return ["看国策路线", `${actor}定善后账册或继任安排`];
+    case "patronage":
+      return [`${actor}担保，${target}验看`, "录用、退回或连坐举主"];
+    case "relationship":
+      return [`${actor}担保，${target}具结`, "让关系变成可追责承诺"];
+    case "trap":
+      return ["点入承办人档案", "确认买单、转嫁或撤掉差使"];
+    case "trap_remedy":
+      return ["去档案处理买单", "召来问对可改期限或另派人"];
+    case "petition":
+    case "favor":
+      return [`${actor}问清所求与代价`, "写入履约、驳回或转御案"];
+    default:
+      return cta ? [`${cta}后会从风向进入对应账本`] : ["点入处置，把口头问题变成御案、旨意或履约"];
+  }
 }
 
 function stakeLabel(card: PlaystyleBriefCard, kind: string): string {

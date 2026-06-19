@@ -527,6 +527,12 @@ class CustomInstitutionRequest(BaseModel):
     slots: List[str] = []
 
 
+class FillVacancyRequest(BaseModel):
+    institution_id: str
+    slot_title: str
+    method: str = "auto"
+
+
 class CastrateRequest(BaseModel):
     name: str
     force: bool = False
@@ -2416,6 +2422,188 @@ class WebGame:
             "risk_count": int(diagnostics.get("risk_count") or 0),
             "execution_summary": str(diagnostics.get("summary") or ""),
             "overloaded_holders": diagnostics.get("overloaded_holders", []),
+        }
+
+    def _find_institution_slot(self, institution_id: str, slot_title: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        inst_id = str(institution_id or "").strip()
+        title = str(slot_title or "").strip()
+        if not inst_id or not title:
+            raise HTTPException(status_code=400, detail="institution_id 与 slot_title 不能为空。")
+        for inst in [*base_institution_specs(), *self._custom_institutions()]:
+            if str(inst.get("id") or inst.get("name") or "") != inst_id:
+                continue
+            for slot in inst.get("slots") or []:
+                if isinstance(slot, dict) and str(slot.get("title") or "") == title:
+                    return inst, slot
+        raise HTTPException(status_code=404, detail="未找到该官制空缺。")
+
+    def _office_title_for_slot(self, inst: Dict[str, Any], slot: Dict[str, Any]) -> str:
+        raw_title = str(slot.get("title") or "").strip()
+        office_type = str(slot.get("office_type") or "").strip()
+        first = re.split(r"\s*/\s*|／", raw_title)[0].strip()
+        mapping = {
+            "首辅": "内阁首辅",
+            "次辅": "内阁次辅",
+            "大学士": "大学士",
+            "御史": "都察院御史",
+            "少詹事": "少詹事",
+            "翰林编检": "翰林院编修",
+            "宫廷艺文": "经筵讲官",
+            "司礼监掌印太监": "司礼监掌印太监",
+            "司礼监秉笔太监": "司礼监秉笔太监",
+            "司礼监随堂": "司礼监随堂太监",
+            "监军太监": "监军太监",
+            "提督东厂": "提督东厂太监",
+            "锦衣卫指挥使": "锦衣卫指挥使",
+            "北镇抚司": "北镇抚司理刑",
+            "锦衣卫缇骑": "锦衣卫千户",
+            "督师": "督师",
+            "总督": "总督",
+            "总兵": "总兵",
+            "海防与水师": "水师总兵",
+            "督抚": "巡抚",
+            "府县官": "知府",
+            "地方武备": "兵备道",
+            "待铨": "待铨候补",
+            "江湖异人": "待诏供奉",
+        }
+        if raw_title.endswith("属官") and office_type:
+            return f"{office_type}郎中"
+        if first in mapping:
+            return mapping[first]
+        if first.endswith("侍郎") or first.endswith("尚书"):
+            return first
+        if office_type and first in {"属官", "编检"}:
+            return f"{office_type}{first}"
+        inst_name = str(inst.get("name") or "").strip()
+        return first or inst_name or "待铨候补"
+
+    def _vacancy_candidate_rows(self, office_type: str, method: str) -> List[sqlite3.Row]:
+        status_filter = "AND status='active'" if method != "restore" else "AND status IN ('dismissed','retired','offstage')"
+        rows = self.db.conn.execute(
+            f"""
+            SELECT name, office, office_type, faction, status, ability, wisdom, integrity,
+                   loyalty, courage, force, charm
+            FROM characters
+            WHERE power_id='ming'
+              AND office_type!='后宫'
+              {status_filter}
+            ORDER BY rowid
+            """
+        ).fetchall()
+        out = []
+        for row in rows:
+            row_office = str(row["office"] or "")
+            row_type = str(row["office_type"] or "")
+            if method == "restore":
+                out.append(row)
+                continue
+            if (
+                row_type in {"待铨", "未仕"}
+                or not row_office
+                or any(token in row_office for token in ("待铨", "候补", "举贤", "待诏", "试用"))
+            ):
+                out.append(row)
+                continue
+            if method == "promote" and office_type and row_type == office_type:
+                out.append(row)
+        return out
+
+    def _vacancy_candidate_score(self, row: sqlite3.Row, office_type: str, title: str) -> int:
+        ability = int(row["ability"] or 50)
+        wisdom = int(row["wisdom"] or ability)
+        integrity = int(row["integrity"] or 50)
+        loyalty = int(row["loyalty"] or 50)
+        courage = int(row["courage"] or 50)
+        force = int(row["force"] or 50)
+        text = f"{office_type} {title}"
+        if any(token in text for token in ("户部", "财政", "钱", "粮", "税")):
+            score = ability * 0.25 + wisdom * 0.30 + integrity * 0.30 + loyalty * 0.15
+        elif any(token in text for token in ("兵部", "边", "总兵", "督师", "监军", "武备")):
+            score = ability * 0.22 + wisdom * 0.20 + courage * 0.22 + force * 0.22 + loyalty * 0.14
+        elif any(token in text for token in ("司礼", "东厂", "锦衣", "内廷")):
+            score = loyalty * 0.34 + ability * 0.22 + wisdom * 0.20 + courage * 0.14 + integrity * 0.10
+        elif any(token in text for token in ("都察", "刑部", "御史", "法")):
+            score = integrity * 0.35 + wisdom * 0.25 + courage * 0.18 + ability * 0.14 + loyalty * 0.08
+        else:
+            score = wisdom * 0.27 + ability * 0.24 + integrity * 0.22 + loyalty * 0.17 + courage * 0.10
+        if str(row["office_type"] or "") in {"待铨", "未仕"}:
+            score += 4
+        return round(score)
+
+    def _recruit_for_vacancy(self, office_type: str, method: str) -> str:
+        if method == "recommend":
+            result = self.recommend_hidden_official()
+        elif method == "exam":
+            result = self.recruit_exam_official()
+        elif any(token in office_type for token in ("司礼", "东厂", "内廷")):
+            result = self.recruit_eunuch()
+        else:
+            result = self.recommend_hidden_official()
+        minister = result.get("minister") if isinstance(result, dict) else {}
+        name = str((minister or {}).get("name") or "")
+        if not name:
+            raise HTTPException(status_code=500, detail="取士成功但未返回人名。")
+        return name
+
+    def fill_organization_vacancy(
+        self,
+        institution_id: str,
+        slot_title: str,
+        method: str = "auto",
+    ) -> Dict[str, Any]:
+        method = str(method or "auto").strip() or "auto"
+        if method not in {"auto", "exam", "recommend", "promote", "restore"}:
+            raise HTTPException(status_code=400, detail="method 只能是 auto/exam/recommend/promote/restore。")
+        inst, slot = self._find_institution_slot(institution_id, slot_title)
+        if bool(slot.get("open_pool")):
+            raise HTTPException(status_code=400, detail="这是开放人才池，不是需要补的一人一缺。")
+        current_org = self.organization_payload()
+        inst_view = next((row for row in current_org.get("institutions", []) if str(row.get("id") or "") == str(inst.get("id") or inst.get("name") or "")), {})
+        slot_view = next((row for row in inst_view.get("slots", []) if str(row.get("title") or "") == str(slot_title or "")), {})
+        if int(slot_view.get("vacancies") or 0) <= 0:
+            raise HTTPException(status_code=409, detail="此席当前没有空缺。")
+
+        office_type = str(slot.get("office_type") or "").strip() or str(inst.get("name") or "").strip()
+        office_title = self._office_title_for_slot(inst, slot)
+        candidate_rows = self._vacancy_candidate_rows(office_type, method)
+        candidate_name = ""
+        if candidate_rows and method not in {"exam", "recommend"}:
+            ranked = sorted(
+                candidate_rows,
+                key=lambda row: self._vacancy_candidate_score(row, office_type, office_title),
+                reverse=True,
+            )
+            candidate_name = str(ranked[0]["name"] or "")
+        if not candidate_name:
+            candidate_name = self._recruit_for_vacancy(office_type, method)
+
+        status, _reason = self.db.get_character_status(candidate_name)
+        if status != "active":
+            self.db.set_character_status(self.state, candidate_name, "active", f"奉旨补{office_title}")
+        self.db.set_character_office(
+            candidate_name,
+            office_title,
+            office_type,
+            source=f"补{str(inst.get('name') or '')}空缺：{slot_title}",
+        )
+        character = self.content.characters.get(candidate_name)
+        if character is not None:
+            character.office = office_title
+            character.office_type = office_type
+            character.status = "active"
+            if self.session.registry is not None:
+                self.session.registry.register(character)
+        self.db.record_log(self.state, f"【补缺】{candidate_name}补{str(inst.get('name') or '')}·{slot_title}，授{office_title}。")
+        organizations = self.organization_payload()
+        return {
+            "message": f"已补缺：{candidate_name}授{office_title}，入{str(inst.get('name') or office_type)}。",
+            "minister": self.public_character(self.content.characters[candidate_name]) if candidate_name in self.content.characters else {"name": candidate_name},
+            "office": office_title,
+            "office_type": office_type,
+            "institution_id": str(inst.get("id") or inst.get("name") or ""),
+            "slot_title": str(slot_title),
+            "organizations": compact_organization_payload(organizations),
         }
 
     def _generated_name(self, source: str) -> str:
@@ -8684,6 +8872,17 @@ async def api_add_custom_institution(body: CustomInstitutionRequest) -> Dict[str
         "message": f"已增设{item['name']}，空缺已进入组织图。",
         "organizations": compact_organization_payload(game.organization_payload()),
     }, route="/api/organizations/custom")
+
+
+@app.post("/api/organizations/fill_vacancy")
+@_guarded
+async def api_fill_organization_vacancy(body: FillVacancyRequest) -> Dict[str, Any]:
+    game = get_game()
+    return _response_with_state(
+        game,
+        game.fill_organization_vacancy(body.institution_id, body.slot_title, body.method),
+        route="/api/organizations/fill_vacancy",
+    )
 
 
 @app.post("/api/recruitment/exam")

@@ -24,6 +24,30 @@ function cleanDisplayText(raw: string): string {
     .trim();
 }
 
+function humanSuggestionLabel(raw: string): string {
+  const label = String(raw || "").trim();
+  const map: Record<string, string> = {
+    "问所求": "问他要什么",
+    "问交易": "问交换条件",
+    "定下一手": "定承办期限",
+    "定路线": "定国策路线",
+    "召来请安": "追问旧约",
+    "命卿遴选良家女呈览": "采选名册",
+    "议蠲缓": "钱从哪补",
+    "查账": "查钱粮账",
+    "问罪": "问谁担责",
+    "求证": "要证据",
+    "试探": "试探底线",
+    "承诺": "要一句准话",
+  };
+  if (map[label]) return map[label];
+  return label
+    .replace(/^【[^】]{1,8}】/, "")
+    .replace(/^(hook|trap|bargain|directive|legacy|faction|issue)[:：_-]/i, "")
+    .replace(/_/g, "")
+    .trim() || "追问此事";
+}
+
 function stripStageText(raw: string, stageDirections?: string[]): string {
   let text = String(raw || "");
   for (const direction of stageDirections || []) {
@@ -300,15 +324,15 @@ export function ChatPane({
       {visibleSuggestions.length > 0 && (
         <details className="m-suggestions-panel">
           <summary className="m-suggestions-summary">
-            <span>问法</span>
-            <small>{visibleSuggestions.length} 条</small>
-            <b>{visibleSuggestions.slice(0, 3).map((s) => s.label).join(" · ")}</b>
-            <span className="m-disclosure-caret">卷</span>
+            <span>可追问</span>
+            <small>{visibleSuggestions.length} 件</small>
+            <b>{visibleSuggestions.slice(0, 3).map((s) => humanSuggestionLabel(s.label)).join(" · ")}</b>
+            <span className="m-disclosure-caret">展开</span>
           </summary>
           <div className="m-suggestions">
             {visibleSuggestions.map((s, i) => (
-              <button key={i} className="m-sugg" disabled={busy} onClick={() => onSuggestion(s)}>
-                {s.label}
+              <button key={i} className="m-sugg" disabled={busy} onClick={() => onSuggestion(s)} title={s.text}>
+                {humanSuggestionLabel(s.label)}
               </button>
             ))}
           </div>

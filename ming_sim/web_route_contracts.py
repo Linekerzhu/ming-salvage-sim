@@ -57,6 +57,7 @@ _SPECS: Tuple[WebPayloadRouteSpec, ...] = (
     _route("/api/monthly_followups", ("GET",), "panel", compact=True, risk="low"),
     _route("/api/organizations", ("GET",), "panel", compact=True, risk="medium"),
     _route("/api/organizations/custom", ("POST",), "mutation", includes_state=True, compact=True, risk="high"),
+    _route("/api/organizations/fill_vacancy", ("POST",), "mutation", includes_state=True, compact=True, risk="high"),
     _route("/api/recruitment/exam", ("POST",), "mutation", includes_state=True, risk="medium"),
     _route("/api/recruitment/eunuch", ("POST",), "mutation", includes_state=True, risk="medium"),
     _route("/api/recruitment/recommend", ("POST",), "mutation", includes_state=True, risk="medium"),

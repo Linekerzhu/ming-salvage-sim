@@ -176,6 +176,26 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-task:last-child { border-bottom: none; }
 .m-task-text { font-size: 0.96rem; }
 .m-task.is-urgent .m-task-text { color: var(--cinnabar); font-weight: 700; }
+.m-questions { border-left: 4px solid var(--jade); }
+.m-question-list { display: flex; flex-direction: column; gap: 8px; }
+.m-question-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px;
+  width: 100%; text-align: left; padding: 9px 0; color: inherit;
+  border-bottom: 1px dashed var(--line);
+}
+.m-question-row:last-child { border-bottom: none; }
+.m-question-row:active { background: rgba(42,31,18,.06); }
+.m-question-q { color: var(--gold-deep); font-size: .78rem; font-weight: 900; }
+.m-question-row b {
+  grid-column: 1 / 2; min-width: 0; color: var(--ink); font-size: .92rem; line-height: 1.35;
+}
+.m-question-row small {
+  grid-column: 1 / 2; min-width: 0; color: var(--ink-soft); font-size: .76rem; line-height: 1.38;
+}
+.m-question-row em {
+  grid-column: 2 / 3; grid-row: 1 / span 3; align-self: center; justify-self: end;
+  color: var(--gold-deep); font-style: normal; font-size: .72rem; font-weight: 900; white-space: nowrap;
+}
 .m-feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .m-feed-item { display: flex; align-items: flex-start; gap: 8px; padding-left: 10px; border-left: 3px solid var(--ink-soft); }
 .m-feed-item.lv-red { border-color: var(--cinnabar); }
@@ -330,8 +350,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   color: #7c6741; font-size: .68rem; line-height: 1.35; font-weight: 900;
   display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
 }
+.m-brief-resolution {
+  color: #365848; font-size: .7rem; line-height: 1.36; font-weight: 900;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.m-brief-lead > .m-brief-resolution { padding-left: 36px; text-align: left; }
 .m-brief-card.tone-danger .m-brief-contract { color: #8a3b2a; }
 .m-brief-card.tone-warn .m-brief-contract { color: #7b5723; }
+.m-brief-card.tone-danger .m-brief-resolution { color: #7f352a; }
+.m-brief-card.tone-warn .m-brief-resolution { color: #6c4b1d; }
 .m-brief-effects {
   display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
   margin-top: 2px; max-width: 100%;
@@ -829,6 +856,21 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-slot-title { display: flex; align-items: center; gap: 8px; font-size: 0.86rem; font-weight: 700; color: var(--gold-deep); }
 .m-slot-holders { font-size: 0.86rem; margin-top: 3px; }
 .m-slot-empty { font-size: 0.82rem; color: var(--cinnabar); margin-top: 3px; }
+.m-slot-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.m-slot-action {
+  min-height: 30px; padding: 5px 9px; border-radius: 8px; font-size: .72rem; font-weight: 800;
+  color: var(--gold-deep); background: rgba(181,134,58,.1); border: 1px solid rgba(181,134,58,.26);
+}
+.m-slot-action.primary {
+  color: #21180c; background: linear-gradient(180deg, #c1964d, var(--gold-deep));
+  border-color: rgba(92,64,22,.18);
+}
+.m-slot-action:disabled { opacity: .55; }
+.m-org-msg {
+  margin: 0 0 8px; padding: 8px 10px; border-radius: 8px;
+  color: #2f5a44; background: rgba(47,90,68,.1); border: 1px solid rgba(47,90,68,.22);
+  font-size: .82rem; font-weight: 800;
+}
 
 /* 改派(换人)内联选官 */
 .m-reassign { margin-top: 10px; }
