@@ -38,6 +38,11 @@ export type Memorial = {
     axis?: string;
     issue_id?: number;
     bar_value?: number;
+    state_label?: string;
+    reform_ready?: boolean;
+    establishment_blocked?: boolean;
+    reform_hint?: string;
+    active_conflicts?: Array<{ id?: string; name?: string; axis?: string }>;
     direction?: "support" | "oppose" | string;
     direction_label?: string;
     author_stance?: { stance?: string; score?: number; reasons?: string[] };

@@ -1112,6 +1112,32 @@ def doctrine_issue_payload(db: GameDB, issue_row) -> Dict[str, object]:
     }
 
 
+def doctrine_memorial_payload(db: GameDB, memorial_row) -> Dict[str, object]:
+    """Single payload for memorials attached to a doctrine issue."""
+
+    if str(_row_value(memorial_row, "ref_kind", "") or "") != "issue":
+        return {}
+    ref_id = str(_row_value(memorial_row, "ref_id", "") or "").strip()
+    if not ref_id:
+        return {}
+    issue = db.conn.execute("SELECT * FROM issues WHERE id=?", (ref_id,)).fetchone()
+    if issue is None or str(issue["origin_kind"] or "") != "doctrine":
+        return {}
+    payload = doctrine_issue_payload(db, issue)
+    if not payload:
+        return {}
+    kind = str(_row_value(memorial_row, "kind", "") or "")
+    direction = "oppose" if kind == "弹章" else "support"
+    author = str(_row_value(memorial_row, "author_name", "") or "")
+    payload.update({
+        "issue_id": int(issue["id"]),
+        "direction": direction,
+        "direction_label": "反对此路线" if direction == "oppose" else "推动此路线",
+        "author_stance": character_doctrine_stance(db, author, str(payload.get("id") or "")) if author else {},
+    })
+    return payload
+
+
 def detect_tax_burden_policy(text: str) -> Optional[Dict[str, object]]:
     """Return a compact policy spec when decree text clearly increases taxes."""
 

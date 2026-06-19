@@ -1107,34 +1107,11 @@ def _memorial_action_effects(
 
 
 def _memorial_policy_doctrine(db: GameDB, row) -> Dict[str, object]:
-    if str(row["ref_kind"] or "") != "issue" or not str(row["ref_id"] or "").strip():
-        return {}
-    issue = db.conn.execute(
-        "SELECT id, title, origin_kind, origin_ref, bar_value, status FROM issues WHERE id=?",
-        (str(row["ref_id"] or ""),),
-    ).fetchone()
-    if issue is None or str(issue["origin_kind"] or "") != "doctrine":
-        return {}
     try:
         from ming_sim import policies
-        doctrine_id = str(issue["origin_ref"] or "")
-        doctrine = policies.doctrine_by_id(doctrine_id) or {}
-        author = str(row["author_name"] or "")
-        stance = policies.character_doctrine_stance(db, author, doctrine_id) if author else {}
     except Exception:
         return {}
-    kind = str(row["kind"] or "")
-    direction = "oppose" if kind == "弹章" else "support"
-    return {
-        "id": str(doctrine.get("id") or doctrine_id),
-        "name": str(doctrine.get("name") or issue["title"] or doctrine_id),
-        "axis": str(doctrine.get("axis") or ""),
-        "issue_id": int(issue["id"]),
-        "bar_value": int(issue["bar_value"] or 0),
-        "direction": direction,
-        "direction_label": "反对此路线" if direction == "oppose" else "推动此路线",
-        "author_stance": stance,
-    }
+    return policies.doctrine_memorial_payload(db, row)
 
 
 def desk_payload(db: GameDB, state: GameState, day: int) -> Dict[str, object]:

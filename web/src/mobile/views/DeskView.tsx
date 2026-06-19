@@ -40,18 +40,26 @@ function ActionPreview({ items }: { items?: Array<{ label: string; tone?: string
 function PolicyDoctrineMemo({ data }: { data?: Memorial["policy_doctrine"] }) {
   const name = String(data?.name || "").trim();
   if (!name) return null;
-  const direction = data?.direction === "oppose" ? "反对" : "推动";
+  const opposesRoute = data?.direction === "oppose";
+  const direction = opposesRoute ? "反对" : "推动";
   const stance = String(data?.author_stance?.stance || "");
+  const stateLabel = String(data?.state_label || "").trim();
+  const reformReady = !!data?.reform_ready;
+  const blocked = !!data?.establishment_blocked;
+  const reformAction = reformReady ? (opposesRoute ? "准此疏阻改弦" : "准此疏可改弦") : "";
   const stanceLabel = stance === "support" ? "本人倾向支持"
     : stance === "oppose" ? "本人倾向反对"
       : "本人立场可变";
-  const tone = data?.direction === "oppose" ? "bad" : "good";
+  const tone = opposesRoute ? "bad" : "good";
   const stanceTone = stance === "oppose" ? "bad" : stance === "support" ? "good" : "neutral";
+  const stateTone = reformReady ? (opposesRoute ? "warn" : "good") : blocked ? "bad" : "neutral";
   return (
     <div className="m-outcome-strip is-compact" aria-label="奏疏国策路线">
       <span className="m-outcome-head">路线</span>
       <span className={`m-outcome-chip tone-${tone}`}>{direction}：{name}</span>
       {data?.bar_value != null && <span className="m-outcome-chip tone-neutral">争议 {data.bar_value}/100</span>}
+      {stateLabel && <span className={`m-outcome-chip tone-${stateTone}`}>{stateLabel}</span>}
+      {reformAction && <span className={`m-outcome-chip tone-${opposesRoute ? "warn" : "good"}`}>{reformAction}</span>}
       <span className={`m-outcome-chip tone-${stanceTone}`}>{stanceLabel}</span>
     </div>
   );

@@ -444,7 +444,38 @@ class PolicyMemorialIntegrationTests(unittest.TestCase):
             self.assertEqual(route["id"], "open_sea_trade")
             self.assertEqual(route["direction"], "support")
             self.assertGreaterEqual(int(route["bar_value"]), 1)
+            self.assertEqual(route["state_label"], "路线争议")
             self.assertEqual(route["author_stance"]["stance"], "support")
+
+    def test_desk_payload_marks_route_memorial_reform_readiness(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            policies.ensure_doctrine_legacy(db, state, "ancestral_conservatism")
+            created = policies.ensure_doctrine_issue(db, state, "open_sea_trade", delta_bar=50)
+            issue_id = int(created["issue_id"])
+            policies.ensure_doctrine_issue(db, state, "open_sea_trade", delta_bar=50)
+            mid = memorials.create_memorial(
+                db,
+                state,
+                day=day,
+                author_name="徐光启",
+                org="礼部",
+                kind="请旨",
+                urgency=3,
+                summary="请开海裕国改弦更张",
+                ref_kind="issue",
+                ref_id=str(issue_id),
+            )
+
+            payload = memorials.desk_payload(db, state, day)
+            item = next(m for m in payload["pending"] if int(m["id"]) == mid)
+            route = item["policy_doctrine"]
+            self.assertEqual(route["id"], "open_sea_trade")
+            self.assertEqual(route["state_label"], "可改弦")
+            self.assertTrue(route["reform_ready"])
+            self.assertTrue(route["establishment_blocked"])
+            self.assertTrue(any(c["id"] == "ancestral_conservatism" for c in route["active_conflicts"]))
+            self.assertIn("准奏支持", route["reform_hint"])
 
     def test_support_memorial_advances_and_impeachment_blocks_route_issue(self):
         with TemporaryDirectory() as tmp:
