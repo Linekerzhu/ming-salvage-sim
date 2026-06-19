@@ -125,6 +125,7 @@ issued -> in_transit(送达) -> executing(承办) -> done(复命)
 - `ming_sim/lifecycle.py::_court_immediate_profile()` 已先接入普通诏旨入口。
 - 京师/内廷近身处置命中 `净身、宫刑、净军房、发入内廷、廷杖、收监、下狱、逮问、拿问、赐死、处死、处斩、弃市` 时，使用 `timing_profile='court_immediate'`。
 - 该类旨意 `lead_days=0`、`exec_days=1`，`eta_day=start_day+1`；也就是说“成命立即成立，次日以内复命”，不再被通用行政送达拖成十几天。
+- 普通诏旨中的强旨净身已接入 `convert_character_to_eunuch()`：办结时直接改官职/派系/技能，写入内廷旧档、旧匣、政治反应和人物记忆，并在 `chain.court_immediate_action` 留证。
 - 跨省文本仍按地区识别走普通生命周期，例如“逮问陕西巡抚”不会误判成殿内即时处置。
 
 ### B. 京师/部院短程命令
@@ -398,7 +399,7 @@ issued -> in_transit(送达) -> executing(承办) -> done(复命)
 1. 文档定口径：本文件作为“下达/执行/回报”唯一解释。
 2. UI 文案先改：禁止再出现“下达需 X 日”，统一为“预计复命 X 日”。
 3. 增加 timing profile：把 `same_day`、`capital_short`、`administrative`、`field_operation`、`policy_program` 写入配置。
-4. 增加即时旨意识别：净身、收押、革差、转民籍等先走 direct action。`净身/收押/廷杖/京师刑罚` 的生命周期时序已先落地，身份字段直改还需继续接入 direct action。
+4. 增加即时旨意识别：净身、收押、革差、转民籍等先走 direct action。`净身/收押/廷杖/京师刑罚` 的生命周期时序已先落地；普通诏旨强旨净身已接入身份转换 direct action。
 5. 允许零日：`lead_days` 和 `exec_days` 对 same-day 类型允许为 0。
 6. 御案复命类型收敛：正式结果全部落 `memorials(kind='复命')` 或细分复命 kind。
 7. 奏对回访改名：把旧约追问从“回报”文案里剥离出来。
@@ -418,10 +419,10 @@ issued -> in_transit(送达) -> executing(承办) -> done(复命)
 
 预期：
 
-- 第 N 日即显示“已下达并办结”。
-- `张三.status` 或身份字段当天变为太监/内廷。
+- 第 N 日即显示“已下达”，第 N+1 日以内显示“已办结/已复命”。
+- `张三.office/office_type/faction` 在办结时变为净军/司礼监/内廷，旧档入库。
 - `lead_days=0`，`exec_days=0/1`。
-- 当前普通诏旨入口已保证 `lead_days=0`、`exec_days=1`；后续 direct action 接入后可同日直接落身份。
+- 当前普通诏旨入口已保证 `lead_days=0`、`exec_days=1`，并在办结时直接落身份。
 - 御案当天或次日出现复命。
 - 国策中枢出现“内廷制衡外朝”证据。
 

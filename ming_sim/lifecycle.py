@@ -447,6 +447,103 @@ def _json_dict(raw: object) -> Dict[str, object]:
     return data if isinstance(data, dict) else {}
 
 
+_DIRECT_CASTRATION_RE = re.compile(r"净身|宫刑|腐刑|去势|阉割|发净军|没入内廷|入内廷为奴|入宫为奴|净军房")
+
+
+def _mentioned_active_ming_characters(db: GameDB, text: str) -> List[str]:
+    decree = str(text or "")
+    rows = db.conn.execute(
+        "SELECT name FROM characters WHERE status='active' AND power_id='ming' "
+        "AND office_type!='后宫' ORDER BY length(name) DESC, rowid"
+    ).fetchall()
+    return [str(row["name"]) for row in rows if str(row["name"] or "") and str(row["name"]) in decree]
+
+
+def _court_castration_target(db: GameDB, text: str, assignee: str = "") -> str:
+    decree = str(text or "")
+    names = _mentioned_active_ming_characters(db, decree)
+    if not names:
+        return ""
+    for name in names:
+        escaped = re.escape(name)
+        patterns = [
+            rf"(?:将|把|押|拿|逮|拘|着将|命将)\s*{escaped}.{{0,18}}(?:净身|宫刑|腐刑|去势|阉割|发净军|没入内廷|入内廷)",
+            rf"{escaped}.{{0,10}}(?:处宫刑|宫刑|腐刑|净身|去势|阉割|发净军|没入内廷|入内廷为奴)",
+            rf"(?:净身|宫刑|腐刑|去势|阉割|发净军|没入内廷).{{0,10}}{escaped}",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, decree)
+            if not match:
+                continue
+            span = match.group(0)
+            if any(other != name and other in span for other in names):
+                continue
+            return name
+    assignee_name = str(assignee or "").strip()
+    non_assignee = [name for name in names if name != assignee_name]
+    if non_assignee:
+        return non_assignee[0]
+    return names[0]
+
+
+def _apply_court_immediate_action(
+    db: GameDB,
+    state: GameState,
+    *,
+    directive_id: int,
+    text: str,
+    assignee: str,
+    meta: Dict[str, object],
+    day: int,
+) -> Dict[str, object]:
+    if str(meta.get("timing_profile") or "") != "court_immediate":
+        return {}
+    if not _DIRECT_CASTRATION_RE.search(str(text or "")):
+        return {}
+    existing = meta.get("court_immediate_action")
+    if isinstance(existing, dict) and existing.get("applied"):
+        return existing
+    target = _court_castration_target(db, text, assignee)
+    if not target:
+        return {}
+    action: Dict[str, object] = {
+        "kind": "castration",
+        "target": target,
+        "day": int(day),
+        "applied": False,
+    }
+    try:
+        from ming_sim.content import GameContent
+        from ming_sim.personnel_actions import convert_character_to_eunuch
+        content = GameContent.load()
+        converted, reactions = convert_character_to_eunuch(
+            db,
+            state,
+            content,
+            target,
+            force=True,
+            source=f"诏旨#{directive_id}强旨净身",
+            new_office="净军",
+            lore_text=text,
+        )
+        try:
+            from ming_sim.eunuch_power import adjust_eunuch_power
+            adjust_eunuch_power(db, 2, "诏旨净身没入内廷", day=day)
+        except Exception:
+            pass
+        action.update({
+            "applied": True,
+            "new_office": str(getattr(converted, "office", "") or "净军"),
+            "message": f"{target}已净身没入内廷，转入皇帝私人执行链。",
+            "political_reactions": [dict(item) for item in reactions[:3]],
+        })
+    except Exception as exc:
+        action["error"] = str(exc)[:200]
+    meta["court_immediate_action"] = action
+    _save_chain_meta(db, int(directive_id), meta)
+    return action
+
+
 def _followup_action_brief(raw: object) -> str:
     data = raw if isinstance(raw, dict) else {}
     kind = str(data.get("kind") or "")
@@ -1194,6 +1291,15 @@ def tick_directives(db: GameDB, state: GameState, day: int) -> List[Dict[str, ob
                 "UPDATE turn_directives SET lifecycle_status='done', progress=100, anomaly='' WHERE id=?",
                 (did,))
             adjust_belief(db, KV_SHI, +1, f"旨意#{did}如期办结", day=day)
+            immediate_action = _apply_court_immediate_action(
+                db,
+                state,
+                directive_id=did,
+                text=str(row2["text"] or ""),
+                assignee=str(row2["assignee"] or ""),
+                meta=meta,
+                day=day,
+            )
             if actual < 85:
                 # 奏报粉饰：账实分离落 report_ledger（S3），待密查/盘库揭穿
                 arow = _char_row(db, str(row2["assignee"] or ""))
@@ -1211,9 +1317,14 @@ def tick_directives(db: GameDB, state: GameState, day: int) -> List[Dict[str, ob
                 _apply_execution_consequence(db, state, meta, actual, day)
             # 缺口1：政策落地即埋因果伏笔（裁驿→流寇等延迟代价）
             _plant_consequences(db, state, did, str(row2["text"] or ""), day)
+            extra_detail = ""
+            if immediate_action.get("applied"):
+                extra_detail = f"；{immediate_action.get('message')}"
+            elif immediate_action.get("error"):
+                extra_detail = f"；近身处置落库失败：{immediate_action.get('error')}"
             events.append({"level": LEVEL_YELLOW, "kind": "directive_done",
                            "title": f"〔{str(row2['text'] or '')[:24]}〕办结奏闻",
-                           "detail": f"主办{row2['assignee']}奏称已遵旨办竣。",
+                           "detail": f"主办{row2['assignee']}奏称已遵旨办竣{extra_detail}。",
                            "ref_kind": "directive", "ref_id": str(did), "day": day})
             # 即时复命：办结即由 worker 产复命奏报+暂存数值 delta（替代旧 settle_note 纯文采），
             # 主线程 session.drain_pending_outcomes 落库——变集中反馈为即时反馈。

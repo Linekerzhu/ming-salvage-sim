@@ -92,11 +92,24 @@ class ClassifyTests(unittest.TestCase):
 
             timeflow.advance_days(db, state, 1, stop_on_yellow=False)
             done = db.conn.execute(
-                "SELECT lifecycle_status, progress FROM turn_directives WHERE id=?",
+                "SELECT lifecycle_status, progress, chain FROM turn_directives WHERE id=?",
                 (did,),
             ).fetchone()
             self.assertEqual(str(done["lifecycle_status"]), "done")
             self.assertEqual(int(done["progress"]), 100)
+            meta = json.loads(done["chain"])
+            self.assertTrue(meta["court_immediate_action"]["applied"])
+            self.assertEqual(meta["court_immediate_action"]["target"], "韩爌")
+            from ming_sim.eunuch import is_eunuch_like
+            crow = db.conn.execute(
+                "SELECT office, office_type, faction FROM characters WHERE name='韩爌'"
+            ).fetchone()
+            self.assertTrue(is_eunuch_like(str(crow["office"]), str(crow["office_type"])))
+            self.assertEqual(str(crow["faction"]), "内廷")
+            from ming_sim import eunuch_lore as el
+            lore = el.get_lore(db, "韩爌")
+            self.assertIsNotNone(lore)
+            self.assertTrue(lore["forced"])
 
     def test_statecraft_effect_changes_administrative_directive_duration_and_risk(self):
         with TemporaryDirectory() as tmp:
