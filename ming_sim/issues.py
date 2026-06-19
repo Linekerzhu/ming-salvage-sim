@@ -629,12 +629,30 @@ def _spawn_legacy_from_effect(
     legacy = effect.get("legacy")
     if not isinstance(legacy, dict):
         return None
+    legacy_key = str(legacy.get("legacy_key") or "").strip()
+    # 国策遗产由 policies.sync_doctrine_issue_result 统一生成，避免旧 legacy
+    # effect 路径先落一条无 key/被 pct clamp 的重复修正。
+    if legacy_key.startswith("doctrine:"):
+        return None
+    if legacy_key:
+        existing = db.conn.execute(
+            "SELECT id FROM legacies WHERE legacy_key=? AND status='active' LIMIT 1",
+            (legacy_key,),
+        ).fetchone()
+        if existing is not None:
+            return {"legacy_id": int(existing["id"]), "name": str(legacy.get("name") or ""), "duplicate": True}
     name = str(legacy.get("name") or "").strip() or f"{issue_title}遗留"
-    dur_key = str(legacy.get("duration") or "2年").strip()
-    duration = _LEGACY_DURATION_MONTHS.get(dur_key)
-    if duration is None:
-        print(f"[WARN] legacy 时长档非法 '{dur_key}'，按 2年 处理。")
-        duration = 24
+    if "duration_months" in legacy:
+        try:
+            duration = int(legacy.get("duration_months"))
+        except (TypeError, ValueError):
+            duration = 24
+    else:
+        dur_key = str(legacy.get("duration") or "2年").strip()
+        duration = _LEGACY_DURATION_MONTHS.get(dur_key)
+        if duration is None:
+            print(f"[WARN] legacy 时长档非法 '{dur_key}'，按 2年 处理。")
+            duration = 24
     raw_eff = legacy.get("modifiers") or {}
     modifiers: Dict[str, object] = {}
     if isinstance(raw_eff, dict):
@@ -676,6 +694,7 @@ def _spawn_legacy_from_effect(
         narrative_hint=str(legacy.get("narrative_hint") or "")[:200],
         duration_months=duration,
         source_issue_id=issue_id,
+        legacy_key=legacy_key,
     )
     summary = {
         "legacy_id": new_id, "name": name,
@@ -833,6 +852,56 @@ def apply_issue_tracker_output(
             print(f"[WARN] close_issues: reason 非法 '{reason}'，跳过 issue {issue_id}")
             continue
         narrative = str(cl.get("narrative") or "")[:400]
+        if reason == "resolved":
+            pre_row = db.conn.execute("SELECT * FROM issues WHERE id=?", (issue_id,)).fetchone()
+            if (
+                pre_row is not None
+                and str(pre_row["status"] or "") == "active"
+                and str(pre_row["origin_kind"] or "") == "doctrine"
+            ):
+                try:
+                    from ming_sim import policies
+                    blockers = policies.doctrine_establishment_blockers(db, str(pre_row["origin_ref"] or ""))
+                except Exception:
+                    blockers = []
+                if blockers:
+                    names = "、".join(str(item.get("name") or item.get("id")) for item in blockers[:3])
+                    cap = 95
+                    try:
+                        from ming_sim import policies
+                        cap = int((policies.load_policy_doctrines() or {}).get("blocked_issue_bar_cap") or 95)
+                    except Exception:
+                        cap = 95
+                    if int(pre_row["bar_value"] or 0) > cap:
+                        db.conn.execute(
+                            "UPDATE issues SET bar_value=?, phase=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                            (cap, db._derive_issue_phase(cap), issue_id),
+                        )
+                        db.conn.commit()
+                    db.advance_issue(
+                        state,
+                        issue_id,
+                        trigger_kind="close_blocked",
+                        trigger_ref="conflicting_orthodox_doctrine",
+                        delta_bar=0,
+                        stage_text=str(pre_row["stage_text"] or ""),
+                        narrative=f"路线与已定基本国策「{names}」相抵牾，暂不得结为国是。",
+                    )
+                    touched_ids.add(issue_id)
+                    applied_closes.append({
+                        "issue_id": issue_id,
+                        "title": pre_row["title"],
+                        "reason": "blocked",
+                        "narrative": narrative,
+                        "building_ops": [],
+                        "doctrine_legacy": {
+                            "created": False,
+                            "blocked": True,
+                            "reason": "conflicting_orthodox_doctrine",
+                            "blockers": blockers,
+                        },
+                    })
+                    continue
         try:
             new_row = db.close_issue(state, issue_id, reason=reason, narrative=narrative)
         except Exception as exc:
@@ -860,12 +929,19 @@ def apply_issue_tracker_output(
             _ISSUE_PSEUDO_EVENT, f"局势#{issue_id}{'结案' if reason == 'resolved' else '失败'}",
         )
         _spawn_legacy_from_effect(db, state, effect, issue_id, str(new_row["title"]))
+        doctrine_legacy = {}
+        try:
+            from ming_sim import policies
+            doctrine_legacy = policies.sync_doctrine_issue_result(db, state, new_row)
+        except Exception as exc:
+            print(f"[WARN] doctrine issue sync failed: {exc}")
         applied_closes.append({
             "issue_id": issue_id,
             "title": new_row["title"],
             "reason": reason,
             "narrative": narrative,
             "building_ops": building_ops,
+            "doctrine_legacy": doctrine_legacy,
         })
 
     # 4) cancels

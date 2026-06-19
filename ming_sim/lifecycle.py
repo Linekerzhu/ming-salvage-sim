@@ -219,15 +219,6 @@ def build_chain(db: GameDB, state: GameState, text: str, actor: str) -> Dict[str
         region_id, (cfg.get("distance_factors") or {}).get("default", 1.4)))
     resistance = _resistance(db, category, region_id) + int(foundation_mods.get("resistance") or 0)
     resistance = max(0, min(100, resistance))
-    ability_factor = 1.35 - ability / 200.0          # ability 100 → 0.85；50 → 1.10
-    resistance_factor = 1.0 + resistance / 150.0     # 阻力 100 → ×1.67
-    exec_days = max(2, round(int(category["base_days"]) * ability_factor * distance
-                             * resistance_factor * float(foundation_mods.get("exec_factor") or 1.0)))
-    lead_days = max(1, round(int(category["lead_days"]) * distance))
-    deadline_days = explicit_deadline_days(text)
-    if deadline_days and lead_days + exec_days > deadline_days:
-        lead_days = min(lead_days, max(0, deadline_days - 1))
-        exec_days = max(1, deadline_days - lead_days)
     chain = [
         {"role": "主办", "name": assignee, "office": str(arow["office"]) if arow else "",
          "faction": str(arow["faction"]) if arow else ""},
@@ -239,6 +230,33 @@ def build_chain(db: GameDB, state: GameState, text: str, actor: str) -> Dict[str
     for kind, delta in (foundation_mods.get("anomaly_bias") or {}).items():
         if kind in ("delay", "skim", "block", "surprise"):
             check_risk[kind] = max(0, int(check_risk.get(kind) or 0) + int(delta))
+    policy_review: Dict[str, object] = {}
+    try:
+        from ming_sim import policies
+        policy_review = policies.directive_doctrine_review(
+            db, state, text, category_id=str(category["id"]), actor=assignee or actor
+        )
+    except Exception:
+        policy_review = {}
+    trait_notes = list(foundation_mods.get("notes") or [])
+    policy_gate = policy_review.get("execution_gate") if isinstance(policy_review.get("execution_gate"), dict) else {}
+    resistance_delta = int(policy_gate.get("resistance_delta") or 0)
+    if resistance_delta:
+        resistance = max(0, min(100, resistance + resistance_delta))
+    for kind, delta in (policy_gate.get("check_risk_delta") or {}).items():
+        if kind in ("delay", "skim", "block", "surprise"):
+            check_risk[kind] = max(0, int(check_risk.get(kind) or 0) + int(delta))
+    for note in policy_gate.get("notes") or []:
+        trait_notes.append(f"国策：{note}")
+    ability_factor = 1.35 - ability / 200.0          # ability 100 → 0.85；50 → 1.10
+    resistance_factor = 1.0 + resistance / 150.0     # 阻力 100 → ×1.67
+    exec_days = max(2, round(int(category["base_days"]) * ability_factor * distance
+                             * resistance_factor * float(foundation_mods.get("exec_factor") or 1.0)))
+    lead_days = max(1, round(int(category["lead_days"]) * distance))
+    deadline_days = explicit_deadline_days(text)
+    if deadline_days and lead_days + exec_days > deadline_days:
+        lead_days = min(lead_days, max(0, deadline_days - 1))
+        exec_days = max(1, deadline_days - lead_days)
     return {
         "category": str(category["id"]),
         "category_name": str(category["name"]),
@@ -251,7 +269,8 @@ def build_chain(db: GameDB, state: GameState, text: str, actor: str) -> Dict[str
         "chain": chain,
         "check_risk": check_risk,
         "trait_score": int(foundation_mods.get("score") or 0),
-        "trait_notes": list(foundation_mods.get("notes") or []),
+        "trait_notes": trait_notes,
+        "policy_doctrine": policy_review,
     }
 
 
@@ -268,6 +287,19 @@ def init_directive_lifecycles(db: GameDB, state: GameState, directives, day: int
         text = str(row["text"] or "")
         actor = str(row["actor"] or "") if "actor" in row.keys() else ""
         plan = build_chain(db, state, text, actor)
+        policy_doctrine = plan.get("policy_doctrine") if isinstance(plan.get("policy_doctrine"), dict) else {}
+        try:
+            from ming_sim import policies
+            policy_doctrine = policies.apply_directive_doctrine_effects(
+                db,
+                state,
+                directive_id=did,
+                text=text,
+                category_id=str(plan["category"]),
+                actor=str(plan.get("assignee") or actor or ""),
+            )
+        except Exception as exc:
+            tlog(f"[policy] 国策标注失败，跳过：#{did} {exc}")
         eta = int(day) + int(plan["lead_days"]) + int(plan["exec_days"])
         db.conn.execute(
             """UPDATE turn_directives SET lifecycle_status='in_transit', category=?,
@@ -282,6 +314,7 @@ def init_directive_lifecycles(db: GameDB, state: GameState, directives, day: int
                          "check_risk": plan["check_risk"],
                          "trait_score": int(plan.get("trait_score") or 0),
                          "trait_notes": plan.get("trait_notes") or [],
+                         "policy_doctrine": policy_doctrine,
                          "score_bonus": 0}, ensure_ascii=False),
              did),
         )
@@ -289,7 +322,7 @@ def init_directive_lifecycles(db: GameDB, state: GameState, directives, day: int
         punitive = ("下狱", "处死", "弃市", "处斩", "斩立决", "传首", "逮问", "革职查办", "廷杖")
         if any(kw in text for kw in punitive):
             adjust_belief(db, KV_RISK_AVERSION, +3, f"严谴之旨（#{did}）", day=day)
-        initialized.append({"id": did, **plan, "eta_day": eta})
+        initialized.append({"id": did, **plan, "policy_doctrine": policy_doctrine, "eta_day": eta})
     db.conn.commit()
     return initialized
 
@@ -1440,6 +1473,7 @@ def lifecycle_payload(db: GameDB, *, include_done: bool = True, limit: int = 40)
             "blocker_action": meta.get("last_blocker_action") if isinstance(meta.get("last_blocker_action"), dict) else {},
             "followup_action": meta.get("last_followup_action") if isinstance(meta.get("last_followup_action"), dict) else {},
             "followup_history": _followup_history(meta),
+            "policy_doctrine": meta.get("policy_doctrine") if isinstance(meta.get("policy_doctrine"), dict) else {},
             "reported_rate": int(row["integrity_reported"]),
             "anomaly": str(row["anomaly"] or ""),
             "settle_note": str(row["settle_note"] or ""),

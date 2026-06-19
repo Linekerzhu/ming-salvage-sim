@@ -88,6 +88,39 @@ function Metric({ label, value, suffix }: { label: string; value: any; suffix?: 
   );
 }
 
+function DoctrineIssueStrip({ doctrine }: { doctrine: any }) {
+  if (!doctrine?.id) return null;
+  const factions = Array.isArray(doctrine.factions) ? doctrine.factions.slice(0, 3) : [];
+  const figures = Array.isArray(doctrine.figures) ? doctrine.figures.slice(0, 2) : [];
+  const conflicts = Array.isArray(doctrine.active_conflicts) ? doctrine.active_conflicts : [];
+  const toneFor = (stance: string) => stance === "support" ? "good" : stance === "oppose" ? "bad" : "neutral";
+  const stanceWord = (stance: string) => stance === "support" ? "赞" : stance === "oppose" ? "阻" : "观望";
+  return (
+    <div className="m-outcome-strip is-compact m-issue-doctrine" aria-label="国策路线争议">
+      <span className="m-outcome-chip">路线 {doctrine.name || doctrine.id}</span>
+      {doctrine.axis && <span className="m-outcome-chip">轴 {doctrine.axis}</span>}
+      {doctrine.bar_value != null && <span className="m-outcome-chip">正统 {Number(doctrine.bar_value)}/100</span>}
+      {factions.map((f: any) => {
+        const stance = String(f.stance || "neutral");
+        const label = stance === "support"
+          ? `${f.faction} 支${Number(f.support || 0)}`
+          : stance === "oppose"
+            ? `${f.faction} 反${Number(f.oppose || 0)}`
+            : `${f.faction} 观望`;
+        return <span key={`${f.faction}-${stance}`} className={`m-outcome-chip tone-${toneFor(stance)}`}>{label}</span>;
+      })}
+      {figures.map((p: any) => (
+        <span key={`${p.name}-${p.stance}`} className={`m-outcome-chip tone-${toneFor(String(p.stance || "neutral"))}`}>
+          {p.name}{stanceWord(String(p.stance || "neutral"))}
+        </span>
+      ))}
+      {conflicts.length > 0 && (
+        <span className="m-outcome-chip tone-bad">冲突 {conflicts.map((c: any) => c.name || c.id).join("、")}</span>
+      )}
+    </div>
+  );
+}
+
 // 中兴气象：天下治的总仪表——大字指数 + 折线趋势 + 五分项 + 本章诏题清单。长期爽点的去向。
 function RevivalCard() {
   const { zhongxing } = useGame();
@@ -243,6 +276,7 @@ export function RealmView() {
                     险 {it.severity}
                   </span>
                 )}
+                <DoctrineIssueStrip doctrine={it.policy_doctrine} />
               </li>
             ))}
           </ul>

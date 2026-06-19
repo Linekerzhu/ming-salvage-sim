@@ -542,9 +542,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-outcome-chip.tone-good {
   color: #26563c; background: rgba(74,128,96,.13); border-color: rgba(74,128,96,.36);
 }
+.m-outcome-chip.tone-warn {
+  color: #6c480e; background: rgba(181,134,58,.14); border-color: rgba(181,134,58,.34);
+}
 .m-outcome-chip.tone-bad {
   color: #8a2c22; background: rgba(158,52,41,.11); border-color: rgba(158,52,41,.3);
 }
+.m-issue-doctrine { flex-basis: 100%; width: 100%; }
+.m-doctrine-policies .m-outcome-strip { margin-top: 4px; }
+.m-doctrine-policy-summary { margin: 7px 0 0; line-height: 1.55; }
 
 /* ── 天下 / 通用行列表 ──────────────────────────────────────── */
 .m-metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -1248,6 +1254,8 @@ details[open] > summary .m-disclosure-caret { color: var(--gold); background: rg
 .m-person-block { margin-top: 14px; }
 .m-person-h { display: block; font-size: 0.82rem; font-weight: 700; color: var(--gold-deep); margin-bottom: 6px; }
 .m-person-style { margin: 0; font-size: 0.9rem; line-height: 1.65; color: var(--ink); }
+.m-person-policy-summary { margin: 0 0 6px; font-size: 0.86rem; line-height: 1.55; color: var(--ink); }
+.m-policy-ideals .m-outcome-strip { margin-top: 3px; }
 .m-person-skills { display: flex; flex-wrap: wrap; gap: 6px; }
 .m-skill { font-size: 0.78rem; background: rgba(47,90,68,.14); color: var(--jade); border: 1px solid rgba(47,90,68,.3); border-radius: 999px; padding: 3px 10px; }
 .m-person-goal { display: flex; flex-direction: column; gap: 3px; margin: 6px 0; padding: 8px 9px;

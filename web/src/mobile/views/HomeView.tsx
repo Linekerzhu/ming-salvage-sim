@@ -10,6 +10,30 @@ const INFORMATIONAL_KINDS = ["复命", "捷报"];
 const BRIEF_TABS: Tab[] = ["home", "desk", "audience", "edicts", "realm"];
 type BriefBucket = { kind: string; label: string; shown: number; total: number; hidden: number; rank_level?: string; rank_label?: string; rank_count?: number };
 
+function ActiveDoctrinePolicies({ legacies }: { legacies?: any[] }) {
+  const doctrines = (legacies || [])
+    .map((legacy) => ({ legacy, doctrine: legacy?.policy_doctrine }))
+    .filter((item) => item.doctrine?.id)
+    .slice(0, 4);
+  if (doctrines.length === 0) return null;
+  return (
+    <section className="m-card m-doctrine-policies">
+      <h2 className="m-card-title">基本国策</h2>
+      <div className="m-outcome-strip is-compact" aria-label="已确立基本国策">
+        {doctrines.map(({ legacy, doctrine }) => (
+          <span key={doctrine.id} className="m-outcome-chip tone-good">
+            {doctrine.name || legacy.name}
+            {doctrine.axis ? ` · ${doctrine.axis}` : ""}
+          </span>
+        ))}
+      </div>
+      {doctrines[0]?.doctrine?.summary && (
+        <p className="m-row-sub m-doctrine-policy-summary">{doctrines[0].doctrine.summary}</p>
+      )}
+    </section>
+  );
+}
+
 export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: string, lead?: AudienceLead) => void }) {
   const { state, desk, lifecycle, recentEvents, zhongxing, worldVersion } = useGame();
   const openPerson = usePerson();
@@ -123,6 +147,8 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
           ))}
         </ul>
       </section>
+
+      <ActiveDoctrinePolicies legacies={state?.legacies} />
 
       {briefCards.length > 0 && (
         <section className="m-card m-brief">
@@ -632,6 +658,13 @@ export function closurePromptForAudience(kind: string, actor = "你", target = "
       prefix: true,
     };
   }
+  if (kind === "doctrine") {
+    return {
+      label: "定路线",
+      text: `国策不是空论。现在定下一手：你要推哪条路线、先办哪道旨、几日见效、谁会反扑、办坏了谁担责？`,
+      prefix: true,
+    };
+  }
   return {
     label: "定下一手",
     text: `朕已听明白。现在定下一手：由谁承办、几日回奏、拿什么证据、办坏了谁担责？你当面给朕一个可落账的说法。`,
@@ -681,6 +714,10 @@ function audienceOpeningFromBrief(card: PlaystyleBriefCard, actor = card.actor |
   }
   if (card.kind === "agenda") {
     return withDeal(agendaOpening(card, speaker, topic, counterpart));
+  }
+  if (card.kind === "doctrine") {
+    const route = String(card.meta || topic || "此路线").split("·")[0] || "此路线";
+    return withDeal(`${speaker}入殿便知今日不是泛问政见，而是问「${route}」能否成为朝廷正途。若要推行，须说清先后、阻力与代价。`);
   }
   if (card.kind === "hook") {
     return withDeal(`${speaker}入殿时明显收敛，知道陛下今日不是寻常问策；若有风闻落到自己身上，愿听陛下发问。`);
@@ -886,6 +923,14 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
   }
   if (card.kind === "agenda") {
     return agendaPrompts(card, topic, counterpart);
+  }
+  if (card.kind === "doctrine") {
+    const route = String(card.meta || topic || "此路线").split("·")[0] || "此路线";
+    return [
+      { label: "问路线", text: `朕今日问「${route}」。你为何以此为治国正途？先办哪一道旨，几日能见效？`, prefix: true },
+      { label: "问反扑", text: `若朕采纳「${route}」，朝中哪一派、哪一衙门、哪几个人会反扑？你拿什么压住？`, prefix: true },
+      { label: "问变通", text: `若此路与既有国策或祖制相冲突，你要如何变通，使其可行而不致失范？`, prefix: true },
+    ];
   }
   if (card.kind === "trap_remedy") {
     return [

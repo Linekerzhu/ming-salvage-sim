@@ -37,6 +37,26 @@ function ActionPreview({ items }: { items?: Array<{ label: string; tone?: string
   );
 }
 
+function PolicyDoctrineMemo({ data }: { data?: Memorial["policy_doctrine"] }) {
+  const name = String(data?.name || "").trim();
+  if (!name) return null;
+  const direction = data?.direction === "oppose" ? "反对" : "推动";
+  const stance = String(data?.author_stance?.stance || "");
+  const stanceLabel = stance === "support" ? "本人倾向支持"
+    : stance === "oppose" ? "本人倾向反对"
+      : "本人立场可变";
+  const tone = data?.direction === "oppose" ? "bad" : "good";
+  const stanceTone = stance === "oppose" ? "bad" : stance === "support" ? "good" : "neutral";
+  return (
+    <div className="m-outcome-strip is-compact" aria-label="奏疏国策路线">
+      <span className="m-outcome-head">路线</span>
+      <span className={`m-outcome-chip tone-${tone}`}>{direction}：{name}</span>
+      {data?.bar_value != null && <span className="m-outcome-chip tone-neutral">争议 {data.bar_value}/100</span>}
+      <span className={`m-outcome-chip tone-${stanceTone}`}>{stanceLabel}</span>
+    </div>
+  );
+}
+
 function MemorialCard({ m, issue, directive, onActed }: { m: Memorial; issue?: any; directive?: any; onActed: () => void }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -71,6 +91,7 @@ function MemorialCard({ m, issue, directive, onActed }: { m: Memorial; issue?: a
           {drowning && <span className="m-badge-drown">⚠ {m.days_to_expire}日淹没</span>}
         </div>
         <p className="m-memorial-summary">{m.summary}</p>
+        <PolicyDoctrineMemo data={m.policy_doctrine} />
         {!info && m.full_text && <p className="m-memorial-excerpt">{textPreview(m.full_text)}</p>}
         {info && directive?.outcome_summary?.length > 0 && <OutcomeSummary items={directive.outcome_summary} compact />}
       </button>

@@ -57,6 +57,7 @@ _KIND_LABELS = {
     "favor": "旧恩",
     "relationship": "人情",
     "legacy": "余波",
+    "doctrine": "路线",
     "army": "军镇",
     "faction": "派系",
     "eunuch": "内廷",
@@ -435,6 +436,43 @@ def audience_summon_hints_payload(db: GameDB, state: Optional[GameState] = None)
         if faction and faction not in {"无", "中立", "皇党"}:
             add_tag(name, faction[:6], "warn", 4)
 
+        try:
+            from ming_sim import policies
+            ideals = policies.character_policy_ideals(db, name, limit=1, context_row=row)
+        except Exception:
+            ideals = {}
+        supports = ideals.get("supports") if isinstance(ideals, dict) else []
+        if isinstance(supports, list) and supports:
+            route = supports[0] if isinstance(supports[0], dict) else {}
+            route_name = str(route.get("name") or "").strip()
+            route_id = str(route.get("id") or "").strip()
+            score = float(route.get("score") or 0)
+            status = str(route.get("status") or "latent")
+            status_label = str(route.get("status_label") or "")
+            if route_name and (status != "latent" or score >= 0.55):
+                tone = "warn" if status == "contested" else "good" if status == "orthodox" else "neutral"
+                pressure = 16 if status == "contested" else 8 if status == "orthodox" else 2
+                add_tag(name, f"愿行{route_name}", tone, pressure, front=status != "latent")
+                urgency = 46 if status == "contested" else 34 if status == "orthodox" else 22
+                set_lead(name, {
+                    "kind": "doctrine",
+                    "title": f"路线问对：{name}与{route_name}",
+                    "detail": (
+                        f"{name}倾向「{route_name}」"
+                        f"（{route.get('axis') or '国策路线'}，{status_label or '潜势'}）。"
+                        "可问其如何推进、守护或规避反噬。"
+                    ),
+                    "urgency": urgency,
+                    "tone": "warn" if status == "contested" else "info",
+                    "cta": "召来问路线",
+                    "tab": _TAB_AUDIENCE,
+                    "actor": name,
+                    "meta": f"{route_name}·{status_label}" if status_label else route_name,
+                    "ref_kind": "doctrine",
+                    "ref_id": route_id,
+                    "motive": str((ideals.get("summary") if isinstance(ideals, dict) else "") or ""),
+                })
+
     cleaned: Dict[str, Dict[str, Any]] = {}
     for name, item in hints.items():
         tags = [
@@ -453,6 +491,42 @@ def audience_summon_hints_payload(db: GameDB, state: Optional[GameState] = None)
         if out:
             cleaned[name] = out
     return {"hints": cleaned}
+
+
+def doctrine_chat_context_brief(db: GameDB, minister_name: str, doctrine_id: object) -> str:
+    """Trusted prompt context for a route-politics audience lead."""
+
+    try:
+        from ming_sim import policies
+        route_id = str(doctrine_id or "").strip()
+        doctrine = policies.doctrine_by_id(route_id) or {}
+        if not doctrine:
+            return ""
+        stance = policies.character_doctrine_stance(db, minister_name, route_id)
+        active = policies.active_doctrine_legacies(db)
+        issue = policies.doctrine_issue_row(db, route_id, status="active")
+    except Exception:
+        return ""
+    route_name = str(doctrine.get("name") or route_id)
+    axis = str(doctrine.get("axis") or "国策路线")
+    if route_id in active:
+        status = "已成基本国策"
+    elif issue is not None:
+        status = f"仍在路线争议中，正统进度约{int(issue['bar_value'] or 0)}/100"
+    else:
+        status = "尚未进入成说，只是潜在路线"
+    stance_label = {
+        "support": "倾向支持",
+        "oppose": "倾向反对",
+        "neutral": "立场可变",
+    }.get(str(stance.get("stance") or ""), "立场可变")
+    reasons = "、".join(str(x) for x in (stance.get("reasons") or [])[:3])
+    return "\n".join([
+        f"本次召对主题：国策路线「{route_name}」（{axis}）。",
+        f"路线状态：{status}。",
+        f"{minister_name}对此路线{stance_label}，分值{stance.get('score')}; {reasons or '理由未显'}。",
+        "回答应围绕如何推进、阻挠、变通或承担该路线的政治代价，不要泛泛谈忠心。",
+    ])
 
 
 def petition_chat_context_brief(

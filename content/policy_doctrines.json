@@ -1,0 +1,263 @@
+{
+  "meta": {
+    "doc": "轻量国策配置：国策不是新系统，而是 directive / issue / legacy / memorial / faction 的统一路线标签。",
+    "version": 1,
+    "state_model": "未成正统=issues(kind=initiative, origin_kind=doctrine)；已成正统=legacies(legacy_key=doctrine:<id>)。"
+  },
+  "default_issue_bar": 42,
+  "blocked_issue_bar_cap": 95,
+  "directive_issue_delta": 8,
+  "memorial_issue_delta": 12,
+  "doctrines": [
+    {
+      "id": "fiscal_rectification",
+      "name": "财政整饬",
+      "axis": "财政国家",
+      "level": "basic",
+      "summary": "清账、核饷、追赃、整顿钱粮流向，让国家财政先恢复可知可控。",
+      "keywords": ["财政", "清账", "核饷", "盘库", "追赃", "钱粮", "户部", "考成", "截留", "亏空"],
+      "supports_categories": ["fiscal_allocation", "audit_purge", "tax_reform"],
+      "conflicts": ["lao_xiang_priority", "ancestral_conservatism"],
+      "unlock_issue_tags": ["axis:财政国家", "topic:钱粮"],
+      "legacy_effects": {"国库": 8, "民心": -2},
+      "support_rules": {
+        "factions": {"皇党": 0.15, "中立": 0.1, "东林": 0.05},
+        "office_keywords": {"户部": 0.3, "都察院": 0.18, "内阁": 0.12},
+        "style_keywords": {"钱谷": 0.25, "考成": 0.25, "实务": 0.18, "清议": 0.05},
+        "traits": {"S015": 0.35, "S019": 0.28, "J005": 0.25, "G015": -0.35, "J010": -0.25},
+        "abilities": {"js_zhi": 0.025, "js_tao": 0.008},
+        "persona": {"xinshu_xu": 0.08, "xinshu_ba": 0.05}
+      }
+    },
+    {
+      "id": "lao_xiang_priority",
+      "name": "辽饷优先",
+      "axis": "财政军政",
+      "level": "basic",
+      "summary": "在财政分配中优先维持辽东、关宁和边镇军饷，先保边防不崩。",
+      "keywords": ["辽饷", "边饷", "军饷", "关宁", "辽东", "补饷", "欠饷", "援辽"],
+      "supports_categories": ["fiscal_allocation", "military_ops"],
+      "conflicts": ["relief_first", "fiscal_rectification"],
+      "unlock_issue_tags": ["axis:财政军政", "topic:辽东"],
+      "legacy_effects": {"国库": -5, "armies": {"liaodong": {"morale": 10}}},
+      "support_rules": {
+        "factions": {"军队": 0.35, "皇党": 0.12},
+        "office_keywords": {"兵部": 0.25, "督师": 0.3, "经略": 0.28, "总兵": 0.2},
+        "style_keywords": {"辽东": 0.25, "边事": 0.25, "军饷": 0.25, "守边": 0.22},
+        "traits": {"S012": 0.25, "S018": 0.3, "S013": 0.2, "G011": 0.08},
+        "abilities": {"js_lue": 0.03, "js_wang": 0.012},
+        "persona": {"xinshu_shi": -0.08, "qixing_hao": 0.05}
+      }
+    },
+    {
+      "id": "land_survey",
+      "name": "清丈田亩",
+      "axis": "财政农政",
+      "level": "basic",
+      "summary": "清查隐田、重核赋役，触动士绅土地利益，换取长期税基。",
+      "keywords": ["清丈", "田亩", "隐田", "赋役", "黄册", "鱼鳞册", "田赋", "粮户"],
+      "supports_categories": ["tax_reform", "audit_purge"],
+      "conflicts": ["ancestral_conservatism", "relief_first"],
+      "unlock_issue_tags": ["axis:财政农政", "topic:田亩"],
+      "legacy_effects": {"国库": 10, "民心": -4},
+      "support_rules": {
+        "factions": {"皇党": 0.15, "中立": 0.08, "东林": -0.12},
+        "office_keywords": {"户部": 0.28, "巡抚": 0.16, "都察院": 0.18},
+        "style_keywords": {"清丈": 0.32, "田亩": 0.2, "钱谷": 0.18, "乡绅": -0.12},
+        "traits": {"S019": 0.45, "S015": 0.22, "G007": -0.18, "G016": -0.16},
+        "abilities": {"js_zhi": 0.025, "js_tao": 0.01},
+        "persona": {"xinshu_xu": 0.1, "xinshu_ba": 0.06}
+      }
+    },
+    {
+      "id": "relief_first",
+      "name": "重农安民",
+      "axis": "农政民生",
+      "level": "basic",
+      "summary": "荒政、赈济、减免、屯田优先，先稳人心和流民。",
+      "keywords": ["赈", "荒政", "流民", "平粜", "蠲免", "减免", "屯田", "水利", "农桑", "民生"],
+      "supports_categories": ["relief", "construction", "tax_reform"],
+      "conflicts": ["lao_xiang_priority", "land_survey"],
+      "unlock_issue_tags": ["axis:农政民生", "topic:赈济"],
+      "legacy_effects": {"民心": 8, "国库": -5},
+      "support_rules": {
+        "factions": {"东林": 0.12, "中立": 0.12, "西学": 0.08},
+        "office_keywords": {"户部": 0.16, "巡抚": 0.22, "工部": 0.16},
+        "style_keywords": {"民生": 0.25, "赈": 0.28, "水利": 0.22, "农": 0.18},
+        "traits": {"S009": 0.16, "S014": 0.18, "S015": 0.12, "G011": -0.12},
+        "abilities": {"js_zhi": 0.018, "js_wang": 0.018},
+        "persona": {"xinshu_yi": -0.08, "xinshu_shi": -0.08}
+      }
+    },
+    {
+      "id": "frontier_first",
+      "name": "边防优先",
+      "axis": "军政边防",
+      "level": "basic",
+      "summary": "资源、人才和制度向北边与辽东倾斜，先把边防危机压住。",
+      "keywords": ["边防", "辽东", "关宁", "东江", "宣大", "蓟镇", "蒙古", "后金", "建虏", "虏"],
+      "supports_categories": ["military_ops", "fiscal_allocation", "diplomacy"],
+      "conflicts": ["civilian_control", "relief_first"],
+      "unlock_issue_tags": ["axis:军政边防", "topic:边事"],
+      "legacy_effects": {"国库": -4, "皇威": 3},
+      "support_rules": {
+        "factions": {"军队": 0.3, "皇党": 0.12},
+        "office_keywords": {"兵部": 0.25, "督师": 0.3, "经略": 0.28, "总督": 0.16},
+        "style_keywords": {"边事": 0.3, "辽东": 0.28, "建虏": 0.2, "蒙古": 0.16},
+        "traits": {"S012": 0.28, "S018": 0.3, "S013": 0.2},
+        "abilities": {"js_lue": 0.032, "js_tao": 0.012},
+        "persona": {"xinshu_shi": -0.08, "qixing_hao": 0.06}
+      }
+    },
+    {
+      "id": "civilian_control",
+      "name": "文臣节制武将",
+      "axis": "官制军政",
+      "level": "basic",
+      "summary": "以督抚、兵部和科道节制武臣，防边镇自专。",
+      "keywords": ["节制", "督抚", "监军", "文臣", "兵部", "按臣", "武臣", "边镇自专"],
+      "supports_categories": ["personnel", "military_ops", "audit_purge"],
+      "conflicts": ["military_professionalization", "frontier_first"],
+      "unlock_issue_tags": ["axis:官制军政", "topic:将权"],
+      "legacy_effects": {"皇威": 4},
+      "support_rules": {
+        "factions": {"东林": 0.2, "皇党": 0.12, "军队": -0.25},
+        "office_keywords": {"兵部": 0.22, "都察院": 0.2, "内阁": 0.15, "御史": 0.22},
+        "style_keywords": {"制度": 0.18, "名分": 0.16, "边镇": 0.16, "清议": 0.14},
+        "traits": {"S008": 0.18, "J009": 0.14, "G007": 0.1, "S013": -0.12},
+        "abilities": {"js_wang": 0.018, "js_tao": 0.012},
+        "persona": {"xinshu_xu": -0.04, "xinshu_ba": -0.04}
+      }
+    },
+    {
+      "id": "military_professionalization",
+      "name": "武备专业化",
+      "axis": "军政改革",
+      "level": "basic",
+      "summary": "尊重将帅专业、练兵、火器、军需和战区实务，减少空泛清议掣肘。",
+      "keywords": ["练兵", "募兵", "火器", "红夷炮", "将略", "军需", "整军", "操练", "军制"],
+      "supports_categories": ["military_ops", "construction"],
+      "conflicts": ["civilian_control", "ancestral_conservatism"],
+      "unlock_issue_tags": ["axis:军政改革", "topic:武备"],
+      "legacy_effects": {"国库": -3, "皇威": 3},
+      "support_rules": {
+        "factions": {"军队": 0.35, "西学": 0.14, "东林": -0.08},
+        "office_keywords": {"兵部": 0.2, "总兵": 0.25, "督师": 0.22, "工部": 0.1},
+        "style_keywords": {"练兵": 0.28, "火器": 0.25, "军制": 0.22, "清议": -0.1},
+        "traits": {"S012": 0.3, "S013": 0.2, "S018": 0.22, "S017": 0.12},
+        "abilities": {"js_lue": 0.032, "js_shi": 0.012},
+        "persona": {"xinshu_xu": 0.08, "qixing_hao": 0.06}
+      }
+    },
+    {
+      "id": "open_sea_trade",
+      "name": "开海裕国",
+      "axis": "海禁商贸",
+      "level": "basic",
+      "summary": "有条件开放海贸、商税、市舶与洋货火器输入，以商补国。",
+      "keywords": ["开海", "海禁", "市舶", "海贸", "洋商", "澳门", "夷商", "商税", "关税", "红夷", "西洋"],
+      "supports_categories": ["tax_reform", "diplomacy", "construction"],
+      "conflicts": ["ancestral_conservatism", "qingliu_public_morality"],
+      "unlock_issue_tags": ["axis:海禁商贸", "topic:开海"],
+      "legacy_effects": {"国库": 9, "民心": 2},
+      "support_rules": {
+        "factions": {"西学": 0.35, "中立": 0.08, "东林": -0.08},
+        "office_keywords": {"户部": 0.12, "工部": 0.16, "礼部": 0.1, "福建": 0.18, "广东": 0.18},
+        "style_keywords": {"西法": 0.28, "火器": 0.2, "商税": 0.2, "海": 0.16, "洋": 0.16},
+        "traits": {"S015": 0.15, "S019": 0.08, "G002": -0.08},
+        "abilities": {"js_shi": 0.03, "js_zhi": 0.01},
+        "persona": {"xinshu_xu": 0.12, "qixing_ji": 0.04}
+      }
+    },
+    {
+      "id": "ancestral_conservatism",
+      "name": "守成祖制",
+      "axis": "礼法祖制",
+      "level": "basic",
+      "summary": "以祖制、礼法和既有官箴维持秩序，避免非常改革撕裂朝野。",
+      "keywords": ["祖制", "礼法", "成宪", "旧章", "名分", "纲常", "祖宗", "常例"],
+      "supports_categories": ["ritual_signal", "personnel"],
+      "conflicts": ["open_sea_trade", "land_survey", "military_professionalization", "inner_court_balance"],
+      "unlock_issue_tags": ["axis:礼法祖制", "topic:祖制"],
+      "legacy_effects": {"皇威": 3, "民心": 1},
+      "support_rules": {
+        "factions": {"东林": 0.12, "宗室": 0.25, "中立": 0.1},
+        "office_keywords": {"礼部": 0.28, "翰林": 0.18, "御史": 0.16, "宗人府": 0.22},
+        "style_keywords": {"祖制": 0.32, "名分": 0.22, "礼法": 0.25, "清议": 0.14},
+        "traits": {"J009": 0.08, "G007": 0.12, "S016": 0.08},
+        "abilities": {"js_wang": 0.015, "js_shi": 0.012},
+        "persona": {"xinshu_xu": -0.16, "xinshu_yi": -0.04}
+      }
+    },
+    {
+      "id": "inner_court_balance",
+      "name": "内廷制衡外朝",
+      "axis": "官制权力",
+      "level": "basic",
+      "summary": "以司礼监、厂卫和近侍网络制衡外朝官僚，使皇权有独立执行抓手。",
+      "keywords": ["司礼监", "内廷", "东厂", "锦衣卫", "厂卫", "太监", "近侍", "秉笔", "掌印"],
+      "supports_categories": ["secret_investigation", "personnel", "audit_purge"],
+      "conflicts": ["qingliu_public_morality", "ancestral_conservatism"],
+      "unlock_issue_tags": ["axis:官制权力", "topic:内廷"],
+      "legacy_effects": {"皇威": 6, "民心": -3},
+      "support_rules": {
+        "factions": {"阉党": 0.35, "皇党": 0.25, "东林": -0.28},
+        "office_keywords": {"司礼监": 0.32, "东厂": 0.3, "锦衣卫": 0.22, "内廷": 0.24},
+        "style_keywords": {"内廷": 0.22, "厂卫": 0.25, "皇权": 0.18, "清议": -0.14},
+        "traits": {"S010": 0.25, "S011": 0.28, "G005": 0.18, "G001": 0.12, "J009": -0.08},
+        "abilities": {"js_tao": 0.025, "js_zhi": 0.008},
+        "persona": {"xinshu_ba": 0.14, "qixing_ji": 0.08}
+      }
+    },
+    {
+      "id": "qingliu_public_morality",
+      "name": "清流公论",
+      "axis": "士林言路",
+      "level": "basic",
+      "summary": "重言路、清议、名节和公开程序，以士林公论约束皇权与近幸。",
+      "keywords": ["清流", "言路", "公论", "弹劾", "科道", "御史", "名节", "士林", "逆案"],
+      "supports_categories": ["audit_purge", "ritual_signal", "personnel"],
+      "conflicts": ["inner_court_balance", "open_sea_trade"],
+      "unlock_issue_tags": ["axis:士林言路", "topic:公论"],
+      "legacy_effects": {"皇威": -3, "民心": 3},
+      "support_rules": {
+        "factions": {"东林": 0.38, "阉党": -0.35, "皇党": -0.08},
+        "office_keywords": {"御史": 0.3, "都察院": 0.22, "翰林": 0.2, "礼部": 0.12},
+        "style_keywords": {"清议": 0.3, "名节": 0.25, "公论": 0.25, "阉党": 0.12},
+        "traits": {"J009": 0.22, "S008": 0.18, "G007": 0.12, "G017": 0.08, "G015": -0.25},
+        "abilities": {"js_wang": 0.025, "js_shi": 0.014},
+        "persona": {"xinshu_yi": -0.14, "xinshu_ba": -0.08}
+      }
+    },
+    {
+      "id": "western_learning_pragmatism",
+      "name": "西学实用",
+      "axis": "信仰新知",
+      "level": "basic",
+      "summary": "接受西法历算、火器、测绘和水利等实用知识，但需处理礼法与信仰疑惧。",
+      "keywords": ["西学", "西法", "历算", "崇祯历书", "传教士", "火器", "红夷炮", "测绘", "格物"],
+      "supports_categories": ["construction", "military_ops", "diplomacy"],
+      "conflicts": ["ancestral_conservatism"],
+      "unlock_issue_tags": ["axis:信仰新知", "topic:西学"],
+      "legacy_effects": {"国库": -2, "皇威": 2},
+      "support_rules": {
+        "factions": {"西学": 0.42, "中立": 0.08, "东林": -0.05},
+        "office_keywords": {"工部": 0.22, "钦天监": 0.3, "兵部": 0.12, "礼部": -0.08},
+        "style_keywords": {"西法": 0.35, "历算": 0.32, "火器": 0.25, "格物": 0.2, "礼法": -0.08},
+        "traits": {"S012": 0.08, "S015": 0.08, "G003": -0.2},
+        "abilities": {"js_shi": 0.038, "js_zhi": 0.012},
+        "persona": {"xinshu_xu": 0.12, "qixing_ji": 0.06}
+      }
+    }
+  ],
+  "overrides": {
+    "徐光启": {"western_learning_pragmatism": 0.95, "open_sea_trade": 0.55, "relief_first": 0.45},
+    "毕自严": {"fiscal_rectification": 0.9, "land_survey": 0.65, "lao_xiang_priority": 0.35},
+    "袁崇焕": {"frontier_first": 0.9, "military_professionalization": 0.65, "civilian_control": -0.35},
+    "孙承宗": {"frontier_first": 0.85, "civilian_control": 0.35, "military_professionalization": 0.45},
+    "韩爌": {"qingliu_public_morality": 0.75, "ancestral_conservatism": 0.55, "inner_court_balance": -0.55},
+    "王承恩": {"inner_court_balance": 0.75, "fiscal_rectification": 0.35},
+    "魏忠贤": {"inner_court_balance": 0.95, "qingliu_public_morality": -0.9},
+    "郑芝龙": {"open_sea_trade": 0.9, "military_professionalization": 0.35}
+  }
+}

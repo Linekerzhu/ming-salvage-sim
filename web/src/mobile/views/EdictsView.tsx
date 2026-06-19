@@ -67,6 +67,41 @@ function EffectPreview({ option }: { option?: InterventionOption }) {
   );
 }
 
+function PolicyDoctrineStrip({ data }: { data?: DirectiveLifecycle["policy_doctrine"] }) {
+  const primary = data?.primary || {};
+  const name = String(primary.name || "").trim();
+  if (!name) return null;
+  const status = primary.status === "orthodox" ? "正统" : "待议";
+  const conflicts = Array.isArray(data?.conflicts) ? data!.conflicts! : [];
+  const riskTags = Array.isArray(data?.risk_tags) ? data!.risk_tags! : [];
+  const gate = data?.execution_gate || {};
+  const temporaryException = !!data?.temporary_exception || !!gate.temporary_exception;
+  const establishmentBlocked = (!!data?.establishment_blocked || !!gate.establishment_blocked) && !temporaryException;
+  const resistanceDelta = Number(gate.resistance_delta || 0);
+  const riskDelta = gate.check_risk_delta || {};
+  const blockDelta = Number(riskDelta.block || 0);
+  const delayDelta = Number(riskDelta.delay || 0);
+  return (
+    <div className="m-outcome-strip is-compact" aria-label="国策路线">
+      <span className="m-outcome-head">国策</span>
+      <span className={`m-outcome-chip tone-${conflicts.length ? "bad" : primary.status === "orthodox" ? "good" : "neutral"}`}>
+        {name} · {status}
+      </span>
+      {temporaryException && <span className="m-outcome-chip tone-warn">权宜变通</span>}
+      {establishmentBlocked && <span className="m-outcome-chip tone-bad">不可定策</span>}
+      {conflicts.slice(0, 2).map((it, idx) => (
+        <span key={`${it.name}-${idx}`} className="m-outcome-chip tone-bad">冲突：{it.name}</span>
+      ))}
+      {!conflicts.length && riskTags.slice(0, 2).map((tag, idx) => (
+        <span key={`${tag}-${idx}`} className="m-outcome-chip tone-neutral">{tag}</span>
+      ))}
+      {resistanceDelta > 0 && <span className="m-outcome-chip tone-bad">阻力 +{resistanceDelta}</span>}
+      {blockDelta > 0 && <span className="m-outcome-chip tone-bad">封驳 +{blockDelta}</span>}
+      {!blockDelta && delayDelta > 0 && <span className="m-outcome-chip tone-warn">拖延 +{delayDelta}</span>}
+    </div>
+  );
+}
+
 function DirectiveCard({ d, today, onActed, ministers, activeMinisters, summon }: {
   d: DirectiveLifecycle; today: number; onActed: () => void; ministers: any[]; activeMinisters: Set<string>; summon?: SummonAudience;
 }) {
@@ -120,6 +155,7 @@ function DirectiveCard({ d, today, onActed, ministers, activeMinisters, summon }
         )}
       </div>
       <p className="m-directive-text">{d.text}</p>
+      <PolicyDoctrineStrip data={d.policy_doctrine} />
       <div className="m-directive-foot">
         <span>主办 {d.assignee || "—"}</span>
         {live && <span className="m-prog-pct">{d.progress}%</span>}
@@ -438,6 +474,7 @@ export function EdictsView({ summon }: { summon?: SummonAudience }) {
             {drafts.map((x: any) => (
               <div key={x.id} className="m-draft">
                 <p className="m-draft-line">〔{x.actor || x.source || "拟"}〕{x.text}</p>
+                <PolicyDoctrineStrip data={x.policy_doctrine} />
                 {x.status === "pending" ? (
                   <div className="m-actions">
                     <button className="m-btn" onClick={() => decide(x.id, true)}>准</button>

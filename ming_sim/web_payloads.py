@@ -237,11 +237,13 @@ ISSUE_FIELDS = (
     "effect_on_resolve",
     "effect_on_fail",
     "kind",
+    "policy_doctrine",
     "inertia",
 )
 
 ISSUE_DEFAULTS = {
     "kind": "situation",
+    "policy_doctrine": None,
     "inertia": 0,
 }
 
@@ -252,10 +254,12 @@ LEGACY_FIELDS = (
     "modifiers",
     "effect_text",
     "clear_condition",
+    "policy_doctrine",
     "remaining_months",
 )
 
 LEGACY_DEFAULTS = {
+    "policy_doctrine": None,
     "remaining_months": -1,
 }
 

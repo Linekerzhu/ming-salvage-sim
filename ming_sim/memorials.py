@@ -190,7 +190,7 @@ def _issue_memorial_context(db: GameDB, ref_kind: str, ref_id: str) -> Dict[str,
         return {}
     row = db.conn.execute(
         """
-        SELECT title, kind, bar_value, severity, stage_text,
+        SELECT title, kind, origin_kind, origin_ref, bar_value, severity, stage_text,
                bar_good_meaning, bar_bad_meaning, region_hint
         FROM issues WHERE id=?
         """,
@@ -204,9 +204,11 @@ def _issue_memorial_context(db: GameDB, ref_kind: str, ref_id: str) -> Dict[str,
         rr = db.conn.execute("SELECT name FROM regions WHERE id=?", (region_id,)).fetchone()
         if rr is not None:
             region_name = str(rr["name"] or "")
-    return {
+    result = {
         "title": str(row["title"] or ""),
         "kind": str(row["kind"] or ""),
+        "origin_kind": str(row["origin_kind"] or ""),
+        "origin_ref": str(row["origin_ref"] or ""),
         "bar": int(row["bar_value"] or 0),
         "severity": int(row["severity"] or 0),
         "stage": str(row["stage_text"] or ""),
@@ -214,6 +216,19 @@ def _issue_memorial_context(db: GameDB, ref_kind: str, ref_id: str) -> Dict[str,
         "bad": str(row["bar_bad_meaning"] or ""),
         "region": region_name,
     }
+    if str(row["origin_kind"] or "") == "doctrine" and str(row["origin_ref"] or ""):
+        try:
+            from ming_sim import policies
+            doctrine = policies.doctrine_by_id(str(row["origin_ref"] or "")) or {}
+            if doctrine:
+                result.update({
+                    "route_name": str(doctrine.get("name") or row["origin_ref"]),
+                    "route_axis": str(doctrine.get("axis") or ""),
+                    "route_summary": str(doctrine.get("summary") or ""),
+                })
+        except Exception:
+            pass
+    return result
 
 
 def compose_memorial_full_text(
@@ -244,6 +259,31 @@ def compose_memorial_full_text(
     locus = f"{region}一带" if region else "地方"
     identity = f"{office}{author}" if office and author not in office else author
     if issue:
+        if str(issue.get("origin_kind") or "") == "doctrine":
+            route = str(issue.get("route_name") or title).strip()
+            axis = str(issue.get("route_axis") or "").strip()
+            route_summary = str(issue.get("route_summary") or stage or "").strip()
+            axis_text = f"，所涉为{axis}" if axis else ""
+            if kind == "弹章":
+                return (
+                    f"臣{identity}谨奏：近来朝议有欲以「{route}」为定策者{axis_text}。"
+                    f"臣窃以为，{route_summary or '此事利害未明，牵动甚广'}。"
+                    f"今议论已至{progress}/100，若不及早辨明名分、财用与人心所系，"
+                    "恐一时趋利之说压倒祖制旧章，遂令朝政失其准绳。伏乞圣明留中详察，勿遽定为国是。"
+                )
+            if kind == "陈情":
+                return (
+                    f"臣{identity}谨陈「{route}」之议{axis_text}。"
+                    f"臣所见，{route_summary or '此路有可行处，亦有可惧处'}。"
+                    f"目下廷议约至{progress}/100，支持者欲成定策，反对者恐其失范。"
+                    "臣不敢以空言争胜，谨将利害陈明，伏乞陛下择其可行者试之。"
+                )
+            return (
+                f"臣{identity}谨奏：为「{route}」路线事。"
+                f"{route_summary or '此议关乎国家长策，非一事一地之便宜'}。"
+                f"今其成说约至{progress}/100，若得明旨为准，则部院承行不再各执一端；"
+                "若仍悬而不决，则党论相持，政令难有归宿。伏乞圣明裁定，使国是有所宗。"
+            )
         current = stage or f"{title}尚在变化，进度约{progress}/100，险情约{severity}/100"
         if kind == "请旨":
             return (
@@ -334,6 +374,8 @@ def memorials_daily_tick(db: GameDB, state: GameState, day: int) -> List[Dict[st
                            "detail": "勇于任事之臣主动言事——任事意愿尚存的迹象。",
                            "ref_kind": "memorial", "ref_id": str(mid), "day": day})
 
+    events.extend(_doctrine_memorial_pulse(db, state, day, rng))
+
     # 2.5) 司礼监代批红（宦官恶趣味 E1）：若启用，内廷掌印先代廓清积压——解御案壅塞，
     #     但权阉日涨、阉党自固（劾阉之疏留中销折）。先于淹没结算，故被代批者不再走淹没扣势。
     try:
@@ -403,6 +445,157 @@ def memorials_daily_tick(db: GameDB, state: GameState, day: int) -> List[Dict[st
                                "ref_kind": "memorial", "ref_id": str(row["id"]), "day": day})
     db.conn.commit()
     return events
+
+
+def _weighted_pick(rows: List[Dict[str, object]], rng: random.Random) -> Optional[Dict[str, object]]:
+    if not rows:
+        return None
+    total = sum(max(1, int(item.get("weight") or 1)) for item in rows)
+    mark = rng.random() * total
+    seen = 0.0
+    for item in rows:
+        seen += max(1, int(item.get("weight") or 1))
+        if seen >= mark:
+            return item
+    return rows[-1]
+
+
+def _doctrine_author_candidates(
+    db: GameDB,
+    doctrine_id: str,
+    direction: str,
+) -> List[Dict[str, object]]:
+    try:
+        from ming_sim import policies
+    except Exception:
+        return []
+    want_support = str(direction) != "oppose"
+    rows = db.conn.execute(
+        "SELECT name, office, faction, courage, ability FROM characters "
+        "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+        "ORDER BY ability DESC LIMIT 80"
+    ).fetchall()
+    picked: List[Dict[str, object]] = []
+    for row in rows:
+        name = str(row["name"] or "")
+        if not name:
+            continue
+        stance = policies.character_doctrine_stance(db, name, doctrine_id)
+        score = float(stance.get("score") or 0.0)
+        if want_support and score < 0.25:
+            continue
+        if not want_support and score > -0.25:
+            continue
+        courage = int(row["courage"] or 50)
+        ability = int(row["ability"] or 50)
+        picked.append({
+            "name": name,
+            "office": str(row["office"] or ""),
+            "faction": str(row["faction"] or ""),
+            "stance": stance,
+            "weight": max(1, int(abs(score) * 100) + courage // 4 + ability // 10),
+        })
+    return picked
+
+
+def _doctrine_memorial_pulse(
+    db: GameDB,
+    state: GameState,
+    day: int,
+    rng: random.Random,
+    *,
+    force: bool = False,
+) -> List[Dict[str, object]]:
+    """Occasionally turn active doctrine disputes into ordinary memorials.
+
+    This is the route-politics bridge: ministers argue for their governing
+    ideals through the existing desk flow, not through a new proposal table.
+    """
+
+    try:
+        from ming_sim import policies
+    except Exception:
+        return []
+    issues = db.conn.execute(
+        "SELECT id, title, origin_ref, bar_value, severity FROM issues "
+        "WHERE status='active' AND origin_kind='doctrine' "
+        "ORDER BY severity DESC, updated_at DESC, id DESC LIMIT 6"
+    ).fetchall()
+    eligible = []
+    for issue in issues:
+        recent = db.conn.execute(
+            "SELECT 1 FROM memorials WHERE ref_kind='issue' AND ref_id=? "
+            "AND status IN ('pending','shelved') LIMIT 1",
+            (str(issue["id"]),),
+        ).fetchone()
+        if recent is not None:
+            continue
+        cooldown = db.conn.execute(
+            "SELECT 1 FROM memorials WHERE ref_kind='issue' AND ref_id=? "
+            "AND arrived_day>=? LIMIT 1",
+            (str(issue["id"]), int(day) - 18),
+        ).fetchone()
+        if cooldown is not None:
+            continue
+        doctrine_id = str(issue["origin_ref"] or "")
+        doctrine = policies.doctrine_by_id(doctrine_id)
+        if doctrine:
+            eligible.append((issue, doctrine))
+    if not eligible:
+        return []
+
+    chance = min(0.30, 0.12 + 0.04 * len(eligible))
+    if not force and rng.random() >= chance:
+        return []
+
+    issue, doctrine = rng.choice(eligible)
+    bar = int(issue["bar_value"] or 0)
+    support_pressure = max(0.25, (70 - bar) / 100.0)
+    oppose_pressure = max(0.20, (bar - 35) / 100.0)
+    direction = "oppose" if rng.random() < oppose_pressure / (support_pressure + oppose_pressure) else "support"
+    candidates = _doctrine_author_candidates(db, str(doctrine["id"]), direction)
+    if not candidates:
+        direction = "support" if direction == "oppose" else "oppose"
+        candidates = _doctrine_author_candidates(db, str(doctrine["id"]), direction)
+    author = _weighted_pick(candidates, rng)
+    if not author:
+        return []
+
+    doctrine_name = str(doctrine.get("name") or issue["title"] or doctrine["id"])
+    axis = str(doctrine.get("axis") or "")
+    if direction == "oppose":
+        kind = "弹章"
+        urgency = 2 if bar < 75 else 3
+        summary = f"弹驳「{doctrine_name}」路线未可遽定"
+        detail = f"{author['name']}上弹章阻滞「{doctrine_name}」，路线斗争浮上御案。"
+    else:
+        kind = "请旨" if rng.random() < 0.65 else "陈情"
+        urgency = 2
+        summary = f"请定「{doctrine_name}」路线"
+        detail = f"{author['name']}上疏推动「{doctrine_name}」，国策争议有了具体奏请。"
+    if axis:
+        summary = f"{summary}（{axis}）"
+    mid = create_memorial(
+        db,
+        state,
+        day=day,
+        author_name=str(author["name"]),
+        org=str(author["office"]),
+        kind=kind,
+        urgency=urgency,
+        summary=summary,
+        ref_kind="issue",
+        ref_id=str(issue["id"]),
+    )
+    return [{
+        "level": LEVEL_YELLOW if direction == "oppose" else LEVEL_BLUE,
+        "kind": "memorial",
+        "title": f"路线奏疏：{summary}",
+        "detail": detail,
+        "ref_kind": "memorial",
+        "ref_id": str(mid),
+        "day": int(day),
+    }]
 
 
 # ── 批红 ─────────────────────────────────────────────────────────────────────
@@ -499,8 +692,18 @@ def decide_memorial(db: GameDB, state: GameState, memorial_id: int, action: str,
             (state.turn, state.year, state.period, draft, "memorial_refer", "draft",
              f"发部议自奏疏#{mid}"))
         message = "发该部议奏。已生成旨意草案，颁诏时一并下达。"
+    doctrine_effect: Dict[str, object] = {}
+    if action in ("approve", "deny"):
+        try:
+            from ming_sim import policies
+            doctrine_effect = policies.apply_memorial_doctrine_effect(db, state, row, action)
+        except Exception:
+            doctrine_effect = {}
     db.conn.commit()
-    return {"ok": True, "message": message, "attention_left": attention_left(db)}
+    payload = {"ok": True, "message": message, "attention_left": attention_left(db)}
+    if doctrine_effect:
+        payload["doctrine_effect"] = doctrine_effect
+    return payload
 
 
 # ── 票拟 LLM handler（过滤器是有立场的人）────────────────────────────────────
@@ -841,7 +1044,11 @@ def _preview_effect(label: str, tone: str = "neutral", kind: str = "belief") -> 
     return {"kind": kind, "label": label, "tone": tone}
 
 
-def _memorial_action_effects(row, days_to_expire: int) -> Dict[str, List[Dict[str, str]]]:
+def _memorial_action_effects(
+    row,
+    days_to_expire: int,
+    policy_doctrine: Optional[Dict[str, object]] = None,
+) -> Dict[str, List[Dict[str, str]]]:
     """Predict player-facing consequences for desk actions.
 
     The actual state changes still live in decide_memorial; this only makes the
@@ -872,6 +1079,23 @@ def _memorial_action_effects(row, days_to_expire: int) -> Dict[str, List[Dict[st
     elif kind == "请款":
         refer.append(_preview_effect("交部核拨", "good", "directive"))
 
+    if policy_doctrine:
+        route_delta = 12
+        try:
+            from ming_sim import policies
+            route_delta = int((policies.load_policy_doctrines() or {}).get("memorial_issue_delta") or 12)
+        except Exception:
+            route_delta = 12
+        reverse_delta = max(4, route_delta // 2)
+        direction = str(policy_doctrine.get("direction") or "")
+        if direction == "oppose":
+            approve.append(_preview_effect(f"路线 -{route_delta}", "bad", "doctrine"))
+            deny.append(_preview_effect(f"路线 +{reverse_delta}", "good", "doctrine"))
+        else:
+            approve.append(_preview_effect(f"路线 +{route_delta}", "good", "doctrine"))
+            deny.append(_preview_effect(f"路线 -{reverse_delta}", "bad", "doctrine"))
+        refer.append(_preview_effect("可转成旨意路线", "good", "doctrine"))
+
     if kind not in ("告变", "弹章"):
         deny.append(_preview_effect("上疏人怨", "bad", "court"))
     if days_to_expire > 0 and days_to_expire <= 7:
@@ -880,6 +1104,37 @@ def _memorial_action_effects(row, days_to_expire: int) -> Dict[str, List[Dict[st
         shelve.append(_preview_effect("久压增观望", "bad"))
 
     return {"approve": approve, "refer": refer, "deny": deny, "shelve": shelve}
+
+
+def _memorial_policy_doctrine(db: GameDB, row) -> Dict[str, object]:
+    if str(row["ref_kind"] or "") != "issue" or not str(row["ref_id"] or "").strip():
+        return {}
+    issue = db.conn.execute(
+        "SELECT id, title, origin_kind, origin_ref, bar_value, status FROM issues WHERE id=?",
+        (str(row["ref_id"] or ""),),
+    ).fetchone()
+    if issue is None or str(issue["origin_kind"] or "") != "doctrine":
+        return {}
+    try:
+        from ming_sim import policies
+        doctrine_id = str(issue["origin_ref"] or "")
+        doctrine = policies.doctrine_by_id(doctrine_id) or {}
+        author = str(row["author_name"] or "")
+        stance = policies.character_doctrine_stance(db, author, doctrine_id) if author else {}
+    except Exception:
+        return {}
+    kind = str(row["kind"] or "")
+    direction = "oppose" if kind == "弹章" else "support"
+    return {
+        "id": str(doctrine.get("id") or doctrine_id),
+        "name": str(doctrine.get("name") or issue["title"] or doctrine_id),
+        "axis": str(doctrine.get("axis") or ""),
+        "issue_id": int(issue["id"]),
+        "bar_value": int(issue["bar_value"] or 0),
+        "direction": direction,
+        "direction_label": "反对此路线" if direction == "oppose" else "推动此路线",
+        "author_stance": stance,
+    }
 
 
 def desk_payload(db: GameDB, state: GameState, day: int) -> Dict[str, object]:
@@ -896,6 +1151,7 @@ def desk_payload(db: GameDB, state: GameState, day: int) -> Dict[str, object]:
         shelved_now = max(int(r["shelved_days"]), int(day) - int(r["arrived_day"]))
         deadline = expire_deadline_days(kind, int(r["urgency"]))
         days_to_expire = max(0, deadline - shelved_now) if str(r["status"]) == "pending" else 0
+        policy_doctrine = _memorial_policy_doctrine(db, r)
         return {
             "id": int(r["id"]), "author": str(r["author_name"]), "org": str(r["org"]),
             "kind": kind, "urgency": int(r["urgency"]),
@@ -904,7 +1160,8 @@ def desk_payload(db: GameDB, state: GameState, day: int) -> Dict[str, object]:
             "arrived_day": int(r["arrived_day"]), "shelved_days": int(r["shelved_days"]),
             "status": str(r["status"]), "ref_kind": str(r["ref_kind"]), "ref_id": str(r["ref_id"]),
             "days_to_expire": days_to_expire,
-            "action_effects": _memorial_action_effects(r, days_to_expire),
+            "action_effects": _memorial_action_effects(r, days_to_expire, policy_doctrine),
+            "policy_doctrine": policy_doctrine,
         }
 
     ra = kv_int(db, KV_RISK_AVERSION, RISK_AVERSION_DEFAULT)

@@ -87,6 +87,30 @@ function EffectChips({ items, limit = 6 }: { items?: ImpactEffect[]; limit?: num
   );
 }
 
+function PolicyIdeals({ data }: { data?: any }) {
+  const supports = Array.isArray(data?.supports) ? data.supports.slice(0, 3) : [];
+  const opposes = Array.isArray(data?.opposes) ? data.opposes.slice(0, 2) : [];
+  if (!supports.length && !opposes.length) return null;
+  return (
+    <div className="m-person-block m-policy-ideals">
+      <span className="m-person-h">治国理想</span>
+      {data?.summary && <p className="m-person-policy-summary">{data.summary}</p>}
+      <div className="m-outcome-strip is-compact" aria-label="支持国策路线">
+        {supports.map((item: any) => (
+          <span key={`s-${item.id}`} className="m-outcome-chip tone-good">
+            愿行 {item.name}{item.status_label ? ` · ${item.status_label}` : ""}
+          </span>
+        ))}
+        {opposes.map((item: any) => (
+          <span key={`o-${item.id}`} className="m-outcome-chip tone-bad">
+            抵牾 {item.name}{item.status_label ? ` · ${item.status_label}` : ""}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function tieSignature(court: CourtPayload): string {
   const allies = (court.allies || []).map((t) => `${t.name}:${t.opinion}:${t.basis}:${t.strength_label || ""}:${t.play_hint || ""}`).join("|");
   const rivals = (court.rivals || []).map((t) => `${t.name}:${t.opinion}:${t.basis}:${t.strength_label || ""}:${t.play_hint || ""}`).join("|");
@@ -305,6 +329,7 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
             <div className="m-person-skills">{skills.slice(0, 12).map((sk, i) => <span key={i} className="m-skill">{sk}</span>)}</div>
           </div>
         )}
+        <PolicyIdeals data={c?.policy_ideals} />
         {(court?.traits?.length ?? 0) > 0 && (
           <div className="m-person-block">
             <span className="m-person-h">性格</span>

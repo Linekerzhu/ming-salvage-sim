@@ -32,6 +32,16 @@ export type Memorial = {
   ref_kind: string;
   ref_id: string;
   days_to_expire: number;
+  policy_doctrine?: {
+    id?: string;
+    name?: string;
+    axis?: string;
+    issue_id?: number;
+    bar_value?: number;
+    direction?: "support" | "oppose" | string;
+    direction_label?: string;
+    author_stance?: { stance?: string; score?: number; reasons?: string[] };
+  };
   action_effects?: Record<string, Array<{ kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string }>>;
 };
 
@@ -78,6 +88,26 @@ export type DirectiveLifecycle = {
     minister?: string;
     day?: number;
   }>;
+  policy_doctrine?: {
+    summary?: string;
+    risk_tags?: string[];
+    exception_mode?: string;
+    exception_label?: string;
+    temporary_exception?: boolean;
+    establishment_blocked?: boolean;
+    establishment_blockers?: Array<{ id?: string; name?: string; axis?: string }>;
+    primary?: { id?: string; name?: string; axis?: string; status?: string };
+    conflicts?: Array<{ id?: string; name?: string; axis?: string }>;
+    execution_gate?: {
+      level?: string;
+      establishment_blocked?: boolean;
+      exception_mode?: string;
+      temporary_exception?: boolean;
+      resistance_delta?: number;
+      check_risk_delta?: Record<string, number>;
+      notes?: string[];
+    };
+  };
   reported_rate: number;
   anomaly: string;
   settle_note: string;

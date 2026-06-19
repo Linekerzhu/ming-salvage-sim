@@ -1604,6 +1604,21 @@ class WebGame:
                 payload["evaluations"] = character_evaluations(self.db, character)
             except Exception:
                 payload["evaluations"] = []
+            try:
+                from ming_sim import policies as doctrine_policies
+                payload["policy_ideals"] = doctrine_policies.character_policy_ideals(
+                    self.db,
+                    character.name,
+                    context_row={
+                        "office": identity.office,
+                        "office_type": identity.office_type,
+                        "faction": identity.faction,
+                        "style": character.style,
+                        "ability": getattr(character, "ability", 50),
+                    },
+                )
+            except Exception:
+                payload["policy_ideals"] = {}
             payload.update({
                 "style": character.style,
                 "personal_skills": list(character.personal_skills or []),
@@ -1823,6 +1838,21 @@ class WebGame:
         return ""
 
     def directive_payload(self, row) -> Dict[str, Any]:
+        policy_doctrine: Dict[str, Any] = {}
+        try:
+            from ming_sim import policies
+            category_id = ""
+            if "category" in row.keys():
+                category_id = str(row["category"] or "")
+            policy_doctrine = policies.directive_doctrine_review(
+                self.db,
+                self.state,
+                str(row["text"] or ""),
+                category_id=category_id,
+                actor=str(row["actor"] or ""),
+            )
+        except Exception:
+            policy_doctrine = {}
         return {
             "id": int(row["id"]),
             "event_id": row["event_id"] or "",
@@ -1835,6 +1865,7 @@ class WebGame:
             "status": row["status"],
             "notes": row["notes"],
             "authority": row["notes"] or "",
+            "policy_doctrine": policy_doctrine,
         }
 
     def directive_rows(self):
@@ -2075,8 +2106,39 @@ class WebGame:
 
     def issue_payloads(self) -> List[Dict[str, Any]]:
         payloads: List[Dict[str, Any]] = []
+        try:
+            from ming_sim import policies as doctrine_policies
+        except Exception:
+            doctrine_policies = None
         for row in self.db.list_active_issues():
-            payloads.append({
+            policy_doctrine: Optional[Dict[str, Any]] = None
+            if doctrine_policies is not None and str(row["origin_kind"] or "") == "doctrine":
+                doctrine_id = str(row["origin_ref"] or "")
+                doctrine = doctrine_policies.doctrine_by_id(doctrine_id) or {}
+                if doctrine:
+                    alignment = doctrine_policies.doctrine_alignment_summary(self.db, doctrine_id)
+                    active = doctrine_policies.active_doctrine_legacies(self.db)
+                    active_conflicts = []
+                    for conflict_id in doctrine.get("conflicts") or []:
+                        conflict = active.get(str(conflict_id))
+                        if conflict:
+                            active_conflicts.append({
+                                "id": str(conflict_id),
+                                "name": str(conflict.get("name") or conflict_id),
+                            })
+                    policy_doctrine = {
+                        "id": doctrine_id,
+                        "name": str(doctrine.get("name") or doctrine_id),
+                        "axis": str(doctrine.get("axis") or ""),
+                        "level": str(doctrine.get("level") or "basic"),
+                        "bar_value": int(row["bar_value"]),
+                        "phase": str(row["phase"] or ""),
+                        "summary": str(doctrine.get("summary") or ""),
+                        "active_conflicts": active_conflicts,
+                        "factions": alignment.get("factions") or [],
+                        "figures": alignment.get("figures") or [],
+                    }
+            item = {
                 "id": int(row["id"]),
                 "kind": row["kind"],
                 "title": row["title"],
@@ -2093,12 +2155,19 @@ class WebGame:
                 "ongoing_text": _format_issue_ongoing(str(row["ongoing_effects"] or "{}")),
                 "effect_on_resolve": dict(json.loads(str(row["effect_on_resolve"] or "{}"))),
                 "effect_on_fail": dict(json.loads(str(row["effect_on_fail"] or "{}"))),
-            })
+            }
+            if policy_doctrine:
+                item["policy_doctrine"] = policy_doctrine
+            payloads.append(item)
         return payloads
 
     def legacies_payload(self) -> List[Dict[str, Any]]:
         """现行帝国修正（长期百分比修正符），给状态栏小条用。"""
         out: List[Dict[str, Any]] = []
+        try:
+            from ming_sim import policies as doctrine_policies
+        except Exception:
+            doctrine_policies = None
         opening_clear_text = {
             leg.key: leg.clear_narrative
             for leg in self.content.opening_legacies
@@ -2121,7 +2190,27 @@ class WebGame:
                 clear_condition = f"{clear_condition}（{_humanize_legacy_gate(clear_gate, self.content)}）"
             if not clear_condition:
                 clear_condition = "无固定消除条件" if remaining_months < 0 else f"再过 {remaining_months} 月自然消退"
-            out.append({
+            legacy_key = str(row["legacy_key"] or "")
+            policy_doctrine: Optional[Dict[str, Any]] = None
+            if doctrine_policies is not None and legacy_key.startswith("doctrine:"):
+                doctrine_id = legacy_key.split(":", 1)[1]
+                doctrine = doctrine_policies.doctrine_by_id(doctrine_id) or {}
+                if doctrine:
+                    policy_doctrine = {
+                        "id": doctrine_id,
+                        "name": str(doctrine.get("name") or doctrine_id),
+                        "axis": str(doctrine.get("axis") or ""),
+                        "level": str(doctrine.get("level") or "basic"),
+                        "summary": str(doctrine.get("summary") or ""),
+                        "conflicts": [
+                            {
+                                "id": str(conflict_id),
+                                "name": str((doctrine_policies.doctrine_by_id(str(conflict_id)) or {}).get("name") or conflict_id),
+                            }
+                            for conflict_id in (doctrine.get("conflicts") or [])
+                        ],
+                    }
+            item = {
                 "id": int(row["id"]),
                 "name": row["name"],
                 "narrative_hint": row["narrative_hint"],
@@ -2129,7 +2218,10 @@ class WebGame:
                 "effect_text": _humanize_legacy_effect(eff, self.content),
                 "remaining_months": remaining_months,
                 "clear_condition": clear_condition,
-            })
+            }
+            if policy_doctrine:
+                item["policy_doctrine"] = policy_doctrine
+            out.append(item)
         return out
 
     def budget_payload(self, budget: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -5547,6 +5639,16 @@ class WebGame:
             try:
                 from ming_sim.lifecycle import directive_chat_context_brief
                 return directive_chat_context_brief(self.db, minister_name, ref_id)
+            except Exception:
+                return ""
+        if kind == "doctrine" or ref_kind == "doctrine":
+            actor = str(context.get("actor") or "").strip()
+            if actor and actor != minister_name:
+                return ""
+            ref_id = context.get("ref_id") or context.get("id")
+            try:
+                from ming_sim.playstyle import doctrine_chat_context_brief
+                return doctrine_chat_context_brief(self.db, minister_name, ref_id)
             except Exception:
                 return ""
         if kind == "petition":
