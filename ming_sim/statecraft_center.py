@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Mapping
 
-from ming_sim.bureaucracy import organization_diagnostics
+from ming_sim.bureaucracy import infer_directive_domains, organization_diagnostics
 from ming_sim.db import GameDB
 from ming_sim.fiscal_center import fiscal_center_payload
 from ming_sim.models import GameState
@@ -234,6 +234,77 @@ def _bottlenecks(
             "tone": "warn",
         })
     return out[:10]
+
+
+def directive_statecraft_preflight(text: str, statecraft: Mapping[str, Any]) -> Dict[str, Any]:
+    """Return the state-machine constraints relevant to one directive.
+
+    This is deliberately read-only: it helps the player understand which
+    capacities a decree will consume before the LLM or lifecycle narrates the
+    outcome.
+    """
+
+    domains = infer_directive_domains(text)
+    capacity_by_domain = {
+        str(row.get("domain") or ""): row
+        for row in statecraft.get("capacity_rows", []) or []
+        if isinstance(row, Mapping)
+    }
+    rows = [
+        capacity_by_domain[domain]
+        for domain in domains
+        if domain in capacity_by_domain
+    ]
+    default_score = 50
+    for item in statecraft.get("topbar", []) or []:
+        if isinstance(item, Mapping) and str(item.get("key") or "") == "court_readiness":
+            default_score = int(item.get("value") or 50)
+            break
+    score = _avg((int(row.get("score") or 0) for row in rows), default=default_score)
+    domain_set = {str(domain) for domain in domains}
+    relevant_bottlenecks: List[Dict[str, Any]] = []
+    for item in statecraft.get("bottlenecks", []) or []:
+        if not isinstance(item, Mapping):
+            continue
+        kind = str(item.get("kind") or "")
+        if kind.startswith("capacity:") and kind.split(":", 1)[1] in domain_set:
+            relevant_bottlenecks.append(dict(item))
+        elif kind == "cash_gap" and "fiscal" in domain_set:
+            relevant_bottlenecks.append(dict(item))
+        elif kind == "army_arrears" and "military" in domain_set:
+            relevant_bottlenecks.append(dict(item))
+        elif kind == "building_condition" and "construction" in domain_set:
+            relevant_bottlenecks.append(dict(item))
+        elif kind == "bureaucracy_risk" and domain_set.intersection({"procedure", "personnel", "local"}):
+            relevant_bottlenecks.append(dict(item))
+    if score < 45:
+        summary = "国家机器预审：相关产能断裂，此旨即使成命也很可能慢、贵或走样。"
+    elif score < 62:
+        summary = "国家机器预审：相关产能吃紧，宜先补人、拨款或缩小目标。"
+    elif score < 78:
+        summary = "国家机器预审：相关产能可用，但仍需盯住承办和复命水分。"
+    else:
+        summary = "国家机器预审：相关产能充足，可作为重点推进事项。"
+    return {
+        "domains": domains,
+        "score": score,
+        "status": _score_status(score),
+        "tone": _score_tone(score),
+        "summary": summary,
+        "capacity_rows": [
+            {
+                "domain": str(row.get("domain") or ""),
+                "label": str(row.get("label") or row.get("domain") or ""),
+                "score": int(row.get("score") or 0),
+                "status": str(row.get("status") or ""),
+                "tone": str(row.get("tone") or ""),
+                "effect": str(row.get("effect") or ""),
+                "institutions": row.get("institutions") or [],
+            }
+            for row in rows[:4]
+        ],
+        "bottlenecks": relevant_bottlenecks[:4],
+    }
 
 
 def _bureaucracy_rows(organization: Dict[str, Any]) -> List[Dict[str, Any]]:

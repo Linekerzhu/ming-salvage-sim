@@ -102,6 +102,32 @@ function PolicyDoctrineStrip({ data }: { data?: DirectiveLifecycle["policy_doctr
   );
 }
 
+function StatecraftPreflightStrip({ data }: { data?: DirectiveLifecycle["statecraft_preflight"] }) {
+  if (!data || !Array.isArray(data.capacity_rows) || data.capacity_rows.length === 0) return null;
+  const toneClass = (tone?: string) => tone === "danger" ? "bad" : tone === "warn" ? "warn" : tone === "good" ? "good" : "neutral";
+  const score = Number(data.score || 0);
+  const bottlenecks = Array.isArray(data.bottlenecks) ? data.bottlenecks : [];
+  return (
+    <div className="m-outcome-strip is-compact" aria-label="国家机器预审">
+      <span className="m-outcome-head">国家机器</span>
+      <span className={`m-outcome-chip tone-${toneClass(data.tone)}`}>
+        {data.status || "预审"} {score}
+      </span>
+      {data.capacity_rows.slice(0, 3).map((row, idx) => (
+        <span key={`${row.domain || row.label}-${idx}`} className={`m-outcome-chip tone-${toneClass(row.tone)}`}>
+          {row.label || row.domain} {Number(row.score || 0)}
+        </span>
+      ))}
+      {bottlenecks.slice(0, 2).map((item, idx) => (
+        <span key={`${item.kind || item.title}-${idx}`} className={`m-outcome-chip tone-${toneClass(item.tone)}`}>
+          {item.title || item.kind}
+        </span>
+      ))}
+      {data.summary && <span className="m-outcome-chip tone-neutral">{String(data.summary).slice(0, 48)}</span>}
+    </div>
+  );
+}
+
 function DirectiveCard({ d, today, onActed, ministers, activeMinisters, summon }: {
   d: DirectiveLifecycle; today: number; onActed: () => void; ministers: any[]; activeMinisters: Set<string>; summon?: SummonAudience;
 }) {
@@ -156,6 +182,7 @@ function DirectiveCard({ d, today, onActed, ministers, activeMinisters, summon }
       </div>
       <p className="m-directive-text">{d.text}</p>
       <PolicyDoctrineStrip data={d.policy_doctrine} />
+      <StatecraftPreflightStrip data={d.statecraft_preflight} />
       <div className="m-directive-foot">
         <span>主办 {d.assignee || "—"}</span>
         {live && <span className="m-prog-pct">{d.progress}%</span>}

@@ -113,6 +113,28 @@ export type DirectiveLifecycle = {
       notes?: string[];
     };
   };
+  statecraft_preflight?: {
+    domains?: string[];
+    score?: number;
+    status?: string;
+    tone?: string;
+    summary?: string;
+    capacity_rows?: Array<{
+      domain?: string;
+      label?: string;
+      score?: number;
+      status?: string;
+      tone?: string;
+      effect?: string;
+      institutions?: any[];
+    }>;
+    bottlenecks?: Array<{
+      kind?: string;
+      title?: string;
+      detail?: string;
+      tone?: string;
+    }>;
+  };
   reported_rate: number;
   anomaly: string;
   settle_note: string;

@@ -64,6 +64,39 @@ class ClassifyTests(unittest.TestCase):
             self.assertEqual(int(row["eta_day"]) - int(row["start_day"]), 5)
             self.assertEqual(int(row["lead_days"]) + int(row["exec_days"]), 5)
 
+    def test_inner_court_personal_order_is_not_treated_as_long_delivery(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            plan = lifecycle.build_chain(db, state, "着王承恩押韩爌至净军房净身，发入内廷听差。", "王承恩")
+
+            self.assertEqual(plan["category"], "personnel")
+            self.assertEqual(plan["timing_profile"], "court_immediate")
+            self.assertEqual(plan["lead_days"], 0)
+            self.assertEqual(plan["exec_days"], 1)
+            self.assertLessEqual(plan["resistance"], 35)
+            self.assertTrue(any("传旨为 0 日" in note for note in plan["trait_notes"]))
+
+    def test_issued_inner_court_order_finishes_after_one_day(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            did = _issue(db, state, "着王承恩押韩爌至净军房净身，发入内廷听差。", "王承恩")
+            row = db.conn.execute(
+                "SELECT start_day, lead_days, exec_days, eta_day, chain FROM turn_directives WHERE id=?",
+                (did,),
+            ).fetchone()
+            self.assertEqual(int(row["lead_days"]), 0)
+            self.assertEqual(int(row["exec_days"]), 1)
+            self.assertEqual(int(row["eta_day"]) - int(row["start_day"]), 1)
+            self.assertEqual(json.loads(row["chain"])["timing_profile"], "court_immediate")
+
+            timeflow.advance_days(db, state, 1, stop_on_yellow=False)
+            done = db.conn.execute(
+                "SELECT lifecycle_status, progress FROM turn_directives WHERE id=?",
+                (did,),
+            ).fetchone()
+            self.assertEqual(str(done["lifecycle_status"]), "done")
+            self.assertEqual(int(done["progress"]), 100)
+
 
 class TickTests(unittest.TestCase):
     def test_transit_then_execute_then_done(self):

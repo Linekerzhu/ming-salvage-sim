@@ -128,6 +128,51 @@ def explicit_deadline_days(text: str) -> int:
     return min(found) if found else 0
 
 
+def _category_by_id(cfg: Dict[str, object], category_id: str, default: Dict[str, object]) -> Dict[str, object]:
+    for cat in cfg.get("categories") or []:
+        if str(cat.get("id") or "") == category_id:
+            return cat
+    return default
+
+
+def _court_immediate_profile(text: str, region_id: str) -> Dict[str, object]:
+    """Timing override for capital/inner-court orders that should not wait on courier flow."""
+
+    decree = str(text or "")
+    if region_id != "beizhili":
+        return {}
+    profiles = [
+        (
+            r"净身|宫刑|净军房|入内廷|入宫为宦|发入内廷",
+            "personnel",
+            "宫禁身份处置：成命即转内廷执行，传旨为 0 日，承办以 1 日复命。",
+        ),
+        (
+            r"廷杖|杖责|收监|下狱|逮问|拿问",
+            "personnel",
+            "京师人身处置：不走跨省公文送达，成命后直接交承办链复命。",
+        ),
+        (
+            r"赐死|处死|处斩|斩立决|弃市",
+            "personnel",
+            "京师刑罚处置：执行很快，后续风险体现在复命、追问和政治反弹。",
+        ),
+    ]
+    for pattern, category_id, note in profiles:
+        if re.search(pattern, decree):
+            return {
+                "timing_profile": "court_immediate",
+                "category": category_id,
+                "lead_days": 0,
+                "exec_days": 1,
+                "distance": 1.0,
+                "resistance_cap": 35,
+                "check_risk_delta": {"delay": -15, "skim": -20, "block": -8},
+                "note": note,
+            }
+    return {}
+
+
 def _detect_region(db: GameDB, text: str) -> str:
     rows = db.conn.execute("SELECT id, name FROM regions").fetchall()
     for row in rows:
@@ -202,6 +247,9 @@ def build_chain(db: GameDB, state: GameState, text: str, actor: str) -> Dict[str
     cfg = load_categories()
     category = classify_directive(text)
     region_id = _detect_region(db, text)
+    timing_profile = _court_immediate_profile(text, region_id)
+    if timing_profile.get("category"):
+        category = _category_by_id(cfg, str(timing_profile.get("category") or ""), category)
     assignee = _pick_assignee(db, text, actor, str(category["id"]))
     arow = _char_row(db, assignee)
     ability = int(arow["ability"]) if arow else 50
@@ -217,6 +265,8 @@ def build_chain(db: GameDB, state: GameState, text: str, actor: str) -> Dict[str
         pass
     distance = float((cfg.get("distance_factors") or {}).get(
         region_id, (cfg.get("distance_factors") or {}).get("default", 1.4)))
+    if timing_profile:
+        distance = float(timing_profile.get("distance") or 1.0)
     resistance = _resistance(db, category, region_id) + int(foundation_mods.get("resistance") or 0)
     resistance = max(0, min(100, resistance))
     chain = [
@@ -248,11 +298,22 @@ def build_chain(db: GameDB, state: GameState, text: str, actor: str) -> Dict[str
             check_risk[kind] = max(0, int(check_risk.get(kind) or 0) + int(delta))
     for note in policy_gate.get("notes") or []:
         trait_notes.append(f"国策：{note}")
+    if timing_profile:
+        resistance = min(resistance, int(timing_profile.get("resistance_cap") or resistance))
+        for kind, delta in (timing_profile.get("check_risk_delta") or {}).items():
+            if kind in ("delay", "skim", "block", "surprise"):
+                check_risk[kind] = max(0, int(check_risk.get(kind) or 0) + int(delta))
+        note = str(timing_profile.get("note") or "")
+        if note:
+            trait_notes.append(f"时序：{note}")
     ability_factor = 1.35 - ability / 200.0          # ability 100 → 0.85；50 → 1.10
     resistance_factor = 1.0 + resistance / 150.0     # 阻力 100 → ×1.67
     exec_days = max(2, round(int(category["base_days"]) * ability_factor * distance
                              * resistance_factor * float(foundation_mods.get("exec_factor") or 1.0)))
     lead_days = max(1, round(int(category["lead_days"]) * distance))
+    if timing_profile:
+        lead_days = max(0, int(timing_profile.get("lead_days") or 0))
+        exec_days = max(1, int(timing_profile.get("exec_days") or 1))
     deadline_days = explicit_deadline_days(text)
     if deadline_days and lead_days + exec_days > deadline_days:
         lead_days = min(lead_days, max(0, deadline_days - 1))
@@ -270,6 +331,8 @@ def build_chain(db: GameDB, state: GameState, text: str, actor: str) -> Dict[str
         "check_risk": check_risk,
         "trait_score": int(foundation_mods.get("score") or 0),
         "trait_notes": trait_notes,
+        "timing_profile": str(timing_profile.get("timing_profile") or "administrative"),
+        "timing_note": str(timing_profile.get("note") or ""),
         "policy_doctrine": policy_review,
     }
 
@@ -301,12 +364,13 @@ def init_directive_lifecycles(db: GameDB, state: GameState, directives, day: int
         except Exception as exc:
             tlog(f"[policy] 国策标注失败，跳过：#{did} {exc}")
         eta = int(day) + int(plan["lead_days"]) + int(plan["exec_days"])
+        initial_status = "executing" if int(plan["lead_days"]) <= 0 else "in_transit"
         db.conn.execute(
-            """UPDATE turn_directives SET lifecycle_status='in_transit', category=?,
+            """UPDATE turn_directives SET lifecycle_status=?, category=?,
                progress=0, lead_days=?, exec_days=?, start_day=?, eta_day=?,
                assignee=?, chain=?, integrity_actual=100, integrity_reported=100
                WHERE id=?""",
-            (plan["category"], int(plan["lead_days"]), int(plan["exec_days"]),
+            (initial_status, plan["category"], int(plan["lead_days"]), int(plan["exec_days"]),
              int(day), eta, plan["assignee"],
              json.dumps({"chain": plan["chain"], "region_id": plan["region_id"],
                          "resistance": plan["resistance"],
@@ -314,6 +378,8 @@ def init_directive_lifecycles(db: GameDB, state: GameState, directives, day: int
                          "check_risk": plan["check_risk"],
                          "trait_score": int(plan.get("trait_score") or 0),
                          "trait_notes": plan.get("trait_notes") or [],
+                         "timing_profile": str(plan.get("timing_profile") or "administrative"),
+                         "timing_note": str(plan.get("timing_note") or ""),
                          "policy_doctrine": policy_doctrine,
                          "score_bonus": 0}, ensure_ascii=False),
              did),
@@ -1455,9 +1521,27 @@ def lifecycle_payload(db: GameDB, *, include_done: bool = True, limit: int = 40)
     if not include_done:
         sql += " AND lifecycle_status IN ('in_transit','executing','stalled')"
     sql += " ORDER BY id DESC LIMIT ?"
+    statecraft: Dict[str, object] = {}
+    try:
+        from ming_sim.bureaucracy import organization_diagnostics
+        from ming_sim.fiscal_center import fiscal_center_payload
+        from ming_sim.statecraft_center import statecraft_center_payload
+        state = db.load_state()
+        fiscal = fiscal_center_payload(db, state)
+        organization = organization_diagnostics(db)
+        statecraft = statecraft_center_payload(db, state, fiscal=fiscal, organization=organization)
+    except Exception:
+        statecraft = {}
     out = []
     for row in db.conn.execute(sql, (int(limit),)).fetchall():
         meta = _chain_meta(row)
+        statecraft_preflight: Dict[str, object] = {}
+        if statecraft:
+            try:
+                from ming_sim.statecraft_center import directive_statecraft_preflight
+                statecraft_preflight = directive_statecraft_preflight(str(row["text"] or ""), statecraft)
+            except Exception:
+                statecraft_preflight = {}
         out.append({
             "id": int(row["id"]),
             "text": str(row["text"] or ""),
@@ -1474,6 +1558,7 @@ def lifecycle_payload(db: GameDB, *, include_done: bool = True, limit: int = 40)
             "followup_action": meta.get("last_followup_action") if isinstance(meta.get("last_followup_action"), dict) else {},
             "followup_history": _followup_history(meta),
             "policy_doctrine": meta.get("policy_doctrine") if isinstance(meta.get("policy_doctrine"), dict) else {},
+            "statecraft_preflight": statecraft_preflight,
             "reported_rate": int(row["integrity_reported"]),
             "anomaly": str(row["anomaly"] or ""),
             "settle_note": str(row["settle_note"] or ""),

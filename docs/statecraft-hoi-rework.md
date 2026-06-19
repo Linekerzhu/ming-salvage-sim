@@ -48,6 +48,7 @@
 
 - `ming_sim/statecraft_center.py`
 - `GET /api/statecraft_center`
+- `directive_statecraft_preflight(text, statecraft)`：把单道旨意映射到相关产能和瓶颈。
 
 返回字段：
 
@@ -58,6 +59,13 @@
 - `bureaucracy_rows`：机构执行力、覆盖率、在任质量、空缺、风险。
 - `bottlenecks`：玩家应优先处理的国家机器瓶颈。
 - `source_links`：指向财政、官制、国策源接口。
+
+`GET /api/directives/lifecycle` 也会为每道旨意附带 `statecraft_preflight`：
+
+- `domains`：旨意涉及的财政、军政、营造、地方、程序等领域。
+- `score/status/tone`：相关国家机器产能综合预审。
+- `capacity_rows`：直接影响此旨的部门产能。
+- `bottlenecks`：会让此旨变慢、变贵或走样的瓶颈。
 
 数据纪律：
 
@@ -106,7 +114,7 @@
 
 ## 后续迁移
 
-1. 把诏旨创建页接入 `capacity_rows`，提前显示“此旨会被哪个产能限制”。
+1. 把诏旨创建页接入 `capacity_rows`，提前显示“此旨会被哪个产能限制”。生命周期页已先接入 `statecraft_preflight`。
 2. 把建筑新建/维修改成队列，消耗“营造军工”能力和国库/内库。
 3. 把任命/补缺接入“铨选任官”能力，空缺不再只是组织图数字。
 4. 把财政改革接入“财政署理 + 地方贯彻 + 厂卫监察”，玩家能看见清丈、查账、追赃的制度链。
