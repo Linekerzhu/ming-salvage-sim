@@ -4,6 +4,7 @@ import json
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from ming_sim import court, lifecycle, timeflow
 from ming_sim.db import GameDB
@@ -96,6 +97,42 @@ class ClassifyTests(unittest.TestCase):
             ).fetchone()
             self.assertEqual(str(done["lifecycle_status"]), "done")
             self.assertEqual(int(done["progress"]), 100)
+
+    def test_statecraft_effect_changes_administrative_directive_duration_and_risk(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            text = "命户部清查江南田亩、核实辽饷积欠，并拨银补发边军军饷。"
+            neutral_effect = {
+                "preflight": {"domains": ["fiscal", "military"], "score": 70, "status": "可用"},
+                "exec_factor": 1.0,
+                "resistance_delta": 0,
+                "score_bonus": 0,
+                "check_risk_delta": {"delay": 0, "skim": 0, "block": 0, "surprise": 0},
+                "notes": ["国家机器：测试中性产能。"],
+            }
+            fake_effect = {
+                "preflight": {"domains": ["fiscal", "military"], "score": 40, "status": "断裂"},
+                "exec_factor": 1.5,
+                "resistance_delta": 20,
+                "score_bonus": -12,
+                "check_risk_delta": {"delay": 11, "skim": 7, "block": 3, "surprise": 5},
+                "notes": ["国家机器：测试产能断裂。"],
+            }
+
+            with patch("ming_sim.statecraft_center.directive_statecraft_execution_effect", return_value=neutral_effect):
+                baseline = lifecycle.build_chain(db, state, text, "毕自严")
+            with patch("ming_sim.statecraft_center.directive_statecraft_execution_effect", return_value=fake_effect):
+                slowed = lifecycle.build_chain(db, state, text, "毕自严")
+
+            self.assertGreater(slowed["exec_days"], baseline["exec_days"])
+            self.assertGreaterEqual(slowed["resistance"], baseline["resistance"])
+            self.assertEqual(slowed["score_bonus"], -12)
+            self.assertEqual(slowed["statecraft_effect"]["preflight"]["score"], 40)
+            self.assertGreaterEqual(
+                slowed["check_risk"]["delay"],
+                int(baseline["check_risk"]["delay"]) + 11,
+            )
+            self.assertTrue(any("国家机器" in note for note in slowed["trait_notes"]))
 
 
 class TickTests(unittest.TestCase):

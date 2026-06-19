@@ -49,6 +49,7 @@
 - `ming_sim/statecraft_center.py`
 - `GET /api/statecraft_center`
 - `directive_statecraft_preflight(text, statecraft)`：把单道旨意映射到相关产能和瓶颈。
+- `directive_statecraft_execution_effect(text, statecraft)`：把同一套预审结果转成诏旨工期、阻力、异常风险和执行分数修正。
 
 返回字段：
 
@@ -67,13 +68,22 @@
 - `capacity_rows`：直接影响此旨的部门产能。
 - `bottlenecks`：会让此旨变慢、变贵或走样的瓶颈。
 
+`ming_sim/lifecycle.py::build_chain()` 已消费 `directive_statecraft_execution_effect()`：
+
+- 产能断裂会提高 `exec_days`、`resistance`，并下调执行检定 `score_bonus`。
+- 财政现金缺口会提高拖延和截留风险。
+- 军饷欠发会提高拖延和突发风险。
+- 营造资产失修会提高工期虚报风险。
+- 官僚风险会提高拖延和封驳风险。
+- 京师/内廷即时处置仍受 `court_immediate` 时序保护，不会被通用产能倍率拖成十几天。
+
 数据纪律：
 
 - 经济账继续以 `FiscalCenter` 为唯一解释层。
 - 财政预算继续以 `compute_budget_lines()` 为唯一预算入口。
 - 余额变化继续以 `economy_ledger` 为唯一流水入口。
 - 官僚产能继续以 `organization_diagnostics()` 为唯一组织诊断入口。
-- `StatecraftCenter` 只聚合，不改账、不改官、不结算。
+- `StatecraftCenter` 只聚合，不改账、不改官、不结算；生命周期只读取其派生修正，不在 UI 层另算一套执行逻辑。
 
 ## 官僚组织重排
 
@@ -90,7 +100,7 @@
 | 厂卫监察 | 东厂、锦衣卫、都察院 | 密查、追赃、揭露账实不符 |
 | 内廷传旨 | 司礼监、近侍 | 即时命令、密令、内廷工具 |
 
-后续所有诏旨都应先看相关能力。低能力不是禁止下旨，而是必须显示代价：更慢、更贵、更容易瞒报或变形。
+后续所有诏旨都应先看相关能力。低能力不是禁止下旨，而是显示并结算代价：更慢、更贵、更容易瞒报或变形。
 
 ## UI 规划
 
@@ -111,10 +121,14 @@
   - 国库税源必须等于 `FiscalCenter.totals.province_dynamic_tax`。
   - 朝廷执行力必须来自 `organization_diagnostics()`。
   - 产能行必须包含财政、军政、营造、地方、程序等核心领域。
+  - 产能预审必须能转成生命周期修正。
+- `tests/test_lifecycle.py`
+  - 普通行政旨意必须消费国家机器修正，改变工期、阻力、异常风险和 `score_bonus`。
+  - 内廷近身处置必须保留 0 日传旨、1 日复命，不被通用修正拉长。
 
 ## 后续迁移
 
-1. 把诏旨创建页接入 `capacity_rows`，提前显示“此旨会被哪个产能限制”。生命周期页已先接入 `statecraft_preflight`。
+1. 把诏旨创建页接入 `capacity_rows`，提前显示“此旨会被哪个产能限制”。生命周期页已先接入 `statecraft_preflight`，执行链已接入 `directive_statecraft_execution_effect`。
 2. 把建筑新建/维修改成队列，消耗“营造军工”能力和国库/内库。
 3. 把任命/补缺接入“铨选任官”能力，空缺不再只是组织图数字。
 4. 把财政改革接入“财政署理 + 地方贯彻 + 厂卫监察”，玩家能看见清丈、查账、追赃的制度链。

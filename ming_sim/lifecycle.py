@@ -298,6 +298,31 @@ def build_chain(db: GameDB, state: GameState, text: str, actor: str) -> Dict[str
             check_risk[kind] = max(0, int(check_risk.get(kind) or 0) + int(delta))
     for note in policy_gate.get("notes") or []:
         trait_notes.append(f"国策：{note}")
+    statecraft_effect: Dict[str, object] = {}
+    statecraft_exec_factor = 1.0
+    statecraft_score_bonus = 0
+    if not timing_profile:
+        try:
+            from ming_sim.bureaucracy import organization_diagnostics
+            from ming_sim.fiscal_center import fiscal_center_payload
+            from ming_sim.statecraft_center import (
+                directive_statecraft_execution_effect,
+                statecraft_center_payload,
+            )
+            fiscal = fiscal_center_payload(db, state)
+            organization = organization_diagnostics(db)
+            statecraft = statecraft_center_payload(db, state, fiscal=fiscal, organization=organization)
+            statecraft_effect = directive_statecraft_execution_effect(text, statecraft)
+            statecraft_exec_factor = max(0.75, min(1.60, float(statecraft_effect.get("exec_factor") or 1.0)))
+            statecraft_score_bonus = int(statecraft_effect.get("score_bonus") or 0)
+            resistance = max(0, min(100, resistance + int(statecraft_effect.get("resistance_delta") or 0)))
+            for kind, delta in (statecraft_effect.get("check_risk_delta") or {}).items():
+                if kind in ("delay", "skim", "block", "surprise"):
+                    check_risk[kind] = max(0, int(check_risk.get(kind) or 0) + int(delta))
+            for note in statecraft_effect.get("notes") or []:
+                trait_notes.append(str(note))
+        except Exception:
+            statecraft_effect = {}
     if timing_profile:
         resistance = min(resistance, int(timing_profile.get("resistance_cap") or resistance))
         for kind, delta in (timing_profile.get("check_risk_delta") or {}).items():
@@ -309,7 +334,8 @@ def build_chain(db: GameDB, state: GameState, text: str, actor: str) -> Dict[str
     ability_factor = 1.35 - ability / 200.0          # ability 100 → 0.85；50 → 1.10
     resistance_factor = 1.0 + resistance / 150.0     # 阻力 100 → ×1.67
     exec_days = max(2, round(int(category["base_days"]) * ability_factor * distance
-                             * resistance_factor * float(foundation_mods.get("exec_factor") or 1.0)))
+                             * resistance_factor * float(foundation_mods.get("exec_factor") or 1.0)
+                             * statecraft_exec_factor))
     lead_days = max(1, round(int(category["lead_days"]) * distance))
     if timing_profile:
         lead_days = max(0, int(timing_profile.get("lead_days") or 0))
@@ -331,6 +357,9 @@ def build_chain(db: GameDB, state: GameState, text: str, actor: str) -> Dict[str
         "check_risk": check_risk,
         "trait_score": int(foundation_mods.get("score") or 0),
         "trait_notes": trait_notes,
+        "score_bonus": statecraft_score_bonus,
+        "statecraft_preflight": statecraft_effect.get("preflight") if isinstance(statecraft_effect, dict) else {},
+        "statecraft_effect": statecraft_effect,
         "timing_profile": str(timing_profile.get("timing_profile") or "administrative"),
         "timing_note": str(timing_profile.get("note") or ""),
         "policy_doctrine": policy_review,
@@ -378,10 +407,12 @@ def init_directive_lifecycles(db: GameDB, state: GameState, directives, day: int
                          "check_risk": plan["check_risk"],
                          "trait_score": int(plan.get("trait_score") or 0),
                          "trait_notes": plan.get("trait_notes") or [],
+                         "statecraft_preflight": plan.get("statecraft_preflight") or {},
+                         "statecraft_effect": plan.get("statecraft_effect") or {},
                          "timing_profile": str(plan.get("timing_profile") or "administrative"),
                          "timing_note": str(plan.get("timing_note") or ""),
                          "policy_doctrine": policy_doctrine,
-                         "score_bonus": 0}, ensure_ascii=False),
+                         "score_bonus": int(plan.get("score_bonus") or 0)}, ensure_ascii=False),
              did),
         )
         # 崇祯陷阱被动信号（S5）：严谴问罪之旨，百官自动更新「任事有多危险」的先验

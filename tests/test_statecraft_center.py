@@ -7,7 +7,7 @@ from ming_sim.bureaucracy import organization_diagnostics
 from ming_sim.db import GameDB
 from ming_sim.fiscal_center import fiscal_center_payload
 from ming_sim.lifecycle import init_directive_lifecycles, lifecycle_payload
-from ming_sim.statecraft_center import statecraft_center_payload
+from ming_sim.statecraft_center import directive_statecraft_execution_effect, statecraft_center_payload
 
 
 def _fresh(tmp: str):
@@ -84,6 +84,29 @@ class StatecraftCenterTests(unittest.TestCase):
             self.assertIn("military", preflight["domains"])
             self.assertGreater(preflight["score"], 0)
             self.assertTrue(preflight["capacity_rows"])
+
+    def test_statecraft_execution_effect_turns_capacity_into_lifecycle_modifiers(self):
+        statecraft = {
+            "topbar": [{"key": "court_readiness", "value": 38}],
+            "capacity_rows": [
+                {"domain": "fiscal", "label": "财政署理", "score": 35, "status": "断裂", "tone": "danger"},
+                {"domain": "military", "label": "军政后勤", "score": 40, "status": "断裂", "tone": "danger"},
+            ],
+            "bottlenecks": [
+                {"kind": "cash_gap", "title": "下月现金缺口 100 万两", "tone": "danger"},
+                {"kind": "army_arrears", "title": "军饷欠发 50 万两", "tone": "danger"},
+            ],
+        }
+
+        effect = directive_statecraft_execution_effect("拨银补发边军欠饷", statecraft)
+
+        self.assertGreater(effect["exec_factor"], 1.2)
+        self.assertLess(effect["score_bonus"], 0)
+        self.assertGreater(effect["resistance_delta"], 0)
+        self.assertGreaterEqual(effect["check_risk_delta"]["delay"], 20)
+        self.assertGreaterEqual(effect["check_risk_delta"]["skim"], 8)
+        self.assertGreaterEqual(effect["check_risk_delta"]["surprise"], 8)
+        self.assertTrue(any("国家机器" in note for note in effect["notes"]))
 
 
 if __name__ == "__main__":

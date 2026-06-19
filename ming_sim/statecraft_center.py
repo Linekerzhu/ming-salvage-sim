@@ -307,6 +307,75 @@ def directive_statecraft_preflight(text: str, statecraft: Mapping[str, Any]) -> 
     }
 
 
+def directive_statecraft_execution_effect(text: str, statecraft: Mapping[str, Any]) -> Dict[str, Any]:
+    """Translate statecraft preflight into deterministic lifecycle modifiers.
+
+    UI preflight explains the situation; this function is the simulation hook
+    that makes the same fiscal and bureaucratic evidence affect duration,
+    anomaly risk, and execution checks.
+    """
+
+    preflight = directive_statecraft_preflight(text, statecraft)
+    score = int(preflight.get("score") or 50)
+    if score < 45:
+        exec_factor = 1.35
+        resistance_delta = 18
+        score_bonus = -14
+        note = "国家机器：相关产能断裂，承办期显著拉长。"
+    elif score < 62:
+        exec_factor = 1.20
+        resistance_delta = 10
+        score_bonus = -8
+        note = "国家机器：相关产能吃紧，承办期和失真风险上升。"
+    elif score < 78:
+        exec_factor = 1.05
+        resistance_delta = 3
+        score_bonus = -2
+        note = "国家机器：相关产能可用，但仍有协调损耗。"
+    else:
+        exec_factor = 0.92
+        resistance_delta = -4
+        score_bonus = 5
+        note = "国家机器：相关产能充足，承办期略有压缩。"
+
+    check_risk_delta: Dict[str, int] = {"delay": 0, "skim": 0, "block": 0, "surprise": 0}
+    notes = [note]
+    for item in preflight.get("bottlenecks") or []:
+        if not isinstance(item, Mapping):
+            continue
+        kind = str(item.get("kind") or "")
+        title = str(item.get("title") or kind)
+        if kind == "cash_gap":
+            check_risk_delta["delay"] += 10
+            check_risk_delta["skim"] += 8
+            notes.append(f"国家机器：{title}，钱粮类旨意更易拖延或账实不符。")
+        elif kind == "army_arrears":
+            check_risk_delta["delay"] += 12
+            check_risk_delta["surprise"] += 8
+            notes.append(f"国家机器：{title}，军务类旨意更易军心生变。")
+        elif kind == "building_condition":
+            check_risk_delta["delay"] += 10
+            check_risk_delta["skim"] += 6
+            notes.append(f"国家机器：{title}，营造类旨意更易工期虚报。")
+        elif kind == "bureaucracy_risk":
+            check_risk_delta["delay"] += 6
+            check_risk_delta["block"] += 6
+            notes.append(f"国家机器：{title}，承办链更易互相推诿。")
+        elif kind.startswith("capacity:"):
+            check_risk_delta["delay"] += 8
+            check_risk_delta["block"] += 5
+            notes.append(f"国家机器：{title}，对口衙门产能不足。")
+
+    return {
+        "preflight": preflight,
+        "exec_factor": exec_factor,
+        "resistance_delta": resistance_delta,
+        "score_bonus": score_bonus,
+        "check_risk_delta": check_risk_delta,
+        "notes": notes[:6],
+    }
+
+
 def _bureaucracy_rows(organization: Dict[str, Any]) -> List[Dict[str, Any]]:
     rows = []
     for inst in organization.get("institutions", []) or []:
