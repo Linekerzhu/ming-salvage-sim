@@ -379,6 +379,62 @@ def ensure_doctrine_legacy(
     return {"created": True, "legacy_id": legacy_id, "doctrine_id": doctrine_id}
 
 
+def retire_conflicting_doctrine_legacies(
+    db: GameDB,
+    state: GameState,
+    doctrine_id: str,
+    *,
+    source_issue_id: int = 0,
+    reason: str = "doctrine_reform",
+) -> List[Dict[str, object]]:
+    """Clear active doctrine legacies that block a decisive reform route."""
+
+    doctrine = doctrine_by_id(doctrine_id) or {}
+    blockers = doctrine_establishment_blockers(db, doctrine_id)
+    retired: List[Dict[str, object]] = []
+    for blocker in blockers:
+        legacy_id = int(blocker.get("legacy_id") or 0)
+        if legacy_id <= 0:
+            continue
+        row = db.conn.execute(
+            "SELECT id, name, narrative_hint, legacy_key FROM legacies WHERE id=? AND status='active'",
+            (legacy_id,),
+        ).fetchone()
+        if row is None:
+            continue
+        old_hint = str(row["narrative_hint"] or "")
+        suffix = f"；因「{str(doctrine.get('name') or doctrine_id)}」改弦更张而退场"
+        db.conn.execute(
+            "UPDATE legacies SET status='cleared', narrative_hint=? WHERE id=?",
+            ((old_hint + suffix)[:200], legacy_id),
+        )
+        retired.append({
+            "id": str(blocker.get("id") or ""),
+            "name": str(blocker.get("name") or row["name"] or ""),
+            "legacy_id": legacy_id,
+            "legacy_key": str(row["legacy_key"] or ""),
+            "reason": reason,
+            "source_issue_id": int(source_issue_id or 0),
+        })
+    if retired:
+        try:
+            db._legacy_mod_cache = None
+        except Exception:
+            pass
+        names = "、".join(str(item.get("name") or item.get("id")) for item in retired[:3])
+        try:
+            db.record_log(state, f"【改弦更张】{doctrine.get('name') or doctrine_id}压倒旧策：{names}。")
+        except Exception:
+            pass
+        db.conn.commit()
+    return retired
+
+
+def _is_decisive_doctrine_reform(trigger_kind: str) -> bool:
+    # 玩家批红采纳路线奏疏，是最明确的“朕要改弦”的旧系统动作。
+    return str(trigger_kind or "") == "memorial"
+
+
 def ensure_doctrine_issue(
     db: GameDB,
     state: GameState,
@@ -441,15 +497,31 @@ def ensure_doctrine_issue(
         if delta > 0 and blockers:
             current_bar = int(row["bar_value"] or 0)
             cap = int((load_policy_doctrines().get("blocked_issue_bar_cap") or 95))
-            capped_delta = max(0, min(delta, cap - current_bar))
-            if capped_delta != delta:
+            if current_bar >= cap and _is_decisive_doctrine_reform(trigger_kind):
+                retired = retire_conflicting_doctrine_legacies(
+                    db,
+                    state,
+                    doctrine_id,
+                    source_issue_id=int(issue_id),
+                    reason=str(trigger_kind or "doctrine_reform"),
+                )
+                if retired:
+                    result["retired_blockers"] = retired
+                    names = "、".join(str(item.get("name") or item.get("id")) for item in retired[:3])
+                    narrative_text = (
+                        f"{narrative_text} 其议已逼成定局，遂改弦更张，旧策「{names}」退场。"
+                    )
+                blockers = doctrine_establishment_blockers(db, doctrine_id)
+            if blockers:
+                capped_delta = max(0, min(delta, cap - current_bar))
                 names = "、".join(str(item.get("name") or item.get("id")) for item in blockers[:3])
                 result["establishment_blocked"] = True
                 result["establishment_blockers"] = blockers
-                narrative_text = (
-                    f"{narrative_text} 但其与已定基本国策「{names}」相抵牾，"
-                    "暂不得遽升为国是。"
-                )
+                if capped_delta != delta:
+                    narrative_text = (
+                        f"{narrative_text} 但其与已定基本国策「{names}」相抵牾，"
+                        "暂不得遽升为国是。"
+                    )
                 delta = capped_delta
         advanced = db.advance_issue(
             state,
@@ -566,16 +638,21 @@ def apply_memorial_doctrine_effect(
         delta = -base if approve else max(4, base // 2)
     else:
         delta = base if approve else -max(4, base // 2)
-    updated = db.advance_issue(
+    result = {"doctrine_id": doctrine_id, "delta_bar": delta, "issue_id": int(issue["id"])}
+    issue_result = ensure_doctrine_issue(
+        db,
         state,
-        int(issue["id"]),
+        doctrine_id,
         trigger_kind="memorial",
         trigger_ref=str(memorial_row["id"]),
         delta_bar=delta,
-        stage_text=str(issue["stage_text"] or doctrine.get("summary") or ""),
         narrative=f"{memorial_row['author_name']}{kind}获{'准' if approve else '驳'}，牵动「{doctrine.get('name') or doctrine_id}」路线。",
     )
-    result = {"doctrine_id": doctrine_id, "delta_bar": delta, "issue_id": int(issue["id"])}
+    result["issue"] = issue_result
+    if issue_result.get("legacy"):
+        result["legacy"] = issue_result["legacy"]
+    if issue_result.get("retired_blockers"):
+        result["retired_blockers"] = issue_result["retired_blockers"]
     factions = _apply_doctrine_memorial_faction_reaction(
         db,
         doctrine_id,
@@ -585,8 +662,6 @@ def apply_memorial_doctrine_effect(
     )
     if factions:
         result["factions"] = factions
-    if updated is not None and str(updated["status"]) == "resolved":
-        result["legacy"] = ensure_doctrine_legacy(db, state, doctrine_id, source_issue_id=int(updated["id"]))
     return result
 
 

@@ -151,7 +151,9 @@ class PolicyDirectiveGateTests(unittest.TestCase):
             )
             self.assertEqual(applied["primary"]["id"], "open_sea_trade")
             self.assertIn("open_sea_trade", applied["issue"]["doctrine_id"])
-            self.assertNotIn("open_sea_trade", policies.active_doctrine_legacies(db))
+            active = policies.active_doctrine_legacies(db)
+            self.assertIn("ancestral_conservatism", active)
+            self.assertNotIn("open_sea_trade", active)
 
     def test_conflicting_basic_doctrine_cannot_be_established(self):
         with TemporaryDirectory() as tmp:
@@ -218,6 +220,45 @@ class PolicyDirectiveGateTests(unittest.TestCase):
             row = db.conn.execute("SELECT status FROM issues WHERE id=?", (issue_id,)).fetchone()
             self.assertEqual(str(row["status"]), "active")
             self.assertNotIn("open_sea_trade", policies.active_doctrine_legacies(db))
+
+    def test_memorial_at_blocked_cap_retires_old_doctrine_and_establishes_new_route(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            policies.ensure_doctrine_legacy(db, state, "ancestral_conservatism")
+            created = policies.ensure_doctrine_issue(db, state, "open_sea_trade", delta_bar=50)
+            issue_id = int(created["issue_id"])
+            capped = policies.ensure_doctrine_issue(db, state, "open_sea_trade", delta_bar=50)
+            self.assertEqual(int(capped["bar_value"]), 95)
+
+            memorials.reset_attention_for_day(db, day)
+            mid = memorials.create_memorial(
+                db,
+                state,
+                day=day,
+                author_name="徐光启",
+                org="礼部",
+                kind="请旨",
+                urgency=3,
+                summary="请定开海裕国为国是",
+                ref_kind="issue",
+                ref_id=str(issue_id),
+            )
+            result = memorials.decide_memorial(db, state, mid, "approve", day=day)
+
+            self.assertTrue(result["ok"])
+            effect = result.get("doctrine_effect", {})
+            self.assertTrue(effect.get("retired_blockers"), effect)
+            self.assertTrue((effect.get("legacy") or {}).get("created"), effect)
+            active = policies.active_doctrine_legacies(db)
+            self.assertIn("open_sea_trade", active)
+            self.assertNotIn("ancestral_conservatism", active)
+            old = db.conn.execute(
+                "SELECT status FROM legacies WHERE legacy_key='doctrine:ancestral_conservatism'"
+            ).fetchone()
+            self.assertEqual(str(old["status"]), "cleared")
+            issue = db.conn.execute("SELECT status, bar_value FROM issues WHERE id=?", (issue_id,)).fetchone()
+            self.assertEqual(str(issue["status"]), "resolved")
+            self.assertEqual(int(issue["bar_value"]), 100)
 
     def test_doctrine_conflict_increases_execution_resistance_and_block_risk(self):
         text = "准福建大开海禁，永设市舶榷关，招洋商纳商税以裕国用"
