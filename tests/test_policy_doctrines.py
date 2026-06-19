@@ -331,9 +331,32 @@ class PolicyFoundationStanceTests(unittest.TestCase):
             support_by_id = {item["id"]: item for item in ideals["supports"]}
             self.assertIn("western_learning_pragmatism", support_by_id)
             self.assertEqual(support_by_id["western_learning_pragmatism"]["status"], "orthodox")
+            self.assertEqual(support_by_id["western_learning_pragmatism"]["state_label"], "基本国策")
+            self.assertEqual(int(support_by_id["western_learning_pragmatism"]["bar_value"]), 100)
             self.assertIn("open_sea_trade", support_by_id)
             self.assertEqual(support_by_id["open_sea_trade"]["status"], "contested")
+            self.assertEqual(support_by_id["open_sea_trade"]["state_label"], "路线争议")
             self.assertIn("治国所向", ideals["summary"])
+
+    def test_doctrine_route_state_payload_covers_latent_blocked_route(self):
+        with TemporaryDirectory() as tmp:
+            db, state, _day = _fresh(tmp)
+            policies.ensure_doctrine_legacy(db, state, "ancestral_conservatism")
+
+            route = policies.doctrine_route_state_payload(db, "open_sea_trade")
+            self.assertEqual(route["status"], "latent")
+            self.assertEqual(route["status_label"], "潜势")
+            self.assertTrue(route["establishment_blocked"])
+            self.assertTrue(any(c["id"] == "ancestral_conservatism" for c in route["active_conflicts"]))
+            cache = policies.doctrine_route_state_cache(db)
+            self.assertEqual(cache["open_sea_trade"]["status"], "latent")
+            cached_ideals = policies.character_policy_ideals(db, "徐光启", route_states=cache)
+            self.assertEqual(cached_ideals["supports"][0]["status"], cache[cached_ideals["supports"][0]["id"]]["status"])
+
+            context = policies.doctrine_chat_context_payload(db, "徐光启", "open_sea_trade")
+            self.assertIn("既定基本国策", str(context["status_text"]))
+            self.assertEqual(context["route"]["state_label"], "潜在路线")
+            self.assertEqual(context["stance"]["stance"], "support")
 
     def test_policy_ideal_surfaces_as_audience_hint_and_trusted_context(self):
         with TemporaryDirectory() as tmp:
@@ -348,6 +371,11 @@ class PolicyFoundationStanceTests(unittest.TestCase):
             self.assertGreater(int(hint.get("pressure_score") or 0), 0)
             self.assertEqual(str(hint.get("lead", {}).get("kind")), "doctrine")
             self.assertEqual(str(hint.get("lead", {}).get("ref_id")), "open_sea_trade")
+
+            context = policies.doctrine_chat_context_payload(db, "徐光启", "open_sea_trade")
+            self.assertEqual(context["route"]["status"], "contested")
+            self.assertIn("正统进度", str(context["status_text"]))
+            self.assertEqual(context["stance_label"], "倾向支持")
 
             brief = doctrine_chat_context_brief(db, "徐光启", "open_sea_trade")
             self.assertIn("开海裕国", brief)

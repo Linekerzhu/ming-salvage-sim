@@ -404,6 +404,13 @@ def audience_summon_hints_payload(db: GameDB, state: Optional[GameState] = None)
         add_tag(actor, label, tag_tone, pressure, front=True)
         set_lead(actor, card)
 
+    try:
+        from ming_sim import policies as doctrine_policies
+        doctrine_route_states = doctrine_policies.doctrine_route_state_cache(db)
+    except Exception:
+        doctrine_policies = None
+        doctrine_route_states = {}
+
     def row_int(row: sqlite3.Row, key: str, default: int) -> int:
         try:
             return int(row[key] if row[key] is not None else default)
@@ -437,8 +444,13 @@ def audience_summon_hints_payload(db: GameDB, state: Optional[GameState] = None)
             add_tag(name, faction[:6], "warn", 4)
 
         try:
-            from ming_sim import policies
-            ideals = policies.character_policy_ideals(db, name, limit=1, context_row=row)
+            ideals = doctrine_policies.character_policy_ideals(
+                db,
+                name,
+                limit=1,
+                context_row=row,
+                route_states=doctrine_route_states,
+            ) if doctrine_policies is not None else {}
         except Exception:
             ideals = {}
         supports = ideals.get("supports") if isinstance(ideals, dict) else []
@@ -498,33 +510,19 @@ def doctrine_chat_context_brief(db: GameDB, minister_name: str, doctrine_id: obj
 
     try:
         from ming_sim import policies
-        route_id = str(doctrine_id or "").strip()
-        doctrine = policies.doctrine_by_id(route_id) or {}
-        if not doctrine:
-            return ""
-        stance = policies.character_doctrine_stance(db, minister_name, route_id)
-        active = policies.active_doctrine_legacies(db)
-        issue = policies.doctrine_issue_row(db, route_id, status="active")
+        payload = policies.doctrine_chat_context_payload(db, minister_name, doctrine_id)
     except Exception:
         return ""
-    route_name = str(doctrine.get("name") or route_id)
-    axis = str(doctrine.get("axis") or "国策路线")
-    if route_id in active:
-        status = "已成基本国策"
-    elif issue is not None:
-        status = f"仍在路线争议中，正统进度约{int(issue['bar_value'] or 0)}/100"
-    else:
-        status = "尚未进入成说，只是潜在路线"
-    stance_label = {
-        "support": "倾向支持",
-        "oppose": "倾向反对",
-        "neutral": "立场可变",
-    }.get(str(stance.get("stance") or ""), "立场可变")
-    reasons = "、".join(str(x) for x in (stance.get("reasons") or [])[:3])
+    route = payload.get("route") if isinstance(payload, dict) else {}
+    stance = payload.get("stance") if isinstance(payload, dict) else {}
+    if not isinstance(route, dict) or not route:
+        return ""
+    route_name = str(route.get("name") or route.get("id") or doctrine_id)
+    axis = str(route.get("axis") or "国策路线")
     return "\n".join([
         f"本次召对主题：国策路线「{route_name}」（{axis}）。",
-        f"路线状态：{status}。",
-        f"{minister_name}对此路线{stance_label}，分值{stance.get('score')}; {reasons or '理由未显'}。",
+        f"路线状态：{payload.get('status_text') or route.get('state_label') or '状态未明'}。",
+        f"{minister_name}对此路线{payload.get('stance_label') or '立场可变'}，分值{stance.get('score')}; {payload.get('reason_text') or '理由未显'}。",
         "回答应围绕如何推进、阻挠、变通或承担该路线的政治代价，不要泛泛谈忠心。",
     ])
 
