@@ -231,6 +231,8 @@ def directive_doctrine_review(
             "conflicts": [],
             "risk_tags": [],
             "summary": "",
+            "issue_delta": 0,
+            "note_label": "",
             "execution_gate": {"level": "clear", "resistance_delta": 0, "check_risk_delta": {}, "notes": []},
         }
     active = active_doctrine_legacies(db)
@@ -275,6 +277,8 @@ def directive_doctrine_review(
         "establishment_blockers": conflicts,
     }
     result["execution_gate"] = directive_doctrine_execution_gate(result)
+    result["issue_delta"] = directive_doctrine_issue_delta(result)
+    result["note_label"] = directive_doctrine_note_label(result)
     return result
 
 
@@ -339,6 +343,59 @@ def directive_doctrine_execution_gate(review: Dict[str, object]) -> Dict[str, ob
         "check_risk_delta": {k: int(v) for k, v in check_risk_delta.items() if int(v) > 0},
         "notes": notes[:4],
     }
+
+
+def directive_doctrine_issue_delta(review: Dict[str, object]) -> int:
+    """Return how much a directive should move its doctrine initiative issue."""
+
+    if not review or not isinstance(review, dict):
+        return 0
+    primary = review.get("primary") if isinstance(review.get("primary"), dict) else {}
+    if not primary:
+        return 0
+    if bool(review.get("temporary_exception")):
+        return 0
+    base = int(load_policy_doctrines().get("directive_issue_delta") or 8)
+    conflicts = review.get("conflicts") if isinstance(review.get("conflicts"), list) else []
+    if conflicts:
+        return max(2, base // 2)
+    if str(primary.get("status") or "") == "orthodox":
+        return 0
+    return base
+
+
+def directive_doctrine_note_label(review: Dict[str, object], *, conflict_limit: int = 2) -> str:
+    """Compact label written back to existing directive notes."""
+
+    if not review or not isinstance(review, dict):
+        return ""
+    primary = review.get("primary") if isinstance(review.get("primary"), dict) else {}
+    name = str(primary.get("name") or "")
+    if not name:
+        return ""
+    label = f"路线：{name}"
+    if bool(review.get("temporary_exception")):
+        label += "；权宜变通"
+    conflicts = review.get("conflicts") if isinstance(review.get("conflicts"), list) else []
+    if conflicts:
+        names = [
+            str(item.get("name") or item.get("id") or "")
+            for item in conflicts[:max(1, int(conflict_limit))]
+            if isinstance(item, dict) and (item.get("name") or item.get("id"))
+        ]
+        if names:
+            label += "；冲突：" + "、".join(names)
+    return label
+
+
+def _append_directive_doctrine_note(db: GameDB, directive_id: int, label: str) -> None:
+    if not label:
+        return
+    row = db.conn.execute("SELECT notes FROM turn_directives WHERE id=?", (int(directive_id),)).fetchone()
+    if row is not None and label not in str(row["notes"] or ""):
+        notes = (str(row["notes"] or "").strip() + f"；{label}").strip("；")
+        db.conn.execute("UPDATE turn_directives SET notes=? WHERE id=?", (notes[:500], int(directive_id)))
+        db.conn.commit()
 
 
 def ensure_doctrine_legacy(
@@ -577,8 +634,8 @@ def apply_directive_doctrine_effects(
     if not primary:
         return review
     doctrine_id = str(primary.get("id") or "")
-    cfg = load_policy_doctrines()
-    delta = int(cfg.get("directive_issue_delta") or 8)
+    delta = directive_doctrine_issue_delta(review)
+    label = directive_doctrine_note_label(review)
     temporary_exception = bool(review.get("temporary_exception"))
     if temporary_exception:
         review["issue"] = {
@@ -588,17 +645,8 @@ def apply_directive_doctrine_effects(
             "advanced": False,
             "reason": "short_term_workaround",
         }
-        label = f"路线：{primary.get('name')}；权宜变通"
-        if review.get("conflicts"):
-            label += "；冲突：" + "、".join(str(item.get("name")) for item in review["conflicts"][:2])
-        row = db.conn.execute("SELECT notes FROM turn_directives WHERE id=?", (int(directive_id),)).fetchone()
-        if row is not None and label not in str(row["notes"] or ""):
-            notes = (str(row["notes"] or "").strip() + f"；{label}").strip("；")
-            db.conn.execute("UPDATE turn_directives SET notes=? WHERE id=?", (notes[:500], int(directive_id)))
-            db.conn.commit()
+        _append_directive_doctrine_note(db, directive_id, label)
         return review
-    if review.get("conflicts"):
-        delta = max(2, delta // 2)
     issue_result = ensure_doctrine_issue(
         db,
         state,
@@ -609,14 +657,7 @@ def apply_directive_doctrine_effects(
         narrative=f"旨意#{int(directive_id)}触及「{primary.get('name')}」路线，朝议有了具体落点。",
     )
     review["issue"] = issue_result
-    label = f"路线：{primary.get('name')}"
-    if review.get("conflicts"):
-        label += "；冲突：" + "、".join(str(item.get("name")) for item in review["conflicts"][:2])
-    row = db.conn.execute("SELECT notes FROM turn_directives WHERE id=?", (int(directive_id),)).fetchone()
-    if row is not None and label not in str(row["notes"] or ""):
-        notes = (str(row["notes"] or "").strip() + f"；{label}").strip("；")
-        db.conn.execute("UPDATE turn_directives SET notes=? WHERE id=?", (notes[:500], int(directive_id)))
-        db.conn.commit()
+    _append_directive_doctrine_note(db, directive_id, label)
     return review
 
 

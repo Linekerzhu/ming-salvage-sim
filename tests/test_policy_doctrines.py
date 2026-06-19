@@ -185,6 +185,9 @@ class PolicyDirectiveGateTests(unittest.TestCase):
             self.assertTrue(any(c["id"] == "ancestral_conservatism" for c in review["conflicts"]))
             self.assertTrue(review["establishment_blocked"])
             self.assertTrue(review["execution_gate"]["establishment_blocked"])
+            base = int((policies.load_policy_doctrines().get("directive_issue_delta") or 8))
+            self.assertEqual(review["issue_delta"], max(2, base // 2))
+            self.assertIn("冲突：守成祖制", review["note_label"])
             applied = policies.apply_directive_doctrine_effects(
                 db,
                 state,
@@ -230,6 +233,8 @@ class PolicyDirectiveGateTests(unittest.TestCase):
             self.assertTrue(review["temporary_exception"])
             self.assertFalse(review["establishment_blocked"])
             self.assertEqual(review["execution_gate"]["level"], "temporary_exception")
+            self.assertEqual(review["issue_delta"], 0)
+            self.assertIn("权宜变通", review["note_label"])
             self.assertIn("越制", review["risk_tags"])
 
             applied = policies.apply_directive_doctrine_effects(
@@ -246,6 +251,29 @@ class PolicyDirectiveGateTests(unittest.TestCase):
             ).fetchone()
             self.assertIsNone(row)
             self.assertNotIn("open_sea_trade", policies.active_doctrine_legacies(db))
+
+    def test_directive_doctrine_note_is_written_from_shared_summary(self):
+        with TemporaryDirectory() as tmp:
+            db, state, _day = _fresh(tmp)
+            text = "准福建开海禁，设市舶榷关，招洋商纳商税以裕国用"
+            did = db.conn.execute(
+                "INSERT INTO turn_directives (turn, year, period, text, source, status) VALUES (?,?,?,?,?,?)",
+                (int(state.turn), int(state.year), str(state.period), text, "edict", "issued"),
+            ).lastrowid
+            db.conn.commit()
+
+            applied = policies.apply_directive_doctrine_effects(
+                db,
+                state,
+                directive_id=int(did),
+                text=text,
+                category_id="tax_reform",
+            )
+
+            label = applied["note_label"]
+            self.assertEqual(applied["issue_delta"], int((policies.load_policy_doctrines().get("directive_issue_delta") or 8)))
+            row = db.conn.execute("SELECT notes FROM turn_directives WHERE id=?", (int(did),)).fetchone()
+            self.assertIn(label, str(row["notes"] or ""))
 
     def test_tracker_close_cannot_bypass_doctrine_conflict_gate(self):
         with TemporaryDirectory() as tmp:
