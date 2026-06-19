@@ -148,6 +148,38 @@ class PolicyDoctrineIssueTests(unittest.TestCase):
             self.assertIsInstance(route["factions"], list)
             self.assertIsInstance(route["figures"], list)
 
+    def test_route_state_reuses_canonical_doctrine_payload_fields(self):
+        with TemporaryDirectory() as tmp:
+            db, state, _day = _fresh(tmp)
+            policies.ensure_doctrine_legacy(db, state, "western_learning_pragmatism")
+            created = policies.ensure_doctrine_issue(db, state, "open_sea_trade", delta_bar=8)
+            issue_id = int(created["issue_id"])
+
+            legacy_row = db.conn.execute(
+                "SELECT * FROM legacies WHERE legacy_key='doctrine:western_learning_pragmatism'"
+            ).fetchone()
+            legacy_payload = policies.doctrine_legacy_payload(legacy_row)
+            route_payload = policies.doctrine_route_state_payload(db, "western_learning_pragmatism")
+            self.assertEqual(route_payload, legacy_payload)
+
+            issue_row = db.conn.execute("SELECT * FROM issues WHERE id=?", (issue_id,)).fetchone()
+            issue_payload = policies.doctrine_issue_payload(db, issue_row)
+            route_issue_payload = policies.doctrine_route_state_payload(db, "open_sea_trade")
+            cache_payload = policies.doctrine_route_state_cache(db)["open_sea_trade"]
+            for key in (
+                "id",
+                "name",
+                "axis",
+                "status",
+                "status_label",
+                "state_label",
+                "bar_value",
+                "establishment_blocked",
+                "reform_ready",
+            ):
+                self.assertEqual(route_issue_payload.get(key), issue_payload.get(key))
+                self.assertEqual(cache_payload.get(key), route_issue_payload.get(key))
+
     def test_web_issue_payload_marks_reform_ready_when_blocked_route_reaches_cap(self):
         with TemporaryDirectory() as tmp:
             db, state, _day = _fresh(tmp)

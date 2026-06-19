@@ -1115,6 +1115,85 @@ def _doctrine_conflict_payloads(doctrine: Dict[str, object]) -> List[Dict[str, o
     return conflicts
 
 
+def _doctrine_base_payload(doctrine_id: str, doctrine: Dict[str, object]) -> Dict[str, object]:
+    route_id = str(doctrine_id or "")
+    return {
+        "id": route_id,
+        "name": str(doctrine.get("name") or route_id),
+        "axis": str(doctrine.get("axis") or ""),
+        "level": str(doctrine.get("level") or "basic"),
+        "summary": str(doctrine.get("summary") or ""),
+    }
+
+
+def _doctrine_orthodox_payload(
+    doctrine_id: str,
+    doctrine: Dict[str, object],
+    *,
+    legacy_id: int = 0,
+    legacy_key: str = "",
+    narrative_hint: str = "",
+) -> Dict[str, object]:
+    route_id = str(doctrine_id or "")
+    return {
+        **_doctrine_base_payload(route_id, doctrine),
+        "status": "orthodox",
+        "status_label": "正统",
+        "state_label": "基本国策",
+        "bar_value": 100,
+        "legacy_id": int(legacy_id or 0),
+        "legacy_key": str(legacy_key or doctrine_legacy_key(route_id)),
+        "narrative_hint": str(narrative_hint or ""),
+        "conflicts": _doctrine_conflict_payloads(doctrine),
+        "legacy_effects": dict(doctrine.get("legacy_effects") or {}),
+    }
+
+
+def _doctrine_contested_payload(
+    db: GameDB,
+    doctrine_id: str,
+    doctrine: Dict[str, object],
+    *,
+    bar_value: int,
+    phase: str = "",
+    blockers: Optional[List[Dict[str, object]]] = None,
+    include_alignment: bool = False,
+) -> Dict[str, object]:
+    route_id = str(doctrine_id or "")
+    active_blockers = blockers if blockers is not None else doctrine_establishment_blockers(db, route_id)
+    payload = {
+        **_doctrine_base_payload(route_id, doctrine),
+        "bar_value": int(bar_value or 0),
+        "status": "contested",
+        "status_label": "争议",
+        "phase": str(phase or ""),
+        **_doctrine_issue_state_fields_from_blockers(active_blockers, int(bar_value or 0)),
+    }
+    if include_alignment:
+        alignment = doctrine_alignment_summary(db, route_id)
+        payload["factions"] = alignment.get("factions") or []
+        payload["figures"] = alignment.get("figures") or []
+    return payload
+
+
+def _doctrine_latent_payload(
+    doctrine_id: str,
+    doctrine: Dict[str, object],
+    blockers: List[Dict[str, object]],
+) -> Dict[str, object]:
+    return {
+        **_doctrine_base_payload(doctrine_id, doctrine),
+        "status": "latent",
+        "status_label": "潜势",
+        "state_label": "潜在路线",
+        "bar_value": 0,
+        "establishment_blocked": bool(blockers),
+        "active_conflicts": blockers,
+        "establishment_blockers": blockers,
+        "conflicts": _doctrine_conflict_payloads(doctrine),
+    }
+
+
 def doctrine_legacy_payload(legacy_row) -> Dict[str, object]:
     """Single payload for an orthodox doctrine carried by an active legacy."""
 
@@ -1125,27 +1204,13 @@ def doctrine_legacy_payload(legacy_row) -> Dict[str, object]:
     doctrine = doctrine_by_id(doctrine_id) or {}
     if not doctrine:
         return {}
-    return {
-        "id": doctrine_id,
-        "name": str(doctrine.get("name") or doctrine_id),
-        "axis": str(doctrine.get("axis") or ""),
-        "level": str(doctrine.get("level") or "basic"),
-        "summary": str(doctrine.get("summary") or ""),
-        "status": "orthodox",
-        "status_label": "正统",
-        "state_label": "基本国策",
-        "bar_value": 100,
-        "legacy_id": int(_row_value(legacy_row, "id", 0) or 0),
-        "legacy_key": legacy_key,
-        "narrative_hint": str(_row_value(legacy_row, "narrative_hint", "") or ""),
-        "conflicts": _doctrine_conflict_payloads(doctrine),
-        "legacy_effects": dict(doctrine.get("legacy_effects") or {}),
-    }
-
-
-def _doctrine_issue_state_fields(db: GameDB, doctrine_id: str, bar_value: int) -> Dict[str, object]:
-    blockers = doctrine_establishment_blockers(db, doctrine_id)
-    return _doctrine_issue_state_fields_from_blockers(blockers, bar_value)
+    return _doctrine_orthodox_payload(
+        doctrine_id,
+        doctrine,
+        legacy_id=int(_row_value(legacy_row, "id", 0) or 0),
+        legacy_key=legacy_key,
+        narrative_hint=str(_row_value(legacy_row, "narrative_hint", "") or ""),
+    )
 
 
 def _doctrine_issue_state_fields_from_blockers(
@@ -1186,21 +1251,15 @@ def doctrine_issue_payload(db: GameDB, issue_row) -> Dict[str, object]:
     if not doctrine:
         return {}
     bar_value = int(issue_row["bar_value"] or 0)
-    state_fields = _doctrine_issue_state_fields(db, doctrine_id, bar_value)
-    alignment = doctrine_alignment_summary(db, doctrine_id)
     return {
-        "id": doctrine_id,
-        "name": str(doctrine.get("name") or doctrine_id),
-        "axis": str(doctrine.get("axis") or ""),
-        "level": str(doctrine.get("level") or "basic"),
-        "bar_value": bar_value,
-        "status": "contested",
-        "status_label": "争议",
-        "phase": str(issue_row["phase"] or ""),
-        "summary": str(doctrine.get("summary") or ""),
-        **state_fields,
-        "factions": alignment.get("factions") or [],
-        "figures": alignment.get("figures") or [],
+        **_doctrine_contested_payload(
+            db,
+            doctrine_id,
+            doctrine,
+            bar_value=bar_value,
+            phase=str(issue_row["phase"] or ""),
+            include_alignment=True,
+        ),
     }
 
 
@@ -1239,53 +1298,25 @@ def doctrine_route_state_payload(db: GameDB, doctrine_id: str) -> Dict[str, obje
         return {}
     active = active_doctrine_legacies(db).get(route_id)
     if active:
-        return {
-            "id": route_id,
-            "name": str(doctrine.get("name") or route_id),
-            "axis": str(doctrine.get("axis") or ""),
-            "level": str(doctrine.get("level") or "basic"),
-            "summary": str(doctrine.get("summary") or ""),
-            "status": "orthodox",
-            "status_label": "正统",
-            "state_label": "基本国策",
-            "bar_value": 100,
-            "legacy_id": int(active.get("legacy_id") or 0),
-            "legacy_key": str(active.get("legacy_key") or doctrine_legacy_key(route_id)),
-            "narrative_hint": str(active.get("narrative_hint") or ""),
-            "conflicts": _doctrine_conflict_payloads(doctrine),
-            "legacy_effects": dict(doctrine.get("legacy_effects") or {}),
-        }
+        return _doctrine_orthodox_payload(
+            route_id,
+            doctrine,
+            legacy_id=int(active.get("legacy_id") or 0),
+            legacy_key=str(active.get("legacy_key") or doctrine_legacy_key(route_id)),
+            narrative_hint=str(active.get("narrative_hint") or ""),
+        )
     issue = doctrine_issue_row(db, route_id, status="active")
     if issue is not None:
         bar_value = int(issue["bar_value"] or 0)
-        return {
-            "id": route_id,
-            "name": str(doctrine.get("name") or route_id),
-            "axis": str(doctrine.get("axis") or ""),
-            "level": str(doctrine.get("level") or "basic"),
-            "bar_value": bar_value,
-            "status": "contested",
-            "status_label": "争议",
-            "phase": str(issue["phase"] or ""),
-            "summary": str(doctrine.get("summary") or ""),
-            **_doctrine_issue_state_fields(db, route_id, bar_value),
-        }
+        return _doctrine_contested_payload(
+            db,
+            route_id,
+            doctrine,
+            bar_value=bar_value,
+            phase=str(issue["phase"] or ""),
+        )
     blockers = doctrine_establishment_blockers(db, route_id)
-    return {
-        "id": route_id,
-        "name": str(doctrine.get("name") or route_id),
-        "axis": str(doctrine.get("axis") or ""),
-        "level": str(doctrine.get("level") or "basic"),
-        "summary": str(doctrine.get("summary") or ""),
-        "status": "latent",
-        "status_label": "潜势",
-        "state_label": "潜在路线",
-        "bar_value": 0,
-        "establishment_blocked": bool(blockers),
-        "active_conflicts": blockers,
-        "establishment_blockers": blockers,
-        "conflicts": _doctrine_conflict_payloads(doctrine),
-    }
+    return _doctrine_latent_payload(route_id, doctrine, blockers)
 
 
 def doctrine_route_state_cache(db: GameDB) -> Dict[str, Dict[str, object]]:
@@ -1322,58 +1353,28 @@ def doctrine_route_state_cache(db: GameDB) -> Dict[str, Dict[str, object]]:
             continue
         active_row = active.get(doctrine_id)
         if active_row:
-            states[doctrine_id] = {
-                "id": doctrine_id,
-                "name": str(doctrine.get("name") or doctrine_id),
-                "axis": str(doctrine.get("axis") or ""),
-                "level": str(doctrine.get("level") or "basic"),
-                "summary": str(doctrine.get("summary") or ""),
-                "status": "orthodox",
-                "status_label": "正统",
-                "state_label": "基本国策",
-                "bar_value": 100,
-                "legacy_id": int(active_row.get("legacy_id") or 0),
-                "legacy_key": str(active_row.get("legacy_key") or doctrine_legacy_key(doctrine_id)),
-                "narrative_hint": str(active_row.get("narrative_hint") or ""),
-                "conflicts": _doctrine_conflict_payloads(doctrine),
-                "legacy_effects": dict(doctrine.get("legacy_effects") or {}),
-            }
+            states[doctrine_id] = _doctrine_orthodox_payload(
+                doctrine_id,
+                doctrine,
+                legacy_id=int(active_row.get("legacy_id") or 0),
+                legacy_key=str(active_row.get("legacy_key") or doctrine_legacy_key(doctrine_id)),
+                narrative_hint=str(active_row.get("narrative_hint") or ""),
+            )
             continue
         issue = issues_by_doctrine.get(doctrine_id)
         if issue is not None:
             bar_value = int(issue["bar_value"] or 0)
-            states[doctrine_id] = {
-                "id": doctrine_id,
-                "name": str(doctrine.get("name") or doctrine_id),
-                "axis": str(doctrine.get("axis") or ""),
-                "level": str(doctrine.get("level") or "basic"),
-                "bar_value": bar_value,
-                "status": "contested",
-                "status_label": "争议",
-                "phase": str(issue["phase"] or ""),
-                "summary": str(doctrine.get("summary") or ""),
-                **_doctrine_issue_state_fields_from_blockers(
-                    _doctrine_establishment_blockers_from_active(doctrine, active),
-                    bar_value,
-                ),
-            }
+            states[doctrine_id] = _doctrine_contested_payload(
+                db,
+                doctrine_id,
+                doctrine,
+                bar_value=bar_value,
+                phase=str(issue["phase"] or ""),
+                blockers=_doctrine_establishment_blockers_from_active(doctrine, active),
+            )
             continue
         blockers = _doctrine_establishment_blockers_from_active(doctrine, active)
-        states[doctrine_id] = {
-            "id": doctrine_id,
-            "name": str(doctrine.get("name") or doctrine_id),
-            "axis": str(doctrine.get("axis") or ""),
-            "level": str(doctrine.get("level") or "basic"),
-            "summary": str(doctrine.get("summary") or ""),
-            "status": "latent",
-            "status_label": "潜势",
-            "state_label": "潜在路线",
-            "bar_value": 0,
-            "establishment_blocked": bool(blockers),
-            "active_conflicts": blockers,
-            "establishment_blockers": blockers,
-            "conflicts": _doctrine_conflict_payloads(doctrine),
-        }
+        states[doctrine_id] = _doctrine_latent_payload(doctrine_id, doctrine, blockers)
     return states
 
 
