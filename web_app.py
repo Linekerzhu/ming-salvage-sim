@@ -2166,26 +2166,9 @@ class WebGame:
                 clear_condition = f"{clear_condition}（{_humanize_legacy_gate(clear_gate, self.content)}）"
             if not clear_condition:
                 clear_condition = "无固定消除条件" if remaining_months < 0 else f"再过 {remaining_months} 月自然消退"
-            legacy_key = str(row["legacy_key"] or "")
             policy_doctrine: Optional[Dict[str, Any]] = None
-            if doctrine_policies is not None and legacy_key.startswith("doctrine:"):
-                doctrine_id = legacy_key.split(":", 1)[1]
-                doctrine = doctrine_policies.doctrine_by_id(doctrine_id) or {}
-                if doctrine:
-                    policy_doctrine = {
-                        "id": doctrine_id,
-                        "name": str(doctrine.get("name") or doctrine_id),
-                        "axis": str(doctrine.get("axis") or ""),
-                        "level": str(doctrine.get("level") or "basic"),
-                        "summary": str(doctrine.get("summary") or ""),
-                        "conflicts": [
-                            {
-                                "id": str(conflict_id),
-                                "name": str((doctrine_policies.doctrine_by_id(str(conflict_id)) or {}).get("name") or conflict_id),
-                            }
-                            for conflict_id in (doctrine.get("conflicts") or [])
-                        ],
-                    }
+            if doctrine_policies is not None:
+                policy_doctrine = doctrine_policies.doctrine_legacy_payload(row) or None
             item = {
                 "id": int(row["id"]),
                 "name": row["name"],

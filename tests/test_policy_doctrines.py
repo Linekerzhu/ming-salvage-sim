@@ -106,7 +106,25 @@ class PolicyDoctrineIssueTests(unittest.TestCase):
             self.assertEqual(doctrine["id"], "western_learning_pragmatism")
             self.assertEqual(doctrine["name"], "西学实用")
             self.assertEqual(doctrine["axis"], "信仰新知")
+            self.assertEqual(doctrine["status"], "orthodox")
+            self.assertEqual(doctrine["state_label"], "基本国策")
+            self.assertEqual(doctrine["legacy_key"], "doctrine:western_learning_pragmatism")
+            self.assertTrue(any(c["id"] == "ancestral_conservatism" for c in doctrine["conflicts"]))
             self.assertTrue(item["name"].startswith("基本国策："))
+
+    def test_doctrine_legacy_payload_ignores_non_doctrine_legacy(self):
+        with TemporaryDirectory() as tmp:
+            db, state, _day = _fresh(tmp)
+            db.insert_legacy(
+                state,
+                name="临时财政压力",
+                modifiers={"国库": -2},
+                narrative_hint="非国策遗产不应伪装成路线。",
+                duration_months=3,
+                legacy_key="tax_pressure:test",
+            )
+            row = db.conn.execute("SELECT * FROM legacies WHERE legacy_key='tax_pressure:test'").fetchone()
+            self.assertEqual(policies.doctrine_legacy_payload(row), {})
 
     def test_web_issue_payload_exposes_route_alignment_summary(self):
         with TemporaryDirectory() as tmp:

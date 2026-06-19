@@ -1032,6 +1032,41 @@ def doctrine_alignment_summary(
     }
 
 
+def doctrine_legacy_payload(legacy_row) -> Dict[str, object]:
+    """Single payload for an orthodox doctrine carried by an active legacy."""
+
+    legacy_key = str(_row_value(legacy_row, "legacy_key", "") or "")
+    if not legacy_key.startswith("doctrine:"):
+        return {}
+    doctrine_id = legacy_key.split(":", 1)[1]
+    doctrine = doctrine_by_id(doctrine_id) or {}
+    if not doctrine:
+        return {}
+    conflicts: List[Dict[str, object]] = []
+    for conflict_id in doctrine.get("conflicts") or []:
+        cid = str(conflict_id or "")
+        conflict = doctrine_by_id(cid) or {}
+        conflicts.append({
+            "id": cid,
+            "name": str(conflict.get("name") or cid),
+            "axis": str(conflict.get("axis") or ""),
+        })
+    return {
+        "id": doctrine_id,
+        "name": str(doctrine.get("name") or doctrine_id),
+        "axis": str(doctrine.get("axis") or ""),
+        "level": str(doctrine.get("level") or "basic"),
+        "summary": str(doctrine.get("summary") or ""),
+        "status": "orthodox",
+        "state_label": "基本国策",
+        "legacy_id": int(_row_value(legacy_row, "id", 0) or 0),
+        "legacy_key": legacy_key,
+        "narrative_hint": str(_row_value(legacy_row, "narrative_hint", "") or ""),
+        "conflicts": conflicts,
+        "legacy_effects": dict(doctrine.get("legacy_effects") or {}),
+    }
+
+
 def doctrine_issue_payload(db: GameDB, issue_row) -> Dict[str, object]:
     """Single doctrine issue payload for web surfaces.
 
