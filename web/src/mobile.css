@@ -177,12 +177,18 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-task-text { font-size: 0.96rem; }
 .m-task.is-urgent .m-task-text { color: var(--cinnabar); font-weight: 700; }
 .m-feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.m-feed-item { display: flex; flex-direction: column; gap: 2px; padding-left: 10px; border-left: 3px solid var(--ink-soft); }
+.m-feed-item { display: flex; align-items: flex-start; gap: 8px; padding-left: 10px; border-left: 3px solid var(--ink-soft); }
 .m-feed-item.lv-red { border-color: var(--cinnabar); }
 .m-feed-item.lv-yellow { border-color: var(--gold-deep); }
 .m-feed-item.lv-blue { border-color: var(--jade); }
+.m-feed-item.is-clickable { cursor: pointer; border-radius: 0 8px 8px 0; transition: background .12s; }
+.m-feed-item.is-clickable:active { background: rgba(201,180,135,.10); }
+.m-feed-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .m-feed-title { font-weight: 700; font-size: 0.92rem; }
+.m-feed-mark { font-style: normal; font-size: .68rem; margin-right: 5px; padding: 0 4px; border-radius: 4px;
+  background: rgba(158,52,41,.14); color: #c08a5a; border: 1px solid rgba(158,52,41,.3); vertical-align: 1px; }
 .m-feed-detail { color: var(--ink-soft); font-size: 0.82rem; }
+.m-feed-go { align-self: center; flex-shrink: 0; font-size: .72rem; color: var(--gold); white-space: nowrap; }
 
 /* 朝局风向：把隐藏局势变成可点击玩法钩子 */
 .m-brief { border-left: 4px solid var(--gold-deep); }
@@ -1512,6 +1518,20 @@ details[open] > summary .m-disclosure-caret { color: var(--gold); background: rg
   background: rgba(0,0,0,.22); color: var(--paper); }
 .m-mini-btn:disabled { opacity: .5; }
 .m-army-msg { margin: 2px 0 0; font-size: .76rem; color: var(--gold); line-height: 1.4; }
+.m-privy { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(201,180,135,.18);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.m-privy-btn { font-size: .82rem; padding: 6px 14px; border-radius: 9px; border: 1px solid var(--gold-line);
+  background: linear-gradient(180deg, rgba(158,52,41,.22), rgba(158,52,41,.12)); color: var(--paper); font-weight: 600; }
+.m-privy-btn:disabled { opacity: .5; }
+.m-privy-hint { font-size: .74rem; color: #c9b487; }
+.m-privy-msg { flex-basis: 100%; margin: 2px 0 0; font-size: .78rem; color: var(--gold); line-height: 1.45; }
+.m-cefeng { margin: 0 10px 8px; padding: 8px 10px; border: 1px solid rgba(201,180,135,.28);
+  border-radius: 10px; background: rgba(158,52,41,.06); }
+.m-cefeng-head { font-size: .78rem; color: #c9b487; font-weight: 600; }
+.m-cefeng-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.m-cefeng-row { display: flex; align-items: center; gap: 8px; }
+.m-cefeng-name { flex: 1; min-width: 0; font-size: .84rem; }
+.m-cefeng-name em { display: block; font-style: normal; font-size: .72rem; color: var(--ink-soft); }
 .m-tie.is-ally .m-tie-basis { color: #4a8060; }
 .m-tie.is-rival .m-tie-basis { color: var(--cinnabar); }
 

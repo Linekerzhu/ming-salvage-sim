@@ -4,7 +4,7 @@ import { OrgSection } from "./OrgSection";
 import { BuildingSection } from "./BuildingSection";
 import { Section } from "./Section";
 import { Portrait } from "../Portrait";
-import { frontierSupervisor } from "../api";
+import { frontierSupervisor, privyRelief } from "../api";
 
 // 军镇行：欠饷/士气/离心 + 监军太监（E4：天子耳目钳制割据，代价是掣肘军务）。
 function ArmyRow({ a }: { a: any }) {
@@ -45,6 +45,34 @@ function ArmyRow({ a }: { a: any }) {
       </div>
       {msg && <p className="m-army-msg">{msg}</p>}
     </li>
+  );
+}
+
+// 内帑助饷：发私帑（内库）补太仓、清边军欠饷——崇祯朝最揪心的道德抉择，
+// 也是堆积内库的去处。发帑则军心民心一振、君父示天下以诚，然私帑日削、再无急变之储。
+function PrivyReliefBar({ neiKu, owing }: { neiKu: number; owing: number }) {
+  const { refresh } = useGame();
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  if (neiKu <= 0) return null;
+  async function act() {
+    if (busy) return;
+    setBusy(true); setMsg("");
+    try {
+      const r = await privyRelief();  // 省略额度＝按欠饷总额（或 50 万两）
+      setMsg(r.message || "");
+      await refresh();
+    } catch (e: any) { setMsg(e?.message || "未成。"); }
+    finally { setBusy(false); }
+  }
+  return (
+    <div className="m-privy">
+      <button className="m-privy-btn" disabled={busy} onClick={act}>
+        发内帑助饷{owing ? "（清边军欠饷）" : ""}
+      </button>
+      <span className="m-privy-hint">私帑 {neiKu} 万两{owing ? ` · ${owing} 镇欠饷待解` : " · 可拨补太仓"}</span>
+      {msg && <p className="m-privy-msg">{msg}</p>}
+    </div>
   );
 }
 
@@ -180,6 +208,7 @@ export function RealmView() {
           <Metric label="民心" value={metrics["民心"]} />
           <Metric label="皇威" value={metrics["皇威"]} />
         </div>
+        <PrivyReliefBar neiKu={Number(metrics["内库"]) || 0} owing={owing} />
       </section>
 
       <Section title="省份" count={regions.length} tag={restless ? `${restless} 处动荡` : ""} defaultOpen={false}>

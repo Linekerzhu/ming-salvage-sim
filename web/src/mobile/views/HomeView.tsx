@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useGame } from "../GameData";
 import { Portrait } from "../Portrait";
 import { loadEunuch, loadPlaystyleBrief } from "../api";
-import type { AudienceLead, PlaystyleBriefCard, PublicCharacter, Suggestion, Tab } from "../api";
+import type { AudienceLead, PlaystyleBriefCard, PublicCharacter, Suggestion, Tab, TickEvent } from "../api";
 import { usePerson } from "../personCtx";
 import { OutcomeSummary } from "./EdictsView";
 
@@ -422,16 +422,55 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
         ) : (
           <ul className="m-feed">
             {recentEvents.slice(0, 12).map((e, i) => (
-              <li key={i} className={`m-feed-item lv-${e.level}`}>
-                <span className="m-feed-title">{e.title}</span>
-                {e.detail && <span className="m-feed-detail">{e.detail}</span>}
-              </li>
+              <FeedItem key={i} e={e} openPerson={openPerson} go={go} />
             ))}
           </ul>
         )}
       </section>
     </div>
   );
+}
+
+// 朝报一条：活的宫廷事件不再是白流走的灰字——人物事件带头像、点头像识其人，
+// 旨意/局势事件可一键直达对应模块。让「世界自己的落子」也可被回应（非只可读）。
+function FeedItem({ e, openPerson, go }: { e: TickEvent; openPerson: (n: string) => void; go: (t: Tab) => void }) {
+  const isChar = e.ref_kind === "character" && !!e.ref_id;
+  const route: Tab | null =
+    e.ref_kind === "directive" ? "edicts" : e.ref_kind === "issue" ? "realm" : null;
+  const clickable = isChar || route != null;
+  const onClick = () => {
+    if (isChar) openPerson(e.ref_id);
+    else if (route) go(route);
+  };
+  return (
+    <li
+      className={`m-feed-item lv-${e.level}${clickable ? " is-clickable" : ""}`}
+      onClick={clickable ? onClick : undefined}
+      role={clickable ? "button" : undefined}
+    >
+      {isChar && <Portrait name={e.ref_id} size={26} interactive={false} />}
+      <span className="m-feed-body">
+        <span className="m-feed-title">
+          {feedMark(e.kind) && <i className="m-feed-mark">{feedMark(e.kind)}</i>}
+          {e.title}
+        </span>
+        {e.detail && <span className="m-feed-detail">{e.detail}</span>}
+      </span>
+      {clickable && <span className="m-feed-go">{isChar ? "识此人" : route === "edicts" ? "看诏旨" : "看天下"} ›</span>}
+    </li>
+  );
+}
+
+// 朝报事件徽标（与 brief 卡的 kindMark 不同：未知则空，不强贴「机」）。
+function feedMark(kind: string): string {
+  const map: Record<string, string> = {
+    harem_move: "宫", duishi: "对", court_move: "党", court_back: "恩",
+    defection: "叛", mortality: "薨", succession: "继", eunuch_power: "阉",
+    changwei: "厂", autonomy: "镇", directive_anomaly: "异", directive_aborted: "罢",
+    threshold: "危", decision: "裁", frame: "构", smear: "诬",
+    castration: "刑", recruit: "募", reincarnation: "异",
+  };
+  return map[kind] || "";
 }
 
 function kindMark(kind: string): string {

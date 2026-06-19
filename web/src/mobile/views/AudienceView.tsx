@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useGame } from "../GameData";
 import { ChatPane } from "../ChatPane";
 import { Portrait } from "../Portrait";
-import { loadEunuch, loadEunuchCandidates, loadPlaystyleBrief, loadSummonHints, replaceEunuch } from "../api";
-import type { AudienceLead, ChatContext, PlaystyleBriefCard, PublicCharacter, Suggestion, SummonHint, Tab } from "../api";
+import { consortCandidates, loadEunuch, loadEunuchCandidates, loadPlaystyleBrief, loadSummonHints, replaceEunuch, selectConsort } from "../api";
+import type { AudienceLead, ChatContext, ConsortCandidate, PlaystyleBriefCard, PublicCharacter, Suggestion, SummonHint, Tab } from "../api";
 import { usePerson } from "../personCtx";
 import { audienceLeadFromBrief, briefUrgency, closurePromptForAudience, shortName } from "./HomeView";
 
@@ -32,10 +32,22 @@ export function AudienceView({
   const [candidates, setCandidates] = useState<Array<{ name: string; office: string; is_eunuch: boolean }>>([]);
   const [leads, setLeads] = useState<PlaystyleBriefCard[]>([]);
   const [summonHints, setSummonHints] = useState<Record<string, SummonHint>>({});
+  const [pendingConsorts, setPendingConsorts] = useState<ConsortCandidate[]>([]);
 
   useEffect(() => {
     loadEunuch().then((r) => setEunuch(r.eunuch)).catch(() => setEunuch(null));
   }, []);
+  useEffect(() => {
+    if (audience) return;  // 仅随侍枢纽视图加载待册封秀女
+    consortCandidates().then((r) => setPendingConsorts(r.candidates || [])).catch(() => setPendingConsorts([]));
+  }, [audience, worldVersion]);
+  const doSelectConsort = async (name: string) => {
+    try {
+      await selectConsort(name);
+      setPendingConsorts((prev) => prev.filter((c) => c.name !== name));
+      await refresh();
+    } catch { /* ignore */ }
+  };
   useEffect(() => {
     if (audience) return;
     loadPlaystyleBrief(3, "")
@@ -78,6 +90,27 @@ export function AudienceView({
   };
   const leadFor = (card: PlaystyleBriefCard) =>
     audienceLeadFromBrief(card, String(card.actor || ""), String(card.target || ""));
+
+  // 选秀入口（pillar ③）：命礼部/司礼监于良家女中遴选秀女呈览——
+  // 是「采选→册封→后宫起波澜」整条线的唯一入口，原本须玩家凭空对特定衙门说出口才触发。
+  const openCaixuan = () => {
+    const pick = ministers.find((m) => String(m.office || "").includes("礼部"))
+      || ministers.find((m) => String(m.office || "").includes("司礼监"))
+      || ministers.find((m) => String(m.office || "").includes("礼"));
+    if (!pick) { openSummon(); return; }
+    const lead: AudienceLead = {
+      kind: "harem",
+      title: "采选秀女入宫",
+      detail: "命礼部于良家女中遴选数人，开列名册呈御览，择其淑者降诏册封位份入宫。",
+      tone: "info",
+      actor: pick.name,
+      opening: `奴婢已宣${String(pick.office || "")}${pick.name}觐见。陛下若欲采选秀女充实后宫，可面谕其遴选良家淑女、开册呈览；中意者再降诏册封便是。`,
+      prompts: [
+        { label: "命卿遴选良家女呈览", text: "卿替朕于良家淑女中遴选三五人，开列名册、各注品貌性情，呈朕御览。" },
+      ],
+    };
+    onAudienceChange(pick.name, lead);
+  };
 
   if (eunuch === undefined) return <div className="m-loading">正召随侍…</div>;
 
@@ -192,8 +225,23 @@ export function AudienceView({
           )}
           <button className="m-mini" onClick={openSummon}>传召</button>
           <button className="m-mini" onClick={openReplace}>换侍</button>
+          <button className="m-mini" onClick={openCaixuan}>选秀</button>
         </div>
       </div>
+      {pendingConsorts.length > 0 && (
+        <div className="m-cefeng">
+          <span className="m-cefeng-head">待册封秀女 · {pendingConsorts.length}</span>
+          <div className="m-cefeng-list">
+            {pendingConsorts.map((c) => (
+              <div key={c.name} className="m-cefeng-row">
+                <Portrait name={c.name} size={28} interactive={false} />
+                <span className="m-cefeng-name">{c.name}<em>{c.style}</em></span>
+                <button className="m-mini" onClick={() => doSelectConsort(c.name)}>降诏册封</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {audienceNotice && <div className="m-audience-return">{audienceNotice}</div>}
       <ChatPane
         key={`eunuch:${eunuch.name}`}

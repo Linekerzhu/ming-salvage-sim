@@ -406,6 +406,18 @@ export const intrigueDiscord = (a: string, b: string): Promise<{ ok: boolean; su
 export const frontierSupervisor = (army_id: string, opts?: { eunuch?: string; recall?: boolean }): Promise<{ ok: boolean; message: string }> =>
   api("/api/frontier/supervisor", { method: "POST", body: JSON.stringify({ army_id, ...(opts || {}) }) });
 
+// 内帑助饷：发内库（私帑）补太仓、清边军欠饷。崇祯朝的道德抉择。
+export type PrivyReliefStatus = { nei_ku: number; guo_ku: number; arrears_total: number; suggested: number };
+export const privyReliefStatus = (): Promise<PrivyReliefStatus> => api("/api/treasury/privy_relief");
+export const privyRelief = (amount?: number): Promise<{ ok: boolean; moved?: number; arrears_cleared?: number; message: string; nei_ku?: number; guo_ku?: number; effects?: ImpactEffect[] }> =>
+  api("/api/treasury/privy_relief", { method: "POST", body: JSON.stringify(amount != null ? { amount } : {}) });
+
+// 选秀→册封：待册封秀女（candidate）一键降诏立为妃嫔（active）。
+export type ConsortCandidate = { name: string; office: string; summary: string; style: string };
+export const consortCandidates = (): Promise<{ candidates: ConsortCandidate[] }> => api("/api/consorts/candidates");
+export const selectConsort = (name: string): Promise<{ selected?: PublicCharacter }> =>
+  api(`/api/consorts/${encodeURIComponent(name)}/select`, { method: "POST" });
+
 // 抉择事件（CK3 化 P2）：朝局张力弹出的"请陛下裁断"。
 export type DecisionChoice = { key: string; label: string; hint: string; effects?: ImpactEffect[] };
 export type DecisionTestimony = {
