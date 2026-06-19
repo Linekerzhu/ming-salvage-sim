@@ -16,6 +16,12 @@ def _fresh(tmp: str):
     return db, state
 
 
+def _clear_consorts(db):
+    """清掉开局自带的中宫（周皇后），隔离单测后宫机制。"""
+    db.conn.execute("DELETE FROM characters WHERE office_type='后宫'")
+    db.conn.commit()
+
+
 def _add_consort(db, name, faction="", charm=80, ability=60):
     db.conn.execute(
         "INSERT INTO characters (name, office, office_type, faction, personal_skills, style, status, power_id, "
@@ -29,8 +35,15 @@ class EmptyHaremTests(unittest.TestCase):
     def test_empty_harem_is_quiet(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)
+            _clear_consorts(db)  # 移除开局中宫，测真·空后宫的优雅空转
             self.assertEqual(harem.active_consorts(db), [])
             self.assertEqual(harem.harem_tick(db, state, state.turn * 30 + 1), [])
+
+    def test_empress_seeded_at_start(self):
+        with TemporaryDirectory() as tmp:
+            db, _ = _fresh(tmp)
+            names = {c["name"] for c in harem.active_consorts(db)}
+            self.assertIn("周皇后", names)  # 开局即有中宫，pillar ③ 自始有演员
 
 
 class PillowTalkTests(unittest.TestCase):
@@ -69,6 +82,7 @@ class RivalryTests(unittest.TestCase):
     def test_two_consorts_compete(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)
+            _clear_consorts(db)  # 隔离两妃争宠，去开局中宫避免随机配对取到她
             _add_consort(db, "测妃甲", faction="", charm=88)
             _add_consort(db, "测妃乙", faction="", charm=70)
             harem.harem_tick(db, state, state.turn * 30 + 1)

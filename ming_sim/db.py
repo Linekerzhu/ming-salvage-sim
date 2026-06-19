@@ -1763,6 +1763,14 @@ class GameDB:
         except Exception as exc:
             print(f"[WARN] 把柄播种失败：{exc}")
 
+        # 后宫自始有「演员」（CK3 化 P6 补缺）：开局即立中宫周皇后，
+        # 令枕边风/进谗/争宠/对食从第一天起有所附丽，pillar ③ 自始可玩。幂等。
+        try:
+            from ming_sim.harem import seed_starting_consort
+            seed_starting_consort(self)
+        except Exception as exc:
+            print(f"[WARN] 中宫播种失败：{exc}")
+
     def _reconcile_character_office_types(self) -> int:
         """迁移旧档：修正 office 与 office_type 不一致的原创/非常设官位。"""
         rows = self.conn.execute(

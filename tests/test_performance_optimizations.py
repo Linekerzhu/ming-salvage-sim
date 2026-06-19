@@ -100,6 +100,24 @@ class PerformanceOptimizationTests(unittest.TestCase):
         self.assertEqual(by_id["web.state_payload"].risk, "high")
         self.assertEqual(by_id["frontend.state_decoder"].owner, "web/src/api/payloads.ts")
 
+    def test_all_runtime_llm_contracts_are_registered(self) -> None:
+        """回归：每个运行期实际调用 llm_output_token_budget 的契约 id 都必须注册，
+        否则 pipeline_spec 抛 KeyError 被上层 try/except 吞掉 → 永远静默走模板兜底
+        （历史 P0：edict_outcome/票拟此前空转；终局立传/季评/党争文案此前永远空）。"""
+        from ming_sim.pipeline_registry import pipeline_spec
+
+        # scheduler/edict_outcome/memorials worker one-shot：契约 id = f"llm.{agent_id}"
+        worker_agent_ids = (
+            "edict-outcome", "settle-memorial", "anomaly-memorial",
+            "piaoni-writer", "faction-strategist",
+        )
+        # shibi 同步调用用下划线 budget_key
+        sync_budget_keys = ("llm.shibi_biography", "llm.shibi_quarterly")
+        for agent_id in worker_agent_ids:
+            pipeline_spec(f"llm.{agent_id}")  # raises if unregistered
+        for budget_key in sync_budget_keys:
+            pipeline_spec(budget_key)
+
     def test_pipeline_registry_controls_llm_role_and_token_budgets(self) -> None:
         cfg = LLMConfig(
             api_key="test",

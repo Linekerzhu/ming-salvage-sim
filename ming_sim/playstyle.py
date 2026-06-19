@@ -38,6 +38,7 @@ _KIND_PRIORITY = {
     "legacy": 11,
     "army": 12,
     "faction": 13,
+    "eunuch": 13,
     "agenda": 14,
     "rivalry": 15,
     "hook": 16,
@@ -58,6 +59,7 @@ _KIND_LABELS = {
     "legacy": "余波",
     "army": "军镇",
     "faction": "派系",
+    "eunuch": "内廷",
     "agenda": "私图",
     "rivalry": "怨隙",
     "hook": "把柄",
@@ -108,6 +110,7 @@ _CARD_MOTIVES = {
     "legacy": "旧政求善后",
     "army": "军镇来要价",
     "faction": "派系求名分",
+    "eunuch": "权阉之势待权衡",
     "agenda": "私图可交易",
     "rivalry": "旧怨求边界",
     "hook": "把柄可试探",
@@ -1962,6 +1965,7 @@ def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[
     _rivalry_cards(db, cards)
     _army_cards(db, cards)
     _faction_cards(db, cards)
+    _eunuch_cards(db, state, cards)
     _secret_cards(db, cards)
     return cards
 
@@ -2171,6 +2175,11 @@ def _card_stakes(kind: str) -> List[Dict[str, str]]:
             ("cost", "党势坐大", "bad"),
             ("ask", "限期交账", "neutral"),
         ],
+        "eunuch": [
+            ("gain", "解壅塞·得耳目", "good"),
+            ("cost", "纵之坐大", "bad"),
+            ("ask", "倚阉或亲政", "neutral"),
+        ],
         "agenda": [
             ("gain", "借私图办事", "good"),
             ("cost", "权势坐大", "bad"),
@@ -2232,6 +2241,51 @@ def _card(
     if stake_items:
         card["stakes"] = stake_items
     return card
+
+
+def _eunuch_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard]) -> None:
+    """权阉之势的中段张力卡：让「倚阉得用 ↔ 抑阉防坐大」成为可反复权衡的活选择，
+    而非只在 ≥75 弹一次「阉祸危机」抉择。仅在中段 45–74 提醒（低则不足虑、≥75 走抉择）。"""
+    try:
+        from ming_sim.eunuch_power import (
+            get_eunuch_power, is_daipihong_on, daipihong_keeper, keeper_disposition)
+    except Exception:
+        return
+    try:
+        power = int(get_eunuch_power(db))
+    except Exception:
+        return
+    if power < 45 or power >= 75:
+        return
+    on = bool(is_daipihong_on(db))
+    keeper = daipihong_keeper(db) if on else ""
+    upright = (keeper_disposition(db, keeper) == "upright") if keeper else False
+    if on and not upright:
+        detail = (f"权阉之势已炽（{power}）。代批红假手{keeper}，奏壅虽解，然此辈藉势植党、"
+                  "劾己之章入手即销。收回批红可抑其势，御案壅塞却复来——倚之得用、抑之失耳目，在陛下权衡。")
+        tone, urgency = "warn", 56 + (power - 45)
+    elif on and upright:
+        detail = (f"权阉之势中平（{power}）。代批红托于忠谨之{keeper}，章奏据实呈览，暂无坐大之虞；"
+                  "然权柄假于内臣终非长策，宜留意其势消长。")
+        tone, urgency = "info", 46
+    else:
+        detail = (f"权阉之势渐起（{power}）。东厂厂卫可为耳目、令掌印代批红可解御案壅塞，然纵之则养虎自遗患；"
+                  "亲裁则劳形而百官畏服。倚阉与亲政，权在陛下一念。")
+        tone, urgency = "info", 50 + (power - 45) // 2
+    cards.append(_card(
+        kind="eunuch",
+        title=f"权阉之势 {power}：倚之抑之",
+        detail=detail,
+        urgency=urgency,
+        tone=tone,
+        cta="赴御案权衡代批红",
+        tab="desk",
+        meta=f"权阉{power}",
+        ref_kind="eunuch_power", ref_id="",
+        deal={"ask": "求陛下定倚阉之策",
+              "exchange": "倚之则代批红解壅塞、厂卫供耳目；抑之则亲裁防坐大",
+              "refusal": "纵之坐大终成阉祸，骤抑则失内助、御案复壅"},
+    ))
 
 
 def _card_contract(kind: str, stakes: List[Dict[str, str]], deal: Optional[Dict[str, str]] = None) -> Dict[str, str]:

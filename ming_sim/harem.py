@@ -18,6 +18,43 @@ from ming_sim.models import GameState
 _REAL = lambda f: bool(f) and f not in ("无", "中立")  # noqa: E731
 
 
+def seed_starting_consort(db: GameDB) -> None:
+    """开局即在场的中宫皇后（周皇后，崇祯发妻），令后宫从第一天起就有「演员」——
+    枕边风/进谗/争宠/对食皆有所附丽（pillar ③ 自始可玩，而非纳妃后才活）。幂等。
+    周皇后史载贤德端正：integrity 高、faction=中宫（不党），故开局只是「活着的后宫」，
+    要起波澜仍须玩家纳入有党之妃或权阉对食——史实上她正是清流一脉、与阉党不睦。"""
+    from ming_sim.models import Character
+
+    exists = db.conn.execute(
+        "SELECT 1 FROM characters WHERE name=? LIMIT 1", ("周皇后",)
+    ).fetchone()
+    if exists is not None:
+        return
+    # 已有任一在场后宫则不强加（玩家自纳的局也算有演员）
+    any_active = db.conn.execute(
+        "SELECT 1 FROM characters WHERE office_type='后宫' AND status='active' "
+        "AND power_id='ming' LIMIT 1"
+    ).fetchone()
+    if any_active is not None:
+        return
+    empress = Character(
+        name="周皇后",
+        office="皇后",
+        office_type="后宫",
+        faction="中宫",
+        aliases=["周后", "中宫"],
+        personal_skills=["端淑", "勤俭", "明大体"],
+        loyalty=92, ability=58, integrity=88, courage=60,
+        style="端庄贤淑，俭素自持，每以民艰、外戚干政为忧，与阉党不相能。",
+        power_id="ming",
+        status="active",
+        summary="崇祯发妻，苏州人。性严慎，常规谏皇帝、远小人；母仪天下而不预外政，唯于阉宦干纪、外戚骄纵处必争。",
+        rank="皇后", rank_category="harem",
+        charm=78, wisdom=66, luck=55, birth_year=1611,
+    )
+    db.add_character(db.load_state(), empress, source="开局中宫")
+
+
 def active_consorts(db: GameDB) -> List[Dict[str, object]]:
     rows = db.conn.execute(
         "SELECT name, faction, charm, ability FROM characters "

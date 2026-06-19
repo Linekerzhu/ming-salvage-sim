@@ -1,6 +1,6 @@
 {
   "_comment": "财政科目目录（数据驱动）。base/rate 单位＝月度万两/%，全盘按月。改默认值改本文件并升 db.py 的 FISCAL_SCHEMA_VERSION。budget_role: fixed=由 flows.compute_budget_lines 遍历按 base×rate 直接落账；dynamic=走省级 calc_province_fiscal / 皇庄专路，不在遍历目录里（base/rate 仍供省级公式与系数调节）。account/direction/display 仅 fixed 项用于生成 budget 行。order 控制预算表展示顺序。",
-  "schema_version": 7,
+  "schema_version": 8,
   "items": [
     {"key": "田赋_rate",     "value": 68,  "kind": "rate", "budget_role": "dynamic", "note": "各省田赋实收率%，账面×此率/100。可升至 85（查隐田+清丈）"},
     {"key": "辽饷_base",     "value": 43,  "kind": "base", "budget_role": "dynamic", "note": "辽东加派月额，万两"},
@@ -31,6 +31,8 @@
     {"key": "内廷俸_base",   "value": 5,   "kind": "base", "budget_role": "fixed", "account": "内库", "direction": "expense", "display": "内廷俸禄", "order": 210, "note": "太监宫女俸禄月额，万两"},
     {"key": "内廷俸_rate",   "value": 100, "kind": "rate", "budget_role": "fixed", "note": "内廷俸禄率%"},
     {"key": "妃嫔_base",     "value": 3,   "kind": "base", "budget_role": "fixed", "account": "内库", "direction": "expense", "display": "妃嫔供奉", "order": 220, "note": "后宫妃嫔月度供奉，万两"},
-    {"key": "妃嫔_rate",     "value": 100, "kind": "rate", "budget_role": "fixed", "note": "妃嫔供奉率%"}
+    {"key": "妃嫔_rate",     "value": 100, "kind": "rate", "budget_role": "fixed", "note": "妃嫔供奉率%"},
+    {"key": "恩赏_base",     "value": 12,  "kind": "base", "budget_role": "fixed", "account": "内库", "direction": "expense", "display": "恩赏赍予", "order": 230, "note": "内帑赏赍宗藩勋戚近侍月额，万两（内帑常例花销，使内库不致无限堆积）"},
+    {"key": "恩赏_rate",     "value": 100, "kind": "rate", "budget_role": "fixed", "note": "恩赏发放率%"}
   ]
 }

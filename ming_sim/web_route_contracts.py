@@ -122,6 +122,7 @@ EXCLUDED_WEB_PAYLOAD_ROUTES: Dict[str, str] = {
     "/api/intrigue/fabricate": "Fabricate charges to jail a target; intrigue-owned mutation.",
     "/api/intrigue/discord": "Sow discord between two ministers; intrigue-owned mutation.",
     "/api/frontier/supervisor": "Dispatch/recall a eunuch army-supervisor; frontier-owned mutation.",
+    "/api/treasury/privy_relief": "Release privy-purse funds to the treasury/army arrears; flows-owned mutation.",
     "/api/court/{character_name}": "Living-court relations/agenda panel; court-owned payload.",
     "/api/decision": "Pending decision-event prompt; court-events-owned payload.",
     "/api/decision/resolve": "Decision-event resolution mutation; court-events-owned payload.",

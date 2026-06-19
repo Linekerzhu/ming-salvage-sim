@@ -8537,6 +8537,22 @@ def _settlement_guard(game: "WebGame"):
         lock.release()
 
 
+def _guarded(handler):
+    """把一个 async 写路由放进 _settlement_guard：结算进行中即 409。
+    用 functools.wraps 保留原签名（inspect.signature 跟随 __wrapped__），
+    FastAPI 仍能解析 body 形参。用于宫斗/边事/内廷/诏旨/后宫等会改 state+落库的路由——
+    这些路由此前漏挂结算锁，与 /api/time/advance 的 drain 并发会丢更新/重复落账。"""
+    import functools as _functools
+
+    @_functools.wraps(handler)
+    async def _wrapper(*args, **kwargs):
+        game = get_game()
+        with _settlement_guard(game):
+            return await handler(*args, **kwargs)
+
+    return _wrapper
+
+
 def _response_with_state(game: WebGame, payload: Dict[str, Any], *, route: str = "", method: str = "") -> Dict[str, Any]:
     out = attach_state_payload(payload, game.state_payload())
     if route:
@@ -8572,24 +8588,28 @@ async def api_add_custom_institution(body: CustomInstitutionRequest) -> Dict[str
 
 
 @app.post("/api/recruitment/exam")
+@_guarded
 async def api_recruit_exam() -> Dict[str, Any]:
     game = get_game()
     return _response_with_state(game, game.recruit_exam_official(), route="/api/recruitment/exam")
 
 
 @app.post("/api/recruitment/eunuch")
+@_guarded
 async def api_recruit_eunuch() -> Dict[str, Any]:
     game = get_game()
     return _response_with_state(game, game.recruit_eunuch(), route="/api/recruitment/eunuch")
 
 
 @app.post("/api/recruitment/recommend")
+@_guarded
 async def api_recommend_hidden() -> Dict[str, Any]:
     game = get_game()
     return _response_with_state(game, game.recommend_hidden_official(), route="/api/recruitment/recommend")
 
 
 @app.post("/api/recruitment/castrate")
+@_guarded
 async def api_castrate_official(body: CastrateRequest) -> Dict[str, Any]:
     game = get_game()
     return _response_with_state(
@@ -8600,6 +8620,7 @@ async def api_castrate_official(body: CastrateRequest) -> Dict[str, Any]:
 
 
 @app.post("/api/recruitment/emancipate")
+@_guarded
 async def api_emancipate_eunuch(body: CastrateRequest) -> Dict[str, Any]:
     game = get_game()
     return _response_with_state(
@@ -8862,6 +8883,7 @@ async def api_eunuch_candidates() -> Dict[str, Any]:
 
 
 @app.post("/api/eunuch/replace")
+@_guarded
 async def api_eunuch_replace(body: Dict[str, Any]) -> Dict[str, Any]:
     """换随侍太监。"""
     from ming_sim.eunuch import set_attending_eunuch
@@ -8886,6 +8908,7 @@ async def api_daipihong_status() -> Dict[str, Any]:
 
 
 @app.post("/api/eunuch/daipihong")
+@_guarded
 async def api_daipihong_toggle(body: Dict[str, Any]) -> Dict[str, Any]:
     """开/罢代批红，可同时改委任者（keeper）。善恶由委任者品性决定：
     委忠谨内臣＝据实拟行、弹章呈御览；委权阉＝留中劾阉、阉党自固。"""
@@ -8908,6 +8931,7 @@ async def api_daipihong_toggle(body: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @app.post("/api/intrigue/investigate")
+@_guarded
 async def api_intrigue_investigate(body: Dict[str, Any]) -> Dict[str, Any]:
     """令东厂侦缉某人，发掘把柄密呈御前（宫斗阴谋 P1）。"""
     from ming_sim.intrigue import investigate
@@ -8923,6 +8947,7 @@ async def api_intrigue_investigate(body: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @app.post("/api/intrigue/coerce")
+@_guarded
 async def api_intrigue_coerce(body: Dict[str, Any]) -> Dict[str, Any]:
     """凭已握把柄挟制其人：submit 输诚归附 / retire 逼令致仕 / serve 胁迫听用（宫斗阴谋 P1）。"""
     from ming_sim.intrigue import coerce_with_secret
@@ -8941,6 +8966,7 @@ async def api_intrigue_coerce(body: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @app.post("/api/intrigue/fabricate")
+@_guarded
 async def api_intrigue_fabricate(body: Dict[str, Any]) -> Dict[str, Any]:
     """罗织罪名构陷某人下诏狱（宫斗阴谋 P2）：清誉高难陷、陷则易暴露反噬。"""
     from ming_sim.intrigue import fabricate
@@ -8956,6 +8982,7 @@ async def api_intrigue_fabricate(body: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @app.post("/api/frontier/supervisor")
+@_guarded
 async def api_frontier_supervisor(body: Dict[str, Any]) -> Dict[str, Any]:
     """遣/撤监军太监（E4）：{army_id, eunuch} 派监军；{army_id, recall:true} 撤监军。
     eunuch 省略则遣东厂提督/任一在朝宦官。"""
@@ -8986,7 +9013,46 @@ async def api_frontier_supervisor(body: Dict[str, Any]) -> Dict[str, Any]:
     return res
 
 
+@app.get("/api/treasury/privy_relief")
+async def api_privy_relief_status() -> Dict[str, Any]:
+    """内帑助饷现状：内库余额 + 全军欠饷总额（供前端给出建议发帑额）。"""
+    game = get_game()
+    nei = int(game.state.metrics.get("内库", 0))
+    row = game.db.conn.execute(
+        "SELECT COALESCE(SUM(arrears),0) AS a FROM armies WHERE owner_power='ming' AND arrears>0"
+    ).fetchone()
+    arrears_total = int((row and row["a"]) or 0)
+    return {"nei_ku": nei, "guo_ku": int(game.state.metrics.get("国库", 0)),
+            "arrears_total": arrears_total,
+            "suggested": min(nei, arrears_total) if arrears_total else min(nei, 50)}
+
+
+@app.post("/api/treasury/privy_relief")
+@_guarded
+async def api_privy_relief(body: Dict[str, Any]) -> Dict[str, Any]:
+    """发内帑助饷（内库→国库/清边军欠饷）。{amount} 万两；省略则按欠饷总额。"""
+    from ming_sim.flows import release_privy_funds
+    from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
+    game = get_game()
+    payload = body or {}
+    nei = int(game.state.metrics.get("内库", 0))
+    if payload.get("amount") is not None:
+        amount = max(0, int(payload.get("amount") or 0))
+    else:
+        row = game.db.conn.execute(
+            "SELECT COALESCE(SUM(arrears),0) AS a FROM armies WHERE owner_power='ming' AND arrears>0"
+        ).fetchone()
+        amount = min(nei, int((row and row["a"]) or 0)) or min(nei, 50)
+    res = release_privy_funds(game.db, game.state, amount, kv_int(game.db, KV_CURRENT_DAY, 0))
+    if not res.get("ok"):
+        raise HTTPException(status_code=400, detail=str(res.get("message")))
+    res["nei_ku"] = int(game.state.metrics.get("内库", 0))
+    res["guo_ku"] = int(game.state.metrics.get("国库", 0))
+    return res
+
+
 @app.post("/api/intrigue/discord")
+@_guarded
 async def api_intrigue_discord(body: Dict[str, Any]) -> Dict[str, Any]:
     """离间二人（宫斗阴谋 P2）：挑其相疑；笃实忠正者识破、反损君威。"""
     from ming_sim.intrigue import sow_discord
@@ -9078,6 +9144,7 @@ async def api_chat_stream(minister_name: str, request: ChatRequest) -> Streaming
 
 
 @app.post("/api/directives")
+@_guarded
 async def api_create_directive(request: DirectiveRequest) -> Dict[str, Any]:
     if not request.text.strip():
         raise HTTPException(status_code=400, detail="指令内容不能为空。")
@@ -9093,6 +9160,7 @@ async def api_create_directive(request: DirectiveRequest) -> Dict[str, Any]:
 
 
 @app.patch("/api/directives/{directive_id}")
+@_guarded
 async def api_update_directive(directive_id: int, request: DirectivePatch) -> Dict[str, Any]:
     game = get_game()
     rows = game.directive_rows()
@@ -9115,6 +9183,7 @@ async def api_update_directive(directive_id: int, request: DirectivePatch) -> Di
 
 
 @app.delete("/api/directives/{directive_id}")
+@_guarded
 async def api_delete_directive(directive_id: int) -> Dict[str, Any]:
     game = get_game()
     try:
@@ -9130,6 +9199,7 @@ async def api_delete_directive(directive_id: int) -> Dict[str, Any]:
 
 
 @app.post("/api/directives/{directive_id}/confirm")
+@_guarded
 async def api_confirm_directive(directive_id: int) -> Dict[str, Any]:
     """大臣拟旨经皇帝核定：pending → draft。"""
     game = get_game()
@@ -9148,6 +9218,7 @@ async def api_confirm_directive(directive_id: int) -> Dict[str, Any]:
 
 
 @app.post("/api/directives/{directive_id}/reject")
+@_guarded
 async def api_reject_directive(directive_id: int) -> Dict[str, Any]:
     """皇帝驳回大臣拟旨：pending → rejected。"""
     game = get_game()
@@ -9325,6 +9396,7 @@ async def api_consort_candidates() -> Dict[str, Any]:
 
 
 @app.post("/api/consorts/{name}/select")
+@_guarded
 async def api_select_consort(name: str) -> Dict[str, Any]:
     """皇帝选中某秀女，转 active 并赋予初始位份。"""
     game = get_game()
@@ -9349,6 +9421,7 @@ async def api_select_consort(name: str) -> Dict[str, Any]:
 
 
 @app.post("/api/consorts/{name}/action")
+@_guarded
 async def api_consort_action(name: str, body: ConsortActionRequest) -> Dict[str, Any]:
     game = get_game()
     return _response_with_state(

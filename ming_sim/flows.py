@@ -184,6 +184,75 @@ def compute_budget_lines(db: GameDB, state: GameState) -> Dict[str, Dict[str, li
     return budget
 
 
+def release_privy_funds(db: GameDB, state: GameState, amount: int, day: int = 0) -> Dict[str, object]:
+    """内帑助饷：发内库（私帑）补太仓、清边军欠饷。崇祯朝最揪心的道德抉择——
+    天子的私房钱 vs 空空如也的太仓与欠饷哗变的边军。发帑则军心民心一振、
+    君父以身作则示天下以诚；然私帑日削，再无急变之储（内库无界堆积的去处）。
+
+    机制：内库→国库，所拨之银优先清欠饷最重之军（清欠即涨士气），余银留太仓。
+    返回 {ok, moved, arrears_cleared, message, effects}。"""
+    from ming_sim.upgrade_schema import KV_RISK_AVERSION, KV_SHI, adjust_belief
+
+    amount = max(0, int(amount))
+    nei = int(state.metrics.get("内库", 0))
+    moved = min(amount, nei)
+    if moved <= 0:
+        return {"ok": False, "message": "内库空乏，无帑可发。", "moved": 0}
+
+    # 内库 → 国库（私帑入太仓）
+    db.record_issue_economy_move(state, "内库", -moved, "内帑助饷", "发内帑助军饷", apply_legacy=False)
+    db.record_issue_economy_move(state, "国库", +moved, "内帑助饷", "内帑拨补太仓", apply_legacy=False)
+
+    # 以助饷优先清欠饷最重之军（边军先），清欠即振士气
+    relief = moved
+    arrears_cleared = 0
+    relieved_names: List[str] = []
+    rows = db.conn.execute(
+        "SELECT id, name, arrears, morale FROM armies "
+        "WHERE owner_power='ming' AND arrears>0 ORDER BY arrears DESC"
+    ).fetchall()
+    for r in rows:
+        if relief <= 0:
+            break
+        pay = min(relief, int(r["arrears"]))
+        if pay <= 0:
+            continue
+        new_arr = int(r["arrears"]) - pay
+        new_mor = min(100, int(r["morale"]) + max(1, round(pay / 8)))
+        db.conn.execute("UPDATE armies SET arrears=?, morale=? WHERE id=?",
+                        (new_arr, new_mor, r["id"]))
+        db.record_issue_economy_move(state, "国库", -pay, "内帑助饷",
+                                     f"内帑清{r['name']}欠饷", apply_legacy=False)
+        relief -= pay
+        arrears_cleared += pay
+        relieved_names.append(str(r["name"]))
+
+    # 信念：军食足、君恩浩荡 → 民心/势小涨、任事略振（君父担当）
+    minxin_gain = min(5, 1 + arrears_cleared // 20)
+    before_mx = int(state.metrics.get("民心", 50))
+    state.metrics["民心"] = max(0, min(100, before_mx + minxin_gain))
+    shi_gain = min(3, 1 + arrears_cleared // 40)
+    adjust_belief(db, KV_SHI, shi_gain, "内帑助饷（示天下以诚、军心归）", day=day)
+    adjust_belief(db, KV_RISK_AVERSION, -1, "内帑助饷（君父担当励任事）", day=day)
+    db.save_state(state)
+
+    if arrears_cleared > 0:
+        msg = (f"发内帑 {moved} 万两助饷：清{('、'.join(relieved_names[:3]))}"
+               f"等军欠饷 {arrears_cleared} 万两，军心一振；余银归太仓。私帑由此日削。")
+    else:
+        msg = f"发内帑 {moved} 万两入太仓济用。私帑日削，然太仓稍宽。"
+    effects = [
+        {"kind": "treasury", "label": f"内库 -{moved}", "tone": "bad"},
+        {"kind": "treasury", "label": f"国库 +{moved - arrears_cleared}", "tone": "good"},
+        {"kind": "belief", "label": f"民心 +{minxin_gain}", "tone": "good"},
+        {"kind": "belief", "label": f"势 +{shi_gain}", "tone": "good"},
+    ]
+    if arrears_cleared > 0:
+        effects.insert(1, {"kind": "army", "label": f"清欠饷 {arrears_cleared} 万两·士气↑", "tone": "good"})
+    return {"ok": True, "moved": moved, "arrears_cleared": arrears_cleared,
+            "message": msg, "effects": effects}
+
+
 ISSUE_METRIC_KEYS = {"民心", "皇威"}
 ISSUE_METRIC_LOCK_CAPS = {
     "民心": 8, "皇威": 5,

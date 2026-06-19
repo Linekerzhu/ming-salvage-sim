@@ -167,6 +167,27 @@ def _minxin_drift_to_baseline(db: GameDB, state: GameState, day: int) -> None:
         pass
 
 
+def _huangwei_drift_to_baseline(db: GameDB, state: GameState, day: int) -> None:
+    """皇威每月向「威权基线」缓慢回归，打破「廷杖/午门献俘单向棘轮到 100」。
+    皇威是君主威权的外显，本应随真实君威（势）涨落：势盛则威自加、势衰则威渐损；
+    廷杖/献俘等仍可即时拔高皇威，但无新武功/威权之举则缓缓回落，
+    使皇威成为反映君威消长的活信号，而非一路冲顶钉死 100 的死变量（与民心/势同理）。"""
+    try:
+        from ming_sim.upgrade_schema import KV_SHI, SHI_DEFAULT
+        shi = kv_int(db, KV_SHI, SHI_DEFAULT)
+        # 基线：中性威权 42，随君威（势）高低浮动，夹在 [15, 80]。
+        baseline = 42.0 + (shi - SHI_DEFAULT) * 0.35
+        baseline = max(15.0, min(80.0, baseline))
+        cur = int(state.metrics.get("皇威", 50))
+        gap = baseline - cur
+        if abs(gap) >= 1:
+            step = max(1, round(abs(gap) * 0.12)) * (1 if gap > 0 else -1)
+            state.metrics["皇威"] = max(0, min(100, cur + step))
+            db.save_state(state)
+    except Exception:
+        pass
+
+
 def _ensure_month_open(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:
     """开月：军饷/建筑整月结算 + 月初余额 + 当月通用定额缓存。幂等（按 turn 去重）。"""
     if kv_int(db, KV_MONTH_OPENED_TURN, 0) == state.turn:
@@ -243,6 +264,10 @@ def _ensure_month_open(db: GameDB, state: GameState, day: int) -> List[Dict[str,
     # 现每月向一个由真实民生信号（仓储赤字·地方动乱·边军欠饷）驱动的基线缓慢漂移——
     # 太平则民心自高、苛政灾荒则民心渐离，使其反映苦乐而非一路冲顶。
     _minxin_drift_to_baseline(db, state, day)
+    # 皇威向「威权基线」回归：原本只被廷杖/午门献俘/建筑产出单向推高 → 棘轮钉死 100。
+    # 现每月向一个由真实君威（势）驱动的基线缓慢漂移——势盛威自加、势衰威渐损，
+    # 使其反映君威消长而非一路冲顶失去信号。
+    _huangwei_drift_to_baseline(db, state, day)
 
     # 兵额账实分离播种（S3，幂等）：兵部账面 vs 实在兵
     try:

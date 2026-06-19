@@ -964,9 +964,33 @@ def tick_directives(db: GameDB, state: GameState, day: int) -> List[Dict[str, ob
             continue
 
         if status == "stalled":
-            # 封驳搁置：每旬皇威折损（诏令不行）
+            # 封驳搁置：诏令不行损君威，但伤害前置且封顶——一次封驳的累计折势不
+            # 超过 收回成命(−3)；君威损伤应是「一次冲击」而非「永久滴血」。
+            # 且搁置逾月仍无人接办（催办/换人/收回均未至）则自动作罢，
+            # 既止血又清出超期积压（headless 下原本永久拖拽势→棘轮到吸收态）。
+            try:
+                stall_meta = json.loads(row["anomaly"] or "{}")
+            except (ValueError, TypeError):
+                stall_meta = {}
+            exec_days_s = max(1, int(row["exec_days"]))
+            stall_age = day - start_day - lead - exec_days_s
+            if stall_age > 30:
+                db.conn.execute(
+                    "UPDATE turn_directives SET lifecycle_status='aborted', anomaly='' WHERE id=?",
+                    (did,))
+                title_text = str(row["text"] or "")[:24]
+                events.append({"level": LEVEL_YELLOW, "kind": "directive_aborted",
+                               "title": f"〔{title_text}〕久搁自罢",
+                               "detail": "封驳搁置经月无人接办，诏命形同具文，已自行作罢。",
+                               "ref_kind": "directive", "ref_id": str(did), "day": day})
+                continue
             if (day - start_day) % 10 == 0:
-                adjust_belief(db, KV_SHI, -1, f"旨意#{did}遭封驳搁置", day=day)
+                bled = int(stall_meta.get("shi_bled", 0))
+                if bled < 3:
+                    adjust_belief(db, KV_SHI, -1, f"旨意#{did}遭封驳搁置", day=day)
+                    stall_meta["shi_bled"] = bled + 1
+                    db.conn.execute("UPDATE turn_directives SET anomaly=? WHERE id=?",
+                                    (json.dumps(stall_meta, ensure_ascii=False), did))
             continue
 
         # executing：按「剩余进度/剩余天数」自校正推进——
