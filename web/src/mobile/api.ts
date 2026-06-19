@@ -263,6 +263,8 @@ export type StatecraftCenterPayload = Record<string, any> & {
   topbar?: any[];
   economy_lanes?: any[];
   capacity_rows?: any[];
+  bureaucracy_lanes?: any[];
+  directive_queue_rows?: any[];
   building_capacity_rows?: any[];
   bureaucracy_rows?: any[];
   bottlenecks?: any[];

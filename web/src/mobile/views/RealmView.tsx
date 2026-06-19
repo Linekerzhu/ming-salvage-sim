@@ -183,9 +183,14 @@ function StatecraftBoard({ center }: { center: any }) {
   const topbar = Array.isArray(center?.topbar) ? center.topbar : [];
   const lanes = Array.isArray(center?.economy_lanes) ? center.economy_lanes : [];
   const capacities = Array.isArray(center?.capacity_rows) ? center.capacity_rows : [];
+  const bureaucracyLanes = Array.isArray(center?.bureaucracy_lanes) ? center.bureaucracy_lanes : [];
+  const queueRows = Array.isArray(center?.directive_queue_rows) ? center.directive_queue_rows : [];
   const bottlenecks = Array.isArray(center?.bottlenecks) ? center.bottlenecks : [];
   const shownTop = topbar.slice(0, 5);
   const coreCapacities = capacities
+    .filter((row: any) => ["fiscal", "military", "construction", "local", "personnel", "procedure", "inner", "investigation"].includes(String(row.domain || "")))
+    .slice(0, 8);
+  const coreBureaucracyLanes = bureaucracyLanes
     .filter((row: any) => ["fiscal", "military", "construction", "local", "personnel", "procedure", "inner", "investigation"].includes(String(row.domain || "")))
     .slice(0, 8);
   const tagClass = (tone: any) => tone === "danger" ? "danger" : tone === "warn" ? "warn" : "";
@@ -221,6 +226,28 @@ function StatecraftBoard({ center }: { center: any }) {
         </ul>
       </div>
       <div className="m-policy-subpanel">
+        <h3>旨意生产线 <span>{queueRows.length}</span></h3>
+        {queueRows.length === 0 ? (
+          <p className="m-empty">暂无在办旨意占用国家机器。</p>
+        ) : (
+          <ul className="m-rowlist">
+            {queueRows.slice(0, 6).map((item: any) => (
+              <li key={`queue-${item.id}`} className="m-row">
+                <span className="m-row-name">{item.title || item.text}</span>
+                <span className={`m-row-tag ${tagClass(item.tone)}`}>{item.status_label || item.status} {Number(item.progress || 0)}%</span>
+                <span className="m-row-sub">
+                  {item.assignee ? `${item.assignee} · ` : ""}{(item.domains || []).join(" / ")} · 产能 {Number(item.capacity_score || 0)}
+                  {Number(item.remaining_days || 0) > 0 ? ` · 约${item.remaining_days}日` : ""}
+                </span>
+                {(item.constrained_by || []).slice(0, 2).map((line: any, idx: number) => (
+                  <span key={`queue-${item.id}-c-${idx}`} className="m-row-sub">卡点：{line}</span>
+                ))}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <div className="m-policy-subpanel">
         <h3>部门产能 <span>{coreCapacities.length}</span></h3>
         <ul className="m-rowlist">
           {coreCapacities.map((row: any) => (
@@ -231,6 +258,28 @@ function StatecraftBoard({ center }: { center: any }) {
               {(row.institutions || []).slice(0, 2).map((inst: any) => (
                 <span key={`${row.domain}-${inst.id || inst.name}`} className="m-row-sub">
                   {inst.name} 执行力 {Number(inst.readiness || 0)}{Number(inst.vacancy_count || 0) > 0 ? ` · 空缺 ${inst.vacancy_count}` : ""}
+                </span>
+              ))}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="m-policy-subpanel">
+        <h3>官僚泳道 <span>{coreBureaucracyLanes.length}</span></h3>
+        <ul className="m-rowlist">
+          {coreBureaucracyLanes.map((row: any) => (
+            <li key={`lane-${row.domain || row.label}`} className="m-row">
+              <span className="m-row-name">{row.label}</span>
+              <span className={`m-row-tag ${tagClass(row.tone)}`}>{row.load_status} · {Number(row.active_count || 0)} 线</span>
+              <span className="m-row-sub">{row.effect}</span>
+              {(row.active_directives || []).slice(0, 3).map((item: any) => (
+                <span key={`lane-${row.domain}-${item.id}`} className="m-row-sub">
+                  {item.title} · {item.status_label} {Number(item.progress || 0)}%
+                </span>
+              ))}
+              {(row.weak_institutions || []).slice(0, 2).map((inst: any) => (
+                <span key={`lane-${row.domain}-${inst.id || inst.name}`} className="m-row-sub">
+                  薄弱：{inst.name} 执行力 {Number(inst.readiness || 0)}{Number(inst.vacancy_count || 0) > 0 ? ` · 空缺 ${inst.vacancy_count}` : ""}
                 </span>
               ))}
             </li>

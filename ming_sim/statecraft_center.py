@@ -398,6 +398,170 @@ def _bureaucracy_rows(organization: Dict[str, Any]) -> List[Dict[str, Any]]:
     return rows
 
 
+def _current_day(db: GameDB) -> int:
+    try:
+        return int(db.kv_get("upgrade.current_day") or 0)
+    except Exception:
+        return 0
+
+
+def _directive_status_label(status: str) -> str:
+    return {
+        "in_transit": "传旨中",
+        "executing": "承办中",
+        "stalled": "停滞",
+        "done": "已复命",
+        "aborted": "已撤回",
+    }.get(status, status or "未定")
+
+
+def _directive_queue_rows(
+    db: GameDB,
+    statecraft_context: Mapping[str, Any],
+    *,
+    current_day: int,
+    limit: int = 30,
+) -> List[Dict[str, Any]]:
+    rows = db.conn.execute(
+        """
+        SELECT id, text, lifecycle_status, category, progress, start_day, eta_day, assignee
+        FROM turn_directives
+        WHERE lifecycle_status IN ('in_transit', 'executing', 'stalled')
+        ORDER BY
+          CASE lifecycle_status
+            WHEN 'stalled' THEN 0
+            WHEN 'executing' THEN 1
+            ELSE 2
+          END,
+          eta_day ASC,
+          id DESC
+        LIMIT ?
+        """,
+        (max(1, min(80, int(limit))),),
+    ).fetchall()
+    out: List[Dict[str, Any]] = []
+    for row in rows:
+        text = str(row["text"] or "")
+        status = str(row["lifecycle_status"] or "")
+        preflight = directive_statecraft_preflight(text, statecraft_context)
+        domains = [str(domain) for domain in preflight.get("domains") or []]
+        capacity_rows = [
+            item for item in preflight.get("capacity_rows") or []
+            if isinstance(item, Mapping)
+        ]
+        bottlenecks = [
+            item for item in preflight.get("bottlenecks") or []
+            if isinstance(item, Mapping)
+        ]
+        score = int(preflight.get("score") or 0)
+        if status == "stalled" or score < 45:
+            tone = "danger"
+        elif score < 62 or bottlenecks:
+            tone = "warn"
+        else:
+            tone = "neutral"
+        remaining_days = 0
+        eta_day = int(row["eta_day"] or 0)
+        if current_day and eta_day:
+            remaining_days = max(0, eta_day - current_day)
+        constrained_by = [
+            f"{item.get('label')} {item.get('status')} {int(item.get('score') or 0)}"
+            for item in capacity_rows
+            if int(item.get("score") or 0) < 62
+        ]
+        constrained_by.extend(str(item.get("title") or "") for item in bottlenecks)
+        out.append({
+            "id": int(row["id"]),
+            "text": text,
+            "title": text[:42] + ("…" if len(text) > 42 else ""),
+            "status": status,
+            "status_label": _directive_status_label(status),
+            "category": str(row["category"] or ""),
+            "progress": int(row["progress"] or 0),
+            "start_day": int(row["start_day"] or 0),
+            "eta_day": eta_day,
+            "remaining_days": remaining_days,
+            "assignee": str(row["assignee"] or ""),
+            "domains": domains,
+            "primary_domain": domains[0] if domains else "general",
+            "capacity_score": score,
+            "capacity_status": str(preflight.get("status") or ""),
+            "tone": tone,
+            "constrained_by": [item for item in constrained_by if item][:5],
+            "summary": str(preflight.get("summary") or ""),
+        })
+    return out
+
+
+def _bureaucracy_lanes(
+    capacities: List[Dict[str, Any]],
+    directive_rows: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    preferred = [
+        "fiscal",
+        "military",
+        "construction",
+        "local",
+        "personnel",
+        "procedure",
+        "investigation",
+        "inner",
+        "oversight",
+        "law",
+    ]
+    by_domain = {str(row.get("domain") or ""): row for row in capacities}
+    domains = [domain for domain in preferred if domain in by_domain]
+    domains.extend(sorted(domain for domain in by_domain if domain not in set(domains)))
+    out: List[Dict[str, Any]] = []
+    for domain in domains:
+        row = by_domain[domain]
+        active = [
+            item for item in directive_rows
+            if domain in {str(value) for value in item.get("domains") or []}
+        ]
+        score = int(row.get("score") or 0)
+        stalled = sum(1 for item in active if str(item.get("status") or "") == "stalled")
+        danger = sum(1 for item in active if str(item.get("tone") or "") == "danger")
+        if stalled or (active and score < 45):
+            load_status = "堵塞"
+            tone = "danger"
+        elif len(active) >= 3 and score < 62:
+            load_status = "过载"
+            tone = "warn"
+        elif active:
+            load_status = "运转"
+            tone = "warn" if score < 62 else "neutral"
+        else:
+            load_status = "空闲"
+            tone = row.get("tone") or "neutral"
+        out.append({
+            "domain": domain,
+            "label": str(row.get("label") or domain),
+            "score": score,
+            "status": str(row.get("status") or ""),
+            "load_status": load_status,
+            "tone": tone,
+            "active_count": len(active),
+            "stalled_count": stalled,
+            "danger_count": danger,
+            "effect": str(row.get("effect") or ""),
+            "weak_institutions": row.get("institutions") or [],
+            "active_directives": [
+                {
+                    "id": int(item.get("id") or 0),
+                    "title": str(item.get("title") or ""),
+                    "status_label": str(item.get("status_label") or ""),
+                    "progress": int(item.get("progress") or 0),
+                    "remaining_days": int(item.get("remaining_days") or 0),
+                    "tone": str(item.get("tone") or ""),
+                    "assignee": str(item.get("assignee") or ""),
+                }
+                for item in active[:4]
+            ],
+        })
+    return out
+
+
 def statecraft_center_payload(
     db: GameDB,
     state: GameState,
@@ -418,65 +582,77 @@ def statecraft_center_payload(
     if tax_income <= 0:
         tax_income = int((fiscal_payload.get("totals") or {}).get("province_dynamic_tax") or 0)
     state_expense = _sum_rows(expense_rows, account="国库")
-    court_expense = _sum_rows(expense_rows, account="内库")
     construction_output = sum(int(row.get("monthly_output") or 0) for row in building_rows)
     construction_maintenance = sum(int(row.get("maintenance") or 0) for row in building_rows)
     top_capacity = {str(row.get("domain")): row for row in capacities}
+    topbar = [
+        {"key": "treasury", "label": "国库", "value": int(guo.get("balance") or 0), "unit": "万两", "note": "朝廷公开财政库存"},
+        {"key": "privy", "label": "内库", "value": int(nei.get("balance") or 0), "unit": "万两", "note": "皇帝私帑库存"},
+        {"key": "treasury_net", "label": "国库月净", "value": int(guo.get("net") or 0), "unit": "万两/月", "note": "国库自然月流"},
+        {"key": "court_readiness", "label": "朝廷执行力", "value": int(organization_payload.get("court_readiness") or 0), "unit": "", "note": "官僚组织综合产能"},
+        {"key": "arrears", "label": "欠饷", "value": int((fiscal_payload.get("totals") or {}).get("army_arrears") or 0), "unit": "万两", "note": "军队后勤缺口"},
+    ]
+    economy_lanes = [
+        {
+            "id": "state_revenue",
+            "label": "国库税源",
+            "value": tax_income,
+            "unit": "万两/月",
+            "capacity_domain": "fiscal",
+            "capacity_score": int((top_capacity.get("fiscal") or {}).get("score") or 0),
+            "note": "田赋、辽饷、盐税、商税，经省份到账率折算。",
+        },
+        {
+            "id": "state_expense",
+            "label": "国库支出",
+            "value": state_expense,
+            "unit": "万两/月",
+            "capacity_domain": "fiscal",
+            "capacity_score": int((top_capacity.get("fiscal") or {}).get("score") or 0),
+            "note": "军饷、宗室、官俸、工部、赈灾、建筑维护。",
+        },
+        {
+            "id": "privy_flow",
+            "label": "内库收支",
+            "value": int(nei.get("net") or 0),
+            "unit": "万两/月",
+            "capacity_domain": "inner",
+            "capacity_score": int((top_capacity.get("inner") or {}).get("score") or 0),
+            "note": "皇庄、织造、矿税、宫廷和内廷常例开支。",
+        },
+        {
+            "id": "construction_assets",
+            "label": "营造资产",
+            "value": construction_output - construction_maintenance,
+            "unit": "万两/月",
+            "capacity_domain": "construction",
+            "capacity_score": int((top_capacity.get("construction") or {}).get("score") or 0),
+            "note": "建筑产出扣维护后的净贡献；状态差会形成修复压力。",
+        },
+    ]
+    bottlenecks = _bottlenecks(fiscal_payload, organization_payload, capacities, building_rows)
+    statecraft_context = {
+        "topbar": topbar,
+        "capacity_rows": capacities,
+        "bottlenecks": bottlenecks,
+    }
+    directive_rows = _directive_queue_rows(db, statecraft_context, current_day=_current_day(db))
+    bureaucracy_lanes = _bureaucracy_lanes(capacities, directive_rows)
     return {
         "model": {
             "reference": "Hearts of Iron-style state machine, translated to late-Ming politics.",
             "principle": "库存看现在能撑多久，月流看自然亏盈，产能看国家机器办事能力，瓶颈解释为什么命令会慢或变形。",
             "do_not_duplicate": "本中枢只聚合 FiscalCenter 与 organization_diagnostics，不另造经济或官僚状态表。",
+            "directive_queue": "在办旨意像 HoI 生产线：每条线占用财政、军政、营造、地方、程序等产能，并暴露当前瓶颈。",
         },
-        "topbar": [
-            {"key": "treasury", "label": "国库", "value": int(guo.get("balance") or 0), "unit": "万两", "note": "朝廷公开财政库存"},
-            {"key": "privy", "label": "内库", "value": int(nei.get("balance") or 0), "unit": "万两", "note": "皇帝私帑库存"},
-            {"key": "treasury_net", "label": "国库月净", "value": int(guo.get("net") or 0), "unit": "万两/月", "note": "国库自然月流"},
-            {"key": "court_readiness", "label": "朝廷执行力", "value": int(organization_payload.get("court_readiness") or 0), "unit": "", "note": "官僚组织综合产能"},
-            {"key": "arrears", "label": "欠饷", "value": int((fiscal_payload.get("totals") or {}).get("army_arrears") or 0), "unit": "万两", "note": "军队后勤缺口"},
-        ],
-        "economy_lanes": [
-            {
-                "id": "state_revenue",
-                "label": "国库税源",
-                "value": tax_income,
-                "unit": "万两/月",
-                "capacity_domain": "fiscal",
-                "capacity_score": int((top_capacity.get("fiscal") or {}).get("score") or 0),
-                "note": "田赋、辽饷、盐税、商税，经省份到账率折算。",
-            },
-            {
-                "id": "state_expense",
-                "label": "国库支出",
-                "value": state_expense,
-                "unit": "万两/月",
-                "capacity_domain": "fiscal",
-                "capacity_score": int((top_capacity.get("fiscal") or {}).get("score") or 0),
-                "note": "军饷、宗室、官俸、工部、赈灾、建筑维护。",
-            },
-            {
-                "id": "privy_flow",
-                "label": "内库收支",
-                "value": int(nei.get("net") or 0),
-                "unit": "万两/月",
-                "capacity_domain": "inner",
-                "capacity_score": int((top_capacity.get("inner") or {}).get("score") or 0),
-                "note": "皇庄、织造、矿税、宫廷和内廷常例开支。",
-            },
-            {
-                "id": "construction_assets",
-                "label": "营造资产",
-                "value": construction_output - construction_maintenance,
-                "unit": "万两/月",
-                "capacity_domain": "construction",
-                "capacity_score": int((top_capacity.get("construction") or {}).get("score") or 0),
-                "note": "建筑产出扣维护后的净贡献；状态差会形成修复压力。",
-            },
-        ],
+        "topbar": topbar,
+        "economy_lanes": economy_lanes,
         "capacity_rows": capacities,
+        "bureaucracy_lanes": bureaucracy_lanes,
+        "directive_queue_rows": directive_rows,
         "building_capacity_rows": building_rows,
         "bureaucracy_rows": _bureaucracy_rows(organization_payload),
-        "bottlenecks": _bottlenecks(fiscal_payload, organization_payload, capacities, building_rows),
+        "bottlenecks": bottlenecks,
         "source_links": {
             "fiscal": "/api/fiscal_center",
             "organizations": "/api/organizations",

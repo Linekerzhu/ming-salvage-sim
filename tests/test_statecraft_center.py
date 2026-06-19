@@ -57,6 +57,40 @@ class StatecraftCenterTests(unittest.TestCase):
             self.assertTrue(payload["building_capacity_rows"])
             self.assertTrue(all("title" in row and "detail" in row for row in payload["bottlenecks"]))
 
+    def test_statecraft_maps_active_directives_to_bureaucracy_lanes(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            cur = db.conn.execute(
+                """
+                INSERT INTO turn_directives
+                (turn, year, period, actor, text, source, status)
+                VALUES (?, ?, ?, ?, ?, 'unit-test', 'issued')
+                """,
+                (
+                    state.turn,
+                    state.year,
+                    state.period,
+                    "毕自严",
+                    "命户部清查辽饷积欠并拨银补发边军军饷",
+                ),
+            )
+            did = int(cur.lastrowid)
+            row = db.conn.execute("SELECT * FROM turn_directives WHERE id=?", (did,)).fetchone()
+            init_directive_lifecycles(db, state, [row], day=1)
+
+            payload = statecraft_center_payload(db, state)
+            queue = {int(row["id"]): row for row in payload["directive_queue_rows"]}
+            self.assertIn(did, queue)
+            self.assertIn("fiscal", queue[did]["domains"])
+            self.assertIn("military", queue[did]["domains"])
+            self.assertGreater(queue[did]["capacity_score"], 0)
+
+            lanes = {row["domain"]: row for row in payload["bureaucracy_lanes"]}
+            self.assertGreater(lanes["fiscal"]["active_count"], 0)
+            self.assertGreater(lanes["military"]["active_count"], 0)
+            self.assertTrue(any(item["id"] == did for item in lanes["fiscal"]["active_directives"]))
+            self.assertTrue(any(item["id"] == did for item in lanes["military"]["active_directives"]))
+
     def test_lifecycle_payload_includes_directive_statecraft_preflight(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)
