@@ -2113,31 +2113,7 @@ class WebGame:
         for row in self.db.list_active_issues():
             policy_doctrine: Optional[Dict[str, Any]] = None
             if doctrine_policies is not None and str(row["origin_kind"] or "") == "doctrine":
-                doctrine_id = str(row["origin_ref"] or "")
-                doctrine = doctrine_policies.doctrine_by_id(doctrine_id) or {}
-                if doctrine:
-                    alignment = doctrine_policies.doctrine_alignment_summary(self.db, doctrine_id)
-                    active = doctrine_policies.active_doctrine_legacies(self.db)
-                    active_conflicts = []
-                    for conflict_id in doctrine.get("conflicts") or []:
-                        conflict = active.get(str(conflict_id))
-                        if conflict:
-                            active_conflicts.append({
-                                "id": str(conflict_id),
-                                "name": str(conflict.get("name") or conflict_id),
-                            })
-                    policy_doctrine = {
-                        "id": doctrine_id,
-                        "name": str(doctrine.get("name") or doctrine_id),
-                        "axis": str(doctrine.get("axis") or ""),
-                        "level": str(doctrine.get("level") or "basic"),
-                        "bar_value": int(row["bar_value"]),
-                        "phase": str(row["phase"] or ""),
-                        "summary": str(doctrine.get("summary") or ""),
-                        "active_conflicts": active_conflicts,
-                        "factions": alignment.get("factions") or [],
-                        "figures": alignment.get("figures") or [],
-                    }
+                policy_doctrine = doctrine_policies.doctrine_issue_payload(self.db, row)
             item = {
                 "id": int(row["id"]),
                 "kind": row["kind"],

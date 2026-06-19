@@ -93,6 +93,9 @@ function DoctrineIssueStrip({ doctrine }: { doctrine: any }) {
   const factions = Array.isArray(doctrine.factions) ? doctrine.factions.slice(0, 3) : [];
   const figures = Array.isArray(doctrine.figures) ? doctrine.figures.slice(0, 2) : [];
   const conflicts = Array.isArray(doctrine.active_conflicts) ? doctrine.active_conflicts : [];
+  const stateLabel = String(doctrine.state_label || "").trim();
+  const reformReady = !!doctrine.reform_ready;
+  const reformHint = String(doctrine.reform_hint || "").trim();
   const toneFor = (stance: string) => stance === "support" ? "good" : stance === "oppose" ? "bad" : "neutral";
   const stanceWord = (stance: string) => stance === "support" ? "赞" : stance === "oppose" ? "阻" : "观望";
   return (
@@ -100,6 +103,7 @@ function DoctrineIssueStrip({ doctrine }: { doctrine: any }) {
       <span className="m-outcome-chip">路线 {doctrine.name || doctrine.id}</span>
       {doctrine.axis && <span className="m-outcome-chip">轴 {doctrine.axis}</span>}
       {doctrine.bar_value != null && <span className="m-outcome-chip">正统 {Number(doctrine.bar_value)}/100</span>}
+      {stateLabel && <span className={`m-outcome-chip tone-${reformReady ? "good" : doctrine.establishment_blocked ? "bad" : "neutral"}`}>{stateLabel}</span>}
       {factions.map((f: any) => {
         const stance = String(f.stance || "neutral");
         const label = stance === "support"
@@ -116,6 +120,9 @@ function DoctrineIssueStrip({ doctrine }: { doctrine: any }) {
       ))}
       {conflicts.length > 0 && (
         <span className="m-outcome-chip tone-bad">冲突 {conflicts.map((c: any) => c.name || c.id).join("、")}</span>
+      )}
+      {reformHint && (
+        <span className={`m-outcome-chip tone-${reformReady ? "good" : "warn"}`}>{reformReady ? "准路线疏可改弦" : "须推至待定策"}</span>
       )}
     </div>
   );

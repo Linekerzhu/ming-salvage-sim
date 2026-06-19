@@ -130,6 +130,31 @@ class PolicyDoctrineIssueTests(unittest.TestCase):
             self.assertIsInstance(route["factions"], list)
             self.assertIsInstance(route["figures"], list)
 
+    def test_web_issue_payload_marks_reform_ready_when_blocked_route_reaches_cap(self):
+        with TemporaryDirectory() as tmp:
+            db, state, _day = _fresh(tmp)
+            policies.ensure_doctrine_legacy(db, state, "ancestral_conservatism")
+            created = policies.ensure_doctrine_issue(db, state, "open_sea_trade", delta_bar=50)
+            issue_id = int(created["issue_id"])
+            policies.ensure_doctrine_issue(db, state, "open_sea_trade", delta_bar=50)
+
+            import web_app
+
+            class _IssuePayloadGame:
+                pass
+
+            game = _IssuePayloadGame()
+            game.db = db
+            payloads = web_app.WebGame.issue_payloads(game)
+            item = next(row for row in payloads if int(row["id"]) == issue_id)
+            route = item["policy_doctrine"]
+            self.assertEqual(route["state_label"], "可改弦")
+            self.assertTrue(route["establishment_blocked"])
+            self.assertTrue(route["reform_ready"])
+            self.assertEqual(int(route["blocked_bar_cap"]), 95)
+            self.assertTrue(any(c["id"] == "ancestral_conservatism" for c in route["active_conflicts"]))
+            self.assertIn("准奏支持", route["reform_hint"])
+
 
 class PolicyDirectiveGateTests(unittest.TestCase):
     def test_conflicting_directive_gets_route_warning_without_instant_legacy(self):

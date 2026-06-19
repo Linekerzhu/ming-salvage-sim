@@ -1032,6 +1032,51 @@ def doctrine_alignment_summary(
     }
 
 
+def doctrine_issue_payload(db: GameDB, issue_row) -> Dict[str, object]:
+    """Single doctrine issue payload for web surfaces.
+
+    Keep route visibility in one place: issue cards, future briefings, and
+    diagnostics should not each recalculate blockers and reform readiness.
+    """
+
+    if issue_row is None or str(issue_row["origin_kind"] or "") != "doctrine":
+        return {}
+    doctrine_id = str(issue_row["origin_ref"] or "")
+    doctrine = doctrine_by_id(doctrine_id) or {}
+    if not doctrine:
+        return {}
+    bar_value = int(issue_row["bar_value"] or 0)
+    cap = int((load_policy_doctrines().get("blocked_issue_bar_cap") or 95))
+    blockers = doctrine_establishment_blockers(db, doctrine_id)
+    reform_ready = bool(blockers and bar_value >= cap)
+    state_label = "可改弦" if reform_ready else "正统受阻" if blockers else "路线争议"
+    reform_hint = ""
+    if reform_ready:
+        reform_hint = "准奏支持此路线的奏疏，可改弦更张，使相冲旧策退场。"
+    elif blockers:
+        names = "、".join(str(item.get("name") or item.get("id")) for item in blockers[:3])
+        reform_hint = f"与既定基本国策「{names}」相抵牾；须先把此路线推至待定策。"
+    alignment = doctrine_alignment_summary(db, doctrine_id)
+    return {
+        "id": doctrine_id,
+        "name": str(doctrine.get("name") or doctrine_id),
+        "axis": str(doctrine.get("axis") or ""),
+        "level": str(doctrine.get("level") or "basic"),
+        "bar_value": bar_value,
+        "phase": str(issue_row["phase"] or ""),
+        "summary": str(doctrine.get("summary") or ""),
+        "state_label": state_label,
+        "blocked_bar_cap": cap,
+        "establishment_blocked": bool(blockers),
+        "reform_ready": reform_ready,
+        "reform_hint": reform_hint,
+        "active_conflicts": blockers,
+        "establishment_blockers": blockers,
+        "factions": alignment.get("factions") or [],
+        "figures": alignment.get("figures") or [],
+    }
+
+
 def detect_tax_burden_policy(text: str) -> Optional[Dict[str, object]]:
     """Return a compact policy spec when decree text clearly increases taxes."""
 
