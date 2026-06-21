@@ -25,6 +25,9 @@ class AttendantSummonTests(unittest.TestCase):
                 "MING_SIM_AUTH_USERS",
                 "MING_SIM_INVITE_CODE",
                 "MING_SIM_ALLOW_REGISTRATION",
+                "MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS",
+                "MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS",
+                "MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT",
             )
         }
         self._user_data_dir = web_app.user_data_dir
@@ -54,6 +57,9 @@ class AttendantSummonTests(unittest.TestCase):
         os.environ.pop("MING_SIM_AUTH_USERS", None)
         os.environ["MING_SIM_INVITE_CODE"] = ""
         os.environ["MING_SIM_ALLOW_REGISTRATION"] = "0"
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"
+        os.environ["MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS"] = "1"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
 
     def tearDown(self) -> None:
         web_app._close_all_running_games()
@@ -1745,6 +1751,24 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(str(after["office"]), before_office)
             self.assertEqual(str(after["office_type"]), before_office_type)
             self.assertFalse(is_eunuch_office(str(after["office"]), str(after["office_type"])))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_content_regex_dialogue_actions_are_legacy_opt_in(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "韩爌"
+            target = "魏忠贤"
+
+            response = game._dialogue_action_response(actor, f"朕想调停你和{target}的旧怨。")
+
+            self.assertIsNone(response)
+            self.assertEqual(game._load_pending_dialogue_action(actor), {})
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

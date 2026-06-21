@@ -49,6 +49,16 @@ DIRECTIVE_ACTIONS = {"none", "propose_pending"}
 INSTANT_AGREEMENT_ACTIONS = {"castration", "emancipation", "personnel"}
 IDENTITY_CONVERSION_ACTIONS = {"castration", "emancipation"}
 RECRUITMENT_KINDS = {"eunuch", "exam", "recommend"}
+ACTION_INTENT_TYPES = {
+    "none",
+    "recruitment",
+    "mediation",
+    "castration",
+    "eunuch_care",
+    "eunuch_hard_service",
+    "bao_leverage",
+}
+ACTION_INTENT_PHASES = {"none", "propose", "confirm", "reject"}
 SOFT_HOOK_RE = re.compile(
     r"旧恩|人情债|昔日|朕曾|朕已|朕替|朕保|保全|复用|买单|抚恤|"
     r"两清|恩典|恩赏|天恩|旧情"
@@ -469,6 +479,69 @@ def _normalize_recruitment_intent(data: Dict[str, object]) -> Dict[str, object]:
     }
 
 
+def _normalize_dialogue_action_intent(data: Dict[str, object]) -> Dict[str, object]:
+    action_type = _enum(data.get("action_type") or data.get("type"), ACTION_INTENT_TYPES, "none")
+    phase = _enum(data.get("phase"), ACTION_INTENT_PHASES, "none")
+    raw_confidence = data.get("confidence")
+    try:
+        parsed_confidence = float(raw_confidence)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        parsed_confidence = 0.0
+    if 0 < parsed_confidence <= 1:
+        confidence = _clamp_int(parsed_confidence * 100)
+    else:
+        confidence = _clamp_int(raw_confidence)
+    allow = bool(data.get("allow")) and action_type != "none" and phase in {"propose", "confirm", "reject"} and confidence >= CONFIDENCE_FLOOR
+    if phase == "reject" and action_type == "none" and confidence >= CONFIDENCE_FLOOR:
+        allow = bool(data.get("allow"))
+    return {
+        "allow": allow,
+        "phase": phase if allow else "none",
+        "action_type": action_type if allow else "none",
+        "confidence": confidence,
+        "requires_confirmation": bool(data.get("requires_confirmation", phase == "propose")),
+        "target": _compact(data.get("target"), 80),
+        "actor": _compact(data.get("actor"), 80),
+        "faction": _compact(data.get("faction"), 80),
+        "kind": _compact(data.get("kind"), 40),
+        "mode": _compact(data.get("mode"), 40),
+        "trigger_quote": _compact(data.get("trigger_quote"), 140),
+        "public_hint": _compact(data.get("public_hint"), 180),
+        "private_reason": _compact(data.get("private_reason") or data.get("reason"), 520),
+        "raw": data,
+    }
+
+
+def _normalize_dialogue_suggestions(data: object) -> List[Dict[str, object]]:
+    rows = data.get("suggestions") if isinstance(data, dict) else data
+    if not isinstance(rows, list):
+        return []
+    out: List[Dict[str, object]] = []
+    banned_label_terms = ("交账", "问奖励", "交易", "定下一手", "快捷", "按钮")
+    banned_text_terms = ("快速对话", "快捷", "按钮", "系统", "机制", "御前交易")
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        label = _compact(row.get("label"), 8)
+        text = _compact(row.get("text"), 160)
+        if not label or not text:
+            continue
+        if any(term in label for term in banned_label_terms):
+            continue
+        if any(term in text for term in banned_text_terms):
+            continue
+        item = {
+            "label": label,
+            "text": text,
+            "prefix": bool(row.get("prefix", True)),
+        }
+        if item not in out:
+            out.append(item)
+        if len(out) >= 5:
+            break
+    return out
+
+
 def _context_payload(db: Any, state: GameState, character: Character, *, active_goal: Optional[Dict[str, object]] = None) -> Dict[str, object]:
     try:
         goals = db.list_conversation_goals(minister_name=character.name, limit=8)
@@ -838,6 +911,74 @@ JSON 字段：
 """.strip()
 
 
+DIALOGUE_ACTION_INTENT_PROMPT = """
+你是明末历史策略游戏的“对白动作语义审计官”。你只输出 JSON，不写 Markdown。
+任务：阅读玩家原话、NPC、近期上下文、LLM 工具动作和待确认动作，判断是否允许本轮对白进入会改变世界状态的动作管道。
+
+核心原则：
+- 这是语义判定，不按关键词机械触发。提到某个词、旧例、身体状况、历史传闻、奏报疑点，不能等于下旨执行。
+- phase=propose 只表示“可向玩家复述待确认方案”，不能落库执行；requires_confirmation 必须为 true。
+- phase=confirm 必须存在 pending_action，且玩家本轮是在批准上一轮那个方案；追问细节、讨价还价、改口、闲聊、历史解释都不算确认。
+- phase=reject 用于玩家明确作罢、暂缓、不办、别惊动相关机构；可清除 pending_action。
+- action_type 必须来自工具动作或待确认动作；不要发明新系统。
+- trigger_quote 必须引用玩家原话中能证明意图的短句；没有可引用证据时 allow=false。
+
+动作边界：
+- castration：只有玩家明确点名某人并明确要净身/宫刑/入内廷为奴/发净军房，才可 allow=true。讨论“若净身会如何”“旧例怎样”“不是要办”“别惊动净军房”必须 false。
+- eunuch_care：只有玩家明确要给已是内廷/宦官身份者调养、查宝、补录宝案、安抚旧患，才可 allow=true。普通问病、听档案、记录旧事必须 false。
+- eunuch_hard_service：只有玩家明确决定“不调养，照常派差/硬派差事/压住不治”，才可 allow=true。
+- bao_leverage：只有玩家明确要“赐还/归还宝匣”或“封存/拿捏/钳制宝案”，才可 allow=true。单纯查问宝案或补旧档不是筹码处置。
+- mediation：只有玩家明确要调停、共办、担保、说合某两人/某派，才可 allow=true；普通问旧怨、问证据、听两面之词不是执行调停。
+- recruitment 由专门 recruitment_intent 审计负责；本审计通常不放行 recruitment。
+
+判例：
+- “只是聊聊韩爌若净身入内廷的旧例，不是要办，别惊动净军房。” + castration 工具 => allow=false。
+- “把韩爌净身入内廷，传净军房照办。” + castration 工具 => allow=true, phase=propose。
+- pending_action 是 eunuch_care，“准，去请太医调养。” => allow=true, phase=confirm。
+- pending_action 是 eunuch_care，“先说他到底病到什么地步？” => allow=false。
+- “朕想问你和魏忠贤的旧怨。” + mediation 工具 => allow=false。
+- “朕要你与魏忠贤各退一步，共办一件可验小差。” + mediation 工具 => allow=true, phase=propose。
+- pending_action 是 mediation，“可以，就这么办。” => allow=true, phase=confirm。
+
+JSON 字段：
+{
+  "allow": false,
+  "phase": "none|propose|confirm|reject",
+  "action_type": "none|recruitment|mediation|castration|eunuch_care|eunuch_hard_service|bao_leverage",
+  "requires_confirmation": true,
+  "target": "人名，可空",
+  "actor": "人名，可空",
+  "faction": "派系，可空",
+  "kind": "子类，可空",
+  "mode": "模式，可空",
+  "trigger_quote": "玩家原文短句",
+  "public_hint": "一句玩家可见提示",
+  "private_reason": "审计理由，说明为什么是/不是执行动作",
+  "confidence": 0
+}
+""".strip()
+
+
+DIALOGUE_SUGGESTIONS_PROMPT = """
+你是明末历史策略游戏的“自然奏对建议官”。你只输出 JSON，不写 Markdown。
+任务：根据 NPC、近期上下文、未完成目的、关系网、候选建议，生成 3-5 条像皇帝自然开口的话，而不是 UI 标签或机械快捷指令。
+
+要求：
+- 每条 text 都应是玩家可以直接发给 NPC 的一句或两句自然问话/命令，符合上下文和人物处境。
+- label 只能 2-5 个汉字，像“问底线”“听实话”“要凭据”，不要出现“快捷、系统、机制、交账、问奖励、定下一手、御前交易”。
+- 不要把候选建议照抄成僵硬命令；可吸收其意图，换成真实语境。
+- 不要承诺已经执行动作；只提供玩家开口的自然方向。
+- prefix 默认 true，除非这句话已经完整到不需补充。
+
+JSON 字段：
+{
+  "suggestions": [
+    {"label": "短标签", "text": "自然对白", "prefix": true}
+  ]
+}
+""".strip()
+
+
 def _agent(llm_config: LLMConfig, agno_db: object, *, phase: str, prompt: str, max_tokens: int = 2200) -> Agent:
     del agno_db
     cfg = llm_for_role(llm_config, "dialogue_audit")
@@ -846,6 +987,8 @@ def _agent(llm_config: LLMConfig, agno_db: object, *, phase: str, prompt: str, m
         "post": "llm.dialogue_post_audit",
         "condition": "llm.dialogue_condition_audit",
         "recruitment_intent": "llm.dialogue_recruitment_intent",
+        "dialogue_action_intent": "llm.dialogue_action_intent",
+        "dialogue_suggestions": "llm.dialogue_suggestions",
     }.get(phase, "llm.dialogue_condition_audit")
     return Agent(
         name=f"奏对审计-{phase}",
@@ -956,6 +1099,123 @@ def recruitment_intent_audit(
             "confidence": 0,
             "private_reason": str(exc),
         })
+
+
+def dialogue_action_intent_audit(
+    db: Any,
+    state: GameState,
+    character: Character,
+    user_text: str,
+    action: Dict[str, object],
+    *,
+    pending_action: Optional[Dict[str, object]] = None,
+    llm_config: Optional[LLMConfig] = None,
+    agno_db: object = None,
+    audit_client: object = None,
+) -> Dict[str, object]:
+    payload = _context_payload(db, state, character)
+    payload["user_text"] = user_text
+    payload["tool_action"] = {
+        key: value
+        for key, value in (action or {}).items()
+        if key in {
+            "type",
+            "phase",
+            "target",
+            "actor",
+            "faction",
+            "kind",
+            "mode",
+            "note",
+            "scheme_text",
+            "trigger_quote",
+        }
+    }
+    payload["pending_action"] = {
+        key: value
+        for key, value in (pending_action or {}).items()
+        if key in {"type", "target", "actor", "faction", "kind", "mode", "note", "scheme_text", "trigger_quote"}
+    }
+    _attach_behavior_context(payload, character, text=user_text)
+    try:
+        fake = _call_fake(audit_client, "dialogue_action_intent", payload)
+        if fake is not None:
+            return _normalize_dialogue_action_intent(fake)
+        if llm_config is None:
+            return _normalize_dialogue_action_intent({
+                "allow": False,
+                "phase": "none",
+                "action_type": "none",
+                "confidence": 0,
+                "private_reason": "未配置 LLM，对白动作管道不落库。",
+            })
+        agent = _agent(
+            llm_config,
+            agno_db,
+            phase="dialogue_action_intent",
+            prompt=DIALOGUE_ACTION_INTENT_PROMPT,
+            max_tokens=1000,
+        )
+        raw = run_agent_text(
+            agent,
+            json.dumps(payload, ensure_ascii=False, sort_keys=False),
+            tag="dialogue-audit/action-intent",
+        )
+        data = parse_agent_json(raw, "对白动作意图审计")
+        return _normalize_dialogue_action_intent(data)
+    except Exception as exc:
+        return _normalize_dialogue_action_intent({
+            "allow": False,
+            "phase": "none",
+            "action_type": "none",
+            "confidence": 0,
+            "private_reason": str(exc),
+        })
+
+
+def dialogue_suggestions_audit(
+    db: Any,
+    state: GameState,
+    character: Character,
+    seed_suggestions: List[Dict[str, object]],
+    *,
+    llm_config: Optional[LLMConfig] = None,
+    agno_db: object = None,
+    audit_client: object = None,
+) -> List[Dict[str, object]]:
+    payload = _context_payload(db, state, character)
+    payload["seed_suggestions"] = [
+        {
+            "label": _compact(row.get("label"), 20),
+            "text": _compact(row.get("text"), 220),
+            "prefix": bool(row.get("prefix", False)),
+        }
+        for row in (seed_suggestions or [])[:8]
+        if isinstance(row, dict)
+    ]
+    _attach_behavior_context(payload, character)
+    try:
+        fake = _call_fake(audit_client, "dialogue_suggestions", payload)
+        if fake is not None:
+            return _normalize_dialogue_suggestions(fake)
+        if llm_config is None:
+            return []
+        agent = _agent(
+            llm_config,
+            agno_db,
+            phase="dialogue_suggestions",
+            prompt=DIALOGUE_SUGGESTIONS_PROMPT,
+            max_tokens=900,
+        )
+        raw = run_agent_text(
+            agent,
+            json.dumps(payload, ensure_ascii=False, sort_keys=False),
+            tag="dialogue-audit/suggestions",
+        )
+        data = parse_agent_json(raw, "自然奏对建议")
+        return _normalize_dialogue_suggestions(data)
+    except Exception:
+        return []
 
 
 def post_dialogue_audit(

@@ -3742,6 +3742,84 @@ class WebGame:
         raw = str(text or "").strip()
         return bool(re.search(r"(不必|暂缓|算了|不要|不可|先别|免了|罢了|否|驳回|改日)", raw))
 
+    def _dialogue_regex_actions_enabled(self) -> bool:
+        return os.environ.get("MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS", "").strip().lower() in ("1", "true", "yes")
+
+    def _dialogue_action_semantic_gate(
+        self,
+        minister_name: str,
+        action: Dict[str, Any],
+        user_text: str,
+        phase: str,
+        pending_action: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        action_type = str(action.get("type") or "").strip()
+        if action_type == "recruitment":
+            return self._recruitment_semantic_gate(minister_name, action, user_text, phase, pending_action)
+        normalized = dict(action)
+        normalized["phase"] = phase
+        if action_type not in {"mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
+            return {"allow": False, "phase": "none", "action_type": "none", "confidence": 100, "private_reason": "动作类型无效。"}
+        if phase == "confirm" and not (
+            isinstance(pending_action, dict)
+            and pending_action.get("type") == action_type
+        ):
+            return {"allow": False, "phase": "none", "action_type": "none", "confidence": 100, "private_reason": "没有待确认的同类对白动作。"}
+        if os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes"):
+            return {"allow": False, "phase": "none", "action_type": "none", "confidence": 0, "private_reason": "对白动作语义审计已禁用。"}
+        try:
+            from ming_sim.dialogue_audit import dialogue_action_intent_audit
+
+            character = self.session._character(minister_name)
+            review = dialogue_action_intent_audit(
+                self.db,
+                self.state,
+                character,
+                user_text,
+                normalized,
+                pending_action=pending_action if isinstance(pending_action, dict) else None,
+                llm_config=self.session.llm_config,
+                agno_db=self.session.agno_db,
+                audit_client=self.session.dialogue_audit_client,
+            )
+        except Exception as exc:
+            review = {
+                "allow": False,
+                "phase": "none",
+                "action_type": "none",
+                "confidence": 0,
+                "private_reason": str(exc),
+            }
+        if review.get("allow") and review.get("phase") != phase:
+            review = dict(review)
+            review["allow"] = False
+            review["private_reason"] = (
+                str(review.get("private_reason") or "").strip()
+                or f"审计阶段不匹配：{review.get('phase')} != {phase}"
+            )
+        if review.get("allow") and review.get("action_type") not in {"", action_type}:
+            review = dict(review)
+            review["allow"] = False
+            review["private_reason"] = (
+                str(review.get("private_reason") or "").strip()
+                or f"审计动作类型不匹配：{review.get('action_type')} != {action_type}"
+            )
+        return review
+
+    def _castration_action_target_is_valid(self, action: Dict[str, Any]) -> bool:
+        if action.get("type") != "castration":
+            return True
+        target = str(action.get("target") or "").strip()
+        if not target:
+            return False
+        character = self.content.characters.get(target)
+        if character is None:
+            return False
+        try:
+            return self._castration_applicable(character)
+        except Exception:
+            return False
+
     def _detect_recruitment_intent(self, text: str) -> Dict[str, Any]:
         # Recruitment mutates the activity save by creating new NPCs, so normal
         # play should use the LLM tool + semantic audit path instead of keyword
@@ -5505,6 +5583,8 @@ class WebGame:
                             if part
                         )
                 return self._execute_dialogue_action(minister_name, pending)
+        if not self._dialogue_regex_actions_enabled():
+            return None
         recovered = self._recover_pending_dialogue_action_from_recent_answer(minister_name, text)
         if recovered:
             return self._execute_dialogue_action(minister_name, recovered)
@@ -5536,8 +5616,9 @@ class WebGame:
         normalized.pop("phase", None)
         if phase == "confirm":
             pending = self._load_pending_dialogue_action(minister_name)
-            if normalized.get("type") == "castration" and not (
-                pending and pending.get("type") == "castration"
+            action_type = str(normalized.get("type") or "")
+            if action_type in {"recruitment", "mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"} and not (
+                pending and pending.get("type") == action_type
             ):
                 return None
             if pending and pending.get("type") == normalized.get("type"):
@@ -5600,18 +5681,19 @@ class WebGame:
                     normalized["trigger_quote"] = review.get("trigger_quote")
                 if review.get("private_reason"):
                     normalized["semantic_reason"] = review.get("private_reason")
-            if normalized.get("type") == "castration" and not self._castration_action_is_valid(
-                minister_name,
-                normalized,
-                str(normalized.get("scheme_text") or ""),
-            ):
-                self._clear_pending_dialogue_action(minister_name)
-                return {
-                    "answer": (
-                        f"{self._dialogue_speaker_self(minister_name)}回陛下，方才那话像是旧例闲谈，"
-                        "没有清楚到可传净军房行事。此事暂不入档；若真要办，请重新点明某人并下严旨。"
-                    )
-                }
+            elif normalized.get("type") in {"mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
+                review = self._dialogue_action_semantic_gate(minister_name, normalized, user_text, "confirm", pending)
+                if not review.get("allow"):
+                    return None
+                for key in ("target", "actor", "faction", "kind", "mode"):
+                    if review.get(key):
+                        normalized[key] = review.get(key)
+                if review.get("trigger_quote"):
+                    normalized["trigger_quote"] = review.get("trigger_quote")
+                if review.get("private_reason"):
+                    normalized["semantic_reason"] = review.get("private_reason")
+            if normalized.get("type") == "castration" and not self._castration_action_target_is_valid(normalized):
+                return None
             return self._execute_dialogue_action(minister_name, normalized)
         if normalized.get("type") in {"recruitment", "mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
             if normalized.get("type") == "recruitment":
@@ -5624,11 +5706,22 @@ class WebGame:
                     normalized["trigger_quote"] = review.get("trigger_quote")
                 if review.get("private_reason"):
                     normalized["semantic_reason"] = review.get("private_reason")
+            else:
+                review = self._dialogue_action_semantic_gate(minister_name, normalized, user_text, "propose")
+                if not review.get("allow"):
+                    return None
+                for key in ("target", "actor", "faction", "kind", "mode"):
+                    if review.get(key):
+                        normalized[key] = review.get(key)
+                if review.get("trigger_quote"):
+                    normalized["trigger_quote"] = review.get("trigger_quote")
+                if review.get("private_reason"):
+                    normalized["semantic_reason"] = review.get("private_reason")
             if normalized.get("type") == "castration":
                 normalized["force"] = True
                 if not str(normalized.get("scheme_text") or "").strip():
                     normalized["scheme_text"] = str(user_text or "").strip()
-                if not self._castration_action_is_valid(minister_name, normalized, user_text):
+                if not self._castration_action_target_is_valid(normalized):
                     return None
             self._store_pending_dialogue_action(minister_name, normalized)
             return {"answer": fallback_answer or self._proposal_answer_for_action(minister_name, normalized)}
@@ -7003,7 +7096,86 @@ class WebGame:
         for item in structural:
             if item["label"] not in labels:
                 suggestions.append(item)
+        natural = self._llm_contextual_suggestions(character, suggestions)
+        if natural:
+            natural_labels = {str(item.get("label") or "") for item in natural}
+            for item in structural:
+                if item["label"] not in natural_labels:
+                    natural.append(item)
+                    natural_labels.add(item["label"])
+            return natural[:6]
         return suggestions[:6]
+
+    def _llm_contextual_suggestions(self, character: Character, seed_suggestions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        if os.environ.get("MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS", "").strip().lower() in ("1", "true", "yes"):
+            return []
+        if not seed_suggestions:
+            return []
+        cache_key = ""
+        try:
+            history_tail = [
+                str(message.get("content") or "")[:180]
+                for message in self.chat_history.get(character.name, [])[-4:]
+                if isinstance(message, dict)
+            ]
+            signature = json.dumps(
+                {
+                    "turn": int(self.state.turn),
+                    "name": character.name,
+                    "seed": [
+                        {
+                            "label": str(row.get("label") or ""),
+                            "text": str(row.get("text") or "")[:220],
+                            "prefix": bool(row.get("prefix", False)),
+                        }
+                        for row in seed_suggestions[:8]
+                    ],
+                    "history": history_tail,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+            cache_key = hashlib.sha1(signature.encode("utf-8")).hexdigest()
+            cache = getattr(self, "_dialogue_suggestion_cache", None)
+            if not isinstance(cache, dict):
+                cache = {}
+                setattr(self, "_dialogue_suggestion_cache", cache)
+            cached = cache.get(cache_key)
+            if isinstance(cached, list):
+                return [dict(item) for item in cached if isinstance(item, dict)]
+        except Exception:
+            cache = {}
+        try:
+            from ming_sim.dialogue_audit import dialogue_suggestions_audit
+
+            natural = dialogue_suggestions_audit(
+                self.db,
+                self.state,
+                character,
+                seed_suggestions,
+                llm_config=self.session.llm_config,
+                agno_db=self.session.agno_db,
+                audit_client=self.session.dialogue_audit_client,
+            )
+        except Exception:
+            natural = []
+        clean: List[Dict[str, Any]] = []
+        for item in natural:
+            if not isinstance(item, dict):
+                continue
+            label = str(item.get("label") or "").strip()
+            text = str(item.get("text") or "").strip()
+            if not label or not text:
+                continue
+            clean.append({"label": label, "text": text, "prefix": bool(item.get("prefix", True))})
+            if len(clean) >= 5:
+                break
+        try:
+            if cache_key and clean:
+                cache[cache_key] = [dict(item) for item in clean]
+        except Exception:
+            pass
+        return clean
 
 
 def sse_event(event: str, data: Dict[str, Any]) -> str:

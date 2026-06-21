@@ -917,6 +917,10 @@ class GameSession:
                 "confirm_mediation",
                 "propose_eunuch_care",
                 "confirm_eunuch_care",
+                "propose_eunuch_hard_service",
+                "confirm_eunuch_hard_service",
+                "propose_bao_leverage",
+                "confirm_bao_leverage",
             }:
                 payload = tool_result.removeprefix("__dialogue_action__").strip()
                 if not payload:

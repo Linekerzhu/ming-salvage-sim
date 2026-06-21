@@ -491,7 +491,7 @@ function AudienceDealBox({ lead }: { lead: AudienceLead }) {
   ].filter(([, value]) => String(value || "").trim());
   if (!items.length) return null;
   return (
-    <div className="m-audience-deal" aria-label="御前交易条件">
+    <div className="m-audience-deal" aria-label="所求与代价">
       {items.map(([label, value]) => (
         <span key={label}>
           <b>{label}</b>{value}
@@ -518,7 +518,7 @@ function truncateCourtLine(value: string, max = 24): string {
 function compactLeadOpening(value: string): string {
   const clean = String(value || "")
     .replace(/\s+/g, " ")
-    .split("御前交易：")[0]
+    .split(/所求与代价：|御前交易：/)[0]
     .trim();
   return truncateCourtLine(clean, 82);
 }
@@ -719,7 +719,7 @@ function counterpartPrompts(kind: string, next: string, previous: string) {
   if (kind === "patronage") {
     return [
       { label: "查担保", text: `朕正在查你和${other}的举荐人情。若用错人，谁担责？若用得其人，何差可验？`, prefix: true },
-      { label: "问避嫌", text: `${who}，你今日说清楚：自己是朝廷的人，还是${other}的人？如何避嫌、如何交账？`, prefix: true },
+      { label: "问避嫌", text: `${who}，你今日说清楚：自己是朝廷的人，还是${other}的人？如何避嫌，又拿什么凭据回奏？`, prefix: true },
       { label: "定试差", text: `若朕给一件试差，几日内见成效？办坏了，举主、新人，各担什么责？`, prefix: true },
       closurePromptForAudience(kind, who, other),
     ];

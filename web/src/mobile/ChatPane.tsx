@@ -27,9 +27,9 @@ function cleanDisplayText(raw: string): string {
 function humanSuggestionLabel(raw: string): string {
   const label = String(raw || "").trim();
   const map: Record<string, string> = {
-    "问所求": "问他要什么",
-    "问交易": "问交换条件",
-    "定下一手": "定承办期限",
+    "问所求": "听他说透",
+    "问交易": "问代价",
+    "定下一手": "要个准话",
     "定路线": "定国策路线",
     "召来请安": "追问旧约",
     "命卿遴选良家女呈览": "采选名册",

@@ -738,7 +738,7 @@ export function audienceLeadFromBrief(card: PlaystyleBriefCard, actor = card.act
 
 function withBargainPrompt(prompts: Suggestion[], card: PlaystyleBriefCard, actor: string, target: string): Suggestion[] {
   const prompt = bargainPromptFromCard(card, actor, target);
-  if (!prompt || prompts.some((item) => ["问所求", "问交易"].includes(item.label))) return prompts;
+  if (!prompt || prompts.some((item) => ["听他说透", "问所求", "问交易"].includes(item.label))) return prompts;
   return [prompt, ...prompts];
 }
 
@@ -757,14 +757,14 @@ function bargainPromptFromCard(card: PlaystyleBriefCard, actor = "你", target =
     refusal ? `若朕不允是否会「${refusal}」` : "",
   ].filter(Boolean).join("；");
   return {
-    label: "问所求",
-    text: `${who}，今日不是泛泛问策。围绕${other}，先把御前交易说清：${terms}。朕要听实话，不要只报忠心。`,
+    label: "听他说透",
+    text: `${who}，今日不是泛泛问策。围绕${other}，把所求、代价和退路都说透：${terms}。朕要听实话，不要只报忠心。`,
     prefix: true,
   };
 }
 
 function withClosurePrompt(prompts: Suggestion[], kind: string, actor: string, target: string): Suggestion[] {
-  if (prompts.some((item) => item.label === "定下一手")) return prompts;
+  if (prompts.some((item) => item.label === "要个准话")) return prompts;
   return [...prompts, closurePromptForAudience(kind, actor, target)];
 }
 
@@ -773,63 +773,63 @@ export function closurePromptForAudience(kind: string, actor = "你", target = "
   const other = target || "此事";
   if (kind === "rivalry") {
     return {
-      label: "定下一手",
-      text: `朕已听够两面之词。现在定下一手：你与${other}谁承办、几日回奏、各退哪一步、办坏了谁担责？`,
+      label: "要个准话",
+      text: `朕已听过两面之词。你与${other}谁愿先承办、几日回奏、各退哪一步、若办坏了谁担责？`,
       prefix: true,
     };
   }
   if (kind === "patronage") {
     return {
-      label: "定下一手",
-      text: `荐人不是空话。现在定下一手：${who}与${other}谁领试差、几日见证据、举主和新人各担什么责？`,
+      label: "要个准话",
+      text: `荐人不是空话。${who}与${other}谁领试差、几日见证据、举主和新人各担什么责？`,
       prefix: true,
     };
   }
   if (kind === "relationship") {
     return {
-      label: "定下一手",
-      text: `人情不是空账。现在定下一手：${who}替${other}担什么保、共办什么差、几日交证据，若坏事谁连坐？`,
+      label: "要个准话",
+      text: `人情不能只挂在嘴上。${who}替${other}担什么保、共办什么差、几日拿凭据，若坏事谁连坐？`,
       prefix: true,
     };
   }
   if (kind === "legacy") {
     return {
-      label: "定下一手",
-      text: `旧政善后不能空谈。现在定下一手：谁承办清查、几日给账册、钱粮缺口由谁补、办坏了谁担责？`,
+      label: "要个准话",
+      text: `旧政善后不能空谈。谁承办清查、几日给账册、钱粮缺口由谁补、办坏了谁担责？`,
       prefix: true,
     };
   }
   if (kind === "bargain") {
     return {
-      label: "定下一手",
-      text: `旧账今日要清。现在定下一手：是兑现、索证、改限还是明拒？由${who}几日交什么证据，办坏了谁担责？`,
+      label: "要个准话",
+      text: `旧事今日该有说法：是兑现、索证、改限还是明拒？由${who}几日拿什么证据，办坏了谁担责？`,
       prefix: true,
     };
   }
   if (kind === "army") {
     return {
-      label: "定下一手",
-      text: `军镇之事现在定下一手：兵册、欠饷、监军、换防四项，先办哪一项，几日回奏，谁担责？`,
+      label: "要个准话",
+      text: `军镇之事不能再空转。兵册、欠饷、监军、换防四项，先办哪一项，几日回奏，谁担责？`,
       prefix: true,
     };
   }
   if (kind === "faction") {
     return {
-      label: "定下一手",
-      text: `朕可以借力，也可以压势。现在定下一手：本派交什么人、办什么差、几日见效、若挟势谁担责？`,
+      label: "要个准话",
+      text: `朕可以借力，也可以压势。本派愿交什么人、办什么差、几日见效、若挟势谁担责？`,
       prefix: true,
     };
   }
   if (kind === "doctrine") {
     return {
       label: "定路线",
-      text: `国策不是空论。现在定下一手：你要推哪条路线、先办哪道旨、几日见效、谁会反扑、办坏了谁担责？`,
+      text: `国策不是空论。你要推哪条路线、先办哪道旨、几日见效、谁会反扑、办坏了谁担责？`,
       prefix: true,
     };
   }
   return {
-    label: "定下一手",
-    text: `朕已听明白。现在定下一手：由谁承办、几日回奏、拿什么证据、办坏了谁担责？你当面给朕一个可落账的说法。`,
+    label: "要个准话",
+    text: `朕已听明白。由谁承办、几日回奏、拿什么证据、办坏了谁担责？你当面给朕一个准话。`,
     prefix: true,
   };
 }
@@ -921,7 +921,7 @@ function withBargainOpening(line: string, card: PlaystyleBriefCard): string {
     refusal ? `拒之恐「${refusal}」` : "",
   ].filter(Boolean);
   if (!pieces.length) return line;
-  return `${line}\n御前交易：${pieces.slice(0, 4).join("；")}。`;
+  return `${line}\n所求与代价：${pieces.slice(0, 4).join("；")}。`;
 }
 
 function agendaCue(card: PlaystyleBriefCard): string {
@@ -998,7 +998,7 @@ function agendaPrompts(card: PlaystyleBriefCard, topic: string, counterpart: str
   }
   return [
     { label: "追问私心", text: `朕闻你近来有「${topic}」之势。你自己说，是为国任事，还是另有所图？`, prefix: true },
-    { label: "令其交账", text: `若朕现在用你办事，你准备如何避嫌、如何交账？`, prefix: true },
+    { label: "问凭据", text: `若朕现在用你办事，你准备如何避嫌，又拿什么凭据回奏？`, prefix: true },
     { label: "问党援钱粮", text: `此事牵动谁的党援和钱粮？把实话说清楚。`, prefix: true },
   ];
 }
@@ -1022,7 +1022,7 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
   if (card.kind === "petition") {
     return [
       { label: "准其护持", text: `朕可以暂护你一程，但不是白给。你先说清楚：朕应你会得罪谁，你能拿什么差使来换？`, prefix: true },
-      { label: "逼其交账", text: `要朕给台阶，就先交账：人证、账目、把柄或可验差使，你今日能拿出哪一样？`, prefix: true },
+      { label: "要凭据", text: `要朕给台阶，就先拿出一件可验的凭据：人证、账目、把柄或差使成效，你今日能拿出哪一样？`, prefix: true },
       { label: "暂不护持", text: `朕今日未必应你。若朕暂不护持，你还愿不愿替朝廷办事？你的底线是什么？`, prefix: true },
     ];
   }
@@ -1072,7 +1072,7 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
         : { label: "验新人", text: `你由${counterpart}举荐入朝。今日不问荐书，只问你自己能办什么、短板在哪里、几日能见证据？`, prefix: true },
       summonedSponsor
         ? { label: "验新人", text: `${counterpart}究竟有什么可用之处，短板在哪里？若朕给他一件试差，几日能见证据？`, prefix: true }
-        : { label: "问避嫌", text: `你与${counterpart}有人情牵连。若朕用你办事，你如何避嫌、如何交账、如何不只替举主说话？`, prefix: true },
+        : { label: "问避嫌", text: `你与${counterpart}有人情牵连。若朕用你办事，你如何避嫌，拿什么回奏，如何不只替举主说话？`, prefix: true },
       { label: "防植党", text: `荐人可以，但不可借荐人植党。你和${counterpart}的关系、派系、人情账，今日要说清楚。`, prefix: true },
     ];
   }
@@ -1080,7 +1080,7 @@ function briefPrompts(card: PlaystyleBriefCard, actor = card.actor || "你", tar
     return [
       { label: "问担保", text: `朕知道你与${counterpart}有一层人情。今日说清楚：你肯替他担保到哪一步，拿什么名节或差使作保？`, prefix: true },
       { label: "命共办", text: `若朕令你与${counterpart}共办一件可验小差，既用人情也防植党，你肯不肯？条件是什么？`, prefix: true },
-      { label: "问避嫌", text: `人情可用，也可坏政。你如何避嫌、如何交账，若${counterpart}误事你愿担什么责？`, prefix: true },
+      { label: "问避嫌", text: `人情可用，也可坏政。你如何避嫌，拿什么回奏，若${counterpart}误事你愿担什么责？`, prefix: true },
     ];
   }
   if (card.kind === "agenda") {
@@ -1161,7 +1161,7 @@ function monthlyFollowupPrompts(card: PlaystyleBriefCard): Suggestion[] {
   if (meta.includes("举主")) {
     return [
       { label: "问担保", text: `你今日候见，若是为荐人旧账而来，就说明白：你愿拿什么名节、差使或期限作保？`, prefix: true },
-      { label: "令共办", text: `荐人不能只写在名帖上。你同他共办一件可验小差，几日内交账？`, prefix: true },
+      { label: "令共办", text: `荐人不能只写在名帖上。你同他共办一件可验小差，几日内回奏？`, prefix: true },
       { label: "防植党", text: `若此事只是替门生故旧求路，朕不会轻许。你如何证明不是借荐人植党？`, prefix: true },
     ];
   }

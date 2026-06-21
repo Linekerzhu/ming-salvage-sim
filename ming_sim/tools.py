@@ -605,7 +605,10 @@ def build_minister_tools(character: Character, context: CourtContext):
         return f"__dialogue_action__{payload}"
 
     def confirm_castration(target: str = "", scheme_text: str = "") -> str:
-        """对白驱动净身：必须已有待确认净身意图，且皇帝明确说准/照办后才调用。"""
+        """对白驱动净身：必须已有待确认净身意图，且皇帝明确说准/照办后才调用。
+
+        玩家追问细节、改方案、闲聊旧例或说暂缓时不得调用。
+        """
         payload = json.dumps(
             {
                 "type": "castration",
@@ -622,6 +625,7 @@ def build_minister_tools(character: Character, context: CourtContext):
         """对白驱动调停：皇帝要某两人/某派各退一步时调用。
 
         只生成待确认意图，不改变关系或派系热度。回奏应提出可行条件并请陛下确认。
+        若皇帝只是问旧怨、听证据、让双方陈情，不得调用。
         """
         payload = json.dumps(
             {
@@ -637,7 +641,10 @@ def build_minister_tools(character: Character, context: CourtContext):
         return f"__dialogue_action__{payload}"
 
     def confirm_mediation(actor: str = "", target: str = "", faction: str = "", note: str = "") -> str:
-        """对白驱动调停：只有皇帝明确准许说合/调停后才调用。"""
+        """对白驱动调停：只有皇帝明确准许说合/调停后才调用。
+
+        玩家继续问条件、问证据、问谁担责时不得调用。
+        """
         payload = json.dumps(
             {
                 "type": "mediation",
@@ -656,6 +663,7 @@ def build_minister_tools(character: Character, context: CourtContext):
 
         只生成待确认意图，不立刻花内库、不改人物状态。mode 可填 urinary、trauma、body、bao、fixation、psychosexual、general。
         回奏必须说明要动太医/内库/司礼监旧档，并追问陛下是否准办。
+        玩家只是问病情、听旧档、补记档案、了解净身旧患时不得调用。
         """
         nm = (target or "").strip()
         if not nm:
@@ -673,7 +681,10 @@ def build_minister_tools(character: Character, context: CourtContext):
         return f"__dialogue_action__{payload}"
 
     def confirm_eunuch_care(target: str = "", mode: str = "", note: str = "") -> str:
-        """对白驱动净身旧患照料：只有皇帝明确准许后才调用，Web 端才会结算。"""
+        """对白驱动净身旧患照料：只有皇帝明确准许后才调用，Web 端才会结算。
+
+        玩家追问“病到哪一步/要花多少/先记档”时不得调用。
+        """
         payload = json.dumps(
             {
                 "type": "eunuch_care",
@@ -691,6 +702,7 @@ def build_minister_tools(character: Character, context: CourtContext):
 
         只生成待确认意图，不立刻改人物状态。mode 可填 urinary、trauma、body、bao、fixation、psychosexual、general。
         回奏必须说明取舍：省内库和差期，但怨望、失手和后续旧患风险会上升。
+        玩家只是问旧患或犹豫是否调养时不得调用。
         """
         nm = (target or "").strip()
         if not nm:
@@ -726,6 +738,7 @@ def build_minister_tools(character: Character, context: CourtContext):
 
         只生成待确认意图，不立刻改变宝案、人物数值或风险。mode 可填 return/control。
         回奏必须说明取舍：赐还收心降怨但少把柄；钳制见效快但加深怨望和后续宝案风险。
+        玩家只是查问宝案、补旧档、记录匣材封签时不得调用。
         """
         nm = (target or "").strip()
         if not nm:
@@ -750,7 +763,10 @@ def build_minister_tools(character: Character, context: CourtContext):
         return f"__dialogue_action__{payload}"
 
     def confirm_bao_leverage(target: str = "", mode: str = "", note: str = "") -> str:
-        """对白驱动宝匣筹码：只有皇帝明确准许后才调用，Web 端才会结算。"""
+        """对白驱动宝匣筹码：只有皇帝明确准许后才调用，Web 端才会结算。
+
+        玩家追问宝案细节或只让记档时不得调用。
+        """
         m = (mode or "").strip().lower()
         if m in {"赐还", "归还", "发还", "交还"}:
             m = "return"
