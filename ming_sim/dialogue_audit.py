@@ -59,6 +59,7 @@ ACTION_INTENT_TYPES = {
     "bao_leverage",
 }
 ACTION_INTENT_PHASES = {"none", "propose", "confirm", "reject"}
+DIALOGUE_ROUTE_INTENTS = {"none", "summon", "confirm_pending", "reject_pending"}
 SOFT_HOOK_RE = re.compile(
     r"旧恩|人情债|昔日|朕曾|朕已|朕替|朕保|保全|复用|买单|抚恤|"
     r"两清|恩典|恩赏|天恩|旧情"
@@ -542,6 +543,32 @@ def _normalize_dialogue_suggestions(data: object) -> List[Dict[str, object]]:
     return out
 
 
+def _normalize_dialogue_route_intent(data: Dict[str, object]) -> Dict[str, object]:
+    intent = _enum(data.get("intent"), DIALOGUE_ROUTE_INTENTS, "none")
+    raw_confidence = data.get("confidence")
+    try:
+        parsed_confidence = float(raw_confidence)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        parsed_confidence = 0.0
+    if 0 < parsed_confidence <= 1:
+        confidence = _clamp_int(parsed_confidence * 100)
+    else:
+        confidence = _clamp_int(raw_confidence)
+    allow = bool(data.get("allow")) and intent != "none" and confidence >= CONFIDENCE_FLOOR
+    return {
+        "allow": allow,
+        "intent": intent if allow else "none",
+        "confidence": confidence,
+        "target_name": _compact(data.get("target_name"), 80),
+        "target_reference": _compact(data.get("target_reference"), 80),
+        "action_type": _compact(data.get("action_type"), 40),
+        "trigger_quote": _compact(data.get("trigger_quote"), 140),
+        "public_hint": _compact(data.get("public_hint"), 180),
+        "private_reason": _compact(data.get("private_reason") or data.get("reason"), 520),
+        "raw": data,
+    }
+
+
 def _context_payload(db: Any, state: GameState, character: Character, *, active_goal: Optional[Dict[str, object]] = None) -> Dict[str, object]:
     try:
         goals = db.list_conversation_goals(minister_name=character.name, limit=8)
@@ -959,6 +986,37 @@ JSON 字段：
 """.strip()
 
 
+DIALOGUE_ROUTE_INTENT_PROMPT = """
+你是明末历史策略游戏的“对白路由语义审计官”。你只输出 JSON，不写 Markdown。
+任务：阅读皇帝本轮原话、当前对话 NPC、待确认动作、可召见候选和近期上下文，判断这句话是否应被路由为“召见别人”“确认待办动作”“驳回待办动作”，或者只是普通聊天。
+
+核心原则：
+- 这是所有对白入口的第一道语义判定，不按关键词触发。不要因为出现“准、好、叫、传、调停、净身、太医、宝匣”等词就自动路由。
+- intent=none 时，原话应继续交给 NPC 正常回答。
+- intent=summon 只用于皇帝明确要求当前随侍/当前 NPC 把某人带入御前、切换奏对对象，或明确选择此前候选人。
+- intent=confirm_pending 只用于 pending_action 存在，且皇帝本轮明确批准上一轮那个待确认方案执行。追问细节、比较候选、问代价、修改条件、闲聊旧例都不是确认。
+- intent=reject_pending 只用于 pending_action 存在，且皇帝明确说作罢、暂缓、不办、别惊动、不入档。
+- 若皇帝说“好，你说谁合适”“可以，先说说看”“准你讲，但别办”，这是继续问话，不是确认执行。
+- 若皇帝只是说“朕想问你和某人的旧怨/怎么看某人/净身旧例如何”，这是普通聊天，不是召见、不是执行。
+- 召见必须尽量给出 target_name；若用户说“第二个/就他/人呢”，请结合 route_context.unknown_candidates 和 recent_implied_summon_name 解析。
+- 不要发明不存在的人名；若原话直接出现一个新名字，也可填 target_name，让游戏按对白线索补档。
+- trigger_quote 必须引用玩家原话中最能证明路由的短句；无证据则 allow=false。
+
+JSON 字段：
+{
+  "allow": false,
+  "intent": "none|summon|confirm_pending|reject_pending",
+  "target_name": "召见对象姓名；非召见可空",
+  "target_reference": "若为第二个/就他/人呢等指代，写原始指代；否则空",
+  "action_type": "若确认/驳回待办，写 pending_action.type；否则空",
+  "trigger_quote": "玩家原文短句",
+  "public_hint": "一句玩家可见提示",
+  "private_reason": "语义理由",
+  "confidence": 0
+}
+""".strip()
+
+
 DIALOGUE_SUGGESTIONS_PROMPT = """
 你是明末历史策略游戏的“自然奏对建议官”。你只输出 JSON，不写 Markdown。
 任务：根据 NPC、近期上下文、未完成目的、关系网、候选建议，生成 3-5 条像皇帝自然开口的话，而不是 UI 标签或机械快捷指令。
@@ -988,6 +1046,7 @@ def _agent(llm_config: LLMConfig, agno_db: object, *, phase: str, prompt: str, m
         "condition": "llm.dialogue_condition_audit",
         "recruitment_intent": "llm.dialogue_recruitment_intent",
         "dialogue_action_intent": "llm.dialogue_action_intent",
+        "dialogue_route_intent": "llm.dialogue_route_intent",
         "dialogue_suggestions": "llm.dialogue_suggestions",
     }.get(phase, "llm.dialogue_condition_audit")
     return Agent(
@@ -1168,6 +1227,61 @@ def dialogue_action_intent_audit(
             "allow": False,
             "phase": "none",
             "action_type": "none",
+            "confidence": 0,
+            "private_reason": str(exc),
+        })
+
+
+def dialogue_route_intent_audit(
+    db: Any,
+    state: GameState,
+    character: Character,
+    user_text: str,
+    *,
+    pending_action: Optional[Dict[str, object]] = None,
+    route_context: Optional[Dict[str, object]] = None,
+    llm_config: Optional[LLMConfig] = None,
+    agno_db: object = None,
+    audit_client: object = None,
+) -> Dict[str, object]:
+    payload = _context_payload(db, state, character)
+    payload["user_text"] = user_text
+    payload["pending_action"] = {
+        key: value
+        for key, value in (pending_action or {}).items()
+        if key in {"type", "target", "actor", "faction", "kind", "mode", "note", "scheme_text", "trigger_quote"}
+    }
+    payload["route_context"] = route_context if isinstance(route_context, dict) else {}
+    _attach_behavior_context(payload, character, text=user_text)
+    try:
+        fake = _call_fake(audit_client, "dialogue_route_intent", payload)
+        if fake is not None:
+            return _normalize_dialogue_route_intent(fake)
+        if llm_config is None:
+            return _normalize_dialogue_route_intent({
+                "allow": False,
+                "intent": "none",
+                "confidence": 0,
+                "private_reason": "未配置 LLM，对白路由不抢答。",
+            })
+        agent = _agent(
+            llm_config,
+            agno_db,
+            phase="dialogue_route_intent",
+            prompt=DIALOGUE_ROUTE_INTENT_PROMPT,
+            max_tokens=900,
+        )
+        raw = run_agent_text(
+            agent,
+            json.dumps(payload, ensure_ascii=False, sort_keys=False),
+            tag="dialogue-audit/route-intent",
+        )
+        data = parse_agent_json(raw, "对白路由意图审计")
+        return _normalize_dialogue_route_intent(data)
+    except Exception as exc:
+        return _normalize_dialogue_route_intent({
+            "allow": False,
+            "intent": "none",
             "confidence": 0,
             "private_reason": str(exc),
         })

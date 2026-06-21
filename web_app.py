@@ -3745,6 +3745,190 @@ class WebGame:
     def _dialogue_regex_actions_enabled(self) -> bool:
         return os.environ.get("MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS", "").strip().lower() in ("1", "true", "yes")
 
+    def _dialogue_regex_summons_enabled(self) -> bool:
+        return os.environ.get("MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS", "").strip().lower() in ("1", "true", "yes")
+
+    def _dialogue_route_context(self, minister_name: str, text: str) -> Dict[str, Any]:
+        raw = str(text or "")
+        known: List[Dict[str, str]] = []
+        for character in self.session.content.characters.values():
+            if character.name == minister_name:
+                continue
+            aliases = [character.name, *self._linkable_character_aliases(character)]
+            if not any(alias and alias in raw for alias in aliases):
+                continue
+            known.append({
+                "name": character.name,
+                "office": character.office,
+                "office_type": character.office_type,
+                "faction": character.faction,
+            })
+            if len(known) >= 12:
+                break
+        stored = self._load_unknown_dialogue_mentions()
+        unknown: List[Dict[str, Any]] = []
+        for idx, (name, value) in enumerate(stored.items()):
+            if str(value.get("source_minister") or "") not in {"", minister_name} and name not in raw:
+                continue
+            unknown.append({
+                "index": idx + 1,
+                "name": name,
+                "excerpt": str(value.get("excerpt") or "")[:160],
+                "source_minister": str(value.get("source_minister") or ""),
+            })
+            if len(unknown) >= 8:
+                break
+        return {
+            "handler": minister_name,
+            "can_route_summon": self._summon_handler_character(minister_name) is not None,
+            "known_mentions": known,
+            "unknown_candidates": unknown,
+            "recent_implied_summon_name": self._recent_attendant_implied_summon_name(minister_name),
+        }
+
+    def _dialogue_route_semantic_review(self, minister_name: str, text: str) -> Dict[str, Any]:
+        if os.environ.get("MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes"):
+            return {}
+        try:
+            from ming_sim.dialogue_audit import dialogue_route_intent_audit
+
+            character = self.session._character(minister_name)
+            pending = self._load_pending_dialogue_action(minister_name)
+            route_context = self._dialogue_route_context(minister_name, text)
+            if not pending and not bool(route_context.get("can_route_summon")):
+                return {}
+            review = dialogue_route_intent_audit(
+                self.db,
+                self.state,
+                character,
+                text,
+                pending_action=pending if isinstance(pending, dict) else None,
+                route_context=route_context,
+                llm_config=self.session.llm_config,
+                agno_db=self.session.agno_db,
+                audit_client=self.session.dialogue_audit_client,
+            )
+        except Exception:
+            return {}
+        if not isinstance(review, dict) or not review.get("allow"):
+            return {}
+        intent = str(review.get("intent") or "")
+        if intent == "summon" and self._summon_handler_character(minister_name) is None:
+            return {}
+        if intent in {"confirm_pending", "reject_pending"}:
+            pending = self._load_pending_dialogue_action(minister_name)
+            if not pending:
+                return {}
+            action_type = str(review.get("action_type") or "").strip()
+            if action_type and action_type != str(pending.get("type") or ""):
+                return {}
+        return review
+
+    def _semantic_summon_result(self, minister_name: str, text: str, review: Dict[str, Any]) -> Dict[str, Any]:
+        current = self._summon_handler_character(minister_name)
+        if current is None:
+            return {}
+        target_name = str(review.get("target_name") or "").strip()
+        if not target_name and str(review.get("target_reference") or "").strip():
+            target_name = str(self._recent_attendant_implied_summon_name(minister_name) or "").strip()
+        if not target_name or target_name == minister_name:
+            return {}
+        generated = False
+        if target_name in self.content.characters:
+            try:
+                target, _is_temporary = self.session.summon_character(target_name, current, allow_temporary=False)
+            except ValueError:
+                return {}
+        else:
+            stored = self._load_unknown_dialogue_mentions()
+            stored.setdefault(target_name, {
+                "name": target_name,
+                "source_minister": minister_name,
+                "first_seen_turn": int(self.state.turn),
+                "mention_index": len(stored),
+                "excerpt": str(text or "")[:160],
+            })
+            self._save_unknown_dialogue_mentions(stored)
+            generated_character = self._materialize_dialogue_mention_from_text(
+                minister_name,
+                f"传{target_name}入殿。{text}",
+            )
+            if generated_character is None:
+                return {}
+            try:
+                target, _is_temporary = self.session.summon_character(generated_character.name, current, allow_temporary=False)
+            except ValueError:
+                return {}
+            generated = True
+        ok, _reason = self.session.can_summon(target)
+        if not ok:
+            return {}
+        self._clear_pending_dialogue_action(minister_name)
+        return {
+            "name": target.name,
+            "generated": generated,
+            "source": "semantic",
+        }
+
+    def _dialogue_pending_action_from_route(self, minister_name: str, text: str, review: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        pending = self._load_pending_dialogue_action(minister_name)
+        if not pending:
+            return None
+        intent = str(review.get("intent") or "")
+        if intent == "reject_pending":
+            self._clear_pending_dialogue_action(minister_name)
+            return {"answer": f"{self._dialogue_speaker_self(minister_name)}明白。此事暂且按下，不入档、不用人，也不惊动外朝。"}
+        if intent != "confirm_pending":
+            return None
+        action = dict(pending)
+        extra = str(text or "").strip()
+        if extra:
+            if action.get("type") == "castration":
+                action["scheme_text"] = " ".join(
+                    part for part in (str(action.get("scheme_text") or "").strip(), extra) if part
+                )
+            elif action.get("type") in {"eunuch_care", "eunuch_hard_service", "bao_leverage"}:
+                action["note"] = " ".join(
+                    part for part in (str(action.get("note") or "").strip(), extra) if part
+                )
+        return self._execute_dialogue_action(minister_name, action)
+
+    def _dialogue_route_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
+        review = self._dialogue_route_semantic_review(minister_name, text)
+        if review:
+            intent = str(review.get("intent") or "")
+            if intent == "summon":
+                result = self._semantic_summon_result(minister_name, text, review)
+                if result:
+                    answer = self._attendant_summon_answer(
+                        str(result.get("name") or ""),
+                        generated=bool(result.get("generated")),
+                        source=str(result.get("source") or "semantic"),
+                    )
+                    return {
+                        "answer": answer,
+                        "court_action": "summon",
+                        "next_minister": str(result.get("name") or ""),
+                        "registered_minister": str(result.get("name") or "") if result.get("generated") else "",
+                    }
+            if intent in {"confirm_pending", "reject_pending"}:
+                return self._dialogue_pending_action_from_route(minister_name, text, review)
+        if self._dialogue_regex_summons_enabled():
+            deterministic_summon = self._attendant_summon_target(minister_name, text)
+            if deterministic_summon:
+                target_name = str(deterministic_summon.get("name") or "")
+                return {
+                    "answer": self._attendant_summon_answer(
+                        target_name,
+                        generated=bool(deterministic_summon.get("generated")),
+                        source=str(deterministic_summon.get("source") or ""),
+                    ),
+                    "court_action": "summon",
+                    "next_minister": target_name,
+                    "registered_minister": target_name if deterministic_summon.get("generated") else "",
+                }
+        return None
+
     def _dialogue_action_semantic_gate(
         self,
         minister_name: str,
@@ -3914,14 +4098,6 @@ class WebGame:
     ) -> Dict[str, Any]:
         if action.get("type") != "recruitment":
             return {"allow": True, "kind": str(action.get("kind") or ""), "phase": phase, "confidence": 100}
-        if self._recruitment_explicitly_blocked(user_text):
-            return {
-                "allow": False,
-                "kind": "",
-                "phase": "none",
-                "confidence": 100,
-                "private_reason": "玩家明示只是询问或不要招募/举荐新人。",
-            }
         normalized = dict(action)
         normalized["phase"] = phase
         kind = str(normalized.get("kind") or (pending_action or {}).get("kind") or "").strip()
@@ -5525,6 +5701,8 @@ class WebGame:
         return {"answer": self._proposal_answer_for_action(minister_name, action)}
 
     def _dialogue_action_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
+        if not self._dialogue_regex_actions_enabled():
+            return None
         pending = self._load_pending_dialogue_action(minister_name)
         if pending:
             if self._dialogue_rejected(text):
@@ -5583,8 +5761,6 @@ class WebGame:
                             if part
                         )
                 return self._execute_dialogue_action(minister_name, pending)
-        if not self._dialogue_regex_actions_enabled():
-            return None
         recovered = self._recover_pending_dialogue_action_from_recent_answer(minister_name, text)
         if recovered:
             return self._execute_dialogue_action(minister_name, recovered)
@@ -5782,7 +5958,7 @@ class WebGame:
         dialogue_goal: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         character = self.session._character(minister_name)
-        if not court_action:
+        if not court_action and self._dialogue_regex_summons_enabled():
             implied_summon = self._attendant_answer_summon_target(minister_name, answer)
             if implied_summon:
                 next_minister = str(implied_summon.get("name") or "")
@@ -6513,29 +6689,7 @@ class WebGame:
         user_lore_effect = self._eunuch_lore_dialogue_effect(
             self._absorb_eunuch_lore_from_text(minister_name, text)
         )
-        deterministic_summon = self._attendant_summon_target(minister_name, text)
-        if deterministic_summon:
-            target_name = str(deterministic_summon.get("name") or "")
-            generated = bool(deterministic_summon.get("generated"))
-            answer = self._attendant_summon_answer(
-                target_name,
-                generated=generated,
-                source=str(deterministic_summon.get("source") or ""),
-            )
-            answer_lore_effect = self._eunuch_lore_dialogue_effect(
-                self._absorb_eunuch_lore_from_text(minister_name, answer)
-            )
-            self._record_chat_rollback_items(chat_turn_id, before_snapshot)
-            return self._chat_payload(
-                minister_name,
-                answer,
-                court_action="summon",
-                next_minister=target_name,
-                registered_minister=target_name if generated else "",
-                dialogue_effect=self._combine_dialogue_effects(user_lore_effect, answer_lore_effect),
-                chat_turn_id=chat_turn_id,
-            )
-        dialogue_response = self._dialogue_action_response(minister_name, text)
+        dialogue_response = self._dialogue_route_response(minister_name, text) or self._dialogue_action_response(minister_name, text)
         if dialogue_response is not None:
             answer = str(dialogue_response.get("answer") or "")
             answer_lore_effect = self._eunuch_lore_dialogue_effect(
@@ -6547,6 +6701,7 @@ class WebGame:
                 answer,
                 court_action=str(dialogue_response.get("court_action") or ""),
                 next_minister=str(dialogue_response.get("next_minister") or ""),
+                registered_minister=str(dialogue_response.get("registered_minister") or ""),
                 recruited_minister=str(dialogue_response.get("recruited_minister") or ""),
                 dialogue_effect=self._combine_dialogue_effects(
                     dialogue_response.get("dialogue_effect") if isinstance(dialogue_response.get("dialogue_effect"), dict) else None,
@@ -6580,7 +6735,7 @@ class WebGame:
             if not result.court_action and tool_dialogue_response.get("court_action"):
                 result.court_action = str(tool_dialogue_response.get("court_action") or "")
                 result.next_minister = str(tool_dialogue_response.get("next_minister") or "")
-        if not result.court_action:
+        if not result.court_action and self._dialogue_regex_summons_enabled():
             implied_summon = self._attendant_answer_summon_target(minister_name, result.answer)
             if implied_summon:
                 result.court_action = "summon"
@@ -6665,32 +6820,7 @@ class WebGame:
         user_lore_effect = self._eunuch_lore_dialogue_effect(
             self._absorb_eunuch_lore_from_text(minister_name, text)
         )
-        deterministic_summon = self._attendant_summon_target(minister_name, text)
-        if deterministic_summon:
-            target_name = str(deterministic_summon.get("name") or "")
-            generated = bool(deterministic_summon.get("generated"))
-            answer = self._attendant_summon_answer(
-                target_name,
-                generated=generated,
-                source=str(deterministic_summon.get("source") or ""),
-            )
-            yield {"type": "delta", "content": answer}
-            answer_lore_effect = self._eunuch_lore_dialogue_effect(
-                self._absorb_eunuch_lore_from_text(minister_name, answer)
-            )
-            self._record_chat_rollback_items(chat_turn_id, before_snapshot)
-            payload = self._chat_payload(
-                minister_name,
-                answer,
-                court_action="summon",
-                next_minister=target_name,
-                registered_minister=target_name if generated else "",
-                dialogue_effect=self._combine_dialogue_effects(user_lore_effect, answer_lore_effect),
-                chat_turn_id=chat_turn_id,
-            )
-            yield {"type": "done", "payload": payload}
-            return
-        dialogue_response = self._dialogue_action_response(minister_name, text)
+        dialogue_response = self._dialogue_route_response(minister_name, text) or self._dialogue_action_response(minister_name, text)
         if dialogue_response is not None:
             answer = str(dialogue_response.get("answer") or "")
             yield {"type": "delta", "content": answer}
@@ -6703,6 +6833,7 @@ class WebGame:
                 answer,
                 court_action=str(dialogue_response.get("court_action") or ""),
                 next_minister=str(dialogue_response.get("next_minister") or ""),
+                registered_minister=str(dialogue_response.get("registered_minister") or ""),
                 recruited_minister=str(dialogue_response.get("recruited_minister") or ""),
                 dialogue_effect=self._combine_dialogue_effects(
                     dialogue_response.get("dialogue_effect") if isinstance(dialogue_response.get("dialogue_effect"), dict) else None,
@@ -6865,7 +6996,7 @@ class WebGame:
                 if not court_action and dialogue_tool_response.get("court_action"):
                     court_action = str(dialogue_tool_response.get("court_action") or "")
                     next_minister = str(dialogue_tool_response.get("next_minister") or "")
-            if not court_action:
+            if not court_action and self._dialogue_regex_summons_enabled():
                 implied_summon = self._attendant_answer_summon_target(minister_name, answer)
                 if implied_summon:
                     court_action = "summon"
