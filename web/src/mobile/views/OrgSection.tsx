@@ -19,6 +19,12 @@ function InstitutionCard({
   const held = Number(inst.holder_count || 0);
   const vac = Number(inst.vacancy_count || 0);
   const readiness = Number(inst.readiness || 0);
+  const slotMethods = (slot: OrgSlot): Array<[string, string]> => {
+    const text = `${slot.title || ""} ${slot.office_type || ""}`;
+    const inner = /司礼监|东厂|太监|宦官|内廷|内官|小火者/.test(text);
+    if (inner) return [["auto", "补内侍"], ["restore", "起复旧内臣"]];
+    return [["auto", "补一人"], ["exam", "开科取士"], ["recommend", "举贤入京"], ["restore", "起复旧臣"]];
+  };
   useEffect(() => {
     if (vac > 0) setOpen(true);
   }, [vac]);
@@ -43,12 +49,7 @@ function InstitutionCard({
           )}
           {Number(s.vacancies || 0) > 0 && !s.open_pool && (
             <div className="m-slot-actions" aria-label={`${s.title || "席"}补缺方式`}>
-              {[
-                ["auto", "补一人"],
-                ["exam", "开科取士"],
-                ["recommend", "举贤入京"],
-                ["restore", "起复旧臣"],
-              ].map(([method, label]) => {
+              {slotMethods(s).map(([method, label]) => {
                 const key = `${inst.id || inst.name || ""}::${s.title || ""}`;
                 const busy = busyKey.startsWith(`${key}::`);
                 return (

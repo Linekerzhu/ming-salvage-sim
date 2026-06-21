@@ -737,6 +737,38 @@ class CastrationByDecreeTests(unittest.TestCase):
             finally:
                 sess.close()
 
+    def test_office_change_to_inner_court_without_explicit_order_is_rejected(self):
+        from ming_sim import eunuch_lore as el
+        cfg = LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model")
+        with TemporaryDirectory() as tmp:
+            sess = GameSession(str(Path(tmp) / "g.db"), cfg, verify_llm=False)
+            try:
+                row = sess.db.conn.execute(
+                    "SELECT name, office FROM characters WHERE status='active' AND power_id='ming' "
+                    "AND office_type NOT IN ('后宫','司礼监','东厂','内官监御前') "
+                    "AND office NOT LIKE '%太监%' AND office NOT LIKE '%内官%' LIMIT 1"
+                ).fetchone()
+                name = str(row["name"])
+                old_office = str(row["office"] or "")
+                directive_text = f"着{name}暂赴司礼监听差，协理文书传递。"
+                sess.db.conn.execute(
+                    "INSERT INTO turn_directives (turn, year, period, text, source, status, "
+                    "lifecycle_status, progress, integrity_actual, integrity_reported, outcome_delta, outcome_status) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (sess.state.turn, sess.state.year, sess.state.period, directive_text,
+                     "test", "confirmed", "done", 100, 100, 100,
+                     json.dumps({"office_changes": [{"name": name, "new_office": "司礼监随堂太监", "reason": "协理文书"}]}),
+                     "extracted"))
+                sess.db.conn.commit()
+                sess.drain_pending_outcomes()
+                crow = sess.db.conn.execute(
+                    "SELECT office, office_type FROM characters WHERE name=?", (name,)).fetchone()
+                self.assertEqual(str(crow["office"] or ""), old_office)
+                self.assertNotEqual(str(crow["office_type"] or ""), "司礼监")
+                self.assertIsNone(el.get_lore(sess.db, name))
+            finally:
+                sess.close()
+
 
 class InformationalMemorialTests(unittest.TestCase):
     """复命/捷报作「结果通知」：已阅免精力、到期静默归档、不计淹没问责、不压 backlog。"""

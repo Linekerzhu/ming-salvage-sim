@@ -2478,7 +2478,18 @@ class WebGame:
         inst_name = str(inst.get("name") or "").strip()
         return first or inst_name or "待铨候补"
 
-    def _vacancy_candidate_rows(self, office_type: str, method: str) -> List[sqlite3.Row]:
+    def _slot_requires_inner_court_identity(self, office_type: str, office_title: str) -> bool:
+        text = f"{office_type} {office_title}"
+        return is_eunuch_office(office_title, office_type) or bool(re.search(r"司礼监|东厂|太监|宦官|内廷|内官|小火者", text))
+
+    def _row_is_inner_court_person(self, row: sqlite3.Row) -> bool:
+        office = str(row["office"] or "")
+        office_type = str(row["office_type"] or "")
+        faction = str(row["faction"] or "")
+        return is_eunuch_office(office, office_type) or bool(re.search(r"司礼监|东厂|太监|宦官|内廷|内官|小火者", f"{office} {office_type} {faction}"))
+
+    def _vacancy_candidate_rows(self, office_type: str, method: str, office_title: str = "") -> List[sqlite3.Row]:
+        inner_slot = self._slot_requires_inner_court_identity(office_type, office_title)
         status_filter = "AND status='active'" if method != "restore" else "AND status IN ('dismissed','retired','offstage')"
         rows = self.db.conn.execute(
             f"""
@@ -2495,6 +2506,13 @@ class WebGame:
         for row in rows:
             row_office = str(row["office"] or "")
             row_type = str(row["office_type"] or "")
+            row_inner = self._row_is_inner_court_person(row)
+            if inner_slot:
+                if row_inner:
+                    out.append(row)
+                continue
+            if row_inner:
+                continue
             if method == "restore":
                 out.append(row)
                 continue
@@ -2531,13 +2549,15 @@ class WebGame:
             score += 4
         return round(score)
 
-    def _recruit_for_vacancy(self, office_type: str, method: str) -> str:
-        if method == "recommend":
+    def _recruit_for_vacancy(self, office_type: str, method: str, office_title: str = "") -> str:
+        if self._slot_requires_inner_court_identity(office_type, office_title):
+            if method in {"exam", "recommend"}:
+                raise HTTPException(status_code=400, detail="内廷宦官缺不能用科举或举贤补普通大臣；请补内侍或起复旧内臣。")
+            result = self.recruit_eunuch()
+        elif method == "recommend":
             result = self.recommend_hidden_official()
         elif method == "exam":
             result = self.recruit_exam_official()
-        elif any(token in office_type for token in ("司礼", "东厂", "内廷")):
-            result = self.recruit_eunuch()
         else:
             result = self.recommend_hidden_official()
         minister = result.get("minister") if isinstance(result, dict) else {}
@@ -2566,7 +2586,10 @@ class WebGame:
 
         office_type = str(slot.get("office_type") or "").strip() or str(inst.get("name") or "").strip()
         office_title = self._office_title_for_slot(inst, slot)
-        candidate_rows = self._vacancy_candidate_rows(office_type, method)
+        inner_slot = self._slot_requires_inner_court_identity(office_type, office_title)
+        if inner_slot and method in {"exam", "recommend"}:
+            raise HTTPException(status_code=400, detail="内廷宦官缺不能用科举或举贤补普通大臣；请补内侍或起复旧内臣。")
+        candidate_rows = self._vacancy_candidate_rows(office_type, method, office_title)
         candidate_name = ""
         if candidate_rows and method not in {"exam", "recommend"}:
             ranked = sorted(
@@ -2575,8 +2598,10 @@ class WebGame:
                 reverse=True,
             )
             candidate_name = str(ranked[0]["name"] or "")
+        if not candidate_name and inner_slot and method == "restore":
+            raise HTTPException(status_code=409, detail="没有可起复的旧内臣；请改用补内侍。")
         if not candidate_name:
-            candidate_name = self._recruit_for_vacancy(office_type, method)
+            candidate_name = self._recruit_for_vacancy(office_type, method, office_title)
 
         status, _reason = self.db.get_character_status(candidate_name)
         if status != "active":

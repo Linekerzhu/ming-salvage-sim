@@ -1051,6 +1051,13 @@ def _castration_consent_recorded(db: GameDB, state: GameState, name: str) -> boo
     return False
 
 
+def _explicit_castration_order_text(text: str) -> bool:
+    raw = str(text or "")
+    if not raw:
+        return False
+    return bool(re.search(r"净身|宫刑|腐刑|去势|阉割|发净军|没入内廷为奴|入内廷为奴|入宫为奴|净军房", raw))
+
+
 def _emancipation_consent_recorded(db: GameDB, state: GameState, name: str) -> bool:
     """Whether this turn's summons recorded consent to leave inner-court slave registry."""
     if db.has_successful_agreement(name, "emancipation", max_age_turns=12, current_turn=state.turn) is not None:
@@ -1288,6 +1295,14 @@ def apply_score_extraction(
                 applied_status_changes.append({
                     "name": name, "status": status, "rejected": True, "reason": "其人已是内臣"})
                 continue
+            if not _explicit_castration_order_text(f"{directive_text} {reason}"):
+                applied_status_changes.append({
+                    "name": name,
+                    "status": status,
+                    "rejected": True,
+                    "reason": "缺少明确净身/宫刑/发净军字样，拒绝自动宫刑。",
+                })
+                continue
             try:
                 converted, reactions = convert_character_to_eunuch(
                     db, state, content, name, force=True,
@@ -1405,7 +1420,19 @@ def apply_score_extraction(
                 and bool(re.search(r"民籍|百姓|布衣|还民|脱籍|出宫为民|归为百姓", f"{new_office} {new_type} {reason}"))
             )
             if eunuch_transfer:
-                force_castration = not _castration_consent_recorded(db, state, name)
+                consent_recorded = _castration_consent_recorded(db, state, name)
+                explicit_order = _explicit_castration_order_text(f"{directive_text} {reason} {new_office} {new_type}")
+                if not consent_recorded and not explicit_order:
+                    applied_office_changes.append({
+                        "name": name,
+                        "old_status": cur_status,
+                        "old_office": old_office,
+                        "new_office": new_office,
+                        "rejected": True,
+                        "reason": "任官结果疑似把外朝人物转入内廷，但缺少净身旨意或奏对同意，已拦截。",
+                    })
+                    continue
+                force_castration = not consent_recorded
                 try:
                     if cur_status != "active":
                         db.set_character_status(state, name, "active", reason[:200] or "诏书任命")
