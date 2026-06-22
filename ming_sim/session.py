@@ -869,6 +869,38 @@ class GameSession:
         reviewed_target = str(review.get("target_name") or "").strip()
         return reviewed_target == clean_target
 
+    def _unlisted_person_registration_payload(self, payload: str) -> Dict[str, object]:
+        try:
+            data = json.loads(payload) if payload else {}
+        except (ValueError, TypeError):
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    def _apply_unlisted_person_registration_after_route_audit(
+        self,
+        payload: str,
+        character: Character,
+        user_text: str,
+        *,
+        answer: str = "",
+    ) -> Tuple[str, bool]:
+        """补档属于真实数据写入；若还要立即召见，先过对白路由语义门。"""
+        data = self._unlisted_person_registration_payload(payload)
+        if not data:
+            return ("", False)
+        name = str(data.get("name") or "").strip()
+        if not name:
+            return ("", False)
+        summon_after = bool(data.get("summon_after", True))
+        if summon_after and not self.dialogue_route_allows_tool_summon(
+            character,
+            user_text,
+            name,
+            answer=answer,
+        ):
+            return ("", False)
+        return self._apply_unlisted_person_registration(payload)
+
     def chat(
         self,
         minister_name: str,
@@ -963,7 +995,12 @@ class GameSession:
                 payload = tool_result.removeprefix("__pending_unlisted_person__").strip()
                 if not payload:
                     payload = _tool_args_json(tool_exec)
-                registered, summon_after = self._apply_unlisted_person_registration(payload)
+                registered, summon_after = self._apply_unlisted_person_registration_after_route_audit(
+                    payload,
+                    character,
+                    message,
+                    answer=answer,
+                )
                 if registered:
                     result.registered_minister = registered
                     result.refresh_ministers.append(registered)
@@ -1099,12 +1136,8 @@ class GameSession:
 
     def _apply_unlisted_person_registration(self, payload: str) -> Tuple[str, bool]:
         """登记史实未预设/用户确认背景的人物，进入本局正式可召见人物池。"""
-        import json as _json
-        try:
-            data = _json.loads(payload) if payload else {}
-        except (ValueError, TypeError):
-            return ("", False)
-        if not isinstance(data, dict):
+        data = self._unlisted_person_registration_payload(payload)
+        if not data:
             return ("", False)
         name = str(data.get("name") or "").strip()
         office = str(data.get("office") or "").strip()

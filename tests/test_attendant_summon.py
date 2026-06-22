@@ -1,5 +1,6 @@
 """Attending eunuch summon commands should switch the mobile audience target deterministically."""
 
+import json
 import os
 import unittest
 from pathlib import Path
@@ -27,6 +28,7 @@ class AttendantSummonTests(unittest.TestCase):
                 "MING_SIM_ALLOW_REGISTRATION",
                 "MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS",
                 "MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS",
+                "MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK",
                 "MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS",
                 "MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT",
                 "MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT",
@@ -61,6 +63,7 @@ class AttendantSummonTests(unittest.TestCase):
         os.environ["MING_SIM_ALLOW_REGISTRATION"] = "0"
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS"] = "1"
+        os.environ["MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK"] = "1"
         os.environ["MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS"] = "1"
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
         os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "1"
@@ -374,6 +377,31 @@ class AttendantSummonTests(unittest.TestCase):
 
     def test_chat_payload_implied_summon_is_legacy_opt_in(self):
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS"] = "0"
+        os.environ["MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+
+            payload = game._chat_payload(
+                attendant,
+                "——传内书堂生徒小禄子觐见。小禄子胆子小，该在殿外候着了。",
+            )
+
+            self.assertEqual(payload["court_action"], "")
+            self.assertEqual(payload["next_minister"], "")
+            self.assertNotIn("小禄子", game.content.characters)
+            self.assertIn("小禄子", game._load_unknown_dialogue_mentions())
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_chat_payload_answer_summon_does_not_follow_player_regex_switch(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS"] = "1"
+        os.environ["MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK"] = "0"
         game = web_app.WebGame(fresh=True)
         try:
             attendant = "王承恩"
@@ -1942,6 +1970,91 @@ class AttendantSummonTests(unittest.TestCase):
                 target,
                 answer=f"臣遵旨，传{target}入殿。",
             ))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_unlisted_registration_summon_requires_route_semantic_audit(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            target = "顾语义"
+            self.assertNotIn(target, game.content.characters)
+            character = game.session._character(attendant)
+            payload = json.dumps(
+                {
+                    "name": target,
+                    "office": "御前候补小内侍",
+                    "office_type": "司礼监",
+                    "faction": "中立",
+                    "aliases": [],
+                    "summary": "测试用补档人物",
+                    "source": "user_confirmed",
+                    "summon_after": True,
+                },
+                ensure_ascii=False,
+            )
+            seen_payloads = []
+
+            def deny_audit(phase, audit_payload):
+                if phase == "dialogue_route_intent":
+                    seen_payloads.append(audit_payload)
+                    return {
+                        "allow": False,
+                        "intent": "none",
+                        "confidence": 95,
+                        "private_reason": "player asked for information, not an audience switch",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = deny_audit
+            registered, summon_after = game.session._apply_unlisted_person_registration_after_route_audit(
+                payload,
+                character,
+                "朕只是问问宫里还有哪些人可用。",
+                answer=f"臣以为{target}可留名备查。",
+            )
+            self.assertEqual((registered, summon_after), ("", False))
+            self.assertNotIn(target, game.content.characters)
+            self.assertEqual(
+                seen_payloads[-1]["route_context"]["tool_requested_summon_target"],
+                target,
+            )
+
+            def allow_audit(phase, audit_payload):
+                if phase == "dialogue_route_intent":
+                    return {
+                        "allow": True,
+                        "intent": "summon",
+                        "target_name": target,
+                        "trigger_quote": f"传{target}入殿",
+                        "confidence": 96,
+                        "private_reason": "player explicitly requested the named person enter audience",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = allow_audit
+            registered, summon_after = game.session._apply_unlisted_person_registration_after_route_audit(
+                payload,
+                character,
+                f"传{target}入殿奏对。",
+                answer=f"臣遵旨，传{target}入殿。",
+            )
+
+            self.assertEqual(registered, target)
+            self.assertTrue(summon_after)
+            self.assertIn(target, game.content.characters)
+            row = game.db.conn.execute(
+                "SELECT office, office_type, status_reason FROM characters WHERE name=?",
+                (target,),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertEqual(row["office"], "御前候补小内侍")
+            self.assertEqual(row["status_reason"], "皇帝确认背景补档")
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

@@ -3748,6 +3748,9 @@ class WebGame:
     def _dialogue_regex_summons_enabled(self) -> bool:
         return os.environ.get("MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS", "").strip().lower() in ("1", "true", "yes")
 
+    def _dialogue_answer_summon_fallback_enabled(self) -> bool:
+        return os.environ.get("MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK", "").strip().lower() in ("1", "true", "yes")
+
     def _dialogue_route_context(self, minister_name: str, text: str) -> Dict[str, Any]:
         raw = str(text or "")
         known: List[Dict[str, str]] = []
@@ -5958,7 +5961,7 @@ class WebGame:
         dialogue_goal: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         character = self.session._character(minister_name)
-        if not court_action and self._dialogue_regex_summons_enabled():
+        if not court_action and self._dialogue_answer_summon_fallback_enabled():
             implied_summon = self._attendant_answer_summon_target(minister_name, answer)
             if implied_summon:
                 next_minister = str(implied_summon.get("name") or "")
@@ -6735,7 +6738,7 @@ class WebGame:
             if not result.court_action and tool_dialogue_response.get("court_action"):
                 result.court_action = str(tool_dialogue_response.get("court_action") or "")
                 result.next_minister = str(tool_dialogue_response.get("next_minister") or "")
-        if not result.court_action and self._dialogue_regex_summons_enabled():
+        if not result.court_action and self._dialogue_answer_summon_fallback_enabled():
             implied_summon = self._attendant_answer_summon_target(minister_name, result.answer)
             if implied_summon:
                 result.court_action = "summon"
@@ -6911,7 +6914,12 @@ class WebGame:
                         if not payload_json:
                             args = getattr(tool_exec, "arguments", {}) or getattr(tool_exec, "tool_args", {}) or {}
                             payload_json = json.dumps(args, ensure_ascii=False)
-                        registered, summon_after = self.session._apply_unlisted_person_registration(payload_json)
+                        registered, summon_after = self.session._apply_unlisted_person_registration_after_route_audit(
+                            payload_json,
+                            character,
+                            text,
+                            answer=answer,
+                        )
                         if registered and summon_after:
                             court_action = "summon"
                             next_minister = registered
@@ -7001,7 +7009,7 @@ class WebGame:
                 if not court_action and dialogue_tool_response.get("court_action"):
                     court_action = str(dialogue_tool_response.get("court_action") or "")
                     next_minister = str(dialogue_tool_response.get("next_minister") or "")
-            if not court_action and self._dialogue_regex_summons_enabled():
+            if not court_action and self._dialogue_answer_summon_fallback_enabled():
                 implied_summon = self._attendant_answer_summon_target(minister_name, answer)
                 if implied_summon:
                     court_action = "summon"

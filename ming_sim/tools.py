@@ -504,6 +504,8 @@ def build_minister_tools(character: Character, context: CourtContext):
         2. source="user_confirmed"：名册无此人且非明确史实，但皇帝已经说明其身份背景。
 
         不可用于正式升迁、外放或替换现任官缺；正式任官仍走吏部铨选或圣旨。
+        只有皇帝原话明确要“传/召/叫此人入殿”时，summon_after 才能为 true；否则设为 false。
+        summon_after=true 仍会被对白路由语义审计复核，工具调用本身不算召见证据。
         aliases_json 填 JSON 数组字符串，如 ["李若璉","李若链","李若莲"]。
         """
         nm = (name or "").strip()
