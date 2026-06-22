@@ -1991,30 +1991,56 @@ class WebGame:
             subject = subject[:150].rstrip() + "…"
         return subject
 
-    def _fallback_pending_directive(
+    def _fallback_directive_review(
         self,
         character: Character,
         user_text: str,
         answer: str,
     ) -> Optional[Dict[str, Any]]:
-        """Guarantee the player action loop when the minister argues but forgets to draft.
+        if os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes"):
+            return None
+        try:
+            if not str(self.session.llm_config.api_key or "").strip():
+                return None
+        except Exception:
+            return None
+        try:
+            from ming_sim.dialogue_audit import dialogue_directive_fallback_audit
 
-        The minister's cautious reply remains intact; this only files a conservative
-        editable draft so the player can continue to confirmation/edict.
-        """
-        if not self._directive_intent(user_text):
-            return None
-        subject = self._directive_subject(user_text)
-        if len(subject) < 8:
-            return None
+            review = dialogue_directive_fallback_audit(
+                self.db,
+                self.state,
+                character,
+                user_text,
+                answer,
+                llm_config=self.session.llm_config,
+                agno_db=self.session.agno_db,
+                audit_client=self.session.dialogue_audit_client,
+            )
+        except Exception:
+            return {"allow": False}
+        return review if isinstance(review, dict) else {"allow": False}
+
+    def _fallback_directive_draft(self, character: Character, subject: str) -> str:
+        subject = str(subject or "").strip()
         if len(subject) > 110:
             core = subject
         else:
             core = f"就{subject}"
-        draft_text = (
+        return (
             f"着{character.name}即会同所司，{core}逐项核实办理；凡钱粮、兵马、地方承行，"
             "须列明数目、去向与期限。限五日内具奏初案，办竣即复命；若有窒碍，不得隐匿。"
         )
+
+    def _record_or_reuse_fallback_directive(
+        self,
+        character: Character,
+        draft_text: str,
+        notes: str,
+    ) -> Optional[Dict[str, Any]]:
+        draft_text = str(draft_text or "").strip()
+        if not draft_text:
+            return None
         row = self.db.conn.execute(
             """
             SELECT id, text, status, source, notes, actor
@@ -2036,10 +2062,47 @@ class WebGame:
         proposed = self._record_pending_directive(character, draft_text)
         if proposed:
             proposed["fallback"] = True
-            proposed["notes"] = f"由{character.name}拟旨入档（保守草案；原奏对未直接成稿）"
+            proposed["notes"] = notes
             self.db.conn.execute("UPDATE turn_directives SET notes=? WHERE id=?", (proposed["notes"], int(proposed["id"])))
             self.db.conn.commit()
         return proposed
+
+    def _fallback_pending_directive(
+        self,
+        character: Character,
+        user_text: str,
+        answer: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Guarantee the player action loop when the minister argues but forgets to draft.
+
+        The minister's cautious reply remains intact; this only files a conservative
+        editable draft so the player can continue to confirmation/edict.
+        """
+        review = self._fallback_directive_review(character, user_text, answer)
+        if review is not None:
+            if not review.get("allow"):
+                return None
+            subject = str(review.get("subject") or "").strip()
+            draft_text = str(review.get("directive_text") or "").strip()
+            if not draft_text:
+                if len(subject) < 8:
+                    return None
+                draft_text = self._fallback_directive_draft(character, subject)
+            return self._record_or_reuse_fallback_directive(
+                character,
+                draft_text,
+                f"由{character.name}拟旨入档（语义审计兜底；原奏对未直接成稿）",
+            )
+        if not self._directive_intent(user_text):
+            return None
+        subject = self._directive_subject(user_text)
+        if len(subject) < 8:
+            return None
+        return self._record_or_reuse_fallback_directive(
+            character,
+            self._fallback_directive_draft(character, subject),
+            f"由{character.name}拟旨入档（保守草案；原奏对未直接成稿）",
+        )
 
     def _proposed_from_dialogue_goal(self, dialogue_goal: Optional[Dict[str, Any]], character: Character) -> Optional[Dict[str, Any]]:
         if not isinstance(dialogue_goal, dict):

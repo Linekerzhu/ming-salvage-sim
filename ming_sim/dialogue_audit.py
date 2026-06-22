@@ -635,6 +635,31 @@ def _normalize_dialogue_bargain_attitude(data: Dict[str, object]) -> Dict[str, o
     }
 
 
+def _normalize_dialogue_directive_fallback(data: Dict[str, object]) -> Dict[str, object]:
+    raw_confidence = data.get("confidence")
+    try:
+        parsed_confidence = float(raw_confidence)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        parsed_confidence = 0.0
+    if 0 < parsed_confidence <= 1:
+        confidence = _clamp_int(parsed_confidence * 100)
+    else:
+        confidence = _clamp_int(raw_confidence)
+    subject = _compact(data.get("subject"), 180)
+    directive_text = _compact(data.get("directive_text"), 1600)
+    allow = bool(data.get("allow")) and confidence >= CONFIDENCE_FLOOR and (bool(subject) or bool(directive_text))
+    return {
+        "allow": allow,
+        "subject": subject if allow else "",
+        "directive_text": directive_text if allow else "",
+        "confidence": confidence,
+        "trigger_quote": _compact(data.get("trigger_quote"), 140),
+        "public_hint": _compact(data.get("public_hint"), 180),
+        "private_reason": _compact(data.get("private_reason") or data.get("reason"), 520),
+        "raw": data,
+    }
+
+
 def _context_payload(db: Any, state: GameState, character: Character, *, active_goal: Optional[Dict[str, object]] = None) -> Dict[str, object]:
     try:
         goals = db.list_conversation_goals(minister_name=character.name, limit=8)
@@ -1172,6 +1197,39 @@ JSON 字段：
 """.strip()
 
 
+DIALOGUE_DIRECTIVE_FALLBACK_PROMPT = """
+你是明末历史策略游戏的“拟旨兜底审计官”。你只输出 JSON，不写 Markdown。
+任务：阅读皇帝本轮原话、NPC 回复和上下文，判断当 NPC 没有工具拟旨时，是否应为玩家生成一个“待核定”的保守旨意草案。
+
+核心原则：
+- 这是语义判定，不按“拟旨、下旨、草案、颁布”等词机械触发。
+- 只有皇帝明确要求当前 NPC 起草/拟定/写出一份可核定的旨意、诏书、谕旨、草案，或明确说“照这个方向拟成可颁的文书”，才 allow=true。
+- 皇帝只是问“要不要下旨”“此事能否颁布”“下旨会怎样”“先讲阻力/代价/执行周期”，或说“别拟旨/暂不下旨/先别颁布”，必须 allow=false。
+- NPC 回复如果已经有完整草案，应优先由 post_audit 的 directive_action 处理；本兜底只用于“皇帝要求拟稿，但 NPC 只议论或忘了工具调用”的情况。
+- allow=true 时，subject 写清楚旨意要处理的政治对象和目的，不要只写“拟旨”。
+- directive_text 可为空；若填写，必须是可入库、待皇帝核定的草案，不要写机制解释。
+- trigger_quote 必须引用皇帝原话中能证明“要求拟稿”的短句；没有证据 allow=false。
+
+判例：
+- “替朕拟一道旨意，命户部核出本月辽饷实欠，五日内具奏。” => allow=true。
+- “照你刚才说的，拟成一份可直接核定的草案。” => allow=true。
+- “你觉得此事要不要下旨？” => allow=false。
+- “先别拟旨，先讲阻力。” => allow=false。
+- “这道旨意若颁布会怎样？” => allow=false。
+
+JSON 字段：
+{
+  "allow": false,
+  "subject": "旨意标的；无则空",
+  "directive_text": "可入库待核定草案；没有把握则空",
+  "trigger_quote": "皇帝原话短句",
+  "public_hint": "一句玩家可见提示",
+  "private_reason": "审计理由",
+  "confidence": 0
+}
+""".strip()
+
+
 DIALOGUE_SUGGESTIONS_PROMPT = """
 你是明末历史策略游戏的“自然奏对建议官”。你只输出 JSON，不写 Markdown。
 任务：根据 NPC、近期上下文、未完成目的、关系网、待确认动作和候选建议，生成 3-5 条像皇帝自然开口的话，而不是 UI 标签或机械快捷指令。
@@ -1205,6 +1263,9 @@ def _agent(llm_config: LLMConfig, agno_db: object, *, phase: str, prompt: str, m
         "dialogue_action_intent": "llm.dialogue_action_intent",
         "dialogue_route_intent": "llm.dialogue_route_intent",
         "dialogue_suggestions": "llm.dialogue_suggestions",
+        "dialogue_pending_recovery": "llm.dialogue_pending_recovery",
+        "dialogue_bargain_attitude": "llm.dialogue_bargain_attitude",
+        "dialogue_directive_fallback": "llm.dialogue_directive_fallback",
     }.get(phase, "llm.dialogue_condition_audit")
     return Agent(
         name=f"奏对审计-{phase}",
@@ -1552,6 +1613,53 @@ def dialogue_bargain_attitude_audit(
         return _normalize_dialogue_bargain_attitude({
             "allow": False,
             "attitude": "none",
+            "confidence": 0,
+            "private_reason": str(exc),
+        })
+
+
+def dialogue_directive_fallback_audit(
+    db: Any,
+    state: GameState,
+    character: Character,
+    user_text: str,
+    answer: str,
+    *,
+    llm_config: Optional[LLMConfig] = None,
+    agno_db: object = None,
+    audit_client: object = None,
+) -> Dict[str, object]:
+    payload = _context_payload(db, state, character)
+    payload["user_text"] = user_text
+    payload["npc_answer"] = answer
+    _attach_behavior_context(payload, character, text=f"{user_text}\n{answer}")
+    try:
+        fake = _call_fake(audit_client, "dialogue_directive_fallback", payload)
+        if fake is not None:
+            return _normalize_dialogue_directive_fallback(fake)
+        if llm_config is None:
+            return _normalize_dialogue_directive_fallback({
+                "allow": False,
+                "confidence": 0,
+                "private_reason": "未配置 LLM，不自动生成拟旨草案。",
+            })
+        agent = _agent(
+            llm_config,
+            agno_db,
+            phase="dialogue_directive_fallback",
+            prompt=DIALOGUE_DIRECTIVE_FALLBACK_PROMPT,
+            max_tokens=900,
+        )
+        raw = run_agent_text(
+            agent,
+            json.dumps(payload, ensure_ascii=False, sort_keys=False),
+            tag="dialogue-audit/directive-fallback",
+        )
+        data = parse_agent_json(raw, "拟旨兜底审计")
+        return _normalize_dialogue_directive_fallback(data)
+    except Exception as exc:
+        return _normalize_dialogue_directive_fallback({
+            "allow": False,
             "confidence": 0,
             "private_reason": str(exc),
         })
