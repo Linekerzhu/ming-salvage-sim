@@ -884,6 +884,7 @@ def apply_directive_audience_pressure(
     directive_id: object,
     user_text: str,
     answer: str,
+    semantic_review: Optional[Dict[str, object]] = None,
 ) -> Dict[str, object]:
     """Small deterministic lifecycle nudge from questioning an assignee in audience.
 
@@ -907,14 +908,25 @@ def apply_directive_audience_pressure(
     if status not in LIVE_STATUSES:
         return {}
 
-    combined = f"{user_text}\n{answer}"
-    if not _has_any(combined, ("进度", "实数", "几分", "阻力", "停滞", "掣肘", "期限", "催", "责", "交账", "复命")):
-        return {}
-
-    evade = _has_any(answer, ("不知", "未闻", "非臣", "不归臣", "无从", "不能", "不敢", "难以", "未接"))
-    support = _has_any(answer, ("请拨", "加拨", "拨银", "钱粮", "军饷", "粮饷", "人手", "会同", "监军", "部议"))
-    commit = _has_any(answer, ("遵旨", "谨遵", "臣当", "臣即", "即日", "立刻", "具奏", "清册", "交账", "担责", "限日", "三日", "五日", "十日"))
-    forceful = _has_any(user_text, ("进度", "实数", "几分", "阻力", "停滞", "责", "期限"))
+    semantic_kind = ""
+    if semantic_review is not None:
+        if not semantic_review.get("allow"):
+            return {}
+        semantic_kind = str(semantic_review.get("kind") or "").strip()
+        if semantic_kind not in {"pressed", "needs_support", "evasive"}:
+            return {}
+        evade = semantic_kind == "evasive"
+        support = semantic_kind == "needs_support"
+        commit = semantic_kind == "pressed"
+        forceful = bool(semantic_review.get("forceful"))
+    else:
+        combined = f"{user_text}\n{answer}"
+        if not _has_any(combined, ("进度", "实数", "几分", "阻力", "停滞", "掣肘", "期限", "催", "责", "交账", "复命")):
+            return {}
+        evade = _has_any(answer, ("不知", "未闻", "非臣", "不归臣", "无从", "不能", "不敢", "难以", "未接"))
+        support = _has_any(answer, ("请拨", "加拨", "拨银", "钱粮", "军饷", "粮饷", "人手", "会同", "监军", "部议"))
+        commit = _has_any(answer, ("遵旨", "谨遵", "臣当", "臣即", "即日", "立刻", "具奏", "清册", "交账", "担责", "限日", "三日", "五日", "十日"))
+        forceful = _has_any(user_text, ("进度", "实数", "几分", "阻力", "停滞", "责", "期限"))
     day = kv_int(db, KV_CURRENT_DAY, 1)
     meta = _chain_meta(row)
     anomaly = _anomaly_label(row["anomaly"] or "")
@@ -980,7 +992,7 @@ def apply_directive_audience_pressure(
     )
     if assignee:
         db.conn.execute("UPDATE characters SET grievance=MIN(100, grievance+2) WHERE name=?", (assignee,))
-    if _has_any(user_text, ("责", "停滞", "问罪")):
+    if (semantic_kind and forceful) or (not semantic_kind and _has_any(user_text, ("责", "停滞", "问罪"))):
         adjust_belief(db, KV_RISK_AVERSION, +1, f"御前责问旨意#{did}", day=day)
     db.conn.commit()
     moved = new_progress - current_progress

@@ -62,6 +62,7 @@ ACTION_INTENT_TYPES = {
 ACTION_INTENT_PHASES = {"none", "propose", "confirm", "reject"}
 DIALOGUE_ROUTE_INTENTS = {"none", "summon", "confirm_pending", "reject_pending"}
 BARGAIN_ATTITUDES = {"none", "accept", "press", "refuse"}
+DIRECTIVE_PRESSURE_KINDS = {"none", "pressed", "needs_support", "evasive"}
 RECOVERABLE_DIALOGUE_ACTION_TYPES = {
     "recruitment",
     "mediation",
@@ -660,6 +661,31 @@ def _normalize_dialogue_directive_fallback(data: Dict[str, object]) -> Dict[str,
     }
 
 
+def _normalize_dialogue_directive_pressure(data: Dict[str, object]) -> Dict[str, object]:
+    kind = _enum(data.get("kind"), DIRECTIVE_PRESSURE_KINDS, "none")
+    raw_confidence = data.get("confidence")
+    try:
+        parsed_confidence = float(raw_confidence)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        parsed_confidence = 0.0
+    if 0 < parsed_confidence <= 1:
+        confidence = _clamp_int(parsed_confidence * 100)
+    else:
+        confidence = _clamp_int(raw_confidence)
+    allow = bool(data.get("allow")) and kind != "none" and confidence >= CONFIDENCE_FLOOR
+    return {
+        "allow": allow,
+        "kind": kind if allow else "none",
+        "forceful": bool(data.get("forceful")),
+        "confidence": confidence,
+        "trigger_quote": _compact(data.get("trigger_quote"), 140),
+        "answer_evidence": _compact(data.get("answer_evidence"), 240),
+        "public_hint": _compact(data.get("public_hint"), 180),
+        "private_reason": _compact(data.get("private_reason") or data.get("reason"), 520),
+        "raw": data,
+    }
+
+
 def _context_payload(db: Any, state: GameState, character: Character, *, active_goal: Optional[Dict[str, object]] = None) -> Dict[str, object]:
     try:
         goals = db.list_conversation_goals(minister_name=character.name, limit=8)
@@ -1230,6 +1256,39 @@ JSON 字段：
 """.strip()
 
 
+DIALOGUE_DIRECTIVE_PRESSURE_PROMPT = """
+你是明末历史策略游戏的“旨意召对压力审计官”。你只输出 JSON，不写 Markdown。
+任务：阅读一道正在执行/送达/迟滞的旨意、皇帝本轮原话和 NPC 回复，判断这次召对是否应让旨意生命周期产生小幅状态变化。
+
+核心原则：
+- 这是语义判定，不按“进度、阻力、交账、遵旨、钱粮、三日”等词机械触发。
+- allow=false：只是询问背景、解释利弊、复盘旧事、闲聊、假设“如果追问会怎样”，或证据不足。不要推进旨意。
+- kind=pressed：皇帝实质压实差使、追问进度/期限/责任，且 NPC 表示会执行、具奏、担责、交清册，或皇帝明确把责任压到其身上。
+- kind=needs_support：NPC 说明执行需要资源、钱粮、人手、会同、部议或某个阻力，但没有清楚承诺马上推进。
+- kind=evasive：NPC 对正在归其承办或相关的旨意避责、装不知、推说非己、不能/不敢/无从，且没有同时承诺推进。
+- forceful=true 只用于皇帝语气明显是责问、限期、催办、压责；普通追问或温和问询为 false。
+- trigger_quote 必须引用皇帝原话中最能证明召对压力的短句；answer_evidence 必须引用 NPC 回复中支持分类的短句。没有证据 allow=false。
+
+判例：
+- 皇帝：“欠饷清册到底办到几分？三日内交账。” NPC：“臣即日具奏，愿担责。” => pressed, forceful=true。
+- 皇帝：“此事眼下卡在哪里？” NPC：“户部钱粮迟迟不发，需会同兵部。” => needs_support。
+- 皇帝：“这旨意你办到何处？” NPC：“臣未接此事，非臣所知。” => evasive。
+- 皇帝：“若朕追问进度，朝中会有什么反应？” NPC 泛论风险 => allow=false。
+
+JSON 字段：
+{
+  "allow": false,
+  "kind": "none|pressed|needs_support|evasive",
+  "forceful": false,
+  "trigger_quote": "皇帝原话短句",
+  "answer_evidence": "NPC 回复证据",
+  "public_hint": "一句玩家可见提示",
+  "private_reason": "审计理由",
+  "confidence": 0
+}
+""".strip()
+
+
 DIALOGUE_SUGGESTIONS_PROMPT = """
 你是明末历史策略游戏的“自然奏对建议官”。你只输出 JSON，不写 Markdown。
 任务：根据 NPC、近期上下文、未完成目的、关系网、待确认动作和候选建议，生成 3-5 条像皇帝自然开口的话，而不是 UI 标签或机械快捷指令。
@@ -1266,6 +1325,7 @@ def _agent(llm_config: LLMConfig, agno_db: object, *, phase: str, prompt: str, m
         "dialogue_pending_recovery": "llm.dialogue_pending_recovery",
         "dialogue_bargain_attitude": "llm.dialogue_bargain_attitude",
         "dialogue_directive_fallback": "llm.dialogue_directive_fallback",
+        "dialogue_directive_pressure": "llm.dialogue_directive_pressure",
     }.get(phase, "llm.dialogue_condition_audit")
     return Agent(
         name=f"奏对审计-{phase}",
@@ -1660,6 +1720,73 @@ def dialogue_directive_fallback_audit(
     except Exception as exc:
         return _normalize_dialogue_directive_fallback({
             "allow": False,
+            "confidence": 0,
+            "private_reason": str(exc),
+        })
+
+
+def dialogue_directive_pressure_audit(
+    db: Any,
+    state: GameState,
+    character: Character,
+    user_text: str,
+    answer: str,
+    directive_context: Dict[str, object],
+    *,
+    llm_config: Optional[LLMConfig] = None,
+    agno_db: object = None,
+    audit_client: object = None,
+) -> Dict[str, object]:
+    payload = _context_payload(db, state, character)
+    payload["user_text"] = user_text
+    payload["npc_answer"] = answer
+    payload["directive_context"] = {
+        key: value
+        for key, value in (directive_context or {}).items()
+        if key in {
+            "id",
+            "text",
+            "assignee",
+            "status",
+            "lifecycle_status",
+            "progress",
+            "anomaly",
+            "eta_day",
+            "exec_days",
+            "chain",
+            "context",
+        }
+    }
+    _attach_behavior_context(payload, character, text=f"{user_text}\n{answer}")
+    try:
+        fake = _call_fake(audit_client, "dialogue_directive_pressure", payload)
+        if fake is not None:
+            return _normalize_dialogue_directive_pressure(fake)
+        if llm_config is None:
+            return _normalize_dialogue_directive_pressure({
+                "allow": False,
+                "kind": "none",
+                "confidence": 0,
+                "private_reason": "未配置 LLM，不由奏对推进旨意生命周期。",
+            })
+        agent = _agent(
+            llm_config,
+            agno_db,
+            phase="dialogue_directive_pressure",
+            prompt=DIALOGUE_DIRECTIVE_PRESSURE_PROMPT,
+            max_tokens=850,
+        )
+        raw = run_agent_text(
+            agent,
+            json.dumps(payload, ensure_ascii=False, sort_keys=False),
+            tag="dialogue-audit/directive-pressure",
+        )
+        data = parse_agent_json(raw, "旨意召对压力审计")
+        return _normalize_dialogue_directive_pressure(data)
+    except Exception as exc:
+        return _normalize_dialogue_directive_pressure({
+            "allow": False,
+            "kind": "none",
             "confidence": 0,
             "private_reason": str(exc),
         })

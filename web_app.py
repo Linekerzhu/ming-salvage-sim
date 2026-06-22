@@ -6616,9 +6616,81 @@ class WebGame:
         ref_id = context.get("ref_id") or context.get("id")
         try:
             from ming_sim.lifecycle import apply_directive_audience_pressure
-            return apply_directive_audience_pressure(self.db, self.state, minister_name, ref_id, user_text, answer)
+            semantic_review = self._directive_audience_pressure_review(
+                minister_name,
+                ref_id,
+                context,
+                user_text,
+                answer,
+            )
+            return apply_directive_audience_pressure(
+                self.db,
+                self.state,
+                minister_name,
+                ref_id,
+                user_text,
+                answer,
+                semantic_review=semantic_review,
+            )
         except Exception:
             return {}
+
+    def _directive_audience_pressure_review(
+        self,
+        minister_name: str,
+        directive_id: object,
+        context: Dict[str, Any],
+        user_text: str,
+        answer: str,
+    ) -> Optional[Dict[str, Any]]:
+        if os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes"):
+            return None
+        try:
+            if not str(self.session.llm_config.api_key or "").strip():
+                return None
+        except Exception:
+            return None
+        try:
+            did = int(str(directive_id or "0"))
+        except (TypeError, ValueError):
+            return {"allow": False, "kind": "none", "private_reason": "旨意编号无效。"}
+        try:
+            row = self.db.conn.execute(
+                """
+                SELECT id, text, assignee, status, lifecycle_status, progress,
+                       anomaly, eta_day, exec_days, chain
+                FROM turn_directives
+                WHERE id=?
+                """,
+                (did,),
+            ).fetchone()
+        except Exception:
+            return {"allow": False, "kind": "none", "private_reason": "旨意档案不可读取。"}
+        if row is None:
+            return {"allow": False, "kind": "none", "private_reason": "旨意不存在。"}
+        lifecycle_status = str(row["lifecycle_status"] or "").strip()
+        if lifecycle_status == "done":
+            return None
+        directive_context = {key: row[key] for key in row.keys()}
+        directive_context["context"] = dict(context or {})
+        try:
+            from ming_sim.dialogue_audit import dialogue_directive_pressure_audit
+
+            character = self.session._character(minister_name)
+            review = dialogue_directive_pressure_audit(
+                self.db,
+                self.state,
+                character,
+                user_text,
+                answer,
+                directive_context,
+                llm_config=self.session.llm_config,
+                agno_db=self.session.agno_db,
+                audit_client=self.session.dialogue_audit_client,
+            )
+        except Exception as exc:
+            return {"allow": False, "kind": "none", "confidence": 0, "private_reason": str(exc)}
+        return review if isinstance(review, dict) else {"allow": False, "kind": "none"}
 
     def _decision_chat_effect(
         self,
@@ -9177,6 +9249,12 @@ async def api_menu_status() -> Dict[str, Any]:
     saves_dir = _saves_dir_for_user(username)
     runtime = load_runtime_llm()
     llm_cfg = _runtime_llm_config_for_status(runtime)
+    llm_public = _public_llm_config_payload(llm_cfg)
+    uses_advanced_roles = sorted(
+        role
+        for role, item in llm_public.get("effective_role_models", {}).items()
+        if isinstance(item, dict) and item.get("uses_advanced")
+    )
     has_api_key = bool(runtime.get("api_key") or os.environ.get("OPENAI_API_KEY"))
     llm_client_configurable = (
         not _auth_enabled()
@@ -9184,6 +9262,11 @@ async def api_menu_status() -> Dict[str, Any]:
     )
     return {
         "has_api_key": has_api_key,
+        "base_url": llm_public.get("base_url", ""),
+        "model": llm_public.get("model", ""),
+        "advanced_model": llm_public.get("advanced_model", ""),
+        "advanced_enabled": bool(llm_public.get("advanced_enabled")),
+        "uses_advanced_roles": uses_advanced_roles,
         "has_running_game": _running_game_for_user(username) is not None,
         "has_main_db": _has_main_db(db_path),
         "saves": _scan_saves(saves_dir),
@@ -9195,7 +9278,7 @@ async def api_menu_status() -> Dict[str, Any]:
             "is_admin": _is_admin_user(username or "local"),
         },
         "llm_client_configurable": llm_client_configurable,
-        "llm": _public_llm_config_payload(llm_cfg),
+        "llm": llm_public,
     }
 
 

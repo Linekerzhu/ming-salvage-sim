@@ -4271,6 +4271,117 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_semantic_directive_pressure_moves_live_directive_without_keyword_gate(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "袁崇焕"
+            did = game.db.add_directive(
+                game.state,
+                None,
+                "令袁崇焕整顿辽东军饷。",
+                "test",
+                actor=actor,
+                status="confirmed",
+            )
+            game.db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='executing', "
+                "progress=40, exec_days=10, eta_day=12, anomaly=?, chain=? WHERE id=?",
+                (
+                    actor,
+                    json.dumps({"kind": "delay"}, ensure_ascii=False),
+                    json.dumps({"resistance": 45, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            game.db.conn.commit()
+
+            def audit(phase, payload):
+                if phase != "dialogue_directive_pressure":
+                    return {"allow": False, "kind": "none", "confidence": 100}
+                self.assertEqual(int((payload.get("directive_context") or {}).get("id")), did)
+                return {
+                    "allow": True,
+                    "kind": "pressed",
+                    "forceful": True,
+                    "trigger_quote": "把这件差使压实",
+                    "answer_evidence": "臣即日具奏",
+                    "confidence": 96,
+                }
+
+            game.session.dialogue_audit_client = audit
+
+            effect = game._directive_chat_effect(
+                actor,
+                {"kind": "directive", "ref_id": did},
+                "把这件差使压实。",
+                "臣即日具奏，三日内交清册。",
+            )
+            progress = int(game.db.conn.execute(
+                "SELECT progress FROM turn_directives WHERE id=?", (did,)
+            ).fetchone()["progress"])
+
+            self.assertEqual(effect["kind"], "pressed")
+            self.assertEqual(effect["progress_delta"], 6)
+            self.assertEqual(progress, 46)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_directive_pressure_denial_blocks_keyword_fallback(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "袁崇焕"
+            did = game.db.add_directive(
+                game.state,
+                None,
+                "令袁崇焕整顿辽东军饷。",
+                "test",
+                actor=actor,
+                status="confirmed",
+            )
+            game.db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='executing', "
+                "progress=40, exec_days=10, eta_day=12, anomaly=?, chain=? WHERE id=?",
+                (
+                    actor,
+                    json.dumps({"kind": "delay"}, ensure_ascii=False),
+                    json.dumps({"resistance": 45, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            game.db.conn.commit()
+
+            game.session.dialogue_audit_client = lambda phase, payload: {  # type: ignore[assignment]
+                "allow": False,
+                "kind": "none",
+                "confidence": 95,
+                "private_reason": "玩家只是闲谈，没有形成御前催办。",
+            }
+
+            effect = game._directive_chat_effect(
+                actor,
+                {"kind": "directive", "ref_id": did},
+                "朕问你进度，欠饷实数到底办到几分？",
+                "臣遵旨，即日清册具奏，三日内交账，不敢再误。",
+            )
+            progress = int(game.db.conn.execute(
+                "SELECT progress FROM turn_directives WHERE id=?", (did,)
+            ).fetchone()["progress"])
+
+            self.assertEqual(effect, {})
+            self.assertEqual(progress, 40)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_audience_bargain_press_and_refuse_have_distinct_deltas(self):
         game = web_app.WebGame(fresh=True)
         try:
