@@ -257,9 +257,9 @@ export function ChatPane({
       setNextStep(null);
     }
   };
-  const preferLeadSuggestions = messages.length === 0 && !streaming && suggestionsLoaded && suggestions.length === 0;
-  const visibleSuggestions = (preferLeadSuggestions ? leadSuggestions : suggestions)
-    .slice(0, Math.max(0, suggestionLimit));
+  void leadSuggestions;
+  void suggestionsLoaded;
+  const visibleSuggestions = suggestions.slice(0, Math.max(0, suggestionLimit));
   const transientMessages = messages.length === 0 ? localMessages : EMPTY_LOCAL_MESSAGES;
   const showArrival = Boolean(arrivalNote && messages.length === 0);
 

@@ -30,6 +30,7 @@ class AttendantSummonTests(unittest.TestCase):
                 "MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS",
                 "MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK",
                 "MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS",
+                "MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS",
                 "MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT",
                 "MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT",
             )
@@ -65,6 +66,7 @@ class AttendantSummonTests(unittest.TestCase):
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS"] = "1"
         os.environ["MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK"] = "1"
         os.environ["MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS"] = "1"
+        os.environ.pop("MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS", None)
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
         os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "1"
 
@@ -2282,6 +2284,33 @@ class AttendantSummonTests(unittest.TestCase):
                 "SELECT 1 FROM event_memories WHERE subject_id=? AND event_type='eunuch_care'",
                 (name,),
             ).fetchone())
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_quick_suggestions_do_not_fallback_to_local_buttons_when_llm_empty(self):
+        os.environ["MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS"] = "0"
+        os.environ.pop("MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS", None)
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+
+            def audit(phase, payload):
+                if phase == "dialogue_suggestions":
+                    return {"suggestions": []}
+                return None
+
+            game.session.dialogue_audit_client = audit
+            suggestions = game.suggestions_for(game.session._character(actor))
+
+            self.assertEqual(suggestions, [])
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

@@ -7375,6 +7375,16 @@ class WebGame:
             {"label": "问钱粮", "text": "这件事要动多少银钱、人手和时日，短缺从哪里补？", "prefix": True},
         ][:limit]
 
+    def _local_quick_suggestion_fallback_enabled(self) -> bool:
+        if os.environ.get("MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS", "").strip().lower() in ("1", "true", "yes"):
+            return True
+        if os.environ.get("MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS", "").strip().lower() in ("1", "true", "yes"):
+            return True
+        try:
+            return not bool(str(self.session.llm_config.api_key or "").strip())
+        except Exception:
+            return False
+
     def suggestions_for(self, character: Character) -> List[Dict[str, Any]]:
         pending = self._load_pending_dialogue_action(character.name)
         seed_suggestions: List[Dict[str, Any]] = self._merge_dialogue_suggestions(
@@ -7399,7 +7409,9 @@ class WebGame:
         natural = self._llm_contextual_suggestions(character, seed_suggestions, pending_action=pending)
         if natural:
             return natural[:6]
-        return self._fallback_dialogue_suggestions(seed_suggestions, limit=6)
+        if self._local_quick_suggestion_fallback_enabled():
+            return self._fallback_dialogue_suggestions(seed_suggestions, limit=6)
+        return []
 
     def _llm_contextual_suggestions(
         self,
