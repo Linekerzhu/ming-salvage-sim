@@ -738,7 +738,7 @@ export function audienceLeadFromBrief(card: PlaystyleBriefCard, actor = card.act
 
 function withBargainPrompt(prompts: Suggestion[], card: PlaystyleBriefCard, actor: string, target: string): Suggestion[] {
   const prompt = bargainPromptFromCard(card, actor, target);
-  if (!prompt || prompts.some((item) => ["听他说透", "问所求", "问交易"].includes(item.label))) return prompts;
+  if (!prompt || prompts.some((item) => ["听他说透", "问所求", "问代价"].includes(item.label))) return prompts;
   return [prompt, ...prompts];
 }
 

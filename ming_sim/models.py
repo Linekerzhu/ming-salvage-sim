@@ -26,7 +26,7 @@ class LLMConfig:
     max_tokens: int = 8000
     timeout_seconds: float = 180.0
     thinking_level: str = ""  # 空=沿用旧逻辑；否则原样传给 reasoning_effort
-    advanced_model: str = ""  # 空=fallback model；非空=推演/打分专用更强模型（如 deepseek-reasoner / gpt-5）
+    advanced_model: str = ""  # 需 MING_SIM_ENABLE_ADVANCED_LLM=1 才生效；默认全链路使用主模型
     advanced_base_url: str = ""  # 空=复用主 base_url；非空=advanced 角色专用网关
     advanced_api_key: str = ""  # 空=复用主 api_key；非空=advanced 角色专用 key
     advanced_thinking_level: str = ""  # 空=沿用旧逻辑；advanced 角色原样传给 reasoning_effort

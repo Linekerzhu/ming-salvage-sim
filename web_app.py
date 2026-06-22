@@ -39,8 +39,11 @@ from ming_sim.constants import ROOT_DIR
 from ming_sim.paths import bundled_path, user_data_path, user_data_dir
 from ming_sim.exceptions import ExitGame, LLMUnavailable
 from ming_sim.llm_config import (
+    advanced_llm_enabled,
+    effective_role_models,
     load_llm_config,
     load_runtime_llm,
+    normalize_advanced_llm_fields,
     normalize_openai_base_url,
     normalize_thinking_level,
     save_runtime_llm,
@@ -494,6 +497,61 @@ def _llm_error_detail(exc: Exception, prefix: str = "") -> Dict[str, Any]:
     }
 
 
+def _public_llm_config_payload(cfg: LLMConfig, *, persisted: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    payload: Dict[str, Any] = {
+        "base_url": cfg.base_url,
+        "model": cfg.model,
+        "max_tokens": cfg.max_tokens,
+        "timeout_seconds": cfg.timeout_seconds,
+        "thinking_level": cfg.thinking_level,
+        "advanced_enabled": advanced_llm_enabled(),
+        "advanced_model": cfg.advanced_model,
+        "advanced_base_url": cfg.advanced_base_url,
+        "has_advanced_api_key": bool(cfg.advanced_api_key),
+        "advanced_thinking_level": cfg.advanced_thinking_level,
+        "has_api_key": bool(cfg.api_key),
+        "effective_role_models": effective_role_models(cfg),
+    }
+    if persisted is not None:
+        payload["persisted"] = {
+            "base_url": persisted.get("base_url", ""),
+            "model": persisted.get("model", ""),
+            "has_api_key": bool(persisted.get("api_key", "")),
+            "max_tokens": int(persisted.get("max_tokens") or 8000),
+            "timeout_seconds": float(persisted.get("timeout_seconds") or 180),
+            "thinking_level": persisted.get("thinking_level", ""),
+            "advanced_model": persisted.get("advanced_model", ""),
+            "advanced_base_url": persisted.get("advanced_base_url", ""),
+            "has_advanced_api_key": bool(persisted.get("advanced_api_key", "")),
+            "advanced_thinking_level": persisted.get("advanced_thinking_level", ""),
+        }
+    return payload
+
+
+def _runtime_llm_config_for_status(runtime: Dict[str, str]) -> LLMConfig:
+    base_url = runtime.get("base_url") or os.environ.get("OPENAI_BASE_URL", "https://api.deepseek.com")
+    model = runtime.get("model") or os.environ.get("OPENAI_MODEL", "deepseek-v4-flash")
+    timeout_seconds = float(runtime.get("timeout_seconds") or os.environ.get("OPENAI_TIMEOUT_SECONDS", "180") or 180)
+    advanced = normalize_advanced_llm_fields(
+        runtime.get("advanced_model") or os.environ.get("OPENAI_ADVANCED_MODEL", ""),
+        runtime.get("advanced_base_url") or os.environ.get("OPENAI_ADVANCED_BASE_URL", ""),
+        runtime.get("advanced_api_key") or os.environ.get("OPENAI_ADVANCED_API_KEY", ""),
+        runtime.get("advanced_thinking_level") or os.environ.get("OPENAI_ADVANCED_THINKING_LEVEL", ""),
+    )
+    return LLMConfig(
+        api_key=runtime.get("api_key") or os.environ.get("OPENAI_API_KEY", ""),
+        base_url=normalize_openai_base_url(base_url),
+        model=model,
+        max_tokens=int(runtime.get("max_tokens") or 8000),
+        timeout_seconds=timeout_seconds,
+        thinking_level=normalize_thinking_level(runtime.get("thinking_level") or os.environ.get("OPENAI_THINKING_LEVEL", "")),
+        advanced_model=advanced["advanced_model"],
+        advanced_base_url=advanced["advanced_base_url"],
+        advanced_api_key=advanced["advanced_api_key"],
+        advanced_thinking_level=advanced["advanced_thinking_level"],
+    )
+
+
 class ChatRequest(BaseModel):
     message: str
     context: Optional[Dict[str, Any]] = None
@@ -663,7 +721,12 @@ class WebGame:
         self.db_path = db_path
         if fresh:
             _delete_sqlite_db_files_or_raise(db_path)
-        adv_base = (advanced_base_url or "").strip()
+        advanced = normalize_advanced_llm_fields(
+            advanced_model,
+            advanced_base_url,
+            advanced_api_key,
+            advanced_thinking_level,
+        )
         llm_config = LLMConfig(
             api_key=api_key,
             base_url=normalize_openai_base_url(base_url),
@@ -671,10 +734,10 @@ class WebGame:
             max_tokens=max_tokens,
             timeout_seconds=timeout_seconds,
             thinking_level=normalize_thinking_level(thinking_level),
-            advanced_model=(advanced_model or "").strip(),
-            advanced_base_url=normalize_openai_base_url(adv_base) if adv_base else "",
-            advanced_api_key=(advanced_api_key or "").strip(),
-            advanced_thinking_level=normalize_thinking_level(advanced_thinking_level),
+            advanced_model=advanced["advanced_model"],
+            advanced_base_url=advanced["advanced_base_url"],
+            advanced_api_key=advanced["advanced_api_key"],
+            advanced_thinking_level=advanced["advanced_thinking_level"],
         )
         self.session = GameSession(db_path, llm_config)
         self.session.begin_turn()
@@ -827,6 +890,12 @@ class WebGame:
             new_adv_thinking_level = self.session.llm_config.advanced_thinking_level
         else:
             new_adv_thinking_level = normalize_thinking_level(advanced_thinking_level)
+        advanced = normalize_advanced_llm_fields(
+            new_advanced,
+            new_adv_base,
+            new_adv_key,
+            new_adv_thinking_level,
+        )
         new_config = LLMConfig(
             api_key=new_key,
             base_url=base,
@@ -834,10 +903,10 @@ class WebGame:
             max_tokens=new_max,
             timeout_seconds=new_timeout,
             thinking_level=new_thinking_level,
-            advanced_model=new_advanced,
-            advanced_base_url=new_adv_base,
-            advanced_api_key=new_adv_key,
-            advanced_thinking_level=new_adv_thinking_level,
+            advanced_model=advanced["advanced_model"],
+            advanced_base_url=advanced["advanced_base_url"],
+            advanced_api_key=advanced["advanced_api_key"],
+            advanced_thinking_level=advanced["advanced_thinking_level"],
         )
         _verify_llm_configs_or_raise(new_config)
         save_runtime_llm(
@@ -3932,6 +4001,144 @@ class WebGame:
                 }
         return None
 
+    def _resolve_semantic_action_name(self, value: str, minister_name: str) -> str:
+        raw = str(value or "").strip()
+        if not raw:
+            return ""
+        if raw in {"你", "卿", "当前NPC", "当前大臣", "当前说话人", "本人", "此人"}:
+            return minister_name if minister_name in self.content.characters else ""
+        if raw in self.content.characters:
+            return raw
+        for character in self.content.characters.values():
+            if character.name == raw or character.name in raw:
+                return character.name
+            aliases = self._linkable_character_aliases(character)
+            if any(alias and (raw == alias or alias in raw) for alias in aliases):
+                return character.name
+        return ""
+
+    def _action_from_semantic_probe(
+        self,
+        minister_name: str,
+        text: str,
+        review: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        action_type = str(review.get("action_type") or "").strip()
+        quote = str(review.get("trigger_quote") or text or "").strip()
+        target = self._resolve_semantic_action_name(str(review.get("target") or ""), minister_name)
+        actor = self._resolve_semantic_action_name(str(review.get("actor") or ""), minister_name)
+        if action_type == "castration":
+            if not target:
+                return {}
+            action = {"type": "castration", "target": target, "scheme_text": quote or text, "force": True}
+            return action if self._castration_action_target_is_valid(action) else {}
+        if action_type == "eunuch_care":
+            if not target:
+                target = minister_name
+            try:
+                from ming_sim.eunuch_lore import get_lore
+                if get_lore(self.db, target) is None:
+                    return {}
+            except Exception:
+                return {}
+            return {
+                "type": "eunuch_care",
+                "target": target,
+                "mode": str(review.get("mode") or "general").strip() or "general",
+                "note": quote or text,
+            }
+        if action_type == "eunuch_hard_service":
+            if not target:
+                target = minister_name
+            try:
+                from ming_sim.eunuch_lore import get_lore
+                if get_lore(self.db, target) is None:
+                    return {}
+            except Exception:
+                return {}
+            return {
+                "type": "eunuch_hard_service",
+                "target": target,
+                "mode": str(review.get("mode") or "general").strip() or "general",
+                "note": quote or text,
+            }
+        if action_type == "bao_leverage":
+            if not target:
+                target = minister_name
+            try:
+                from ming_sim.eunuch_lore import get_lore
+                if get_lore(self.db, target) is None:
+                    return {}
+            except Exception:
+                return {}
+            return {
+                "type": "bao_leverage",
+                "target": target,
+                "mode": str(review.get("mode") or "control").strip() or "control",
+                "note": quote or text,
+            }
+        if action_type == "mediation":
+            if not actor:
+                actor = minister_name if minister_name in self.content.characters else ""
+            faction = str(review.get("faction") or "").strip()
+            if not str(review.get("target") or "").strip() and not faction:
+                return {}
+            return {
+                "type": "mediation",
+                "actor": actor,
+                "target": target,
+                "faction": faction,
+                "mode": str(review.get("mode") or "co_work").strip() or "co_work",
+                "condition": str(review.get("public_hint") or quote or text).strip(),
+            }
+        return {}
+
+    def _dialogue_semantic_action_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
+        """LLM-first module activation when the minister agent misses a tool call.
+
+        This replaces old content-regex interception for normal play: the model
+        may identify a high-risk action from the emperor's natural language, but
+        the first step is still a pending proposal rather than direct mutation.
+        """
+        if os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes"):
+            return None
+        if self._load_pending_dialogue_action(minister_name):
+            return None
+        try:
+            from ming_sim.dialogue_audit import dialogue_action_intent_audit
+
+            character = self.session._character(minister_name)
+            review = dialogue_action_intent_audit(
+                self.db,
+                self.state,
+                character,
+                text,
+                {
+                    "type": "semantic_probe",
+                    "phase": "propose",
+                    "trigger_quote": str(text or "")[:140],
+                },
+                pending_action=None,
+                llm_config=self.session.llm_config,
+                agno_db=self.session.agno_db,
+                audit_client=self.session.dialogue_audit_client,
+            )
+        except Exception:
+            return None
+        if not isinstance(review, dict) or not review.get("allow"):
+            return None
+        phase = str(review.get("phase") or "")
+        if phase == "reject":
+            self._clear_pending_dialogue_action(minister_name)
+            return {"answer": f"{self._dialogue_speaker_self(minister_name)}明白。此事暂且按下，不入档、不用人，也不惊动外朝。"}
+        if phase != "propose":
+            return None
+        action = self._action_from_semantic_probe(minister_name, text, review)
+        if not action:
+            return None
+        self._store_pending_dialogue_action(minister_name, action)
+        return {"answer": self._proposal_answer_for_action(minister_name, action)}
+
     def _dialogue_action_semantic_gate(
         self,
         minister_name: str,
@@ -6692,7 +6899,11 @@ class WebGame:
         user_lore_effect = self._eunuch_lore_dialogue_effect(
             self._absorb_eunuch_lore_from_text(minister_name, text)
         )
-        dialogue_response = self._dialogue_route_response(minister_name, text) or self._dialogue_action_response(minister_name, text)
+        dialogue_response = (
+            self._dialogue_route_response(minister_name, text)
+            or self._dialogue_semantic_action_response(minister_name, text)
+            or self._dialogue_action_response(minister_name, text)
+        )
         if dialogue_response is not None:
             answer = str(dialogue_response.get("answer") or "")
             answer_lore_effect = self._eunuch_lore_dialogue_effect(
@@ -6823,7 +7034,11 @@ class WebGame:
         user_lore_effect = self._eunuch_lore_dialogue_effect(
             self._absorb_eunuch_lore_from_text(minister_name, text)
         )
-        dialogue_response = self._dialogue_route_response(minister_name, text) or self._dialogue_action_response(minister_name, text)
+        dialogue_response = (
+            self._dialogue_route_response(minister_name, text)
+            or self._dialogue_semantic_action_response(minister_name, text)
+            or self._dialogue_action_response(minister_name, text)
+        )
         if dialogue_response is not None:
             answer = str(dialogue_response.get("answer") or "")
             yield {"type": "delta", "content": answer}
@@ -8669,6 +8884,7 @@ def _server_admin_user_card(username: str, session_counts: Dict[str, int]) -> Di
 
 def _server_admin_overview_payload() -> Dict[str, Any]:
     runtime = load_runtime_llm()
+    llm_cfg = _runtime_llm_config_for_status(runtime)
     session_counts = _session_counts_by_user()
     users = [_server_admin_user_card(username, session_counts) for username in _configured_usernames()]
     return {
@@ -8683,11 +8899,7 @@ def _server_admin_overview_payload() -> Dict[str, Any]:
             "max_concurrent_turns": _max_concurrent_turn_resolutions(),
         },
         "llm": {
-            "base_url": runtime.get("base_url") or os.environ.get("OPENAI_BASE_URL", ""),
-            "model": runtime.get("model") or os.environ.get("OPENAI_MODEL", ""),
-            "has_api_key": bool(runtime.get("api_key") or os.environ.get("OPENAI_API_KEY")),
-            "advanced_model": runtime.get("advanced_model") or os.environ.get("OPENAI_ADVANCED_MODEL", ""),
-            "has_advanced_api_key": bool(runtime.get("advanced_api_key") or os.environ.get("OPENAI_ADVANCED_API_KEY")),
+            **_public_llm_config_payload(llm_cfg),
             "client_configurable": (
                 not _auth_enabled()
                 or os.environ.get("MING_SIM_ALLOW_CLIENT_LLM_CONFIG", "").strip().lower() in ("1", "true", "yes")
@@ -8755,6 +8967,7 @@ async def api_menu_status() -> Dict[str, Any]:
     db_path = _db_path_for_user(username)
     saves_dir = _saves_dir_for_user(username)
     runtime = load_runtime_llm()
+    llm_cfg = _runtime_llm_config_for_status(runtime)
     has_api_key = bool(runtime.get("api_key") or os.environ.get("OPENAI_API_KEY"))
     llm_client_configurable = (
         not _auth_enabled()
@@ -8773,18 +8986,7 @@ async def api_menu_status() -> Dict[str, Any]:
             "is_admin": _is_admin_user(username or "local"),
         },
         "llm_client_configurable": llm_client_configurable,
-        "llm": {
-            "base_url": runtime.get("base_url") or os.environ.get("OPENAI_BASE_URL", ""),
-            "model": runtime.get("model") or os.environ.get("OPENAI_MODEL", ""),
-            "has_api_key": has_api_key,
-            "max_tokens": int(runtime.get("max_tokens") or 8000),
-            "timeout_seconds": float(runtime.get("timeout_seconds") or os.environ.get("OPENAI_TIMEOUT_SECONDS", "180") or 180),
-            "thinking_level": runtime.get("thinking_level") or os.environ.get("OPENAI_THINKING_LEVEL", ""),
-            "advanced_model": runtime.get("advanced_model") or os.environ.get("OPENAI_ADVANCED_MODEL", ""),
-            "advanced_base_url": runtime.get("advanced_base_url") or os.environ.get("OPENAI_ADVANCED_BASE_URL", ""),
-            "has_advanced_api_key": bool(runtime.get("advanced_api_key") or os.environ.get("OPENAI_ADVANCED_API_KEY")),
-            "advanced_thinking_level": runtime.get("advanced_thinking_level") or os.environ.get("OPENAI_ADVANCED_THINKING_LEVEL", ""),
-        },
+        "llm": _public_llm_config_payload(llm_cfg),
     }
 
 
@@ -8924,6 +9126,12 @@ async def api_menu_save_llm(request: LlmSetupRequest) -> Dict[str, Any]:
         existing = load_runtime_llm()
         advanced_api_key = existing.get("advanced_api_key") or os.environ.get("OPENAI_ADVANCED_API_KEY", "")
     normalized_base_url = normalize_openai_base_url(base_url)
+    advanced = normalize_advanced_llm_fields(
+        advanced_model,
+        advanced_base_url,
+        advanced_api_key,
+        advanced_thinking_level,
+    )
     config = LLMConfig(
         api_key=api_key,
         base_url=normalized_base_url,
@@ -8931,10 +9139,10 @@ async def api_menu_save_llm(request: LlmSetupRequest) -> Dict[str, Any]:
         max_tokens=max_tokens,
         timeout_seconds=timeout_seconds,
         thinking_level=thinking_level,
-        advanced_model=advanced_model,
-        advanced_base_url=advanced_base_url,
-        advanced_api_key=advanced_api_key,
-        advanced_thinking_level=advanced_thinking_level,
+        advanced_model=advanced["advanced_model"],
+        advanced_base_url=advanced["advanced_base_url"],
+        advanced_api_key=advanced["advanced_api_key"],
+        advanced_thinking_level=advanced["advanced_thinking_level"],
     )
     try:
         _verify_llm_configs_or_raise(config)
@@ -8951,25 +9159,14 @@ async def api_menu_save_llm(request: LlmSetupRequest) -> Dict[str, Any]:
         max_tokens,
         timeout_seconds,
         thinking_level,
-        advanced_model,
-        advanced_base_url,
-        advanced_api_key,
-        advanced_thinking_level,
+        config.advanced_model,
+        config.advanced_base_url,
+        config.advanced_api_key,
+        config.advanced_thinking_level,
     )
     return {
         "ok": True,
-        "llm": {
-            "base_url": normalized_base_url,
-            "model": model,
-            "has_api_key": True,
-            "max_tokens": max_tokens,
-            "timeout_seconds": timeout_seconds,
-            "thinking_level": thinking_level,
-            "advanced_model": advanced_model,
-            "advanced_base_url": advanced_base_url,
-            "has_advanced_api_key": bool(advanced_api_key),
-            "advanced_thinking_level": advanced_thinking_level,
-        },
+        "llm": _public_llm_config_payload(config),
     }
 app.add_middleware(
     CORSMiddleware,
@@ -10286,30 +10483,7 @@ async def api_get_llm_config() -> Dict[str, Any]:
     """读当前生效的 LLM 配置。api_key 不回传明文，只回是否已设置。"""
     cfg = get_game().session.llm_config
     saved = load_runtime_llm()
-    return {
-        "base_url": cfg.base_url,
-        "model": cfg.model,
-        "max_tokens": cfg.max_tokens,
-        "timeout_seconds": cfg.timeout_seconds,
-        "thinking_level": cfg.thinking_level,
-        "advanced_model": cfg.advanced_model,
-        "advanced_base_url": cfg.advanced_base_url,
-        "has_advanced_api_key": bool(cfg.advanced_api_key),
-        "advanced_thinking_level": cfg.advanced_thinking_level,
-        "has_api_key": bool(cfg.api_key),
-        "persisted": {
-            "base_url": saved.get("base_url", ""),
-            "model": saved.get("model", ""),
-            "has_api_key": bool(saved.get("api_key", "")),
-            "max_tokens": int(saved.get("max_tokens") or 8000),
-            "timeout_seconds": float(saved.get("timeout_seconds") or 180),
-            "thinking_level": saved.get("thinking_level", ""),
-            "advanced_model": saved.get("advanced_model", ""),
-            "advanced_base_url": saved.get("advanced_base_url", ""),
-            "has_advanced_api_key": bool(saved.get("advanced_api_key", "")),
-            "advanced_thinking_level": saved.get("advanced_thinking_level", ""),
-        },
-    }
+    return _public_llm_config_payload(cfg, persisted=saved)
 
 
 @app.post("/api/llm/config")
@@ -10341,18 +10515,7 @@ async def api_set_llm_config(request: LLMConfigRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail=_llm_error_detail(e)) from None
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=_llm_error_detail(e)) from None
-    return {
-        "base_url": cfg.base_url,
-        "model": cfg.model,
-        "max_tokens": cfg.max_tokens,
-        "timeout_seconds": cfg.timeout_seconds,
-        "thinking_level": cfg.thinking_level,
-        "advanced_model": cfg.advanced_model,
-        "advanced_base_url": cfg.advanced_base_url,
-        "has_advanced_api_key": bool(cfg.advanced_api_key),
-        "advanced_thinking_level": cfg.advanced_thinking_level,
-        "has_api_key": bool(cfg.api_key),
-    }
+    return _public_llm_config_payload(cfg)
 
 
 # ── 自定义立绘上传/读取 ──────────────────────────────────────────────────────

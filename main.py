@@ -30,7 +30,7 @@ def main() -> None:
     parser.add_argument(
         "--advanced-model",
         default=os.environ.get("OPENAI_ADVANCED_MODEL", ""),
-        help="推演/打分专用更强模型（读 OPENAI_ADVANCED_MODEL），空=与 --model 一致",
+        help="推演/打分专用更强模型（读 OPENAI_ADVANCED_MODEL）；需 MING_SIM_ENABLE_ADVANCED_LLM=1 才生效",
     )
     parser.add_argument(
         "--advanced-base-url",

@@ -9,9 +9,10 @@ from typing import Dict, Optional
 
 from ming_sim.models import LLMConfig
 from ming_sim.paths import user_data_path
-from ming_sim.pipeline_registry import advanced_llm_roles
+from ming_sim.pipeline_registry import advanced_llm_roles, pipeline_specs
 
 RUNTIME_LLM_PATH = user_data_path("runtime_llm.json")
+_TRUE_VALUES = {"1", "true", "yes", "on"}
 
 
 def normalize_openai_base_url(base_url: str) -> str:
@@ -51,6 +52,46 @@ def normalize_thinking_level(level: str) -> str:
     return (level or "").strip()
 
 
+def advanced_llm_enabled() -> bool:
+    """Whether heavyweight roles may use a separate advanced/pro model.
+
+    Default is intentionally off: the playable web build should stay on the
+    configured main model unless the operator explicitly opts into a slower
+    model for month-end simulation or agreement review.
+    """
+    return os.environ.get("MING_SIM_ENABLE_ADVANCED_LLM", "").strip().lower() in _TRUE_VALUES
+
+
+def normalize_advanced_model(model: str) -> str:
+    model = (model or "").strip()
+    if model and not advanced_llm_enabled():
+        return ""
+    return model
+
+
+def normalize_advanced_llm_fields(
+    advanced_model: str = "",
+    advanced_base_url: str = "",
+    advanced_api_key: str = "",
+    advanced_thinking_level: str = "",
+) -> Dict[str, str]:
+    model = normalize_advanced_model(advanced_model)
+    if not model:
+        return {
+            "advanced_model": "",
+            "advanced_base_url": "",
+            "advanced_api_key": "",
+            "advanced_thinking_level": "",
+        }
+    adv_base = (advanced_base_url or "").strip()
+    return {
+        "advanced_model": model,
+        "advanced_base_url": normalize_openai_base_url(adv_base) if adv_base else "",
+        "advanced_api_key": (advanced_api_key or "").strip(),
+        "advanced_thinking_level": normalize_thinking_level(advanced_thinking_level),
+    }
+
+
 def load_llm_config(
     base_url: str,
     model: str,
@@ -67,19 +108,22 @@ def load_llm_config(
         api_key = getpass.getpass("请输入 API key（不会保存，回车取消）：").strip()
     if not api_key:
         raise SystemExit("未提供 API key，无法使用 LLM。")
-    adv_base = (advanced_base_url or "").strip()
+    advanced = normalize_advanced_llm_fields(
+        advanced_model,
+        advanced_base_url,
+        advanced_api_key,
+        advanced_thinking_level or os.environ.get("OPENAI_ADVANCED_THINKING_LEVEL", ""),
+    )
     return LLMConfig(
         api_key=api_key,
         base_url=normalize_openai_base_url(base_url),
         model=model,
         timeout_seconds=timeout_seconds,
         thinking_level=normalize_thinking_level(thinking_level or os.environ.get("OPENAI_THINKING_LEVEL", "")),
-        advanced_model=(advanced_model or "").strip(),
-        advanced_base_url=normalize_openai_base_url(adv_base) if adv_base else "",
-        advanced_api_key=(advanced_api_key or "").strip(),
-        advanced_thinking_level=normalize_thinking_level(
-            advanced_thinking_level or os.environ.get("OPENAI_ADVANCED_THINKING_LEVEL", "")
-        ),
+        advanced_model=advanced["advanced_model"],
+        advanced_base_url=advanced["advanced_base_url"],
+        advanced_api_key=advanced["advanced_api_key"],
+        advanced_thinking_level=advanced["advanced_thinking_level"],
     )
 
 
@@ -91,7 +135,7 @@ _ADVANCED_ROLES = advanced_llm_roles()
 def for_role(cfg: LLMConfig, role: str) -> LLMConfig:
     """按 agent 角色派生 LLMConfig：advanced 角色用 advanced_model（若已配），其余用 main model。
     advanced_model 为空时返回原 cfg（无任何替换）。"""
-    if role in _ADVANCED_ROLES and (cfg.advanced_model or "").strip():
+    if role in _ADVANCED_ROLES and advanced_llm_enabled() and (cfg.advanced_model or "").strip():
         adv_base = (cfg.advanced_base_url or "").strip() or cfg.base_url
         adv_key = (cfg.advanced_api_key or "").strip() or cfg.api_key
         return LLMConfig(
@@ -107,6 +151,20 @@ def for_role(cfg: LLMConfig, role: str) -> LLMConfig:
             advanced_thinking_level=cfg.advanced_thinking_level,
         )
     return cfg
+
+
+def effective_role_models(cfg: LLMConfig) -> Dict[str, Dict[str, object]]:
+    """Return the actually used model/base for every registered LLM role."""
+    out: Dict[str, Dict[str, object]] = {}
+    for spec in pipeline_specs("llm"):
+        role = str(spec.llm_role or spec.id.replace("llm.", ""))
+        role_cfg = for_role(cfg, role)
+        out[role] = {
+            "model": role_cfg.model,
+            "base_url": role_cfg.base_url,
+            "uses_advanced": role_cfg.model != cfg.model or role_cfg.base_url != cfg.base_url,
+        }
+    return out
 
 
 def load_runtime_llm() -> Dict[str, str]:
@@ -154,6 +212,12 @@ def save_runtime_llm(
 ) -> None:
     """写 data/runtime_llm.json。明文存盘——按用户选择。"""
     os.makedirs(os.path.dirname(RUNTIME_LLM_PATH), exist_ok=True)
+    advanced = normalize_advanced_llm_fields(
+        advanced_model,
+        advanced_base_url,
+        advanced_api_key,
+        advanced_thinking_level,
+    )
     payload = {
         "base_url": (base_url or "").strip(),
         "model": (model or "").strip(),
@@ -161,10 +225,10 @@ def save_runtime_llm(
         "max_tokens": max_tokens,
         "timeout_seconds": timeout_seconds,
         "thinking_level": normalize_thinking_level(thinking_level),
-        "advanced_model": (advanced_model or "").strip(),
-        "advanced_base_url": (advanced_base_url or "").strip(),
-        "advanced_api_key": (advanced_api_key or "").strip(),
-        "advanced_thinking_level": normalize_thinking_level(advanced_thinking_level),
+        "advanced_model": advanced["advanced_model"],
+        "advanced_base_url": advanced["advanced_base_url"],
+        "advanced_api_key": advanced["advanced_api_key"],
+        "advanced_thinking_level": advanced["advanced_thinking_level"],
     }
     with open(RUNTIME_LLM_PATH, "w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False, indent=2)

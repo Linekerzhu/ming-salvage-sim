@@ -106,7 +106,7 @@ export function AudienceView({
       actor: pick.name,
       opening: `奴婢已宣${String(pick.office || "")}${pick.name}觐见。陛下若欲采选秀女充实后宫，可面谕其遴选良家淑女、开册呈览；中意者再降诏册封便是。`,
       prompts: [
-        { label: "命卿遴选良家女呈览", text: "卿替朕于良家淑女中遴选三五人，开列名册、各注品貌性情，呈朕御览。" },
+        { label: "采选名册", text: "卿替朕遴选三五名良家淑女，列明家世、品貌与性情，先呈名册让朕看过。" },
       ],
     };
     onAudienceChange(pick.name, lead);

@@ -953,7 +953,8 @@ DIALOGUE_ACTION_INTENT_PROMPT = """
 - phase=confirm 必须存在 pending_action，且玩家本轮是在批准上一轮那个方案；追问细节、讨价还价、改口、闲聊、历史解释都不算确认。
 - 例外：secret_order 是一次性密令建档动作；只有玩家本轮明确“下密令/密旨/命某人暗查某事”时，才可在没有 pending_action 时返回 phase=confirm 并允许即时落库。
 - phase=reject 用于玩家明确作罢、暂缓、不办、别惊动相关机构；可清除 pending_action。
-- action_type 必须来自工具动作或待确认动作；不要发明新系统。
+- 若 tool_action.type="semantic_probe"，你可以直接从玩家原话语义选择 action_type，用于在 LLM 工具漏调时启动对应待确认模块；除 recruitment 外，不要发明动作类型。
+- 若 tool_action.type 不是 semantic_probe，action_type 必须来自工具动作或待确认动作；不要发明新系统。
 - trigger_quote 必须引用玩家原话中能证明意图的短句；没有可引用证据时 allow=false。
 
 动作边界：
@@ -968,6 +969,7 @@ DIALOGUE_ACTION_INTENT_PROMPT = """
 判例：
 - “只是聊聊韩爌若净身入内廷的旧例，不是要办，别惊动净军房。” + castration 工具 => allow=false。
 - “把韩爌净身入内廷，传净军房照办。” + castration 工具 => allow=true, phase=propose。
+- “好，你这就去净身。” + semantic_probe，当前 NPC 可净身 => allow=true, action_type=castration, phase=propose, target=当前 NPC 姓名。
 - pending_action 是 eunuch_care，“准，去请太医调养。” => allow=true, phase=confirm。
 - pending_action 是 eunuch_care，“先说他到底病到什么地步？” => allow=false。
 - “朕想问你和魏忠贤的旧怨。” + mediation 工具 => allow=false。

@@ -138,6 +138,8 @@ class PerformanceOptimizationTests(unittest.TestCase):
             pipeline_spec(budget_key)
 
     def test_pipeline_registry_controls_llm_role_and_token_budgets(self) -> None:
+        old_enable_advanced = os.environ.get("MING_SIM_ENABLE_ADVANCED_LLM")
+        os.environ["MING_SIM_ENABLE_ADVANCED_LLM"] = "1"
         cfg = LLMConfig(
             api_key="test",
             base_url="https://example.test/v1",
@@ -145,12 +147,17 @@ class PerformanceOptimizationTests(unittest.TestCase):
             max_tokens=8000,
             advanced_model="strong-model",
         )
-
-        self.assertEqual(llm_config_for_role(cfg, "simulator").model, "strong-model")
-        self.assertEqual(llm_config_for_role(cfg, "extractor").model, "strong-model")
-        self.assertEqual(llm_config_for_role(cfg, "agreement_review").model, "strong-model")
-        self.assertEqual(llm_config_for_role(cfg, "dialogue_audit").model, "cheap-model")
-        self.assertEqual(llm_config_for_role(cfg, "chapter_memory").model, "cheap-model")
+        try:
+            self.assertEqual(llm_config_for_role(cfg, "simulator").model, "strong-model")
+            self.assertEqual(llm_config_for_role(cfg, "extractor").model, "strong-model")
+            self.assertEqual(llm_config_for_role(cfg, "agreement_review").model, "strong-model")
+            self.assertEqual(llm_config_for_role(cfg, "dialogue_audit").model, "cheap-model")
+            self.assertEqual(llm_config_for_role(cfg, "chapter_memory").model, "cheap-model")
+        finally:
+            if old_enable_advanced is None:
+                os.environ.pop("MING_SIM_ENABLE_ADVANCED_LLM", None)
+            else:
+                os.environ["MING_SIM_ENABLE_ADVANCED_LLM"] = old_enable_advanced
 
         self.assertEqual(llm_output_token_budget("llm.season_simulator", cfg.max_tokens), 8000)
         self.assertEqual(llm_output_token_budget("llm.score_extractor", cfg.max_tokens), 8000)
@@ -161,6 +168,25 @@ class PerformanceOptimizationTests(unittest.TestCase):
             llm_output_token_budget("llm.dialogue_post_audit", cfg.max_tokens, requested=3000, minimum=1200),
             3000,
         )
+
+    def test_advanced_model_is_disabled_by_default(self) -> None:
+        old_enable_advanced = os.environ.get("MING_SIM_ENABLE_ADVANCED_LLM")
+        os.environ.pop("MING_SIM_ENABLE_ADVANCED_LLM", None)
+        cfg = LLMConfig(
+            api_key="test",
+            base_url="https://example.test/v1",
+            model="deepseek-v4-flash",
+            advanced_model="deepseek-v4-pro",
+        )
+        try:
+            self.assertEqual(llm_config_for_role(cfg, "simulator").model, "deepseek-v4-flash")
+            self.assertEqual(llm_config_for_role(cfg, "extractor").model, "deepseek-v4-flash")
+            self.assertEqual(llm_config_for_role(cfg, "agreement_review").model, "deepseek-v4-flash")
+        finally:
+            if old_enable_advanced is None:
+                os.environ.pop("MING_SIM_ENABLE_ADVANCED_LLM", None)
+            else:
+                os.environ["MING_SIM_ENABLE_ADVANCED_LLM"] = old_enable_advanced
 
     def test_frontend_api_payload_decoding_has_module_boundary(self) -> None:
         # 移动端重做后：app 代码经 web/src/mobile/api.ts 复用 api/client + payloads，

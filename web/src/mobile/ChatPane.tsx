@@ -24,28 +24,44 @@ function cleanDisplayText(raw: string): string {
     .trim();
 }
 
-function humanSuggestionLabel(raw: string): string {
+const MECHANICAL_SUGGESTION_LABEL_TERMS = [
+  "交账",
+  "问奖励",
+  "交易",
+  "定下一手",
+  "快捷",
+  "按钮",
+  "拟旨",
+  "下密令",
+  "系统",
+  "机制",
+];
+
+const MECHANICAL_SUGGESTION_TEXT_TERMS = [
+  "快速对话",
+  "快捷",
+  "按钮",
+  "系统",
+  "机制",
+  "御前交易",
+];
+
+function cleanSuggestionLabel(raw: string): string {
   const label = String(raw || "").trim();
-  const map: Record<string, string> = {
-    "问所求": "听他说透",
-    "问交易": "问代价",
-    "定下一手": "要个准话",
-    "定路线": "定国策路线",
-    "召来请安": "追问旧约",
-    "命卿遴选良家女呈览": "采选名册",
-    "议蠲缓": "钱从哪补",
-    "查账": "查钱粮账",
-    "问罪": "问谁担责",
-    "求证": "要证据",
-    "试探": "试探底线",
-    "承诺": "要一句准话",
-  };
-  if (map[label]) return map[label];
   return label
     .replace(/^【[^】]{1,8}】/, "")
     .replace(/^(hook|trap|bargain|directive|legacy|faction|issue)[:：_-]/i, "")
     .replace(/_/g, "")
-    .trim() || "追问此事";
+    .trim();
+}
+
+function isNaturalSuggestion(s: Suggestion): boolean {
+  const label = cleanSuggestionLabel(s.label);
+  const text = String(s.text || "").trim();
+  if (!label || !text) return false;
+  if (MECHANICAL_SUGGESTION_LABEL_TERMS.some((term) => label.includes(term))) return false;
+  if (MECHANICAL_SUGGESTION_TEXT_TERMS.some((term) => label.includes(term) || text.includes(term))) return false;
+  return true;
 }
 
 function stripStageText(raw: string, stageDirections?: string[]): string {
@@ -259,7 +275,7 @@ export function ChatPane({
   };
   void leadSuggestions;
   void suggestionsLoaded;
-  const visibleSuggestions = suggestions.slice(0, Math.max(0, suggestionLimit));
+  const visibleSuggestions = suggestions.filter(isNaturalSuggestion).slice(0, Math.max(0, suggestionLimit));
   const transientMessages = messages.length === 0 ? localMessages : EMPTY_LOCAL_MESSAGES;
   const showArrival = Boolean(arrivalNote && messages.length === 0);
 
@@ -330,13 +346,13 @@ export function ChatPane({
           <summary className="m-suggestions-summary">
             <span>可追问</span>
             <small>{visibleSuggestions.length} 件</small>
-            <b>{visibleSuggestions.slice(0, 3).map((s) => humanSuggestionLabel(s.label)).join(" · ")}</b>
+            <b>{visibleSuggestions.slice(0, 3).map((s) => cleanSuggestionLabel(s.label)).join(" · ")}</b>
             <span className="m-disclosure-caret">展开</span>
           </summary>
           <div className="m-suggestions">
             {visibleSuggestions.map((s, i) => (
               <button key={i} className="m-sugg" disabled={busy} onClick={() => onSuggestion(s)} title={s.text}>
-                {humanSuggestionLabel(s.label)}
+                {cleanSuggestionLabel(s.label)}
               </button>
             ))}
           </div>

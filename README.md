@@ -216,6 +216,8 @@ python3 main.py
 | `OPENAI_API_KEY` | 是 | 无 | API Key |
 | `OPENAI_BASE_URL` | 否 | `https://api.openai.com/v1` | API 地址，推荐 `https://api.deepseek.com` |
 | `OPENAI_MODEL` | 否 | `deepseek-v4-flash` | 模型名，推荐 `deepseek-v4-flash` |
+| `MING_SIM_ENABLE_ADVANCED_LLM` | 否 | 空 | 为空时所有 LLM 角色都使用 `OPENAI_MODEL`；设为 `1` 才允许推演/评分/履约审查使用 `OPENAI_ADVANCED_MODEL` |
+| `OPENAI_ADVANCED_MODEL` | 否 | 空 | 可选慢模型；默认被禁用，除非 `MING_SIM_ENABLE_ADVANCED_LLM=1` |
 | `MING_SIM_DB` | 否 | `data/ming_sim.db` | 存档数据库路径 |
 | `MING_SIM_SEED` | 否 | `7` | 随机种子 |
 | `MING_FOUNDATION_DB` | 否 | 自动探测 | NPC 数据基座（只读增强：人格/特质/人才池），缺失时自动降级 |
