@@ -4313,6 +4313,65 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_directive_regex_fallback_is_off_when_legacy_action_regex_disabled(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            character = game.session._character(actor)
+
+            proposed = game._fallback_pending_directive(
+                character,
+                "替朕拟一道旨意，命户部核出本月辽饷实欠，五日内具奏。",
+                "臣以为可照此办理。",
+            )
+
+            self.assertIsNone(proposed)
+            row = game.db.conn.execute(
+                "SELECT COUNT(*) AS n FROM turn_directives WHERE actor=?",
+                (actor,),
+            ).fetchone()
+            self.assertEqual(int(row["n"]), 0)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_directive_regex_fallback_requires_legacy_action_regex_opt_in(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            character = game.session._character(actor)
+
+            proposed = game._fallback_pending_directive(
+                character,
+                "替朕拟一道旨意，命户部核出本月辽饷实欠，五日内具奏。",
+                "臣以为可照此办理。",
+            )
+
+            self.assertIsNotNone(proposed)
+            self.assertIn("户部核出本月辽饷实欠", proposed["text"])
+            self.assertIn("保守草案", proposed["notes"])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_semantic_directive_pressure_moves_live_directive_without_keyword_gate(self):
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
         game = web_app.WebGame(fresh=True)

@@ -223,7 +223,7 @@ python3 main.py
 | `MING_FOUNDATION_DB` | 否 | 自动探测 | NPC 数据基座（只读增强：人格/特质/人才池），缺失时自动降级 |
 | `MING_SIM_START_YM` | 否 | 空 | 新存档起始年月，如 `1629.04` |
 | `MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS` | 否 | 空 | 旧版玩家召见关键词兜底；正常游玩建议关闭，使用 LLM 语义路由 |
-| `MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS` | 否 | 空 | 旧版对白动作关键词兜底；正常游玩建议关闭，净身/调停/招募等走 LLM 语义审计 |
+| `MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS` | 否 | 空 | 旧版对白动作关键词兜底；正常游玩建议关闭，净身/调停/招募/拟旨兜底等走 LLM 语义审计 |
 | `MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK` | 否 | 空 | 旧版“从 NPC 回答里反推召见”；风险最高，默认关闭 |
 | `CLI_API_KEY` | 否 | 回退 `OPENAI_API_KEY` | CLI 单独 API Key |
 | `CLI_BASE_URL` | 否 | 回退 `OPENAI_BASE_URL` | CLI 单独 API 地址 |

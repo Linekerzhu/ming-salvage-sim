@@ -2093,6 +2093,8 @@ class WebGame:
                 draft_text,
                 f"由{character.name}拟旨入档（语义审计兜底；原奏对未直接成稿）",
             )
+        if not self._dialogue_regex_actions_enabled():
+            return None
         if not self._directive_intent(user_text):
             return None
         subject = self._directive_subject(user_text)
