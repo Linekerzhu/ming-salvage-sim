@@ -29,6 +29,7 @@ class AttendantSummonTests(unittest.TestCase):
                 "MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS",
                 "MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS",
                 "MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK",
+                "MING_SIM_ENABLE_RECRUITMENT_REGEX_FALLBACK",
                 "MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS",
                 "MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS",
                 "MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT",
@@ -1958,6 +1959,90 @@ class AttendantSummonTests(unittest.TestCase):
             game.session.dialogue_audit_client = audit
 
             response = game._dialogue_semantic_action_response(attendant, "只是问问净身旧例，不是要办。")
+
+            self.assertIsNone(response)
+            self.assertEqual(game._load_pending_dialogue_action(attendant), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_recruitment_probe_creates_pending_without_regex(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "0"
+        os.environ["MING_SIM_ENABLE_RECRUITMENT_REGEX_FALLBACK"] = "0"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            before = game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"]
+
+            def audit(phase, payload):
+                if phase == "recruitment_intent":
+                    action = payload.get("tool_action") or {}
+                    self.assertEqual(action.get("type"), "recruitment")
+                    self.assertEqual(action.get("phase"), "propose")
+                    self.assertFalse(action.get("kind"))
+                    return {
+                        "allow": True,
+                        "phase": "propose",
+                        "kind": "eunuch",
+                        "requires_confirmation": True,
+                        "trigger_quote": "宫里可有新的小内侍可用",
+                        "public_hint": "玩家明确要找新的内廷小内侍。",
+                        "private_reason": "test semantic recruitment probe",
+                        "confidence": 96,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            response = game._dialogue_semantic_recruitment_response(attendant, "宫里可有新的小内侍可用？")
+
+            self.assertIsNotNone(response)
+            self.assertIn("陛下若准", response["answer"])
+            pending = game._load_pending_dialogue_action(attendant)
+            self.assertEqual(pending.get("type"), "recruitment")
+            self.assertEqual(pending.get("kind"), "eunuch")
+            self.assertIn("小内侍", str(pending.get("trigger_quote") or ""))
+            after = game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"]
+            self.assertEqual(after, before)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_recruitment_probe_denial_does_not_create_pending(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "0"
+        os.environ["MING_SIM_ENABLE_RECRUITMENT_REGEX_FALLBACK"] = "0"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+
+            def audit(phase, payload):
+                if phase == "recruitment_intent":
+                    return {
+                        "allow": False,
+                        "phase": "none",
+                        "kind": "",
+                        "requires_confirmation": True,
+                        "trigger_quote": "",
+                        "public_hint": "",
+                        "private_reason": "只是盘点现有人手，不招新人。",
+                        "confidence": 98,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            response = game._dialogue_semantic_recruitment_response(
+                attendant,
+                "宫里现有人手够不够？先查名册，不要招新人。",
+            )
 
             self.assertIsNone(response)
             self.assertEqual(game._load_pending_dialogue_action(attendant), {})

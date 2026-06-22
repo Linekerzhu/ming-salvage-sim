@@ -911,7 +911,9 @@ RECRUITMENT_INTENT_PROMPT = """
 
 核心原则：
 - 这是语义判定，不按关键词机械触发。只有玩家明确要求“找/招/挑/荐/保举/访求/取士/补一个新人/带一个新人来”时，才可 allow=true。
+- 当 tool_action.type=recruitment 且 phase=propose 但 kind 为空时，你是在补偿 NPC LLM 漏调工具：必须直接从玩家原话判断 kind，证据不足时 allow=false。
 - 玩家只是问“朝中谁可用”“某人门生举荐链如何”“党羽/政敌/关系网怎么看”“有没有水分/风声/人才问题”，通常是信息咨询，不是生成新人。
+- 玩家问“现有人手够不够”“宫里旧人谁稳妥”“先查账/查名册”，通常是盘点现有人，不是 recruit。
 - 玩家要求召见一个已提到的具体名字，应走召见/补档管道，不是 recruit/recommend 新人池。
 - phase=propose 只能生成待确认意图，不落库；requires_confirmation 必须为 true。
 - phase=confirm 必须有 pending_action.type=recruitment，并且玩家本轮语义是在批准上一轮方案；闲聊、追问“谁合适”、比较候选、说“先别/不要/只是问问”都不算确认。
@@ -922,8 +924,11 @@ RECRUITMENT_INTENT_PROMPT = """
 
 判例：
 - “宫中有没有新的太监可用？” => allow=true, phase=propose, kind=eunuch。
+- “宫里可有新的小内侍可用？” + tool_action.kind 为空 => allow=true, phase=propose, kind=eunuch。
 - “再招募一个小内侍吧” => allow=true, phase=propose, kind=eunuch。
+- “给朕荐一个能办差的新人。” + tool_action.kind 为空 => allow=true, phase=propose, kind=recommend。
 - “命众臣荐人，给朕举荐一个可试差的新人” => allow=true, phase=propose, kind=recommend。
+- “宫里现有人手够不够？先查名册，不要招新人。” => allow=false。
 - “朝中还有谁可用？先说现有人，不要荐新人。” => allow=false。
 - “你怎么看韩爌的门生举荐链，别再荐新人。” => allow=false。
 - “好，你去招募。” 且 pending_action 是 recruitment/eunuch => allow=true, phase=confirm, kind=eunuch。

@@ -4139,6 +4139,52 @@ class WebGame:
         self._store_pending_dialogue_action(minister_name, action)
         return {"answer": self._proposal_answer_for_action(minister_name, action)}
 
+    def _dialogue_semantic_recruitment_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
+        """LLM-first recruitment activation when the minister agent misses a tool call."""
+
+        if os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes"):
+            return None
+        if self._load_pending_dialogue_action(minister_name):
+            return None
+        try:
+            from ming_sim.dialogue_audit import recruitment_intent_audit
+
+            character = self.session._character(minister_name)
+            review = recruitment_intent_audit(
+                self.db,
+                self.state,
+                character,
+                text,
+                {
+                    "type": "recruitment",
+                    "phase": "propose",
+                    "trigger_quote": str(text or "")[:140],
+                },
+                pending_action=None,
+                llm_config=self.session.llm_config,
+                agno_db=self.session.agno_db,
+                audit_client=self.session.dialogue_audit_client,
+            )
+        except Exception:
+            return None
+        if not isinstance(review, dict) or not review.get("allow"):
+            return None
+        if str(review.get("phase") or "") != "propose":
+            return None
+        kind = str(review.get("kind") or "").strip()
+        if kind not in {"eunuch", "exam", "recommend"}:
+            return None
+        action = {
+            "type": "recruitment",
+            "kind": kind,
+            "need": str(review.get("public_hint") or review.get("trigger_quote") or text or "").strip(),
+            "trigger_quote": str(review.get("trigger_quote") or text or "").strip(),
+        }
+        if review.get("private_reason"):
+            action["semantic_reason"] = str(review.get("private_reason") or "")
+        self._store_pending_dialogue_action(minister_name, action)
+        return {"answer": self._proposal_answer_for_action(minister_name, action)}
+
     def _dialogue_action_semantic_gate(
         self,
         minister_name: str,
@@ -6901,6 +6947,7 @@ class WebGame:
         )
         dialogue_response = (
             self._dialogue_route_response(minister_name, text)
+            or self._dialogue_semantic_recruitment_response(minister_name, text)
             or self._dialogue_semantic_action_response(minister_name, text)
             or self._dialogue_action_response(minister_name, text)
         )
@@ -7036,6 +7083,7 @@ class WebGame:
         )
         dialogue_response = (
             self._dialogue_route_response(minister_name, text)
+            or self._dialogue_semantic_recruitment_response(minister_name, text)
             or self._dialogue_semantic_action_response(minister_name, text)
             or self._dialogue_action_response(minister_name, text)
         )
