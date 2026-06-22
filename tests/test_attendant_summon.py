@@ -35,6 +35,7 @@ class AttendantSummonTests(unittest.TestCase):
                 "MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT",
                 "MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT",
                 "MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT",
+                "MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT",
             )
         }
         self._user_data_dir = web_app.user_data_dir
@@ -72,6 +73,7 @@ class AttendantSummonTests(unittest.TestCase):
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
         os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "1"
         os.environ["MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT"] = "1"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT"] = "1"
 
     def tearDown(self) -> None:
         web_app._close_all_running_games()
@@ -309,6 +311,111 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertIn("小禄子", stored)
             self.assertIn("小顺子", stored)
             self.assertNotIn("蒙王承恩", stored)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_unknown_mention_denial_blocks_candidate_cache(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+
+            def audit(phase, payload):
+                if phase == "dialogue_unknown_mention_intake":
+                    self.assertEqual(payload.get("purpose"), "cache_candidate")
+                    self.assertIn("小禄子", payload.get("candidate_names") or [])
+                    return {
+                        "allow": False,
+                        "accepted_names": [],
+                        "rejected_names": ["小禄子"],
+                        "trigger_quote": "只是讲旧例",
+                        "private_reason": "这只是制度解释，不是把小禄子作为可召见候选提出。",
+                        "confidence": 96,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                "奴婢只是打个比方，说旧年内书堂有个叫小禄子的孩子常被拿来作例，并非荐人。",
+            )
+
+            self.assertNotIn("小禄子", game._load_unknown_dialogue_mentions())
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_unknown_mention_allow_records_only_accepted_names(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+
+            def audit(phase, payload):
+                if phase == "dialogue_unknown_mention_intake":
+                    self.assertEqual(payload.get("purpose"), "cache_candidate")
+                    return {
+                        "allow": True,
+                        "accepted_names": ["小禄子"],
+                        "rejected_names": ["小顺子"],
+                        "trigger_quote": "小禄子可先带到偏殿问话",
+                        "private_reason": "小禄子被明确作为候选提出；小顺子只是比较背景。",
+                        "confidence": 95,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                "内书堂有个叫小禄子的，记性细，可先带到偏殿问话；小顺子只是同屋旧识。",
+            )
+
+            stored = game._load_unknown_dialogue_mentions()
+            self.assertIn("小禄子", stored)
+            self.assertNotIn("小顺子", stored)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_answer_summon_denial_blocks_materialization(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            self.assertNotIn("小禄子", game.content.characters)
+
+            def audit(phase, payload):
+                if phase == "dialogue_unknown_mention_intake":
+                    self.assertEqual(payload.get("purpose"), "answer_summon")
+                    return {
+                        "allow": False,
+                        "accepted_names": [],
+                        "rejected_names": ["小禄子"],
+                        "trigger_quote": "传内书堂生徒小禄子觐见",
+                        "private_reason": "审计否决时不得从 NPC 回答反推召见。",
+                        "confidence": 98,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+            result = game._attendant_answer_summon_target(
+                attendant,
+                "——传内书堂生徒小禄子觐见。陛下，小禄子今年十一。",
+            )
+
+            self.assertEqual(result, {})
+            self.assertNotIn("小禄子", game.content.characters)
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

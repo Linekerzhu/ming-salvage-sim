@@ -226,6 +226,7 @@ python3 main.py
 | `MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS` | 否 | 空 | 旧版对白动作关键词兜底；正常游玩建议关闭，净身/调停/招募/拟旨兜底等走 LLM 语义审计 |
 | `MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK` | 否 | 空 | 旧版“从 NPC 回答里反推召见”；风险最高，默认关闭 |
 | `MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT` | 否 | 空 | 设为 `1` 时关闭净身旧档/宝匣/旧患自动入档的 LLM 语义闸门，退回旧版文本解析 |
+| `MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT` | 否 | 空 | 设为 `1` 时关闭 NPC 回答中新人物候选/暗示召见的 LLM 语义闸门，退回旧版文本抽取 |
 | `MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT` | 否 | 空 | 设为 `1` 时关闭旨意办结后“强制净身/宫刑”执行语义审计，退回旧版正则执行 |
 | `MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS` | 否 | 空 | 设为 `1` 时关闭 LLM 生成的推荐回复；不会自动显示本地静态按钮 |
 | `MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS` | 否 | 空 | 显式开启本地静态推荐回复兜底；正常游玩建议关闭，让推荐回复由 LLM 按上下文生成 |

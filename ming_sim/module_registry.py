@@ -281,6 +281,7 @@ _SPECS: Tuple[ModuleSpec, ...] = (
             "llm.dialogue_post_audit",
             "llm.dialogue_condition_audit",
             "llm.dialogue_eunuch_lore_intake",
+            "llm.dialogue_unknown_mention_intake",
         ),
         reads=("NPC profiles", "memory", "relationship network", "agreement ledger"),
         writes=("chat history", "goals", "stances", "agreements"),

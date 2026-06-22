@@ -3965,6 +3965,60 @@ class WebGame:
     def _dialogue_answer_summon_fallback_enabled(self) -> bool:
         return os.environ.get("MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK", "").strip().lower() in ("1", "true", "yes")
 
+    def _dialogue_mention_llm_audit_available(self) -> bool:
+        if os.environ.get("MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes"):
+            return False
+        try:
+            if self.session.dialogue_audit_client is not None:
+                return True
+            return bool(str(self.session.llm_config.api_key or "").strip())
+        except Exception:
+            return False
+
+    def _semantic_unknown_dialogue_mentions(
+        self,
+        minister_name: str,
+        text: str,
+        candidate_names: List[str],
+        *,
+        purpose: str = "cache_candidate",
+    ) -> Optional[List[str]]:
+        if not self._dialogue_mention_llm_audit_available():
+            return None
+        clean = str(minister_name or "").strip()
+        unique: List[str] = []
+        for name in candidate_names or []:
+            value = self._normalize_dialogue_person_name(str(name or ""))
+            if value and value not in unique:
+                unique.append(value)
+        if not unique:
+            return []
+        try:
+            from ming_sim.dialogue_audit import dialogue_unknown_mention_intake_audit
+
+            character = self.session._character(clean)
+            review = dialogue_unknown_mention_intake_audit(
+                self.db,
+                self.state,
+                character,
+                text,
+                candidate_names=unique,
+                purpose=purpose,
+                llm_config=self.session.llm_config,
+                agno_db=self.session.agno_db,
+                audit_client=self.session.dialogue_audit_client,
+            )
+        except Exception:
+            return []
+        if not isinstance(review, dict) or not review.get("allow"):
+            return []
+        accepted: List[str] = []
+        for raw_name in review.get("accepted_names") or []:
+            name = self._normalize_dialogue_person_name(str(raw_name or ""))
+            if name and name in unique and name not in accepted:
+                accepted.append(name)
+        return accepted
+
     def _dialogue_route_context(self, minister_name: str, text: str) -> Dict[str, Any]:
         raw = str(text or "")
         known: List[Dict[str, str]] = []
@@ -5196,7 +5250,16 @@ class WebGame:
                 str(message.get("content") or ""),
                 *[str(line) for line in (message.get("stage_directions") or []) if str(line).strip()],
             ])
-            for name in self._extract_summoned_names_from_answer(combined):
+            names = self._extract_summoned_names_from_answer(combined)
+            semantic_names = self._semantic_unknown_dialogue_mentions(
+                minister_name,
+                combined,
+                names,
+                purpose="recent_summon",
+            )
+            if semantic_names is not None:
+                names = semantic_names
+            for name in names:
                 if name != minister_name:
                     return name
         return ""
@@ -5206,6 +5269,14 @@ class WebGame:
         if current is None:
             return {}
         names = [name for name in self._extract_summoned_names_from_answer(answer) if name != minister_name]
+        semantic_names = self._semantic_unknown_dialogue_mentions(
+            minister_name,
+            answer,
+            names,
+            purpose="answer_summon",
+        )
+        if semantic_names is not None:
+            names = [name for name in semantic_names if name != minister_name]
         if not names:
             return {}
         for name in names:
@@ -5251,6 +5322,14 @@ class WebGame:
         for name in self._extract_summoned_names_from_answer(answer):
             if name not in names:
                 names.append(name)
+        semantic_names = self._semantic_unknown_dialogue_mentions(
+            minister_name,
+            answer,
+            names,
+            purpose="cache_candidate",
+        )
+        if semantic_names is not None:
+            names = semantic_names
         if not names:
             return
         stored = self._load_unknown_dialogue_mentions()

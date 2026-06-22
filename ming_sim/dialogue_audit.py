@@ -578,6 +578,30 @@ def _normalize_dialogue_eunuch_lore_intake(data: Dict[str, object]) -> Dict[str,
     }
 
 
+def _normalize_dialogue_unknown_mention_intake(data: Dict[str, object]) -> Dict[str, object]:
+    raw_confidence = data.get("confidence")
+    try:
+        parsed_confidence = float(raw_confidence)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        parsed_confidence = 0.0
+    if 0 < parsed_confidence <= 1:
+        confidence = _clamp_int(parsed_confidence * 100)
+    else:
+        confidence = _clamp_int(raw_confidence)
+    accepted_names = _list_strings(data.get("accepted_names") or data.get("names"), limit=8, item_limit=80)
+    allow = bool(data.get("allow")) and bool(accepted_names) and confidence >= CONFIDENCE_FLOOR
+    return {
+        "allow": allow,
+        "accepted_names": accepted_names if allow else [],
+        "rejected_names": _list_strings(data.get("rejected_names"), limit=8, item_limit=80),
+        "confidence": confidence,
+        "trigger_quote": _compact(data.get("trigger_quote"), 160),
+        "public_hint": _compact(data.get("public_hint"), 180),
+        "private_reason": _compact(data.get("private_reason") or data.get("reason"), 520),
+        "raw": data,
+    }
+
+
 def _normalize_dialogue_route_intent(data: Dict[str, object]) -> Dict[str, object]:
     intent = _enum(data.get("intent"), DIALOGUE_ROUTE_INTENTS, "none")
     raw_confidence = data.get("confidence")
@@ -1399,6 +1423,33 @@ JSON 字段：
 """.strip()
 
 
+DIALOGUE_UNKNOWN_MENTION_INTAKE_PROMPT = """
+你是明末历史策略游戏的“对白人物线索入池审计官”。你只输出 JSON，不写 Markdown。
+任务：阅读 NPC 回答或舞台动作，判断候选姓名里哪些是真正可写入“未知人物候选池/可召见候选”的具体人物。
+
+核心原则：
+- 这是语义判定，不按“叫、传、入殿、候着、小火者”等词机械触发。
+- allow=true 只用于 NPC 明确介绍、举荐、点名、带来、传入、说明某个具体新人物可被玩家后续召见/问话/任用。
+- purpose=answer_summon 或 recent_summon 时更严格：必须明确此人已被传入、带到、在殿外/御前候旨，或 NPC 正在执行“把此人带来”的动作。
+- purpose=cache_candidate 时，可接受 NPC 推荐/介绍的具体新人，但不能接受历史掌故、比喻、泛称、官署名、职位名、组织名、尊称片段。
+- 不要把当前说话人、已知人物、官署/机构/职称、朝代地名、引文里的旧案人物、泛称“一个老百户/小火者”等当成新候选。
+- accepted_names 只能从 candidate_names 中选择；不要发明新名字。
+- 若 NPC 只是说“某某旧案里有人如何”“听闻某某曾经如何”，但没有把此人作为可见/可召见/可用候选提出，必须 allow=false。
+- trigger_quote 必须引用原文中最能证明此人应入候选池的短句；没有证据 allow=false。
+
+JSON 字段：
+{
+  "allow": false,
+  "accepted_names": ["允许入池的人名"],
+  "rejected_names": ["拒绝的人名"],
+  "trigger_quote": "原文短句",
+  "public_hint": "一句玩家可见提示",
+  "private_reason": "审计理由",
+  "confidence": 0
+}
+""".strip()
+
+
 DIALOGUE_SUGGESTIONS_PROMPT = """
 你是明末历史策略游戏的“自然奏对建议官”。你只输出 JSON，不写 Markdown。
 任务：根据 NPC、近期上下文、未完成目的、关系网、待确认动作和候选建议，生成 3-5 条像皇帝自然开口的话，而不是 UI 标签或机械快捷指令。
@@ -1438,6 +1489,7 @@ def _agent(llm_config: LLMConfig, agno_db: object, *, phase: str, prompt: str, m
         "dialogue_directive_pressure": "llm.dialogue_directive_pressure",
         "dialogue_directive_followup": "llm.dialogue_directive_followup",
         "dialogue_eunuch_lore_intake": "llm.dialogue_eunuch_lore_intake",
+        "dialogue_unknown_mention_intake": "llm.dialogue_unknown_mention_intake",
     }.get(phase, "llm.dialogue_condition_audit")
     return Agent(
         name=f"奏对审计-{phase}",
@@ -2081,6 +2133,58 @@ def dialogue_eunuch_lore_intake_audit(
         return _normalize_dialogue_eunuch_lore_intake({
             "allow": False,
             "target_names": [],
+            "confidence": 0,
+            "private_reason": str(exc),
+        })
+
+
+def dialogue_unknown_mention_intake_audit(
+    db: Any,
+    state: GameState,
+    character: Character,
+    text: str,
+    *,
+    candidate_names: Optional[List[str]] = None,
+    purpose: str = "cache_candidate",
+    llm_config: Optional[LLMConfig] = None,
+    agno_db: object = None,
+    audit_client: object = None,
+) -> Dict[str, object]:
+    payload = _context_payload(db, state, character)
+    payload["text"] = text
+    payload["purpose"] = _compact(purpose, 40)
+    payload["current_speaker"] = character.name
+    payload["candidate_names"] = _list_strings(candidate_names or [], limit=10, item_limit=80)
+    _attach_behavior_context(payload, character, text=text)
+    try:
+        fake = _call_fake(audit_client, "dialogue_unknown_mention_intake", payload)
+        if fake is not None:
+            return _normalize_dialogue_unknown_mention_intake(fake)
+        if llm_config is None:
+            return _normalize_dialogue_unknown_mention_intake({
+                "allow": False,
+                "accepted_names": [],
+                "confidence": 0,
+                "private_reason": "未配置 LLM，未知人物候选入池审计不落库。",
+            })
+        agent = _agent(
+            llm_config,
+            agno_db,
+            phase="dialogue_unknown_mention_intake",
+            prompt=DIALOGUE_UNKNOWN_MENTION_INTAKE_PROMPT,
+            max_tokens=900,
+        )
+        raw = run_agent_text(
+            agent,
+            json.dumps(payload, ensure_ascii=False, sort_keys=False),
+            tag="dialogue-audit/unknown-mention-intake",
+        )
+        data = parse_agent_json(raw, "对白人物线索入池审计")
+        return _normalize_dialogue_unknown_mention_intake(data)
+    except Exception as exc:
+        return _normalize_dialogue_unknown_mention_intake({
+            "allow": False,
+            "accepted_names": [],
             "confidence": 0,
             "private_reason": str(exc),
         })
