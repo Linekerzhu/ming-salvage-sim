@@ -61,6 +61,14 @@ ACTION_INTENT_TYPES = {
 }
 ACTION_INTENT_PHASES = {"none", "propose", "confirm", "reject"}
 DIALOGUE_ROUTE_INTENTS = {"none", "summon", "confirm_pending", "reject_pending"}
+RECOVERABLE_DIALOGUE_ACTION_TYPES = {
+    "recruitment",
+    "mediation",
+    "castration",
+    "eunuch_care",
+    "eunuch_hard_service",
+    "bao_leverage",
+}
 SOFT_HOOK_RE = re.compile(
     r"旧恩|人情债|昔日|朕曾|朕已|朕替|朕保|保全|复用|买单|抚恤|"
     r"两清|恩典|恩赏|天恩|旧情"
@@ -570,6 +578,39 @@ def _normalize_dialogue_route_intent(data: Dict[str, object]) -> Dict[str, objec
     }
 
 
+def _normalize_dialogue_pending_recovery(data: Dict[str, object]) -> Dict[str, object]:
+    action_type = _enum(data.get("action_type") or data.get("type"), RECOVERABLE_DIALOGUE_ACTION_TYPES, "")
+    raw_confidence = data.get("confidence")
+    try:
+        parsed_confidence = float(raw_confidence)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        parsed_confidence = 0.0
+    if 0 < parsed_confidence <= 1:
+        confidence = _clamp_int(parsed_confidence * 100)
+    else:
+        confidence = _clamp_int(raw_confidence)
+    allow = bool(data.get("allow")) and action_type in RECOVERABLE_DIALOGUE_ACTION_TYPES and confidence >= CONFIDENCE_FLOOR
+    kind = _enum(data.get("kind"), RECRUITMENT_KINDS, "")
+    if action_type == "recruitment" and kind not in RECRUITMENT_KINDS:
+        allow = False
+    return {
+        "allow": allow,
+        "phase": "confirm" if allow else "none",
+        "action_type": action_type if allow else "none",
+        "kind": kind if allow else "",
+        "target": _compact(data.get("target"), 80),
+        "actor": _compact(data.get("actor"), 80),
+        "faction": _compact(data.get("faction"), 80),
+        "mode": _compact(data.get("mode"), 40),
+        "trigger_quote": _compact(data.get("trigger_quote"), 140),
+        "proposal_evidence": _compact(data.get("proposal_evidence"), 360),
+        "public_hint": _compact(data.get("public_hint"), 180),
+        "private_reason": _compact(data.get("private_reason") or data.get("reason"), 520),
+        "confidence": confidence,
+        "raw": data,
+    }
+
+
 def _context_payload(db: Any, state: GameState, character: Character, *, active_goal: Optional[Dict[str, object]] = None) -> Dict[str, object]:
     try:
         goals = db.list_conversation_goals(minister_name=character.name, limit=8)
@@ -1034,6 +1075,47 @@ JSON 字段：
 """.strip()
 
 
+DIALOGUE_PENDING_RECOVERY_PROMPT = """
+你是明末历史策略游戏的“待办动作恢复审计官”。你只输出 JSON，不写 Markdown。
+任务：当存档刷新或旧版本丢失 pending_action 时，阅读当前 NPC 最近几轮回复和皇帝本轮原话，判断是否可以把上一轮明确提出的“两步确认方案”恢复并执行。
+
+核心原则：
+- 这是语义恢复，不是关键词触发。不能因为皇帝说“准、好、照办”就执行；必须同时满足：最近 NPC 回复里有清楚的待确认方案，且皇帝本轮是在批准那个方案。
+- 只恢复 NPC 明确说过“若陛下准/若准/不敢擅专/请陛下明示”等需要皇帝确认的方案。
+- 皇帝追问细节、问代价、改方案、说“先说说看/谁合适/不要办/只是问问”，必须 allow=false。
+- 不能发明新动作；只能恢复最近回复里已有证据的动作。
+- recruitment.kind 必须明确：eunuch=新太监/内侍/小火者；exam=科举/庶吉士/新科；recommend=臣工举荐新人。
+- castration 必须有具体 target，且最近回复和本轮原话合起来都指向“净身/宫刑/入内廷为奴”的身份处置；普通净身旧例讨论 false。
+- eunuch_care/eunuch_hard_service/bao_leverage 必须指向已在谈的内廷/宦官对象和具体照料、硬派、赐还/封存宝匣方案。
+- mediation 必须有双方人物或派系；普通听旧怨、问事实 false。
+- proposal_evidence 必须引用最近 NPC 回复中能证明方案存在的一句短证据；trigger_quote 必须引用皇帝本轮批准的一句短证据。
+
+判例：
+- 最近回复：“陛下若准，奴婢便去挑一个忠谨可用的来。” 玩家：“好，先把人带来。” => recruitment/eunuch allow=true。
+- 最近回复：“陛下若准，奴婢才敢传净军房行事。” 玩家：“准，照这个方案办。” => castration allow=true，并填 target。
+- 最近回复：“若陛下准，臣便按御前调停去说合。” 玩家：“可以，就这么办。” => mediation allow=true。
+- 最近回复：“若陛下准，奴婢就按调养去处置。” 玩家：“先说他到底病到什么地步？” => allow=false。
+- 最近回复只是普通分析，没有待确认方案；玩家：“准。” => allow=false。
+
+JSON 字段：
+{
+  "allow": false,
+  "phase": "none|confirm",
+  "action_type": "recruitment|mediation|castration|eunuch_care|eunuch_hard_service|bao_leverage|none",
+  "kind": "eunuch|exam|recommend|",
+  "target": "对象姓名；无则空",
+  "actor": "调停执行人；无则空",
+  "faction": "派系；无则空",
+  "mode": "动作模式；无则空",
+  "trigger_quote": "皇帝本轮批准原文短句",
+  "proposal_evidence": "最近 NPC 回复里的方案证据",
+  "public_hint": "一句玩家可见提示",
+  "private_reason": "审计理由，说明为何可恢复或不可恢复",
+  "confidence": 0
+}
+""".strip()
+
+
 DIALOGUE_SUGGESTIONS_PROMPT = """
 你是明末历史策略游戏的“自然奏对建议官”。你只输出 JSON，不写 Markdown。
 任务：根据 NPC、近期上下文、未完成目的、关系网、待确认动作和候选建议，生成 3-5 条像皇帝自然开口的话，而不是 UI 标签或机械快捷指令。
@@ -1304,6 +1386,61 @@ def dialogue_route_intent_audit(
         return _normalize_dialogue_route_intent({
             "allow": False,
             "intent": "none",
+            "confidence": 0,
+            "private_reason": str(exc),
+        })
+
+
+def dialogue_pending_recovery_audit(
+    db: Any,
+    state: GameState,
+    character: Character,
+    user_text: str,
+    recent_answers: List[str],
+    *,
+    llm_config: Optional[LLMConfig] = None,
+    agno_db: object = None,
+    audit_client: object = None,
+) -> Dict[str, object]:
+    payload = _context_payload(db, state, character)
+    payload["user_text"] = user_text
+    payload["recent_proposals"] = [
+        {"index": idx + 1, "answer": _compact(answer, 520)}
+        for idx, answer in enumerate((recent_answers or [])[:4])
+        if str(answer or "").strip()
+    ]
+    _attach_behavior_context(payload, character, text=user_text)
+    try:
+        fake = _call_fake(audit_client, "dialogue_pending_recovery", payload)
+        if fake is not None:
+            return _normalize_dialogue_pending_recovery(fake)
+        if llm_config is None:
+            return _normalize_dialogue_pending_recovery({
+                "allow": False,
+                "phase": "none",
+                "action_type": "none",
+                "confidence": 0,
+                "private_reason": "未配置 LLM，不从旧对白恢复待办动作。",
+            })
+        agent = _agent(
+            llm_config,
+            agno_db,
+            phase="dialogue_pending_recovery",
+            prompt=DIALOGUE_PENDING_RECOVERY_PROMPT,
+            max_tokens=900,
+        )
+        raw = run_agent_text(
+            agent,
+            json.dumps(payload, ensure_ascii=False, sort_keys=False),
+            tag="dialogue-audit/pending-recovery",
+        )
+        data = parse_agent_json(raw, "待办动作恢复审计")
+        return _normalize_dialogue_pending_recovery(data)
+    except Exception as exc:
+        return _normalize_dialogue_pending_recovery({
+            "allow": False,
+            "phase": "none",
+            "action_type": "none",
             "confidence": 0,
             "private_reason": str(exc),
         })

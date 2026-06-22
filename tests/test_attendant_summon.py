@@ -2053,6 +2053,115 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_semantic_pending_recovery_executes_castration_without_regex(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "0"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            row = game.db.conn.execute(
+                "SELECT name, office, office_type FROM characters "
+                "WHERE status='active' AND power_id='ming' "
+                "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
+                "AND office NOT LIKE '%太监%' AND office NOT LIKE '%宦官%' "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            target = str(row["name"])
+            game.chat_history[attendant] = [{
+                "role": "minister",
+                "content": (
+                    f"奴婢回陛下，{target}若真要净身入内廷，便是极端身份处置。"
+                    "陛下若准，奴婢才敢传净军房行事。"
+                ),
+            }]
+
+            def audit(phase, payload):
+                if phase == "dialogue_pending_recovery":
+                    self.assertIn("recent_proposals", payload)
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "castration",
+                        "target": target,
+                        "trigger_quote": "准，照这个方案办",
+                        "proposal_evidence": "陛下若准，奴婢才敢传净军房行事",
+                        "private_reason": "test semantic pending recovery",
+                        "confidence": 96,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            response = game._dialogue_semantic_recovery_response(attendant, "准，照这个方案办。")
+
+            self.assertIsNotNone(response)
+            after = game.db.conn.execute(
+                "SELECT office, office_type FROM characters WHERE name=?",
+                (target,),
+            ).fetchone()
+            self.assertIsNotNone(after)
+            self.assertTrue(is_eunuch_office(str(after["office"]), str(after["office_type"])))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_pending_recovery_denial_does_not_execute(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "0"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            row = game.db.conn.execute(
+                "SELECT name, office, office_type FROM characters "
+                "WHERE status='active' AND power_id='ming' "
+                "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
+                "AND office NOT LIKE '%太监%' AND office NOT LIKE '%宦官%' "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            target = str(row["name"])
+            game.chat_history[attendant] = [{
+                "role": "minister",
+                "content": "奴婢只把旧例说给陛下听，并未敢拟办。",
+            }]
+
+            def audit(phase, payload):
+                if phase == "dialogue_pending_recovery":
+                    return {
+                        "allow": False,
+                        "phase": "none",
+                        "action_type": "none",
+                        "trigger_quote": "",
+                        "proposal_evidence": "",
+                        "private_reason": "最近回复没有待确认方案。",
+                        "confidence": 98,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            response = game._dialogue_semantic_recovery_response(attendant, "准。")
+
+            self.assertIsNone(response)
+            after = game.db.conn.execute(
+                "SELECT office, office_type FROM characters WHERE name=?",
+                (target,),
+            ).fetchone()
+            self.assertIsNotNone(after)
+            self.assertEqual(str(after["office"]), str(row["office"]))
+            self.assertEqual(str(after["office_type"]), str(row["office_type"]))
+            self.assertFalse(is_eunuch_office(str(after["office"]), str(after["office_type"])))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_semantic_route_summons_when_regex_summon_fallback_is_off(self):
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS"] = "0"
         os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "0"
