@@ -266,6 +266,7 @@ class CourtContext:
     previous_summary: str = ""
     monthly_followups: List[Dict[str, object]] = field(default_factory=list)
     prompt_cache: Dict[object, Any] = field(default_factory=dict)
+    tool_side_effects: bool = True
 
 
 def period_label(year: int, month: int) -> str:

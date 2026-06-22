@@ -1,3 +1,5 @@
+import json
+import os
 import unittest
 from dataclasses import replace
 from pathlib import Path
@@ -1057,6 +1059,111 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 self.assertIn("行为口径", result)
             self.assertIn("已奉旨即核", rush_result)
             db.conn.close()
+
+    def test_dialogue_secret_order_tool_returns_payload_without_side_effects(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db = GameDB(str(Path(tmp) / "npc_secret_no_side_effect_tool.db"), content=self.content)
+            db.seed_static_data()
+            state = GameState(
+                year=1628,
+                period=1,
+                turn=1,
+                metrics={"国库": 100, "内库": 50, "民心": 50, "皇威": 50},
+            )
+            wen = self.content.characters["温体仁"]
+            tools = build_minister_tools(wen, CourtContext(state=state, db=db, tool_side_effects=False))
+            issue = next(tool for tool in tools if getattr(tool, "__name__", "") == "issue_secret_order")
+
+            result = issue(
+                "密查钱谦益",
+                "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                tags_json='["钱谦益","东林","起复"]',
+                deadline_months=2,
+            )
+
+            self.assertTrue(result.startswith("__secret_order__"))
+            payload = json.loads(result.removeprefix("__secret_order__"))
+            self.assertEqual(payload["title"], "密查钱谦益")
+            self.assertEqual(payload["assignee"], "温体仁")
+            self.assertEqual(db.list_secret_orders(), [])
+            db.conn.close()
+
+    def test_dialogue_secret_order_requires_semantic_confirm_before_db_write(self) -> None:
+        with TemporaryDirectory() as tmp:
+            old_disable = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")
+            os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+            session = GameSession(
+                str(Path(tmp) / "npc_secret_semantic_gate.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            try:
+                session.begin_turn()
+                character = session._character("温体仁")
+                payload = json.dumps(
+                    {
+                        "title": "密查钱谦益",
+                        "content": "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                        "tags": ["钱谦益", "东林", "起复"],
+                        "assignee": "温体仁",
+                        "deadline_months": 2,
+                    },
+                    ensure_ascii=False,
+                )
+
+                captured: dict[str, object] = {}
+
+                def deny_audit(phase, audit_payload):
+                    if phase != "dialogue_action_intent":
+                        return None
+                    captured["deny"] = audit_payload
+                    return {
+                        "allow": False,
+                        "phase": "none",
+                        "action_type": "none",
+                        "confidence": 95,
+                        "private_reason": "只是询问能否暗查，不是下密令。",
+                    }
+
+                session.dialogue_audit_client = deny_audit
+                self.assertFalse(
+                    session.dialogue_action_allows_secret_order(character, "此事能否暗查？", payload)
+                )
+                self.assertEqual(session.db.list_secret_orders(), [])
+                tool_action = (captured["deny"] or {}).get("tool_action")  # type: ignore[union-attr]
+                self.assertEqual(tool_action["type"], "secret_order")  # type: ignore[index]
+                self.assertEqual(tool_action["title"], "密查钱谦益")  # type: ignore[index]
+
+                def allow_audit(phase, audit_payload):
+                    if phase != "dialogue_action_intent":
+                        return None
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "secret_order",
+                        "confidence": 96,
+                        "trigger_quote": "给温体仁下密令",
+                        "private_reason": "玩家明确下密令并指定暗查目标。",
+                    }
+
+                session.dialogue_audit_client = allow_audit
+                self.assertTrue(
+                    session.dialogue_action_allows_secret_order(
+                        character,
+                        "给温体仁下密令，暗查钱谦益起复东林旧臣之议，两月内回奏。",
+                        payload,
+                    )
+                )
+                order_id = session._apply_secret_order(payload, "温体仁")
+                self.assertGreater(order_id, 0)
+                self.assertEqual(len(session.db.list_secret_orders()), 1)
+            finally:
+                session.close()
+                if old_disable is None:
+                    os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+                else:
+                    os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = old_disable
 
     def test_secret_order_tool_can_apply_eunuch_dispatch_strategy(self) -> None:
         with TemporaryDirectory() as tmp:

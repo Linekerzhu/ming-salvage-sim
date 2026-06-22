@@ -6985,7 +6985,16 @@ class WebGame:
                                     secret_order_assignee = str(payload_data.get("assignee") or "").strip() or minister_name
                             except (TypeError, ValueError):
                                 secret_order_assignee = minister_name
-                            secret_order_id = self.session._apply_secret_order(payload_json, minister_name)
+                            secret_order_id = (
+                                self.session._apply_secret_order(payload_json, minister_name)
+                                if self.session.dialogue_action_allows_secret_order(
+                                    character,
+                                    text,
+                                    payload_json,
+                                    answer=answer,
+                                )
+                                else 0
+                            )
                         if secret_order_id:
                             secret_order_effect = self.session.record_secret_order_effect(
                                 secret_order_id,

@@ -11,6 +11,7 @@ from openai import APIConnectionError, APIStatusError, APITimeoutError
 
 from ming_sim.exceptions import LLMUnavailable
 from ming_sim.llm_config import (
+    is_flash_model,
     is_dashscope_base_url,
     is_deepseek_base_url,
     provider_extra_body,
@@ -70,14 +71,15 @@ def create_chat_model(
     force_json_output: bool = False,
 ) -> OpenAIChat:
     install_token_stats_patch()
-    extra_body = provider_extra_body(llm_config.base_url)
+    extra_body = provider_extra_body(llm_config.base_url, llm_config.model)
     if enable_thinking and is_dashscope_base_url(llm_config.base_url):
         # 推演/评估类 agent 需要深思,开 qwen thinking
         extra_body = {"enable_thinking": True}
         if thinking_budget is not None:
             extra_body["thinking_budget"] = int(thinking_budget)
     elif enable_thinking and is_deepseek_base_url(llm_config.base_url):
-        extra_body = {}  # deepseek-v4 默认深思,清掉 disabled
+        # Flash 档必须保持轻量；否则月末推演等重型 agent 会把体感拖成 pro/深思模式。
+        extra_body = provider_extra_body(llm_config.base_url, llm_config.model) if is_flash_model(llm_config.model) else {}
     kwargs: Dict[str, object] = {
         "id": llm_config.model,
         "api_key": llm_config.api_key,

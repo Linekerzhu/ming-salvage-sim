@@ -51,6 +51,7 @@ IDENTITY_CONVERSION_ACTIONS = {"castration", "emancipation"}
 RECRUITMENT_KINDS = {"eunuch", "exam", "recommend"}
 ACTION_INTENT_TYPES = {
     "none",
+    "secret_order",
     "recruitment",
     "mediation",
     "castration",
@@ -950,6 +951,7 @@ DIALOGUE_ACTION_INTENT_PROMPT = """
 - 这是语义判定，不按关键词机械触发。提到某个词、旧例、身体状况、历史传闻、奏报疑点，不能等于下旨执行。
 - phase=propose 只表示“可向玩家复述待确认方案”，不能落库执行；requires_confirmation 必须为 true。
 - phase=confirm 必须存在 pending_action，且玩家本轮是在批准上一轮那个方案；追问细节、讨价还价、改口、闲聊、历史解释都不算确认。
+- 例外：secret_order 是一次性密令建档动作；只有玩家本轮明确“下密令/密旨/命某人暗查某事”时，才可在没有 pending_action 时返回 phase=confirm 并允许即时落库。
 - phase=reject 用于玩家明确作罢、暂缓、不办、别惊动相关机构；可清除 pending_action。
 - action_type 必须来自工具动作或待确认动作；不要发明新系统。
 - trigger_quote 必须引用玩家原话中能证明意图的短句；没有可引用证据时 allow=false。
@@ -960,6 +962,7 @@ DIALOGUE_ACTION_INTENT_PROMPT = """
 - eunuch_hard_service：只有玩家明确决定“不调养，照常派差/硬派差事/压住不治”，才可 allow=true。
 - bao_leverage：只有玩家明确要“赐还/归还宝匣”或“封存/拿捏/钳制宝案”，才可 allow=true。单纯查问宝案或补旧档不是筹码处置。
 - mediation：只有玩家明确要调停、共办、担保、说合某两人/某派，才可 allow=true；普通问旧怨、问证据、听两面之词不是执行调停。
+- secret_order：只有玩家明确下达密令/密旨，且能从玩家原话读出承办人或承办对象、暗查/取证/盯梢等任务目标，才可 allow=true 且 phase=confirm。只是问“要不要暗查”“查得如何”“此事能否密办”、NPC 自行建议密查，必须 false。
 - recruitment 由专门 recruitment_intent 审计负责；本审计通常不放行 recruitment。
 
 判例：
@@ -970,12 +973,14 @@ DIALOGUE_ACTION_INTENT_PROMPT = """
 - “朕想问你和魏忠贤的旧怨。” + mediation 工具 => allow=false。
 - “朕要你与魏忠贤各退一步，共办一件可验小差。” + mediation 工具 => allow=true, phase=propose。
 - pending_action 是 mediation，“可以，就这么办。” => allow=true, phase=confirm。
+- “此事能否暗查？” + secret_order 工具 => allow=false。
+- “给韩爌下密令，暗查魏忠贤余党牵连，两月内回奏。” + secret_order 工具 => allow=true, phase=confirm。
 
 JSON 字段：
 {
   "allow": false,
   "phase": "none|propose|confirm|reject",
-  "action_type": "none|recruitment|mediation|castration|eunuch_care|eunuch_hard_service|bao_leverage",
+  "action_type": "none|secret_order|recruitment|mediation|castration|eunuch_care|eunuch_hard_service|bao_leverage",
   "requires_confirmation": true,
   "target": "人名，可空",
   "actor": "人名，可空",
@@ -1194,13 +1199,16 @@ def dialogue_action_intent_audit(
             "mode",
             "note",
             "scheme_text",
+            "title",
+            "content",
+            "assignee",
             "trigger_quote",
         }
     }
     payload["pending_action"] = {
         key: value
         for key, value in (pending_action or {}).items()
-        if key in {"type", "target", "actor", "faction", "kind", "mode", "note", "scheme_text", "trigger_quote"}
+        if key in {"type", "target", "actor", "faction", "kind", "mode", "note", "scheme_text", "title", "content", "assignee", "trigger_quote"}
     }
     _attach_behavior_context(payload, character, text=user_text)
     try:

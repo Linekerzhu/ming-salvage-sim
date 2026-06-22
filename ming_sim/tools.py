@@ -811,6 +811,15 @@ def build_minister_tools(character: Character, context: CourtContext):
             deadline = max(0, min(int(deadline_months or 0), 36))
         except (TypeError, ValueError):
             deadline = 0
+        payload = {
+            "title": t,
+            "content": c,
+            "tags": tags_clean,
+            "assignee": real_assignee,
+            "deadline_months": deadline,
+        }
+        if not bool(getattr(context, "tool_side_effects", True)):
+            return f"__secret_order__{json.dumps(payload, ensure_ascii=False)}"
         try:
             order_id = context.db.create_secret_order(
                 context.state, real_assignee, t, c, tags_clean, deadline_months=deadline
@@ -818,7 +827,7 @@ def build_minister_tools(character: Character, context: CourtContext):
         except ValueError as e:
             return f"密令下达失败：{e}"
         except Exception as e:
-            return f"__secret_order__{json.dumps({'title': t, 'content': c, 'tags': tags_clean, 'assignee': real_assignee, 'deadline_months': deadline}, ensure_ascii=False)}"
+            return f"__secret_order__{json.dumps(payload, ensure_ascii=False)}"
         print(f"[secret_order/tool] 直接落库 id={order_id} assignee={real_assignee} title={t!r}")
         deadline_text = f"，御限 {deadline} 个月" if deadline else ""
         order = context.db.get_secret_order(order_id) or {"id": order_id, "title": t, "minister_name": real_assignee, "content": c}

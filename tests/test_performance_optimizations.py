@@ -13,6 +13,7 @@ from ming_sim.content import GameContent
 from ming_sim.context import bind_content, match_minister_from_text, npc_network_recommendations
 from ming_sim.db import GameDB
 from ming_sim.llm_config import for_role as llm_config_for_role
+from ming_sim.llm_model import create_chat_model
 from ming_sim.models import CourtContext, LLMConfig
 from ming_sim.hook_runner import HookExecutionError, build_default_hook_runner
 from ming_sim.module_registry import (
@@ -71,6 +72,20 @@ import ming_sim.session as session_module
 
 
 class PerformanceOptimizationTests(unittest.TestCase):
+    def test_deepseek_flash_keeps_thinking_disabled_even_for_heavy_agents(self) -> None:
+        flash_model = create_chat_model(
+            LLMConfig(api_key="test", base_url="https://api.deepseek.com/v1", model="deepseek-v4-flash"),
+            enable_thinking=True,
+        )
+        self.assertEqual(flash_model.id, "deepseek-v4-flash")
+        self.assertEqual(flash_model.extra_body, {"thinking": {"type": "disabled"}})
+
+        pro_model = create_chat_model(
+            LLMConfig(api_key="test", base_url="https://api.deepseek.com/v1", model="deepseek-v4-pro"),
+            enable_thinking=True,
+        )
+        self.assertEqual(pro_model.extra_body, {})
+
     def test_pipeline_registry_covers_core_engineering_surfaces(self) -> None:
         specs = pipeline_specs()
         by_id = {spec.id: spec for spec in specs}

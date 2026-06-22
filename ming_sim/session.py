@@ -491,6 +491,7 @@ class GameSession:
             db=self.db,
             previous_summary=self.previous_summary,
             monthly_followups=list(self.monthly_followups),
+            tool_side_effects=False,
         )
         self.campaign_id = self._ensure_campaign_id()
         self.registry = MinisterRegistry(self.llm_config, self.agno_db, context, campaign_id=self.campaign_id)
@@ -539,6 +540,7 @@ class GameSession:
                 db=self.db,
                 previous_summary=self.previous_summary,
                 monthly_followups=list(self.monthly_followups),
+                tool_side_effects=False,
             )
             self.campaign_id = self._ensure_campaign_id()
             self.registry = MinisterRegistry(self.llm_config, self.agno_db, context, campaign_id=self.campaign_id)
@@ -876,6 +878,60 @@ class GameSession:
             return {}
         return data if isinstance(data, dict) else {}
 
+    def dialogue_action_allows_secret_order(
+        self,
+        character: Character,
+        user_text: str,
+        payload: str,
+        *,
+        answer: str = "",
+    ) -> bool:
+        """Semantic gate for LLM-issued secret-order tool calls before DB writes."""
+        if os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes"):
+            return True
+        try:
+            data = json.loads(payload) if payload else {}
+        except (TypeError, ValueError):
+            return False
+        if not isinstance(data, dict):
+            return False
+        title = str(data.get("title") or "").strip()
+        content = str(data.get("content") or "").strip()
+        if not title or not content:
+            return False
+        assignee = str(data.get("assignee") or "").strip() or character.name
+        try:
+            from ming_sim.dialogue_audit import dialogue_action_intent_audit
+
+            review = dialogue_action_intent_audit(
+                self.db,
+                self.state,
+                character,
+                user_text,
+                {
+                    "type": "secret_order",
+                    "phase": "confirm",
+                    "target": assignee,
+                    "actor": character.name,
+                    "kind": "issue",
+                    "mode": "secret_order",
+                    "title": title,
+                    "content": content,
+                    "assignee": assignee,
+                    "note": f"{title}：{content}",
+                    "tool_answer_excerpt": str(answer or "")[:240],
+                },
+                pending_action=None,
+                llm_config=self.llm_config,
+                agno_db=self.agno_db,
+                audit_client=self.dialogue_audit_client,
+            )
+        except Exception:
+            return False
+        if not isinstance(review, dict) or not review.get("allow"):
+            return False
+        return str(review.get("action_type") or "") == "secret_order" and str(review.get("phase") or "") == "confirm"
+
     def _apply_unlisted_person_registration_after_route_audit(
         self,
         payload: str,
@@ -1047,7 +1103,11 @@ class GameSession:
                             assignee = str(payload_data.get("assignee") or "").strip() or character.name
                     except (TypeError, ValueError):
                         assignee = character.name
-                    order_id = self._apply_secret_order(payload, character.name)
+                    order_id = (
+                        self._apply_secret_order(payload, character.name)
+                        if self.dialogue_action_allows_secret_order(character, message, payload, answer=answer)
+                        else 0
+                    )
                 if order_id:
                     result.secret_order_id = order_id
                     result.secret_order_assignee = assignee or character.name
