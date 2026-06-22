@@ -555,6 +555,29 @@ def _normalize_dialogue_suggestions(data: object) -> List[Dict[str, object]]:
     return out
 
 
+def _normalize_dialogue_eunuch_lore_intake(data: Dict[str, object]) -> Dict[str, object]:
+    raw_confidence = data.get("confidence")
+    try:
+        parsed_confidence = float(raw_confidence)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        parsed_confidence = 0.0
+    if 0 < parsed_confidence <= 1:
+        confidence = _clamp_int(parsed_confidence * 100)
+    else:
+        confidence = _clamp_int(raw_confidence)
+    target_names = _list_strings(data.get("target_names") or data.get("targets"), limit=4, item_limit=80)
+    allow = bool(data.get("allow")) and bool(target_names) and confidence >= CONFIDENCE_FLOOR
+    return {
+        "allow": allow,
+        "target_names": target_names if allow else [],
+        "confidence": confidence,
+        "trigger_quote": _compact(data.get("trigger_quote"), 140),
+        "public_hint": _compact(data.get("public_hint"), 180),
+        "private_reason": _compact(data.get("private_reason") or data.get("reason"), 520),
+        "raw": data,
+    }
+
+
 def _normalize_dialogue_route_intent(data: Dict[str, object]) -> Dict[str, object]:
     intent = _enum(data.get("intent"), DIALOGUE_ROUTE_INTENTS, "none")
     raw_confidence = data.get("confidence")
@@ -1350,6 +1373,32 @@ JSON 字段：
 """.strip()
 
 
+DIALOGUE_EUNUCH_LORE_INTAKE_PROMPT = """
+你是明末历史策略游戏的“净身旧档入档审计官”。你只输出 JSON，不写 Markdown。
+任务：阅读一段皇帝或 NPC 的对白，判断是否允许把其中的净身旧档/宝匣/旧患/心相细节写入人物长期档案，并给出允许写入的目标人物。
+
+核心原则：
+- 这是语义判定，不按“宝匣、尿闭、净身、PTSD、性无能”等词机械触发。
+- allow=true 只用于：皇帝明确命令“记档/补录/登记/改用/封存/赐还/查验”等会改旧档的处置；或对话里有可靠的一手自述/已执行处置结果，且能明确目标人物。
+- 普通询问、闲聊、打听风声、历史旧例、传闻、假设“如果净身会怎样”、NPC 泛泛解释制度，都必须 allow=false。
+- 不要因为出现身体或宝匣词汇就入档；必须有“这是某人的长期事实/处置结果/御前命令”的语义证据。
+- target_names 只能从 candidate_names、current_speaker、pending_target 中选；不要发明新名字。
+- 如果只是当前说话人回答“臣/奴婢听闻旧案如何”，没有明确说是本人事实或奉旨入档，allow=false。
+- 如果玩家说“只是问问/先别记档/别惊动/不要入档”，allow=false。
+- trigger_quote 必须引用原文中最能证明“应该入档”的短句；没有证据 allow=false。
+
+JSON 字段：
+{
+  "allow": false,
+  "target_names": ["允许写入旧档的人名"],
+  "trigger_quote": "原文短句",
+  "public_hint": "一句玩家可见提示",
+  "private_reason": "审计理由",
+  "confidence": 0
+}
+""".strip()
+
+
 DIALOGUE_SUGGESTIONS_PROMPT = """
 你是明末历史策略游戏的“自然奏对建议官”。你只输出 JSON，不写 Markdown。
 任务：根据 NPC、近期上下文、未完成目的、关系网、待确认动作和候选建议，生成 3-5 条像皇帝自然开口的话，而不是 UI 标签或机械快捷指令。
@@ -1388,6 +1437,7 @@ def _agent(llm_config: LLMConfig, agno_db: object, *, phase: str, prompt: str, m
         "dialogue_directive_fallback": "llm.dialogue_directive_fallback",
         "dialogue_directive_pressure": "llm.dialogue_directive_pressure",
         "dialogue_directive_followup": "llm.dialogue_directive_followup",
+        "dialogue_eunuch_lore_intake": "llm.dialogue_eunuch_lore_intake",
     }.get(phase, "llm.dialogue_condition_audit")
     return Agent(
         name=f"奏对审计-{phase}",
@@ -1980,6 +2030,60 @@ def dialogue_suggestions_audit(
         return _normalize_dialogue_suggestions(data)
     except Exception:
         return []
+
+
+def dialogue_eunuch_lore_intake_audit(
+    db: Any,
+    state: GameState,
+    character: Character,
+    text: str,
+    *,
+    candidate_names: Optional[List[str]] = None,
+    pending_target: str = "",
+    source_role: str = "",
+    llm_config: Optional[LLMConfig] = None,
+    agno_db: object = None,
+    audit_client: object = None,
+) -> Dict[str, object]:
+    payload = _context_payload(db, state, character)
+    payload["text"] = text
+    payload["source_role"] = _compact(source_role, 40)
+    payload["current_speaker"] = character.name
+    payload["candidate_names"] = _list_strings(candidate_names or [], limit=8, item_limit=80)
+    payload["pending_target"] = _compact(pending_target, 80)
+    _attach_behavior_context(payload, character, text=text)
+    try:
+        fake = _call_fake(audit_client, "dialogue_eunuch_lore_intake", payload)
+        if fake is not None:
+            return _normalize_dialogue_eunuch_lore_intake(fake)
+        if llm_config is None:
+            return _normalize_dialogue_eunuch_lore_intake({
+                "allow": False,
+                "target_names": [],
+                "confidence": 0,
+                "private_reason": "未配置 LLM，净身旧档入档审计不落库。",
+            })
+        agent = _agent(
+            llm_config,
+            agno_db,
+            phase="dialogue_eunuch_lore_intake",
+            prompt=DIALOGUE_EUNUCH_LORE_INTAKE_PROMPT,
+            max_tokens=900,
+        )
+        raw = run_agent_text(
+            agent,
+            json.dumps(payload, ensure_ascii=False, sort_keys=False),
+            tag="dialogue-audit/eunuch-lore-intake",
+        )
+        data = parse_agent_json(raw, "净身旧档入档审计")
+        return _normalize_dialogue_eunuch_lore_intake(data)
+    except Exception as exc:
+        return _normalize_dialogue_eunuch_lore_intake({
+            "allow": False,
+            "target_names": [],
+            "confidence": 0,
+            "private_reason": str(exc),
+        })
 
 
 def post_dialogue_audit(

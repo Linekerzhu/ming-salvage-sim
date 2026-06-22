@@ -1474,33 +1474,98 @@ class WebGame:
             raw,
         ))
 
-    def _absorb_eunuch_lore_from_text(self, minister_name: str, text: str) -> Dict[str, Any]:
+    def _dialogue_lore_llm_audit_available(self) -> bool:
+        if os.environ.get("MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes"):
+            return False
+        try:
+            if self.session.dialogue_audit_client is not None:
+                return True
+            return bool(str(self.session.llm_config.api_key or "").strip())
+        except Exception:
+            return False
+
+    def _pending_eunuch_lore_target(self, minister_name: str) -> str:
+        try:
+            pending = self._load_pending_dialogue_action(minister_name)
+        except Exception:
+            pending = {}
+        if not isinstance(pending, dict):
+            return ""
+        if pending.get("type") not in {"castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
+            return ""
+        return str(pending.get("target") or "").strip()
+
+    def _semantic_eunuch_lore_targets(
+        self,
+        minister_name: str,
+        text: str,
+        all_mentions: List[str],
+        *,
+        source_role: str = "",
+    ) -> Optional[List[str]]:
+        if not self._dialogue_lore_llm_audit_available():
+            return None
+        clean = str(minister_name or "").strip()
+        pending_target = self._pending_eunuch_lore_target(clean)
+        candidate_names: List[str] = []
+        for name in [*all_mentions, clean, pending_target]:
+            if name and name not in candidate_names and name in self.content.characters:
+                candidate_names.append(name)
+        if not candidate_names:
+            return []
+        try:
+            from ming_sim.dialogue_audit import dialogue_eunuch_lore_intake_audit
+
+            character = self.session._character(clean)
+            review = dialogue_eunuch_lore_intake_audit(
+                self.db,
+                self.state,
+                character,
+                text,
+                candidate_names=candidate_names,
+                pending_target=pending_target,
+                source_role=source_role or ("minister" if self._eunuch_lore_text_looks_like_minister_answer(text) else "user"),
+                llm_config=self.session.llm_config,
+                agno_db=self.session.agno_db,
+                audit_client=self.session.dialogue_audit_client,
+            )
+        except Exception:
+            return []
+        if not isinstance(review, dict) or not review.get("allow"):
+            return []
+        targets: List[str] = []
+        for raw_target in review.get("target_names") or []:
+            target = self._resolve_semantic_action_name(str(raw_target or ""), clean)
+            if target and target in candidate_names and target not in targets:
+                targets.append(target)
+        return targets
+
+    def _absorb_eunuch_lore_from_text(self, minister_name: str, text: str, *, source_role: str = "") -> Dict[str, Any]:
         clean = str(minister_name or "").strip()
         raw = str(text or "").strip()
         if not raw:
             return {}
-        if self._eunuch_lore_text_looks_like_minister_answer(raw) and not self._eunuch_lore_text_has_write_intent(raw):
-            return {}
-        if self._eunuch_lore_text_is_casual_query(raw):
-            return {}
-        if not self._eunuch_lore_text_has_detail(raw):
+        if not (self._eunuch_lore_text_has_detail(raw) or self._eunuch_lore_text_has_write_intent(raw)):
             return {}
         all_mentions = self._character_mentions_in_text(raw)
-        mentioned = [name for name in all_mentions if name != clean]
-        candidates = list(mentioned)
-        if not candidates and clean and clean in all_mentions and self._eunuch_lore_text_has_write_intent(raw):
-            candidates = [clean]
-        if not candidates:
-            try:
-                pending = self._load_pending_dialogue_action(clean)
-            except Exception:
-                pending = {}
-            if isinstance(pending, dict) and pending.get("type") in {"castration", "eunuch_care"}:
-                target = str(pending.get("target") or "").strip()
-                if target:
-                    candidates = [target]
-        if not candidates and clean and self._eunuch_lore_default_speaker_allowed(raw):
-            candidates = [clean]
+        semantic_targets = self._semantic_eunuch_lore_targets(clean, raw, all_mentions, source_role=source_role)
+        if semantic_targets is not None:
+            candidates = semantic_targets
+        else:
+            if self._eunuch_lore_text_looks_like_minister_answer(raw) and not self._eunuch_lore_text_has_write_intent(raw):
+                return {}
+            if self._eunuch_lore_text_is_casual_query(raw):
+                return {}
+            mentioned = [name for name in all_mentions if name != clean]
+            candidates = list(mentioned)
+            if not candidates and clean and clean in all_mentions and self._eunuch_lore_text_has_write_intent(raw):
+                candidates = [clean]
+            if not candidates:
+                pending_target = self._pending_eunuch_lore_target(clean)
+                if pending_target:
+                    candidates = [pending_target]
+            if not candidates and clean and self._eunuch_lore_default_speaker_allowed(raw):
+                candidates = [clean]
         if not candidates:
             return {}
         try:
@@ -7208,7 +7273,7 @@ class WebGame:
             if chat_turn_id:
                 self.db.update_chat_turn_messages(chat_turn_id, user_message_id=message_id)
         user_lore_effect = self._eunuch_lore_dialogue_effect(
-            self._absorb_eunuch_lore_from_text(minister_name, text)
+            self._absorb_eunuch_lore_from_text(minister_name, text, source_role="user")
         )
         dialogue_response = (
             self._dialogue_route_response(minister_name, text)
@@ -7220,7 +7285,7 @@ class WebGame:
         if dialogue_response is not None:
             answer = str(dialogue_response.get("answer") or "")
             answer_lore_effect = self._eunuch_lore_dialogue_effect(
-                self._absorb_eunuch_lore_from_text(minister_name, answer)
+                self._absorb_eunuch_lore_from_text(minister_name, answer, source_role="minister")
             )
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
             return self._chat_payload(
@@ -7299,7 +7364,7 @@ class WebGame:
             else None
         )
         answer_lore_effect = self._eunuch_lore_dialogue_effect(
-            self._absorb_eunuch_lore_from_text(minister_name, result.answer)
+            self._absorb_eunuch_lore_from_text(minister_name, result.answer, source_role="minister")
         )
         dialogue_effect = self._combine_dialogue_effects(
             tool_dialogue_effect,
@@ -7345,7 +7410,7 @@ class WebGame:
             if chat_turn_id:
                 self.db.update_chat_turn_messages(chat_turn_id, user_message_id=message_id)
         user_lore_effect = self._eunuch_lore_dialogue_effect(
-            self._absorb_eunuch_lore_from_text(minister_name, text)
+            self._absorb_eunuch_lore_from_text(minister_name, text, source_role="user")
         )
         dialogue_response = (
             self._dialogue_route_response(minister_name, text)
@@ -7358,7 +7423,7 @@ class WebGame:
             answer = str(dialogue_response.get("answer") or "")
             yield {"type": "delta", "content": answer}
             answer_lore_effect = self._eunuch_lore_dialogue_effect(
-                self._absorb_eunuch_lore_from_text(minister_name, answer)
+                self._absorb_eunuch_lore_from_text(minister_name, answer, source_role="minister")
             )
             self._record_chat_rollback_items(chat_turn_id, before_snapshot)
             payload = self._chat_payload(
@@ -7576,7 +7641,7 @@ class WebGame:
                 else None
             )
             answer_lore_effect = self._eunuch_lore_dialogue_effect(
-                self._absorb_eunuch_lore_from_text(minister_name, answer)
+                self._absorb_eunuch_lore_from_text(minister_name, answer, source_role="minister")
             )
             dialogue_effect = self._combine_dialogue_effects(
                 tool_dialogue_effect,

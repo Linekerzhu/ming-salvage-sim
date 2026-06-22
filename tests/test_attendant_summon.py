@@ -34,6 +34,7 @@ class AttendantSummonTests(unittest.TestCase):
                 "MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS",
                 "MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT",
                 "MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT",
+                "MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT",
             )
         }
         self._user_data_dir = web_app.user_data_dir
@@ -70,6 +71,7 @@ class AttendantSummonTests(unittest.TestCase):
         os.environ.pop("MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS", None)
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
         os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "1"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT"] = "1"
 
     def tearDown(self) -> None:
         web_app._close_all_running_games()
@@ -3149,6 +3151,112 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertIn("updated", result)
             lore = el.get_lore(game.db, attendant)
             self.assertEqual(str(lore["bao_container"] or ""), "黑漆楠木匣")
+            self.assertEqual(str(lore["bao_preservation"] or ""), "油炸封蜡")
+            self.assertEqual(str(lore["bao_ritual"] or ""), "夜半验匣，钥匙贴身")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_lore_intake_denial_blocks_keyword_old_file_update(self):
+        from ming_sim import eunuch_lore as el
+
+        os.environ["MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            el.record_castration(game.db, attendant, forced=False, day=0)
+            game.db.conn.execute(
+                """
+                UPDATE eunuch_lore
+                SET bao_container='', bao_preservation='', bao_ritual=''
+                WHERE name=?
+                """,
+                (attendant,),
+            )
+            game.db.conn.commit()
+
+            def audit(phase, payload):
+                if phase == "dialogue_eunuch_lore_intake":
+                    self.assertIn(attendant, payload.get("candidate_names") or [])
+                    return {
+                        "allow": False,
+                        "target_names": [],
+                        "trigger_quote": "只是问问旧例",
+                        "private_reason": "只是问旧档写法，不是命令入档。",
+                        "confidence": 96,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            result = game._absorb_eunuch_lore_from_text(
+                attendant,
+                "只是问问旧例：王承恩的宝匣若改用黑漆楠木匣、油炸封蜡、钥匙贴身，是否该记入旧档？",
+                source_role="user",
+            )
+
+            self.assertEqual(result, {})
+            lore = game.db.conn.execute(
+                "SELECT bao_container, bao_preservation, bao_ritual FROM eunuch_lore WHERE name=?",
+                (attendant,),
+            ).fetchone()
+            self.assertEqual(str(lore["bao_container"] or ""), "")
+            self.assertEqual(str(lore["bao_preservation"] or ""), "")
+            self.assertEqual(str(lore["bao_ritual"] or ""), "")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_lore_intake_allow_updates_target_old_file(self):
+        from ming_sim import eunuch_lore as el
+
+        os.environ["MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            el.record_castration(game.db, attendant, forced=False, day=0)
+            game.db.conn.execute(
+                """
+                UPDATE eunuch_lore
+                SET bao_container='', bao_preservation='', bao_ritual=''
+                WHERE name=?
+                """,
+                (attendant,),
+            )
+            game.db.conn.commit()
+
+            def audit(phase, payload):
+                if phase == "dialogue_eunuch_lore_intake":
+                    self.assertEqual(payload.get("source_role"), "user")
+                    return {
+                        "allow": True,
+                        "target_names": [attendant],
+                        "trigger_quote": "请把王承恩的宝匣改用黄杨木描金匣",
+                        "private_reason": "玩家明确命令补录目标旧档。",
+                        "confidence": 96,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            result = game._absorb_eunuch_lore_from_text(
+                attendant,
+                "请把王承恩的宝匣改用黄杨木描金匣，油炸封蜡，钥匙贴身，记入旧档。",
+                source_role="user",
+            )
+
+            self.assertIn("updated", result)
+            lore = game.db.conn.execute(
+                "SELECT bao_container, bao_preservation, bao_ritual FROM eunuch_lore WHERE name=?",
+                (attendant,),
+            ).fetchone()
+            self.assertEqual(str(lore["bao_container"] or ""), "黄杨木描金匣")
             self.assertEqual(str(lore["bao_preservation"] or ""), "油炸封蜡")
             self.assertEqual(str(lore["bao_ritual"] or ""), "夜半验匣，钥匙贴身")
         finally:
