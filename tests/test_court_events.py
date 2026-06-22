@@ -864,6 +864,35 @@ class ResolveTests(unittest.TestCase):
             self.assertEqual(str(goal.get("status")), "waiting_conditions")
             self.assertEqual(int(goal.get("expires_turn") or 0), int(state.turn) + 3)
 
+    def test_agreement_review_does_not_use_keyword_fallback_without_llm_review(self):
+        with TemporaryDirectory() as tmp:
+            db, state, _day = _fresh(tmp)
+            minister, _ = _two_ming(db)
+            agreement_id, _goal_id = _due_agreement(db, state, minister, "银饷明旨")
+
+            reviewed = db.auto_review_negotiation_agreements(
+                state,
+                narrative="邸报称已准拨银饷、明旨照办，限期回奏。",
+                phase="postresolve",
+                llm_reviews={"reviews": []},
+            )
+
+            self.assertEqual([], reviewed)
+            row = db.conn.execute(
+                "SELECT status, condition_status, target_status, auto_review_json FROM negotiation_agreements WHERE id=?",
+                (agreement_id,),
+            ).fetchone()
+            self.assertEqual(str(row["status"]), "pending")
+            self.assertEqual(str(row["condition_status"]), "pending")
+            self.assertEqual(str(row["target_status"]), "pending_conditions")
+            self.assertEqual(str(row["auto_review_json"]), "{}")
+            task = db.conn.execute(
+                "SELECT status, evidence FROM negotiation_tasks WHERE agreement_id=?",
+                (agreement_id,),
+            ).fetchone()
+            self.assertEqual(str(task["status"]), "pending")
+            self.assertEqual(str(task["evidence"]), "")
+
     def test_overdue_punish_fails_agreement_and_goal(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)

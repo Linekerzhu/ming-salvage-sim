@@ -7,7 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import web_app
-from ming_sim import court, court_events, memorials
+from ming_sim import court, court_events, issues, memorials
 from ming_sim.models import Character
 from ming_sim.personnel_actions import is_eunuch_office
 import ming_sim.session as session_module
@@ -30,6 +30,11 @@ class AttendantSummonTests(unittest.TestCase):
                 "MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS",
                 "MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK",
                 "MING_SIM_ENABLE_RECRUITMENT_REGEX_FALLBACK",
+                "MING_SIM_ENABLE_DIALOGUE_LORE_REGEX_FALLBACK",
+                "MING_SIM_ENABLE_DIALOGUE_DIRECTIVE_REGEX_FALLBACK",
+                "MING_SIM_ENABLE_DIALOGUE_BARGAIN_REGEX_FALLBACK",
+                "MING_SIM_ENABLE_DIALOGUE_PENDING_REGEX_RECOVERY",
+                "MING_SIM_ENABLE_DIALOGUE_MENTION_REGEX_FALLBACK",
                 "MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS",
                 "MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS",
                 "MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT",
@@ -68,6 +73,11 @@ class AttendantSummonTests(unittest.TestCase):
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS"] = "1"
         os.environ["MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK"] = "1"
+        os.environ.pop("MING_SIM_ENABLE_DIALOGUE_LORE_REGEX_FALLBACK", None)
+        os.environ.pop("MING_SIM_ENABLE_DIALOGUE_DIRECTIVE_REGEX_FALLBACK", None)
+        os.environ.pop("MING_SIM_ENABLE_DIALOGUE_BARGAIN_REGEX_FALLBACK", None)
+        os.environ.pop("MING_SIM_ENABLE_DIALOGUE_PENDING_REGEX_RECOVERY", None)
+        os.environ["MING_SIM_ENABLE_DIALOGUE_MENTION_REGEX_FALLBACK"] = "1"
         os.environ["MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS"] = "1"
         os.environ.pop("MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS", None)
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
@@ -90,6 +100,18 @@ class AttendantSummonTests(unittest.TestCase):
 
     def _recruitment_audit(self, *, allow=True, kind="eunuch", confidence=95):
         def audit(phase, payload):
+            if phase == "dialogue_pending_recovery":
+                return {
+                    "allow": allow,
+                    "phase": "confirm" if allow else "none",
+                    "action_type": "recruitment" if allow else "none",
+                    "kind": kind if allow else "",
+                    "proposal_evidence": "测试恢复招募提案",
+                    "trigger_quote": str(payload.get("user_text") or "")[:80],
+                    "public_hint": "",
+                    "private_reason": "test semantic recovery",
+                    "confidence": confidence if allow else 95,
+                }
             if phase != "recruitment_intent":
                 return None
             action = payload.get("tool_action") or {}
@@ -103,6 +125,86 @@ class AttendantSummonTests(unittest.TestCase):
                 "public_hint": "",
                 "private_reason": "test semantic gate",
                 "confidence": confidence if allow else 95,
+            }
+
+        return audit
+
+    def _dialogue_action_audit(
+        self,
+        *,
+        action_type: str,
+        target: str = "",
+        actor: str = "",
+        faction: str = "",
+        mode: str = "",
+        confidence: int = 95,
+    ):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+
+        def audit(phase, payload):
+            if phase == "recruitment_intent":
+                return {
+                    "allow": False,
+                    "phase": "none",
+                    "kind": "",
+                    "trigger_quote": str(payload.get("user_text") or "")[:80],
+                    "private_reason": "test action path is not recruitment",
+                    "confidence": 95,
+                }
+            if phase != "dialogue_action_intent":
+                return None
+            action = payload.get("tool_action") or {}
+            pending = payload.get("pending_action") or {}
+            action_phase = str(action.get("phase") or ("confirm" if pending else "propose"))
+            if str(action.get("type") or "") == "semantic_probe":
+                action_phase = "propose"
+            resolved_type = str(pending.get("type") or action_type)
+            return {
+                "allow": True,
+                "phase": action_phase,
+                "action_type": resolved_type,
+                "target": target or str(pending.get("target") or action.get("target") or ""),
+                "actor": actor or str(pending.get("actor") or action.get("actor") or ""),
+                "faction": faction or str(pending.get("faction") or action.get("faction") or ""),
+                "mode": mode or str(pending.get("mode") or action.get("mode") or ""),
+                "trigger_quote": str(action.get("trigger_quote") or payload.get("user_text") or "")[:120],
+                "public_hint": "",
+                "private_reason": "test semantic action gate",
+                "confidence": confidence,
+            }
+
+        return audit
+
+    def _lore_intake_audit(self, *, targets, allow=True, confidence=96):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT"] = "0"
+
+        def audit(phase, payload):
+            if phase != "dialogue_eunuch_lore_intake":
+                return None
+            candidate_names = set(payload.get("candidate_names") or [])
+            target_names = [name for name in targets if name in candidate_names]
+            return {
+                "allow": allow and bool(target_names),
+                "target_names": target_names if allow else [],
+                "trigger_quote": str(payload.get("text") or "")[:80],
+                "private_reason": "test semantic lore intake",
+                "confidence": confidence,
+            }
+
+        return audit
+
+    def _bargain_attitude_audit(self, *, attitude: str = "accept", allow: bool = True, confidence: int = 95):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+
+        def audit(phase, payload):
+            if phase != "dialogue_bargain_attitude":
+                return None
+            return {
+                "allow": allow,
+                "attitude": attitude if allow else "none",
+                "trigger_quote": str(payload.get("user_text") or "")[:80],
+                "private_reason": "test semantic bargain attitude",
+                "confidence": confidence,
             }
 
         return audit
@@ -311,6 +413,62 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertIn("小禄子", stored)
             self.assertIn("小顺子", stored)
             self.assertNotIn("蒙王承恩", stored)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_unknown_dialogue_mentions_do_not_use_regex_cache_without_llm_or_legacy_opt_in(self):
+        os.environ.pop("MING_SIM_ENABLE_DIALOGUE_MENTION_REGEX_FALLBACK", None)
+        os.environ["MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT"] = "1"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                "回陛下，内书堂有个叫小禄子的孩子，记性极好，可先查一查。",
+            )
+
+            self.assertEqual(game._load_unknown_dialogue_mentions(), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_unknown_mention_audit_runs_without_regex_cache_fallback(self):
+        os.environ.pop("MING_SIM_ENABLE_DIALOGUE_MENTION_REGEX_FALLBACK", None)
+        os.environ["MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            calls = []
+
+            def audit(phase, payload):
+                if phase == "dialogue_unknown_mention_intake":
+                    calls.append(payload)
+                    return {
+                        "allow": True,
+                        "accepted_names": ["小禄子"],
+                        "rejected_names": [],
+                        "trigger_quote": "小禄子可先查一查",
+                        "private_reason": "语义上是在提出可召见候选。",
+                        "confidence": 96,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+            game._record_unknown_dialogue_mentions(
+                attendant,
+                "回陛下，内书堂有个叫小禄子的孩子，记性极好，可先查一查。",
+            )
+
+            self.assertTrue(calls)
+            self.assertIn("小禄子", game._load_unknown_dialogue_mentions())
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
@@ -1022,9 +1180,11 @@ class AttendantSummonTests(unittest.TestCase):
                 game.session.close()
 
     def test_recruitment_confirmation_recovers_when_pending_marker_is_missing(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
         game = web_app.WebGame(fresh=True)
         try:
             attendant = "王承恩"
+            game.session.dialogue_audit_client = self._recruitment_audit(allow=True, kind="eunuch")
             game.chat_history[attendant] = [
                 {
                     "role": "minister",
@@ -1708,6 +1868,88 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_llm_suggestions_filter_mechanical_labels(self):
+        os.environ["MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS"] = "0"
+        os.environ.pop("MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS", None)
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+
+            def audit(phase, payload):
+                if phase == "dialogue_suggestions":
+                    return {
+                        "suggestions": [
+                            {"label": "确认", "text": "确认执行这个系统动作", "prefix": True},
+                            {"label": "交账", "text": "快速对话：交账", "prefix": True},
+                            {"label": "问底线", "text": "你先把能办到哪一步、缺什么凭据、要几日回奏说清楚。", "prefix": True},
+                        ]
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            suggestions = game.suggestions_for(game.session._character(actor))
+
+            self.assertEqual(suggestions, [
+                {"label": "问底线", "text": "你先把能办到哪一步、缺什么凭据、要几日回奏说清楚。", "prefix": True}
+            ])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_injected_suggestion_audit_runs_without_api_key(self):
+        os.environ["MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS"] = "0"
+        os.environ.pop("MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS", None)
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            game.session.llm_config.api_key = ""
+            calls = []
+
+            def audit(phase, payload):
+                if phase != "dialogue_suggestions":
+                    return None
+                calls.append(payload)
+                return {
+                    "suggestions": [
+                        {
+                            "label": "问后果",
+                            "text": "你别讲空话，先把这件事会牵动谁、花多少钱、几日能见效说清楚。",
+                            "prefix": True,
+                        }
+                    ]
+                }
+
+            game.session.dialogue_audit_client = audit
+
+            suggestions = game.suggestions_for(game.session._character(actor))
+
+            self.assertTrue(calls)
+            self.assertEqual(suggestions, [
+                {
+                    "label": "问后果",
+                    "text": "你别讲空话，先把这件事会牵动谁、花多少钱、几日能见效说清楚。",
+                    "prefix": True,
+                }
+            ])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_recruitment_requires_confirmation(self):
         game = web_app.WebGame(fresh=True)
         try:
@@ -1848,6 +2090,10 @@ class AttendantSummonTests(unittest.TestCase):
             ).fetchone()
             self.assertIsNotNone(row)
             name = str(row["name"])
+            game.session.dialogue_audit_client = self._dialogue_action_audit(
+                action_type="castration",
+                target=name,
+            )
             game.db.conn.execute(
                 "UPDATE characters SET emp_trust=55, grievance=20 WHERE name=?",
                 (name,),
@@ -1995,6 +2241,111 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_legacy_regex_action_response_requires_semantic_allow(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "韩爌"
+            target = "魏忠贤"
+
+            def audit(phase, payload):
+                if phase == "dialogue_action_intent":
+                    return {
+                        "allow": False,
+                        "phase": "none",
+                        "action_type": "none",
+                        "target": "",
+                        "trigger_quote": str(payload.get("user_text") or "")[:80],
+                        "private_reason": "语义上只是谈旧怨，不建立调停任务。",
+                        "confidence": 97,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            response = game._dialogue_action_response(actor, f"朕想调停你和{target}的旧怨。")
+
+            self.assertIsNone(response)
+            self.assertEqual(game._load_pending_dialogue_action(actor), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_chat_does_not_use_legacy_regex_action_interceptor(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "1"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "韩爌"
+            target = "魏忠贤"
+            calls = []
+
+            def fake_chat(minister_name, message, *, source_chat_turn_id=0, supplemental_context=""):
+                calls.append((minister_name, message, source_chat_turn_id, supplemental_context))
+                return session_module.ChatTurnResult(answer="臣谨听圣裁。")
+
+            game.session.chat = fake_chat  # type: ignore[method-assign]
+
+            payload = game.chat(actor, f"朕想调停你和{target}的旧怨。")
+
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(payload["answer"], "臣谨听圣裁。")
+            self.assertEqual(game._load_pending_dialogue_action(actor), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_castration_requires_structured_explicit_consent_not_stance_keywords(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            row = game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' "
+                "AND office_type NOT IN ('后宫','司礼监','内官监御前') "
+                "AND office NOT LIKE '%太监%' AND office NOT LIKE '%宦官%' "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(row)
+            name = str(row["name"])
+            game.db.record_minister_stance(
+                game.state,
+                name,
+                topic="净身入内廷",
+                stance="support",
+                confidence=5,
+                summary=f"{name}表面称愿入内廷听差。",
+                conditions="净身后补司礼监",
+                handshake_status="sealed",
+                psychological_score=100,
+                psychological={},
+            )
+            self.assertFalse(issues._castration_consent_recorded(game.db, game.state, name))
+
+            with self.assertRaises(web_app.HTTPException) as ctx:
+                game.castrate_official(name, force=False)
+
+            self.assertEqual(ctx.exception.status_code, 409)
+            self.assertIn("尚未与", str(ctx.exception.detail))
+            after = game.db.conn.execute(
+                "SELECT office, office_type FROM characters WHERE name=?",
+                (name,),
+            ).fetchone()
+            self.assertFalse(is_eunuch_office(str(after["office"]), str(after["office_type"])))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_semantic_action_probe_creates_castration_pending_without_regex(self):
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "0"
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
@@ -2113,6 +2464,55 @@ class AttendantSummonTests(unittest.TestCase):
 
             self.assertIsNotNone(response)
             self.assertIn("陛下若准", response["answer"])
+            pending = game._load_pending_dialogue_action(attendant)
+            self.assertEqual(pending.get("type"), "recruitment")
+            self.assertEqual(pending.get("kind"), "eunuch")
+            self.assertIn("小内侍", str(pending.get("trigger_quote") or ""))
+            after = game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"]
+            self.assertEqual(after, before)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_unified_semantic_probe_handles_recruitment_without_specialized_retry(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "0"
+        os.environ["MING_SIM_ENABLE_RECRUITMENT_REGEX_FALLBACK"] = "0"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "1"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            before = game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"]
+            calls = []
+
+            def audit(phase, payload):
+                calls.append(phase)
+                if phase == "dialogue_action_intent":
+                    self.assertEqual((payload.get("tool_action") or {}).get("type"), "semantic_probe")
+                    return {
+                        "allow": True,
+                        "phase": "propose",
+                        "action_type": "recruitment",
+                        "kind": "eunuch",
+                        "requires_confirmation": True,
+                        "trigger_quote": "宫里可有新的小内侍可用",
+                        "public_hint": "玩家明确要找新的内廷小内侍。",
+                        "private_reason": "test unified semantic probe",
+                        "confidence": 96,
+                    }
+                if phase == "recruitment_intent":
+                    self.fail("unified semantic probe should not fall through to recruitment_intent")
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            payload = game.chat(attendant, "宫里可有新的小内侍可用？")
+
+            self.assertEqual(calls, ["dialogue_action_intent"])
+            self.assertIn("陛下若准", payload["answer"])
             pending = game._load_pending_dialogue_action(attendant)
             self.assertEqual(pending.get("type"), "recruitment")
             self.assertEqual(pending.get("kind"), "eunuch")
@@ -2306,6 +2706,107 @@ class AttendantSummonTests(unittest.TestCase):
 
             after = int(game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"])
             self.assertIsNone(response)
+            self.assertEqual(after, before)
+            self.assertEqual(game._load_pending_dialogue_action(attendant), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_pending_regex_recovery_ignores_generic_legacy_action_regex(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
+        os.environ.pop("MING_SIM_ENABLE_DIALOGUE_PENDING_REGEX_RECOVERY", None)
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            before = int(game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"])
+            game.chat_history[attendant] = [{
+                "role": "minister",
+                "content": "陛下若准，奴婢可从内书堂挑一个小火者来御前听用。",
+            }]
+
+            response = game._dialogue_action_response(attendant, "准。")
+
+            after = int(game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"])
+            self.assertIsNone(response)
+            self.assertEqual(after, before)
+            self.assertEqual(game._load_pending_dialogue_action(attendant), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_pending_regex_recovery_requires_dedicated_legacy_opt_in(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"
+        os.environ["MING_SIM_ENABLE_DIALOGUE_PENDING_REGEX_RECOVERY"] = "1"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            before = int(game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"])
+            game.chat_history[attendant] = [{
+                "role": "minister",
+                "content": "陛下若准，奴婢可从内书堂挑一个小火者来御前听用。",
+            }]
+
+            response = game._dialogue_action_response(attendant, "准。")
+
+            after = int(game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"])
+            self.assertIsNotNone(response)
+            self.assertEqual(after, before + 1)
+            self.assertTrue(str(response.get("recruited_minister") or ""))
+            self.assertEqual(game._load_pending_dialogue_action(attendant), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_pending_regex_recovery_does_not_bypass_injected_semantic_audit_without_api_key(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"
+        os.environ["MING_SIM_ENABLE_DIALOGUE_PENDING_REGEX_RECOVERY"] = "1"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            before = int(game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"])
+            game.session.llm_config.api_key = ""
+            game.chat_history[attendant] = [{
+                "role": "minister",
+                "content": "陛下若准，奴婢可从内书堂挑一个小火者来御前听用。",
+            }]
+
+            calls = []
+
+            def audit(phase, payload):
+                calls.append(phase)
+                if phase == "dialogue_pending_recovery":
+                    self.assertIn("recent_proposals", payload)
+                    return {
+                        "allow": False,
+                        "phase": "none",
+                        "action_type": "none",
+                        "kind": "",
+                        "trigger_quote": "准",
+                        "proposal_evidence": "陛下若准",
+                        "private_reason": "语义审计已可用，不能回落到旧关键词恢复。",
+                        "confidence": 96,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            response = game._dialogue_action_response(attendant, "准。")
+
+            after = int(game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"])
+            self.assertIsNone(response)
+            self.assertIn("dialogue_pending_recovery", calls)
             self.assertEqual(after, before)
             self.assertEqual(game._load_pending_dialogue_action(attendant), {})
         finally:
@@ -2590,6 +3091,7 @@ class AttendantSummonTests(unittest.TestCase):
         try:
             name = "韩爌"
             el.record_castration(game.db, name, forced=True, day=0)
+            game.session.dialogue_audit_client = self._lore_intake_audit(targets=[name])
 
             events = list(game.chat_stream(
                 name,
@@ -2641,6 +3143,11 @@ class AttendantSummonTests(unittest.TestCase):
                 name,
                 force=True,
                 scheme_text="净军房无麻，宝油炸封蜡；近来漏尿尿闭，嗓音尖薄，幻肢痛。",
+            )
+            game.session.dialogue_audit_client = self._dialogue_action_audit(
+                action_type="eunuch_care",
+                target=name,
+                mode="urinary",
             )
             game.state.metrics["内库"] = 80
             game.db.save_state(game.state)
@@ -2750,6 +3257,28 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_missing_llm_key_does_not_enable_local_quick_buttons(self):
+        os.environ["MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS"] = "0"
+        os.environ.pop("MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS", None)
+        game = web_app.WebGame(fresh=True)
+        try:
+            game.session.llm_config.api_key = ""
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+
+            suggestions = game.suggestions_for(game.session._character(actor))
+
+            self.assertEqual(suggestions, [])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_disabling_llm_quick_suggestions_does_not_enable_local_buttons(self):
         os.environ["MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS"] = "1"
         os.environ.pop("MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS", None)
@@ -2835,6 +3364,11 @@ class AttendantSummonTests(unittest.TestCase):
                 force=True,
                 scheme_text="净军房无麻；近来漏尿尿闭，夜里小解不畅。",
             )
+            game.session.dialogue_audit_client = self._dialogue_action_audit(
+                action_type="eunuch_hard_service",
+                target=name,
+                mode="urinary",
+            )
             game.db.conn.execute(
                 "UPDATE characters SET emp_trust=50, grievance=30, ability=55, charm=54, luck=50 WHERE name=?",
                 (name,),
@@ -2918,6 +3452,11 @@ class AttendantSummonTests(unittest.TestCase):
                 force=True,
                 scheme_text="奉旨宫刑，宝官库石灰封存，收白签灰瓮；暗记官库封签，终身惦念。",
             )
+            game.session.dialogue_audit_client = self._dialogue_action_audit(
+                action_type="eunuch_care",
+                target=name,
+                mode="bao",
+            )
             game.state.metrics["内库"] = 80
             game.db.save_state(game.state)
 
@@ -2970,6 +3509,11 @@ class AttendantSummonTests(unittest.TestCase):
                 name,
                 force=True,
                 scheme_text="奉旨宫刑，宝官库石灰封存，收白签灰瓮；暗记官库封签，终身惦念。",
+            )
+            game.session.dialogue_audit_client = self._dialogue_action_audit(
+                action_type="bao_leverage",
+                target=name,
+                mode="return",
             )
             game.db.conn.execute(
                 "UPDATE characters SET emp_trust=40, grievance=50, wisdom=55, luck=50 WHERE name=?",
@@ -3249,6 +3793,7 @@ class AttendantSummonTests(unittest.TestCase):
         try:
             attendant = "王承恩"
             el.record_castration(game.db, attendant, forced=False, day=0)
+            game.session.dialogue_audit_client = self._lore_intake_audit(targets=[attendant])
 
             result = game._absorb_eunuch_lore_from_text(
                 attendant,
@@ -3260,6 +3805,46 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(str(lore["bao_container"] or ""), "黑漆楠木匣")
             self.assertEqual(str(lore["bao_preservation"] or ""), "油炸封蜡")
             self.assertEqual(str(lore["bao_ritual"] or ""), "夜半验匣，钥匙贴身")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_lore_regex_fallback_disabled_does_not_update_old_file(self):
+        from ming_sim import eunuch_lore as el
+
+        os.environ["MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT"] = "1"
+        os.environ.pop("MING_SIM_ENABLE_DIALOGUE_LORE_REGEX_FALLBACK", None)
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            el.record_castration(game.db, attendant, forced=False, day=0)
+            game.db.conn.execute(
+                """
+                UPDATE eunuch_lore
+                SET bao_container='', bao_preservation='', bao_ritual=''
+                WHERE name=?
+                """,
+                (attendant,),
+            )
+            game.db.conn.commit()
+
+            result = game._absorb_eunuch_lore_from_text(
+                attendant,
+                "请把王承恩的宝匣改用黑漆楠木匣，油炸封蜡，钥匙贴身，记入旧档。",
+                source_role="user",
+            )
+
+            self.assertEqual(result, {})
+            lore = game.db.conn.execute(
+                "SELECT bao_container, bao_preservation, bao_ritual FROM eunuch_lore WHERE name=?",
+                (attendant,),
+            ).fetchone()
+            self.assertEqual(str(lore["bao_container"] or ""), "")
+            self.assertEqual(str(lore["bao_preservation"] or ""), "")
+            self.assertEqual(str(lore["bao_ritual"] or ""), "")
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
@@ -3462,6 +4047,7 @@ class AttendantSummonTests(unittest.TestCase):
                 (name,),
             ).fetchone()
             chat_turn_id, snapshot = game._start_chat_turn(name)
+            game.session.dialogue_audit_client = self._lore_intake_audit(targets=[name])
 
             result = game._absorb_eunuch_lore_from_text(
                 name,
@@ -3591,6 +4177,7 @@ class AttendantSummonTests(unittest.TestCase):
             game.castrate_official(speaker, force=True)
             game.castrate_official(target, force=True)
             before_speaker = game.public_character(game.content.characters[speaker])["castration"]
+            game.session.dialogue_audit_client = self._lore_intake_audit(targets=[target])
 
             result = game._absorb_eunuch_lore_from_text(
                 speaker,
@@ -4076,6 +4663,12 @@ class AttendantSummonTests(unittest.TestCase):
                 (actor,),
             ).fetchone()["name"])
 
+            game.session.dialogue_audit_client = self._dialogue_action_audit(
+                action_type="mediation",
+                actor=actor,
+                target=target,
+                mode="co_work",
+            )
             proposal_events = list(game.chat_stream(actor, f"若朕令你与{target}共办一件可验小差，你肯不肯？"))
             self.assertEqual(proposal_events[-1]["type"], "done")
             self.assertIn("若陛下准", proposal_events[-1]["payload"]["answer"])
@@ -4124,6 +4717,12 @@ class AttendantSummonTests(unittest.TestCase):
                 (actor,),
             ).fetchone()["name"])
 
+            game.session.dialogue_audit_client = self._dialogue_action_audit(
+                action_type="mediation",
+                actor=actor,
+                target=target,
+                mode="guarantee",
+            )
             proposal_events = list(game.chat_stream(actor, f"朕知道你与{target}有一层人情，你肯替他担保到哪一步？"))
             self.assertEqual(proposal_events[-1]["type"], "done")
             self.assertIn("担保边界", proposal_events[-1]["payload"]["answer"])
@@ -4317,6 +4916,12 @@ class AttendantSummonTests(unittest.TestCase):
             target = "魏忠贤"
             court.adjust_opinion(game.db, actor, target, -60, "测试旧怨", day=1, reciprocal=True)
             before = court.get_opinion(game.db, actor, target)
+            game.session.dialogue_audit_client = self._dialogue_action_audit(
+                action_type="mediation",
+                actor=actor,
+                target=target,
+                mode="co_work",
+            )
 
             proposal_events = list(game.chat_stream(actor, f"朕想调停你和{target}的旧怨。"))
             self.assertEqual(proposal_events[-1]["type"], "done")
@@ -4349,6 +4954,7 @@ class AttendantSummonTests(unittest.TestCase):
             )
             game.db.conn.commit()
             chat_turn_id, before_snapshot = game._start_chat_turn(actor)
+            game.session.dialogue_audit_client = self._bargain_attitude_audit(attitude="accept")
 
             effect = game._bargain_chat_effect(
                 actor,
@@ -4607,9 +5213,10 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
-    def test_directive_regex_fallback_is_off_when_legacy_action_regex_disabled(self):
+    def test_directive_regex_fallback_ignores_generic_legacy_action_regex(self):
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
-        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "0"
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"
+        os.environ.pop("MING_SIM_ENABLE_DIALOGUE_DIRECTIVE_REGEX_FALLBACK", None)
         game = web_app.WebGame(fresh=True)
         try:
             actor = str(game.db.conn.execute(
@@ -4638,9 +5245,10 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
-    def test_directive_regex_fallback_requires_legacy_action_regex_opt_in(self):
+    def test_directive_regex_fallback_requires_dedicated_legacy_opt_in(self):
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
-        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "0"
+        os.environ["MING_SIM_ENABLE_DIALOGUE_DIRECTIVE_REGEX_FALLBACK"] = "1"
         game = web_app.WebGame(fresh=True)
         try:
             actor = str(game.db.conn.execute(
@@ -4770,6 +5378,115 @@ class AttendantSummonTests(unittest.TestCase):
 
             self.assertEqual(effect, {})
             self.assertEqual(progress, 40)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_directive_pressure_without_semantic_review_does_not_use_keyword_fallback(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        os.environ.pop("MING_SIM_ENABLE_DIALOGUE_DIRECTIVE_REGEX_FALLBACK", None)
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "袁崇焕"
+            did = game.db.add_directive(
+                game.state,
+                None,
+                "令袁崇焕整顿辽东军饷。",
+                "test",
+                actor=actor,
+                status="confirmed",
+            )
+            game.db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='executing', "
+                "progress=40, exec_days=10, eta_day=12, anomaly=?, chain=? WHERE id=?",
+                (
+                    actor,
+                    json.dumps({"kind": "delay"}, ensure_ascii=False),
+                    json.dumps({"resistance": 45, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            game.db.conn.commit()
+            game.session.llm_config.api_key = ""
+
+            effect = game._directive_chat_effect(
+                actor,
+                {"kind": "directive", "ref_id": did},
+                "朕问你进度，欠饷实数到底办到几分？",
+                "臣遵旨，即日清册具奏，三日内交账，不敢再误。",
+            )
+            progress = int(game.db.conn.execute(
+                "SELECT progress FROM turn_directives WHERE id=?", (did,)
+            ).fetchone()["progress"])
+
+            self.assertEqual(effect, {})
+            self.assertEqual(progress, 40)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_injected_directive_pressure_audit_runs_without_api_key(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        os.environ.pop("MING_SIM_ENABLE_DIALOGUE_DIRECTIVE_REGEX_FALLBACK", None)
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "袁崇焕"
+            did = game.db.add_directive(
+                game.state,
+                None,
+                "令袁崇焕整顿辽东军饷。",
+                "test",
+                actor=actor,
+                status="confirmed",
+            )
+            game.db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='executing', "
+                "progress=40, exec_days=10, eta_day=12, anomaly=?, chain=? WHERE id=?",
+                (
+                    actor,
+                    json.dumps({"kind": "delay"}, ensure_ascii=False),
+                    json.dumps({"resistance": 45, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            game.db.conn.commit()
+            game.session.llm_config.api_key = ""
+            calls = []
+
+            def audit(phase, payload):
+                if phase != "dialogue_directive_pressure":
+                    return None
+                calls.append(payload)
+                return {
+                    "allow": True,
+                    "kind": "pressed",
+                    "forceful": True,
+                    "trigger_quote": "把这件差使压实",
+                    "answer_evidence": "三日内交清册",
+                    "confidence": 96,
+                }
+
+            game.session.dialogue_audit_client = audit
+
+            effect = game._directive_chat_effect(
+                actor,
+                {"kind": "directive", "ref_id": did},
+                "把这件差使压实。",
+                "臣即日具奏，三日内交清册。",
+            )
+            progress = int(game.db.conn.execute(
+                "SELECT progress FROM turn_directives WHERE id=?", (did,)
+            ).fetchone()["progress"])
+
+            self.assertTrue(calls)
+            self.assertEqual(effect["kind"], "pressed")
+            self.assertEqual(progress, 46)
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
@@ -4917,6 +5634,45 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_bargain_regex_fallback_ignores_generic_legacy_action_regex(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"
+        os.environ.pop("MING_SIM_ENABLE_DIALOGUE_BARGAIN_REGEX_FALLBACK", None)
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=40, grievance=60 WHERE name=?",
+                (actor,),
+            )
+            game.db.conn.commit()
+
+            effect = game._bargain_chat_effect(
+                actor,
+                {"kind": "petition", "actor": actor, "title": "求展限办差"},
+                "准，朕暂且护持你，给你人手。",
+                "臣叩谢天恩。",
+            )
+
+            self.assertEqual(effect, {})
+            after = game.db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (actor,),
+            ).fetchone()
+            self.assertEqual(int(after["emp_trust"]), 40)
+            self.assertEqual(int(after["grievance"]), 60)
+            self.assertEqual(game.db.list_conversation_goals(minister_name=actor), [])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_audience_bargain_press_and_refuse_have_distinct_deltas(self):
         game = web_app.WebGame(fresh=True)
         try:
@@ -4926,6 +5682,30 @@ class AttendantSummonTests(unittest.TestCase):
                 "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
             ).fetchone()["name"])
             context = {"kind": "agenda", "actor": actor, "title": "求借势办事"}
+            def audit(phase, payload):
+                if phase != "dialogue_bargain_attitude":
+                    return None
+                text = str(payload.get("user_text") or "")
+                if "账册" in text:
+                    return {
+                        "allow": True,
+                        "attitude": "press",
+                        "trigger_quote": "先拿出账册和担保",
+                        "private_reason": "test semantic bargain press",
+                        "confidence": 95,
+                    }
+                if "不准" in text:
+                    return {
+                        "allow": True,
+                        "attitude": "refuse",
+                        "trigger_quote": "不准，此事驳回",
+                        "private_reason": "test semantic bargain refuse",
+                        "confidence": 95,
+                    }
+                return {"allow": False, "attitude": "none", "confidence": 95}
+
+            os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+            game.session.dialogue_audit_client = audit
 
             game.db.conn.execute(
                 "UPDATE characters SET emp_trust=50, grievance=50 WHERE name=?",
@@ -5009,6 +5789,7 @@ class AttendantSummonTests(unittest.TestCase):
                 "ref_kind": "memory",
                 "ref_id": "42",
             }
+            game.session.dialogue_audit_client = self._bargain_attitude_audit(attitude="press")
 
             effect = game._bargain_chat_effect(
                 actor,

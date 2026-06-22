@@ -35,6 +35,9 @@ const MECHANICAL_SUGGESTION_LABEL_TERMS = [
   "下密令",
   "系统",
   "机制",
+  "确认",
+  "取消",
+  "提交",
 ];
 
 const MECHANICAL_SUGGESTION_TEXT_TERMS = [
@@ -44,6 +47,8 @@ const MECHANICAL_SUGGESTION_TEXT_TERMS = [
   "系统",
   "机制",
   "御前交易",
+  "点击",
+  "提交",
 ];
 
 function cleanSuggestionLabel(raw: string): string {

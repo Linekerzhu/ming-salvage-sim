@@ -24,6 +24,7 @@
   --touch: 46px;
   --topbar-h: 88px;
   --nav-h: 64px;
+  --bottomnav-safe: calc(var(--nav-h) + env(safe-area-inset-bottom));
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -64,7 +65,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   display: flex;
   flex-direction: column;
   padding: var(--pad);
-  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 18px);
+  padding-bottom: calc(var(--bottomnav-safe) + 18px);
 }
 
 /* ── 顶部状态条 ─────────────────────────────────────────────── */
@@ -113,7 +114,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   background: linear-gradient(180deg, var(--lacquer), var(--lacquer-2));
   border-top: 1px solid var(--gold-line);
   padding-bottom: env(safe-area-inset-bottom);
-  height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  height: var(--bottomnav-safe);
 }
 .m-tab {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -824,11 +825,24 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-row-tap:active { background: rgba(42,31,18,.06); }
 
 /* ── 底部 sheet ─────────────────────────────────────────────── */
-.m-sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.72); display: flex; align-items: flex-end; z-index: 90; }
-.m-sheet { width: 100%; max-width: 560px; margin: 0 auto; max-height: 72dvh; background: linear-gradient(180deg, var(--paper-2), var(--paper)); color: var(--ink); border: 1px solid rgba(200,162,74,.28); border-bottom: none; border-radius: 18px 18px 0 0; display: flex; flex-direction: column; box-shadow: 0 -12px 42px rgba(0,0,0,.72); }
+.m-sheet-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.72); display: flex; align-items: flex-end;
+  z-index: 90; padding-bottom: var(--bottomnav-safe); overscroll-behavior: contain;
+}
+.m-sheet {
+  width: 100%; max-width: 560px; margin: 0 auto;
+  max-height: min(72dvh, calc(100dvh - var(--bottomnav-safe) - 18px));
+  background: linear-gradient(180deg, var(--paper-2), var(--paper)); color: var(--ink);
+  border: 1px solid rgba(200,162,74,.28); border-radius: 18px;
+  display: flex; flex-direction: column; box-shadow: 0 -12px 42px rgba(0,0,0,.72);
+  touch-action: pan-y; overflow: hidden;
+}
 .m-sheet-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 14px var(--pad); border-bottom: 1px solid var(--line); }
 .m-sheet-head h3 { margin: 0; color: var(--gold-deep); font-size: 1rem; }
-.m-sheet-body { overflow-y: auto; padding: 6px var(--pad) calc(14px + env(safe-area-inset-bottom)); }
+.m-sheet-body {
+  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  touch-action: pan-y; padding: 6px var(--pad) 14px;
+}
 .m-sheet-row { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; text-align: left; padding: 12px 4px; border-bottom: 1px solid var(--line); }
 .m-sheet-row:active { background: rgba(42,31,18,.07); }
 

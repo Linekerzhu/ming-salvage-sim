@@ -136,6 +136,71 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
         for binder in (bind_context, bind_issues, bind_registry, bind_skills):
             binder(cls.content)
 
+    def test_identity_conversion_words_do_not_create_goal_when_semantic_audit_says_none(self) -> None:
+        audit = StaticAudit(
+            {
+                "goal_decision": "none",
+                "goal_relation": "none",
+                "action_kind": "general",
+                "confidence": 98,
+                "public_hint": "只是问旧例，不开启身份转换目的。",
+            },
+            {
+                "goal_decision": "none",
+                "goal_relation": "none",
+                "action_kind": "general",
+                "stance": "neutral",
+                "handshake_status": "none",
+                "goal_status": "active",
+                "score_delta": 0,
+                "score_after": 0,
+                "threshold": 70,
+                "conditions": [],
+                "blockers": [],
+                "explicit_consent": False,
+                "agreement_action": "none",
+                "confidence": 98,
+                "public_hint": "只是讲旧例，不落身份同意。",
+                "private_reason": "文本出现净身/脱籍/司礼监，但语义不是自愿身份转换。",
+            },
+        )
+        with TemporaryDirectory() as tmp:
+            session = GameSession(
+                str(Path(tmp) / "identity_words_no_goal.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            try:
+                session.dialogue_audit_client = audit
+                actor = self.content.characters["王承恩"]
+                user_text = "朕只是问旧例：净身、脱籍还民、转入司礼监这些案子旧档怎么记？不要办。"
+                answer = "奴婢回陛下，这只是旧档口径；奴婢并未替谁请净身，也无人自愿脱籍。"
+                _, prepared = session.prepare_chat_run(actor, user_text)
+                result = session.record_dialogue_after_chat(actor, user_text, answer, prepared)
+
+                self.assertEqual(result.get("event"), "none")
+                self.assertEqual(
+                    session.db.conn.execute(
+                        "SELECT COUNT(*) c FROM conversation_goals WHERE minister_name='王承恩'"
+                    ).fetchone()["c"],
+                    0,
+                )
+                self.assertEqual(
+                    session.db.conn.execute(
+                        "SELECT COUNT(*) c FROM negotiation_agreements WHERE minister_name='王承恩'"
+                    ).fetchone()["c"],
+                    0,
+                )
+                self.assertEqual(
+                    session.db.conn.execute(
+                        "SELECT COUNT(*) c FROM minister_stances WHERE minister_name='王承恩'"
+                    ).fetchone()["c"],
+                    0,
+                )
+            finally:
+                session.close()
+
     def test_rival_mention_pushes_opposition_and_selective_truth(self) -> None:
         profile = npc_dialogue_behavior_profile(
             "韩爌",

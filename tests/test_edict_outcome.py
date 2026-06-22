@@ -769,6 +769,119 @@ class CastrationByDecreeTests(unittest.TestCase):
             finally:
                 sess.close()
 
+    def test_inner_court_office_change_with_castration_old_rule_text_still_needs_structured_force(self):
+        from ming_sim import eunuch_lore as el
+        cfg = LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model")
+        with TemporaryDirectory() as tmp:
+            sess = GameSession(str(Path(tmp) / "g.db"), cfg, verify_llm=False)
+            try:
+                row = sess.db.conn.execute(
+                    "SELECT name, office FROM characters WHERE status='active' AND power_id='ming' "
+                    "AND office_type NOT IN ('后宫','司礼监','东厂','内官监御前') "
+                    "AND office NOT LIKE '%太监%' AND office NOT LIKE '%内官%' LIMIT 1"
+                ).fetchone()
+                name = str(row["name"])
+                old_office = str(row["office"] or "")
+                directive_text = f"着{name}查净身旧例，暂赴司礼监听差，协理文书传递，不得惊动净军房。"
+                sess.db.conn.execute(
+                    "INSERT INTO turn_directives (turn, year, period, text, source, status, "
+                    "lifecycle_status, progress, integrity_actual, integrity_reported, outcome_delta, outcome_status) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (sess.state.turn, sess.state.year, sess.state.period, directive_text,
+                     "test", "confirmed", "done", 100, 100, 100,
+                     json.dumps({"office_changes": [{"name": name, "new_office": "司礼监随堂太监", "reason": "查净身旧例、协理文书"}]}),
+                     "extracted"))
+                sess.db.conn.commit()
+                results = sess.drain_pending_outcomes()
+
+                crow = sess.db.conn.execute(
+                    "SELECT office, office_type FROM characters WHERE name=?", (name,)).fetchone()
+                self.assertEqual(str(crow["office"] or ""), old_office)
+                self.assertNotEqual(str(crow["office_type"] or ""), "司礼监")
+                self.assertIsNone(el.get_lore(sess.db, name))
+                self.assertIn("缺少结构化强制净身标记", str(results))
+            finally:
+                sess.close()
+
+    def test_inner_court_to_commoner_old_rule_text_still_needs_structured_force(self):
+        from ming_sim.personnel_actions import is_eunuch_office
+        cfg = LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model")
+        with TemporaryDirectory() as tmp:
+            sess = GameSession(str(Path(tmp) / "g.db"), cfg, verify_llm=False)
+            try:
+                row = sess.db.conn.execute(
+                    "SELECT name, office, office_type FROM characters WHERE name='王承恩'"
+                ).fetchone()
+                name = str(row["name"])
+                old_office = str(row["office"] or "")
+                old_type = str(row["office_type"] or "")
+                self.assertTrue(is_eunuch_office(old_office, old_type))
+                directive_text = f"着{name}查脱籍旧例与民籍旧案，不得擅动内廷名籍。"
+                sess.db.conn.execute(
+                    "INSERT INTO turn_directives (turn, year, period, text, source, status, "
+                    "lifecycle_status, progress, integrity_actual, integrity_reported, outcome_delta, outcome_status) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (sess.state.turn, sess.state.year, sess.state.period, directive_text,
+                     "test", "confirmed", "done", 100, 100, 100,
+                     json.dumps({"office_changes": [{
+                         "name": name,
+                         "new_office": "民籍百姓（内廷转出）",
+                         "reason": "查脱籍旧例与民籍旧案",
+                     }]}),
+                     "extracted"))
+                sess.db.conn.commit()
+                results = sess.drain_pending_outcomes()
+
+                after = sess.db.conn.execute(
+                    "SELECT office, office_type FROM characters WHERE name=?", (name,)).fetchone()
+                self.assertEqual(str(after["office"] or ""), old_office)
+                self.assertEqual(str(after["office_type"] or ""), old_type)
+                self.assertIn("缺少结构化强制脱籍标记", str(results))
+            finally:
+                sess.close()
+
+    def test_inner_court_to_commoner_with_structured_force_applies(self):
+        from ming_sim.personnel_actions import is_eunuch_office
+        cfg = LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model")
+        with TemporaryDirectory() as tmp:
+            sess = GameSession(str(Path(tmp) / "g.db"), cfg, verify_llm=False)
+            try:
+                row = sess.db.conn.execute(
+                    "SELECT name, office, office_type FROM characters WHERE name='王承恩'"
+                ).fetchone()
+                name = str(row["name"])
+                self.assertTrue(is_eunuch_office(str(row["office"] or ""), str(row["office_type"] or "")))
+                directive_text = f"着{name}奉强旨脱籍还民，出宫为民，内廷名籍即日除去。"
+                sess.db.conn.execute(
+                    "INSERT INTO turn_directives (turn, year, period, text, source, status, "
+                    "lifecycle_status, progress, integrity_actual, integrity_reported, outcome_delta, outcome_status) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (sess.state.turn, sess.state.year, sess.state.period, directive_text,
+                     "test", "confirmed", "done", 100, 100, 100,
+                     json.dumps({"office_changes": [{
+                         "name": name,
+                         "new_office": "民籍百姓（内廷转出）",
+                         "new_office_type": "民籍",
+                         "conversion_kind": "emancipation",
+                         "force_emancipation": True,
+                         "reason": "强旨脱籍还民",
+                     }]}),
+                     "extracted"))
+                sess.db.conn.commit()
+                results = sess.drain_pending_outcomes()
+
+                after = sess.db.conn.execute(
+                    "SELECT office, office_type, faction, status_reason FROM characters WHERE name=?", (name,)).fetchone()
+                self.assertEqual(str(after["office"] or ""), "民籍百姓（内廷转出）")
+                self.assertEqual(str(after["office_type"] or ""), "民籍")
+                self.assertEqual(str(after["faction"] or ""), "民籍")
+                self.assertFalse(is_eunuch_office(str(after["office"] or ""), str(after["office_type"] or "")))
+                self.assertIn("奉强旨脱离内廷奴籍", str(after["status_reason"] or ""))
+                self.assertIn("'kind': 'emancipation'", str(results))
+                self.assertIn("'forced': True", str(results))
+            finally:
+                sess.close()
+
 
 class InformationalMemorialTests(unittest.TestCase):
     """复命/捷报作「结果通知」：已阅免精力、到期静默归档、不计淹没问责、不压 backlog。"""

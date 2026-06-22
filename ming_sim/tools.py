@@ -1407,7 +1407,7 @@ def build_extractor_tools(context: CourtContext):
         character_status_changes  大臣状态变更 [{name,status,reason}]
                             status∈dismissed/imprisoned/exiled/retired/dead/offstage
                             邸报明文写到此人此事才立；既已dismissed/dead的不重复
-        office_changes      朝臣官职变更 [{name,new_office,reason,可选faction/new_office_type}]
+        office_changes      朝臣官职变更 [{name,new_office,reason,可选faction/new_office_type/conversion_kind/force_castration/force_emancipation}]
                             任何人任某官（新进朝堂/调任/升迁）一律走此字段，不分新旧任
                             new_office必须是明制实官名；去职走character_status_changes
 

@@ -38,6 +38,9 @@ EDICT_OUTCOME_PROMPT = """你是大明的结算判官，正为一道刚办结的
      仅推进给定清单里的 issue；delta_bar 为本旨带来的局势条变化，正数代表向解决推进。
    - "office_changes": [{"name":"被任命者","new_office":"所授官职","reason":"简短"}]  仅当本旨**任命/起复/调任**某人时填；
      name **必须是旨意原文中明确点到的人名**，不得新造人名；new_office 为所授官职（如"兵部尚书""蓟辽督师"）。
+     若本旨明确把外朝人物强制净身/宫刑后改入内廷，必须加 "conversion_kind":"castration","force_castration":true。
+     若本旨明确把内廷奴籍人物强制脱籍/还民，必须加 "conversion_kind":"emancipation","force_emancipation":true。
+     只是查旧例、暂赴听差、问可否、讨论利弊，不得写身份转换字段。
    - "character_status_changes": [{"name":"被处置者","status":"dismissed|imprisoned|exiled|retired|dead|castrated","reason":"简短"}]
      仅当本旨**罢免/革职/下狱/流放/勒令致仕/处死/处宫刑**某在朝大臣时填；name 须是旨意原文点到的在朝者，不得新造人名。
      对照：罢免/革职=dismissed，下狱/逮问=imprisoned，流放/充军=exiled，致仕/乞休=retired，处死/弃市/赐死=dead，**处宫刑/腐刑/发净军/没入内廷为奴=castrated**。

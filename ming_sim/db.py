@@ -5246,122 +5246,37 @@ class GameDB:
                 pass
         return "\n".join(parts)
 
-    def _agreement_keywords(self, agreement: Dict[str, object]) -> List[str]:
-        base = " ".join(
+    def _agreement_relevance_terms(self, agreement: Dict[str, object]) -> List[str]:
+        """Conservative text terms used only to match existing agreements to a directive.
+
+        This is not a fulfillment detector.  It feeds execution-risk scoring so a
+        directive can see whether an already-audited agreement is related to it.
+        """
+        texts = [
             str(agreement.get(key) or "")
-            for key in ("minister_name", "topic", "core_topic", "target_text", "conditions", "summary", "stakes")
-        )
-        stop = {
-            "本次", "奏对", "事项", "条件", "顾虑", "奏对量表", "握手成功", "附条件",
-            "未说服", "未成约", "臣愿", "陛下", "皇帝", "大明", "此事", "本回合",
-        }
-        words: List[str] = []
-        for term in (
-            "辽饷", "辽东", "关宁", "山海关", "陕西", "赈灾", "流寇", "户部", "太仓",
-            "国库", "内库", "阉党", "东厂", "锦衣卫", "司礼监", "东林", "清流",
-            "廷议", "密旨", "密令", "净身", "民籍", "奴籍", "清丈", "商税", "盐课",
-        ):
-            if term in base and term not in words:
-                words.append(term)
-        for word in re.findall(r"[\u4e00-\u9fff]{2,12}", base):
-            if word in stop:
-                continue
-            if re.fullmatch(r"(银两|人手|名分|期限|派系|地方|军务|保密|条件|顾虑)", word):
-                continue
-            if word not in words:
-                words.append(word)
-        return words[:10]
+            for key in ("minister_name", "topic", "core_topic", "target_text")
+        ]
+        terms: List[str] = []
+        for text in texts:
+            clean = text.strip()
+            if clean and clean not in terms:
+                terms.append(clean)
+            for sep in ("：", "；", "，", "。", "、", ",", ";", "「", "」", "（", "）", "(", ")"):
+                text = text.replace(sep, " ")
+            for piece in text.split():
+                piece = piece.strip()
+                if len(piece) >= 4 and piece not in terms:
+                    terms.append(piece)
+        return terms[:12]
 
     def _agreement_relevant_in_context(self, agreement: Dict[str, object], context: str) -> bool:
         if not context:
             return False
-        minister = str(agreement.get("minister_name") or "").strip()
-        if minister and minister in context:
-            return True
-        core = str(agreement.get("core_topic") or agreement.get("topic") or "").strip()
-        if core and core in context:
-            return True
-        hits = 0
-        for word in self._agreement_keywords(agreement):
-            if word and word in context:
-                hits += 1
-            if hits >= 2:
-                return True
-        action_kind = str(agreement.get("action_kind") or "")
-        if action_kind == "castration" and re.search(r"净身|入内廷|司礼监|太监|宦官", context):
-            return True
-        if action_kind == "emancipation" and re.search(r"奴籍|民籍|脱籍|还民|出宫为民", context):
-            return True
-        if action_kind == "court_commitment" and re.search(
-            r"劝|说服|游说|调停|转圜|斡旋|背书|代奏|联络|试探|探口风|保密|守口|不泄|承办|协办|办成|奉旨|照办",
-            context,
-        ):
-            return True
-        return False
-
-    def _task_relevant_in_context(self, description: str, context: str) -> bool:
-        if not description or not context:
-            return False
-        for term in (
-            "辽饷", "辽东", "关宁", "山海关", "陕西", "赈灾", "流寇", "户部", "太仓",
-            "国库", "内库", "家眷", "安置", "抚恤", "廷议", "会审", "明旨", "密旨",
-            "密令", "净身", "民籍", "奴籍", "人手", "胥吏", "粮", "银", "饷",
-        ):
-            if term in description and term in context:
+        context_text = str(context or "")
+        for term in self._agreement_relevance_terms(agreement):
+            if term and term in context_text:
                 return True
         return False
-
-    def _task_auto_decision(
-        self,
-        agreement: Dict[str, object],
-        task: Dict[str, object],
-        context: str,
-        *,
-        state: GameState,
-        phase: str,
-    ) -> tuple[str, str]:
-        current = str(task.get("status") or "pending")
-        if current in {"done", "failed"}:
-            return current, str(task.get("evidence") or "")
-        if not context:
-            return current, str(task.get("evidence") or "")
-
-        desc = str(task.get("description") or "")
-        relevant = self._agreement_relevant_in_context(agreement, context) or self._task_relevant_in_context(desc, context)
-        kind = str(task.get("task_kind") or "")
-        if not kind or kind == "general":
-            kind = classify_task_kind(desc)
-        combined = f"{desc}\n{context}"
-        contradiction = (
-            relevant
-            and re.search(
-                r"未准|驳回|搁置|不予|不许|未拨|无银可拨|未给|未设|未议|未下|未见|"
-                r"无.{0,8}(安置|保全|抚恤|明旨|廷议|拨|给|人手|银|粮|饷)|"
-                r"食言|失信|背约|不兑现|作罢|强旨|强行|勒令",
-                combined,
-            )
-        )
-        if contradiction:
-            return "failed", "自动判定：诏书或邸报出现未兑现/强推/驳回等相反证据。"
-
-        done_patterns = {
-            "resource": r"(拨|发|支|给|赏|赐|解|筹|调|运|采买|平粜).{0,18}(银|钱|饷|粮|米|经费|内库|国库|太仓)|(银|钱|饷|粮|米).{0,18}(拨|发|给|解|支|赏|赐)",
-            "staff": r"(添|派|拨|调|给|差).{0,18}(人手|胥吏|差役|属官|书吏|匠|兵|校尉|人)",
-            "legitimacy": r"明旨|圣旨|诏|廷议|会审|议覆|部议|章程|条议|成例|定例|专责|授权|交.{0,12}办理|会同",
-            "protection": r"保全|安置|抚恤|不辱|体面|遮护|家眷|家小|族人|免罪|免坐",
-            "office": r"(任|授|补|擢|升|调|加|赏|赐).{0,18}(官|职|衔|缺|银|蟒|服)|职掌|边界|专责",
-            "deadline": r"(限|准|许|给|赐|宽).{0,12}(日|旬|月|年)|[一二三四五六七八九十百\d]+.{0,4}(日|旬|月|年)(内|后|间)?|月内|旬日|刻期|缓办|展限",
-            "secrecy": r"密旨|密令|暗查|密查|秘|不得泄|封口|耳目|线人|取证",
-            "general": r"准|照办|奉旨|已办|成议|允行|照准|如议",
-        }
-        pattern = done_patterns.get(kind, done_patterns["general"])
-        if relevant and re.search(pattern, combined):
-            return "done", f"自动判定：发现与「{desc[:48]}」相符的{kind}类履约证据。"
-
-        due_turn = int(agreement.get("due_turn") or 0)
-        if phase == "postresolve" and due_turn and int(state.turn) >= due_turn:
-            return "failed", "自动判定：本回合诏书、邸报与落库记录未见条件兑现，承诺逾期失信。"
-        return current, str(task.get("evidence") or "")
 
     def _normalize_agreement_reviews(
         self,

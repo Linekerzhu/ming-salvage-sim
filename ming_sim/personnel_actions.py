@@ -19,6 +19,8 @@ from ming_sim.political_reactions import (
 
 def is_eunuch_office(office: str, office_type: str = "") -> bool:
     text = f"{office or ''} {office_type or ''}"
+    if any(marker in text for marker in ("民籍", "布衣", "百姓", "脱籍", "还民", "出宫为民", "归为百姓", "转出")):
+        return False
     return bool(re.search(r"司礼监|东厂|太监|宦官|内廷|内官监|内官|御马监|御用监|尚膳监|小火者", text))
 
 

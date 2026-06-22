@@ -530,8 +530,22 @@ def _normalize_dialogue_suggestions(data: object) -> List[Dict[str, object]]:
     if not isinstance(rows, list):
         return []
     out: List[Dict[str, object]] = []
-    banned_label_terms = ("交账", "问奖励", "交易", "定下一手", "快捷", "按钮")
-    banned_text_terms = ("快速对话", "快捷", "按钮", "系统", "机制", "御前交易")
+    banned_label_terms = (
+        "交账",
+        "问奖励",
+        "交易",
+        "定下一手",
+        "快捷",
+        "按钮",
+        "拟旨",
+        "下密令",
+        "系统",
+        "机制",
+        "确认",
+        "取消",
+        "提交",
+    )
+    banned_text_terms = ("快速对话", "快捷", "按钮", "系统", "机制", "御前交易", "点击", "提交")
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -1146,7 +1160,7 @@ DIALOGUE_ACTION_INTENT_PROMPT = """
 - phase=confirm 必须存在 pending_action，且玩家本轮是在批准上一轮那个方案；追问细节、讨价还价、改口、闲聊、历史解释都不算确认。
 - 例外：secret_order 是一次性密令建档动作；只有玩家本轮明确“下密令/密旨/命某人暗查某事”时，才可在没有 pending_action 时返回 phase=confirm 并允许即时落库。
 - phase=reject 用于玩家明确作罢、暂缓、不办、别惊动相关机构；可清除 pending_action。
-- 若 tool_action.type="semantic_probe"，你可以直接从玩家原话语义选择 action_type，用于在 LLM 工具漏调时启动对应待确认模块；除 recruitment 外，不要发明动作类型。
+- 若 tool_action.type="semantic_probe"，你可以直接从玩家原话语义选择 action_type，用于在 LLM 工具漏调时启动对应待确认模块；可选择 recruitment，但必须同时给出 kind。
 - 若 tool_action.type 不是 semantic_probe，action_type 必须来自工具动作或待确认动作；不要发明新系统。
 - trigger_quote 必须引用玩家原话中能证明意图的短句；没有可引用证据时 allow=false。
 
@@ -1157,12 +1171,14 @@ DIALOGUE_ACTION_INTENT_PROMPT = """
 - bao_leverage：只有玩家明确要“赐还/归还宝匣”或“封存/拿捏/钳制宝案”，才可 allow=true。单纯查问宝案或补旧档不是筹码处置。
 - mediation：只有玩家明确要调停、共办、担保、说合某两人/某派，才可 allow=true；普通问旧怨、问证据、听两面之词不是执行调停。
 - secret_order：只有玩家明确下达密令/密旨，且能从玩家原话读出承办人或承办对象、暗查/取证/盯梢等任务目标，才可 allow=true 且 phase=confirm。只是问“要不要暗查”“查得如何”“此事能否密办”、NPC 自行建议密查，必须 false。
-- recruitment 由专门 recruitment_intent 审计负责；本审计通常不放行 recruitment。
+- recruitment：只有玩家明确要求找/招/挑/荐/保举/访求/取士/补一个新人/带一个新人来，才可 allow=true，并必须填 kind=eunuch|exam|recommend。问现有人手、关系网、谁可用但要求先盘点现有人，不是 recruitment。
 
 判例：
 - “只是聊聊韩爌若净身入内廷的旧例，不是要办，别惊动净军房。” + castration 工具 => allow=false。
 - “把韩爌净身入内廷，传净军房照办。” + castration 工具 => allow=true, phase=propose。
 - “好，你这就去净身。” + semantic_probe，当前 NPC 可净身 => allow=true, action_type=castration, phase=propose, target=当前 NPC 姓名。
+- “宫里可有新的小内侍可用？” + semantic_probe => allow=true, action_type=recruitment, phase=propose, kind=eunuch。
+- “朝中还有谁可用？先说现有人，不要荐新人。” + semantic_probe => allow=false。
 - pending_action 是 eunuch_care，“准，去请太医调养。” => allow=true, phase=confirm。
 - pending_action 是 eunuch_care，“先说他到底病到什么地步？” => allow=false。
 - “朕想问你和魏忠贤的旧怨。” + mediation 工具 => allow=false。
