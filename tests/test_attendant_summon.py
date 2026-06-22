@@ -2162,6 +2162,48 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_semantic_pending_recovery_denial_blocks_legacy_regex_action_response(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            before = int(game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"])
+            game.chat_history[attendant] = [{
+                "role": "minister",
+                "content": "陛下若准，奴婢可从内书堂挑一个小火者来御前听用。",
+            }]
+
+            def audit(phase, payload):
+                if phase == "dialogue_pending_recovery":
+                    self.assertIn("recent_proposals", payload)
+                    return {
+                        "allow": False,
+                        "phase": "none",
+                        "action_type": "none",
+                        "kind": "",
+                        "trigger_quote": "准",
+                        "proposal_evidence": "陛下若准",
+                        "private_reason": "只是口头应声，不能恢复旧正则招募。",
+                        "confidence": 96,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            response = game._dialogue_action_response(attendant, "准。")
+
+            after = int(game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"])
+            self.assertIsNone(response)
+            self.assertEqual(after, before)
+            self.assertEqual(game._load_pending_dialogue_action(attendant), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_semantic_route_summons_when_regex_summon_fallback_is_off(self):
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS"] = "0"
         os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "0"
