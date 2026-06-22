@@ -1560,13 +1560,13 @@ class WebGame:
         raw = str(text or "").strip()
         if not raw:
             return {}
-        if not (self._eunuch_lore_text_has_detail(raw) or self._eunuch_lore_text_has_write_intent(raw)):
-            return {}
         all_mentions = self._character_mentions_in_text(raw)
         semantic_targets = self._semantic_eunuch_lore_targets(clean, raw, all_mentions, source_role=source_role)
         if semantic_targets is not None:
             candidates = semantic_targets
         else:
+            if not (self._eunuch_lore_text_has_detail(raw) or self._eunuch_lore_text_has_write_intent(raw)):
+                return {}
             if self._eunuch_lore_text_looks_like_minister_answer(raw) and not self._eunuch_lore_text_has_write_intent(raw):
                 return {}
             if self._eunuch_lore_text_is_casual_query(raw):

@@ -3373,6 +3373,61 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_semantic_lore_intake_runs_without_keyword_prefilter(self):
+        from ming_sim import eunuch_lore as el
+        from ming_sim import personnel_actions as pa
+
+        os.environ["MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        old_update = el.update_lore_from_text
+        old_sync = pa.sync_castration_lore_gameplay
+        try:
+            attendant = "王承恩"
+            el.record_castration(game.db, attendant, forced=False, day=0)
+            calls = {"audit": 0, "update": 0}
+
+            def audit(phase, payload):
+                if phase == "dialogue_eunuch_lore_intake":
+                    calls["audit"] += 1
+                    self.assertEqual(payload.get("source_role"), "user")
+                    self.assertIn(attendant, payload.get("candidate_names") or [])
+                    return {
+                        "allow": True,
+                        "target_names": [attendant],
+                        "trigger_quote": "那桩旧事照方才新说法补进去",
+                        "private_reason": "语义上是补入当前人物长期旧档，即便没有旧关键词。",
+                        "confidence": 97,
+                    }
+                return None
+
+            def fake_update(db, name, text, *, day=0):
+                calls["update"] += 1
+                self.assertEqual(name, attendant)
+                return {"name": name, "updated": {"procedure_note": "语义补档"}}
+
+            game.session.dialogue_audit_client = audit
+            el.update_lore_from_text = fake_update
+            pa.sync_castration_lore_gameplay = lambda *args, **kwargs: {}
+
+            result = game._absorb_eunuch_lore_from_text(
+                attendant,
+                "把王承恩那桩旧事照方才新说法补进去。",
+                source_role="user",
+            )
+
+            self.assertEqual(calls["audit"], 1)
+            self.assertEqual(calls["update"], 1)
+            self.assertIn("updated", result)
+            self.assertEqual(result.get("updated_targets"), [attendant])
+        finally:
+            el.update_lore_from_text = old_update
+            pa.sync_castration_lore_gameplay = old_sync
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_eunuch_lore_updates_from_dialogue_text_and_rolls_back(self):
         game = web_app.WebGame(fresh=True)
         try:
