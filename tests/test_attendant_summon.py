@@ -1458,6 +1458,7 @@ class AttendantSummonTests(unittest.TestCase):
                 game.session.close()
 
     def test_direct_audience_suggestions_surface_personal_stakes(self):
+        os.environ["MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS"] = "1"
         game = web_app.WebGame(fresh=True)
         try:
             actor = str(game.db.conn.execute(
@@ -1518,6 +1519,7 @@ class AttendantSummonTests(unittest.TestCase):
                 game.session.close()
 
     def test_direct_audience_suggestions_prioritize_unfinished_commitments(self):
+        os.environ["MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS"] = "1"
         game = web_app.WebGame(fresh=True)
         try:
             actor = str(game.db.conn.execute(
@@ -2639,7 +2641,29 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_disabling_llm_quick_suggestions_does_not_enable_local_buttons(self):
+        os.environ["MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS"] = "1"
+        os.environ.pop("MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS", None)
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+
+            suggestions = game.suggestions_for(game.session._character(actor))
+
+            self.assertEqual(suggestions, [])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_eunuch_old_wound_goal_surfaces_decision_suggestions(self):
+        os.environ["MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS"] = "1"
         game = web_app.WebGame(fresh=True)
         try:
             attendant = "王承恩"

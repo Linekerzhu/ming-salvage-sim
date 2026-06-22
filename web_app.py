@@ -7908,8 +7908,6 @@ class WebGame:
     def _local_quick_suggestion_fallback_enabled(self) -> bool:
         if os.environ.get("MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS", "").strip().lower() in ("1", "true", "yes"):
             return True
-        if os.environ.get("MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS", "").strip().lower() in ("1", "true", "yes"):
-            return True
         try:
             return not bool(str(self.session.llm_config.api_key or "").strip())
         except Exception:
