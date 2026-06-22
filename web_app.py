@@ -6655,6 +6655,42 @@ class WebGame:
             return "accept"
         return ""
 
+    def _bargain_semantic_attitude(
+        self,
+        minister_name: str,
+        context: Optional[Dict[str, Any]],
+        user_text: str,
+        answer: str,
+    ) -> Optional[str]:
+        if os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes"):
+            return None
+        try:
+            if not str(self.session.llm_config.api_key or "").strip():
+                return None
+        except Exception:
+            return None
+        try:
+            from ming_sim.dialogue_audit import dialogue_bargain_attitude_audit
+
+            character = self.session._character(minister_name)
+            review = dialogue_bargain_attitude_audit(
+                self.db,
+                self.state,
+                character,
+                user_text,
+                answer,
+                context if isinstance(context, dict) else {},
+                llm_config=self.session.llm_config,
+                agno_db=self.session.agno_db,
+                audit_client=self.session.dialogue_audit_client,
+            )
+        except Exception:
+            return ""
+        if not isinstance(review, dict) or not review.get("allow"):
+            return ""
+        attitude = str(review.get("attitude") or "").strip()
+        return attitude if attitude in {"accept", "press", "refuse"} else ""
+
     def _bargain_context_applies(self, minister_name: str, context: Optional[Dict[str, Any]]) -> bool:
         if not isinstance(context, dict):
             return False
@@ -6877,7 +6913,8 @@ class WebGame:
     ) -> Dict[str, Any]:
         if not self._bargain_context_applies(minister_name, context):
             return {}
-        attitude = self._bargain_attitude(user_text)
+        semantic_attitude = self._bargain_semantic_attitude(minister_name, context, user_text, answer)
+        attitude = semantic_attitude if semantic_attitude is not None else self._bargain_attitude(user_text)
         if not attitude:
             return {}
         row = self.db.conn.execute(

@@ -4084,6 +4084,106 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_semantic_bargain_attitude_accepts_without_keyword_fallback(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=40, grievance=60 WHERE name=?",
+                (actor,),
+            )
+            game.db.conn.commit()
+
+            def audit(phase, payload):
+                if phase == "dialogue_bargain_attitude":
+                    self.assertEqual((payload.get("bargain_context") or {}).get("kind"), "petition")
+                    return {
+                        "allow": True,
+                        "attitude": "accept",
+                        "trigger_quote": "朕替你担着，先放手做",
+                        "private_reason": "test semantic bargain accept",
+                        "confidence": 95,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            effect = game._bargain_chat_effect(
+                actor,
+                {"kind": "petition", "actor": actor, "title": "求展限办差"},
+                "朕替你担着，先放手做。",
+                "臣叩谢天恩。",
+            )
+
+            self.assertEqual(effect["title"], "御前许诺")
+            after = game.db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (actor,),
+            ).fetchone()
+            self.assertEqual(int(after["emp_trust"]), 44)
+            self.assertEqual(int(after["grievance"]), 56)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_bargain_attitude_denial_blocks_keyword_fallback(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=40, grievance=60 WHERE name=?",
+                (actor,),
+            )
+            game.db.conn.commit()
+
+            def audit(phase, payload):
+                if phase == "dialogue_bargain_attitude":
+                    return {
+                        "allow": False,
+                        "attitude": "none",
+                        "trigger_quote": "准你讲，但不是准你办",
+                        "private_reason": "只是允许继续陈述，不是批准请求。",
+                        "confidence": 96,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            effect = game._bargain_chat_effect(
+                actor,
+                {"kind": "petition", "actor": actor, "title": "求展限办差"},
+                "准你讲，但不是准你办。",
+                "臣明白。",
+            )
+
+            self.assertEqual(effect, {})
+            after = game.db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (actor,),
+            ).fetchone()
+            self.assertEqual(int(after["emp_trust"]), 40)
+            self.assertEqual(int(after["grievance"]), 60)
+            self.assertEqual(game.db.list_conversation_goals(minister_name=actor), [])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_audience_bargain_press_and_refuse_have_distinct_deltas(self):
         game = web_app.WebGame(fresh=True)
         try:

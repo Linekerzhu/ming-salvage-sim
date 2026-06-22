@@ -61,6 +61,7 @@ ACTION_INTENT_TYPES = {
 }
 ACTION_INTENT_PHASES = {"none", "propose", "confirm", "reject"}
 DIALOGUE_ROUTE_INTENTS = {"none", "summon", "confirm_pending", "reject_pending"}
+BARGAIN_ATTITUDES = {"none", "accept", "press", "refuse"}
 RECOVERABLE_DIALOGUE_ACTION_TYPES = {
     "recruitment",
     "mediation",
@@ -611,6 +612,29 @@ def _normalize_dialogue_pending_recovery(data: Dict[str, object]) -> Dict[str, o
     }
 
 
+def _normalize_dialogue_bargain_attitude(data: Dict[str, object]) -> Dict[str, object]:
+    attitude = _enum(data.get("attitude"), BARGAIN_ATTITUDES, "none")
+    raw_confidence = data.get("confidence")
+    try:
+        parsed_confidence = float(raw_confidence)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        parsed_confidence = 0.0
+    if 0 < parsed_confidence <= 1:
+        confidence = _clamp_int(parsed_confidence * 100)
+    else:
+        confidence = _clamp_int(raw_confidence)
+    allow = bool(data.get("allow")) and attitude != "none" and confidence >= CONFIDENCE_FLOOR
+    return {
+        "allow": allow,
+        "attitude": attitude if allow else "none",
+        "confidence": confidence,
+        "trigger_quote": _compact(data.get("trigger_quote"), 140),
+        "public_hint": _compact(data.get("public_hint"), 180),
+        "private_reason": _compact(data.get("private_reason") or data.get("reason"), 520),
+        "raw": data,
+    }
+
+
 def _context_payload(db: Any, state: GameState, character: Character, *, active_goal: Optional[Dict[str, object]] = None) -> Dict[str, object]:
     try:
         goals = db.list_conversation_goals(minister_name=character.name, limit=8)
@@ -1116,6 +1140,38 @@ JSON 字段：
 """.strip()
 
 
+DIALOGUE_BARGAIN_ATTITUDE_PROMPT = """
+你是明末历史策略游戏的“御前请求态度审计官”。你只输出 JSON，不写 Markdown。
+任务：阅读当前上下文、NPC、皇帝本轮原话和 NPC 回复，判断皇帝是否正在处理一个请求/旧恩/议价项，并分类为许诺、索证、拒绝或无动作。
+
+核心原则：
+- 这是语义判定，不按关键词机械触发。不要因为出现“准、可以、账册、担保、不准”等词就自动分类。
+- attitude=accept：皇帝实质批准、给资源、给保护、展限、授权、允许 NPC 去办。
+- attitude=press：皇帝没有直接满足请求，而是要求证据、账册、担保、期限、责任人、试差或可验条件。
+- attitude=refuse：皇帝明确驳回、拒绝给资源/保护/名分，或要求停止请求。
+- attitude=none：只是追问情况、继续听解释、训话、复盘、闲聊，或语义不清。不要写入交易记忆。
+- 若 context 与 NPC 无关，或玩家本轮没有回应请求/条件，allow=false。
+- trigger_quote 必须引用皇帝原话中能证明分类的短句；没有证据 allow=false。
+
+判例：
+- context=petition，“朕替你兜住，先放手做。” => accept。
+- context=agenda，“先把账册、担保和谁担责写清楚，三日后再议。” => press。
+- context=favor，“此事不许，旧恩不能拿来遮罪。” => refuse。
+- “你先说说到底难在哪里。” => none。
+- “准你讲，但不是准你办。” => none。
+
+JSON 字段：
+{
+  "allow": false,
+  "attitude": "none|accept|press|refuse",
+  "trigger_quote": "皇帝原话短句",
+  "public_hint": "一句玩家可见提示",
+  "private_reason": "审计理由",
+  "confidence": 0
+}
+""".strip()
+
+
 DIALOGUE_SUGGESTIONS_PROMPT = """
 你是明末历史策略游戏的“自然奏对建议官”。你只输出 JSON，不写 Markdown。
 任务：根据 NPC、近期上下文、未完成目的、关系网、待确认动作和候选建议，生成 3-5 条像皇帝自然开口的话，而不是 UI 标签或机械快捷指令。
@@ -1441,6 +1497,61 @@ def dialogue_pending_recovery_audit(
             "allow": False,
             "phase": "none",
             "action_type": "none",
+            "confidence": 0,
+            "private_reason": str(exc),
+        })
+
+
+def dialogue_bargain_attitude_audit(
+    db: Any,
+    state: GameState,
+    character: Character,
+    user_text: str,
+    answer: str,
+    context: Dict[str, object],
+    *,
+    llm_config: Optional[LLMConfig] = None,
+    agno_db: object = None,
+    audit_client: object = None,
+) -> Dict[str, object]:
+    payload = _context_payload(db, state, character)
+    payload["user_text"] = user_text
+    payload["npc_answer"] = answer
+    payload["bargain_context"] = {
+        key: value
+        for key, value in (context or {}).items()
+        if key in {"kind", "ref_kind", "actor", "target", "title", "meta", "summary", "ref_id", "id"}
+    }
+    _attach_behavior_context(payload, character, text=f"{user_text}\n{answer}")
+    try:
+        fake = _call_fake(audit_client, "dialogue_bargain_attitude", payload)
+        if fake is not None:
+            return _normalize_dialogue_bargain_attitude(fake)
+        if llm_config is None:
+            return _normalize_dialogue_bargain_attitude({
+                "allow": False,
+                "attitude": "none",
+                "confidence": 0,
+                "private_reason": "未配置 LLM，不写入御前交易态度。",
+            })
+        agent = _agent(
+            llm_config,
+            agno_db,
+            phase="dialogue_bargain_attitude",
+            prompt=DIALOGUE_BARGAIN_ATTITUDE_PROMPT,
+            max_tokens=700,
+        )
+        raw = run_agent_text(
+            agent,
+            json.dumps(payload, ensure_ascii=False, sort_keys=False),
+            tag="dialogue-audit/bargain-attitude",
+        )
+        data = parse_agent_json(raw, "御前请求态度审计")
+        return _normalize_dialogue_bargain_attitude(data)
+    except Exception as exc:
+        return _normalize_dialogue_bargain_attitude({
+            "allow": False,
+            "attitude": "none",
             "confidence": 0,
             "private_reason": str(exc),
         })
