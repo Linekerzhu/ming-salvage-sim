@@ -8,6 +8,7 @@ CLI 和 Web 各自只做 I/O 包装。
 from __future__ import annotations
 
 import json
+import os
 import re
 import uuid
 from dataclasses import dataclass, field
@@ -122,6 +123,7 @@ class MinisterView:
 class ChatTurnResult:
     answer: str
     court_action: str = ""   # "" | dismiss | summon | court_break | handled
+    court_action_source: str = ""  # tool_summon | unlisted_registration | legacy | ""
     next_minister: str = ""
     proposed_directive: Optional[DirectiveView] = None
     appointed_minister: str = ""   # 吏部本轮铨选新任的人物姓名（已可召见）
@@ -808,6 +810,65 @@ class GameSession:
             directive_already_recorded=directive_already_recorded,
         )
 
+    def dialogue_route_allows_tool_summon(
+        self,
+        character: Character,
+        user_text: str,
+        target_name: str,
+        *,
+        answer: str = "",
+    ) -> bool:
+        """Second-pass semantic gate for LLM summon_minister tool calls.
+
+        The model calling a tool is not enough evidence to switch audience.
+        This keeps direct summons under the same route audit as text-first
+        summons while preserving an opt-out for tests and legacy diagnostics.
+        """
+        clean_target = str(target_name or "").strip()
+        if not clean_target:
+            return False
+        if os.environ.get("MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes"):
+            return True
+        try:
+            from ming_sim.dialogue_audit import dialogue_route_intent_audit
+
+            target = self.content.characters.get(clean_target) or self.temporary_characters.get(clean_target)
+            route_context = {
+                "handler": character.name,
+                "can_route_summon": True,
+                "tool_requested_summon_target": clean_target,
+                "tool_answer_excerpt": str(answer or "")[:240],
+                "known_mentions": [
+                    {
+                        "name": target.name,
+                        "office": target.office,
+                        "office_type": target.office_type,
+                        "faction": target.faction,
+                    }
+                ] if target is not None else [],
+                "unknown_candidates": [],
+                "recent_implied_summon_name": "",
+            }
+            review = dialogue_route_intent_audit(
+                self.db,
+                self.state,
+                character,
+                user_text,
+                pending_action=None,
+                route_context=route_context,
+                llm_config=self.llm_config,
+                agno_db=self.agno_db,
+                audit_client=self.dialogue_audit_client,
+            )
+        except Exception:
+            return False
+        if not isinstance(review, dict) or not review.get("allow"):
+            return False
+        if str(review.get("intent") or "") != "summon":
+            return False
+        reviewed_target = str(review.get("target_name") or "").strip()
+        return reviewed_target == clean_target
+
     def chat(
         self,
         minister_name: str,
@@ -867,8 +928,9 @@ class GameSession:
                         target = None
                     if target is not None:
                         ok, _reason = self.can_summon(target)
-                        if ok:
+                        if ok and self.dialogue_route_allows_tool_summon(character, message, target.name, answer=answer):
                             result.court_action = "summon"
+                            result.court_action_source = "tool_summon"
                             result.next_minister = target.name
             elif tool_name == "propose_directive" or tool_result.startswith("__pending_directive__"):
                 draft_text = tool_result.removeprefix("__pending_directive__").strip()
@@ -907,6 +969,7 @@ class GameSession:
                     result.refresh_ministers.append(registered)
                     if summon_after:
                         result.court_action = "summon"
+                        result.court_action_source = "unlisted_registration"
                         result.next_minister = registered
             elif tool_result.startswith("__dialogue_action__") or tool_name in {
                 "propose_recruitment",

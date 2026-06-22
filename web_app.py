@@ -6953,7 +6953,12 @@ class WebGame:
                                 target = None
                             if target is not None:
                                 ok, _reason = self.session.can_summon(target)
-                                if ok:
+                                if ok and self.session.dialogue_route_allows_tool_summon(
+                                    character,
+                                    text,
+                                    target.name,
+                                    answer=answer,
+                                ):
                                     court_action = "summon"
                                     next_minister = target.name
                     elif tool_name == "dismiss_minister" or res == "__dismiss__":

@@ -1889,6 +1889,66 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_tool_summon_requires_route_semantic_audit(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            target = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND name!=? "
+                "ORDER BY ability DESC LIMIT 1",
+                (attendant,),
+            ).fetchone()["name"])
+            character = game.session._character(attendant)
+            seen_payloads = []
+
+            def deny_audit(phase, payload):
+                if phase == "dialogue_route_intent":
+                    seen_payloads.append(payload)
+                    return {
+                        "allow": False,
+                        "intent": "none",
+                        "confidence": 95,
+                        "private_reason": "tool call alone is not proof",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = deny_audit
+            self.assertFalse(game.session.dialogue_route_allows_tool_summon(
+                character,
+                "朕只是问问朝中还有谁可用。",
+                target,
+                answer=f"臣这就传{target}入殿。",
+            ))
+            self.assertEqual(seen_payloads[-1]["route_context"]["tool_requested_summon_target"], target)
+
+            def allow_audit(phase, payload):
+                if phase == "dialogue_route_intent":
+                    return {
+                        "allow": True,
+                        "intent": "summon",
+                        "target_name": target,
+                        "trigger_quote": f"传{target}入殿",
+                        "confidence": 96,
+                        "private_reason": "explicit summon in player text",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = allow_audit
+            self.assertTrue(game.session.dialogue_route_allows_tool_summon(
+                character,
+                f"传{target}入殿奏对。",
+                target,
+                answer=f"臣遵旨，传{target}入殿。",
+            ))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_semantic_route_confirms_pending_action_when_regex_actions_are_off(self):
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "0"
         os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "0"

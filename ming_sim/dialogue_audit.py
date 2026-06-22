@@ -998,6 +998,7 @@ DIALOGUE_ROUTE_INTENT_PROMPT = """
 - 这是所有对白入口的第一道语义判定，不按关键词触发。不要因为出现“准、好、叫、传、调停、净身、太医、宝匣”等词就自动路由。
 - intent=none 时，原话应继续交给 NPC 正常回答。
 - intent=summon 只用于皇帝明确要求当前随侍/当前 NPC 把某人带入御前、切换奏对对象，或明确选择此前候选人。
+- 如果 route_context.tool_requested_summon_target 非空，表示 NPC 模型已经调用召见工具；这只能作为待核验对象，不能作为证据。仍必须从皇帝原话或近期候选语境判断是否真的要召见。
 - intent=confirm_pending 只用于 pending_action 存在，且皇帝本轮明确批准上一轮那个待确认方案执行。追问细节、比较候选、问代价、修改条件、闲聊旧例都不是确认。
 - intent=reject_pending 只用于 pending_action 存在，且皇帝明确说作罢、暂缓、不办、别惊动、不入档。
 - 若皇帝说“好，你说谁合适”“可以，先说说看”“准你讲，但别办”，这是继续问话，不是确认执行。

@@ -252,9 +252,12 @@ export function ChatPane({
       setNextStep(null);
     }
   };
+  const preferLeadSuggestions = messages.length === 0 && !streaming;
+  const primarySuggestions = preferLeadSuggestions ? leadSuggestions : suggestions;
+  const secondarySuggestions = preferLeadSuggestions ? suggestions : leadSuggestions;
   const visibleSuggestions = [
-    ...leadSuggestions,
-    ...suggestions.filter((s) => !leadSuggestions.some((lead) => lead.label === s.label || lead.text === s.text)),
+    ...primarySuggestions,
+    ...secondarySuggestions.filter((s) => !primarySuggestions.some((lead) => lead.label === s.label || lead.text === s.text)),
   ].slice(0, Math.max(0, suggestionLimit));
   const transientMessages = messages.length === 0 ? localMessages : EMPTY_LOCAL_MESSAGES;
   const showArrival = Boolean(arrivalNote && messages.length === 0);
