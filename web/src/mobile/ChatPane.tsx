@@ -121,6 +121,7 @@ export function ChatPane({
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [suggestionsLoaded, setSuggestionsLoaded] = useState(false);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState("");
   const [busy, setBusy] = useState(false);
@@ -140,6 +141,7 @@ export function ChatPane({
     let alive = true;
     setMessages([]);
     setSuggestions([]);
+    setSuggestionsLoaded(false);
     setStreaming("");
     setNotice("");
     setWin(null);
@@ -150,7 +152,10 @@ export function ChatPane({
         setMessages(r.history || []);
         setSuggestions(r.suggestions || []);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (alive) setSuggestionsLoaded(true);
+      });
     return () => {
       alive = false;
     };
@@ -252,7 +257,7 @@ export function ChatPane({
       setNextStep(null);
     }
   };
-  const preferLeadSuggestions = messages.length === 0 && !streaming;
+  const preferLeadSuggestions = messages.length === 0 && !streaming && suggestionsLoaded && suggestions.length === 0;
   const primarySuggestions = preferLeadSuggestions ? leadSuggestions : suggestions;
   const secondarySuggestions = preferLeadSuggestions ? suggestions : leadSuggestions;
   const visibleSuggestions = [

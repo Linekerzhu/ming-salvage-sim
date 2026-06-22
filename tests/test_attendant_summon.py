@@ -1496,14 +1496,17 @@ class AttendantSummonTests(unittest.TestCase):
             labels = {str(item["label"]) for item in suggestions}
             texts = {str(item["label"]): str(item["text"]) for item in suggestions}
 
-            self.assertIn("问私心", labels)
-            self.assertIn("设交易", labels)
-            self.assertIn("问政敌", labels)
-            self.assertIn("点旧恩", labels)
-            self.assertIn("拟旨", labels)
-            self.assertIn("下密令", labels)
-            self.assertIn("保门生故旧", texts["问私心"])
-            self.assertIn("举荐连坐担保", texts["设交易"])
+            self.assertIn("听实话", labels)
+            self.assertIn("问边界", labels)
+            self.assertIn("问嫌隙", labels)
+            self.assertIn("问旧恩", labels)
+            self.assertNotIn("设交易", labels)
+            self.assertNotIn("拟旨", labels)
+            self.assertNotIn("下密令", labels)
+            self.assertIn("保门生故旧", texts["听实话"])
+            self.assertIn("举荐连坐担保", texts["问边界"])
+            banned = {"交账", "问奖励", "交易", "定下一手", "快捷", "按钮"}
+            self.assertFalse(any(any(term in str(item["label"]) for term in banned) for item in suggestions), suggestions)
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
@@ -1535,7 +1538,7 @@ class AttendantSummonTests(unittest.TestCase):
 
             suggestions = game.suggestions_for(game.session._character(actor))
 
-            self.assertEqual(suggestions[0]["label"], "追旧约")
+            self.assertEqual(suggestions[0]["label"], "追旧事")
             self.assertIn("三日内清查粮台", suggestions[0]["text"])
         finally:
             try:
@@ -2318,8 +2321,8 @@ class AttendantSummonTests(unittest.TestCase):
             labels = [str(item["label"]) for item in suggestions]
             texts = " ".join(str(item["text"]) for item in suggestions)
             self.assertIn("问隐情", labels)
-            self.assertIn("准调养", labels)
-            self.assertIn("照常派", labels)
+            self.assertIn("问调养", labels)
+            self.assertIn("问误事", labels)
             self.assertNotIn("追旧约", labels)
             self.assertIn("奴婢本分", texts)
             self.assertIn("内库调养", texts)

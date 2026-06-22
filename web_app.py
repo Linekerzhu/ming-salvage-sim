@@ -7291,44 +7291,106 @@ class WebGame:
                 break
         return merged
 
+    def _fallback_dialogue_suggestion_label(self, label: str, text: str, index: int = 0) -> str:
+        raw_label = str(label or "").strip()
+        blob = f"{raw_label} {text}"
+        if any(term in raw_label for term in ("交账", "问奖励", "交易", "定下一手", "快捷", "按钮", "拟旨", "下密令")):
+            raw_label = ""
+        rules = [
+            (("旧约", "未完奏对", "进展", "卡点"), "追旧事"),
+            (("私心", "另有所图", "所求"), "听实话"),
+            (("政敌", "嫌隙", "旧怨"), "问嫌隙"),
+            (("旧恩", "还这笔"), "问旧恩"),
+            (("党羽", "植党", "声气"), "问声气"),
+            (("边界", "担保", "代价", "谁担责"), "问边界"),
+            (("净身", "宫刑", "净军房"), "问代价"),
+            (("旧疾", "旧匣心结", "惊创失神"), "问隐情"),
+            (("不许调养", "照常办差", "硬撑", "会误在哪"), "问误事"),
+            (("内库调养", "查验安置", "能换回什么"), "问调养"),
+            (("调养", "旧患", "漏尿", "尿闭", "惊创"), "问旧患"),
+            (("宝匣", "宝案", "封签"), "问宝案"),
+            (("调停", "和解", "各退"), "问边界"),
+            (("钱粮", "太仓", "内库", "国库", "欠饷"), "问钱粮"),
+            (("关宁", "京营", "边军", "驻军", "士气"), "问军情"),
+            (("密查", "账册", "线索", "证据"), "要凭据"),
+        ]
+        for terms, natural in rules:
+            if any(term in blob for term in terms):
+                return natural
+        if raw_label and len(raw_label) <= 5:
+            return raw_label
+        return ["再细问", "听底线", "要凭据", "问后果", "定边界"][index % 5]
+
+    def _fallback_dialogue_suggestions(self, seed_suggestions: List[Dict[str, Any]], *, limit: int = 5) -> List[Dict[str, Any]]:
+        """Naturalized fallback when the LLM suggestion pass is unavailable.
+
+        Static rows are only seed material. If they must be shown, strip tool-like
+        command labels and keep the visible copy as natural court speech.
+        """
+        blocked_label_terms = ("交账", "问奖励", "交易", "定下一手", "快捷", "按钮", "拟旨", "下密令")
+        blocked_text_starts = ("拟旨如下", "密令如下")
+        out: List[Dict[str, Any]] = []
+        seen_text: set[str] = set()
+        seen_label: set[str] = set()
+        for row in seed_suggestions:
+            if not isinstance(row, dict):
+                continue
+            text = re.sub(r"\s+", " ", str(row.get("text") or "").strip())
+            if not text:
+                continue
+            if any(text.startswith(prefix) for prefix in blocked_text_starts):
+                continue
+            label = self._fallback_dialogue_suggestion_label(str(row.get("label") or ""), text, len(out))
+            if any(term in label for term in blocked_label_terms):
+                continue
+            if text in seen_text:
+                continue
+            if label in seen_label:
+                label = self._fallback_dialogue_suggestion_label("", text, len(out) + 1)
+                if label in seen_label:
+                    for alt in ("听底线", "要凭据", "问后果", "定边界", "再细问"):
+                        if alt not in seen_label:
+                            label = alt
+                            break
+                    if label in seen_label:
+                        continue
+            seen_text.add(text)
+            seen_label.add(label)
+            out.append({"label": label[:5], "text": text, "prefix": bool(row.get("prefix", True))})
+            if len(out) >= limit:
+                break
+        if out:
+            return out
+        return [
+            {"label": "听实话", "text": "你先把眼下最急、最难、最怕担责的三件事说清楚。", "prefix": True},
+            {"label": "问钱粮", "text": "这件事要动多少银钱、人手和时日，短缺从哪里补？", "prefix": True},
+        ][:limit]
+
     def suggestions_for(self, character: Character) -> List[Dict[str, Any]]:
         pending = self._load_pending_dialogue_action(character.name)
-        suggestions: List[Dict[str, Any]] = self._merge_dialogue_suggestions(
+        seed_suggestions: List[Dict[str, Any]] = self._merge_dialogue_suggestions(
             [
                 *self._dialogue_pending_action_suggestions(character, pending),
                 *self._audience_stake_suggestions(character),
             ],
             limit=8,
         )
-        if not suggestions:
-            suggestions.extend([
+        if not seed_suggestions:
+            seed_suggestions.extend([
                 {"label": "问在办", "text": "当前在办的事项里，哪几件轻重缓急最该先理？"},
                 {"label": "问阻力", "text": "眼下推进朝政，最大的阻力来自哪一方？"},
             ])
         skill_ids = set(available_skill_ids(character, self.db))
         if "check_treasury" in skill_ids:
-            suggestions.insert(min(1, len(suggestions)), {"label": "查钱粮", "text": "太仓和内库实数如何？本月哪些钱最急？"})
+            seed_suggestions.insert(min(1, len(seed_suggestions)), {"label": "查钱粮", "text": "太仓和内库实数如何？本月哪些钱最急？"})
         if "check_military" in skill_ids or "front_line_plan" in skill_ids or "strategic_review" in skill_ids:
-            suggestions.insert(min(1, len(suggestions)), {"label": "查驻军", "text": "查一下关宁军、京营和陕西边军的士气、欠饷与补给。"})
+            seed_suggestions.insert(min(1, len(seed_suggestions)), {"label": "查驻军", "text": "查一下关宁军、京营和陕西边军的士气、欠饷与补给。"})
         if "secret_investigation" in skill_ids:
-            suggestions.insert(min(1, len(suggestions)), {"label": "密查", "text": "哪些账册和人物最该先密查？"})
-        structural = [
-            {"label": "拟旨", "text": "拟旨如下：", "prefix": True},
-            {"label": "下密令", "text": "密令如下：", "prefix": True},
-        ]
-        labels = {str(item.get("label") or "") for item in suggestions}
-        for item in structural:
-            if item["label"] not in labels:
-                suggestions.append(item)
-        natural = self._llm_contextual_suggestions(character, suggestions, pending_action=pending)
+            seed_suggestions.insert(min(1, len(seed_suggestions)), {"label": "密查", "text": "哪些账册和人物最该先密查？"})
+        natural = self._llm_contextual_suggestions(character, seed_suggestions, pending_action=pending)
         if natural:
-            natural_labels = {str(item.get("label") or "") for item in natural}
-            for item in structural:
-                if item["label"] not in natural_labels:
-                    natural.append(item)
-                    natural_labels.add(item["label"])
             return natural[:6]
-        return suggestions[:6]
+        return self._fallback_dialogue_suggestions(seed_suggestions, limit=6)
 
     def _llm_contextual_suggestions(
         self,
