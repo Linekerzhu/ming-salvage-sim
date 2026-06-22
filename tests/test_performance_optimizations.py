@@ -105,6 +105,7 @@ class PerformanceOptimizationTests(unittest.TestCase):
             "llm.dialogue_action_intent",
             "llm.dialogue_route_intent",
             "llm.dialogue_suggestions",
+            "llm.dialogue_directive_followup",
             "llm.season_simulator",
             "llm.score_extractor",
             "portrait.character_cutout",

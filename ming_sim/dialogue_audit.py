@@ -63,6 +63,7 @@ ACTION_INTENT_PHASES = {"none", "propose", "confirm", "reject"}
 DIALOGUE_ROUTE_INTENTS = {"none", "summon", "confirm_pending", "reject_pending"}
 BARGAIN_ATTITUDES = {"none", "accept", "press", "refuse"}
 DIRECTIVE_PRESSURE_KINDS = {"none", "pressed", "needs_support", "evasive"}
+DIRECTIVE_FOLLOWUP_KINDS = {"none", "rewarded", "accounted", "followup_evasive", "next_step", "reviewed"}
 RECOVERABLE_DIALOGUE_ACTION_TYPES = {
     "recruitment",
     "mediation",
@@ -686,6 +687,30 @@ def _normalize_dialogue_directive_pressure(data: Dict[str, object]) -> Dict[str,
     }
 
 
+def _normalize_dialogue_directive_followup(data: Dict[str, object]) -> Dict[str, object]:
+    kind = _enum(data.get("kind"), DIRECTIVE_FOLLOWUP_KINDS, "none")
+    raw_confidence = data.get("confidence")
+    try:
+        parsed_confidence = float(raw_confidence)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        parsed_confidence = 0.0
+    if 0 < parsed_confidence <= 1:
+        confidence = _clamp_int(parsed_confidence * 100)
+    else:
+        confidence = _clamp_int(raw_confidence)
+    allow = bool(data.get("allow")) and kind != "none" and confidence >= CONFIDENCE_FLOOR
+    return {
+        "allow": allow,
+        "kind": kind if allow else "none",
+        "confidence": confidence,
+        "trigger_quote": _compact(data.get("trigger_quote"), 140),
+        "answer_evidence": _compact(data.get("answer_evidence"), 240),
+        "public_hint": _compact(data.get("public_hint"), 180),
+        "private_reason": _compact(data.get("private_reason") or data.get("reason"), 520),
+        "raw": data,
+    }
+
+
 def _context_payload(db: Any, state: GameState, character: Character, *, active_goal: Optional[Dict[str, object]] = None) -> Dict[str, object]:
     try:
         goals = db.list_conversation_goals(minister_name=character.name, limit=8)
@@ -1289,6 +1314,42 @@ JSON 字段：
 """.strip()
 
 
+DIALOGUE_DIRECTIVE_FOLLOWUP_PROMPT = """
+你是明末历史策略游戏的“办结旨意复命审计官”。你只输出 JSON，不写 Markdown。
+任务：阅读一道已经办结的旨意、皇帝本轮原话和 NPC 回复，判断这次召对是否应记录为复命后的奖叙、核实、问责、续办或阅过。
+
+核心原则：
+- 这是语义判定，不按“复命、赏、罚、功、责、下一步”等词机械触发。
+- 旨意已经 done，不允许重新推进执行进度；这里只记录办结后的御前处置。
+- allow=false：只是闲聊、解释背景、假设“如果奖罚会怎样”、没有引用这道旨意、没有形成实际复命处置，或证据不足。
+- kind=rewarded：皇帝明确给予奖叙、恩赏、记功、认可资历，且指向这道已办结旨意。
+- kind=accounted：皇帝要求核实成效、奏报水分、功过责任，或把实绩/虚报记录入案，但尚未明确奖罚。
+- kind=followup_evasive：皇帝追问水分/责任/功过，NPC 明显避责、推说不知/非己/不能明言。
+- kind=next_step：皇帝或 NPC 把办结后的余波推进到下一阶段、续办对象、后续承办人或新线索。
+- kind=reviewed：皇帝只是正式阅过/点过复命，尚未形成奖、罚、核实或续办。
+- trigger_quote 必须引用皇帝原话中能证明复命处置的短句；answer_evidence 必须引用 NPC 回复中支持分类的短句。没有证据 allow=false。
+
+判例：
+- 皇帝：“这件差使可入清班旧账。” NPC：“臣谢恩。” => rewarded。
+- 皇帝：“朕要核你奏报里的水分。” NPC：“臣愿呈清册。” => accounted。
+- 皇帝：“此事虚实到底如何？” NPC：“臣未闻其详，非臣一人可知。” => followup_evasive。
+- 皇帝：“办结之后，还该交给谁续办？” NPC：“可令兵部会同户部再核。” => next_step。
+- 皇帝：“朕已看过复命，暂且记下。” NPC：“臣领旨。” => reviewed。
+- 皇帝：“如果奖你，朝中会怎样？” NPC 泛论风险 => allow=false。
+
+JSON 字段：
+{
+  "allow": false,
+  "kind": "none|rewarded|accounted|followup_evasive|next_step|reviewed",
+  "trigger_quote": "皇帝原话短句",
+  "answer_evidence": "NPC 回复证据",
+  "public_hint": "一句玩家可见提示",
+  "private_reason": "审计理由",
+  "confidence": 0
+}
+""".strip()
+
+
 DIALOGUE_SUGGESTIONS_PROMPT = """
 你是明末历史策略游戏的“自然奏对建议官”。你只输出 JSON，不写 Markdown。
 任务：根据 NPC、近期上下文、未完成目的、关系网、待确认动作和候选建议，生成 3-5 条像皇帝自然开口的话，而不是 UI 标签或机械快捷指令。
@@ -1326,6 +1387,7 @@ def _agent(llm_config: LLMConfig, agno_db: object, *, phase: str, prompt: str, m
         "dialogue_bargain_attitude": "llm.dialogue_bargain_attitude",
         "dialogue_directive_fallback": "llm.dialogue_directive_fallback",
         "dialogue_directive_pressure": "llm.dialogue_directive_pressure",
+        "dialogue_directive_followup": "llm.dialogue_directive_followup",
     }.get(phase, "llm.dialogue_condition_audit")
     return Agent(
         name=f"奏对审计-{phase}",
@@ -1785,6 +1847,74 @@ def dialogue_directive_pressure_audit(
         return _normalize_dialogue_directive_pressure(data)
     except Exception as exc:
         return _normalize_dialogue_directive_pressure({
+            "allow": False,
+            "kind": "none",
+            "confidence": 0,
+            "private_reason": str(exc),
+        })
+
+
+def dialogue_directive_followup_audit(
+    db: Any,
+    state: GameState,
+    character: Character,
+    user_text: str,
+    answer: str,
+    directive_context: Dict[str, object],
+    *,
+    llm_config: Optional[LLMConfig] = None,
+    agno_db: object = None,
+    audit_client: object = None,
+) -> Dict[str, object]:
+    payload = _context_payload(db, state, character)
+    payload["user_text"] = user_text
+    payload["npc_answer"] = answer
+    payload["directive_context"] = {
+        key: value
+        for key, value in (directive_context or {}).items()
+        if key in {
+            "id",
+            "text",
+            "assignee",
+            "status",
+            "lifecycle_status",
+            "progress",
+            "integrity_actual",
+            "integrity_reported",
+            "settle_note",
+            "outcome_status",
+            "chain",
+            "context",
+        }
+    }
+    _attach_behavior_context(payload, character, text=f"{user_text}\n{answer}")
+    try:
+        fake = _call_fake(audit_client, "dialogue_directive_followup", payload)
+        if fake is not None:
+            return _normalize_dialogue_directive_followup(fake)
+        if llm_config is None:
+            return _normalize_dialogue_directive_followup({
+                "allow": False,
+                "kind": "none",
+                "confidence": 0,
+                "private_reason": "未配置 LLM，不由奏对记录办结旨意复命。",
+            })
+        agent = _agent(
+            llm_config,
+            agno_db,
+            phase="dialogue_directive_followup",
+            prompt=DIALOGUE_DIRECTIVE_FOLLOWUP_PROMPT,
+            max_tokens=850,
+        )
+        raw = run_agent_text(
+            agent,
+            json.dumps(payload, ensure_ascii=False, sort_keys=False),
+            tag="dialogue-audit/directive-followup",
+        )
+        data = parse_agent_json(raw, "办结旨意复命审计")
+        return _normalize_dialogue_directive_followup(data)
+    except Exception as exc:
+        return _normalize_dialogue_directive_followup({
             "allow": False,
             "kind": "none",
             "confidence": 0,

@@ -765,43 +765,52 @@ def _apply_done_directive_followup(
     minister_name: str,
     user_text: str,
     answer: str,
+    semantic_review: Optional[Dict[str, object]] = None,
 ) -> Dict[str, object]:
     """Record post-completion accountability without reopening a done directive."""
 
     prompt = str(user_text or "")
     reply = str(answer or "")
-    combined = f"{prompt}\n{reply}"
-    if not _has_any(
-        combined,
-        (
-            "复命", "成效", "实效", "办得", "办成", "水分", "虚报", "不实", "查账",
-            "核实", "功过", "赏", "奖", "嘉", "记功", "责", "罪", "罚", "申饬",
-            "下一步", "续办", "后续", "余波", "续旨", "交给谁",
-        ),
-    ):
-        return {}
 
     day = kv_int(db, KV_CURRENT_DAY, 1)
     meta = _chain_meta(row)
     assignee = str(row["assignee"] or "").strip()
-    evade = _has_any(reply, ("不知", "未闻", "非臣", "不归臣", "无从", "不能", "难以", "未接"))
-    accountability = _has_any(
-        prompt,
-        ("问责", "责", "罪", "水分", "虚报", "不实", "欺", "罚", "申饬", "查账", "核实", "实效", "功过"),
-    )
-    praise = _has_any(prompt, ("赏", "奖", "嘉", "记功", "褒", "慰", "辛苦", "有功", "办得好", "论功"))
-    next_step = _has_any(prompt, ("下一步", "续办", "再下一道", "接着", "后续", "余波", "还缺", "交给谁", "限期", "续旨"))
 
-    if evade and accountability:
-        kind = "followup_evasive"
-    elif accountability:
-        kind = "accounted"
-    elif praise:
-        kind = "rewarded"
-    elif next_step:
-        kind = "next_step"
+    if semantic_review is not None:
+        if not semantic_review.get("allow"):
+            return {}
+        kind = str(semantic_review.get("kind") or "").strip()
+        if kind not in {"rewarded", "accounted", "followup_evasive", "next_step", "reviewed"}:
+            return {}
     else:
-        kind = "reviewed"
+        combined = f"{prompt}\n{reply}"
+        if not _has_any(
+            combined,
+            (
+                "复命", "成效", "实效", "办得", "办成", "水分", "虚报", "不实", "查账",
+                "核实", "功过", "赏", "奖", "嘉", "记功", "责", "罪", "罚", "申饬",
+                "下一步", "续办", "后续", "余波", "续旨", "交给谁",
+            ),
+        ):
+            return {}
+        evade = _has_any(reply, ("不知", "未闻", "非臣", "不归臣", "无从", "不能", "难以", "未接"))
+        accountability = _has_any(
+            prompt,
+            ("问责", "责", "罪", "水分", "虚报", "不实", "欺", "罚", "申饬", "查账", "核实", "实效", "功过"),
+        )
+        praise = _has_any(prompt, ("赏", "奖", "嘉", "记功", "褒", "慰", "辛苦", "有功", "办得好", "论功"))
+        next_step = _has_any(prompt, ("下一步", "续办", "再下一道", "接着", "后续", "余波", "还缺", "交给谁", "限期", "续旨"))
+
+        if evade and accountability:
+            kind = "followup_evasive"
+        elif accountability:
+            kind = "accounted"
+        elif praise:
+            kind = "rewarded"
+        elif next_step:
+            kind = "next_step"
+        else:
+            kind = "reviewed"
 
     if any(str(item.get("kind") or "") == kind for item in _followup_history(meta)):
         _record_followup_action(meta, kind=kind, minister_name=minister_name, day=day)
@@ -904,7 +913,15 @@ def apply_directive_audience_pressure(
         return {}
     status = str(row["lifecycle_status"] or "")
     if status == "done":
-        return _apply_done_directive_followup(db, row, did, minister_name, user_text, answer)
+        return _apply_done_directive_followup(
+            db,
+            row,
+            did,
+            minister_name,
+            user_text,
+            answer,
+            semantic_review=semantic_review,
+        )
     if status not in LIVE_STATUSES:
         return {}
 

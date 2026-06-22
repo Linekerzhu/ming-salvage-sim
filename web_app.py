@@ -6688,25 +6688,38 @@ class WebGame:
         if row is None:
             return {"allow": False, "kind": "none", "private_reason": "旨意不存在。"}
         lifecycle_status = str(row["lifecycle_status"] or "").strip()
-        if lifecycle_status == "done":
-            return None
         directive_context = {key: row[key] for key in row.keys()}
         directive_context["context"] = dict(context or {})
         try:
-            from ming_sim.dialogue_audit import dialogue_directive_pressure_audit
-
             character = self.session._character(minister_name)
-            review = dialogue_directive_pressure_audit(
-                self.db,
-                self.state,
-                character,
-                user_text,
-                answer,
-                directive_context,
-                llm_config=self.session.llm_config,
-                agno_db=self.session.agno_db,
-                audit_client=self.session.dialogue_audit_client,
-            )
+            if lifecycle_status == "done":
+                from ming_sim.dialogue_audit import dialogue_directive_followup_audit
+
+                review = dialogue_directive_followup_audit(
+                    self.db,
+                    self.state,
+                    character,
+                    user_text,
+                    answer,
+                    directive_context,
+                    llm_config=self.session.llm_config,
+                    agno_db=self.session.agno_db,
+                    audit_client=self.session.dialogue_audit_client,
+                )
+            else:
+                from ming_sim.dialogue_audit import dialogue_directive_pressure_audit
+
+                review = dialogue_directive_pressure_audit(
+                    self.db,
+                    self.state,
+                    character,
+                    user_text,
+                    answer,
+                    directive_context,
+                    llm_config=self.session.llm_config,
+                    agno_db=self.session.agno_db,
+                    audit_client=self.session.dialogue_audit_client,
+                )
         except Exception as exc:
             return {"allow": False, "kind": "none", "confidence": 0, "private_reason": str(exc)}
         return review if isinstance(review, dict) else {"allow": False, "kind": "none"}

@@ -4424,6 +4424,146 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_semantic_done_directive_followup_reward_without_keyword_gate(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "袁崇焕"
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=50, grievance=30 WHERE name=?",
+                (actor,),
+            )
+            did = game.db.add_directive(
+                game.state,
+                None,
+                "令袁崇焕整顿辽东军饷。",
+                "test",
+                actor=actor,
+                status="confirmed",
+            )
+            game.db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='done', "
+                "progress=100, integrity_actual=90, integrity_reported=92, "
+                "outcome_status='applied', chain=? WHERE id=?",
+                (
+                    actor,
+                    json.dumps({"resistance": 20, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            game.db.conn.commit()
+
+            def audit(phase, payload):
+                if phase != "dialogue_directive_followup":
+                    return {"allow": False, "kind": "none", "confidence": 100}
+                self.assertEqual(int((payload.get("directive_context") or {}).get("id")), did)
+                return {
+                    "allow": True,
+                    "kind": "rewarded",
+                    "trigger_quote": "入清班旧账",
+                    "answer_evidence": "臣谢恩",
+                    "confidence": 96,
+                }
+
+            game.session.dialogue_audit_client = audit
+
+            effect = game._directive_chat_effect(
+                actor,
+                {"kind": "directive", "ref_id": did},
+                "这件差使可入清班旧账。",
+                "臣谢恩，愿守此案。",
+            )
+            ch = game.db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (actor,),
+            ).fetchone()
+            row = game.db.conn.execute(
+                "SELECT lifecycle_status, progress, chain FROM turn_directives WHERE id=?",
+                (did,),
+            ).fetchone()
+
+            self.assertEqual(effect["kind"], "rewarded")
+            self.assertEqual(int(ch["emp_trust"]), 54)
+            self.assertEqual(int(ch["grievance"]), 27)
+            self.assertEqual(str(row["lifecycle_status"]), "done")
+            self.assertEqual(int(row["progress"]), 100)
+            self.assertEqual(json.loads(row["chain"])["last_followup_action"]["kind"], "rewarded")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_done_directive_followup_denial_blocks_keyword_fallback(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "袁崇焕"
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=50, grievance=30 WHERE name=?",
+                (actor,),
+            )
+            did = game.db.add_directive(
+                game.state,
+                None,
+                "令袁崇焕整顿辽东军饷。",
+                "test",
+                actor=actor,
+                status="confirmed",
+            )
+            game.db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='done', "
+                "progress=100, integrity_actual=90, integrity_reported=92, "
+                "outcome_status='applied', chain=? WHERE id=?",
+                (
+                    actor,
+                    json.dumps({"resistance": 20, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            game.db.conn.commit()
+
+            def audit(phase, payload):
+                if phase != "dialogue_directive_followup":
+                    return {"allow": False, "kind": "none", "confidence": 100}
+                return {
+                    "allow": False,
+                    "kind": "none",
+                    "trigger_quote": "复命",
+                    "answer_evidence": "",
+                    "confidence": 95,
+                    "private_reason": "只是泛谈奖罚，没有形成复命处置。",
+                }
+
+            game.session.dialogue_audit_client = audit
+
+            effect = game._directive_chat_effect(
+                actor,
+                {"kind": "directive", "ref_id": did},
+                "朕看了你的复命，此事办得有功，准记功嘉奖。",
+                "臣不敢居功，愿继续清册具奏。",
+            )
+            ch = game.db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (actor,),
+            ).fetchone()
+            chain = json.loads(game.db.conn.execute(
+                "SELECT chain FROM turn_directives WHERE id=?",
+                (did,),
+            ).fetchone()["chain"])
+
+            self.assertEqual(effect, {})
+            self.assertEqual(int(ch["emp_trust"]), 50)
+            self.assertEqual(int(ch["grievance"]), 30)
+            self.assertNotIn("last_followup_action", chain)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_audience_bargain_press_and_refuse_have_distinct_deltas(self):
         game = web_app.WebGame(fresh=True)
         try:
