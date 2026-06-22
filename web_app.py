@@ -740,6 +740,11 @@ class WebGame:
             advanced_thinking_level=advanced["advanced_thinking_level"],
         )
         self.session = GameSession(db_path, llm_config)
+        try:
+            from ming_sim import lifecycle
+            lifecycle.configure_directive_audit(llm_config, self.session.dialogue_audit_client)
+        except Exception:
+            pass
         self.session.begin_turn()
         # 召对记录完整持久化在 chat_messages 表；Web 进程只恢复最近窗口，避免长期运行时搬运全文历史。
         self.chat_history: Dict[str, List[Dict[str, Any]]] = {}
@@ -836,6 +841,11 @@ class WebGame:
         """用新 llm_config（或换完 DB 后）重建 GameSession + 内存缓存 + 队列 worker。"""
         verify_llm_available(llm_config)
         self.session = GameSession(self.db_path, llm_config)
+        try:
+            from ming_sim import lifecycle
+            lifecycle.configure_directive_audit(llm_config, self.session.dialogue_audit_client)
+        except Exception:
+            pass
         self.session.begin_turn()
         # 换档/改配置后重挂队列 worker（旧 worker 已由调用方 stop；此处幂等并热更配置）
         try:
@@ -922,6 +932,11 @@ class WebGame:
             new_config.advanced_thinking_level,
         )
         self.session.llm_config = new_config
+        try:
+            from ming_sim import lifecycle
+            lifecycle.configure_directive_audit(new_config, self.session.dialogue_audit_client)
+        except Exception:
+            pass
         # 重建 registry 让大臣 Agent 用新配置
         self.session.begin_turn()
         return new_config

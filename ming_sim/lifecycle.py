@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import re
 from typing import Dict, List, Optional
@@ -34,8 +35,22 @@ from ming_sim.upgrade_schema import (
 
 _CATS_CACHE: Optional[Dict[str, object]] = None
 _CONSEQ_CACHE: Optional[Dict[str, object]] = None
+_DIRECTIVE_AUDIT_LLM_CONFIG: object = None
+_DIRECTIVE_AUDIT_CLIENT: object = None
 
 LIVE_STATUSES = ("in_transit", "executing", "stalled")
+
+
+def configure_directive_audit(llm_config: object = None, audit_client: object = None) -> None:
+    """Install optional semantic gates for rule-layer irreversible actions."""
+
+    global _DIRECTIVE_AUDIT_LLM_CONFIG, _DIRECTIVE_AUDIT_CLIENT
+    _DIRECTIVE_AUDIT_LLM_CONFIG = llm_config
+    _DIRECTIVE_AUDIT_CLIENT = audit_client
+
+
+def _env_true(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
 
 
 def load_categories() -> Dict[str, object]:
@@ -486,6 +501,127 @@ def _court_castration_target(db: GameDB, text: str, assignee: str = "") -> str:
     return names[0]
 
 
+def _runtime_directive_llm_config() -> object:
+    if _DIRECTIVE_AUDIT_LLM_CONFIG is not None:
+        return _DIRECTIVE_AUDIT_LLM_CONFIG
+    try:
+        from ming_sim.llm_config import (
+            load_runtime_llm,
+            normalize_advanced_llm_fields,
+            normalize_openai_base_url,
+            normalize_thinking_level,
+        )
+        from ming_sim.models import LLMConfig
+
+        runtime = load_runtime_llm()
+        api_key = str(runtime.get("api_key") or os.environ.get("OPENAI_API_KEY", "") or "").strip()
+        if not api_key:
+            return None
+        base_url = str(
+            runtime.get("base_url") or os.environ.get("OPENAI_BASE_URL", "https://api.deepseek.com/v1")
+        ).strip()
+        model = str(runtime.get("model") or os.environ.get("OPENAI_MODEL", "deepseek-v4-flash")).strip()
+        try:
+            max_tokens = int(runtime.get("max_tokens") or os.environ.get("OPENAI_MAX_TOKENS", "8000") or 8000)
+        except (TypeError, ValueError):
+            max_tokens = 8000
+        try:
+            timeout_seconds = float(
+                runtime.get("timeout_seconds") or os.environ.get("OPENAI_TIMEOUT_SECONDS", "180") or 180
+            )
+        except (TypeError, ValueError):
+            timeout_seconds = 180.0
+        advanced = normalize_advanced_llm_fields(
+            str(runtime.get("advanced_model") or os.environ.get("OPENAI_ADVANCED_MODEL", "") or ""),
+            str(runtime.get("advanced_base_url") or os.environ.get("OPENAI_ADVANCED_BASE_URL", "") or ""),
+            str(runtime.get("advanced_api_key") or os.environ.get("OPENAI_ADVANCED_API_KEY", "") or ""),
+            str(runtime.get("advanced_thinking_level") or os.environ.get("OPENAI_ADVANCED_THINKING_LEVEL", "") or ""),
+        )
+        return LLMConfig(
+            api_key=api_key,
+            base_url=normalize_openai_base_url(base_url),
+            model=model,
+            max_tokens=max_tokens,
+            timeout_seconds=timeout_seconds,
+            thinking_level=normalize_thinking_level(
+                str(runtime.get("thinking_level") or os.environ.get("OPENAI_THINKING_LEVEL", "") or "")
+            ),
+            advanced_model=advanced["advanced_model"],
+            advanced_base_url=advanced["advanced_base_url"],
+            advanced_api_key=advanced["advanced_api_key"],
+            advanced_thinking_level=advanced["advanced_thinking_level"],
+        )
+    except Exception:
+        return None
+
+
+def _legacy_court_castration_review(db: GameDB, text: str, assignee: str = "") -> Dict[str, object]:
+    if not _DIRECT_CASTRATION_RE.search(str(text or "")):
+        return {}
+    target = _court_castration_target(db, text, assignee)
+    if not target:
+        return {}
+    return {
+        "allow": True,
+        "target_name": target,
+        "confidence": 100,
+        "trigger_quote": str(text or "")[:160],
+        "private_reason": "旧版正则净身旨意执行兜底。",
+        "legacy_regex": True,
+    }
+
+
+def _court_castration_execution_review(
+    db: GameDB,
+    state: GameState,
+    *,
+    directive_id: int,
+    text: str,
+    assignee: str,
+    day: int,
+) -> Dict[str, object]:
+    if not _DIRECT_CASTRATION_RE.search(str(text or "")):
+        return {}
+    if _env_true("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"):
+        return _legacy_court_castration_review(db, text, assignee)
+    candidates = _mentioned_active_ming_characters(db, text)
+    if not candidates:
+        return {}
+    try:
+        from ming_sim.rule_audit import directive_castration_execution_audit
+
+        review = directive_castration_execution_audit(
+            db,
+            state,
+            text,
+            assignee=assignee,
+            directive_id=directive_id,
+            day=day,
+            candidate_names=candidates,
+            llm_config=_runtime_directive_llm_config(),
+            audit_client=_DIRECTIVE_AUDIT_CLIENT,
+        )
+    except Exception as exc:
+        review = {
+            "allow": False,
+            "target_name": "",
+            "confidence": 0,
+            "private_reason": str(exc),
+        }
+    if not isinstance(review, dict) or not review.get("allow"):
+        return review if isinstance(review, dict) else {}
+    target = str(review.get("target_name") or "").strip()
+    if target not in candidates:
+        review = dict(review)
+        review.update({
+            "allow": False,
+            "target_name": "",
+            "private_reason": f"审计目标不在候选人物内：{target}",
+        })
+        return review
+    return review
+
+
 def _apply_court_immediate_action(
     db: GameDB,
     state: GameState,
@@ -503,7 +639,30 @@ def _apply_court_immediate_action(
     existing = meta.get("court_immediate_action")
     if isinstance(existing, dict) and existing.get("applied"):
         return existing
-    target = _court_castration_target(db, text, assignee)
+    review = _court_castration_execution_review(
+        db,
+        state,
+        directive_id=directive_id,
+        text=text,
+        assignee=assignee,
+        day=day,
+    )
+    if review and not review.get("allow"):
+        meta["court_immediate_action"] = {
+            "kind": "castration",
+            "target": "",
+            "day": int(day),
+            "applied": False,
+            "blocked": True,
+            "semantic_review": {
+                "confidence": int(review.get("confidence") or 0),
+                "trigger_quote": str(review.get("trigger_quote") or "")[:160],
+                "private_reason": str(review.get("private_reason") or "")[:240],
+            },
+        }
+        _save_chain_meta(db, int(directive_id), meta)
+        return {}
+    target = str(review.get("target_name") or "").strip() if review else ""
     if not target:
         return {}
     action: Dict[str, object] = {
@@ -511,6 +670,12 @@ def _apply_court_immediate_action(
         "target": target,
         "day": int(day),
         "applied": False,
+        "semantic_review": {
+            "confidence": int(review.get("confidence") or 0),
+            "trigger_quote": str(review.get("trigger_quote") or "")[:160],
+            "private_reason": str(review.get("private_reason") or "")[:240],
+            "legacy_regex": bool(review.get("legacy_regex")),
+        },
     }
     try:
         from ming_sim.content import GameContent

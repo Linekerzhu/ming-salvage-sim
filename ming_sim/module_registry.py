@@ -234,7 +234,7 @@ _SPECS: Tuple[ModuleSpec, ...] = (
         entrypoint="resolve_directives",
         hooks=(_hook("turn.resolve", timing="during", contract="directives + extracted deltas -> state/log changes", idempotent=False),),
         depends_on=("mechanic.bureaucracy", "mechanic.agreement_ledger"),
-        pipelines=("mechanic.directive_resolution",),
+        pipelines=("mechanic.directive_resolution", "llm.directive_castration_execution"),
         reads=("directives", "extractor outputs", "GameState"),
         writes=("metrics", "regions", "armies", "characters", "issues", "logs"),
         hot_swap="session_reload",

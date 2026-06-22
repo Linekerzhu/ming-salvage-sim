@@ -1,6 +1,7 @@
 """M2 指令生命周期测试：归类、经手链条、旬检定、干预、账实分叉、LLM 队列兜底。零 LLM。"""
 
 import json
+import os
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -79,37 +80,132 @@ class ClassifyTests(unittest.TestCase):
 
     def test_issued_inner_court_order_finishes_after_one_day(self):
         with TemporaryDirectory() as tmp:
+            old = os.environ.get("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT")
+            os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = "1"
             db, state = _fresh(tmp)
-            did = _issue(db, state, "着王承恩押韩爌至净军房净身，发入内廷听差。", "王承恩")
-            row = db.conn.execute(
-                "SELECT start_day, lead_days, exec_days, eta_day, chain FROM turn_directives WHERE id=?",
-                (did,),
-            ).fetchone()
-            self.assertEqual(int(row["lead_days"]), 0)
-            self.assertEqual(int(row["exec_days"]), 1)
-            self.assertEqual(int(row["eta_day"]) - int(row["start_day"]), 1)
-            self.assertEqual(json.loads(row["chain"])["timing_profile"], "court_immediate")
+            try:
+                did = _issue(db, state, "着王承恩押韩爌至净军房净身，发入内廷听差。", "王承恩")
+                row = db.conn.execute(
+                    "SELECT start_day, lead_days, exec_days, eta_day, chain FROM turn_directives WHERE id=?",
+                    (did,),
+                ).fetchone()
+                self.assertEqual(int(row["lead_days"]), 0)
+                self.assertEqual(int(row["exec_days"]), 1)
+                self.assertEqual(int(row["eta_day"]) - int(row["start_day"]), 1)
+                self.assertEqual(json.loads(row["chain"])["timing_profile"], "court_immediate")
 
-            timeflow.advance_days(db, state, 1, stop_on_yellow=False)
-            done = db.conn.execute(
-                "SELECT lifecycle_status, progress, chain FROM turn_directives WHERE id=?",
-                (did,),
-            ).fetchone()
-            self.assertEqual(str(done["lifecycle_status"]), "done")
-            self.assertEqual(int(done["progress"]), 100)
-            meta = json.loads(done["chain"])
-            self.assertTrue(meta["court_immediate_action"]["applied"])
-            self.assertEqual(meta["court_immediate_action"]["target"], "韩爌")
-            from ming_sim.eunuch import is_eunuch_like
-            crow = db.conn.execute(
-                "SELECT office, office_type, faction FROM characters WHERE name='韩爌'"
-            ).fetchone()
-            self.assertTrue(is_eunuch_like(str(crow["office"]), str(crow["office_type"])))
-            self.assertEqual(str(crow["faction"]), "内廷")
-            from ming_sim import eunuch_lore as el
-            lore = el.get_lore(db, "韩爌")
-            self.assertIsNotNone(lore)
-            self.assertTrue(lore["forced"])
+                timeflow.advance_days(db, state, 1, stop_on_yellow=False)
+                done = db.conn.execute(
+                    "SELECT lifecycle_status, progress, chain FROM turn_directives WHERE id=?",
+                    (did,),
+                ).fetchone()
+                self.assertEqual(str(done["lifecycle_status"]), "done")
+                self.assertEqual(int(done["progress"]), 100)
+                meta = json.loads(done["chain"])
+                self.assertTrue(meta["court_immediate_action"]["applied"])
+                self.assertEqual(meta["court_immediate_action"]["target"], "韩爌")
+                from ming_sim.eunuch import is_eunuch_like
+                crow = db.conn.execute(
+                    "SELECT office, office_type, faction FROM characters WHERE name='韩爌'"
+                ).fetchone()
+                self.assertTrue(is_eunuch_like(str(crow["office"]), str(crow["office_type"])))
+                self.assertEqual(str(crow["faction"]), "内廷")
+                from ming_sim import eunuch_lore as el
+                lore = el.get_lore(db, "韩爌")
+                self.assertIsNotNone(lore)
+                self.assertTrue(lore["forced"])
+            finally:
+                if old is None:
+                    os.environ.pop("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT", None)
+                else:
+                    os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = old
+
+    def test_inner_court_castration_execution_denied_by_semantic_audit(self):
+        with TemporaryDirectory() as tmp:
+            old = os.environ.get("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT")
+            os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = "0"
+            db, state = _fresh(tmp)
+
+            def audit(phase, payload):
+                if phase == "directive_castration_execution":
+                    self.assertIn("韩爌", payload.get("candidate_names") or [])
+                    return {
+                        "allow": False,
+                        "target_name": "",
+                        "trigger_quote": "查韩爌净身旧例，暂不惊动净军房",
+                        "private_reason": "旨意是调查旧例并暂缓执行，不是强制净身。",
+                        "confidence": 96,
+                    }
+                return None
+
+            lifecycle.configure_directive_audit(audit_client=audit)
+            try:
+                did = _issue(db, state, "着王承恩查韩爌净身旧例，暂不惊动净军房。", "王承恩")
+                timeflow.advance_days(db, state, 1, stop_on_yellow=False)
+                done = db.conn.execute(
+                    "SELECT lifecycle_status, progress, chain FROM turn_directives WHERE id=?",
+                    (did,),
+                ).fetchone()
+                self.assertEqual(str(done["lifecycle_status"]), "done")
+                meta = json.loads(done["chain"])
+                self.assertTrue(meta["court_immediate_action"]["blocked"])
+                self.assertFalse(meta["court_immediate_action"]["applied"])
+                crow = db.conn.execute(
+                    "SELECT office, office_type, faction FROM characters WHERE name='韩爌'"
+                ).fetchone()
+                self.assertNotEqual(str(crow["faction"]), "内廷")
+                from ming_sim import eunuch_lore as el
+                self.assertIsNone(el.get_lore(db, "韩爌"))
+            finally:
+                lifecycle.configure_directive_audit()
+                if old is None:
+                    os.environ.pop("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT", None)
+                else:
+                    os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = old
+
+    def test_inner_court_castration_execution_allowed_by_semantic_audit(self):
+        with TemporaryDirectory() as tmp:
+            old = os.environ.get("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT")
+            os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = "0"
+            db, state = _fresh(tmp)
+
+            def audit(phase, payload):
+                if phase == "directive_castration_execution":
+                    self.assertEqual(payload.get("assignee"), "王承恩")
+                    return {
+                        "allow": True,
+                        "target_name": "韩爌",
+                        "trigger_quote": "押韩爌至净军房净身",
+                        "private_reason": "旨意明确命令对韩爌执行净身并发入内廷。",
+                        "confidence": 97,
+                    }
+                return None
+
+            lifecycle.configure_directive_audit(audit_client=audit)
+            try:
+                did = _issue(db, state, "着王承恩押韩爌至净军房净身，发入内廷听差。", "王承恩")
+                timeflow.advance_days(db, state, 1, stop_on_yellow=False)
+                done = db.conn.execute(
+                    "SELECT lifecycle_status, progress, chain FROM turn_directives WHERE id=?",
+                    (did,),
+                ).fetchone()
+                self.assertEqual(str(done["lifecycle_status"]), "done")
+                meta = json.loads(done["chain"])
+                self.assertTrue(meta["court_immediate_action"]["applied"])
+                self.assertEqual(meta["court_immediate_action"]["target"], "韩爌")
+                self.assertEqual(meta["court_immediate_action"]["semantic_review"]["confidence"], 97)
+                from ming_sim.eunuch import is_eunuch_like
+                crow = db.conn.execute(
+                    "SELECT office, office_type, faction FROM characters WHERE name='韩爌'"
+                ).fetchone()
+                self.assertTrue(is_eunuch_like(str(crow["office"]), str(crow["office_type"])))
+                self.assertEqual(str(crow["faction"]), "内廷")
+            finally:
+                lifecycle.configure_directive_audit()
+                if old is None:
+                    os.environ.pop("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT", None)
+                else:
+                    os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = old
 
     def test_statecraft_effect_changes_administrative_directive_duration_and_risk(self):
         with TemporaryDirectory() as tmp:
