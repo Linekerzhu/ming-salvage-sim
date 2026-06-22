@@ -7205,8 +7205,88 @@ class WebGame:
 
         return suggestions[:4]
 
+    def _dialogue_pending_action_suggestions(self, character: Character, pending: Dict[str, Any]) -> List[Dict[str, Any]]:
+        if not isinstance(pending, dict) or not pending:
+            return []
+        kind = str(pending.get("type") or "").strip()
+        target = str(pending.get("target") or pending.get("actor") or pending.get("faction") or "").strip()
+        target_text = target or character.name
+        if kind == "recruitment":
+            recruit_kind = str(pending.get("kind") or "").strip()
+            subject = {
+                "eunuch": "内廷新人",
+                "exam": "新科士子",
+                "recommend": "荐举人选",
+            }.get(recruit_kind, "新人")
+            return [
+                {"label": "问担保", "text": f"方才说到{subject}，朕先问清：人从哪里来，谁作保，出错谁担责？"},
+                {"label": "准荐一人", "text": f"若只先取{subject}一人试用，名册、担保和差遣边界都写清楚再报。"},
+                {"label": "先按下", "text": f"{subject}一事先按下，不许为了凑人手把来历不明的人塞进来。"},
+            ]
+        if kind == "castration":
+            return [
+                {"label": "问代价", "text": f"{target_text}净身入内廷一事，先说清名分、刀房、宝匣、外朝反弹和后续差遣。"},
+                {"label": "准照办", "text": f"若仍按方才所议处置{target_text}，手续、见证、入档都要可查，不许含糊。"},
+                {"label": "暂缓净身", "text": f"{target_text}净身之事暂缓，先不惊动净军房，把可替代的差遣和风险报上来。"},
+            ]
+        if kind == "mediation":
+            counterpart = str(pending.get("target") or pending.get("faction") or "对方").strip()
+            return [
+                {"label": "问边界", "text": f"若要你去调停{counterpart}，先说清双方各退哪一步，朕给你什么边界。"},
+                {"label": "准调停", "text": f"准你按方才所议去调停，但要留下可回奏的条件，不许只做和稀泥。"},
+                {"label": "不调停", "text": f"调停一事先按下，朕要先看证据和利害，不许替任何一边遮掩。"},
+            ]
+        if kind == "eunuch_care":
+            return [
+                {"label": "问旧患", "text": f"{target_text}旧患调养一事，先说清会误哪桩差、要动多少内库、几日能见效。"},
+                {"label": "准调养", "text": f"准给{target_text}先行调养或查验安置，但银钱、医官和复差日期都要入账。"},
+                {"label": "暂不动库", "text": f"{target_text}调养先不动内库，先报低耗安置和分班替手的办法。"},
+            ]
+        if kind == "eunuch_hard_service":
+            return [
+                {"label": "问误事", "text": f"若让{target_text}带着旧患照常办差，先说清会误在哪一步，谁替他兜底。"},
+                {"label": "照常派", "text": f"{target_text}仍照常派差，但要分清轻重，不许因旧患把密差办坏。"},
+                {"label": "改分差", "text": f"{target_text}不必硬撑，先改分差遣，把能办和不能办的边界列出来。"},
+            ]
+        if kind == "bao_leverage":
+            return [
+                {"label": "问宝案", "text": f"{target_text}宝匣一事，先说清封存、赐还或钳制各会换来什么后果。"},
+                {"label": "准处置", "text": f"准按方才宝案处置{target_text}，但封签、钥匙、账册和见证都要入档。"},
+                {"label": "暂封存", "text": f"{target_text}宝匣先封存，不赐还也不外泄，等朕看过账册再定。"},
+            ]
+        return []
+
+    def _merge_dialogue_suggestions(self, rows: List[Dict[str, Any]], *, limit: int = 8) -> List[Dict[str, Any]]:
+        merged: List[Dict[str, Any]] = []
+        seen: set[tuple[str, str]] = set()
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            label = str(row.get("label") or "").strip()[:8]
+            text = re.sub(r"\s+", " ", str(row.get("text") or "").strip())
+            if not label or not text:
+                continue
+            key = (label, text)
+            if key in seen:
+                continue
+            seen.add(key)
+            item: Dict[str, Any] = {"label": label, "text": text}
+            if row.get("prefix", True):
+                item["prefix"] = True
+            merged.append(item)
+            if len(merged) >= limit:
+                break
+        return merged
+
     def suggestions_for(self, character: Character) -> List[Dict[str, Any]]:
-        suggestions: List[Dict[str, Any]] = self._audience_stake_suggestions(character)
+        pending = self._load_pending_dialogue_action(character.name)
+        suggestions: List[Dict[str, Any]] = self._merge_dialogue_suggestions(
+            [
+                *self._dialogue_pending_action_suggestions(character, pending),
+                *self._audience_stake_suggestions(character),
+            ],
+            limit=8,
+        )
         if not suggestions:
             suggestions.extend([
                 {"label": "问在办", "text": "当前在办的事项里，哪几件轻重缓急最该先理？"},
@@ -7227,7 +7307,7 @@ class WebGame:
         for item in structural:
             if item["label"] not in labels:
                 suggestions.append(item)
-        natural = self._llm_contextual_suggestions(character, suggestions)
+        natural = self._llm_contextual_suggestions(character, suggestions, pending_action=pending)
         if natural:
             natural_labels = {str(item.get("label") or "") for item in natural}
             for item in structural:
@@ -7237,7 +7317,13 @@ class WebGame:
             return natural[:6]
         return suggestions[:6]
 
-    def _llm_contextual_suggestions(self, character: Character, seed_suggestions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _llm_contextual_suggestions(
+        self,
+        character: Character,
+        seed_suggestions: List[Dict[str, Any]],
+        *,
+        pending_action: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
         if os.environ.get("MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS", "").strip().lower() in ("1", "true", "yes"):
             return []
         if not seed_suggestions:
@@ -7245,7 +7331,10 @@ class WebGame:
         cache_key = ""
         try:
             history_tail = [
-                str(message.get("content") or "")[:180]
+                {
+                    "role": str(message.get("role") or "")[:20],
+                    "content": str(message.get("content") or "")[:220],
+                }
                 for message in self.chat_history.get(character.name, [])[-4:]
                 if isinstance(message, dict)
             ]
@@ -7262,6 +7351,11 @@ class WebGame:
                         for row in seed_suggestions[:8]
                     ],
                     "history": history_tail,
+                    "pending_action": {
+                        key: value
+                        for key, value in (pending_action or {}).items()
+                        if key in {"type", "target", "actor", "faction", "kind", "mode", "note", "scheme_text", "trigger_quote"}
+                    },
                 },
                 ensure_ascii=False,
                 sort_keys=True,
@@ -7284,6 +7378,8 @@ class WebGame:
                 self.state,
                 character,
                 seed_suggestions,
+                pending_action=pending_action if isinstance(pending_action, dict) else None,
+                live_recent_dialogue=history_tail,
                 llm_config=self.session.llm_config,
                 agno_db=self.session.agno_db,
                 audit_client=self.session.dialogue_audit_client,

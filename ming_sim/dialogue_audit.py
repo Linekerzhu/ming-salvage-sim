@@ -642,6 +642,10 @@ def _behavior_source_text(payload: Dict[str, object], extra_text: str = "") -> s
     for row in rows[-6:]:
         if isinstance(row, dict):
             parts.append(str(row.get("content") or "")[:360])
+    live_rows = payload.get("live_recent_dialogue") if isinstance(payload.get("live_recent_dialogue"), list) else []
+    for row in live_rows[-6:]:
+        if isinstance(row, dict):
+            parts.append(str(row.get("content") or "")[:360])
     favor_rows = _payload_favor_rows(payload)
     for row in favor_rows[:3]:
         parts.extend(str(row.get(field) or "") for field in ("title", "cause", "outcome"))
@@ -1019,13 +1023,15 @@ JSON 字段：
 
 DIALOGUE_SUGGESTIONS_PROMPT = """
 你是明末历史策略游戏的“自然奏对建议官”。你只输出 JSON，不写 Markdown。
-任务：根据 NPC、近期上下文、未完成目的、关系网、候选建议，生成 3-5 条像皇帝自然开口的话，而不是 UI 标签或机械快捷指令。
+任务：根据 NPC、近期上下文、未完成目的、关系网、待确认动作和候选建议，生成 3-5 条像皇帝自然开口的话，而不是 UI 标签或机械快捷指令。
 
 要求：
 - 每条 text 都应是玩家可以直接发给 NPC 的一句或两句自然问话/命令，符合上下文和人物处境。
 - label 只能 2-5 个汉字，像“问底线”“听实话”“要凭据”，不要出现“快捷、系统、机制、交账、问奖励、定下一手、御前交易”。
 - 不要把候选建议照抄成僵硬命令；可吸收其意图，换成真实语境。
 - 不要承诺已经执行动作；只提供玩家开口的自然方向。
+- 若 pending_action 非空，优先给出围绕该待办的自然回复：追问代价/证据、准许执行、暂缓作罢。不要让按钮还停在泛泛问政。
+- 净身、调养、宝匣、招募、调停等高风险待办必须写成皇帝真实会说的话，不要用“确认/取消/提交”这类 UI 词。
 - prefix 默认 true，除非这句话已经完整到不需补充。
 
 JSON 字段：
@@ -1293,6 +1299,8 @@ def dialogue_suggestions_audit(
     character: Character,
     seed_suggestions: List[Dict[str, object]],
     *,
+    pending_action: Optional[Dict[str, object]] = None,
+    live_recent_dialogue: Optional[List[Dict[str, object]]] = None,
     llm_config: Optional[LLMConfig] = None,
     agno_db: object = None,
     audit_client: object = None,
@@ -1305,6 +1313,19 @@ def dialogue_suggestions_audit(
             "prefix": bool(row.get("prefix", False)),
         }
         for row in (seed_suggestions or [])[:8]
+        if isinstance(row, dict)
+    ]
+    payload["pending_action"] = {
+        key: value
+        for key, value in (pending_action or {}).items()
+        if key in {"type", "target", "actor", "faction", "kind", "mode", "note", "scheme_text", "trigger_quote"}
+    }
+    payload["live_recent_dialogue"] = [
+        {
+            "role": _compact(row.get("role"), 20),
+            "content": _compact(row.get("content"), 360),
+        }
+        for row in (live_recent_dialogue or [])[-8:]
         if isinstance(row, dict)
     ]
     _attach_behavior_context(payload, character)

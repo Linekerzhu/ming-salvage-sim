@@ -519,7 +519,7 @@ AGREEMENT_REVIEWER_PROMPT = """
 def create_agreement_reviewer_agent(llm_config: LLMConfig, agno_db: SqliteDb) -> Agent:
     """奏对履约审计：判断条件是否满足、标的是否达成。一次性，不持久化。"""
     del agno_db
-    cfg = _llm_for_role(llm_config, "dialogue_audit")
+    cfg = _llm_for_role(llm_config, "agreement_review")
     return Agent(
         name="奏对履约审计官",
         id="agreement-reviewer",

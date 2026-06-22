@@ -98,7 +98,7 @@ class PerformanceOptimizationTests(unittest.TestCase):
         ):
             self.assertIn(pipeline_id, by_id)
 
-        self.assertEqual(advanced_llm_roles(), frozenset({"simulator", "extractor", "dialogue_audit"}))
+        self.assertEqual(advanced_llm_roles(), frozenset({"simulator", "extractor", "agreement_review"}))
         self.assertEqual(by_id["portrait.character_cutout"].failure_policy, "best_effort")
         self.assertEqual(by_id["admin.table_editor"].failure_policy, "dry_run_required")
         self.assertEqual(by_id["web.state_payload"].risk, "high")
@@ -133,7 +133,8 @@ class PerformanceOptimizationTests(unittest.TestCase):
 
         self.assertEqual(llm_config_for_role(cfg, "simulator").model, "strong-model")
         self.assertEqual(llm_config_for_role(cfg, "extractor").model, "strong-model")
-        self.assertEqual(llm_config_for_role(cfg, "dialogue_audit").model, "strong-model")
+        self.assertEqual(llm_config_for_role(cfg, "agreement_review").model, "strong-model")
+        self.assertEqual(llm_config_for_role(cfg, "dialogue_audit").model, "cheap-model")
         self.assertEqual(llm_config_for_role(cfg, "chapter_memory").model, "cheap-model")
 
         self.assertEqual(llm_output_token_budget("llm.season_simulator", cfg.max_tokens), 8000)

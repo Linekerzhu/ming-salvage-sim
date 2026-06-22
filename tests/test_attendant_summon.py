@@ -1516,6 +1516,53 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_llm_suggestions_include_pending_action_and_live_dialogue(self):
+        os.environ["MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            calls = []
+
+            def audit(phase, payload):
+                if phase != "dialogue_suggestions":
+                    return None
+                calls.append(payload)
+                pending = payload.get("pending_action") if isinstance(payload.get("pending_action"), dict) else {}
+                label = "看待办" if pending else "问近况"
+                text = f"朕要按当前语境追问。待办={pending.get('type', '')}；近话={len(payload.get('live_recent_dialogue') or [])}"
+                return {"suggestions": [{"label": label, "text": text, "prefix": True}]}
+
+            game.session.dialogue_audit_client = audit
+            game.chat_history[actor] = [{"role": "minister", "content": "臣方才只是先陈利害，尚待圣裁。"}]
+
+            first = game.suggestions_for(game.session._character(actor))
+            self.assertEqual(first[0]["label"], "问近况")
+
+            game._store_pending_dialogue_action(actor, {
+                "type": "castration",
+                "target": actor,
+                "scheme_text": "方才所议净身入内廷方案",
+            })
+            game.chat_history[actor].append({"role": "user", "content": "朕再想想，先把后果说透。"})
+
+            second = game.suggestions_for(game.session._character(actor))
+
+            self.assertEqual(second[0]["label"], "看待办")
+            self.assertGreaterEqual(len(calls), 2)
+            self.assertEqual(calls[-1]["pending_action"]["type"], "castration")
+            live_text = " ".join(str(row.get("content") or "") for row in calls[-1].get("live_recent_dialogue") or [])
+            self.assertIn("朕再想想", live_text)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_recruitment_requires_confirmation(self):
         game = web_app.WebGame(fresh=True)
         try:
