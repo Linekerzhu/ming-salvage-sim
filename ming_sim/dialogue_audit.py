@@ -209,10 +209,15 @@ def _recent_dialogue_rows(db: Any, minister_name: str, *, limit: int = 12) -> Li
     conn = getattr(db, "conn", None)
     if conn is None:
         return []
+    current_day = 0
+    try:
+        current_day = int(db._current_chat_day(0))  # type: ignore[attr-defined]
+    except Exception:
+        current_day = 0
     try:
         rows = conn.execute(
             """
-            SELECT turn, role, content
+            SELECT turn, day, role, content
             FROM chat_messages
             WHERE minister_name=?
             ORDER BY id DESC
@@ -221,14 +226,32 @@ def _recent_dialogue_rows(db: Any, minister_name: str, *, limit: int = 12) -> Li
             (str(minister_name or "").strip(), max(1, min(24, int(limit or 12)))),
         ).fetchall()
     except Exception:
-        return []
+        try:
+            rows = conn.execute(
+                """
+                SELECT turn, role, content
+                FROM chat_messages
+                WHERE minister_name=?
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (str(minister_name or "").strip(), max(1, min(24, int(limit or 12)))),
+            ).fetchall()
+        except Exception:
+            return []
     out: List[Dict[str, object]] = []
     for row in reversed(rows):
-        out.append({
+        item: Dict[str, object] = {
             "turn": int(row["turn"] or 0),
             "role": str(row["role"] or ""),
             "content": _compact(row["content"], 700),
-        })
+        }
+        if "day" in row.keys():
+            day = int(row["day"] or 0)
+            item["day"] = day
+            if current_day > 0 and day > 0:
+                item["days_ago"] = max(0, current_day - day)
+        out.append(item)
     return out
 
 
@@ -806,8 +829,20 @@ def _context_payload(db: Any, state: GameState, character: Character, *, active_
         favors = favor_memories(db, character.name, limit=3)
     except Exception:
         favors = []
+    try:
+        from ming_sim.upgrade_schema import get_current_day
+        current_day = int(get_current_day(db, int(state.turn)))
+        temporal = db.audience_temporal_context(
+            character.name,
+            current_turn=int(state.turn),
+            current_day=current_day,
+            exclude_current_user=True,
+        )
+    except Exception:
+        temporal = {}
     return {
         "turn": {"year": state.year, "period": state.period, "turn": state.turn},
+        "audience_temporal_context": temporal if isinstance(temporal, dict) else {},
         "npc": {
             "name": character.name,
             "office": character.office,
@@ -1009,6 +1044,7 @@ PRE_AUDIT_PROMPT = """
 - title 必须是可读短题；target_text 必须是可检验的心理标的，例如“本人接受吏部任职安排”“本人同意密查并只向御前回报”。
 - action_kind 选择：personnel=任职/调任/接受官职；secret_order=密查/密办/秘密回报；policy=承办/支持政策；court_commitment=举荐/背书/调停/守口；castration/emancipation=身份转换；general 只用于 none。
 - goal_relation 是与 active_goal 的关系：same_goal=继续原目标；refine_goal=同一目标的细化/修正；distinct_goal=另起目标；abandon_goal=放弃原目标；无 active_goal 时用 distinct_goal 或 none。
+- audience_temporal_context 说明本次召对距上次召对多久；“刚才/上回/久未召见/此事”必须按该时间解释，不要把隔了多日或隔月的旧话当作同席刚说。
 - 同一 NPC 围绕同一官职/同一差事/同一条件边界继续谈，即便措辞像“要你做兵部尚书”“如何才肯接兵部”，也应输出 continue + refine_goal，而不是 new/switch。
 - 判断“同一件事”优先看政治对象、承办人、目标结果、条件标的和上下文指代，不要依赖字面重合；“此事/照你说的/刚才/条件已给/明旨已下”要结合 recent_dialogue 和 active_goal 解读。
 
@@ -1055,6 +1091,7 @@ POST_AUDIT_PROMPT = """
 - NPC 告状、构陷、甩锅、误导玩家时，stance 可为 support/caution/oppose，但 private_reason 必须写明这是“话术/风险”，不要把所有话都当事实。
 - conditional 只能用于 NPC 提出可验证条件、边界或交换；conditions 要写成未来可审计条目。
 - sealed 需要 NPC 对 target_text 有明确承诺、清楚接受，或 waiting 条件已被证据满足。
+- audience_temporal_context 说明本次召对距上次召对多久；裁定“刚才/上回/此事/久未回报”等指代时必须参考它，隔了多日时可判为追问旧事或履约压力，而非同席续句。
 - 若本轮只是把同一 active_goal 从粗目标细化为具体官职/授权/名分/条件，输出 goal_relation=refine_goal，并把 title/target_text 改成修订后的版本；不要创建多个 goal。
 - 若确属另一个目标，输出 goal_relation=distinct_goal；若旧目标应让位，goal_decision=switch。
 - 若 active_goal 正在 waiting_conditions，而玩家/NPC 原文表明要求的明旨、授权、人手、钱粮、名分、保全、期限等已经给足，conditions 对应项应标 done；NPC 随即接受标的时可 sealed。

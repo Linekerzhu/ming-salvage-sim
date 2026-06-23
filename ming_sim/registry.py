@@ -279,6 +279,23 @@ def build_personal_chat_memory_brief(character: Character, context: CourtContext
             parts.append("风险=" + "、".join(str(tag) for tag in risk_tags[:3]))
         return "；关系=" + "，".join(parts) if parts else ""
 
+    def time_label(row: Dict[str, object]) -> str:
+        turn = int(row.get("turn") or 0)
+        day = int(row.get("day") or 0)
+        days_ago = row.get("days_ago")
+        if day > 0:
+            try:
+                from ming_sim.upgrade_schema import day_in_month
+                base = f"第{turn}回合第{day_in_month(day)}日"
+            except Exception:
+                base = f"第{turn}回合第{day}日"
+            if isinstance(days_ago, int):
+                if days_ago == 0:
+                    return f"{base}，同日"
+                return f"{base}，距今{days_ago}日"
+            return base
+        return f"第{turn}回合"
+
     lines = ["【近来与你有关的召对记忆（隐藏；用于接续，不要逐字复述）】"]
     direct_count = 0
     mention_count = 0
@@ -286,21 +303,21 @@ def build_personal_chat_memory_brief(character: Character, context: CourtContext
         content = compact(row.get("content"))
         if not content:
             continue
-        turn = int(row.get("turn") or 0)
         speaker = str(row.get("minister_name") or "")
         role = str(row.get("role") or "")
+        when = time_label(row)
         if row.get("direct"):
             if direct_count >= 5:
                 continue
             actor = "皇帝问" if role == "user" else "你答"
-            lines.append(f"- 你与皇帝（第{turn}回合，{actor}）：{content}")
+            lines.append(f"- 你与皇帝（{when}，{actor}）：{content}")
             direct_count += 1
         else:
             if mention_count >= 4:
                 continue
             actor = "皇帝问及" if role == "user" else f"{speaker}奏及"
             relation_hint = relation_memory_hint(speaker)
-            lines.append(f"- 朝房风闻（第{turn}回合，召见{speaker}时{actor}你{relation_hint}）：{content}")
+            lines.append(f"- 朝房风闻（{when}，召见{speaker}时{actor}你{relation_hint}）：{content}")
             mention_count += 1
     if len(lines) == 1:
         return ""

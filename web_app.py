@@ -6622,6 +6622,80 @@ class WebGame:
             "state": self.state_payload(),
         }
 
+    def _current_audience_day(self) -> int:
+        try:
+            from ming_sim.upgrade_schema import get_current_day
+            return int(get_current_day(self.db, int(self.state.turn)))
+        except Exception:
+            try:
+                return int(self.db.kv_get("upgrade.current_day") or 0)
+            except Exception:
+                return 0
+
+    def _audience_time_brief(self, minister_name: str, current_day: int = 0) -> str:
+        day_now = int(current_day or 0)
+        if day_now <= 0:
+            day_now = self._current_audience_day()
+        try:
+            temporal = self.db.audience_temporal_context(
+                minister_name,
+                current_turn=int(self.state.turn),
+                current_day=day_now,
+            )
+        except Exception:
+            temporal = {"has_prior_audience": False, "current_day": day_now}
+        try:
+            from ming_sim.upgrade_schema import day_in_month, day_to_ym
+            year, month = day_to_ym(day_now) if day_now > 0 else (int(self.state.year), int(self.state.period))
+            day_label = f"{year}年{month}月第{day_in_month(day_now)}日" if day_now > 0 else f"{self.state.year}年{self.state.period}月"
+        except Exception:
+            day_label = f"{self.state.year}年{self.state.period}月"
+        lines = [
+            "【本次召对时间（隐藏；用于角色语气、记忆余温与指代解析，不要原样说出）】",
+            f"- 当前：{day_label}，第{int(self.state.turn)}回合。",
+        ]
+        if not temporal.get("has_prior_audience"):
+            lines.append(f"- 上次召对{minister_name}：未见此前记录；按首次或久未正式召见处理。")
+        else:
+            days_since = temporal.get("days_since_last_audience")
+            last_turn = int(temporal.get("last_turn") or 0)
+            last_day = int(temporal.get("last_day") or 0)
+            last_excerpt = str(temporal.get("last_excerpt") or "").strip()
+            if isinstance(days_since, int):
+                if days_since == 0:
+                    gap = "同日刚刚谈过，可自然承接方才话头"
+                elif days_since <= 3:
+                    gap = f"距今{days_since}日，情绪和承诺仍有余温"
+                elif days_since <= 10:
+                    gap = f"距今{days_since}日，应体现事态已有推进或拖延"
+                else:
+                    gap = f"距今{days_since}日，不要当作刚才同席之语，应考虑时移势变、怨望或期待变化"
+            else:
+                gap = "间隔不明；不要武断说成刚才"
+            try:
+                from ming_sim.upgrade_schema import day_in_month
+                last_when = f"第{last_turn}回合第{day_in_month(last_day)}日" if last_day > 0 else f"第{last_turn}回合"
+            except Exception:
+                last_when = f"第{last_turn}回合"
+            lines.append(f"- 上次召对{minister_name}：{last_when}，{gap}。")
+            if last_excerpt:
+                lines.append(f"- 上次片段：{last_excerpt}")
+        lines.append("- 解释规则：同日可接“方才”；隔数日可带余温；隔十日以上需承认事情已过一段时间，NPC 的态度、疑惧、催促或冷淡可以变化。")
+        return "\n".join(lines)
+
+    def _chat_supplemental_context(
+        self,
+        minister_name: str,
+        context: Optional[Dict[str, Any]],
+        *,
+        current_day: int = 0,
+    ) -> str:
+        parts = [
+            self._audience_time_brief(minister_name, current_day),
+            self._chat_context_brief(minister_name, context),
+        ]
+        return "\n\n".join(part for part in parts if str(part or "").strip())
+
     def _chat_payload(
         self,
         minister_name: str,
@@ -6640,6 +6714,7 @@ class WebGame:
         directive_effect: Optional[Dict[str, Any]] = None,
         dialogue_effect: Optional[Dict[str, Any]] = None,
         chat_turn_id: int = 0,
+        chat_day: int = 0,
         dialogue_goal: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         character = self.session._character(minister_name)
@@ -6674,6 +6749,7 @@ class WebGame:
                 "minister",
                 display_answer,
                 stage_directions=stage_directions[:4],
+                day=chat_day,
             )
             if chat_turn_id:
                 self.db.update_chat_turn_messages(chat_turn_id, minister_message_id=message_id)
@@ -7489,6 +7565,7 @@ class WebGame:
         if not text:
             raise HTTPException(status_code=400, detail="问话不能为空。")
         character = self.session._character(minister_name)
+        current_day = self._current_audience_day()
         chat_turn_id = 0
         before_snapshot: Dict[str, Any] = {}
         history_before_len = len(self.chat_history.get(minister_name, []))
@@ -7496,7 +7573,7 @@ class WebGame:
             chat_turn_id, before_snapshot = self._start_chat_turn(minister_name)
         self.chat_history.setdefault(minister_name, []).append({"role": "user", "content": text})
         if minister_name not in self.session.temporary_characters:
-            message_id = self.db.append_chat_message(minister_name, self.state.turn, "user", text)
+            message_id = self.db.append_chat_message(minister_name, self.state.turn, "user", text, day=current_day)
             if chat_turn_id:
                 self.db.update_chat_turn_messages(chat_turn_id, user_message_id=message_id)
         user_lore_effect = self._eunuch_lore_dialogue_effect(
@@ -7529,6 +7606,7 @@ class WebGame:
                 ),
                 dialogue_goal=dialogue_response.get("dialogue_goal") if isinstance(dialogue_response.get("dialogue_goal"), dict) else None,
                 chat_turn_id=chat_turn_id,
+                chat_day=current_day,
             )
         if user_lore_effect:
             answer = f"{self._dialogue_speaker_self(minister_name)}遵旨，已按陛下所述补入内廷旧档。"
@@ -7538,8 +7616,9 @@ class WebGame:
                 answer,
                 dialogue_effect=user_lore_effect,
                 chat_turn_id=chat_turn_id,
+                chat_day=current_day,
             )
-        context_brief = self._chat_context_brief(minister_name, context)
+        context_brief = self._chat_supplemental_context(minister_name, context, current_day=current_day)
         try:
             result = self.session.chat(
                 minister_name,
@@ -7624,6 +7703,7 @@ class WebGame:
             directive_effect=directive_effect,
             dialogue_effect=dialogue_effect,
             chat_turn_id=chat_turn_id,
+            chat_day=current_day,
             dialogue_goal=result.dialogue_goal,
         )
 
@@ -7635,6 +7715,7 @@ class WebGame:
         if not text:
             yield {"type": "error", "message": "问话不能为空。"}
             return
+        current_day = self._current_audience_day()
         chat_turn_id = 0
         before_snapshot: Dict[str, Any] = {}
         history_before_len = len(self.chat_history.get(minister_name, []))
@@ -7642,7 +7723,7 @@ class WebGame:
             chat_turn_id, before_snapshot = self._start_chat_turn(minister_name)
         self.chat_history.setdefault(minister_name, []).append({"role": "user", "content": text})
         if minister_name not in self.session.temporary_characters:
-            message_id = self.db.append_chat_message(minister_name, self.state.turn, "user", text)
+            message_id = self.db.append_chat_message(minister_name, self.state.turn, "user", text, day=current_day)
             if chat_turn_id:
                 self.db.update_chat_turn_messages(chat_turn_id, user_message_id=message_id)
         user_lore_effect = self._eunuch_lore_dialogue_effect(
@@ -7676,6 +7757,7 @@ class WebGame:
                 ),
                 dialogue_goal=dialogue_response.get("dialogue_goal") if isinstance(dialogue_response.get("dialogue_goal"), dict) else None,
                 chat_turn_id=chat_turn_id,
+                chat_day=current_day,
             )
             yield {"type": "done", "payload": payload}
             return
@@ -7688,12 +7770,13 @@ class WebGame:
                 answer,
                 dialogue_effect=user_lore_effect,
                 chat_turn_id=chat_turn_id,
+                chat_day=current_day,
             )
             yield {"type": "done", "payload": payload}
             return
         character = self.session._character(minister_name)
         chunks: List[str] = []
-        context_brief = self._chat_context_brief(minister_name, context)
+        context_brief = self._chat_supplemental_context(minister_name, context, current_day=current_day)
         try:
             if self.session.registry is None:
                 raise RuntimeError("GameSession.begin_turn() 未调用。")
@@ -7918,6 +8001,7 @@ class WebGame:
                 directive_effect=directive_effect,
                 dialogue_effect=dialogue_effect,
                 chat_turn_id=chat_turn_id,
+                chat_day=current_day,
                 dialogue_goal=dialogue_goal,
             )
             yield {"type": "done", "payload": payload}

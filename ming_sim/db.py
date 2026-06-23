@@ -486,6 +486,7 @@ class GameDB:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 minister_name TEXT NOT NULL,
                 turn INTEGER NOT NULL,
+                day INTEGER NOT NULL DEFAULT 0,
                 role TEXT NOT NULL,
                 content TEXT NOT NULL,
                 stage_directions TEXT NOT NULL DEFAULT '[]',
@@ -509,6 +510,7 @@ class GameDB:
                 agno_session_id TEXT NOT NULL DEFAULT '',
                 agno_runs_before INTEGER NOT NULL DEFAULT 0,
                 status TEXT NOT NULL DEFAULT 'active',
+                created_day INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 undone_at TEXT
             );
@@ -1002,6 +1004,8 @@ class GameDB:
         self.ensure_column("economy_ledger", "target_kind", "TEXT")
         self.ensure_column("economy_ledger", "target_id", "TEXT")
         self.ensure_column("chat_messages", "stage_directions", "TEXT NOT NULL DEFAULT '[]'")
+        self.ensure_column("chat_messages", "day", "INTEGER NOT NULL DEFAULT 0")
+        self.ensure_column("chat_turns", "created_day", "INTEGER NOT NULL DEFAULT 0")
         # 政治黑板：召对证据与月末成因札记。旧档为空，前端按缺省隐藏。
         self.ensure_column("minister_stances", "evidence_json", "TEXT NOT NULL DEFAULT '{}'")
         self.ensure_column("minister_stances", "risk_tags", "TEXT NOT NULL DEFAULT ''")
@@ -4143,15 +4147,126 @@ class GameDB:
         role: str,
         content: str,
         stage_directions: Optional[List[str]] = None,
+        day: int = 0,
     ) -> int:
         """召对聊天单条消息落库（chat_messages）。"""
         stage_json = json.dumps(self._chat_stage_list(stage_directions or []), ensure_ascii=False)
+        day_value = int(day or 0)
+        if day_value <= 0:
+            day_value = self._current_chat_day(turn)
         cur = self.conn.execute(
-            "INSERT INTO chat_messages (minister_name, turn, role, content, stage_directions) VALUES (?, ?, ?, ?, ?)",
-            (minister_name, turn, role, content, stage_json),
+            "INSERT INTO chat_messages (minister_name, turn, day, role, content, stage_directions) VALUES (?, ?, ?, ?, ?, ?)",
+            (minister_name, turn, day_value, role, content, stage_json),
         )
         self.conn.commit()
         return int(cur.lastrowid)
+
+    def _current_chat_day(self, turn: int = 0) -> int:
+        try:
+            from ming_sim.upgrade_schema import get_current_day
+            return int(get_current_day(self, int(turn or 0)))
+        except Exception:
+            try:
+                return int(self.kv_get("upgrade.current_day") or 0)
+            except (TypeError, ValueError):
+                return 0
+
+    def last_chat_message_for_minister(
+        self,
+        minister_name: str,
+        *,
+        current_day: int = 0,
+        exclude_current_user: bool = False,
+    ) -> Optional[Dict[str, Any]]:
+        """Return the latest persisted audience row for one NPC.
+
+        exclude_current_user is useful after the current user utterance has
+        already been inserted; it prevents "last audience" from pointing at the
+        sentence being audited right now.
+        """
+        name = str(minister_name or "").strip()
+        if not name:
+            return None
+        try:
+            rows = self.conn.execute(
+                """
+                SELECT id, turn, day, role, content, created_at
+                FROM chat_messages
+                WHERE minister_name=?
+                ORDER BY id DESC
+                LIMIT 8
+                """,
+                (name,),
+            ).fetchall()
+        except Exception:
+            return None
+        now_day = int(current_day or 0)
+        for row in rows:
+            payload = self._row_dict(row)
+            row_day = int(payload.get("day") or 0)
+            row_role = str(payload.get("role") or "")
+            if exclude_current_user and row_role == "user" and now_day > 0 and row_day == now_day:
+                continue
+            return payload
+        return None
+
+    def audience_temporal_context(
+        self,
+        minister_name: str,
+        *,
+        current_turn: int = 0,
+        current_day: int = 0,
+        exclude_current_user: bool = False,
+    ) -> Dict[str, Any]:
+        """Shared time context for audience LLM prompts and dialogue audit."""
+        day_now = int(current_day or 0)
+        if day_now <= 0:
+            day_now = self._current_chat_day(current_turn)
+        latest = self.last_chat_message_for_minister(
+            minister_name,
+            current_day=day_now,
+            exclude_current_user=exclude_current_user,
+        )
+        if latest is None:
+            return {
+                "current_turn": int(current_turn or 0),
+                "current_day": day_now,
+                "has_prior_audience": False,
+                "continuity_tone": "no_prior",
+                "days_since_last_audience": None,
+                "last_turn": 0,
+                "last_day": 0,
+                "last_role": "",
+                "last_excerpt": "",
+            }
+        last_day = int(latest.get("day") or 0)
+        days_since: Optional[int] = None
+        if day_now > 0 and last_day > 0:
+            days_since = max(0, day_now - last_day)
+        if days_since is None:
+            tone = "unknown"
+        elif days_since == 0:
+            tone = "same_day"
+        elif days_since <= 3:
+            tone = "recent"
+        elif days_since <= 10:
+            tone = "warm"
+        elif days_since <= 30:
+            tone = "stale"
+        else:
+            tone = "old"
+        excerpt = re.sub(r"\s+", " ", str(latest.get("content") or "").strip())
+        return {
+            "current_turn": int(current_turn or 0),
+            "current_day": day_now,
+            "has_prior_audience": True,
+            "continuity_tone": tone,
+            "days_since_last_audience": days_since,
+            "last_turn": int(latest.get("turn") or 0),
+            "last_day": last_day,
+            "last_role": str(latest.get("role") or ""),
+            "last_excerpt": excerpt[:160],
+        }
 
     def _chat_message_payload_row(self, row: sqlite3.Row) -> Dict[str, Any]:
         item: Dict[str, Any] = {"role": row["role"], "content": row["content"]}
@@ -7641,7 +7756,7 @@ class GameDB:
         mention_clauses = " OR ".join("content LIKE ? ESCAPE '\\'" for _ in mention_terms)
         rows = self.conn.execute(
             f"""
-            SELECT id, turn, minister_name, role, content
+            SELECT id, turn, day, minister_name, role, content
             FROM chat_messages
             WHERE turn BETWEEN ? AND ?
               AND (minister_name IN ({direct_placeholders}) OR {mention_clauses})
@@ -7657,10 +7772,16 @@ class GameDB:
             ),
         ).fetchall()
         direct_names = set(mention_terms)
+        current_day = self._current_chat_day(upto_turn)
         return [
             {
                 "id": int(row["id"]),
                 "turn": int(row["turn"]),
+                "day": int(row["day"] or 0),
+                "days_ago": (
+                    max(0, current_day - int(row["day"] or 0))
+                    if current_day > 0 and int(row["day"] or 0) > 0 else None
+                ),
                 "minister_name": str(row["minister_name"] or ""),
                 "role": str(row["role"] or ""),
                 "content": str(row["content"] or ""),
