@@ -6739,6 +6739,8 @@ class WebGame:
             stage_directions.extend(self._fallback_eunuch_stage_directions(minister_name, answer))
         display_answer = self._chat_display_text(answer, stage_directions[:4]) if stage_directions else str(answer or "").strip()
         minister_message: Dict[str, Any] = {"role": "minister", "content": display_answer}
+        if chat_day > 0:
+            minister_message["day"] = int(chat_day)
         if stage_directions:
             minister_message["stage_directions"] = stage_directions[:4]
         self.chat_history[minister_name].append(minister_message)
@@ -7571,7 +7573,10 @@ class WebGame:
         history_before_len = len(self.chat_history.get(minister_name, []))
         if self._persistent_chat_minister(minister_name):
             chat_turn_id, before_snapshot = self._start_chat_turn(minister_name)
-        self.chat_history.setdefault(minister_name, []).append({"role": "user", "content": text})
+        user_message: Dict[str, Any] = {"role": "user", "content": text}
+        if current_day > 0:
+            user_message["day"] = int(current_day)
+        self.chat_history.setdefault(minister_name, []).append(user_message)
         if minister_name not in self.session.temporary_characters:
             message_id = self.db.append_chat_message(minister_name, self.state.turn, "user", text, day=current_day)
             if chat_turn_id:
@@ -7721,7 +7726,10 @@ class WebGame:
         history_before_len = len(self.chat_history.get(minister_name, []))
         if self._persistent_chat_minister(minister_name):
             chat_turn_id, before_snapshot = self._start_chat_turn(minister_name)
-        self.chat_history.setdefault(minister_name, []).append({"role": "user", "content": text})
+        user_message: Dict[str, Any] = {"role": "user", "content": text}
+        if current_day > 0:
+            user_message["day"] = int(current_day)
+        self.chat_history.setdefault(minister_name, []).append(user_message)
         if minister_name not in self.session.temporary_characters:
             message_id = self.db.append_chat_message(minister_name, self.state.turn, "user", text, day=current_day)
             if chat_turn_id:

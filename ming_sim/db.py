@@ -4270,6 +4270,10 @@ class GameDB:
 
     def _chat_message_payload_row(self, row: sqlite3.Row) -> Dict[str, Any]:
         item: Dict[str, Any] = {"role": row["role"], "content": row["content"]}
+        if "day" in row.keys():
+            day = int(row["day"] or 0)
+            if day > 0:
+                item["day"] = day
         stages = self._chat_stage_list(row["stage_directions"] if "stage_directions" in row.keys() else "[]")
         if stages:
             item["stage_directions"] = stages
@@ -4278,7 +4282,7 @@ class GameDB:
     def load_all_chat_history(self) -> Dict[str, List[Dict[str, Any]]]:
         """读出全部召对记录，按大臣分组，供进程启动时恢复内存缓存。"""
         rows = self.conn.execute(
-            "SELECT minister_name, role, content, stage_directions FROM chat_messages ORDER BY id"
+            "SELECT minister_name, day, role, content, stage_directions FROM chat_messages ORDER BY id"
         ).fetchall()
         history: Dict[str, List[Dict[str, Any]]] = {}
         for row in rows:
@@ -4294,9 +4298,10 @@ class GameDB:
         try:
             rows = self.conn.execute(
                 """
-                SELECT minister_name, role, content, stage_directions FROM (
+                SELECT minister_name, day, role, content, stage_directions FROM (
                     SELECT
                         minister_name,
+                        day,
                         role,
                         content,
                         stage_directions,
@@ -4310,7 +4315,7 @@ class GameDB:
             ).fetchall()
         except sqlite3.DatabaseError:
             rows = self.conn.execute(
-                "SELECT minister_name, role, content, stage_directions FROM chat_messages ORDER BY id"
+                "SELECT minister_name, day, role, content, stage_directions FROM chat_messages ORDER BY id"
             ).fetchall()
             trimmed: Dict[str, List[Any]] = {}
             for row in rows:

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { loadChat, streamChat } from "./api";
 import { Portrait } from "./Portrait";
 import type { ChatContext, ChatMention, ChatMessage, ChatResponse, Suggestion, Tab } from "./api";
@@ -110,6 +110,22 @@ function renderMentionedText(
       </button>
     ) : segment.text
   ));
+}
+
+function messageDay(message: ChatMessage | undefined): number {
+  const day = Number(message?.day || 0);
+  return Number.isFinite(day) && day > 0 ? Math.floor(day) : 0;
+}
+
+function audienceGapDays(messages: ChatMessage[], index: number): number {
+  const currentDay = messageDay(messages[index]);
+  if (!currentDay) return 0;
+  for (let i = index - 1; i >= 0; i -= 1) {
+    const previousDay = messageDay(messages[i]);
+    if (!previousDay) continue;
+    return Math.max(0, currentDay - previousDay);
+  }
+  return 0;
 }
 
 // 复用于「随侍太监」与「被传召大臣」的对话气泡 UI。
@@ -282,36 +298,47 @@ export function ChatPane({
   void suggestionsLoaded;
   const visibleSuggestions = suggestions.filter(isNaturalSuggestion).slice(0, Math.max(0, suggestionLimit));
   const transientMessages = messages.length === 0 ? localMessages : EMPTY_LOCAL_MESSAGES;
+  const renderedMessages = [...messages, ...transientMessages];
   const showArrival = Boolean(arrivalNote && messages.length === 0);
 
   return (
     <div className={`m-chat${compact ? " is-compact" : ""}`}>
       {showArrival && <div className="m-arrival">{arrivalNote}</div>}
       <div className="m-chat-scroll" ref={scrollRef}>
-        {messages.length + transientMessages.length === 0 && !streaming && <p className="m-empty">尚未开问。</p>}
-        {[...messages, ...transientMessages].map((m, i) => (
-          m.role === "user" ? (
-            <div key={i} className="m-bubble is-emperor">
-              <span className="m-bubble-who">朕</span>
-              <p className="m-bubble-text">{renderMentionedText(m.content, m.mentions, onOpenPerson)}</p>
-            </div>
-          ) : (
-            <div key={i} className="m-chat-block is-other">
-              {m.stage_directions?.length ? (
-                <div className="m-stage-cue" aria-label={`${speakerLabel}动作神态`}>
-                  {m.stage_directions.slice(0, 3).map((line, idx) => <span key={idx}>{line}</span>)}
+        {renderedMessages.length === 0 && !streaming && <p className="m-empty">尚未开问。</p>}
+        {renderedMessages.map((m, i) => {
+          const gapDays = audienceGapDays(renderedMessages, i);
+          return (
+            <Fragment key={i}>
+              {gapDays >= 1 && (
+                <div className="m-chat-day-gap" aria-label={`距离上次召对${gapDays}天`}>
+                  <span>——距离上次召对{gapDays}天——</span>
                 </div>
-              ) : null}
-              <div className="m-bubble-row">
-                <Portrait name={name} size={32} />
-                <div className="m-bubble is-other">
-                  <span className="m-bubble-who">{speakerLabel}</span>
-                  <p className="m-bubble-text">{renderMentionedText(cleanDisplayText(stripStageText(m.content, m.stage_directions)), m.mentions, onOpenPerson)}</p>
+              )}
+              {m.role === "user" ? (
+                <div className="m-bubble is-emperor">
+                  <span className="m-bubble-who">朕</span>
+                  <p className="m-bubble-text">{renderMentionedText(m.content, m.mentions, onOpenPerson)}</p>
                 </div>
-              </div>
-            </div>
-          )
-        ))}
+              ) : (
+                <div className="m-chat-block is-other">
+                  {m.stage_directions?.length ? (
+                    <div className="m-stage-cue" aria-label={`${speakerLabel}动作神态`}>
+                      {m.stage_directions.slice(0, 3).map((line, idx) => <span key={idx}>{line}</span>)}
+                    </div>
+                  ) : null}
+                  <div className="m-bubble-row">
+                    <Portrait name={name} size={32} />
+                    <div className="m-bubble is-other">
+                      <span className="m-bubble-who">{speakerLabel}</span>
+                      <p className="m-bubble-text">{renderMentionedText(cleanDisplayText(stripStageText(m.content, m.stage_directions)), m.mentions, onOpenPerson)}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </Fragment>
+          );
+        })}
         {streaming && (
           <div className="m-bubble-row">
             <Portrait name={name} size={32} />

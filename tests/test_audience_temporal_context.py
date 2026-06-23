@@ -42,6 +42,17 @@ class AudienceTemporalContextTests(unittest.TestCase):
             self.assertIn("距今7日", brief)
             self.assertIn("户部旧账线索", brief)
 
+    def test_recent_chat_history_exposes_game_day_for_ui_separators(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            db.append_chat_message("韩爌", state.turn, "user", "今日先议此事。", day=4)
+            db.append_chat_message("韩爌", state.turn, "minister", "臣谨记。", day=4)
+            db.append_chat_message("韩爌", state.turn, "user", "隔日再问，卿办得如何？", day=7)
+
+            history = db.load_recent_chat_history(limit_per_minister=10)["韩爌"]
+
+            self.assertEqual([row.get("day") for row in history], [4, 4, 7])
+
 
 if __name__ == "__main__":
     unittest.main()

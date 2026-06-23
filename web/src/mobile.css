@@ -683,6 +683,19 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .m-bubble { max-width: 84%; padding: 9px 13px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
 .m-bubble-who { display: block; font-size: 0.68rem; opacity: .7; margin-bottom: 2px; }
 .m-chat-block { display: flex; flex-direction: column; gap: 4px; align-self: flex-start; max-width: 92%; min-width: 0; }
+.m-chat-day-gap {
+  align-self: stretch; display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin: 4px 0 2px; color: rgba(215, 190, 135, .7); font-size: .72rem; font-weight: 800; letter-spacing: 0;
+}
+.m-chat-day-gap::before,
+.m-chat-day-gap::after {
+  content: ""; flex: 1 1 24px; max-width: 110px; height: 1px;
+  background: linear-gradient(90deg, rgba(181,134,58,0), rgba(181,134,58,.34));
+}
+.m-chat-day-gap::after { background: linear-gradient(90deg, rgba(181,134,58,.34), rgba(181,134,58,0)); }
+.m-chat-day-gap span {
+  flex: 0 1 auto; max-width: min(70%, 260px); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .m-stage-cue {
   margin-left: 40px; max-width: calc(100% - 40px); display: flex; flex-direction: column; gap: 2px;
   color: rgba(215, 190, 135, .66); font-size: .7rem; line-height: 1.32; letter-spacing: 0;

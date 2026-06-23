@@ -610,7 +610,7 @@ export type ChatMention = {
   has_profile?: boolean;
   office?: string;
 };
-export type ChatMessage = { role: string; content: string; mentions?: ChatMention[]; stage_directions?: string[] };
+export type ChatMessage = { role: string; content: string; day?: number; mentions?: ChatMention[]; stage_directions?: string[] };
 export type Suggestion = { label: string; text: string; prefix?: boolean };
 export type PublicCharacter = Record<string, any> & { name: string; office?: string; portrait_id?: string };
 
