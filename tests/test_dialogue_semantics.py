@@ -520,6 +520,7 @@ class DialogueSemanticEngineTests(unittest.TestCase):
                         "threshold": 70,
                         "agreement_action": "create_pending",
                         "tasks": ["三日内查明内库旧账并回奏证据"],
+                        "trigger_quote": "替朕查明内库旧账",
                         "public_hint": "韩爌已领查账之约。",
                         "confidence": 96,
                     }
@@ -585,6 +586,7 @@ class DialogueSemanticEngineTests(unittest.TestCase):
                         "threshold": 70,
                         "agreement_action": "create_pending",
                         "tasks": ["请太医调理韩爌尿闭漏尿旧患", "回奏调养后差遣风险"],
+                        "trigger_quote": "朕准你请太医调养旧患",
                         "public_hint": "韩爌调养旧患已入履约账。",
                         "confidence": 95,
                     }

@@ -1241,6 +1241,7 @@ POST_AUDIT_PROMPT = """
 - NPC 告状、构陷、甩锅、误导玩家时，stance 可为 support/caution/oppose，但 private_reason 必须写明这是“话术/风险”，不要把所有话都当事实。
 - conditional 只能用于 NPC 提出可验证条件、边界或交换但双方尚未约定；conditions 要写成未来可审计条目。若双方已经约定这些条件，使用 sealed + create_pending，并把待办写入 tasks。
 - sealed 需要 NPC 对 target_text 有明确承诺、清楚接受，或 waiting 条件已被证据满足。
+- sealed、agreement_formed=true、agreement_action=create_achieved/create_pending/bind_existing、或 card_resolution 非空时，必须填写 trigger_quote，且 trigger_quote 必须逐字引用玩家本轮原话中能证明“皇帝接受/下令/给条件/批准/拒绝/划边界”的短句；只有 NPC 回复自称愿办、主动承诺或自行解释，玩家本轮没有对应同意/要求/处置原话时，不得判 sealed 或清掉 briefing card。
 - audience_temporal_context 说明本次召对距上次召对多久；裁定“刚才/上回/此事/久未回报”等指代时必须参考它，隔了多日时可判为追问旧事或履约压力，而非同席续句。
 - briefing_context 若存在，表示玩家从某张“朝局风向”卡进入本轮召对。你要判断这张卡是否被本轮语义处理：双方约定则 sealed + create_pending/create_achieved；明确驳回、免除、撤回担保或划死边界则 blocked/none 并在 performance_status/card_resolution 写 rejected/waived/blocked；只是继续询问则不要写已处理。
 - 若本轮只是把同一 active_goal 从粗目标细化为具体官职/授权/名分/条件，输出 goal_relation=refine_goal，并把 title/target_text 改成修订后的版本；不要创建多个 goal。
@@ -1277,7 +1278,7 @@ JSON 字段：
   "performance_status": "none|pending|fulfilled|blocked|rejected|waived",
   "card_resolution": "handled|pending|fulfilled|blocked|rejected|waived|",
   "immediate_consequence": false,
-  "trigger_quote": "immediate_consequence=true 或 directive_action=propose_pending 时引用玩家本轮原话短句；否则空字符串",
+  "trigger_quote": "immediate_consequence=true、directive_action=propose_pending、sealed/agreement/card_resolution 时引用玩家本轮原话短句；否则空字符串",
   "character_status_changes": [{"name":"目标姓名","status":"imprisoned|exiled|dead|dismissed|retired|offstage|castrated","reason":"原文证据","agency":"锦衣卫|刑部|都察院|内廷|其他","facility":"北镇抚司昭狱|刑部大牢|诏狱|其他","coercion_goal":"逼供/迫使奉旨/株连线索/其他","severity":1}],
   "condition_changes": [{"name":"目标姓名","kind":"punishment|prison_effect|disease|injury|disability|terminal","system":"speech|nervous|circulatory|respiratory|digestive|musculoskeletal|urinary|reproductive|skin|mental|general","label":"病历短名","severity":1,"stage":"mild|serious|critical|disabled|chronic|dead","reason":"原文证据","effects":{"speech":"口齿含混等能力影响","record_group":"organic|pathological|psychological|other","organ":"器官/肢体","side":"左|右","state":"状态","function":"功能","impact":"影响","course_kind":"acute|chronic","possible_outcomes":["恢复","加重"]}}],
   "punishment_changes": [{"name":"目标姓名","taxonomy":"ordinary|ming_five|ancient_five","punishment":"刑罚名","severity":1,"stage":"ordered|executing|executed","executor":"锦衣卫/刑部等","reason":"原文证据"}],

@@ -234,6 +234,7 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 "agreement_action": "create_pending",
                 "promise_type": "旧账限期担保",
                 "stakes": "举主名节、海防旧账",
+                "trigger_quote": "一个月内交册，误了你担责",
                 "confidence": 96,
                 "public_hint": "双方已约定限期交册与担保边界。",
                 "private_reason": "没有关键词套话，但双方已把期限、账册和担保边界说定。",
@@ -286,6 +287,85 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 self.assertEqual(agreements[0]["promise_type"], "旧账限期担保")
                 self.assertTrue(any("交海防账册" in str(task["description"]) for task in agreements[0]["tasks"]))
                 self.assertTrue(session.db.is_briefing_card_resolved("bargain:test-semantic"))
+            finally:
+                session.close()
+
+    def test_llm_agreement_requires_trigger_quote_from_user_text(self) -> None:
+        audit = StaticAudit(
+            {
+                "goal_decision": "new",
+                "goal_relation": "distinct_goal",
+                "action_kind": "court_commitment",
+                "title": "海防旧账限期交册",
+                "target_text": "韩爌接受一月内交海防账册并以举主名节担保",
+                "confidence": 96,
+                "public_hint": "识别为旧账谈判。",
+            },
+            {
+                "goal_decision": "new",
+                "goal_relation": "distinct_goal",
+                "action_kind": "court_commitment",
+                "title": "海防旧账限期交册",
+                "target_text": "韩爌接受一月内交海防账册并以举主名节担保",
+                "stance": "support",
+                "handshake_status": "sealed",
+                "goal_status": "sealed",
+                "score_delta": 40,
+                "score_after": 88,
+                "threshold": 70,
+                "conditions": [
+                    {"description": "一月内交海防账册", "status": "pending", "evidence": "臣认这一月之限。"},
+                ],
+                "tasks": ["一月内交海防账册"],
+                "agreement_formed": True,
+                "performance_status": "pending",
+                "agreement_action": "create_pending",
+                "card_resolution": "pending",
+                "trigger_quote": "臣认这一月之限",
+                "confidence": 96,
+                "public_hint": "双方已约定限期交册。",
+                "private_reason": "trigger_quote 来自 NPC 回复，不应进入履约账本。",
+            },
+        )
+        with TemporaryDirectory() as tmp:
+            session = GameSession(
+                str(Path(tmp) / "semantic_agreement_quote_gate.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            try:
+                session.dialogue_audit_client = audit
+                actor = self.content.characters["韩爌"]
+                user_text = "这事你怎么看？"
+                answer = "臣认这一月之限，也愿以名节作保。"
+                _, prepared = session.prepare_chat_run(actor, user_text)
+                result = session.record_dialogue_after_chat(
+                    actor,
+                    user_text,
+                    answer,
+                    prepared,
+                    source_context={
+                        "card_key": "bargain:test-quote-gate",
+                        "kind": "bargain",
+                        "title": "旧账求兑现：韩爌",
+                        "actor": "韩爌",
+                        "ref_kind": "memory",
+                        "ref_id": "unit-old-account",
+                    },
+                )
+
+                self.assertEqual(result["event"], "waiting_conditions")
+                self.assertEqual(result["handshake_status"], "conditional")
+                self.assertEqual(int(result["agreement_id"]), 0)
+                self.assertFalse(session.db.is_briefing_card_resolved("bargain:test-quote-gate"))
+                self.assertEqual(
+                    session.db.list_negotiation_agreements(minister_name="韩爌", action_kind="court_commitment"),
+                    [],
+                )
+                goals = session.db.list_conversation_goals(minister_name="韩爌", statuses=["waiting_conditions"])
+                self.assertEqual(len(goals), 1)
+                self.assertEqual(goals[0]["condition_status"], "pending")
             finally:
                 session.close()
 
@@ -719,6 +799,7 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                     "conditions": [{"description": "须有明旨授官", "status": "done", "evidence": "玩家已给明旨，韩爌称臣领旨。"}],
                     "blockers": [],
                     "agreement_action": "create_achieved",
+                    "trigger_quote": "朕已明旨授你兵部尚书",
                     "confidence": 96,
                     "public_hint": "条件已闭环，韩爌领旨接任。",
                     "private_reason": "明旨条件已由本轮原文满足。",

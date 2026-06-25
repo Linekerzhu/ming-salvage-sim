@@ -175,6 +175,26 @@ def _post_performance_status(post: Any, *, agreement_id: int = 0) -> str:
     return "none"
 
 
+def _post_trigger_quote(post: Any) -> str:
+    raw = getattr(post, "raw", {}) if isinstance(getattr(post, "raw", {}), dict) else {}
+    if not isinstance(raw, dict):
+        return ""
+    return _compact(
+        str(
+            raw.get("trigger_quote")
+            or raw.get("agreement_trigger_quote")
+            or raw.get("goal_trigger_quote")
+            or raw.get("user_trigger_quote")
+            or ""
+        ),
+        180,
+    )
+
+
+def _post_quote_supported_by_player_text(post: Any, user_text: str) -> bool:
+    return _quote_supported_by_player_text(_post_trigger_quote(post), user_text)
+
+
 def _dialogue_agreement_decision(
     post: Any,
     *,
@@ -224,6 +244,7 @@ def _record_source_briefing_resolution(
     state: GameState,
     post: Any,
     *,
+    user_text: str = "",
     source_context: Optional[Dict[str, object]],
     agreement_id: int = 0,
     source_chat_turn_id: int = 0,
@@ -234,6 +255,8 @@ def _record_source_briefing_resolution(
         return decision
     resolution = _briefing_resolution_for_decision(post, decision, agreement_id=agreement_id)
     if not resolution:
+        return decision
+    if not _post_quote_supported_by_player_text(post, user_text):
         return decision
     try:
         db.record_briefing_card_resolution(
@@ -981,6 +1004,7 @@ def record_dialogue_effects(
             db,
             state,
             post,
+            user_text=user_text,
             source_context=source_context,
             source_chat_turn_id=source_chat_turn_id,
         )
@@ -1060,6 +1084,7 @@ def record_dialogue_effects(
             db,
             state,
             post,
+            user_text=user_text,
             source_context=source_context,
             source_chat_turn_id=source_chat_turn_id,
         )
@@ -1104,6 +1129,32 @@ def record_dialogue_effects(
         condition_status = "pending" if any(str(item.get("status") or "") == "pending" for item in condition_items) else "none"
         event = "progress"
 
+    sealed_requires_player_quote = (
+        next_status == GOAL_SEALED
+        or handshake_status == HANDSHAKE_SEALED
+        or post.agreement_action in {"create_achieved", "create_pending", "bind_existing"}
+        or _post_agreement_formed(post)
+    )
+    if sealed_requires_player_quote and not _post_quote_supported_by_player_text(post, user_text):
+        if "缺少玩家本轮握手原话证据" not in blockers:
+            blockers.append("缺少玩家本轮握手原话证据")
+        next_status = GOAL_WAITING if condition_items else GOAL_ACTIVE
+        condition_status = "pending" if condition_items else "none"
+        event = "waiting_conditions" if condition_items else "progress"
+        handshake_status = HANDSHAKE_CONDITIONAL if condition_items else HANDSHAKE_NONE
+        next_score = min(next_score, max(0, threshold - 1))
+        post.agreement_action = "none"
+        try:
+            post.handshake_status = handshake_status
+            post.goal_status = next_status
+            if isinstance(post.raw, dict):
+                post.raw["agreement_formed"] = False
+                post.raw["agreement_action"] = "none"
+                post.raw["performance_status"] = "none"
+                post.raw["card_resolution"] = ""
+        except Exception:
+            pass
+
     if goal:
         revised = _revised_goal_text(goal, post) if refines_active else {"title": str(goal.get("title") or ""), "target_text": str(goal.get("target_text") or "")}
         title_changed = bool(refines_active and revised["title"] and revised["title"] != str(goal.get("title") or ""))
@@ -1130,6 +1181,7 @@ def record_dialogue_effects(
             "blockers": blockers,
             "explicit_consent": post.explicit_consent,
             "agreement_action": post.agreement_action,
+            "trigger_quote": _post_trigger_quote(post),
             "public_hint": post.public_hint,
             "private_reason": post.private_reason,
             "audit": post.raw,
@@ -1285,6 +1337,7 @@ def record_dialogue_effects(
         db,
         state,
         post,
+        user_text=user_text,
         source_context=source_context,
         agreement_id=agreement_id,
         source_chat_turn_id=source_chat_turn_id,
