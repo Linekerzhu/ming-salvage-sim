@@ -549,7 +549,7 @@ def _tick_day(db: GameDB, state: GameState, day: int) -> DayReport:
     except ImportError:
         pass
 
-    # 净身旧患（E2a）：漏尿/石淋/幻肢痛/宝匣心结低频发作，真实扰动近侍状态与密令执行。
+    # 净身旧患（E2a）：漏尿/石淋/幻肢痛/宝贝旧念低频发作，真实扰动近侍状态与密令执行。
     try:
         from ming_sim.eunuch_lore import bao_instability_tick, castration_complication_tick, secret_order_old_wound_tick
         for ev in castration_complication_tick(db, state, day):
@@ -622,8 +622,12 @@ def advance_days(db: GameDB, state: GameState, days: int, *,
                        f"入{state.year}年{state.period}月", "上月诸事按已发生了结，新月开始。")
             # 王朝长河（CK3 化 P3）：月初按卒年/高龄令在朝官员自然凋零。
             try:
-                from ming_sim.lifespan import mortality_tick
+                from ming_sim.lifespan import disease_progression_tick, morbidity_tick, mortality_tick
                 for ev in mortality_tick(db, state, new_day):
+                    report.events.append(ev)
+                for ev in disease_progression_tick(db, state, new_day):
+                    report.events.append(ev)
+                for ev in morbidity_tick(db, state, new_day):
                     report.events.append(ev)
             except ImportError:
                 pass

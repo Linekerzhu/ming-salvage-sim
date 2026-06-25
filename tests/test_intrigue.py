@@ -50,6 +50,23 @@ class InvestigateTests(unittest.TestCase):
             db, _, _ = _fresh(tmp)
             self.assertEqual(intrigue.dongchang_chief(db), "魏忠贤")  # 东厂提督
 
+    def test_dongchang_chief_ignores_eunuch_office_without_eunuch_sex(self):
+        with TemporaryDirectory() as tmp:
+            db, _, _ = _fresh(tmp)
+            db.conn.execute("UPDATE characters SET sex='male' WHERE name='魏忠贤'")
+            db.conn.commit()
+            self.assertNotEqual(intrigue.dongchang_chief(db), "魏忠贤")
+
+    def test_no_changwei_chief_when_inner_court_offices_are_not_eunuch(self):
+        with TemporaryDirectory() as tmp:
+            db, _, _ = _fresh(tmp)
+            db.conn.execute(
+                "UPDATE characters SET sex='male' "
+                "WHERE office LIKE '%东厂%' OR office LIKE '%司礼监%' OR office_type LIKE '%司礼监%'"
+            )
+            db.conn.commit()
+            self.assertIsNone(intrigue.dongchang_chief(db))
+
     def test_investigate_reveals_secret(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)

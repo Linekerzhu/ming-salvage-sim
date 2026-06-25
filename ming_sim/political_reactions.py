@@ -32,11 +32,11 @@ HARSH_STATUS = {"imprisoned", "exiled", "dead"}
 
 def character_political_row(db: GameDB, name: str) -> Dict[str, str]:
     row = db.conn.execute(
-        "SELECT name, office, office_type, faction, status FROM characters WHERE name=?",
+        "SELECT name, office, office_type, faction, sex, status FROM characters WHERE name=?",
         (name,),
     ).fetchone()
     if row is None:
-        return {"name": name, "office": "", "office_type": "", "faction": "", "status": ""}
+        return {"name": name, "office": "", "office_type": "", "faction": "", "sex": "", "status": ""}
     return {key: str(row[key] or "") for key in row.keys()}
 
 

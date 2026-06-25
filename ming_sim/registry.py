@@ -17,6 +17,7 @@ from agno.skills.loaders.local import LocalSkills
 
 from ming_sim.constants import TURN_UNIT
 from ming_sim.content import GameContent
+from ming_sim.identity import character_is_eunuch
 from ming_sim.context import (
     character_age_label,
     character_context_with_db,
@@ -63,10 +64,13 @@ def _npc_session_id(name: str, campaign_id: str = "", temporary: bool = False) -
 
 
 def _is_inner_court_servant(character: Character) -> bool:
-    identity = f"{character.office} {character.office_type} {character.faction}"
-    return (
-        character.office_type in {"司礼监", "东厂", "内廷"}
-        or bool(re.search(r"太监|宦官|内侍|小火者|司礼监|东厂|宫禁", identity))
+    return character_is_eunuch(
+        None,
+        sex=getattr(character, "sex", ""),
+        office=getattr(character, "office", ""),
+        office_type=getattr(character, "office_type", ""),
+        faction=getattr(character, "faction", ""),
+        allow_legacy_text_fallback=True,
     )
 
 

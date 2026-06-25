@@ -95,7 +95,7 @@ issued -> in_transit(送达) -> executing(承办) -> done(复命)
 - 强旨净身、奴籍/内廷身份转换。
 - 当场收押、廷杖、逐出御前。
 - 殿内或内廷直接任差、撤差。
-- 近侍旧患调养、宝匣封存等内廷档案动作。
+- 近侍旧患调养、宝贝旧念封存等内廷档案动作。
 
 时间规则：
 
@@ -123,9 +123,9 @@ issued -> in_transit(送达) -> executing(承办) -> done(复命)
 当前落地状态：
 
 - `ming_sim/lifecycle.py::_court_immediate_profile()` 已先接入普通诏旨入口。
-- 京师/内廷近身处置命中 `净身、宫刑、净军房、发入内廷、廷杖、收监、下狱、逮问、拿问、赐死、处死、处斩、弃市` 时，使用 `timing_profile='court_immediate'`。
+- 京师/内廷近身处置命中 `净身、宫刑、净身房、发入内廷、廷杖、收监、下狱、逮问、拿问、赐死、处死、处斩、弃市` 时，使用 `timing_profile='court_immediate'`。
 - 该类旨意 `lead_days=0`、`exec_days=1`，`eta_day=start_day+1`；也就是说“成命立即成立，次日以内复命”，不再被通用行政送达拖成十几天。
-- 普通诏旨中的强旨净身已接入 `convert_character_to_eunuch()`：办结时直接改官职/派系/技能，写入内廷旧档、旧匣、政治反应和人物记忆，并在 `chain.court_immediate_action` 留证。
+- 普通诏旨中的强旨净身已接入 `convert_character_to_eunuch()`：办结时直接改官职/派系/技能，写入内廷旧档、官库宝贝、政治反应和人物记忆，并在 `chain.court_immediate_action` 留证。
 - 跨省文本仍按地区识别走普通生命周期，例如“逮问陕西巡抚”不会误判成殿内即时处置。
 
 ### B. 京师/部院短程命令
@@ -221,7 +221,7 @@ issued -> in_transit(送达) -> executing(承办) -> done(复命)
 
 | 文本命中 | 应调用 |
 |----------|--------|
-| 净身、宫刑、发净军、没入内廷 | `castrate_official(force=True)` |
+| 净身、宫刑、押赴净身房、没入内廷 | `castrate_official(force=True)` |
 | 赦出内廷、转民籍 | `emancipate_eunuch(force=True)` |
 | 当场收押、革差、廷杖 | 人物状态即时处置函数 |
 | 殿内任差、撤差 | 人事即时处置函数 |
@@ -420,7 +420,7 @@ issued -> in_transit(送达) -> executing(承办) -> done(复命)
 预期：
 
 - 第 N 日即显示“已下达”，第 N+1 日以内显示“已办结/已复命”。
-- `张三.office/office_type/faction` 在办结时变为净军/司礼监/内廷，旧档入库。
+- `张三.office/office_type/faction` 在办结时变为净身房候役/司礼监/内廷，旧档入库。
 - `lead_days=0`，`exec_days=0/1`。
 - 当前普通诏旨入口已保证 `lead_days=0`、`exec_days=1`，并在办结时直接落身份。
 - 御案当天或次日出现复命。

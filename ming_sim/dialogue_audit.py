@@ -55,6 +55,10 @@ ACTION_INTENT_TYPES = {
     "recruitment",
     "mediation",
     "castration",
+    "custody",
+    "punishment",
+    "condition_update",
+    "office_change",
     "eunuch_care",
     "eunuch_hard_service",
     "bao_leverage",
@@ -79,6 +83,13 @@ SOFT_HOOK_RE = re.compile(
 COMMITMENT_RE = re.compile(
     r"臣愿|奴婢愿|奴才愿|小的愿|愿为陛下|臣领旨|奴婢领旨|奴才领旨|"
     r"遵旨|愿领|愿奉旨|敢不奉行|臣当奉行|臣愿担此|奴婢愿办|奴婢愿替陛下|愿承办|愿效力"
+)
+COERCED_SUBMISSION_RE = re.compile(
+    r"不敢不从|不敢违旨|伏罪|认罪|愿供|如实供|据实供|任凭陛下|任凭发落|"
+    r"臣领旨|遵旨|臣遵旨|敢不奉行|愿奉旨|愿照旨|愿按旨|臣当奉行"
+)
+COERCED_REFUSAL_RE = re.compile(
+    r"万死不从|断不可|不能从命|恕难从命|宁死不从|臣不敢奉|臣不能奉|不可奉行"
 )
 
 
@@ -164,8 +175,20 @@ def _answer_has_commitment(text: object) -> bool:
     return bool(COMMITMENT_RE.search(str(text or "")))
 
 
+def _answer_has_coerced_submission(text: object) -> bool:
+    raw = str(text or "")
+    return bool(COERCED_SUBMISSION_RE.search(raw)) and not bool(COERCED_REFUSAL_RE.search(raw))
+
+
 def _payload_favor_rows(payload: Dict[str, object]) -> List[Dict[str, object]]:
     rows = payload.get("favor_memories")
+    if not isinstance(rows, list):
+        return []
+    return [row for row in rows if isinstance(row, dict)]
+
+
+def _payload_custody_rows(payload: Dict[str, object]) -> List[Dict[str, object]]:
+    rows = payload.get("active_custodies")
     if not isinstance(rows, list):
         return []
     return [row for row in rows if isinstance(row, dict)]
@@ -298,6 +321,7 @@ class PostDialogueAudit:
     score_after: int = 0
     threshold: int = 70
     conditions: List[Dict[str, str]] = field(default_factory=list)
+    tasks: List[str] = field(default_factory=list)
     blockers: List[str] = field(default_factory=list)
     explicit_consent: bool = False
     agreement_action: str = "none"
@@ -382,9 +406,12 @@ def _normalize_post(data: Dict[str, object], *, existing_threshold: int = 70) ->
     score_after = _clamp_int(data.get("score_after"), 0, 100)
     score_delta = _clamp_int(data.get("score_delta"), -100, 100)
     conditions = _conditions(data.get("conditions"))
+    tasks = _list_strings(data.get("tasks"), limit=8, item_limit=180)
     blockers = _list_strings(data.get("blockers"), limit=8, item_limit=120)
     explicit_consent = bool(data.get("explicit_consent"))
     agreement_action = _enum(data.get("agreement_action"), AGREEMENT_ACTIONS, "none")
+    agreement_formed = bool(data.get("agreement_formed"))
+    performance_status = str(data.get("performance_status") or "").strip()
     directive_action = _enum(data.get("directive_action"), DIRECTIVE_ACTIONS, "none")
     directive_text = _compact(data.get("directive_text"), 1800)
     public_hint = _compact(data.get("public_hint"), 180)
@@ -395,8 +422,13 @@ def _normalize_post(data: Dict[str, object], *, existing_threshold: int = 70) ->
 
     pending_conditions = [item for item in conditions if item.get("status") == "pending"]
     failed_conditions = [item for item in conditions if item.get("status") == "failed"]
+    if agreement_formed and not failed_conditions:
+        goal_status = "sealed"
+        handshake = "sealed"
+        if agreement_action == "none":
+            agreement_action = "create_achieved" if performance_status == "fulfilled" else "create_pending"
 
-    def guard_conditioned_seal() -> None:
+    def guard_failed_seal() -> None:
         nonlocal goal_status, handshake, agreement_action, score_after
         if goal_status == "sealed" and failed_conditions:
             goal_status = "blocked"
@@ -405,15 +437,8 @@ def _normalize_post(data: Dict[str, object], *, existing_threshold: int = 70) ->
             score_after = min(score_after, threshold - 1)
             if "条件审计判定有条件失败，不能握手达成" not in blockers:
                 blockers.append("条件审计判定有条件失败，不能握手达成")
-        elif goal_status == "sealed" and pending_conditions:
-            goal_status = "waiting_conditions"
-            handshake = "conditional"
-            agreement_action = "none"
-            score_after = min(score_after, threshold - 1)
-            if "仍有条件待证，不能提前握手达成" not in blockers:
-                blockers.append("仍有条件待证，不能提前握手达成")
 
-    guard_conditioned_seal()
+    guard_failed_seal()
 
     if goal_status == "waiting_conditions":
         handshake = "conditional"
@@ -423,7 +448,13 @@ def _normalize_post(data: Dict[str, object], *, existing_threshold: int = 70) ->
     elif goal_status == "sealed":
         handshake = "sealed"
         score_after = 100
-        if action_kind in INSTANT_AGREEMENT_ACTIONS:
+        if pending_conditions and not tasks:
+            tasks = [
+                str(item.get("description") or "").strip()
+                for item in pending_conditions
+                if str(item.get("description") or "").strip()
+            ]
+        if action_kind in INSTANT_AGREEMENT_ACTIONS and not tasks and not pending_conditions:
             agreement_action = "create_achieved" if agreement_action == "none" else agreement_action
         elif agreement_action in {"none", "create_achieved"}:
             agreement_action = "create_pending"
@@ -438,7 +469,7 @@ def _normalize_post(data: Dict[str, object], *, existing_threshold: int = 70) ->
         else:
             agreement_action = "none"
 
-    guard_conditioned_seal()
+    guard_failed_seal()
 
     if action_kind in IDENTITY_CONVERSION_ACTIONS and goal_status == "sealed":
         consent_evidence = " ".join(
@@ -478,6 +509,7 @@ def _normalize_post(data: Dict[str, object], *, existing_threshold: int = 70) ->
         score_after=score_after,
         threshold=threshold,
         conditions=conditions,
+        tasks=tasks,
         blockers=blockers[:8],
         explicit_consent=explicit_consent,
         agreement_action=agreement_action,
@@ -544,6 +576,10 @@ def _normalize_dialogue_action_intent(data: Dict[str, object]) -> Dict[str, obje
         "trigger_quote": _compact(data.get("trigger_quote"), 140),
         "public_hint": _compact(data.get("public_hint"), 180),
         "private_reason": _compact(data.get("private_reason") or data.get("reason"), 520),
+        "payload": data.get("payload") if isinstance(data.get("payload"), dict) else {},
+        "character_status_changes": data.get("character_status_changes") if isinstance(data.get("character_status_changes"), list) else [],
+        "condition_changes": data.get("condition_changes") if isinstance(data.get("condition_changes"), list) else [],
+        "punishment_changes": data.get("punishment_changes") if isinstance(data.get("punishment_changes"), list) else [],
         "raw": data,
     }
 
@@ -830,6 +866,11 @@ def _context_payload(db: Any, state: GameState, character: Character, *, active_
     except Exception:
         favors = []
     try:
+        from ming_sim.custody import list_custodies
+        active_custodies = list_custodies(db, character.name, active_only=True)
+    except Exception:
+        active_custodies = []
+    try:
         from ming_sim.upgrade_schema import get_current_day
         current_day = int(get_current_day(db, int(state.turn)))
         temporal = db.audience_temporal_context(
@@ -863,6 +904,7 @@ def _context_payload(db: Any, state: GameState, character: Character, *, active_
         "network": network[:12] if isinstance(network, list) else [],
         "relation_network": relation_network if isinstance(relation_network, dict) else {},
         "favor_memories": favors if isinstance(favors, list) else [],
+        "active_custodies": active_custodies if isinstance(active_custodies, list) else [],
     }
 
 
@@ -1010,6 +1052,86 @@ def _apply_soft_hook_post(
     return post
 
 
+def _apply_custody_coercion_post(
+    post: PostDialogueAudit,
+    payload: Dict[str, object],
+    *,
+    user_text: str,
+    answer: str,
+) -> PostDialogueAudit:
+    """Let severe active custody turn explicit submission into forced compliance."""
+
+    if not post.valid or post.goal_decision not in {"new", "continue", "switch"}:
+        return post
+    if post.action_kind in {"general", *IDENTITY_CONVERSION_ACTIONS}:
+        return post
+    if post.confidence < CONFIDENCE_FLOOR:
+        return post
+    custodies = _payload_custody_rows(payload)
+    if not custodies:
+        return post
+    lead = max(custodies, key=lambda row: int(row.get("severity") or 1))
+    severity = int(lead.get("severity") or 1)
+    if severity < 4:
+        return post
+    if not _answer_has_coerced_submission(answer):
+        return post
+    blockers = list(post.blockers)
+    hard_blockers = [blocker for blocker in blockers if not _score_only_blocker(blocker)]
+    if hard_blockers:
+        return post
+
+    old_score = int(post.score_after or 0)
+    old_threshold = int(post.threshold or 70)
+    threshold_delta = -12 if severity == 4 else -18
+    bonus = 26 if severity == 4 else 34
+    post.threshold = max(1, old_threshold + threshold_delta)
+    post.score_delta = _clamp_int(int(post.score_delta or 0) + bonus, -100, 100, post.score_delta)
+    post.score_after = _clamp_int(max(old_score + bonus, post.threshold), 0, 100, old_score)
+    post.blockers = [blocker for blocker in blockers if not _score_only_blocker(blocker)]
+    post.handshake_status = "sealed"
+    post.goal_status = "sealed"
+    if post.action_kind in INSTANT_AGREEMENT_ACTIONS:
+        post.agreement_action = "create_achieved" if post.agreement_action == "none" else post.agreement_action
+    elif post.agreement_action in {"none", "create_achieved"}:
+        post.agreement_action = "create_pending"
+    forced_note = (
+        f"羁押威逼：{lead.get('facility') or '狱中'}强度{severity}/5，"
+        f"{lead.get('coercion_goal') or '皇帝口谕'}使其被迫应承。"
+    )
+    post.private_reason = _compact("; ".join(part for part in (post.private_reason, forced_note) if part), 400)
+    if not post.public_hint:
+        post.public_hint = "羁押威逼下，对方被迫应承。"
+
+    raw = dict(post.raw or {})
+    raw["custody_coercion"] = {
+        "applied": True,
+        "forced": True,
+        "severity": severity,
+        "agency": str(lead.get("agency") or ""),
+        "facility": str(lead.get("facility") or ""),
+        "coercion_goal": str(lead.get("coercion_goal") or ""),
+        "score_bonus": bonus,
+        "threshold_delta": threshold_delta,
+        "old_score": old_score,
+        "old_threshold": old_threshold,
+        "evidence": _compact(answer, 180),
+    }
+    post.raw = raw
+    return post
+
+
+def _apply_post_hooks(
+    post: PostDialogueAudit,
+    payload: Dict[str, object],
+    *,
+    user_text: str,
+    answer: str,
+) -> PostDialogueAudit:
+    post = _apply_soft_hook_post(post, payload, user_text=user_text, answer=answer)
+    return _apply_custody_coercion_post(post, payload, user_text=user_text, answer=answer)
+
+
 def _call_fake(audit_client: object, phase: str, payload: Dict[str, object]) -> Optional[Dict[str, object]]:
     if audit_client is None:
         return None
@@ -1078,24 +1200,30 @@ POST_AUDIT_PROMPT = """
 
 不可违反：
 - LLM 审计是语义主判，但不得替原文补事实；必须引用 NPC 原文证据。
-- waiting_conditions 不得创建 agreement。
-- 只有 sealed 后才可 create_achieved/create_pending。
-- policy、secret_order、court_commitment sealed 后默认 create_pending；personnel、castration、emancipation 若即时完成才 create_achieved。
+- 协议成立与履约完成必须分开。双方已经约定条件、期限、担保、先交账册、事后兑现时，判 sealed + create_pending；不要因为仍有待办条件就降成 waiting_conditions。
+- waiting_conditions 只用于“有人提出条件但双方尚未约定/皇帝尚未接受/ NPC 尚未接受”的谈判未闭合状态，不得创建 agreement。
+- 只有 sealed 后才可 create_achieved/create_pending；sealed + tasks/未履约条件 表示协议成立但待履行。
+- policy、secret_order、court_commitment sealed 后默认 create_pending；personnel、castration、emancipation 若即时完成且无待办任务才 create_achieved。
 - castration/emancipation 必须 explicit_consent=true 且 private_reason/public_hint 说明 NPC 原文明确自愿，否则不能 sealed。
 - recent_dialogue 是近期原文上下文，可用于续接指代；但 post audit 必须优先引用本轮 NPC 原文回复。
 - 已 sealed/achieved 的目的只作为背景和账本证据；不要把它重新当作 active goal 推进，也不要让 NPC 每轮复述。
 - pre_audit 为 none 且本轮文本没有明确谈判标的时，通常 goal_decision=none；不要因为历史 goal 存在而补判。
-- “臣谨听”“容臣斟酌”“不敢不从”不是 sealed；分别更接近 active/conditional/blocked，须结合原文证据。
+- “臣谨听”“容臣斟酌”不是 sealed；“不敢不从”通常也不是 sealed，除非 active_custodies 显示其正受高强度羁押/刑讯且 NPC 原文明确屈服奉旨，此时可作为被迫应承处理，private_reason 必须写明“被迫”。
 - 若 pre_audit.npc_guidance 或隐藏档案提示半真半假、阳奉阴违、护短、政敌牵动，NPC 的客套答应、泛泛称是、转移矛头不得直接判 sealed；必须有清楚承诺、可审计条件或实际工具落库。
 - behavior_profile / behavior_brief 是本轮人格-关系-记忆行为档案；若 truth_mode、risk_tags、network_pressure 显示话术、护短、政敌或旧事压力，必须写入 private_reason/blockers/conditions 的判断依据。
 - NPC 告状、构陷、甩锅、误导玩家时，stance 可为 support/caution/oppose，但 private_reason 必须写明这是“话术/风险”，不要把所有话都当事实。
-- conditional 只能用于 NPC 提出可验证条件、边界或交换；conditions 要写成未来可审计条目。
+- conditional 只能用于 NPC 提出可验证条件、边界或交换但双方尚未约定；conditions 要写成未来可审计条目。若双方已经约定这些条件，使用 sealed + create_pending，并把待办写入 tasks。
 - sealed 需要 NPC 对 target_text 有明确承诺、清楚接受，或 waiting 条件已被证据满足。
 - audience_temporal_context 说明本次召对距上次召对多久；裁定“刚才/上回/此事/久未回报”等指代时必须参考它，隔了多日时可判为追问旧事或履约压力，而非同席续句。
+- briefing_context 若存在，表示玩家从某张“朝局风向”卡进入本轮召对。你要判断这张卡是否被本轮语义处理：双方约定则 sealed + create_pending/create_achieved；明确驳回、免除、撤回担保或划死边界则 blocked/none 并在 performance_status/card_resolution 写 rejected/waived/blocked；只是继续询问则不要写已处理。
 - 若本轮只是把同一 active_goal 从粗目标细化为具体官职/授权/名分/条件，输出 goal_relation=refine_goal，并把 title/target_text 改成修订后的版本；不要创建多个 goal。
 - 若确属另一个目标，输出 goal_relation=distinct_goal；若旧目标应让位，goal_decision=switch。
 - 若 active_goal 正在 waiting_conditions，而玩家/NPC 原文表明要求的明旨、授权、人手、钱粮、名分、保全、期限等已经给足，conditions 对应项应标 done；NPC 随即接受标的时可 sealed。
 - 如果 NPC 原文已经给出一段可直接进入旨意库的完整草案、条陈式诏令或“臣已拟旨如下”，但没有工具调用痕迹，输出 directive_action=propose_pending，并把 directive_text 填为可入库草案。只有建议、原则、口头意见、零散条款时仍为 none。
+- 若玩家在本轮奏对中以皇帝身份直接下达即时口谕，明确命令将某个 NPC 下狱、押入昭狱、用刑、处刑、割舌、宫刑，或 NPC 原文明示该事实已经发生，可输出 immediate_consequence=true，并填写 character_status_changes / condition_changes / punishment_changes。只是询问、威胁、商议、拟旨、请 NPC 建议、未来可能执行时必须 immediate_consequence=false 且三个 changes 留空。
+- 即时后果必须有明确目标姓名；若只是“他/此人/他们”且本轮文本无法唯一指向，不得填写 changes。对当前奏对对象可用其姓名。
+- 刑罚分类：明律五刑用 taxonomy=ming_five，punishment=笞刑|杖刑|徒刑|流刑|死刑；古五刑用 taxonomy=ancient_five，punishment=墨刑|劓刑|刖刑|宫刑|大辟；普通酷刑/伤残用 taxonomy=ordinary，例如 punishment=割舌|割耳|断腿|拷掠|夹棍|廷杖。
+- 宫刑、腐刑、强制净身、去势等强制执行时优先写 punishment_changes 的“宫刑”；程序会自动派生病历中的生殖器官缺失、绝育、性功能丧失、尿道狭窄、慢性创痛等事实。condition_changes 只补原文另明写的病历并发症（如漏尿、尿闭、幻肢痛、失声等）。相关文字必须是临床/档案措辞，不写情色化描述。
 
 JSON 字段：
 {
@@ -1111,11 +1239,19 @@ JSON 字段：
   "score_after": 0,
   "threshold": 70,
   "conditions": [{"description":"条件","status":"pending|done|failed","evidence":"原文/事实证据"}],
+  "tasks": ["协议成立后仍需履行的可核查任务；若已即时履行则空数组"],
   "blockers": ["阻碍"],
   "explicit_consent": false,
   "agreement_action": "none|create_achieved|create_pending|bind_existing",
   "directive_action": "none|propose_pending",
   "directive_text": "NPC 已拟成、可入库的旨意草案；无则空字符串",
+  "agreement_formed": false,
+  "performance_status": "none|pending|fulfilled|blocked|rejected|waived",
+  "card_resolution": "handled|pending|fulfilled|blocked|rejected|waived|",
+  "immediate_consequence": false,
+  "character_status_changes": [{"name":"目标姓名","status":"imprisoned|exiled|dead|dismissed|retired|offstage|castrated","reason":"原文证据","agency":"锦衣卫|刑部|都察院|内廷|其他","facility":"北镇抚司昭狱|刑部大牢|诏狱|其他","coercion_goal":"逼供/迫使奉旨/株连线索/其他","severity":1}],
+  "condition_changes": [{"name":"目标姓名","kind":"punishment|prison_effect|disease|injury|disability|terminal","system":"speech|nervous|circulatory|respiratory|digestive|musculoskeletal|urinary|reproductive|skin|mental|general","label":"病历短名","severity":1,"stage":"mild|serious|critical|disabled|chronic|dead","reason":"原文证据","effects":{"speech":"口齿含混等能力影响","record_group":"organic|pathological|psychological|other","organ":"器官/肢体","side":"左|右","state":"状态","function":"功能","impact":"影响","course_kind":"acute|chronic","possible_outcomes":["恢复","加重"]}}],
+  "punishment_changes": [{"name":"目标姓名","taxonomy":"ordinary|ming_five|ancient_five","punishment":"刑罚名","severity":1,"stage":"ordered|executing|executed","executor":"锦衣卫/刑部等","reason":"原文证据"}],
   "public_hint": "玩家可见一句短解释",
   "private_reason": "debug 审计理由，含原文证据",
   "confidence": 0
@@ -1198,21 +1334,23 @@ DIALOGUE_ACTION_INTENT_PROMPT = """
 - 例外：secret_order 是一次性密令建档动作；只有玩家本轮明确“下密令/密旨/命某人暗查某事”时，才可在没有 pending_action 时返回 phase=confirm 并允许即时落库。
 - phase=reject 用于玩家明确作罢、暂缓、不办、别惊动相关机构；可清除 pending_action。
 - 若 tool_action.type="semantic_probe"，你可以直接从玩家原话语义选择 action_type，用于在 LLM 工具漏调时启动对应待确认模块；可选择 recruitment，但必须同时给出 kind。
+- 刑罚、下狱、病历变更这类即时口谕，优先在 post_dialogue_audit 的 immediate_consequence 中落 character_status_changes / punishment_changes / condition_changes；本审计若返回 punishment/custody/condition_update，只能在 payload 中给出同一套结构化草案，不得凭关键词执行。
 - 若 tool_action.type 不是 semantic_probe，action_type 必须来自工具动作或待确认动作；不要发明新系统。
 - trigger_quote 必须引用玩家原话中能证明意图的短句；没有可引用证据时 allow=false。
 
 动作边界：
-- castration：只有玩家明确点名某人并明确要净身/宫刑/入内廷为奴/发净军房，才可 allow=true。讨论“若净身会如何”“旧例怎样”“不是要办”“别惊动净军房”必须 false。
-- eunuch_care：只有玩家明确要给已是内廷/宦官身份者调养、查宝、补录宝案、安抚旧患，才可 allow=true。普通问病、听档案、记录旧事必须 false。
+- castration：只有玩家明确点名某人并明确要净身/宫刑/入内廷为奴/押赴净身房，才可 allow=true。讨论“若净身会如何”“旧例怎样”“不是要办”“别惊动净身房”必须 false。
+- eunuch_care：只有玩家明确要给已是内廷/宦官身份者调养、查宝贝去处、补录宝案、安抚旧患，才可 allow=true。普通问病、听档案、记录旧事必须 false。
 - eunuch_hard_service：只有玩家明确决定“不调养，照常派差/硬派差事/压住不治”，才可 allow=true。
-- bao_leverage：只有玩家明确要“赐还/归还宝匣”或“封存/拿捏/钳制宝案”，才可 allow=true。单纯查问宝案或补旧档不是筹码处置。
+- bao_leverage：只有玩家明确要“赐还/归还宝贝”或“封存/拿捏/钳制宝案”，才可 allow=true。单纯查问宝案或补旧档不是筹码处置。
 - mediation：只有玩家明确要调停、共办、担保、说合某两人/某派，才可 allow=true；普通问旧怨、问证据、听两面之词不是执行调停。
 - secret_order：只有玩家明确下达密令/密旨，且能从玩家原话读出承办人或承办对象、暗查/取证/盯梢等任务目标，才可 allow=true 且 phase=confirm。只是问“要不要暗查”“查得如何”“此事能否密办”、NPC 自行建议密查，必须 false。
 - recruitment：只有玩家明确要求找/招/挑/荐/保举/访求/取士/补一个新人/带一个新人来，才可 allow=true，并必须填 kind=eunuch|exam|recommend。问现有人手、关系网、谁可用但要求先盘点现有人，不是 recruitment。
+- custody/punishment/condition_update：只有玩家以皇帝身份直接明令把某 NPC 下狱、押入昭狱、执行刑罚、确认疾病/刑伤/身体事实，才可 allow=true。威胁、假设、询问后果、听 NPC 建议、讨论旧例必须 false。若涉及宫刑/腐刑/净身，强制执行优先 punishment_changes=宫刑，程序派生病历和阉人身份。
 
 判例：
-- “只是聊聊韩爌若净身入内廷的旧例，不是要办，别惊动净军房。” + castration 工具 => allow=false。
-- “把韩爌净身入内廷，传净军房照办。” + castration 工具 => allow=true, phase=propose。
+- “只是聊聊韩爌若净身入内廷的旧例，不是要办，别惊动净身房。” + castration 工具 => allow=false。
+- “把韩爌净身入内廷，传净身房照办。” + castration 工具 => allow=true, phase=propose。
 - “好，你这就去净身。” + semantic_probe，当前 NPC 可净身 => allow=true, action_type=castration, phase=propose, target=当前 NPC 姓名。
 - “宫里可有新的小内侍可用？” + semantic_probe => allow=true, action_type=recruitment, phase=propose, kind=eunuch。
 - “朝中还有谁可用？先说现有人，不要荐新人。” + semantic_probe => allow=false。
@@ -1228,7 +1366,7 @@ JSON 字段：
 {
   "allow": false,
   "phase": "none|propose|confirm|reject",
-  "action_type": "none|secret_order|recruitment|mediation|castration|eunuch_care|eunuch_hard_service|bao_leverage",
+  "action_type": "none|secret_order|recruitment|mediation|castration|custody|punishment|condition_update|office_change|eunuch_care|eunuch_hard_service|bao_leverage",
   "requires_confirmation": true,
   "target": "人名，可空",
   "actor": "人名，可空",
@@ -1238,6 +1376,10 @@ JSON 字段：
   "trigger_quote": "玩家原文短句",
   "public_hint": "一句玩家可见提示",
   "private_reason": "审计理由，说明为什么是/不是执行动作",
+  "payload": {"可选":"对应动作结构化草案"},
+  "character_status_changes": [{"name":"目标姓名","status":"imprisoned|exiled|dead|dismissed|retired|offstage|castrated","reason":"原文证据","agency":"锦衣卫|刑部|都察院|内廷|其他","facility":"北镇抚司昭狱|刑部大牢|诏狱|其他","coercion_goal":"逼供/迫使奉旨/株连线索/其他","severity":1}],
+  "condition_changes": [{"name":"目标姓名","kind":"disease|injury|punishment|disability|prison_effect|terminal","system":"general|speech|nervous|mental|respiratory|circulatory|digestive|urinary|reproductive|musculoskeletal|skin","label":"病历短名","severity":1,"stage":"active|mild|serious|critical|disabled|chronic|recovering|resolved|dead","reason":"原文证据","effects":{"record_group":"organic|pathological|psychological|other","organ":"器官/肢体","side":"左|右","state":"状态","function":"功能","impact":"影响","course_kind":"acute|chronic","possible_outcomes":["恢复","加重"]}}],
+  "punishment_changes": [{"name":"目标姓名","taxonomy":"ordinary|ming_five|ancient_five","punishment":"刑罚名","severity":1,"stage":"sentenced|executed|stayed|remitted","executor":"锦衣卫/刑部等","reason":"原文证据"}],
   "confidence": 0
 }
 """.strip()
@@ -1248,7 +1390,7 @@ DIALOGUE_ROUTE_INTENT_PROMPT = """
 任务：阅读皇帝本轮原话、当前对话 NPC、待确认动作、可召见候选和近期上下文，判断这句话是否应被路由为“召见别人”“确认待办动作”“驳回待办动作”，或者只是普通聊天。
 
 核心原则：
-- 这是所有对白入口的第一道语义判定，不按关键词触发。不要因为出现“准、好、叫、传、调停、净身、太医、宝匣”等词就自动路由。
+- 这是所有对白入口的第一道语义判定，不按关键词触发。不要因为出现“准、好、叫、传、调停、净身、太医、宝贝”等词就自动路由。
 - intent=none 时，原话应继续交给 NPC 正常回答。
 - intent=summon 只用于皇帝明确要求当前随侍/当前 NPC 把某人带入御前、切换奏对对象，或明确选择此前候选人。
 - 如果 route_context.tool_requested_summon_target 非空，表示 NPC 模型已经调用召见工具；这只能作为待核验对象，不能作为证据。仍必须从皇帝原话或近期候选语境判断是否真的要召见。
@@ -1286,13 +1428,13 @@ DIALOGUE_PENDING_RECOVERY_PROMPT = """
 - 不能发明新动作；只能恢复最近回复里已有证据的动作。
 - recruitment.kind 必须明确：eunuch=新太监/内侍/小火者；exam=科举/庶吉士/新科；recommend=臣工举荐新人。
 - castration 必须有具体 target，且最近回复和本轮原话合起来都指向“净身/宫刑/入内廷为奴”的身份处置；普通净身旧例讨论 false。
-- eunuch_care/eunuch_hard_service/bao_leverage 必须指向已在谈的内廷/宦官对象和具体照料、硬派、赐还/封存宝匣方案。
+- eunuch_care/eunuch_hard_service/bao_leverage 必须指向已在谈的内廷/宦官对象和具体照料、硬派、赐还/封存宝贝方案。
 - mediation 必须有双方人物或派系；普通听旧怨、问事实 false。
 - proposal_evidence 必须引用最近 NPC 回复中能证明方案存在的一句短证据；trigger_quote 必须引用皇帝本轮批准的一句短证据。
 
 判例：
 - 最近回复：“陛下若准，奴婢便去挑一个忠谨可用的来。” 玩家：“好，先把人带来。” => recruitment/eunuch allow=true。
-- 最近回复：“陛下若准，奴婢才敢传净军房行事。” 玩家：“准，照这个方案办。” => castration allow=true，并填 target。
+- 最近回复：“陛下若准，奴婢才敢传净身房行事。” 玩家：“准，照这个方案办。” => castration allow=true，并填 target。
 - 最近回复：“若陛下准，臣便按御前调停去说合。” 玩家：“可以，就这么办。” => mediation allow=true。
 - 最近回复：“若陛下准，奴婢就按调养去处置。” 玩家：“先说他到底病到什么地步？” => allow=false。
 - 最近回复只是普通分析，没有待确认方案；玩家：“准。” => allow=false。
@@ -1452,13 +1594,13 @@ JSON 字段：
 
 DIALOGUE_EUNUCH_LORE_INTAKE_PROMPT = """
 你是明末历史策略游戏的“净身旧档入档审计官”。你只输出 JSON，不写 Markdown。
-任务：阅读一段皇帝或 NPC 的对白，判断是否允许把其中的净身旧档/宝匣/旧患/心相细节写入人物长期档案，并给出允许写入的目标人物。
+任务：阅读一段皇帝或 NPC 的对白，判断是否允许把其中的净身旧档/宝贝去处/旧患/心相细节写入人物长期档案，并给出允许写入的目标人物。
 
 核心原则：
-- 这是语义判定，不按“宝匣、尿闭、净身、PTSD、性无能”等词机械触发。
+- 这是语义判定，不按“宝贝、尿闭、净身、PTSD、性无能”等词机械触发。
 - allow=true 只用于：皇帝明确命令“记档/补录/登记/改用/封存/赐还/查验”等会改旧档的处置；或对话里有可靠的一手自述/已执行处置结果，且能明确目标人物。
 - 普通询问、闲聊、打听风声、历史旧例、传闻、假设“如果净身会怎样”、NPC 泛泛解释制度，都必须 allow=false。
-- 不要因为出现身体或宝匣词汇就入档；必须有“这是某人的长期事实/处置结果/御前命令”的语义证据。
+- 不要因为出现身体或宝贝词汇就入档；必须有“这是某人的长期事实/处置结果/御前命令”的语义证据。
 - target_names 只能从 candidate_names、current_speaker、pending_target 中选；不要发明新名字。
 - 如果只是当前说话人回答“臣/奴婢听闻旧案如何”，没有明确说是本人事实或奉旨入档，allow=false。
 - 如果玩家说“只是问问/先别记档/别惊动/不要入档”，allow=false。
@@ -1513,7 +1655,7 @@ DIALOGUE_SUGGESTIONS_PROMPT = """
 - 不要把候选建议照抄成僵硬命令；可吸收其意图，换成真实语境。
 - 不要承诺已经执行动作；只提供玩家开口的自然方向。
 - 若 pending_action 非空，优先给出围绕该待办的自然回复：追问代价/证据、准许执行、暂缓作罢。不要让按钮还停在泛泛问政。
-- 净身、调养、宝匣、招募、调停等高风险待办必须写成皇帝真实会说的话，不要用“确认/取消/提交”这类 UI 词。
+- 净身、调养、宝贝旧念、招募、调停等高风险待办必须写成皇帝真实会说的话，不要用“确认/取消/提交”这类 UI 词。
 - prefix 默认 true，除非这句话已经完整到不需补充。
 
 JSON 字段：
@@ -2252,6 +2394,7 @@ def post_dialogue_audit(
     *,
     active_goal: Optional[Dict[str, object]] = None,
     pre_audit: Optional[PreDialogueAudit] = None,
+    source_context: Optional[Dict[str, object]] = None,
     llm_config: Optional[LLMConfig] = None,
     agno_db: object = None,
     audit_client: object = None,
@@ -2260,20 +2403,38 @@ def post_dialogue_audit(
     payload["user_text"] = user_text
     payload["npc_answer"] = answer
     payload["pre_audit"] = pre_audit.raw if isinstance(pre_audit, PreDialogueAudit) else {}
+    if isinstance(source_context, dict):
+        payload["briefing_context"] = {
+            key: value
+            for key, value in source_context.items()
+            if key in {
+                "card_key",
+                "kind",
+                "title",
+                "actor",
+                "target",
+                "ref_kind",
+                "ref_id",
+                "source_type",
+                "source_id",
+                "meta",
+                "ask",
+                "exchange",
+                "refusal",
+            }
+        }
     _attach_behavior_context(payload, character, text=f"{user_text}\n{answer}")
     existing_threshold = int((active_goal or {}).get("threshold") or 70)
     try:
         fake = _call_fake(audit_client, "post", payload)
         if fake is not None:
-            post = _normalize_post(fake, existing_threshold=existing_threshold)
-            return _apply_soft_hook_post(post, payload, user_text=user_text, answer=answer)
+            return _normalize_post(fake, existing_threshold=existing_threshold)
         if llm_config is None:
             return _post_failure("未配置 LLM，奏对后审不落档。")
         agent = _agent(llm_config, agno_db, phase="post", prompt=POST_AUDIT_PROMPT, max_tokens=3000)
         raw = run_agent_text(agent, json.dumps(payload, ensure_ascii=False, sort_keys=False), tag="dialogue-audit/post")
         data = parse_agent_json(raw, "奏对后审")
-        post = _normalize_post(data, existing_threshold=existing_threshold)
-        return _apply_soft_hook_post(post, payload, user_text=user_text, answer=answer)
+        return _normalize_post(data, existing_threshold=existing_threshold)
     except Exception as exc:
         return _post_failure(str(exc))
 

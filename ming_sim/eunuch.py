@@ -1,6 +1,6 @@
 """随侍太监枢纽（人治之门）：皇帝唯一可随时直奏之人，百官经其传召觐见。L7。
 
-随侍太监是一个**可替换的职位**——和所有官员一样可换人（KV 记在任者）。
+随侍太监是一个**可替换的职位**，但必须由 `sex=eunuch` 的在朝阉人担任（KV 记在任者）。
 其本身是一个有血有肉的 LLM 角色（复用大臣 agent 链路），只是被注入「随侍」角色简报：
 为皇帝过滤/转呈百官奏报、可奉旨传召大臣(summon_minister 工具)，且有自己的立场私心。
 
@@ -13,51 +13,67 @@ from __future__ import annotations
 from typing import List, Optional
 
 from ming_sim.db import GameDB
+from ming_sim.identity import character_is_eunuch, requires_eunuch_identity
 
 KV_ATTENDING_EUNUCH = "upgrade.attending_eunuch"
 
-# 宦官身份关键词（职/衙门）——与 portraits.is_eunuch_identity 同源，落到 office/office_type。
-_EUNUCH_KW = ("太监", "宦官", "内官", "司礼监", "东厂", "内廷", "秉笔", "掌印", "随堂",
-              "御马监", "御用监", "尚膳监", "内官监", "御前")
 # 默认随侍优先人选（崇祯贴身、史上殉国之忠宦）。
 _PREFERRED = "王承恩"
 
 
 def is_eunuch_like(office: str, office_type: str) -> bool:
-    blob = f"{office or ''}{office_type or ''}"
-    return any(kw in blob for kw in _EUNUCH_KW)
+    return requires_eunuch_identity(office, office_type)
 
 
 def _active_char(db: GameDB, name: str):
     if not name:
         return None
     return db.conn.execute(
-        "SELECT name, office, office_type, power_id FROM characters "
+        "SELECT name, office, office_type, faction, sex, power_id FROM characters "
         "WHERE name=? AND status='active'", (name,)
     ).fetchone()
 
 
+def _row_is_eunuch(row) -> bool:
+    if row is None:
+        return False
+    return character_is_eunuch(
+        row,
+        sex=row["sex"] if "sex" in row.keys() else "",
+        office=row["office"] if "office" in row.keys() else "",
+        office_type=row["office_type"] if "office_type" in row.keys() else "",
+        faction=row["faction"] if "faction" in row.keys() else "",
+        allow_legacy_text_fallback=True,
+    )
+
+
 def list_candidates(db: GameDB) -> List[dict]:
-    """可任随侍者：在朝大明宦官优先；用户「人皆可换」，故也允许其余在朝官员，但宦官置顶。"""
+    """可任随侍者：必须是在朝大明阉人。"""
     rows = db.conn.execute(
-        "SELECT name, office, office_type FROM characters "
+        "SELECT name, office, office_type, faction, sex FROM characters "
         "WHERE status='active' AND power_id='ming' AND office_type!='后宫' ORDER BY name"
     ).fetchall()
-    eunuchs, others = [], []
+    candidates = []
     for r in rows:
+        if not _row_is_eunuch(r):
+            continue
         item = {"name": str(r["name"]), "office": str(r["office"] or ""),
-                "is_eunuch": is_eunuch_like(str(r["office"] or ""), str(r["office_type"] or ""))}
-        (eunuchs if item["is_eunuch"] else others).append(item)
-    return eunuchs + others
+                "sex": str(r["sex"] or "unknown"), "is_eunuch": True}
+        candidates.append(item)
+    return candidates
 
 
 def get_attending_eunuch(db: GameDB) -> Optional[str]:
     """在任随侍太监姓名。KV 已设且在朝则用之；否则默认挑（王承恩→任一在朝宦官→None）。"""
     raw = (db.kv_get(KV_ATTENDING_EUNUCH) or "").strip()
-    if raw and _active_char(db, raw) is not None:
-        return raw
+    if raw:
+        row = _active_char(db, raw)
+        if row is not None and _row_is_eunuch(row):
+            return raw
+        db.kv_set(KV_ATTENDING_EUNUCH, "")
     # 默认：王承恩
-    if _active_char(db, _PREFERRED) is not None:
+    preferred = _active_char(db, _PREFERRED)
+    if preferred is not None and _row_is_eunuch(preferred):
         db.kv_set(KV_ATTENDING_EUNUCH, _PREFERRED)
         return _PREFERRED
     # 任一在朝宦官
@@ -69,11 +85,13 @@ def get_attending_eunuch(db: GameDB) -> Optional[str]:
 
 
 def set_attending_eunuch(db: GameDB, name: str) -> dict:
-    """换随侍太监（人皆可换）。校验在朝。"""
+    """换随侍太监。校验在朝且必须为阉人身份。"""
     name = (name or "").strip()
     row = _active_char(db, name)
     if row is None:
         return {"ok": False, "message": "此人不在朝，无法充任随侍。"}
+    if not _row_is_eunuch(row):
+        return {"ok": False, "message": "随侍太监须由阉人担任；请先补内侍或完成净身身份转换。"}
     db.kv_set(KV_ATTENDING_EUNUCH, name)
     return {"ok": True, "message": f"已命{name}充任御前随侍。", "name": name,
             "office": str(row["office"] or "")}

@@ -346,7 +346,7 @@ def court_payload(db: GameDB, name: str) -> Dict[str, object]:
     """前端人物卡：性格特质 + 私心 + 党羽 + 政敌。"""
     try:
         from ming_sim.traits import traits_of
-        traits = traits_of(db, name)
+        traits = traits_of(db, name, include_medical=False)
     except ImportError:
         traits = []
     duishi = ""
@@ -355,12 +355,6 @@ def court_payload(db: GameDB, name: str) -> Dict[str, object]:
         duishi = duishi_partner(db, name)
     except Exception:
         duishi = ""
-    castration = None
-    try:
-        from ming_sim.eunuch_lore import public_lore_payload
-        castration = public_lore_payload(db, name)
-    except Exception:
-        castration = None
     secret = None
     intrigue_previews = {}
     try:
@@ -401,7 +395,6 @@ def court_payload(db: GameDB, name: str) -> Dict[str, object]:
         "allies": allies_of(db, name, limit=4),
         "rivals": rivals_of(db, name, limit=4),
         "duishi": duishi,
-        "castration": castration,
         "secret": secret,
         "back_previews": back_previews,
         "intrigue_previews": intrigue_previews,

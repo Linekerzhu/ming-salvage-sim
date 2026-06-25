@@ -114,11 +114,23 @@ def seed_secrets(db: GameDB, *, force: bool = False) -> int:
 
 def dongchang_chief(db: GameDB) -> Optional[str]:
     """东厂提督（厂卫侦缉之主）；无则取司礼监掌印代领，再无则 None。"""
-    row = db.conn.execute(
-        "SELECT name FROM characters WHERE status='active' AND power_id='ming' "
-        "AND office LIKE '%东厂%' ORDER BY ability DESC LIMIT 1").fetchone()
-    if row:
-        return str(row["name"])
+    from ming_sim.identity import character_is_eunuch
+
+    rows = db.conn.execute(
+        "SELECT name, office, office_type, faction, sex FROM characters "
+        "WHERE status='active' AND power_id='ming' AND office LIKE '%东厂%' "
+        "ORDER BY ability DESC"
+    ).fetchall()
+    for row in rows:
+        if character_is_eunuch(
+            row,
+            sex=row["sex"],
+            office=row["office"],
+            office_type=row["office_type"],
+            faction=row["faction"],
+            allow_legacy_text_fallback=True,
+        ):
+            return str(row["name"])
     try:
         from ming_sim.eunuch_power import chief_keeper_name
         return chief_keeper_name(db)

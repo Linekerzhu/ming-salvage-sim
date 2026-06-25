@@ -20,6 +20,7 @@ import re
 from typing import Dict, List, Optional, Tuple
 
 from ming_sim.db import GameDB
+from ming_sim.identity import character_is_eunuch
 from ming_sim.models import Character, GameState
 from ming_sim.timeflow import LEVEL_RED, LEVEL_YELLOW, schedule
 from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int, kv_set_int
@@ -329,7 +330,6 @@ _OFFICE_ENTITLEMENTS = {
     "锦衣卫": "缉事访单、诏狱案卷",
 }
 
-_EUNUCH_ROLE_RE = re.compile(r"太监|宦官|内官|司礼监|东厂|内廷|秉笔|掌印|随堂|御马监|御用监|尚膳监|内官监")
 _MILITARY_ROLE_RE = re.compile(r"总兵|督师|经略|巡抚|提督|参将|副将|游击|边镇|辽东|关宁|宣大|蓟镇|兵备|将军")
 
 
@@ -338,7 +338,14 @@ def _role_voice_brief(character: Character) -> str:
     office_type = str(character.office_type or "")
     faction = str(character.faction or "")
     blob = f"{office} {office_type} {faction}"
-    if _EUNUCH_ROLE_RE.search(blob):
+    if character_is_eunuch(
+        None,
+        sex=getattr(character, "sex", ""),
+        office=office,
+        office_type=office_type,
+        faction=faction,
+        allow_legacy_text_fallback=True,
+    ):
         return (
             "【话语身份边界】你是内廷近侍/内臣，不是内阁大学士、六部尚书或边臣统帅。"
             "可说：宫中传闻、御前所见、司礼监/内库/宫禁/传旨催办、替皇帝打听消息、传召某人。"

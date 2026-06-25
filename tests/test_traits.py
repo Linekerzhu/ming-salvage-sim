@@ -48,6 +48,26 @@ class SeedTests(unittest.TestCase):
             self.assertIn("valence", ts[0])
             self.assertIn("desc", ts[0])
 
+    def test_public_traits_can_hide_medical_record_traits(self):
+        with TemporaryDirectory() as tmp:
+            db, _ = _fresh(tmp)
+            db.conn.execute(
+                "INSERT OR REPLACE INTO character_traits (name, trait, valence) VALUES (?,?,?)",
+                ("测甲", "情欲异化", -1),
+            )
+            db.conn.execute(
+                "INSERT OR REPLACE INTO character_traits (name, trait, valence) VALUES (?,?,?)",
+                ("测甲", "直言不讳", 1),
+            )
+            db.conn.commit()
+
+            public = traits.traits_of(db, "测甲", include_medical=False)
+            raw = traits.traits_of(db, "测甲")
+
+            self.assertIn("情欲异化", {item["key"] for item in raw})
+            self.assertNotIn("情欲异化", {item["key"] for item in public})
+            self.assertIn("直言不讳", {item["key"] for item in public})
+
 
 class BiasTests(unittest.TestCase):
     def test_trait_bias_reflects_traits(self):

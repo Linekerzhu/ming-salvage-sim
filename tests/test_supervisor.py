@@ -29,6 +29,20 @@ class DispatchTests(unittest.TestCase):
             aid = _an_army(db)
             self.assertFalse(frontier.dispatch_supervisor(db, state, aid, "韩爌", day)["ok"])  # 非宦官
 
+    def test_dispatch_rejects_eunuch_office_without_eunuch_sex(self):
+        with TemporaryDirectory() as tmp:
+            db, state, day = _fresh(tmp)
+            aid = _an_army(db)
+            db.conn.execute(
+                "UPDATE characters SET office='司礼监随堂太监', office_type='司礼监', "
+                "faction='内廷', sex='male' WHERE name='韩爌'"
+            )
+            db.conn.commit()
+            r = frontier.dispatch_supervisor(db, state, aid, "韩爌", day)
+            self.assertFalse(r["ok"])
+            self.assertEqual(str(db.conn.execute(
+                "SELECT supervisor FROM armies WHERE id=?", (aid,)).fetchone()["supervisor"]), "")
+
     def test_dispatch_sets_supervisor_and_raises_power(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)

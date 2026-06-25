@@ -723,6 +723,48 @@ class PlaystyleBriefTests(unittest.TestCase):
             buckets = {str(b["kind"]): b for b in payload["buckets"]}
             self.assertEqual(buckets["patronage"]["label"], "举主")
 
+    def test_resolved_patronage_card_is_filtered_from_briefing(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            sponsor = _active_minister(db)
+            candidate = str(db.conn.execute(
+                """
+                SELECT name
+                FROM characters
+                WHERE status='active'
+                  AND power_id='ming'
+                  AND office_type!='后宫'
+                  AND name!=?
+                LIMIT 1
+                """,
+                (sponsor,),
+            ).fetchone()["name"])
+            db.conn.execute(
+                "UPDATE characters SET office='待铨（举贤入京）', office_type='待铨', summary=? WHERE name=?",
+                (f"由地方举荐入京。举荐来源：{sponsor}；风险：初入朝局，仍受举主关系牵引。", candidate),
+            )
+            court.adjust_opinion(db, sponsor, candidate, +28, "举荐入朝", day=1, reciprocal=False)
+            court.adjust_opinion(db, candidate, sponsor, +34, "举主恩义", day=1, reciprocal=False)
+            before = briefing_payload(db, state, limit=5, kind="patronage")
+            card = next(c for c in before["cards"] if c["kind"] == "patronage")
+            self.assertTrue(str(card.get("card_key") or "").startswith("patronage:"))
+
+            db.record_briefing_card_resolution(
+                state,
+                card_key=str(card["card_key"]),
+                source_type=str(card["source_type"]),
+                source_id=str(card["source_id"]),
+                kind=str(card["kind"]),
+                title=str(card["title"]),
+                actor=str(card["actor"]),
+                target=str(card["target"]),
+                resolution="pending",
+                decision={"source": "unit", "agreement_formed": True},
+            )
+
+            after = briefing_payload(db, state, limit=5, kind="patronage")
+            self.assertFalse(any(c.get("card_key") == card["card_key"] for c in after["cards"]))
+
     def test_patronage_chat_context_differs_for_sponsor_and_candidate(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)
@@ -1311,6 +1353,20 @@ class PlaystyleBriefTests(unittest.TestCase):
             labels = [str(e["label"]) for e in card["effects"]]
             self.assertIn("旧账/索证", labels)
             self.assertTrue(any(label.startswith("怨望 ") for label in labels), labels)
+
+            db.record_briefing_card_resolution(
+                state,
+                card_key=str(card["card_key"]),
+                source_type=str(card["source_type"]),
+                source_id=str(card["source_id"]),
+                kind=str(card["kind"]),
+                title=str(card["title"]),
+                actor=str(card["actor"]),
+                resolution="pending",
+                decision={"source": "unit", "agreement_formed": True},
+            )
+            filtered = briefing_payload(db, state, limit=5, kind="bargain")
+            self.assertFalse(any(c.get("card_key") == card["card_key"] for c in filtered["cards"]))
 
             brief = bargain_chat_context_brief(db, "韩爌", card["ref_id"])
             self.assertIn("本次召对事项：御前旧账", brief)

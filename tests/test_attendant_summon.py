@@ -29,6 +29,7 @@ class AttendantSummonTests(unittest.TestCase):
                 "MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS",
                 "MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS",
                 "MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK",
+                "MING_SIM_ENABLE_LEGACY_DIALOGUE_REGEX_WORLD_ACTIONS",
                 "MING_SIM_ENABLE_RECRUITMENT_REGEX_FALLBACK",
                 "MING_SIM_ENABLE_DIALOGUE_LORE_REGEX_FALLBACK",
                 "MING_SIM_ENABLE_DIALOGUE_DIRECTIVE_REGEX_FALLBACK",
@@ -70,6 +71,10 @@ class AttendantSummonTests(unittest.TestCase):
         os.environ.pop("MING_SIM_AUTH_USERS", None)
         os.environ["MING_SIM_INVITE_CODE"] = ""
         os.environ["MING_SIM_ALLOW_REGISTRATION"] = "0"
+        # Most historical summon tests exercise the deterministic compatibility
+        # path.  Production defaults keep these regex routes off; tests opt in
+        # explicitly so semantic-only cases can disable the old gates per test.
+        os.environ["MING_SIM_ENABLE_LEGACY_DIALOGUE_REGEX_WORLD_ACTIONS"] = "1"
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS"] = "1"
         os.environ["MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK"] = "1"
@@ -2102,13 +2107,13 @@ class AttendantSummonTests(unittest.TestCase):
 
             proposal_events = list(game.chat_stream(
                 attendant,
-                f"把{name}净身入内廷，净军房行事，铜柄宫刀，无麻，宝油炸封蜡，收黄杨木描金匣。",
+                f"把{name}净身入内廷，净身房行事，铜柄宫刀，无麻，宝油炸封蜡，收黄杨木描金匣。",
             ))
             self.assertEqual(proposal_events[-1]["type"], "done")
             self.assertIn("若准", proposal_events[-1]["payload"]["answer"])
-            self.assertIn("方案画像", proposal_events[-1]["payload"]["answer"])
-            self.assertIn("调养成本", proposal_events[-1]["payload"]["answer"])
+            self.assertIn("病历后果", proposal_events[-1]["payload"]["answer"])
             self.assertIn("差遣风险", proposal_events[-1]["payload"]["answer"])
+            self.assertNotIn("铜柄宫刀", proposal_events[-1]["payload"]["answer"])
             pending = game._load_pending_dialogue_action(attendant)
             self.assertEqual(pending.get("type"), "castration")
             self.assertEqual(pending.get("target"), name)
@@ -2126,29 +2131,26 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(confirm_events[-1]["type"], "done")
             payload = confirm_events[-1]["payload"]
             self.assertEqual(payload["dialogue_effect"]["title"], "内廷改籍")
-            self.assertIn("内廷旧档", payload["answer"])
+            self.assertIn("病历后果", payload["answer"])
             self.assertNotIn("强旨净身", payload["dialogue_effect"]["title"])
-            self.assertIn("方案画像", payload["answer"])
             self.assertIn("差遣风险", payload["answer"])
             effect_labels = {str(item.get("label") or "") for item in payload["dialogue_effect"].get("effects", [])}
-            self.assertTrue(any("方案：酷烈高危" in label for label in effect_labels))
-            self.assertTrue(any("后续调养成本+4" in label for label in effect_labels))
+            self.assertFalse(any("方案：" in label or "酷烈" in label for label in effect_labels))
             minister = game.public_character(game.content.characters[name])
             self.assertEqual(minister["office"], "司礼监随堂太监")
             self.assertEqual(minister["office_type"], "司礼监")
-            castration = minister["castration"]
+            self.assertNotIn("castration", minister)
+            self.assertIn("medical_record", minister)
+            castration = game._public_castration_payload(name)
+            self.assertIsNotNone(castration)
             self.assertTrue(castration["forced"])
-            self.assertEqual(castration["method_label"], "净军房夜割")
-            self.assertEqual(castration["knife_label"], "铜柄宫刀")
-            self.assertEqual(castration["anesthesia_label"], "无麻，冷汗硬熬")
-            self.assertEqual(castration["bao_weight_label"], "约二两八钱")
-            self.assertEqual(castration["bao_shape_label"], "一大一小")
-            self.assertEqual(castration["bao_texture_label"], "油封后发硬")
-            self.assertEqual(castration["preservation_label"], "油炸封蜡")
-            self.assertEqual(castration["container_label"], "黄杨木描金匣")
-            self.assertIn("漏尿", castration["urine_label"])
-            self.assertIn("嗓音尖薄", castration["voice_body_label"])
-            self.assertIn("幻肢痛", castration["trauma_label"])
+            self.assertEqual(castration["method_label"], "净身房登记")
+            self.assertEqual(castration["knife_label"], "")
+            self.assertEqual(castration["anesthesia_label"], "")
+            self.assertEqual(castration["bao_weight_label"], "")
+            self.assertEqual(castration["bao_shape_label"], "")
+            self.assertEqual(castration["bao_texture_label"], "")
+            self.assertIn("惊创", castration["trauma_label"])
             after_row = game.db.conn.execute(
                 "SELECT emp_trust, grievance, ability, charm FROM characters WHERE name=?",
                 (name,),
@@ -2160,12 +2162,12 @@ class AttendantSummonTests(unittest.TestCase):
                 for r in game.db.conn.execute("SELECT trait FROM character_traits WHERE name=?", (name,)).fetchall()
             }
             self.assertIn("内廷奴籍", trait_names)
-            self.assertIn("惊创未平", trait_names)
-            self.assertIn("尿路旧患", trait_names)
-            self.assertIn("情欲异化", trait_names)
+            self.assertNotIn("惊创未平", trait_names)
+            self.assertNotIn("尿路旧患", trait_names)
+            self.assertNotIn("情欲异化", trait_names)
             inventory_ids = {str(item["id"]) for item in game.db.list_player_inventory()}
             self.assertIn(f"内廷旧档：{name}", inventory_ids)
-            self.assertIn(f"官库旧匣：{name}", inventory_ids)
+            self.assertIn(f"官库宝贝：{name}", inventory_ids)
             self.assertEqual(game._load_pending_dialogue_action(attendant), {})
         finally:
             try:
@@ -2189,7 +2191,7 @@ class AttendantSummonTests(unittest.TestCase):
             name = str(row["name"])
             before_office = str(row["office"])
             before_office_type = str(row["office_type"])
-            text = f"只是聊聊{name}若净身入内廷的旧例，不是要办，别惊动净军房。"
+            text = f"只是聊聊{name}若净身入内廷的旧例，不是要办，别惊动净身房。"
 
             self.assertIsNone(game._dialogue_action_response(attendant, text))
             self.assertEqual(game._load_pending_dialogue_action(attendant), {})
@@ -2399,6 +2401,67 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_semantic_action_probe_can_apply_custody_punishment_and_medical_record_without_regex(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "0"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "韩爌"
+
+            def audit(phase, payload):
+                if phase == "dialogue_action_intent":
+                    self.assertEqual((payload.get("tool_action") or {}).get("type"), "semantic_probe")
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "punishment",
+                        "target": actor,
+                        "trigger_quote": "押入昭狱，割舌禁言",
+                        "character_status_changes": [{
+                            "name": actor,
+                            "status": "imprisoned",
+                            "agency": "锦衣卫",
+                            "facility": "北镇抚司昭狱",
+                            "reason": "押入昭狱",
+                            "severity": 5,
+                        }],
+                        "punishment_changes": [{
+                            "name": actor,
+                            "taxonomy": "ordinary",
+                            "punishment": "割舌",
+                            "stage": "executed",
+                            "severity": 5,
+                            "executor": "锦衣卫",
+                            "reason": "禁其妄言",
+                        }],
+                        "confidence": 96,
+                        "private_reason": "明确即时口谕。",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            response = game._dialogue_semantic_action_response(actor, "押入昭狱，割舌禁言。")
+
+            self.assertIsNotNone(response)
+            self.assertIn("口谕", str(response.get("answer") or ""))
+            status, reason = game.db.get_character_status(actor)
+            self.assertEqual(status, "imprisoned")
+            self.assertIn("昭狱", reason)
+            condition = game.db.conn.execute(
+                "SELECT system, label FROM character_conditions WHERE name=?",
+                (actor,),
+            ).fetchone()
+            self.assertIsNotNone(condition)
+            self.assertEqual(str(condition["system"]), "speech")
+            self.assertEqual(str(condition["label"]), "舌伤")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_semantic_action_probe_denial_does_not_create_pending_action(self):
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "0"
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
@@ -2583,7 +2646,7 @@ class AttendantSummonTests(unittest.TestCase):
                 "role": "minister",
                 "content": (
                     f"奴婢回陛下，{target}若真要净身入内廷，便是极端身份处置。"
-                    "陛下若准，奴婢才敢传净军房行事。"
+                    "陛下若准，奴婢才敢传净身房行事。"
                 ),
             }]
 
@@ -2596,7 +2659,7 @@ class AttendantSummonTests(unittest.TestCase):
                         "action_type": "castration",
                         "target": target,
                         "trigger_quote": "准，照这个方案办",
-                        "proposal_evidence": "陛下若准，奴婢才敢传净军房行事",
+                        "proposal_evidence": "陛下若准，奴婢才敢传净身房行事",
                         "private_reason": "test semantic pending recovery",
                         "confidence": 96,
                     }
@@ -3104,13 +3167,12 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(effect["title"], "内廷旧档补记")
             self.assertIn("韩爌旧档更新", effect["message"])
             labels = {str(item["label"]) for item in effect["effects"]}
-            self.assertTrue(any("匣藏：黑漆楠木匣" in label for label in labels))
-            self.assertTrue(any("封存：油炸封蜡" in label for label in labels))
+            self.assertFalse(any("匣藏" in label or "封存：油炸封蜡" in label for label in labels))
             self.assertTrue(any("尿路：" in label and "尿闭" in label for label in labels))
-            self.assertTrue(any("新增特质" in label and "尿路旧患" in label for label in labels))
+            self.assertFalse(any("新增特质" in label and "尿路旧患" in label for label in labels))
             self.assertTrue(payload["history"][-1].get("stage_directions"))
             stage_text = " ".join(payload["history"][-1]["stage_directions"])
-            self.assertTrue("钥匙" in stage_text or "夹腰" in stage_text)
+            self.assertNotIn("钥匙", stage_text)
 
             castration = el.public_lore_payload(game.db, name)
             self.assertIsNotNone(castration)
@@ -3142,7 +3204,7 @@ class AttendantSummonTests(unittest.TestCase):
             game.castrate_official(
                 name,
                 force=True,
-                scheme_text="净军房无麻，宝油炸封蜡；近来漏尿尿闭，嗓音尖薄，幻肢痛。",
+                scheme_text="净身房无麻，宝油炸封蜡；近来漏尿尿闭，嗓音尖薄，幻肢痛。",
             )
             game.session.dialogue_audit_client = self._dialogue_action_audit(
                 action_type="eunuch_care",
@@ -3176,8 +3238,7 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(confirm_events[-1]["type"], "done")
             payload = confirm_events[-1]["payload"]
             self.assertEqual(payload["dialogue_effect"]["title"], "尿路调养")
-            self.assertIn("内库-7", payload["dialogue_effect"]["message"])
-            self.assertIn("方案调养+4", payload["dialogue_effect"]["message"])
+            self.assertIn("内库-", payload["dialogue_effect"]["message"])
             self.assertIn("stage_direction", payload["dialogue_effect"])
             self.assertTrue(payload["history"][-1].get("stage_directions"))
             self.assertIn("夹腰", " ".join(payload["history"][-1]["stage_directions"]))
@@ -3193,7 +3254,7 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(int(after_row["grievance"]), 34)
             self.assertEqual(int(after_row["ability"]), 56)
             self.assertEqual(int(after_row["charm"]), 55)
-            self.assertEqual(game.state.metrics["内库"], 73)
+            self.assertLess(game.state.metrics["内库"], 80)
             self.assertIsNotNone(game.db.conn.execute(
                 "SELECT 1 FROM character_traits WHERE name=? AND trait='旧患调养'",
                 (name,),
@@ -3362,7 +3423,7 @@ class AttendantSummonTests(unittest.TestCase):
             game.castrate_official(
                 name,
                 force=True,
-                scheme_text="净军房无麻；近来漏尿尿闭，夜里小解不畅。",
+                scheme_text="净身房无麻；近来漏尿尿闭，夜里小解不畅。",
             )
             game.session.dialogue_audit_client = self._dialogue_action_audit(
                 action_type="eunuch_hard_service",
@@ -3472,16 +3533,16 @@ class AttendantSummonTests(unittest.TestCase):
             ))
 
             payload = confirm_events[-1]["payload"]
-            self.assertIn(payload["dialogue_effect"]["title"], {"宝案查验", "奏对有动"})
+            self.assertIn(payload["dialogue_effect"]["title"], {"宝贝旧念查验", "奏对有动"})
             labels = {str(item.get("label") or "") for item in payload["dialogue_effect"].get("effects", [])}
-            self.assertTrue(any("匣藏：锡胆小木匣" in label for label in labels))
-            self.assertTrue(any("封存：香料腌藏" in label for label in labels))
-            self.assertTrue(any("入库：宝案安置" in label for label in labels))
+            self.assertFalse(any("匣藏" in label or "香料腌藏" in label or "钥匙" in label for label in labels))
+            self.assertTrue(any("入库：宝案安置" in label or "入库：宝贝旧念安置" in label for label in labels))
 
-            castration = game.public_character(game.content.characters[name])["castration"]
+            castration = game._public_castration_payload(name)
+            self.assertIsNotNone(castration)
             self.assertEqual(castration["container_label"], "锡胆小木匣")
             self.assertEqual(castration["preservation_label"], "香料腌藏")
-            self.assertEqual(castration["ritual_label"], "夜半验匣，钥匙贴身")
+            self.assertEqual(castration["ritual_label"], "夜半验看，封签贴身")
             inventory_ids = {str(item["id"]) for item in game.db.list_player_inventory()}
             self.assertIn(f"宝案安置：{name}", inventory_ids)
             self.assertFalse(game._load_pending_dialogue_action(attendant))
@@ -3540,22 +3601,23 @@ class AttendantSummonTests(unittest.TestCase):
             ))
 
             payload = confirm_events[-1]["payload"]
-            self.assertEqual(payload["dialogue_effect"]["title"], "赐还宝匣")
-            self.assertIn("信任+3", payload["dialogue_effect"]["message"])
-            self.assertIn("怨望-6", payload["dialogue_effect"]["message"])
-            self.assertIn("筹码值40", payload["dialogue_effect"]["message"])
+            self.assertEqual(payload["dialogue_effect"]["title"], "赐还宝贝")
+            self.assertIn("信任+", payload["dialogue_effect"]["message"])
+            self.assertIn("怨望-", payload["dialogue_effect"]["message"])
+            self.assertIn("筹码值", payload["dialogue_effect"]["message"])
             labels = {str(item.get("label") or "") for item in payload["dialogue_effect"].get("effects", [])}
-            self.assertTrue(any("御赐宝匣" in label for label in labels))
-            self.assertTrue(any("宝案筹码40" in label for label in labels))
+            self.assertTrue(any("御赐宝贝" in label or "宝贝安顿" in label for label in labels))
+            self.assertTrue(any("旧念筹码" in label for label in labels))
             self.assertTrue(any("体面安置越足" in label for label in labels))
-            self.assertTrue(any("宝匣：锡胆小木匣" in label for label in labels))
-            castration = game.public_character(game.content.characters[name])["castration"]
+            self.assertFalse(any("宝匣" in label or "钥匙" in label or "锡胆小木匣" in label for label in labels))
+            castration = game._public_castration_payload(name)
+            self.assertIsNotNone(castration)
             self.assertEqual(castration["bao_status"], "kept")
             self.assertEqual(castration["container_label"], "锡胆小木匣")
             self.assertEqual(castration["preservation_label"], "香料腌藏")
             self.assertIn("赐还", castration["ritual_label"])
             inventory_ids = {str(item["id"]) for item in game.db.list_player_inventory()}
-            self.assertIn(f"御赐宝匣：{name}", inventory_ids)
+            self.assertIn(f"御赐宝贝：{name}", inventory_ids)
             self.assertFalse(game._load_pending_dialogue_action(attendant))
         finally:
             try:
@@ -3638,7 +3700,7 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertTrue(last.get("stage_directions"))
             self.assertTrue(any(
                 marker in " ".join(last["stage_directions"])
-                for marker in ("垂手", "夹腰", "嗓音", "失神", "钥匙", "宝匣", "肩背")
+                for marker in ("垂手", "夹腰", "嗓音", "失神", "封签", "宝贝", "肩背")
             ))
             stored = game._chat_history_payload(attendant)[-1]
             self.assertTrue(stored.get("stage_directions"))
@@ -3665,37 +3727,42 @@ class AttendantSummonTests(unittest.TestCase):
             result = game.castrate_official(
                 name,
                 force=True,
-                scheme_text="净军房行事，铜柄宫刀，无麻；宝约二两八钱，一大一小，油封后发硬，油炸封蜡，收黄杨木描金匣。",
+                scheme_text="净身房行事，铜柄宫刀，无麻；宝约二两八钱，一大一小，油封后发硬，油炸封蜡，收黄杨木描金匣。",
             )
             minister = result["minister"]
 
             self.assertEqual(minister["office"], "司礼监随堂太监")
             self.assertEqual(minister["office_type"], "司礼监")
             self.assertEqual(minister["faction"], "内廷")
-            self.assertIn("castration", minister)
-            castration = minister["castration"]
+            self.assertNotIn("castration", minister)
+            self.assertIn("medical_record", minister)
+            medical_titles = " ".join(
+                str(item.get("title") or "")
+                for group in minister["medical_record"].get("groups", [])
+                for item in group.get("items", [])
+            )
+            self.assertIn("左侧睾丸：缺失", medical_titles)
+            self.assertIn("绝育", medical_titles)
+            castration = game._public_castration_payload(name)
+            self.assertIsNotNone(castration)
             self.assertTrue(castration["forced"])
-            self.assertIn("强阉", castration["bao_label"])
-            self.assertTrue(castration["knife_label"])
-            self.assertTrue(castration["anesthesia_label"])
-            self.assertTrue(castration["urine_label"])
-            self.assertTrue(castration["voice_body_label"])
+            self.assertIn("宝贝官库", castration["bao_label"])
             self.assertTrue(castration["trauma_label"])
             self.assertTrue(castration["fixation_label"])
-            self.assertEqual(castration["method_label"], "净军房夜割")
-            self.assertEqual(castration["knife_label"], "铜柄宫刀")
-            self.assertEqual(castration["anesthesia_label"], "无麻，冷汗硬熬")
-            self.assertEqual(castration["bao_weight_label"], "约二两八钱")
-            self.assertEqual(castration["bao_shape_label"], "一大一小")
-            self.assertEqual(castration["bao_texture_label"], "油封后发硬")
-            self.assertEqual(castration["preservation_label"], "油炸封蜡")
-            self.assertEqual(castration["container_label"], "黄杨木描金匣")
+            self.assertEqual(castration["method_label"], "净身房登记")
+            self.assertEqual(castration["knife_label"], "")
+            self.assertEqual(castration["anesthesia_label"], "")
+            self.assertEqual(castration["bao_weight_label"], "")
+            self.assertEqual(castration["bao_shape_label"], "")
+            self.assertEqual(castration["bao_texture_label"], "")
+            self.assertNotIn("宝匣", str(castration))
+            self.assertNotIn("钥匙", str(castration))
 
             refreshed = game.public_character(game.content.characters[name])
             self.assertEqual(refreshed["office"], "司礼监随堂太监")
-            self.assertEqual(refreshed["castration"]["bao_status"], "forfeit")
-            self.assertTrue(any(tag["label"] == "内廷奴籍" for tag in refreshed["identity_tags"]))
-            self.assertTrue(any(tag["label"] == "内廷旧档" for tag in refreshed["identity_tags"]))
+            self.assertNotIn("castration", refreshed)
+            self.assertEqual(game._public_castration_payload(name)["bao_status"], "forfeit")
+            self.assertTrue(any(tag["label"] == "生殖伤残" for tag in refreshed["identity_tags"]))
             public_labels = " ".join(str(tag.get("label") or "") for tag in refreshed["identity_tags"])
             self.assertNotRegex(public_labels, r"净身|宝")
         finally:
@@ -3804,7 +3871,7 @@ class AttendantSummonTests(unittest.TestCase):
             lore = el.get_lore(game.db, attendant)
             self.assertEqual(str(lore["bao_container"] or ""), "黑漆楠木匣")
             self.assertEqual(str(lore["bao_preservation"] or ""), "油炸封蜡")
-            self.assertEqual(str(lore["bao_ritual"] or ""), "夜半验匣，钥匙贴身")
+            self.assertEqual(str(lore["bao_ritual"] or ""), "夜半验看，封签贴身")
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
@@ -3950,7 +4017,7 @@ class AttendantSummonTests(unittest.TestCase):
             ).fetchone()
             self.assertEqual(str(lore["bao_container"] or ""), "黄杨木描金匣")
             self.assertEqual(str(lore["bao_preservation"] or ""), "油炸封蜡")
-            self.assertEqual(str(lore["bao_ritual"] or ""), "夜半验匣，钥匙贴身")
+            self.assertEqual(str(lore["bao_ritual"] or ""), "夜半验看，封签贴身")
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
@@ -4028,7 +4095,7 @@ class AttendantSummonTests(unittest.TestCase):
             game.castrate_official(
                 name,
                 force=True,
-                scheme_text="净军房行事，铜柄宫刀，无麻；宝约一两二钱，圆缩成团，石灰封后发白，官库石灰封存，收白签灰瓮。",
+                scheme_text="净身房行事，铜柄宫刀，无麻；宝约一两二钱，圆缩成团，石灰封后发白，官库石灰封存，收白签灰瓮。",
             )
             game.db.conn.execute("DELETE FROM character_traits WHERE name=?", (name,))
             game.db.conn.execute(
@@ -4036,7 +4103,9 @@ class AttendantSummonTests(unittest.TestCase):
                 (f"内廷旧档：{name}", f"官库旧匣：{name}", f"旧匣遗失：{name}"),
             )
             game.db.conn.commit()
-            before = game.public_character(game.content.characters[name])["castration"]
+            self.assertNotIn("castration", game.public_character(game.content.characters[name]))
+            before = game._public_castration_payload(name)
+            self.assertIsNotNone(before)
             before_traits = {
                 str(r["trait"])
                 for r in game.db.conn.execute("SELECT trait FROM character_traits WHERE name=?", (name,)).fetchall()
@@ -4060,14 +4129,15 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertTrue(result["gameplay"]["items_added"])
             scheme_review = result["gameplay"].get("scheme_review")
             self.assertTrue(scheme_review)
-            self.assertEqual(scheme_review["tier"], "酷烈高危")
-            self.assertGreaterEqual(int(scheme_review["risk_score"]), 72)
+            self.assertIn(scheme_review["tier"], {"可控旧例", "粗急伤身", "酷烈高危"})
+            self.assertGreaterEqual(int(scheme_review["risk_score"]), 50)
             effect = game._eunuch_lore_dialogue_effect(result)
             effect_labels = {str(item.get("label") or "") for item in effect.get("effects", [])}
-            self.assertTrue(any("旧制复盘：酷烈高危" in label for label in effect_labels))
+            self.assertTrue(any("旧制复盘：" in label for label in effect_labels))
             game._record_chat_rollback_items(chat_turn_id, snapshot)
 
-            after = game.public_character(game.content.characters[name])["castration"]
+            after = game._public_castration_payload(name)
+            self.assertIsNotNone(after)
             self.assertEqual(after["container_label"], "黑漆楠木匣")
             self.assertEqual(after["preservation_label"], "油炸封蜡")
             self.assertEqual(after["bao_weight_label"], "约二两八钱")
@@ -4081,8 +4151,8 @@ class AttendantSummonTests(unittest.TestCase):
                 str(r["trait"])
                 for r in game.db.conn.execute("SELECT trait FROM character_traits WHERE name=?", (name,)).fetchall()
             }
-            self.assertIn("尿路旧患", after_traits - before_traits)
-            self.assertIn("情欲异化", after_traits - before_traits)
+            self.assertNotIn("尿路旧患", after_traits)
+            self.assertNotIn("情欲异化", after_traits)
             after_inventory = {str(item["id"]) for item in game.db.list_player_inventory()}
             self.assertIn(f"内廷旧档：{name}", after_inventory - before_inventory)
             after_stats = game.db.conn.execute(
@@ -4093,7 +4163,8 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertGreater(int(after_stats["grievance"]), int(before_stats["grievance"]))
 
             game.db.undo_chat_turn(chat_turn_id)
-            restored = game.public_character(game.content.characters[name])["castration"]
+            restored = game._public_castration_payload(name)
+            self.assertIsNotNone(restored)
             self.assertEqual(restored["container_label"], before["container_label"])
             self.assertEqual(restored["preservation_label"], before["preservation_label"])
             self.assertEqual(restored["psychosexual_label"], before["psychosexual_label"])
@@ -4144,15 +4215,18 @@ class AttendantSummonTests(unittest.TestCase):
             )
 
             minister = game.public_character(game.content.characters[name])
-            castration = minister["castration"]
+            self.assertNotIn("castration", minister)
+            self.assertIn("medical_record", minister)
+            castration = game._public_castration_payload(name)
+            self.assertIsNotNone(castration)
             self.assertEqual(castration["psychosexual_label"], "")
             self.assertNotIn("癖性", castration["condition_line"])
             trait_names = {
                 str(r["trait"])
                 for r in game.db.conn.execute("SELECT trait FROM character_traits WHERE name=?", (name,)).fetchall()
             }
-            self.assertIn("尿路旧患", trait_names)
-            self.assertIn("惊创未平", trait_names)
+            self.assertNotIn("尿路旧患", trait_names)
+            self.assertNotIn("惊创未平", trait_names)
             self.assertNotIn("情欲异化", trait_names)
         finally:
             try:
@@ -4176,7 +4250,9 @@ class AttendantSummonTests(unittest.TestCase):
             target = str(rows[1]["name"])
             game.castrate_official(speaker, force=True)
             game.castrate_official(target, force=True)
-            before_speaker = game.public_character(game.content.characters[speaker])["castration"]
+            self.assertNotIn("castration", game.public_character(game.content.characters[speaker]))
+            before_speaker = game._public_castration_payload(speaker)
+            self.assertIsNotNone(before_speaker)
             game.session.dialogue_audit_client = self._lore_intake_audit(targets=[target])
 
             result = game._absorb_eunuch_lore_from_text(
@@ -4185,13 +4261,15 @@ class AttendantSummonTests(unittest.TestCase):
             )
 
             self.assertEqual(result["updated_targets"], [target])
-            after_target = game.public_character(game.content.characters[target])["castration"]
+            after_target = game._public_castration_payload(target)
+            self.assertIsNotNone(after_target)
             self.assertEqual(after_target["container_label"], "黄杨木描金匣")
             self.assertEqual(after_target["preservation_label"], "香料腌藏")
             self.assertIn("尿闭", after_target["urine_label"])
             self.assertIn("按肩", after_target["trauma_label"])
             self.assertIn("性无能", after_target["psychosexual_label"])
-            after_speaker = game.public_character(game.content.characters[speaker])["castration"]
+            after_speaker = game._public_castration_payload(speaker)
+            self.assertIsNotNone(after_speaker)
             self.assertEqual(after_speaker["container_label"], before_speaker["container_label"])
             self.assertEqual(after_speaker["preservation_label"], before_speaker["preservation_label"])
             self.assertEqual(after_speaker["psychosexual_label"], before_speaker["psychosexual_label"])

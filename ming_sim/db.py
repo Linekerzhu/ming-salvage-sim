@@ -22,6 +22,7 @@ from ming_sim.constants import (
     FISCAL_SCORE_FIELDS, REGION_FIELD_ALIASES, REGION_SCORE_FIELDS, REGION_TEXT_FIELDS, TURN_UNIT,
 )
 from ming_sim.content import GameContent
+from ming_sim.identity import infer_character_sex, normalize_sex
 from ming_sim.matching import match_army_id_from_text, match_region_id_from_text
 from ming_sim.models import Event, GameState, monthly_amount, period_label
 from ming_sim.negotiation import classify_task_kind
@@ -180,6 +181,7 @@ class GameDB:
                 office TEXT NOT NULL,
                 office_type TEXT NOT NULL,
                 faction TEXT NOT NULL,
+                sex TEXT NOT NULL DEFAULT 'unknown',
                 personal_skills TEXT NOT NULL,
                 loyalty INTEGER NOT NULL,
                 ability INTEGER NOT NULL,
@@ -207,6 +209,86 @@ class GameDB:
                 FOREIGN KEY(character_name) REFERENCES characters(name),
                 FOREIGN KEY(office_type) REFERENCES offices(office_type)
             );
+
+            CREATE TABLE IF NOT EXISTS character_conditions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                kind TEXT NOT NULL DEFAULT 'other',
+                system TEXT NOT NULL DEFAULT 'general',
+                condition_key TEXT NOT NULL DEFAULT '',
+                label TEXT NOT NULL DEFAULT '',
+                severity INTEGER NOT NULL DEFAULT 1,
+                stage TEXT NOT NULL DEFAULT 'active',
+                onset_turn INTEGER NOT NULL DEFAULT 0,
+                onset_day INTEGER NOT NULL DEFAULT 0,
+                duration_days INTEGER NOT NULL DEFAULT 0,
+                chronic INTEGER NOT NULL DEFAULT 0,
+                hidden INTEGER NOT NULL DEFAULT 0,
+                source_kind TEXT NOT NULL DEFAULT '',
+                source_id TEXT NOT NULL DEFAULT '',
+                note TEXT NOT NULL DEFAULT '',
+                effects_json TEXT NOT NULL DEFAULT '{}',
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(name) REFERENCES characters(name),
+                UNIQUE(name, condition_key, source_kind, source_id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_character_conditions_name_stage
+            ON character_conditions(name, stage, severity);
+
+            CREATE INDEX IF NOT EXISTS idx_character_conditions_source
+            ON character_conditions(source_kind, source_id);
+
+            CREATE TABLE IF NOT EXISTS character_custodies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'active',
+                agency TEXT NOT NULL DEFAULT '',
+                facility TEXT NOT NULL DEFAULT '',
+                severity INTEGER NOT NULL DEFAULT 2,
+                coercion_goal TEXT NOT NULL DEFAULT '',
+                start_turn INTEGER NOT NULL DEFAULT 0,
+                start_day INTEGER NOT NULL DEFAULT 0,
+                end_turn INTEGER NOT NULL DEFAULT 0,
+                end_day INTEGER NOT NULL DEFAULT 0,
+                source_kind TEXT NOT NULL DEFAULT '',
+                source_id TEXT NOT NULL DEFAULT '',
+                note TEXT NOT NULL DEFAULT '',
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(name) REFERENCES characters(name),
+                UNIQUE(name, source_kind, source_id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_character_custodies_name_status
+            ON character_custodies(name, status, severity);
+
+            CREATE INDEX IF NOT EXISTS idx_character_custodies_source
+            ON character_custodies(source_kind, source_id);
+
+            CREATE TABLE IF NOT EXISTS character_punishments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                taxonomy TEXT NOT NULL DEFAULT 'ordinary',
+                punishment_key TEXT NOT NULL DEFAULT '',
+                label TEXT NOT NULL DEFAULT '',
+                severity INTEGER NOT NULL DEFAULT 2,
+                stage TEXT NOT NULL DEFAULT 'executed',
+                executor TEXT NOT NULL DEFAULT '',
+                source_kind TEXT NOT NULL DEFAULT '',
+                source_id TEXT NOT NULL DEFAULT '',
+                note TEXT NOT NULL DEFAULT '',
+                turn INTEGER NOT NULL DEFAULT 0,
+                day INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(name) REFERENCES characters(name),
+                UNIQUE(name, punishment_key, source_kind, source_id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_character_punishments_name_turn
+            ON character_punishments(name, turn, id);
+
+            CREATE INDEX IF NOT EXISTS idx_character_punishments_source
+            ON character_punishments(source_kind, source_id);
 
             CREATE TABLE IF NOT EXISTS portrait_assets (
                 asset_id TEXT PRIMARY KEY,
@@ -619,6 +701,28 @@ class GameDB:
             CREATE INDEX IF NOT EXISTS idx_conversation_goal_events_goal
                 ON conversation_goal_events(goal_id, id);
 
+            CREATE TABLE IF NOT EXISTS briefing_card_resolutions (
+                card_key TEXT PRIMARY KEY,
+                source_type TEXT NOT NULL DEFAULT '',
+                source_id TEXT NOT NULL DEFAULT '',
+                kind TEXT NOT NULL DEFAULT '',
+                title TEXT NOT NULL DEFAULT '',
+                actor TEXT NOT NULL DEFAULT '',
+                target TEXT NOT NULL DEFAULT '',
+                resolution TEXT NOT NULL DEFAULT 'handled',
+                decision_json TEXT NOT NULL DEFAULT '{}',
+                chat_turn_id INTEGER NOT NULL DEFAULT 0,
+                turn INTEGER NOT NULL DEFAULT 0,
+                year INTEGER NOT NULL DEFAULT 0,
+                period INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_briefing_card_resolutions_source
+                ON briefing_card_resolutions(source_type, source_id);
+            CREATE INDEX IF NOT EXISTS idx_briefing_card_resolutions_kind
+                ON briefing_card_resolutions(kind, actor, target);
+
             CREATE TABLE IF NOT EXISTS xinpan_states (
                 character_name TEXT PRIMARY KEY,
                 dao_he REAL NOT NULL DEFAULT 0,
@@ -957,6 +1061,7 @@ class GameDB:
         self.ensure_column("regions", "controlled_by", "TEXT NOT NULL DEFAULT 'ming'")
         self.ensure_column("characters", "power_id", "TEXT NOT NULL DEFAULT 'ming'")
         self.ensure_column("characters", "location", "TEXT NOT NULL DEFAULT ''")
+        self.ensure_column("characters", "sex", "TEXT NOT NULL DEFAULT 'unknown'")
         self.ensure_column("issues", "resolve_condition", "TEXT NOT NULL DEFAULT ''")
         self.ensure_column("issues", "fail_condition", "TEXT NOT NULL DEFAULT ''")
         self.ensure_column("characters", "birth_year", "INTEGER NOT NULL DEFAULT 0")
@@ -1033,6 +1138,33 @@ class GameDB:
         self.ensure_column("negotiation_agreements", "goal_id", "INTEGER NOT NULL DEFAULT 0")
         self.ensure_column("negotiation_tasks", "task_kind", "TEXT NOT NULL DEFAULT 'general'")
         self.ensure_column("negotiation_tasks", "last_checked_turn", "INTEGER NOT NULL DEFAULT 0")
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS briefing_card_resolutions (
+                card_key TEXT PRIMARY KEY,
+                source_type TEXT NOT NULL DEFAULT '',
+                source_id TEXT NOT NULL DEFAULT '',
+                kind TEXT NOT NULL DEFAULT '',
+                title TEXT NOT NULL DEFAULT '',
+                actor TEXT NOT NULL DEFAULT '',
+                target TEXT NOT NULL DEFAULT '',
+                resolution TEXT NOT NULL DEFAULT 'handled',
+                decision_json TEXT NOT NULL DEFAULT '{}',
+                chat_turn_id INTEGER NOT NULL DEFAULT 0,
+                turn INTEGER NOT NULL DEFAULT 0,
+                year INTEGER NOT NULL DEFAULT 0,
+                period INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_briefing_card_resolutions_source "
+            "ON briefing_card_resolutions(source_type, source_id)"
+        )
+        self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_briefing_card_resolutions_kind "
+            "ON briefing_card_resolutions(kind, actor, target)"
+        )
         self.ensure_column("xinpan_states", "flags_json", "TEXT NOT NULL DEFAULT '{}'")
         self.ensure_column("xinpan_states", "updated_turn", "INTEGER NOT NULL DEFAULT 0")
         self.ensure_column("xinpan_logs", "trust_delta", "REAL NOT NULL DEFAULT 0")
@@ -1514,11 +1646,11 @@ class GameDB:
                 self.conn.execute(
                     """
                     INSERT INTO characters
-                    (name, office, office_type, faction, aliases, personal_skills, loyalty, ability, integrity, courage, style,
+                    (name, office, office_type, faction, sex, aliases, personal_skills, loyalty, ability, integrity, courage, style,
                      birth_year, historical_death_year, historical_death_month, debut_year, debut_month,
                      status, status_reason, status_changed_turn, portrait_id, power_id, location, summary,
                      force, wisdom, charm, luck, cultivation, hp, max_hp, exp, level)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                             ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
@@ -1526,6 +1658,7 @@ class GameDB:
                         office,
                         office_type,
                         character.faction,
+                        infer_character_sex(office, office_type, character.faction, getattr(character, "sex", "")),
                         json.dumps(character.aliases, ensure_ascii=False),
                         json.dumps(character.personal_skills, ensure_ascii=False),
                         character.loyalty,
@@ -1585,6 +1718,7 @@ class GameDB:
                     (row["name"], row["office"], row["office_type"], "存档迁移"),
                 )
         self._reconcile_character_office_types()
+        self._reconcile_character_sex()
         self._reconcile_dialogue_palace_nicknames()
 
         if not self.table_has_rows("factions"):
@@ -1802,6 +1936,35 @@ class GameDB:
             )
             if name in self.content.characters:
                 self.content.characters[name].office_type = new_type
+            changed += 1
+        if changed:
+            self.conn.commit()
+        return changed
+
+    def _reconcile_character_sex(self) -> int:
+        """迁移旧档：给人物补齐 sex，并把内廷/监军身份固化为阉人。"""
+        rows = self.conn.execute(
+            "SELECT name, office, office_type, faction, sex FROM characters"
+        ).fetchall()
+        changed = 0
+        for row in rows:
+            name = str(row["name"] or "")
+            if not name:
+                continue
+            old_sex = normalize_sex(row["sex"])
+            new_sex = infer_character_sex(
+                row["office"],
+                row["office_type"],
+                row["faction"],
+                old_sex,
+            )
+            if new_sex == old_sex:
+                if name in self.content.characters:
+                    self.content.characters[name].sex = new_sex
+                continue
+            self.conn.execute("UPDATE characters SET sex=? WHERE name=?", (new_sex, name))
+            if name in self.content.characters:
+                self.content.characters[name].sex = new_sex
             changed += 1
         if changed:
             self.conn.commit()
@@ -2172,6 +2335,12 @@ class GameDB:
                 "UPDATE characters SET status=?, status_reason=?, status_changed_turn=? WHERE name=?",
                 (status, reason[:200], state.turn, name),
             )
+        try:
+            from ming_sim.custody import sync_custodies_for_character_status
+
+            sync_custodies_for_character_status(self, state, name, status, reason)
+        except Exception as exc:
+            print(f"[WARN] 羁押状态同步失败：{name} {status} {exc}")
         if status != "active":
             label = CHARACTER_STATUS_LABELS.get(status, status)
             detail = f"承办人{name}{label}，密令中止。"
@@ -2568,11 +2737,11 @@ class GameDB:
         self.conn.execute(
             """
             INSERT INTO characters
-            (name, office, office_type, faction, aliases, personal_skills, loyalty, ability, integrity, courage, style,
+            (name, office, office_type, faction, sex, aliases, personal_skills, loyalty, ability, integrity, courage, style,
              birth_year, historical_death_year, historical_death_month, debut_year, debut_month,
              status, status_reason, status_changed_turn, portrait_id, power_id, location, summary,
              force, wisdom, charm, luck, cultivation, hp, max_hp, exp, level)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
@@ -2580,6 +2749,7 @@ class GameDB:
                 character.office,
                 character.office_type,
                 character.faction,
+                infer_character_sex(character.office, character.office_type, character.faction, getattr(character, "sex", "")),
                 json.dumps(character.aliases, ensure_ascii=False),
                 json.dumps(character.personal_skills, ensure_ascii=False),
                 character.loyalty,
@@ -4336,9 +4506,13 @@ class GameDB:
         "secret_orders": "id",
         "characters": "name",
         "character_offices": "character_name",
+        "character_conditions": "id",
+        "character_custodies": "id",
+        "character_punishments": "id",
         "consort_traits": "name",
         "conversation_goals": "id",
         "conversation_goal_events": "id",
+        "briefing_card_resolutions": "card_key",
         "turn_logs": "id",
         "event_memories": "id",
         "event_memory_sources": "id",
@@ -4984,6 +5158,86 @@ class GameDB:
             (int(goal_id), int(agreement_id)),
         )
         self.conn.commit()
+
+    # ----- briefing_card_resolutions（朝局风向卡已处理记录） -----
+
+    def is_briefing_card_resolved(self, card_key: str) -> bool:
+        key = str(card_key or "").strip()
+        if not key:
+            return False
+        try:
+            row = self.conn.execute(
+                "SELECT 1 FROM briefing_card_resolutions WHERE card_key=?",
+                (key,),
+            ).fetchone()
+        except Exception:
+            return False
+        return row is not None
+
+    def resolved_briefing_card_keys(self) -> set[str]:
+        try:
+            rows = self.conn.execute("SELECT card_key FROM briefing_card_resolutions").fetchall()
+        except Exception:
+            return set()
+        return {str(row["card_key"] or "").strip() for row in rows if str(row["card_key"] or "").strip()}
+
+    def record_briefing_card_resolution(
+        self,
+        state: GameState,
+        *,
+        card_key: str,
+        source_type: str = "",
+        source_id: str = "",
+        kind: str = "",
+        title: str = "",
+        actor: str = "",
+        target: str = "",
+        resolution: str = "handled",
+        decision: Optional[Dict[str, object]] = None,
+        chat_turn_id: int = 0,
+    ) -> bool:
+        key = str(card_key or "").strip()
+        if not key:
+            return False
+        self.conn.execute(
+            """
+            INSERT INTO briefing_card_resolutions
+                (card_key, source_type, source_id, kind, title, actor, target,
+                 resolution, decision_json, chat_turn_id, turn, year, period)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(card_key) DO UPDATE SET
+                source_type=excluded.source_type,
+                source_id=excluded.source_id,
+                kind=excluded.kind,
+                title=excluded.title,
+                actor=excluded.actor,
+                target=excluded.target,
+                resolution=excluded.resolution,
+                decision_json=excluded.decision_json,
+                chat_turn_id=excluded.chat_turn_id,
+                turn=excluded.turn,
+                year=excluded.year,
+                period=excluded.period,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (
+                key,
+                str(source_type or "").strip()[:80],
+                str(source_id or "").strip()[:120],
+                str(kind or "").strip()[:40],
+                str(title or "").strip()[:160],
+                str(actor or "").strip()[:80],
+                str(target or "").strip()[:80],
+                str(resolution or "handled").strip()[:40],
+                json.dumps(decision or {}, ensure_ascii=False),
+                max(0, int(chat_turn_id or 0)),
+                int(state.turn),
+                int(state.year),
+                int(state.period),
+            ),
+        )
+        self.conn.commit()
+        return True
 
     def record_minister_stance(
         self,

@@ -5,9 +5,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from ming_sim import eunuch
+from ming_sim.content import GameContent
 from ming_sim.db import GameDB
 from ming_sim.models import Character
 from ming_sim.registry import persona_self_address_rule
+from ming_sim.session import _sync_offices_from_db_impl
 from ming_sim.veil import build_info_scope_brief
 
 
@@ -43,6 +45,21 @@ class EunuchHubTests(unittest.TestCase):
             r = eunuch.set_attending_eunuch(db, "曹化淳")
             self.assertTrue(r["ok"], r)
             self.assertEqual(eunuch.get_attending_eunuch(db), "曹化淳")
+
+    def test_replace_rejects_non_eunuch_identity(self):
+        with TemporaryDirectory() as tmp:
+            db = _fresh(tmp)
+            r = eunuch.set_attending_eunuch(db, "韩爌")
+            self.assertFalse(r["ok"])
+            self.assertIn("阉人", r["message"])
+            self.assertEqual(eunuch.get_attending_eunuch(db), "王承恩")
+
+    def test_stale_kv_non_eunuch_is_ignored(self):
+        with TemporaryDirectory() as tmp:
+            db = _fresh(tmp)
+            db.kv_set(eunuch.KV_ATTENDING_EUNUCH, "韩爌")
+            self.assertEqual(eunuch.get_attending_eunuch(db), "王承恩")
+            self.assertEqual(db.kv_get(eunuch.KV_ATTENDING_EUNUCH), "王承恩")
 
     def test_replace_rejects_unknown(self):
         with TemporaryDirectory() as tmp:
@@ -116,6 +133,83 @@ class EunuchHubTests(unittest.TestCase):
             self.assertIn("传旨催办", brief)
             self.assertIn("须问内阁/该部", brief)
             self.assertIn("不要主动铺陈完整政策蓝图", brief)
+
+    def test_explicit_male_is_not_treated_as_eunuch_by_inner_office_text(self):
+        character = Character(
+            name="错档男官",
+            office="司礼监随堂太监",
+            office_type="司礼监",
+            faction="内廷",
+            aliases=[],
+            personal_skills=[],
+            loyalty=60,
+            ability=55,
+            integrity=55,
+            courage=55,
+            style="错档测试",
+            power_id="ming",
+            sex="male",
+        )
+
+        rule = persona_self_address_rule(character)
+        self.assertIn("外朝/军镇/地方官员身份", rule)
+        self.assertIn("臣", rule)
+        self.assertIn("不要自称「奴婢", rule)
+        self.assertNotIn("在御前自称以「奴婢」为主", rule)
+
+        with TemporaryDirectory() as tmp:
+            db = _fresh(tmp)
+            brief = build_info_scope_brief(db, character)
+            self.assertNotIn("奴婢听闻", brief)
+            self.assertNotIn("不是内阁大学士", brief)
+
+    def test_unknown_sex_keeps_legacy_inner_office_fallback(self):
+        character = Character(
+            name="旧档内侍",
+            office="司礼监随堂太监",
+            office_type="司礼监",
+            faction="内廷",
+            aliases=[],
+            personal_skills=[],
+            loyalty=60,
+            ability=55,
+            integrity=55,
+            courage=55,
+            style="旧档测试",
+            power_id="ming",
+            sex="unknown",
+        )
+
+        rule = persona_self_address_rule(character)
+        self.assertIn("奴婢", rule)
+
+        with TemporaryDirectory() as tmp:
+            db = _fresh(tmp)
+            brief = build_info_scope_brief(db, character)
+            self.assertIn("奴婢听闻", brief)
+            self.assertIn("不是内阁大学士", brief)
+
+    def test_db_sync_preserves_sex_identity(self):
+        with TemporaryDirectory() as tmp:
+            content = GameContent.load()
+            db = GameDB(str(Path(tmp) / "sex-sync.db"), content=content)
+            db.seed_static_data()
+            db.conn.execute(
+                """
+                UPDATE characters
+                SET office='司礼监随堂太监', office_type='司礼监', faction='内廷', sex='male'
+                WHERE name='韩爌'
+                """
+            )
+            db.conn.commit()
+
+            _sync_offices_from_db_impl(content, db)
+            character = content.characters["韩爌"]
+
+            self.assertEqual(character.sex, "male")
+            rule = persona_self_address_rule(character)
+            self.assertIn("外朝/军镇/地方官员身份", rule)
+            self.assertNotIn("在御前自称以「奴婢」为主", rule)
 
 
 if __name__ == "__main__":

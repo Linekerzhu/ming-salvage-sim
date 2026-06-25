@@ -145,13 +145,20 @@ def duishi_partner(db: GameDB, name: str) -> str:
 
 def _eligible_court_eunuch(db: GameDB):
     """可结对食的在朝权阉（优先司礼监/东厂等近御要津，未有对食者）。"""
-    from ming_sim.eunuch import is_eunuch_like
+    from ming_sim.identity import character_is_eunuch
     rows = db.conn.execute(
-        "SELECT name, office, office_type, faction FROM characters "
+        "SELECT name, office, office_type, faction, sex FROM characters "
         "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
         "ORDER BY (office LIKE '%司礼监%') DESC, (office LIKE '%东厂%') DESC, ability DESC").fetchall()
     for r in rows:
-        if not is_eunuch_like(str(r["office"] or ""), str(r["office_type"] or "")):
+        if not character_is_eunuch(
+            r,
+            sex=r["sex"],
+            office=r["office"],
+            office_type=r["office_type"],
+            faction=r["faction"],
+            allow_legacy_text_fallback=True,
+        ):
             continue
         if duishi_partner(db, str(r["name"])):
             continue

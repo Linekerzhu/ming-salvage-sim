@@ -46,7 +46,9 @@ force_json 模式下你**只能输出最终 JSON**，不得吐出思考文本。
 | `撤销局势` | array，每项 `{"局势编号":整数,"已付代价":object,"叙述":"..."}` | 皇帝撤销的局势 |
 | `结案局势` | array，每项 `{"局势编号":整数,"原因":"resolved|failed","叙述":"..."}` | 本{{TURN_UNIT}}结案/失败 |
 | `人事变更` | array，每项 `{"姓名":"...","新官职":"...","原因":"..."}`，可选 `派系`/`新官署类别`/`身份转换`/`强制净身`/`强制脱籍` | 朝臣官职变更；强制净身/强制脱籍须结构化标记 |
-| `人物状态变化` | array，每项 `{"姓名":"...","状态":"dismissed|imprisoned|exiled|retired|dead|offstage","原因":"..."}` | 既有大臣状态变更 |
+| `人物状态变化` | array，每项 `{"姓名":"...","状态":"dismissed|imprisoned|exiled|retired|dead|offstage|castrated","原因":"..."}`，下狱项可选 `机关`/`狱名`/`威逼`(1-5)/`逼令` | 既有大臣状态变更；下狱时同步形成羁押/昭狱记录 |
+| `人物身体变化` | array，每项 `{"姓名":"...","类型":"disease|injury|punishment|disability|prison_effect|terminal","系统":"general|speech|nervous|mental|respiratory|circulatory|digestive|urinary|reproductive|musculoskeletal|skin","状况":"...","严重度":1-5,"病程":"active|mild|serious|critical|disabled|chronic|recovering|resolved|dead","原因":"...","身体影响":object}`，可选 `致死`:boolean | 本{{TURN_UNIT}}新发生或新确诊的病历/身体事实：疾病、刑伤、器官缺失、功能丧失、残疾、狱中摧残；`身体影响` 可含 `record_group/organ/side/state/function/impact/course_kind/next_check_day/possible_outcomes`；会影响生命值与奏对能力 |
+| `人物刑罚` | array，每项 `{"姓名":"...","体系":"ordinary|ming_five|ancient_five","刑罚":"笞刑|杖刑|徒刑|流刑|死刑|墨刑|劓刑|刖刑|宫刑|大辟|割舌|割耳|断腿|刑讯拷掠","严重度":1-5,"阶段":"sentenced|executed|stayed|remitted","执行机关":"...","原因":"..."}` | 明确宣判或执行的刑罚账；宫刑/腐刑/强制净身会派生对应病历/状态后果 |
 | `人物易主` | array，每项 `{"姓名":"...","new_power":"...","reason":"..."}` | 人物归属势力变更；new_power 必须来自 power_ids |
 | `后宫册封` | array，每项 `{"姓名":"...","位号":"...","官署类别":"后宫","原因":"...","准许":布尔值}` | 仅后宫纳妃 |
 | `密令副作用` | array，每项 `{"密令编号":整数,"推演备注":"..."}` | active 密令副作用 |

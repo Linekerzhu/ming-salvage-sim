@@ -186,6 +186,7 @@ def ensure_upgrade_schema(db: "GameDB") -> None:
     for column, definition in {
         "grievance": "INTEGER NOT NULL DEFAULT 20",   # 怨气 0-100
         "emp_trust": "INTEGER NOT NULL DEFAULT 55",   # 对皇帝的信任 0-100
+        "sex": "TEXT NOT NULL DEFAULT 'unknown'",     # male/female/eunuch/unknown
     }.items():
         db.ensure_column("characters", column, definition)
 

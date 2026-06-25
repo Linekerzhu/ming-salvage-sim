@@ -69,6 +69,7 @@ class Character:
     max_hp: int = 100
     exp: int = 0              # 经验值
     level: int = 1            # 等级
+    sex: str = "unknown"      # male | female | eunuch | unknown
 
 
 @dataclass

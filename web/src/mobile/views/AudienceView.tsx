@@ -525,11 +525,14 @@ function compactLeadOpening(value: string): string {
 
 function chatContextFromLead(lead: AudienceLead): ChatContext {
   return {
+    card_key: lead.card_key,
     kind: lead.kind,
     actor: lead.actor,
     target: lead.target,
     ref_kind: lead.ref_kind,
     ref_id: lead.ref_id,
+    source_type: lead.source_type,
+    source_id: lead.source_id,
     title: lead.title,
     meta: lead.meta,
     motive: lead.motive,

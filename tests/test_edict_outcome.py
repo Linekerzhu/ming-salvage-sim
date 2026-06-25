@@ -222,6 +222,43 @@ class DrainPendingOutcomesTests(unittest.TestCase):
             finally:
                 sess.close()
 
+    def test_drain_applies_condition_changes_with_directive_source(self):
+        """单诏复命里的身体事实应随 drain 落库，并保留 directive 来源用于幂等。"""
+        with TemporaryDirectory() as tmp:
+            sess = self._session(tmp)
+            try:
+                row = sess.db.conn.execute(
+                    "SELECT name FROM characters WHERE status='active' AND power_id='ming' "
+                    "AND office_type NOT IN ('后宫') LIMIT 1"
+                ).fetchone()
+                name = str(row["name"])
+                did = self._stage_done(sess, f"着锦衣卫拿问{name}，杖二十，致其口舌难言", {
+                    "condition_changes": [{
+                        "name": name,
+                        "kind": "punishment",
+                        "system": "speech",
+                        "label": "舌伤",
+                        "severity": 5,
+                        "stage": "disabled",
+                        "reason": "杖讯伤舌",
+                        "effects": {"speech": "口齿含混，不能长篇奏对"},
+                    }],
+                })
+                results = sess.drain_pending_outcomes()
+                self.assertEqual(len(results), 1)
+                applied = results[0]["applied"]["condition_changes"]
+                self.assertEqual(applied[0]["label"], "舌伤")
+                stored = sess.db.conn.execute(
+                    "SELECT source_kind, source_id, system, severity FROM character_conditions WHERE name=?",
+                    (name,),
+                ).fetchone()
+                self.assertEqual(str(stored["source_kind"]), "directive")
+                self.assertEqual(str(stored["source_id"]), str(did))
+                self.assertEqual(str(stored["system"]), "speech")
+                self.assertEqual(int(stored["severity"]), 5)
+            finally:
+                sess.close()
+
     def test_recent_done_directives_feed_npc_dialogue_context(self):
         """连续时间制下，已复命圣旨应即时进入 NPC 召对事实，而非等月末章节记忆。"""
         with TemporaryDirectory() as tmp:
@@ -656,6 +693,19 @@ class StatusChangeTests(unittest.TestCase):
         out = _scope_delta(delta, ctx)["character_status_changes"]
         self.assertEqual(out, [{"name": "崔呈秀", "status": "imprisoned"}])
 
+    def test_scope_delta_guards_condition_changes(self):
+        from ming_sim.edict_outcome import _scope_delta
+        ctx = {"directive": "着锦衣卫将崔呈秀拿入昭狱，割舌，使不得妄言", "allowed_issue_ids": []}
+        delta = {"condition_changes": [
+            {"name": "崔呈秀", "kind": "punishment", "system": "speech", "label": "舌伤", "severity": 9},
+            {"name": "李四", "kind": "punishment", "system": "speech", "label": "舌伤", "severity": 5},
+            {"name": "崔呈秀", "kind": "punishment", "system": "speech", "severity": 5},
+        ]}
+        out = _scope_delta(delta, ctx)["condition_changes"]
+        self.assertEqual(len(out), 1)
+        self.assertEqual(out[0]["name"], "崔呈秀")
+        self.assertEqual(out[0]["severity"], 5)
+
     def test_drain_applies_status_change(self):
         cfg = LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model")
         with TemporaryDirectory() as tmp:
@@ -683,11 +733,11 @@ class StatusChangeTests(unittest.TestCase):
 
 
 class CastrationByDecreeTests(unittest.TestCase):
-    """宫刑作刑罚 via 诏（E2b）：character_status_changes status=castrated → 强阉没入内廷。"""
+    """宫刑作刑罚 via 诏（E2b）：character_status_changes status=castrated → 强制净身后没入内廷。"""
 
     def test_scope_delta_allows_castrated(self):
         from ming_sim.edict_outcome import _scope_delta
-        ctx = {"directive": "着将贪墨之兵部主事王二处宫刑，发净军", "allowed_issue_ids": []}
+        ctx = {"directive": "着将贪墨之兵部主事王二处宫刑，押赴净身房", "allowed_issue_ids": []}
         delta = {"character_status_changes": [{"name": "王二", "status": "castrated"}]}
         out = _scope_delta(delta, ctx)["character_status_changes"]
         self.assertEqual(out, [{"name": "王二", "status": "castrated"}])
@@ -705,7 +755,7 @@ class CastrationByDecreeTests(unittest.TestCase):
                     "AND office NOT LIKE '%太监%' LIMIT 1").fetchone()
                 name = str(row["name"])
                 directive_text = (
-                    f"着将{name}处宫刑，没入内廷为奴；净军房行事，铜柄宫刀，无麻；"
+                    f"着将{name}处宫刑，没入内廷为奴；净身房行事，铜柄宫刀，无麻；"
                     "宝约二两八钱，一大一小，油封后发硬，油炸封蜡，收黄杨木描金匣。"
                 )
                 sess.db.conn.execute(
@@ -724,16 +774,16 @@ class CastrationByDecreeTests(unittest.TestCase):
                 self.assertTrue(is_eunuch_like(str(crow["office"]), str(crow["office_type"])))  # 已成内臣
                 lore = el.get_lore(sess.db, name)
                 self.assertIsNotNone(lore)
-                self.assertTrue(lore["forced"])                                # 强阉
+                self.assertTrue(lore["forced"])                                # 强制净身
                 self.assertEqual(lore["bao_status"], el.BAO_FORFEIT)           # 宝官没
-                self.assertEqual(lore["castration_method"], "净军房夜割")
-                self.assertEqual(lore["knife_tool"], "铜柄宫刀")
-                self.assertEqual(lore["anesthesia"], "无麻，冷汗硬熬")
-                self.assertEqual(lore["bao_weight"], "约二两八钱")
-                self.assertEqual(lore["bao_shape"], "一大一小")
-                self.assertEqual(lore["bao_texture"], "油封后发硬")
-                self.assertEqual(lore["bao_preservation"], "油炸封蜡")
-                self.assertEqual(lore["bao_container"], "黄杨木描金匣")
+                self.assertEqual(lore["castration_method"], "净身房登记")
+                self.assertEqual(lore["knife_tool"], "")
+                self.assertEqual(lore["anesthesia"], "")
+                self.assertEqual(lore["bao_weight"], "")
+                self.assertEqual(lore["bao_shape"], "")
+                self.assertEqual(lore["bao_texture"], "")
+                self.assertEqual(lore["bao_preservation"], "宝贝由官库收存")
+                self.assertEqual(lore["bao_container"], "")
             finally:
                 sess.close()
 
@@ -782,7 +832,7 @@ class CastrationByDecreeTests(unittest.TestCase):
                 ).fetchone()
                 name = str(row["name"])
                 old_office = str(row["office"] or "")
-                directive_text = f"着{name}查净身旧例，暂赴司礼监听差，协理文书传递，不得惊动净军房。"
+                directive_text = f"着{name}查净身旧例，暂赴司礼监听差，协理文书传递，不得惊动净身房。"
                 sess.db.conn.execute(
                     "INSERT INTO turn_directives (turn, year, period, text, source, status, "
                     "lifecycle_status, progress, integrity_actual, integrity_reported, outcome_delta, outcome_status) "

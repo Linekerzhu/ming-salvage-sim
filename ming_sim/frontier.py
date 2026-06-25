@@ -60,11 +60,24 @@ def _eunuch_active(db: GameDB, name: str) -> bool:
     """某人是否在朝内臣（监军须是宦官）。"""
     if not name:
         return False
-    from ming_sim.eunuch import is_eunuch_like
+    from ming_sim.identity import character_is_eunuch
     row = db.conn.execute(
-        "SELECT office, office_type, status FROM characters WHERE name=?", (name,)).fetchone()
-    return (bool(row) and str(row["status"]) == "active"
-            and is_eunuch_like(str(row["office"] or ""), str(row["office_type"] or "")))
+        "SELECT office, office_type, faction, sex, status, power_id FROM characters WHERE name=?",
+        (name,),
+    ).fetchone()
+    return (
+        bool(row)
+        and str(row["status"]) == "active"
+        and str(row["power_id"] or "ming") == "ming"
+        and character_is_eunuch(
+            row,
+            sex=row["sex"],
+            office=row["office"],
+            office_type=row["office_type"],
+            faction=row["faction"],
+            allow_legacy_text_fallback=True,
+        )
+    )
 
 
 def dispatch_supervisor(db: GameDB, state: GameState, army_id: str, eunuch: str, day: int

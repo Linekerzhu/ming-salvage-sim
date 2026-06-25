@@ -8,16 +8,16 @@ only sealed goals become negotiation agreements.
 from __future__ import annotations
 
 import json
+import hashlib
 import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from ming_sim.dialogue_audit import (
     PreDialogueAudit,
-    post_dialogue_audit,
-    pre_dialogue_audit,
     review_goal_conditions_audit,
 )
+from ming_sim.dialogue_semantics import DialogueSemanticEngine
 from ming_sim.context import npc_dialogue_behavior_profile
 from ming_sim.models import Character, GameState, LLMConfig
 from ming_sim.negotiation import (
@@ -27,8 +27,6 @@ from ming_sim.negotiation import (
     HANDSHAKE_SEALED,
     commitment_required,
     handshake_label,
-    promise_type_from_terms,
-    stakes_from_terms,
 )
 
 
@@ -40,6 +38,21 @@ GOAL_ABANDONED = "abandoned"
 GOAL_EXPIRED = "expired"
 
 INSTANT_AGREEMENT_ACTIONS = {"castration", "emancipation", "personnel"}
+
+
+@dataclass
+class DialogueAgreementDecision:
+    intent: str = "none"
+    target: str = ""
+    agreement_formed: bool = False
+    performance_status: str = "none"
+    conditions: List[Dict[str, str]] = field(default_factory=list)
+    tasks: List[str] = field(default_factory=list)
+    due_turn: int = 0
+    evidence: str = ""
+    confidence: int = 0
+    source_card_key: str = ""
+    blocked_reason: str = ""
 
 @dataclass
 class GoalDetection:
@@ -82,6 +95,267 @@ def _unique_strings(items: List[object], *, limit: int = 10) -> List[str]:
         if len(out) >= limit:
             break
     return out
+
+
+CONSEQUENCE_FIELDS = (
+    "character_status_changes",
+    "condition_changes",
+    "punishment_changes",
+)
+CONSEQUENCE_CONFIDENCE_FLOOR = 70
+
+
+def _dialogue_source_id(state: GameState, character: Character, source_chat_turn_id: int) -> str:
+    if source_chat_turn_id:
+        return f"chat_turn:{int(source_chat_turn_id)}"
+    return f"{state.year}-{state.period}-turn-{state.turn}:{character.name}"
+
+
+def _brief_card_key_from_context(source_context: Optional[Dict[str, object]]) -> str:
+    if not isinstance(source_context, dict):
+        return ""
+    existing = str(source_context.get("card_key") or "").strip()
+    if existing:
+        return existing
+    kind = str(source_context.get("kind") or "").strip()
+    if not kind:
+        return ""
+    raw = "|".join(
+        str(source_context.get(key) or "").strip()
+        for key in ("kind", "ref_kind", "ref_id", "actor", "target", "title")
+    )
+    digest = hashlib.sha1(raw.encode("utf-8")).hexdigest()[:14]
+    safe_kind = "".join(ch for ch in kind if ch.isalnum() or ch in {"_", "-"})
+    return f"{safe_kind or 'brief'}:{digest}"
+
+
+def _source_context_summary(source_context: Optional[Dict[str, object]]) -> Dict[str, str]:
+    if not isinstance(source_context, dict):
+        return {}
+    card_key = _brief_card_key_from_context(source_context)
+    if not card_key:
+        return {}
+    return {
+        "card_key": card_key,
+        "kind": _compact(str(source_context.get("kind") or ""), 40),
+        "title": _compact(str(source_context.get("title") or ""), 160),
+        "actor": _compact(str(source_context.get("actor") or ""), 80),
+        "target": _compact(str(source_context.get("target") or ""), 80),
+        "source_type": _compact(
+            str(source_context.get("source_type") or source_context.get("ref_kind") or ""),
+            80,
+        ),
+        "source_id": _compact(
+            str(source_context.get("source_id") or source_context.get("ref_id") or ""),
+            120,
+        ),
+    }
+
+
+def _post_agreement_formed(post: Any) -> bool:
+    raw = getattr(post, "raw", {}) if isinstance(getattr(post, "raw", {}), dict) else {}
+    if isinstance(raw.get("agreement_formed"), bool):
+        return bool(raw.get("agreement_formed"))
+    return str(getattr(post, "handshake_status", "") or "") == HANDSHAKE_SEALED and str(getattr(post, "agreement_action", "") or "") in {
+        "create_achieved",
+        "create_pending",
+        "bind_existing",
+    }
+
+
+def _post_performance_status(post: Any, *, agreement_id: int = 0) -> str:
+    raw = getattr(post, "raw", {}) if isinstance(getattr(post, "raw", {}), dict) else {}
+    status = str(raw.get("performance_status") or "").strip()
+    if status in {"fulfilled", "pending", "blocked", "rejected", "waived", "none"}:
+        return status
+    if str(getattr(post, "handshake_status", "") or "") == HANDSHAKE_BLOCKED:
+        return "blocked"
+    if agreement_id:
+        return "pending" if str(getattr(post, "agreement_action", "") or "") == "create_pending" else "fulfilled"
+    return "none"
+
+
+def _dialogue_agreement_decision(
+    post: Any,
+    *,
+    source_context: Optional[Dict[str, object]] = None,
+    agreement_id: int = 0,
+) -> DialogueAgreementDecision:
+    context = _source_context_summary(source_context)
+    raw = getattr(post, "raw", {}) if isinstance(getattr(post, "raw", {}), dict) else {}
+    tasks = list(getattr(post, "tasks", []) or [])
+    if not tasks:
+        for item in getattr(post, "conditions", []) or []:
+            if isinstance(item, dict) and str(item.get("status") or "") != "done":
+                text = _compact(str(item.get("description") or ""), 180)
+                if text and text not in tasks:
+                    tasks.append(text)
+    return DialogueAgreementDecision(
+        intent=str(raw.get("intent") or getattr(post, "action_kind", "") or "none"),
+        target=str(getattr(post, "target_text", "") or getattr(post, "title", "") or ""),
+        agreement_formed=_post_agreement_formed(post) or bool(agreement_id),
+        performance_status=_post_performance_status(post, agreement_id=agreement_id),
+        conditions=list(getattr(post, "conditions", []) or []),
+        tasks=tasks[:8],
+        due_turn=int(raw.get("due_turn") or raw.get("due_turns") or 0) if str(raw.get("due_turn") or raw.get("due_turns") or "").isdigit() else 0,
+        evidence=_compact(str(getattr(post, "private_reason", "") or getattr(post, "public_hint", "")), 500),
+        confidence=int(getattr(post, "confidence", 0) or 0),
+        source_card_key=context.get("card_key", ""),
+        blocked_reason=_compact(str(raw.get("blocked_reason") or "；".join(getattr(post, "blockers", []) or [])), 240),
+    )
+
+
+def _briefing_resolution_for_decision(post: Any, decision: DialogueAgreementDecision, *, agreement_id: int = 0) -> str:
+    raw = getattr(post, "raw", {}) if isinstance(getattr(post, "raw", {}), dict) else {}
+    explicit = str(raw.get("card_resolution") or "").strip()
+    if explicit in {"handled", "pending", "fulfilled", "blocked", "rejected", "waived"}:
+        return explicit
+    if decision.performance_status in {"fulfilled", "pending", "blocked", "rejected", "waived"}:
+        return decision.performance_status
+    if agreement_id or decision.agreement_formed:
+        return "pending" if decision.tasks else "fulfilled"
+    if str(getattr(post, "handshake_status", "") or "") == HANDSHAKE_BLOCKED:
+        return "blocked"
+    return ""
+
+
+def _record_source_briefing_resolution(
+    db: Any,
+    state: GameState,
+    post: Any,
+    *,
+    source_context: Optional[Dict[str, object]],
+    agreement_id: int = 0,
+    source_chat_turn_id: int = 0,
+) -> DialogueAgreementDecision:
+    decision = _dialogue_agreement_decision(post, source_context=source_context, agreement_id=agreement_id)
+    context = _source_context_summary(source_context)
+    if not context or decision.confidence < 70:
+        return decision
+    resolution = _briefing_resolution_for_decision(post, decision, agreement_id=agreement_id)
+    if not resolution:
+        return decision
+    try:
+        db.record_briefing_card_resolution(
+            state,
+            card_key=context["card_key"],
+            source_type=context.get("source_type", ""),
+            source_id=context.get("source_id", ""),
+            kind=context.get("kind", ""),
+            title=context.get("title", ""),
+            actor=context.get("actor", ""),
+            target=context.get("target", ""),
+            resolution=resolution,
+            decision={
+                "source": "llm_dialogue_audit",
+                "agreement_id": int(agreement_id or 0),
+                "agreement_formed": decision.agreement_formed,
+                "performance_status": decision.performance_status,
+                "tasks": decision.tasks,
+                "conditions": decision.conditions,
+                "evidence": decision.evidence,
+                "blocked_reason": decision.blocked_reason,
+                "audit": getattr(post, "raw", {}) if isinstance(getattr(post, "raw", {}), dict) else {},
+            },
+            chat_turn_id=source_chat_turn_id,
+        )
+    except Exception:
+        pass
+    return decision
+
+
+def _immediate_consequence_enabled(raw: Dict[str, object]) -> bool:
+    value = raw.get("immediate_consequence")
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().lower() in {"true", "yes", "y", "1", "apply", "executed"}
+
+
+def _consequence_item_allowed(item: Dict[str, object], *, character: Character, combined_text: str) -> bool:
+    name = str(item.get("name") or "").strip()
+    if not name:
+        return False
+    if name == character.name:
+        return True
+    return name in combined_text
+
+
+def _filter_dialogue_consequence_items(
+    items: object,
+    *,
+    character: Character,
+    combined_text: str,
+) -> List[Dict[str, object]]:
+    if not isinstance(items, list):
+        return []
+    out: List[Dict[str, object]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        clean = dict(item)
+        if _consequence_item_allowed(clean, character=character, combined_text=combined_text):
+            out.append(clean)
+    return out
+
+
+def _extract_dialogue_immediate_consequences(
+    post_raw: Dict[str, object],
+    *,
+    character: Character,
+    combined_text: str,
+) -> Dict[str, object]:
+    if not _immediate_consequence_enabled(post_raw):
+        return {}
+    extracted: Dict[str, object] = {}
+    for field in CONSEQUENCE_FIELDS:
+        filtered = _filter_dialogue_consequence_items(
+            post_raw.get(field),
+            character=character,
+            combined_text=combined_text,
+        )
+        if filtered:
+            extracted[field] = filtered
+    return extracted
+
+
+def _has_effective_dialogue_consequence(applied: Dict[str, object]) -> bool:
+    for field in CONSEQUENCE_FIELDS:
+        rows = applied.get(field) or []
+        if any(isinstance(row, dict) and not row.get("rejected") for row in rows):
+            return True
+    return False
+
+
+def _apply_dialogue_immediate_consequences(
+    db: Any,
+    state: GameState,
+    character: Character,
+    post_raw: Dict[str, object],
+    *,
+    combined_text: str,
+    source_chat_turn_id: int,
+    confidence: int,
+) -> Dict[str, object]:
+    if int(confidence or 0) < CONSEQUENCE_CONFIDENCE_FLOOR:
+        return {}
+    extracted = _extract_dialogue_immediate_consequences(
+        post_raw,
+        character=character,
+        combined_text=combined_text,
+    )
+    if not extracted:
+        return {}
+    from ming_sim.issues import apply_score_extraction
+
+    extracted["_source_kind"] = "dialogue"
+    extracted["_source_id"] = _dialogue_source_id(state, character, source_chat_turn_id)
+    applied = apply_score_extraction(db, state, extracted)
+    return {
+        "source_kind": "dialogue",
+        "source_id": extracted["_source_id"],
+        "applied": {field: applied.get(field) or [] for field in CONSEQUENCE_FIELDS},
+        "effective": _has_effective_dialogue_consequence(applied),
+    }
 
 
 def _dialogue_speech_profile(
@@ -244,15 +518,18 @@ def detect_conversation_goal(
     active_goal: Optional[Dict[str, object]] = None,
     llm_config: Optional[LLMConfig] = None,
     agno_db: object = None,
+    audit_client: object = None,
 ) -> GoalDetection:
-    audit = pre_dialogue_audit(
+    audit = DialogueSemanticEngine(
         db,
         state,
+        llm_config=llm_config,
+        agno_db=agno_db,
+        audit_client=audit_client,
+    ).evaluate_pre_dialogue(
         character,
         user_text,
         active_goal=active_goal,
-        llm_config=llm_config,
-        agno_db=agno_db,
     )
     if not audit.valid:
         return GoalDetection(source="llm_audit_failed", reason=audit.error)
@@ -283,15 +560,16 @@ def prepare_dialogue_context(
     if not persistent:
         return PreparedDialogue()
     active = db.get_active_conversation_goal(character.name)
-    audit = pre_dialogue_audit(
+    audit = DialogueSemanticEngine(
         db,
         state,
-        character,
-        user_text,
-        active_goal=active,
         llm_config=llm_config,
         agno_db=agno_db,
         audit_client=audit_client,
+    ).evaluate_pre_dialogue(
+        character,
+        user_text,
+        active_goal=active,
     )
     detection = GoalDetection()
     if audit.valid:
@@ -395,6 +673,60 @@ def _agreement_tasks_for_goal(goal: Dict[str, object]) -> List[str]:
     return []
 
 
+def _agreement_tasks_from_audit(
+    audit: Optional[Dict[str, object]],
+    conditions: List[Dict[str, str]],
+) -> List[str]:
+    tasks: List[str] = []
+    if isinstance(audit, dict):
+        raw_tasks = audit.get("tasks")
+        if isinstance(raw_tasks, list):
+            for item in raw_tasks:
+                text = _compact(str(item or ""), 180)
+                if text and text not in tasks:
+                    tasks.append(text)
+        elif isinstance(raw_tasks, str):
+            text = _compact(raw_tasks, 180)
+            if text:
+                tasks.append(text)
+    if not tasks:
+        for item in conditions:
+            if not isinstance(item, dict):
+                continue
+            if str(item.get("status") or "pending") == "done":
+                continue
+            text = _compact(str(item.get("description") or ""), 180)
+            if text and text not in tasks:
+                tasks.append(text)
+    return tasks[:8]
+
+
+def _audit_text_field(audit: Optional[Dict[str, object]], key: str, limit: int = 160) -> str:
+    if not isinstance(audit, dict):
+        return ""
+    value = audit.get(key)
+    if isinstance(value, list):
+        value = "；".join(str(item or "") for item in value if str(item or "").strip())
+    return _compact(str(value or ""), limit)
+
+
+def _audit_due_turn(state: GameState, audit: Optional[Dict[str, object]], tasks: List[str]) -> int:
+    if not tasks:
+        return 0
+    raw = None
+    if isinstance(audit, dict):
+        raw = audit.get("due_turn", audit.get("due_turns"))
+    try:
+        due = int(raw)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        due = 0
+    if due <= 0:
+        due = int(state.turn) + 1
+    elif due <= int(state.turn):
+        due = int(state.turn) + max(1, due)
+    return due
+
+
 def _create_agreement_for_goal(
     db: Any,
     state: GameState,
@@ -410,13 +742,21 @@ def _create_agreement_for_goal(
     if existing:
         return existing
     action_kind = str(goal.get("action_kind") or "general")
-    tasks = _agreement_tasks_for_goal(goal)
+    condition_items: List[Dict[str, str]] = []
+    raw_conditions = goal.get("conditions")
+    if isinstance(raw_conditions, list):
+        condition_items = [item for item in raw_conditions if isinstance(item, dict)]
+    tasks = _agreement_tasks_from_audit(audit, condition_items)
     if agreement_action == "create_pending" and not tasks and action_kind not in INSTANT_AGREEMENT_ACTIONS:
-        tasks = [f"实际履行奏对标的：{str(goal.get('target_text') or goal.get('title') or '本次奏对目的')}"[:180]]
+        fallback = _compact(str(goal.get("target_text") or goal.get("title") or "本次奏对目的"), 160)
+        tasks = [f"实际履行奏对标的：{fallback}"[:180]]
     status = "sealed" if not tasks or agreement_action == "create_achieved" else "pending"
     score = int(goal.get("score") or 100)
     threshold = int(goal.get("threshold") or commitment_required(action_kind))
     topic = str(goal.get("title") or goal.get("target_text") or "本次奏对目的")
+    promise_type = _audit_text_field(audit, "promise_type", 80) or action_kind
+    stakes = _audit_text_field(audit, "stakes", 160) or _audit_text_field(audit, "blocked_reason", 160)
+    due_turn = _audit_due_turn(state, audit, tasks)
     agreement_id = db.create_negotiation_agreement(
         state,
         minister_name=str(goal.get("minister_name") or ""),
@@ -431,9 +771,9 @@ def _create_agreement_for_goal(
         verbal_only=not tasks,
         core_topic=topic,
         target_text=str(goal.get("target_text") or topic),
-        promise_type=promise_type_from_terms(action_kind, conditions, tasks),
-        stakes=stakes_from_terms(action_kind, conditions, f"{topic}\n{goal.get('target_text') or ''}"),
-        due_turn=int(state.turn) + (1 if tasks else 0),
+        promise_type=promise_type,
+        stakes=stakes,
+        due_turn=due_turn,
         conditions=conditions,
         summary=summary or f"奏对目的已握手：{topic}",
         tasks=tasks,
@@ -529,6 +869,7 @@ def record_dialogue_effects(
     audit_client: object = None,
     persistent: bool = True,
     directive_already_recorded: bool = False,
+    source_context: Optional[Dict[str, object]] = None,
 ) -> Dict[str, object]:
     if not persistent:
         return {}
@@ -544,17 +885,19 @@ def record_dialogue_effects(
     )
     active_goal = prepared.active_goal or db.get_active_conversation_goal(character.name)
     combined = f"{user_text}\n{answer}"
-    post = post_dialogue_audit(
+    post = DialogueSemanticEngine(
         db,
         state,
+        llm_config=llm_config,
+        agno_db=agno_db,
+        audit_client=audit_client,
+    ).evaluate_post_dialogue(
         character,
         user_text,
         answer,
         active_goal=active_goal,
         pre_audit=prepared.pre_audit,
-        llm_config=llm_config,
-        agno_db=agno_db,
-        audit_client=audit_client,
+        source_context=source_context,
     )
     if not post.valid:
         return {
@@ -571,11 +914,33 @@ def record_dialogue_effects(
         source_chat_turn_id=source_chat_turn_id,
         already_recorded=directive_already_recorded,
     )
+    dialogue_consequences = _apply_dialogue_immediate_consequences(
+        db,
+        state,
+        character,
+        post.raw,
+        combined_text=combined,
+        source_chat_turn_id=source_chat_turn_id,
+        confidence=post.confidence,
+    )
     if post.goal_decision == "none":
+        agreement_decision = _record_source_briefing_resolution(
+            db,
+            state,
+            post,
+            source_context=source_context,
+            source_chat_turn_id=source_chat_turn_id,
+        )
         return {
             "audit_status": "recorded",
-            "event": "directive_proposed" if proposed_directive else "none",
+            "event": (
+                "dialogue_consequence"
+                if dialogue_consequences.get("effective")
+                else ("directive_proposed" if proposed_directive else "none")
+            ),
             "proposed_directive": proposed_directive,
+            "dialogue_consequences": dialogue_consequences,
+            "agreement_decision": agreement_decision.__dict__,
             "public_hint": post.public_hint,
             "audit_confidence": post.confidence,
         }
@@ -600,6 +965,7 @@ def record_dialogue_effects(
             "audit_status": "recorded",
             "goal": updated,
             "event": "abandoned",
+            "dialogue_consequences": dialogue_consequences,
             "public_hint": post.public_hint,
             "audit_confidence": post.confidence,
         }
@@ -637,9 +1003,18 @@ def record_dialogue_effects(
         )
         goal = db.get_conversation_goal(goal_id)
     if goal is None:
+        agreement_decision = _record_source_briefing_resolution(
+            db,
+            state,
+            post,
+            source_context=source_context,
+            source_chat_turn_id=source_chat_turn_id,
+        )
         return {
             "audit_status": "recorded",
-            "event": "none",
+            "event": "dialogue_consequence" if dialogue_consequences.get("effective") else "none",
+            "dialogue_consequences": dialogue_consequences,
+            "agreement_decision": agreement_decision.__dict__,
             "public_hint": post.public_hint,
             "audit_confidence": post.confidence,
         }
@@ -657,7 +1032,11 @@ def record_dialogue_effects(
         condition_status = "pending"
         event = "waiting_conditions"
     elif next_status == GOAL_SEALED:
-        condition_status = "satisfied"
+        condition_status = (
+            "pending"
+            if any(str(item.get("status") or "") == "pending" for item in condition_items)
+            else "satisfied"
+        )
         event = "sealed"
         next_score = 100
         handshake_status = HANDSHAKE_SEALED
@@ -786,10 +1165,11 @@ def record_dialogue_effects(
         "explicit_consent": post.explicit_consent,
         "core_topic": topic,
         "target_text": str((goal or {}).get("target_text") or post.target_text),
-        "promise_type": post.action_kind,
-        "stakes": ";".join(blockers[:3]),
-        "due_turns": 1 if post.agreement_action == "create_pending" else 0,
-        "tasks": [str(item.get("description") or "") for item in condition_items if isinstance(item, dict)],
+        "promise_type": _audit_text_field(post.raw, "promise_type", 80) or post.action_kind,
+        "stakes": _audit_text_field(post.raw, "stakes", 160) or ";".join(blockers[:3]),
+        "due_turns": int(post.raw.get("due_turns") or post.raw.get("due_turn") or (1 if post.agreement_action == "create_pending" else 0))
+        if isinstance(post.raw, dict) else 0,
+        "tasks": list(post.tasks or []) or [str(item.get("description") or "") for item in condition_items if isinstance(item, dict)],
         "blockers": blockers,
         "public_hint": post.public_hint,
         "private_reason": post.private_reason,
@@ -848,12 +1228,22 @@ def record_dialogue_effects(
             payload={"agreement_id": agreement_id, "audit": post.raw},
             source_chat_turn_id=source_chat_turn_id,
         )
+    agreement_decision = _record_source_briefing_resolution(
+        db,
+        state,
+        post,
+        source_context=source_context,
+        agreement_id=agreement_id,
+        source_chat_turn_id=source_chat_turn_id,
+    )
     return {
         "audit_status": "recorded",
         "goal": goal,
         "stance_id": stance_id,
         "agreement_id": agreement_id,
         "proposed_directive": proposed_directive,
+        "dialogue_consequences": dialogue_consequences,
+        "agreement_decision": agreement_decision.__dict__,
         "event": event,
         "handshake_status": handshake_status,
         "score": next_score,

@@ -29,13 +29,37 @@ TRAIT_DEFS: Dict[str, Dict[str, object]] = {
     "阳奉阴违": {"valence": -1, "desc": "口头答应，背后拖延变形"},
     "善观风色": {"valence": -1, "desc": "看风向行事，无定守"},
     "内廷奴籍": {"valence": 0, "desc": "身体与名籍入内廷，行动更依附皇帝私命"},
-    "宝匣执念": {"valence": -1, "desc": "对宝匣、钥匙、封签与全尸旧愿格外执着"},
+    "宝贝执念": {"valence": -1, "desc": "对宝贝与全尸旧愿格外执着"},
     "尿路旧患": {"valence": -1, "desc": "漏尿、石淋或尿闭反复，久差易误事"},
     "体声异变": {"valence": -1, "desc": "嗓音、体态与步幅因净身后患而改变"},
     "惊创未平": {"valence": -1, "desc": "幻肢痛、噩梦或净房记忆会被场景触发"},
     "洁净癖": {"valence": -1, "desc": "借洁净、香气与整饬抵消身体羞耻"},
     "情欲异化": {"valence": -1, "desc": "性无能、贤者式冷淡或羞辱/束缚代偿混成私癖"},
     "服从依恋": {"valence": 0, "desc": "在传旨、规训与明确边界中获得安定感"},
+}
+
+MEDICAL_RECORD_TRAITS = {
+    "内廷奴籍",
+    "宝匣执念",
+    "宝贝执念",
+    "尿路旧患",
+    "体声异变",
+    "惊创未平",
+    "洁净癖",
+    "情欲异化",
+    "服从依恋",
+    "旧患调养",
+    "惊创抚慰",
+    "仪态修整",
+    "宝匣安置",
+    "宝贝安置",
+    "心癖安顿",
+    "心相安顿",
+    "御前调养",
+    "旧患硬派",
+    "御赐宝匣",
+    "御赐宝贝",
+    "宝案钳制",
 }
 
 # ability_logic 文本里出现即检出的负/中性特质（沿用旧 9 项）
@@ -90,12 +114,21 @@ def seed_traits(db: GameDB, *, force: bool = False) -> int:
     return n
 
 
-def traits_of(db: GameDB, name: str) -> List[Dict[str, object]]:
+def traits_of(db: GameDB, name: str, *, include_medical: bool = True) -> List[Dict[str, object]]:
     rows = db.conn.execute(
         "SELECT trait, valence FROM character_traits WHERE name=?", (name,)
     ).fetchall()
-    return [{"key": str(r["trait"]), "valence": int(r["valence"]),
-             "desc": str(TRAIT_DEFS.get(str(r["trait"]), {}).get("desc", ""))} for r in rows]
+    payload: List[Dict[str, object]] = []
+    for r in rows:
+        key = str(r["trait"])
+        if not include_medical and key in MEDICAL_RECORD_TRAITS:
+            continue
+        payload.append({
+            "key": key,
+            "valence": int(r["valence"]),
+            "desc": str(TRAIT_DEFS.get(key, {}).get("desc", "")),
+        })
+    return payload
 
 
 def trait_bias(db: GameDB, name: str) -> Dict[str, float]:

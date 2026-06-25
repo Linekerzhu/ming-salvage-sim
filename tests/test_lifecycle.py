@@ -69,7 +69,7 @@ class ClassifyTests(unittest.TestCase):
     def test_inner_court_personal_order_is_not_treated_as_long_delivery(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)
-            plan = lifecycle.build_chain(db, state, "着王承恩押韩爌至净军房净身，发入内廷听差。", "王承恩")
+            plan = lifecycle.build_chain(db, state, "着王承恩押韩爌至净身房净身，发入内廷听差。", "王承恩")
 
             self.assertEqual(plan["category"], "personnel")
             self.assertEqual(plan["timing_profile"], "court_immediate")
@@ -84,7 +84,7 @@ class ClassifyTests(unittest.TestCase):
             os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = "1"
             db, state = _fresh(tmp)
             try:
-                did = _issue(db, state, "着王承恩押韩爌至净军房净身，发入内廷听差。", "王承恩")
+                did = _issue(db, state, "着王承恩押韩爌至净身房净身，发入内廷听差。", "王承恩")
                 row = db.conn.execute(
                     "SELECT start_day, lead_days, exec_days, eta_day, chain FROM turn_directives WHERE id=?",
                     (did,),
@@ -132,7 +132,7 @@ class ClassifyTests(unittest.TestCase):
                     return {
                         "allow": False,
                         "target_name": "",
-                        "trigger_quote": "查韩爌净身旧例，暂不惊动净军房",
+                        "trigger_quote": "查韩爌净身旧例，暂不惊动净身房",
                         "private_reason": "旨意是调查旧例并暂缓执行，不是强制净身。",
                         "confidence": 96,
                     }
@@ -140,7 +140,7 @@ class ClassifyTests(unittest.TestCase):
 
             lifecycle.configure_directive_audit(audit_client=audit)
             try:
-                did = _issue(db, state, "着王承恩查韩爌净身旧例，暂不惊动净军房。", "王承恩")
+                did = _issue(db, state, "着王承恩查韩爌净身旧例，暂不惊动净身房。", "王承恩")
                 timeflow.advance_days(db, state, 1, stop_on_yellow=False)
                 done = db.conn.execute(
                     "SELECT lifecycle_status, progress, chain FROM turn_directives WHERE id=?",
@@ -175,7 +175,7 @@ class ClassifyTests(unittest.TestCase):
                     return {
                         "allow": True,
                         "target_name": "韩爌",
-                        "trigger_quote": "押韩爌至净军房净身",
+                        "trigger_quote": "押韩爌至净身房净身",
                         "private_reason": "旨意明确命令对韩爌执行净身并发入内廷。",
                         "confidence": 97,
                     }
@@ -183,7 +183,7 @@ class ClassifyTests(unittest.TestCase):
 
             lifecycle.configure_directive_audit(audit_client=audit)
             try:
-                did = _issue(db, state, "着王承恩押韩爌至净军房净身，发入内廷听差。", "王承恩")
+                did = _issue(db, state, "着王承恩押韩爌至净身房净身，发入内廷听差。", "王承恩")
                 timeflow.advance_days(db, state, 1, stop_on_yellow=False)
                 done = db.conn.execute(
                     "SELECT lifecycle_status, progress, chain FROM turn_directives WHERE id=?",
@@ -206,6 +206,14 @@ class ClassifyTests(unittest.TestCase):
                     os.environ.pop("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT", None)
                 else:
                     os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = old
+
+    def test_mistyped_jingjun_does_not_trigger_castration(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+
+            self.assertIsNone(lifecycle._DIRECT_CASTRATION_RE.search("着王承恩发净军韩爌。"))
+            self.assertEqual(lifecycle._legacy_court_castration_review(db, "着王承恩发净军韩爌。", "王承恩"), {})
+            self.assertIsNotNone(lifecycle._DIRECT_CASTRATION_RE.search("着王承恩押韩爌至净身房净身。"))
 
     def test_statecraft_effect_changes_administrative_directive_duration_and_risk(self):
         with TemporaryDirectory() as tmp:

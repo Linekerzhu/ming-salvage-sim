@@ -432,7 +432,7 @@ _SPECS: Tuple[PipelineSpec, ...] = (
         failure_policy="fail_closed",
         cache_policy="none",
         risk="high",
-        notes="净身旧档/宝匣/旧患自动入档前的语义闸门；失败不写人物长期档案。",
+        notes="净身旧档/宝贝旧念/旧患自动入档前的语义闸门；失败不写人物长期档案。",
     ),
     _spec(
         "llm.dialogue_unknown_mention_intake",

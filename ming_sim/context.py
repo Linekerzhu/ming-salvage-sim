@@ -15,6 +15,7 @@ from ming_sim.assets import format_money, format_money_delta
 from ming_sim.content import GameContent
 from ming_sim.db import GameDB
 from ming_sim.exceptions import LLMContractError
+from ming_sim.identity import character_is_eunuch
 from ming_sim.models import Army, Character, Event, GameState, Region
 from ming_sim.skills import available_skill_names, office_skills
 
@@ -334,11 +335,13 @@ def _tiangang_entry(name: str) -> Dict[str, object]:
 
 
 def _is_current_inner_court(character: Character) -> bool:
-    identity = f"{character.office or ''} {character.office_type or ''} {character.faction or ''} {character.style or ''}"
-    return bool(
-        character.office_type in {"司礼监", "东厂", "内廷"}
-        or character.faction in {"内廷"}
-        or re.search(r"太监|宦官|内官|小火者|司礼监|东厂|内廷|宫禁", identity)
+    return character_is_eunuch(
+        None,
+        sex=getattr(character, "sex", ""),
+        office=getattr(character, "office", ""),
+        office_type=getattr(character, "office_type", ""),
+        faction=getattr(character, "faction", ""),
+        allow_legacy_text_fallback=True,
     )
 
 
@@ -407,7 +410,7 @@ def _derived_tiangang_entry(character: Character) -> Dict[str, object]:
     office_type = character.office_type or "待铨"
     faction = character.faction or "中立"
     text = f"{office} {office_type} {faction} {character.style}"
-    is_eunuch = office_type in {"司礼监", "东厂", "内廷"} or re.search(r"太监|宦官|内官|司礼监|东厂", text)
+    is_eunuch = _is_current_inner_court(character)
     is_inner_network = bool(is_eunuch or faction in {"阉党", "内廷", "皇党"})
     is_clear = faction in {"清流", "东林", "东林党"}
     is_military = bool(office_type in {"边镇", "锦衣卫"} or re.search(r"总兵|副将|游击|参将|督师|经略|军|兵|将", text))
@@ -648,7 +651,7 @@ def _derived_tiangang_behavior_brief(character: Character) -> str:
     """运行时新增人物没有静态 36 维档时，用基础数值推导行为底色。"""
     office_type = character.office_type or "待铨"
     faction = character.faction or "中立"
-    if office_type in {"司礼监", "东厂", "内廷"} or "太监" in character.office:
+    if _is_current_inner_court(character):
         archetype = "内廷执行型"
         political = "近皇权，重明旨、保密、复命；能力未必压倒外朝，但忠诚与执行优先。"
     elif faction in {"清流", "东林党"}:
@@ -784,7 +787,6 @@ def _topic_flags(text: str) -> Dict[str, bool]:
     }
 
 
-_INNER_COURT_RE = re.compile(r"太监|宦官|内官|司礼监|东厂|内廷|秉笔|掌印|随堂|内官监")
 _FIELD_COMMAND_RE = re.compile(r"总兵|副将|参将|游击|督师|经略|巡抚|提督|边镇|辽东|宁远|山海关|登莱|大同|宣大|蓟镇")
 
 
@@ -800,13 +802,14 @@ def _role_personality_policy(
     office_type = str(character.office_type or "")
     faction = str(character.faction or "")
     blob = f"{office} {office_type} {faction} {style} {skill_text}"
+    is_eunuch = _is_current_inner_court(character)
 
     role = "本职官僚/待差人物"
     focus = "名分、职责边界、办事成本和自身风险"
     tools = "请旨、请查、请传相关人等，先把责任和资源说清"
     boundary = "不在本职内的事只能说风闻或请求核实，不要表现得无所不知"
 
-    if _INNER_COURT_RE.search(blob):
+    if is_eunuch:
         role = "内廷近侍/司礼监人物"
         focus = "御前所见、宫禁传闻、司礼监文书、内库和传旨催办"
         tools = "传召、密问、催办、保密复命；以「奴婢听闻/奴婢这就去问/奴婢替陛下催」作答"
@@ -863,7 +866,7 @@ def _role_personality_policy(
         boundary = "不知道明廷私下召对和内部账目，只能按情报和利益揣测"
 
     temperament: List[str] = []
-    if _INNER_COURT_RE.search(blob):
+    if is_eunuch:
         temperament.append("贴身内侍口吻：话短而低，先报听闻，再请旨传问或催办")
     if "清议持重" in blob or "东林清望" in blob or "直言不讳" in blob:
         temperament.append("重名分与公论，敢谏但要章程可辩")
@@ -1185,7 +1188,7 @@ def _goal_followup_flavor(goal: Dict[str, object]) -> Dict[str, object]:
             "urinary": "尿路旧患",
             "trauma": "惊创旧患",
             "body": "体声失仪",
-            "bao": "宝匣心结",
+            "bao": "宝贝旧念",
             "fixation": "心癖安顿",
             "psychosexual": "心相安顿",
         }
@@ -1193,7 +1196,7 @@ def _goal_followup_flavor(goal: Dict[str, object]) -> Dict[str, object]:
         return {
             "reason_type": "eunuch_old_wound_followup",
             "hook": (
-                f"{label}「{title}」仍候御前裁断：须亲口说清症状、宝匣或差遣误事风险，"
+                f"{label}「{title}」仍候御前裁断：须亲口说清症状、宝贝旧念或差遣误事风险，"
                 "再由皇帝在调养、验宝安置、照常派差之间取舍。"
             ),
             "priority": 9,

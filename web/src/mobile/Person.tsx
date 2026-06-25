@@ -6,7 +6,7 @@ import { Portrait } from "./Portrait";
 import type { PersonFocus, PersonOpen } from "./personCtx";
 import { PersonCtx } from "./personCtx";
 import { loadCharacter, loadCourt, intrigueInvestigate, intrigueCoerce, intrigueFabricate, intrigueDiscord, courtBack } from "./api";
-import type { AudienceLead, CourtBackKind, CourtCastration, CourtPayload, CourtTie, ImpactEffect, IntriguePreviewKind, Suggestion } from "./api";
+import type { AudienceLead, CourtBackKind, CourtPayload, CourtTie, ImpactEffect, IntriguePreviewKind, Suggestion } from "./api";
 import { useGame } from "./GameData";
 
 const AGENDA_CN: Record<string, string> = {
@@ -15,31 +15,6 @@ const AGENDA_CN: Record<string, string> = {
 
 type ImpactTag = { label: string; tone?: "good" | "warn" | "bad" | "info" };
 type PersonSummon = (name: string, lead?: AudienceLead) => void;
-
-function servilityTone(value?: number): string {
-  const v = Number(value ?? 0);
-  if (v >= 75) return "卑顺深重";
-  if (v >= 60) return "恭谨畏慎";
-  if (v >= 42) return "守分自持";
-  return "外顺内拗";
-}
-
-function castrationQuick(info?: CourtCastration | null): string {
-  if (!info) return "";
-  const risk = Number(info.scheme_profile?.risk_score ?? 0);
-  const hint = risk >= 72 ? "旧患较重" : risk >= 55 ? "旧患有案" : "旧档存照";
-  return ["内廷旧档", hint].join(" · ");
-}
-
-function castrationBits(info: CourtCastration | null | undefined, keys: Array<keyof CourtCastration>): string[] {
-  if (!info) return [];
-  const out: string[] = [];
-  for (const key of keys) {
-    const value = info[key];
-    if (typeof value === "string" && value.trim()) out.push(value.trim());
-  }
-  return out;
-}
 
 function summarizeImpacts(
   beforeC: Record<string, any> | null,
@@ -195,7 +170,9 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
   }, [focus, c, name]);
   const isMing = !c || (c.power_id ? c.power_id === "ming" : true);
   const isSelf = name === "崇祯" || c?.office_type === "君主";
-  const canSummon = !!c && isMing && !isSelf && String(c.status || "active") === "active";
+  const status = String(c?.status || "active");
+  const canSummon = !!c && isMing && !isSelf && (c.can_summon === true || ["active", "imprisoned"].includes(status));
+  const summonLabel = status === "imprisoned" ? "押来审问" : "召来问对";
   const summonThisPerson = () => {
     if (!canSummon || !onSummon) return;
     onClose();
@@ -280,6 +257,37 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
     finally { setBusy(false); }
   }
   const skills: string[] = (c?.personal_skills || c?.skills || []).map((x: any) => typeof x === "string" ? x : x?.name).filter(Boolean);
+  const traitItems = (Array.isArray(c?.traits) && c.traits.length ? c.traits : (court?.traits || []))
+    .map((t: any) => ({
+      key: String(t?.key || t?.trait || "").trim(),
+      valence: Number(t?.valence || 0),
+      desc: String(t?.desc || ""),
+    }))
+    .filter((t: any) => t.key);
+  const conditionPayload = c?.medical_record || c?.conditions || null;
+  const conditionItems = Array.isArray(conditionPayload?.conditions) ? conditionPayload.conditions : [];
+  const conditionGroups = Array.isArray(conditionPayload?.groups)
+    ? conditionPayload.groups
+        .map((group: any) => ({
+          key: String(group?.key || group?.label || ""),
+          label: String(group?.label || group?.key || "病历"),
+          items: Array.isArray(group?.items) ? group.items : [],
+        }))
+        .filter((group: any) => group.items.length > 0)
+    : [];
+  const conditionTags = Array.isArray(conditionPayload?.tags) ? conditionPayload.tags.filter(Boolean).slice(0, 6) : [];
+  const conditionHealthTag = Number.isFinite(Number(conditionPayload?.hp)) && Number.isFinite(Number(conditionPayload?.max_hp))
+    ? `生命 ${Number(conditionPayload.hp)}/${Number(conditionPayload.max_hp)}`
+    : "";
+  const showConditionBlock = !!conditionPayload && (
+    conditionItems.length > 0 || conditionGroups.length > 0 || conditionTags.length > 0 || !!conditionPayload?.summary || !!conditionHealthTag
+  );
+  const custodyPayload = c?.custody || null;
+  const custodyRecords = Array.isArray(custodyPayload?.records) ? custodyPayload.records : [];
+  const custodyTags = Array.isArray(custodyPayload?.tags) ? custodyPayload.tags.filter(Boolean).slice(0, 6) : [];
+  const punishmentPayload = c?.punishments || null;
+  const punishmentRecords = Array.isArray(punishmentPayload?.records) ? punishmentPayload.records : [];
+  const punishmentTags = Array.isArray(punishmentPayload?.tags) ? punishmentPayload.tags.filter(Boolean).slice(0, 6) : [];
   const canBack = !!c && isMing && !isSelf && ["active", "imprisoned", "dismissed"].includes(String(c.status || ""));
   const canReuse = !!c && ["imprisoned", "dismissed"].includes(String(c.status || ""));
   const backPreview = (kind: CourtBackKind, fallback: ImpactEffect[]) => {
@@ -290,7 +298,6 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
     const items = court?.intrigue_previews?.[kind];
     return items?.length ? items : fallback;
   };
-  const castration = (c?.castration || court?.castration || null) as CourtCastration | null;
   return (
     <div className="m-sheet-backdrop" onClick={onClose}>
       <div className="m-sheet m-person" onClick={(e) => e.stopPropagation()}>
@@ -299,10 +306,9 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
           <div className="m-person-id">
             <span className="m-person-name">{name}</span>
             <span className="m-person-sub">{c ? [c.office || c.office_type, c.faction].filter(Boolean).join(" · ") : "…"}</span>
-            <span className="m-person-sub2">{c ? [c.status_label, c.age_label].filter(Boolean).join(" · ") : ""}</span>
-            {castration && <span className="m-person-sub3">{castrationQuick(castration)}</span>}
+            <span className="m-person-sub2">{c ? [c.status_label, c.sex_label, c.age_label].filter(Boolean).join(" · ") : ""}</span>
           </div>
-          {canSummon && onSummon && <button className="m-person-summon" onClick={summonThisPerson}>召来问对</button>}
+          {canSummon && onSummon && <button className="m-person-summon" onClick={summonThisPerson}>{summonLabel}</button>}
           <button className="m-mini" onClick={onClose}>关</button>
         </div>
         {intrigueMsg && (
@@ -329,12 +335,64 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
             <div className="m-person-skills">{skills.slice(0, 12).map((sk, i) => <span key={i} className="m-skill">{sk}</span>)}</div>
           </div>
         )}
+        {showConditionBlock && (
+          <div className="m-person-block">
+            <span className="m-person-h">病历</span>
+            {conditionPayload?.summary && <p className="m-person-style">{conditionPayload.summary}</p>}
+            {(conditionHealthTag || conditionTags.length > 0) && (
+              <div className="m-person-skills">
+                {conditionHealthTag && <span className="m-skill">{conditionHealthTag}</span>}
+                {conditionTags.map((tag: string, i: number) => <span key={`${tag}-${i}`} className="m-skill">{tag}</span>)}
+              </div>
+            )}
+            {conditionGroups.length > 0 && (
+              <div className="m-medical-groups" aria-label="病历分组">
+                {conditionGroups.map((group: any) => (
+                  <div className="m-medical-group" key={group.key || group.label}>
+                    <span className="m-medical-group-title">{group.label}</span>
+                    <div className="m-medical-items">
+                      {group.items.slice(0, 8).map((item: any, i: number) => (
+                        <span className="m-medical-item" key={`${group.key}-${item?.title || item?.label || i}`}>
+	                          <b>{item?.title || item?.label || "身体事实"}</b>
+	                          {item?.course_label && <small>{item.course_label}</small>}
+	                          {item?.note && <small>{item.note}</small>}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {custodyRecords.length > 0 && (
+          <div className="m-person-block">
+            <span className="m-person-h">羁押·昭狱</span>
+            {custodyPayload?.summary && <p className="m-person-style">{custodyPayload.summary}</p>}
+            {custodyTags.length > 0 && (
+              <div className="m-person-skills">
+                {custodyTags.map((tag: string, i: number) => <span key={`${tag}-${i}`} className="m-skill">{tag}</span>)}
+              </div>
+            )}
+          </div>
+        )}
+        {punishmentRecords.length > 0 && (
+          <div className="m-person-block">
+            <span className="m-person-h">刑罚</span>
+            {punishmentPayload?.summary && <p className="m-person-style">{punishmentPayload.summary}</p>}
+            {punishmentTags.length > 0 && (
+              <div className="m-person-skills">
+                {punishmentTags.map((tag: string, i: number) => <span key={`${tag}-${i}`} className="m-skill">{tag}</span>)}
+              </div>
+            )}
+          </div>
+        )}
         <PolicyIdeals data={c?.policy_ideals} />
-        {(court?.traits?.length ?? 0) > 0 && (
+        {traitItems.length > 0 && (
           <div className="m-person-block">
             <span className="m-person-h">性格</span>
             <div className="m-person-traits">
-              {court!.traits.map((t) => (
+              {traitItems.map((t: any) => (
                 <span key={t.key} className={`m-trait ${t.valence > 0 ? "tv-good" : t.valence < 0 ? "tv-bad" : "tv-neu"}`} title={t.desc}>
                   {t.key}
                 </span>
@@ -430,80 +488,16 @@ function PersonSheet({ name, focus, onClose, onSummon }: { name: string; focus?:
             </div>
           </div>
         )}
-        {(castration || court?.duishi) && (
+        {court?.duishi && (
           <div className="m-person-block">
             <span className="m-person-h">内廷旧事</span>
-            {castration && (
-              <p className="m-person-castration">
-                <span>内廷旧档</span>
-                <span className="m-serv">· {castration.scheme_profile?.risk_score && castration.scheme_profile.risk_score >= 72 ? "旧患较重" : "旧患存案"}</span>
-                <span className="m-serv">· 口吻：{servilityTone(castration.servility)}</span>
-              </p>
-            )}
-            {castration && (
-              <details className="m-castration-details">
-                <summary>查看旧档细目</summary>
-                <div className="m-castration-ledger" aria-label="内廷旧档细目">
-                  {castration.procedure_line && <span className="m-castration-note">{castration.procedure_line}</span>}
-                  {castration.scheme_profile?.tier && (
-                    <span className="m-castration-row">
-                      <b>风险</b>
-                      <i>{castration.scheme_profile.tier}</i>
-                      {typeof castration.scheme_profile.risk_score === "number" && <i>风险{castration.scheme_profile.risk_score}</i>}
-                      {!!castration.scheme_profile.care_cost_delta && <i>调养{castration.scheme_profile.care_cost_delta > 0 ? "+" : ""}{castration.scheme_profile.care_cost_delta}</i>}
-                      {(castration.scheme_profile.effects || []).slice(0, 2).map((bit) => <i key={bit}>{bit}</i>)}
-                    </span>
-                  )}
-                  {castrationBits(castration, ["method_label", "knife_label", "anesthesia_label"]).length > 0 && (
-                    <span className="m-castration-row">
-                      <b>旧制</b>
-                      {castrationBits(castration, ["method_label", "knife_label", "anesthesia_label"]).map((bit) => <i key={bit}>{bit}</i>)}
-                    </span>
-                  )}
-                  {castrationBits(castration, ["bao_size_label", "bao_shape_label", "bao_texture_label", "bao_weight_label", "preservation_label", "container_label"]).length > 0 && (
-                    <span className="m-castration-row">
-                      <b>封存</b>
-                      {castrationBits(castration, ["bao_size_label", "bao_shape_label", "bao_texture_label", "bao_weight_label", "preservation_label", "container_label"]).map((bit) => <i key={bit}>{bit}</i>)}
-                    </span>
-                  )}
-                  {castrationBits(castration, ["aftereffect_label", "urine_label", "voice_body_label", "trauma_label", "fixation_label", "psychosexual_label"]).length > 0 && (
-                    <span className="m-castration-row">
-                      <b>后患</b>
-                      {castrationBits(castration, ["aftereffect_label", "urine_label", "voice_body_label", "trauma_label", "fixation_label", "psychosexual_label"]).map((bit) => <i key={bit}>{bit}</i>)}
-                    </span>
-                  )}
-                  {(castration.voice_profile?.register || (castration.voice_profile?.pet_phrases || []).length > 0) && (
-                    <span className="m-castration-row">
-                      <b>口吻</b>
-                      {castration.voice_profile?.register && <i>{castration.voice_profile.register}</i>}
-                      {(castration.voice_profile?.pet_phrases || []).slice(0, 3).map((bit) => <i key={bit}>{bit}</i>)}
-                    </span>
-                  )}
-                  {(castration.voice_profile?.slang || []).length > 0 && (
-                    <span className="m-castration-row">
-                      <b>暗语</b>
-                      {(castration.voice_profile?.slang || []).slice(0, 3).map((bit) => <i key={bit}>{bit}</i>)}
-                    </span>
-                  )}
-                  {(castration.voice_profile?.stage_cues || []).length > 0 && (
-                    <span className="m-castration-row">
-                      <b>神态</b>
-                      {(castration.voice_profile?.stage_cues || []).slice(0, 2).map((bit) => <i key={bit}>{bit}</i>)}
-                    </span>
-                  )}
-                  {castration.ritual_label && <span className="m-castration-note">{castration.ritual_label}</span>}
-                </div>
-              </details>
-            )}
-            {court?.duishi && (
-              <p className="m-person-duishi">
-                对食：
-                <button className="m-tie-inline" onClick={() => openPerson(court.duishi!)}>
-                  <Portrait name={court.duishi} size={22} interactive={false} />
-                  <span className="m-tie-name">{court.duishi}</span>
-                </button>
-              </p>
-            )}
+            <p className="m-person-duishi">
+              对食：
+              <button className="m-tie-inline" onClick={() => openPerson(court.duishi!)}>
+                <Portrait name={court.duishi} size={22} interactive={false} />
+                <span className="m-tie-name">{court.duishi}</span>
+              </button>
+            </p>
           </div>
         )}
         {isMing && !isSelf && (

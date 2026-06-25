@@ -9,6 +9,10 @@ from typing import Dict, List, Tuple
 
 from ming_sim.content import GameContent
 from ming_sim.db import GameDB, normalize_office
+from ming_sim.identity import (
+    character_is_eunuch as _character_is_eunuch,
+    requires_eunuch_identity,
+)
 from ming_sim.models import Character, GameState
 from ming_sim.political_reactions import (
     Reaction,
@@ -18,10 +22,24 @@ from ming_sim.political_reactions import (
 
 
 def is_eunuch_office(office: str, office_type: str = "") -> bool:
-    text = f"{office or ''} {office_type or ''}"
-    if any(marker in text for marker in ("民籍", "布衣", "百姓", "脱籍", "还民", "出宫为民", "归为百姓", "转出")):
-        return False
-    return bool(re.search(r"司礼监|东厂|太监|宦官|内廷|内官监|内官|御马监|御用监|尚膳监|小火者", text))
+    return requires_eunuch_identity(office, office_type)
+
+
+def character_is_eunuch_identity(row: Dict[str, object]) -> bool:
+    def pick(key: str) -> object:
+        if hasattr(row, "get"):
+            return row.get(key, "")  # type: ignore[attr-defined]
+        try:
+            return row[key]  # type: ignore[index]
+        except Exception:
+            return ""
+
+    return _character_is_eunuch(
+        row,
+        office=pick("office"),
+        office_type=pick("office_type"),
+        faction=pick("faction"),
+    )
 
 
 def _json_list(raw: object) -> List[str]:
@@ -80,11 +98,11 @@ def _inner_court_lore_item_ids(name: str, bao_status: str) -> List[str]:
     clean_name = str(name or "").strip()
     item_ids = [f"内廷旧档：{clean_name}"]
     if bao_status == "forfeit":
-        item_ids.append(f"官库旧匣：{clean_name}")
+        item_ids.append(f"官库宝贝：{clean_name}")
     elif bao_status == "kept":
-        item_ids.append(f"旧匣线索：{clean_name}")
+        item_ids.append(f"宝贝线索：{clean_name}")
     elif bao_status:
-        item_ids.append(f"旧匣遗失：{clean_name}")
+        item_ids.append(f"宝贝遗失：{clean_name}")
     return item_ids
 
 
@@ -109,21 +127,12 @@ def _castration_lore_text(lore: Dict[str, object], *, include_psychosexual: bool
 
 
 def _castration_traits_from_text(text: str, *, adult: bool) -> List[str]:
+    del adult
     traits = ["内廷奴籍"]
-    if re.search(r"无麻|冷汗硬熬|蒙眼塞布|痛醒|番役|刑房薄刃|旧军刀|幻肢|PTSD|噩梦|梦回|磨刀|按肩|净房", text):
-        traits.append("惊创未平")
-    if re.search(r"麻沸散|温酒|香汤|老匠|熟匠|细净|受罚|规训|传旨声|服从", text):
-        traits.append("服从依恋")
-    if re.search(r"漏尿|尿闭|石淋|小解|夜尿|尿频", text):
-        traits.append("尿路旧患")
-    if re.search(r"嗓音|体态|肩背|步子|腰腹|久跪", text):
-        traits.append("体声异变")
     if re.search(r"洁净|衣褶|香|压惊", text):
         traits.append("洁净癖")
-    if re.search(r"宝匣|钥匙|封匣|供奉|还阳|全尸|佛龛", text):
-        traits.append("宝匣执念")
-    if adult and re.search(r"贤者模式|性无能|不能人道|畸恋|羞辱|束缚|受罚|禁欲|冷淡|情欲", text):
-        traits.append("情欲异化")
+    if re.search(r"宝匣|宝贝|钥匙|封签|封匣|供奉|还阳|全尸|佛龛", text):
+        traits.append("宝贝执念")
     return list(dict.fromkeys(traits))
 
 
@@ -267,7 +276,7 @@ def _apply_scheme_review_gameplay(
         process=(
             f"{tier} 风险{risk}；酷烈{scheme_profile.get('brutality')}、"
             f"惊创{scheme_profile.get('trauma_risk')}、伤身{scheme_profile.get('surgery_risk')}、"
-            f"旧匣{scheme_profile.get('bao_security')}"
+            f"宝贝存留{scheme_profile.get('bao_security')}"
         ),
         outcome="，".join(outcome_bits),
         sentiment="negative" if risk >= 55 else "positive",
@@ -328,7 +337,7 @@ def sync_castration_lore_gameplay(
             stat_delta["emp_trust"] -= 1
             stat_delta["grievance"] += 3
             stat_delta["wisdom"] -= 1
-        elif trait == "宝匣执念":
+        elif trait == "宝贝执念":
             stat_delta["wisdom"] += 1
         elif trait == "情欲异化":
             stat_delta["charm"] -= 1
@@ -403,7 +412,7 @@ def sync_castration_lore_gameplay(
             ),
             sentiment="negative" if any(t in new_traits for t in ("惊创未平", "尿路旧患", "情欲异化")) else "mixed",
             importance=4 if new_traits else 3,
-            tags=["净身", "后患", "宝匣", *new_traits[:3]],
+            tags=["净身", "后患", "宝贝", *new_traits[:3]],
             source_kind=source,
             source_id=f"{state.turn}:{clean_name}:{source}",
         )
@@ -442,13 +451,6 @@ def _apply_castration_gameplay_consequences(
     charm_delta = -1 if forced else 0
     luck_delta = -1 if forced else 0
     traits = _castration_traits_from_text(text, adult=adult)
-    if re.search(r"无麻|冷汗硬熬|蒙眼塞布|痛醒|番役|刑房薄刃|旧军刀", text):
-        trust_delta -= 5
-        grievance_delta += 12
-        ability_delta -= 1
-    if re.search(r"麻沸散|温酒|香汤|老匠|熟匠|细净", text):
-        trust_delta += 2
-        grievance_delta -= 4
     if re.search(r"漏尿|尿闭|石淋|小解|夜尿|尿频", text):
         ability_delta -= 1
         charm_delta -= 1
@@ -458,10 +460,8 @@ def _apply_castration_gameplay_consequences(
         trust_delta -= 2
         grievance_delta += 5
         wisdom_delta -= 1
-    if re.search(r"宝匣|钥匙|封匣|供奉|还阳|全尸|佛龛", text):
+    if re.search(r"宝匣|宝贝|钥匙|封签|封匣|供奉|还阳|全尸|佛龛", text):
         wisdom_delta += 1
-    if adult and re.search(r"贤者模式|性无能|不能人道|畸恋|羞辱|束缚|受罚|禁欲|冷淡|情欲", text):
-        charm_delta -= 1
     scheme_profile: Dict[str, object] = {}
     try:
         from ming_sim.eunuch_lore import castration_scheme_profile
@@ -517,7 +517,19 @@ def _apply_castration_gameplay_consequences(
     for granted_item_id in item_ids:
         db.grant_player_item(granted_item_id, state)
 
-    tags = ["内廷旧档", "旧匣", "内廷奴籍", *traits[:4]]
+    tags = ["内廷旧档", "宝贝", "内廷奴籍", *traits[:4]]
+    bao_label = {
+        "forfeit": "宝贝官库",
+        "kept": "宝贝存留",
+        "lost": "宝贝遗失",
+    }.get(bao_status, "宝贝未详")
+    medical_process = "；".join(part for part in (
+        "器质性缺损已入病历",
+        str(lore.get("urinary_aftereffect") or ""),
+        str(lore.get("voice_body_change") or ""),
+        str(lore.get("trauma_response") or ""),
+        bao_label,
+    ) if part)
     try:
         db.upsert_event_memory(
             state,
@@ -526,13 +538,7 @@ def _apply_castration_gameplay_consequences(
             "eunuch_castration",
             f"内廷旧档：{name}",
             cause="强旨改入内廷" if forced else "自愿改入内廷",
-            process="；".join(part for part in (
-                str(lore.get("castration_method") or ""),
-                str(lore.get("knife_tool") or ""),
-                str(lore.get("anesthesia") or ""),
-                str(lore.get("bao_preservation") or ""),
-                str(lore.get("bao_container") or ""),
-            ) if part),
+            process=medical_process,
             outcome="；".join(part for part in (
                 f"信任 {before['emp_trust']}->{after['emp_trust']}，怨望 {before['grievance']}->{after['grievance']}",
                 f"方案画像：{scheme_profile.get('tier')} 风险{scheme_profile.get('risk_score')}" if scheme_profile else "",
@@ -549,8 +555,7 @@ def _apply_castration_gameplay_consequences(
     db.record_log(
         state,
         (
-            f"【内廷旧档】{name}：{str(lore.get('castration_method') or '旧制未详')}、"
-            f"{str(lore.get('bao_preservation') or '封存未详')}、{str(lore.get('bao_container') or '旧匣未详')}。"
+            f"【内廷旧档】{name}：{bao_label}；病历后果已入档。"
             + (f"方案：{scheme_profile.get('tier')}（风险{scheme_profile.get('risk_score')}）。" if scheme_profile else "")
             + f"信任 {before['emp_trust']}->{after['emp_trust']}，怨望 {before['grievance']}->{after['grievance']}。"
         ),
@@ -621,7 +626,7 @@ def convert_character_to_eunuch(
 
     db.conn.execute(
         """UPDATE characters
-           SET faction=?, personal_skills=?, loyalty=?, courage=?, style=?, status_reason=?
+           SET faction=?, sex='eunuch', personal_skills=?, loyalty=?, courage=?, style=?, status_reason=?
            WHERE name=?""",
         (
             "内廷",
@@ -638,6 +643,7 @@ def convert_character_to_eunuch(
     character.office = office
     character.office_type = "司礼监"
     character.faction = "内廷"
+    character.sex = "eunuch"
     character.personal_skills = skills
     character.loyalty = int(loyalty)
     character.courage = int(courage)
@@ -651,7 +657,7 @@ def convert_character_to_eunuch(
         old_row.get("faction", ""),
         force=force,
     )
-    # 净身「宝」之处置与奴性登记（E2a）：强阉＝宝官没·奴性扭曲；自愿＝宝自藏·奴性恭谨。
+    # 净身「宝」之处置与奴性登记（E2a）：强制净身＝宝官没旧念更重；自愿＝宝自藏·奴性恭谨。
     try:
         from ming_sim.eunuch_lore import record_castration
         from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int

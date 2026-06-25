@@ -300,6 +300,7 @@ export const loadZhongxing = (): Promise<ZhongxingPayload> => api<ZhongxingPaylo
 
 // 朝局风向：零 LLM 的玩法雷达，把暗线局势转成首页可点击钩子。
 export type PlaystyleBriefCard = {
+  card_key?: string;
   kind:
     | "decision"
     | "agenda"
@@ -334,6 +335,8 @@ export type PlaystyleBriefCard = {
   refusal?: string;
   ref_kind?: string;
   ref_id?: string;
+  source_type?: string;
+  source_id?: string;
   effects?: Array<{ kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string }>;
   stakes?: Array<{ kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string }>;
 };
@@ -359,6 +362,7 @@ export type PlaystyleBriefPayload = {
   ranks?: Array<{ level: "danger" | "warn" | "info" | string; label: string; count: number }>;
 };
 export type AudienceLead = {
+  card_key?: string;
   kind: string;
   title: string;
   detail: string;
@@ -374,16 +378,21 @@ export type AudienceLead = {
   refusal?: string;
   ref_kind?: string;
   ref_id?: string;
+  source_type?: string;
+  source_id?: string;
   opening?: string;
   prompts?: Suggestion[];
   stakes?: Array<{ kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string }>;
 };
 export type ChatContext = {
+  card_key?: string;
   kind?: string;
   actor?: string;
   target?: string;
   ref_kind?: string;
   ref_id?: string;
+  source_type?: string;
+  source_id?: string;
   title?: string;
   meta?: string;
   motive?: string;

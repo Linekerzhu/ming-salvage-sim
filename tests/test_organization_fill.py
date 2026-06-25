@@ -123,11 +123,12 @@ class OrganizationFillTests(unittest.TestCase):
             name = str(result["minister"]["name"])
             self.assertNotIn(name, ordinary_before)
             row = game.db.conn.execute(
-                "SELECT office, office_type, faction FROM characters WHERE name=?",
+                "SELECT office, office_type, faction, sex FROM characters WHERE name=?",
                 (name,),
             ).fetchone()
             self.assertIsNotNone(row)
             self.assertTrue(is_eunuch_office(str(row["office"] or ""), str(row["office_type"] or "")))
+            self.assertEqual(str(row["sex"] or ""), "eunuch")
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

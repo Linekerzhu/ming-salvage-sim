@@ -587,8 +587,8 @@ def build_minister_tools(character: Character, context: CourtContext):
     def propose_castration(target: str, scheme_text: str = "") -> str:
         """对白驱动净身：只有皇帝明确点名并拟下严旨净身/宫刑/入内廷为奴时调用。
 
-        只生成待确认意图，不执行净身。scheme_text 可记录刀具、麻醉、宝况、保存手段、宝匣等方案。
-        闲聊净身旧例、询问太监来源、谈已净身者旧患，或说“不是要办/不要办/别惊动净军房”时不得调用。
+        只生成待确认意图，不执行净身。scheme_text 可记录净身房方案、身体后果、宝贝去处等必要信息。
+        闲聊净身旧例、询问太监来源、谈已净身者旧患，或说“不是要办/不要办/别惊动净身房”时不得调用。
         回奏必须说明风险并追问陛下是否准办。
         """
         nm = (target or "").strip()
@@ -661,7 +661,7 @@ def build_minister_tools(character: Character, context: CourtContext):
         return f"__dialogue_action__{payload}"
 
     def propose_eunuch_care(target: str, mode: str = "general", note: str = "") -> str:
-        """对白驱动净身旧患照料：皇帝提到给宦官治漏尿/尿闭/幻肢痛/验宝匣时调用。
+        """对白驱动净身旧患照料：皇帝提到给宦官治漏尿/尿闭/幻肢痛/查宝贝去处时调用。
 
         只生成待确认意图，不立刻花内库、不改人物状态。mode 可填 urinary、trauma、body、bao、fixation、psychosexual、general。
         回奏必须说明要动太医/内库/司礼监旧档，并追问陛下是否准办。
@@ -736,15 +736,15 @@ def build_minister_tools(character: Character, context: CourtContext):
         return f"__dialogue_action__{payload}"
 
     def propose_bao_leverage(target: str, mode: str = "return", note: str = "") -> str:
-        """对白驱动宝匣筹码：皇帝提到赐还宝匣或用官库封签钳制时调用。
+        """对白驱动宝贝旧念筹码：皇帝提到赐还宝贝或用官库封签钳制时调用。
 
         只生成待确认意图，不立刻改变宝案、人物数值或风险。mode 可填 return/control。
         回奏必须说明取舍：赐还收心降怨但少把柄；钳制见效快但加深怨望和后续宝案风险。
-        玩家只是查问宝案、补旧档、记录匣材封签时不得调用。
+        玩家只是查问宝案、补旧档、记录封签旧案时不得调用。
         """
         nm = (target or "").strip()
         if not nm:
-            return "宝匣筹码提议失败：target 不能为空。"
+            return "宝贝旧念筹码提议失败：target 不能为空。"
         m = (mode or "return").strip().lower()
         if m in {"赐还", "归还", "发还", "交还"}:
             m = "return"
@@ -765,7 +765,7 @@ def build_minister_tools(character: Character, context: CourtContext):
         return f"__dialogue_action__{payload}"
 
     def confirm_bao_leverage(target: str = "", mode: str = "", note: str = "") -> str:
-        """对白驱动宝匣筹码：只有皇帝明确准许后才调用，Web 端才会结算。
+        """对白驱动宝贝旧念筹码：只有皇帝明确准许后才调用，Web 端才会结算。
 
         玩家追问宝案细节或只让记档时不得调用。
         """

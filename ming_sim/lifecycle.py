@@ -158,7 +158,7 @@ def _court_immediate_profile(text: str, region_id: str) -> Dict[str, object]:
         return {}
     profiles = [
         (
-            r"净身|宫刑|净军房|入内廷|入宫为宦|发入内廷",
+            r"净身|宫刑|净身房|入内廷|入宫为宦|发入内廷",
             "personnel",
             "宫禁身份处置：成命即转内廷执行，传旨为 0 日，承办以 1 日复命。",
         ),
@@ -462,7 +462,7 @@ def _json_dict(raw: object) -> Dict[str, object]:
     return data if isinstance(data, dict) else {}
 
 
-_DIRECT_CASTRATION_RE = re.compile(r"净身|宫刑|腐刑|去势|阉割|发净军|没入内廷|入内廷为奴|入宫为奴|净军房")
+_DIRECT_CASTRATION_RE = re.compile(r"净身|宫刑|腐刑|去势|阉割|(?:押赴|押入|送往|发往)净身房|没入内廷|入内廷为奴|入宫为奴|净身房")
 
 
 def _mentioned_active_ming_characters(db: GameDB, text: str) -> List[str]:
@@ -482,9 +482,9 @@ def _court_castration_target(db: GameDB, text: str, assignee: str = "") -> str:
     for name in names:
         escaped = re.escape(name)
         patterns = [
-            rf"(?:将|把|押|拿|逮|拘|着将|命将)\s*{escaped}.{{0,18}}(?:净身|宫刑|腐刑|去势|阉割|发净军|没入内廷|入内廷)",
-            rf"{escaped}.{{0,10}}(?:处宫刑|宫刑|腐刑|净身|去势|阉割|发净军|没入内廷|入内廷为奴)",
-            rf"(?:净身|宫刑|腐刑|去势|阉割|发净军|没入内廷).{{0,10}}{escaped}",
+            rf"(?:将|把|押|拿|逮|拘|着将|命将)\s*{escaped}.{{0,18}}(?:净身|宫刑|腐刑|去势|阉割|(?:押赴|押入|送往|发往)净身房|没入内廷|入内廷)",
+            rf"{escaped}.{{0,10}}(?:处宫刑|宫刑|腐刑|净身|去势|阉割|(?:押赴|押入|送往|发往)净身房|没入内廷|入内廷为奴)",
+            rf"(?:净身|宫刑|腐刑|去势|阉割|(?:押赴|押入|送往|发往)净身房|没入内廷).{{0,10}}{escaped}",
         ]
         for pattern in patterns:
             match = re.search(pattern, decree)
@@ -688,7 +688,7 @@ def _apply_court_immediate_action(
             target,
             force=True,
             source=f"诏旨#{directive_id}强旨净身",
-            new_office="净军",
+            new_office="净身房候役",
             lore_text=text,
         )
         try:
@@ -698,7 +698,7 @@ def _apply_court_immediate_action(
             pass
         action.update({
             "applied": True,
-            "new_office": str(getattr(converted, "office", "") or "净军"),
+            "new_office": str(getattr(converted, "office", "") or "净身房候役"),
             "message": f"{target}已净身没入内廷，转入皇帝私人执行链。",
             "political_reactions": [dict(item) for item in reactions[:3]],
         })

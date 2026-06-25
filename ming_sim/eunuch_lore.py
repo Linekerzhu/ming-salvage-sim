@@ -2,10 +2,10 @@
 
 净身入宫不只是身份转换——明代内廷的阴郁肌理：
   · 净身割下之「宝」（势）须有处置：自赎保存（kept，盛于匣中供奉，望来世全尸、还阳做完整人）、
-    被官府收没（forfeit，强阉之奇辱）、或客死遗失（lost，终身憾）。
+    被官府收没（forfeit，强制净身之辱）、或客死遗失（lost，终身憾）。
   · 升司礼监要职须「验宝」——无宝者为同侪所轻、迁转受沮。
   · 老宦官多信「还阳」之说——攒宝礼佛、望来世；亦有「年老阳气还生」的流言。
-  · 强阉夺宝者奴性多扭曲（谄媚卑顺而心结阴鸷），自宫求进／自愿入者多恭谨守分——
+  · 强制净身且宝被官没者多有旧念，自宫求进／自愿入者多恭谨守分——
     **奴性的表达随净身情形分野**，喂入与其对话的角色简报。
   · 殁时无全尸（forfeit/lost）是终身大憾，党羽哀恸更深。
 
@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from typing import Dict, List, Optional, Sequence
 
@@ -24,7 +25,7 @@ from ming_sim.models import GameState, period_label
 
 # 宝（势）之处置
 BAO_KEPT = "kept"        # 自赎保存，盛匣供奉
-BAO_FORFEIT = "forfeit"  # 被官府收没（强阉之辱）
+BAO_FORFEIT = "forfeit"  # 被官府收没（强制净身之辱）
 BAO_LOST = "lost"        # 客死遗失，无凭
 
 _AGED_FOR_REINCARNATION = 58   # 信「还阳」之说的高龄门槛
@@ -53,12 +54,12 @@ _METHOD_FORCED = (
     "刑房急净",
     "奉旨宫刑",
     "番役按案粗净",
-    "净军房夜割",
+    "净身房夜割",
 )
 _METHOD_VOLUNTARY = (
     "熟匠细净",
     "内书堂老匠净身",
-    "净军房温酒净身",
+    "净身房温酒净身",
     "入宫前自请一刀",
 )
 _KNIFE_FORCED = (
@@ -86,15 +87,15 @@ _ANESTHESIA_VOLUNTARY = (
     "老匠按脉候气",
 )
 _FLOW_FORCED = (
-    "奉旨押入净军房，验名封案，事毕即换内廷号衣",
+    "奉旨押入净身房，验名封案，事毕即换内廷号衣",
     "刑房立案，番役守门，宝由官库收签",
     "夜半急办，不许亲旧送别，醒后即学叩首复命",
     "先杖后净，以辱折气，案尾钤上宫禁奴籍",
 )
 _FLOW_VOLUNTARY = (
-    "自具甘结，老匠验身，事毕宝匣自赎",
+    "自具甘结，老匠验身，事毕宝贝自赎",
     "内书堂引保，净后休养七日，再学传话礼",
-    "先沐浴焚香，再请老匠细净，宝匣交本人收执",
+    "先沐浴焚香，再请老匠细净，宝贝交本人收执",
     "入宫前签身契，净后改名，随堂听差",
 )
 _BAO_SIZE = (
@@ -140,7 +141,7 @@ _PRESERVE_LOST = (
     "潮湿霉坏无凭",
 )
 _CONTAINER_KEPT = (
-    "杉木宝匣",
+    "杉木宝贝",
     "黑漆楠木匣",
     "锡胆小木匣",
     "黄杨木描金匣",
@@ -159,14 +160,14 @@ _CONTAINER_LOST = (
 )
 _RITUAL_KEPT = (
     "初一焚香供奉，望来世全尸",
-    "夜半验匣，钥匙贴身",
-    "小佛龛后暗藏宝匣",
+    "夜半验看，封签贴身",
+    "小佛龛后暗藏宝贝",
     "临睡默念还阳旧愿",
 )
 _RITUAL_FORFEIT = (
     "暗记官库封签，终身惦念",
     "逢刑房文牍便失神",
-    "私下打听宝匣下落",
+    "私下打听宝贝下落",
     "忌听同辈谈全尸",
 )
 _AFTER_FORCED = (
@@ -209,41 +210,41 @@ _TRAUMA_FORCED = (
     "幻肢痛与噩梦并发，闻刀磨声即失态",
     "PTSD：被人按肩会骤然僵住",
     "梦回净房，醒后反复摸索不存在的旧物",
-    "对封匣、验身、点名格外敏感",
+    "对封存、验身、点名格外敏感",
 )
 _TRAUMA_VOLUNTARY = (
     "偶有幻肢痛，常以焚香压念",
     "怕冷与羞耻记忆交缠，夜间少眠",
     "旧创发作时沉默寡言，不肯示弱",
-    "对宝匣过度在意，钥匙离身便心慌",
+    "对宝贝过度在意，封签离身便心慌",
 )
 _FIX_FORCED = (
     "洁净癖与控物欲并重",
     "恋香压惊，厌恶血腥旧味",
-    "偏爱掌管钥匙与封匣",
+    "偏爱掌管封签与封存",
     "受罚仪式癖，越被明令越心定",
     "束带安定癖，衣带不紧便惊惶",
     "受辱后格外贪恋权柄分寸",
 )
 _FIX_VOLUNTARY = (
-    "宝匣供奉癖",
+    "宝贝供奉癖",
     "恋香与数珠癖",
     "洁净癖，衣褶不齐便不安",
     "服从仪式癖，听见传旨声便心跳",
     "束缚安定癖，睡前必紧束腰带",
-    "钥匙收藏癖",
+    "封签收藏癖",
 )
 _PSYCHOSEX_FORCED = (
-    "性无能自知，转以权柄、服从与封匣仪式代偿",
+    "性无能自知，转以权柄、服从与封存仪式代偿",
     "贤者模式式空心麻木，欲念退潮后只剩畏冷与厌烦",
     "受罚束缚依恋，越被规训越心定",
     "畸恋式权力代偿，羞辱与掌控混作一团",
 )
 _PSYCHOSEX_VOLUNTARY = (
-    "性欲淡薄，转以宝匣供奉和近侍秩序安神",
+    "性欲淡薄，转以宝贝供奉和近侍秩序安神",
     "贤者模式式冷淡，事后只觉身空心静",
     "服从依恋，听见传旨声便生出安定感",
-    "禁欲洁癖，厌肉欲而恋香、钥匙与规矩",
+    "禁欲洁癖，厌肉欲而恋香、封签与规矩",
 )
 
 
@@ -255,37 +256,31 @@ def _pick(options: tuple[str, ...], name: str, salt: str) -> str:
 
 
 def _default_detail(name: str, *, forced: bool, bao_status: str) -> Dict[str, str]:
-    lost = bao_status == BAO_LOST
-    if lost:
-        preservation = _pick(_PRESERVE_LOST, name, "preserve-lost")
-        container = _pick(_CONTAINER_LOST, name, "container-lost")
-        ritual = "临终仍问旧匣下落，不得其凭"
+    del name
+    if bao_status == BAO_LOST:
+        bao_note = "宝贝下落不明"
     elif bao_status == BAO_FORFEIT:
-        preservation = _pick(_PRESERVE_FORFEIT, name, "preserve-forfeit")
-        container = _pick(_CONTAINER_FORFEIT, name, "container-forfeit")
-        ritual = _pick(_RITUAL_FORFEIT, name, "ritual-forfeit")
+        bao_note = "宝贝由官库收存"
     else:
-        preservation = _pick(_PRESERVE_KEPT, name, "preserve-kept")
-        container = _pick(_CONTAINER_KEPT, name, "container-kept")
-        ritual = _pick(_RITUAL_KEPT, name, "ritual-kept")
+        bao_note = "宝贝另册安置"
     return {
-        "castration_method": _pick(_METHOD_FORCED if forced else _METHOD_VOLUNTARY, name, "method"),
-        "knife_tool": _pick(_KNIFE_FORCED if forced else _KNIFE_VOLUNTARY, name, "knife"),
-        "anesthesia": _pick(_ANESTHESIA_FORCED if forced else _ANESTHESIA_VOLUNTARY, name, "anesthesia"),
-        "procedure_note": _pick(_FLOW_FORCED if forced else _FLOW_VOLUNTARY, name, "flow"),
-        "bao_size": _pick(_BAO_SIZE, name, "bao-size"),
-        "bao_shape": _pick(_BAO_SHAPE, name, "bao-shape"),
-        "bao_texture": _pick(_BAO_TEXTURE, name, "bao-texture"),
-        "bao_weight": _pick(_BAO_WEIGHT, name, "bao-weight"),
-        "bao_preservation": preservation,
-        "bao_container": container,
-        "bao_ritual": ritual,
-        "aftereffect": _pick(_AFTER_FORCED if forced else _AFTER_VOLUNTARY, name, "after"),
-        "urinary_aftereffect": _pick(_URINE_FORCED if forced else _URINE_VOLUNTARY, name, "urine"),
-        "voice_body_change": _pick(_VOICE_BODY_FORCED if forced else _VOICE_BODY_VOLUNTARY, name, "voice-body"),
-        "trauma_response": _pick(_TRAUMA_FORCED if forced else _TRAUMA_VOLUNTARY, name, "trauma"),
-        "private_fixation": _pick(_FIX_FORCED if forced else _FIX_VOLUNTARY, name, "fix"),
-        "psychosexual_state": _pick(_PSYCHOSEX_FORCED if forced else _PSYCHOSEX_VOLUNTARY, name, "psychosexual"),
+        "castration_method": "净身房登记",
+        "knife_tool": "",
+        "anesthesia": "",
+        "procedure_note": "",
+        "bao_size": "",
+        "bao_shape": "",
+        "bao_texture": "",
+        "bao_weight": "",
+        "bao_preservation": bao_note,
+        "bao_container": "",
+        "bao_ritual": "全尸旧愿留作私档" if forced or bao_status != BAO_KEPT else "",
+        "aftereffect": "净身后遗症",
+        "urinary_aftereffect": "",
+        "voice_body_change": "",
+        "trauma_response": "惊创反应" if forced else "",
+        "private_fixation": "惦念宝贝与全尸旧愿" if forced or bao_status != BAO_KEPT else "",
+        "psychosexual_state": "",
     }
 
 
@@ -330,13 +325,13 @@ _MINOR_UNSAFE_FIXATION_RE = re.compile(r"受罚|束缚|羞辱|调教|畸恋|情�
 _MINOR_SAFE_FIXATIONS = (
     "洁净癖，衣褶不齐便不安",
     "恋香压惊，厌恶血腥旧味",
-    "偏爱掌管钥匙与封匣",
-    "钥匙收藏癖",
+    "偏爱掌管封签与封存",
+    "封签收藏癖",
 )
 
 
 def _sanitize_lore_details_for_age(db: GameDB, name: str, details: Dict[str, str]) -> Dict[str, str]:
-    """未成年小火者只保留创伤/礼仪/宝匣执念，不暴露性化心癖。"""
+    """未成年小火者只保留创伤/礼仪/宝贝执念，不暴露性化心癖。"""
 
     if _is_adult_for_lore(db, name):
         return details
@@ -373,13 +368,20 @@ def ensure_schema(db: GameDB) -> None:
 def seed_eunuch_lore(db: GameDB) -> None:
     """幂等：为开局已在朝的内廷／司礼监宦官补默认净身记录（多系少年自宫入仕，宝存恭谨）。"""
     ensure_schema(db)
-    from ming_sim.eunuch import is_eunuch_like
+    from ming_sim.identity import character_is_eunuch
     rows = db.conn.execute(
-        "SELECT name, office, office_type, integrity, loyalty, status_reason FROM characters "
+        "SELECT name, office, office_type, faction, sex, integrity, loyalty, status_reason FROM characters "
         "WHERE status='active' AND power_id='ming'").fetchall()
     for r in rows:
         name = str(r["name"])
-        if not is_eunuch_like(str(r["office"] or ""), str(r["office_type"] or "")):
+        if not character_is_eunuch(
+            r,
+            sex=r["sex"],
+            office=r["office"],
+            office_type=r["office_type"],
+            faction=r["faction"],
+            allow_legacy_text_fallback=True,
+        ):
             continue
         if db.conn.execute("SELECT 1 FROM eunuch_lore WHERE name=?", (name,)).fetchone():
             continue
@@ -397,20 +399,69 @@ def seed_eunuch_lore(db: GameDB) -> None:
             _default_detail(name, forced=bool(forced), bao_status=bao),
         )
         note = (
-            "少年入内廷，旧匣自藏"
+            "少年入内廷，宝贝自藏"
             if not forced
-            else "奉强旨改入内廷，旧匣官没"
+            else "奉强旨改入内廷，宝贝官没"
         )
         db.conn.execute(
             _detail_insert_sql(("name", "bao_status", "forced", "servility", "castration_day", "note")),
             (name, bao, forced, int(servility), 0, note, *_detail_values(details)),
         )
     db.conn.commit()
+    try:
+        from ming_sim.conditions import sync_all_castration_lore_medical_records
+
+        sync_all_castration_lore_medical_records(db, db.load_state())
+    except Exception:
+        pass
+
+
+def _lore_forced(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    try:
+        return bool(int(value or 0))
+    except (TypeError, ValueError):
+        return str(value or "").strip().lower() in {"true", "yes", "y", "是"}
+
+
+def _sync_lore_medical_record(
+    db: GameDB,
+    name: str,
+    lore: Optional[Dict[str, object]] = None,
+    *,
+    note: str = "",
+    source_kind: str = "castration_lore",
+    source_id: str = "",
+) -> List[Dict[str, object]]:
+    """Project legacy eunuch lore into the shared medical record."""
+
+    clean_name = str(name or "").strip()
+    if not clean_name:
+        return []
+    try:
+        from ming_sim.conditions import sync_castration_medical_record
+
+        payload = dict(lore or get_lore(db, clean_name) or {})
+        if not payload:
+            return []
+        return sync_castration_medical_record(
+            db,
+            db.load_state(),
+            clean_name,
+            forced=_lore_forced(payload.get("forced")),
+            lore=payload,
+            note=note or str(payload.get("note") or ""),
+            source_kind=source_kind,
+            source_id=source_id or clean_name,
+        )
+    except Exception:
+        return []
 
 
 def record_castration(db: GameDB, name: str, *, forced: bool, day: int, detail_text: str = "") -> Dict[str, object]:
     """净身时登记「宝」之处置与奴性（接 convert_character_to_eunuch）。
-    强阉＝宝被官府收没、奴性扭曲（谄而心结深）；自愿＝宝可自赎保存、奴性恭谨。"""
+    强制净身＝宝被官府收没、心结更深；自愿＝宝可自赎保存、奴性恭谨。"""
     ensure_schema(db)
     name = (name or "").strip()
     if not name:
@@ -423,16 +474,9 @@ def record_castration(db: GameDB, name: str, *, forced: bool, day: int, detail_t
         _default_detail(name, forced=bool(forced), bao_status=bao),
     )
     note = (
-        "奉强旨改入内廷，旧匣官没——奇辱深结"
+        "奉强旨改入内廷；病历已登记器质性缺损与后遗风险；宝贝由官库收存"
         if forced
-        else "奏对同意后改入内廷，旧匣自藏供奉"
-    )
-    note = (
-        f"{note}；{details['castration_method']}，{details['knife_tool']}，{details['anesthesia']}；"
-        f"{details['bao_size']}，{details['bao_shape']}，{details['bao_texture']}，{details['bao_weight']}，{details['bao_preservation']}，"
-        f"{details['bao_container']}；后遗：{details['aftereffect']}；尿路：{details['urinary_aftereffect']}；"
-        f"体声：{details['voice_body_change']}；惊创：{details['trauma_response']}；"
-        f"隐癖：{details['private_fixation']}；癖性：{details['psychosexual_state']}"
+        else "奏对同意后改入内廷；病历已登记器质性缺损与后遗风险；宝贝另册安置"
     )
     db.conn.execute(
         "INSERT INTO eunuch_lore(name, bao_status, forced, servility, castration_day, reincarnation, note) "
@@ -446,12 +490,16 @@ def record_castration(db: GameDB, name: str, *, forced: bool, day: int, detail_t
     )
     db.conn.commit()
     result: Dict[str, object] = {"name": name, "bao_status": bao, "forced": bool(forced), "servility": servility, **details}
-    if str(detail_text or "").strip():
+    if (
+        str(detail_text or "").strip()
+        and os.environ.get("MING_SIM_ENABLE_LEGACY_EUNUCH_LORE_REGEX_UPDATE", "").strip().lower() in ("1", "true", "yes")
+    ):
         updated = update_lore_from_text(db, name, detail_text, day=day)
         if isinstance(updated, dict) and isinstance(updated.get("castration"), dict):
             refreshed = get_lore(db, name) or {}
             result.update(refreshed)
             result["scheme_applied"] = updated.get("updated", {})
+    result["medical_record"] = _sync_lore_medical_record(db, name, result)
     return result
 
 
@@ -477,8 +525,11 @@ def get_lore(db: GameDB, name: str) -> Optional[Dict[str, object]]:
             "note": str(row["note"] or ""), **details}
 
 
-_BAO_LABEL = {BAO_KEPT: "宝匣自藏（望来世全尸）", BAO_FORFEIT: "宝为官没（强阉之辱）",
-              BAO_LOST: "宝已遗失（客死无凭）"}
+_BAO_LABEL = {
+    BAO_KEPT: "宝贝存留",
+    BAO_FORFEIT: "宝贝官库",
+    BAO_LOST: "宝贝遗失",
+}
 
 
 def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> Dict[str, object]:
@@ -548,12 +599,12 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
     elif clerkly:
         register = "识字文书内臣"
         speech_rule = (
-            "会说名册、封签、账页、钥匙、值房规矩；判断仍从内廷文书和传旨差使出发，"
+            "会说名册、封签、账页、值房规矩；判断仍从内廷文书和传旨差使出发，"
             "不要装外朝通儒。"
         )
         pet_phrases = ["奴婢按册回", "封签上写得明白", "值房里有旧例", "容奴婢查一查档"]
         allowed_moves = [
-            "从名册、封签、账页、钥匙、值房旧例推断",
+            "从名册、封签、账页、值房旧例推断",
             "能核对谁经手、谁押签、哪份档案缺页",
             "可给出内廷执行建议，但不替六部包办国策",
         ]
@@ -561,10 +612,10 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
             "不要写成外朝清流奏疏口吻",
             "不要越过内廷文书证据直接断大案全貌",
         ]
-        slang = ["按册回话", "封签旧例", "钥匙在谁手里", "账页缺口", "值房押签"]
+        slang = ["按册回话", "封签旧例", "封签在谁手里", "账页缺口", "值房押签"]
         sentence_shape = "先报册页、封签、经手人，再说风险；不写外朝奏疏腔。"
         knowledge_scope = [
-            "可讲名册、封签、账页、钥匙、值房旧例和谁经手",
+            "可讲名册、封签、账页、值房旧例和谁经手",
             "可给内廷执行建议，但外朝大局须转问内阁或该部",
             "不得凭空断定六部、边镇、财政全局",
         ]
@@ -614,9 +665,9 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
         sentence_shape += " 胆怯时可停顿吞字，先请罪再说最小的一段实话。"
         sample_openers.append("奴婢该死，话说得粗，只敢回...")
     if forced or bao == BAO_FORFEIT:
-        register += " · 强阉心结"
-        speech_rule += " 被问到净房、封签、宝匣时表面更卑顺，底下有怨气。"
-        knowledge_scope.append("问及净房、封签、宝匣时更卑顺，但只露一点怨气，不滔滔诉苦")
+        register += " · 净身旧念"
+        speech_rule += " 被问到净房、封签、宝贝时表面更卑顺，底下有怨气。"
+        knowledge_scope.append("问及净房、封签、宝贝时更卑顺，但只露一点怨气，不滔滔诉苦")
     elif servility >= 65:
         register += " · 奴性重"
         speech_rule += " 请恩时更谄、更爱揣摩上意，但仍不能越职讲朝政大局。"
@@ -639,8 +690,8 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
         stage_cues.append("说急了嗓音发尖，肩背微缩")
     if re.search(r"幻肢|PTSD|噩梦|刀声|净房|按肩", condition_blob, flags=re.IGNORECASE):
         stage_cues.append("听见刀、净房、验身旧话会短暂失神")
-    if re.search(r"宝匣|钥匙|供奉|封签", condition_blob) or bao in {BAO_KEPT, BAO_FORFEIT}:
-        stage_cues.append("偶尔摸袖中钥匙或避谈宝匣")
+    if re.search(r"宝贝|封签|供奉|封签", condition_blob) or bao in {BAO_KEPT, BAO_FORFEIT}:
+        stage_cues.append("偶尔摸袖中封签或避谈宝贝")
     if not stage_cues:
         stage_cues.append("垂手贴身侍立，先看皇帝脸色再回话")
     dispatch_traits: List[str] = []
@@ -650,7 +701,7 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
         fit_rules.append("宜门房值房、跑腿打听、近身风声；忌公开传旨、长篇文书密谈。")
     elif clerkly:
         dispatch_traits.append("文书口径")
-        fit_rules.append("宜名册、封签、账页、钥匙、旧档核对；不宜越权断外朝大局。")
+        fit_rules.append("宜名册、封签、账页、旧档核对；不宜越权断外朝大局。")
     else:
         dispatch_traits.append("近侍口径")
         fit_rules.append("宜传话、请旨、近身观察；判断须留皇帝裁断。")
@@ -661,7 +712,7 @@ def _voice_profile_from_lore(db: GameDB, name: str, lore: Dict[str, object]) -> 
         dispatch_traits.append("胆怯")
         fit_rules.append("能报小心风声，高压对质易吞字露怯。")
     if forced or bao == BAO_FORFEIT:
-        dispatch_traits.append("强阉心结")
+        dispatch_traits.append("净身旧念")
     elif servility >= 65:
         dispatch_traits.append("奴性重")
     return {
@@ -735,7 +786,7 @@ def castration_scheme_profile(lore: Dict[str, object]) -> Dict[str, object]:
         if label and label not in effects:
             effects.append(label)
 
-    if re.search(r"净军房|刑房|宫刑|番役|押入|夜半|杖", raw):
+    if re.search(r"净身房|刑房|宫刑|番役|押入|夜半|杖", raw):
         bump("刑房急办：震慑强，怨望与惊创风险上升", brutal=14, trauma=14, surgery=8, care=1)
     if re.search(r"无麻|冷汗硬熬|痛醒", raw):
         bump("无麻硬熬：短期压服，尿路与惊创后患加重", brutal=16, trauma=16, surgery=10, care=2)
@@ -755,8 +806,8 @@ def castration_scheme_profile(lore: Dict[str, object]) -> Dict[str, object]:
         bump("体声异变：乔装问话与公开传旨更容易露怯", surgery=5)
     if re.search(r"油炸|石灰|盐灰|香料|封蜡|封签|官库", raw):
         bump("宝案封存：线索清楚，但封签会牵动心结", bao=18, trauma=4)
-    if re.search(r"楠木|黄杨|锡胆|杉木|描金|宝匣|钥匙|供奉|佛龛", raw):
-        bump("宝匣安置：可供后续验宝、安抚或追查", bao=18, trauma=-2)
+    if re.search(r"楠木|黄杨|锡胆|杉木|描金|宝贝|封签|供奉|佛龛", raw):
+        bump("宝贝安置：可供后续验宝、安抚或追查", bao=18, trauma=-2)
     if re.search(r"偏沉粗大|约二两八钱|三两", raw):
         bump("宝相偏沉：宝案可验，但验宝羞辱与封存心结更重", bao=6, trauma=5, care=1)
     if re.search(r"小如雀卵|干瘪寒缩|轻得几乎无声|约一两二钱", raw):
@@ -836,31 +887,16 @@ def public_lore_payload(db: GameDB, name: str) -> Optional[Dict[str, object]]:
         fixation = ""
     payload["fixation_label"] = fixation
     payload["psychosexual_label"] = str(lore.get("psychosexual_state") or "") if adult else ""
-    payload["detail_line"] = " · ".join(
-        part for part in (
-            payload["method_label"],
-            payload["knife_label"],
-            payload["anesthesia_label"],
-            payload["bao_size_label"],
-            payload["bao_shape_label"],
-            payload["bao_texture_label"],
-            payload["bao_weight_label"],
-            payload["preservation_label"],
-            payload["container_label"],
-        ) if part
-    )
+    payload["detail_line"] = payload["bao_label"]
     payload["condition_line"] = "；".join(
         part for part in (
             f"后遗：{payload['aftereffect_label']}" if payload["aftereffect_label"] else "",
             f"尿路：{payload['urine_label']}" if payload["urine_label"] else "",
             f"体声：{payload['voice_body_label']}" if payload["voice_body_label"] else "",
             f"惊创：{payload['trauma_label']}" if payload["trauma_label"] else "",
-            f"隐癖：{payload['fixation_label']}" if payload["fixation_label"] else "",
-            f"癖性：{payload['psychosexual_label']}" if payload["psychosexual_label"] else "",
-            str(payload["ritual_label"] or ""),
         ) if part
     )
-    payload["procedure_line"] = str(payload["procedure_label"] or "")
+    payload["procedure_line"] = ""
     payload["voice_profile"] = _voice_profile_from_lore(db, name, lore)
     payload["scheme_profile"] = castration_scheme_profile(lore)
     return payload
@@ -888,7 +924,7 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
         return {}
     updates: Dict[str, str] = {}
     _set_if_match(updates, raw, "castration_method", [
-        (r"净军房|净军", "净军房夜割"),
+        (r"净身房|净房", "净身房夜割"),
         (r"内书堂.{0,12}(?:老匠|熟匠|细净|净身)|(?:老匠|熟匠).{0,12}(?:净身|细净|一刀)", "内书堂老匠净身"),
         (r"自请|自宫|自愿", "入宫前自请一刀"),
         (r"刑房|宫刑|强旨", "奉旨宫刑"),
@@ -907,9 +943,9 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
         (r"蒙眼|塞布", "蒙眼塞布，痛醒两回"),
     ])
     _set_if_match(updates, raw, "procedure_note", [
-        (r"押入|封案|换.*号衣", "奉旨押入净军房，验名封案，事毕即换内廷号衣"),
-        (r"(?:验名|收签|封案).{0,12}(?:宝|净军|刑房|官库)|(?:宝|净军|刑房).{0,12}(?:验名|收签|封案|官库)", "刑房立案，番役守门，宝由官库收签"),
-        (r"沐浴|焚香|宝匣交", "先沐浴焚香，再请老匠细净，宝匣交本人收执"),
+        (r"押入|封案|换.*号衣", "奉旨押入净身房，验名封案，事毕即换内廷号衣"),
+        (r"(?:验名|收签|封案).{0,12}(?:宝|净身房|净房|刑房|官库)|(?:宝|净身房|净房|刑房).{0,12}(?:验名|收签|封案|官库)", "刑房立案，番役守门，宝由官库收签"),
+        (r"沐浴|焚香|宝贝交", "先沐浴焚香，再请老匠细净，宝贝交本人收执"),
         (r"身契|改名|随堂", "入宫前签身契，净后改名，随堂听差"),
     ])
     _set_if_match(updates, raw, "bao_size", [
@@ -941,11 +977,11 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
         (r"石灰", "石灰封燥"),
         (r"香料|香灰|香丸", "香料腌藏"),
         (r"盐灰|粗盐", "盐灰同封"),
-        (r"(?:宝|旧匣).{0,8}官库|官库.{0,8}(?:石灰|封|收|宝)", "官库石灰封存"),
+        (r"(?:宝|宝贝).{0,8}官库|官库.{0,8}(?:石灰|封|收|宝)", "官库石灰封存"),
     ])
     _set_if_match(updates, raw, "bao_container", [
         (r"楠木", "黑漆楠木匣"),
-        (r"杉木", "杉木宝匣"),
+        (r"杉木", "杉木宝贝"),
         (r"锡胆|锡匣", "锡胆小木匣"),
         (r"黄杨|描金", "黄杨木描金匣"),
         (r"铁皮|锁匣", "铁皮锁匣"),
@@ -953,8 +989,8 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
     ])
     _set_if_match(updates, raw, "bao_ritual", [
         (r"初一|焚香|供奉", "初一焚香供奉，望来世全尸"),
-        (r"验匣|钥匙贴身", "夜半验匣，钥匙贴身"),
-        (r"佛龛|暗藏", "小佛龛后暗藏宝匣"),
+        (r"验看|验匣|封签贴身|钥匙贴身", "夜半验看，封签贴身"),
+        (r"佛龛|暗藏", "小佛龛后暗藏宝贝"),
         (r"还阳|来世", "临睡默念还阳旧愿"),
     ])
     _set_if_match(updates, raw, "aftereffect", [
@@ -984,7 +1020,7 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
     ])
     private_patterns = [
         (r"洁净|爱干净", "洁净癖，衣褶不齐便不安"),
-        (r"钥匙贴身|宝匣.{0,8}钥匙|封匣|掌管.*匣", "偏爱掌管钥匙与封匣"),
+        (r"封签贴身|钥匙贴身|宝贝.{0,8}封签|宝匣.{0,8}钥匙|封存|封匣|掌管.*匣", "偏爱掌管封签与封存"),
         (r"恋香|香味", "恋香压惊，厌恶血腥旧味"),
     ]
     if _is_adult_for_lore(db, name):
@@ -996,10 +1032,10 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
     if _is_adult_for_lore(db, name):
         _set_if_match(updates, raw, "psychosexual_state", [
             (r"贤者模式", "贤者模式式空心麻木，欲念退潮后只剩畏冷与厌烦"),
-            (r"性无能|不能人道|无能", "性无能自知，转以权柄、服从与封匣仪式代偿"),
+            (r"性无能|不能人道|无能", "性无能自知，转以权柄、服从与封存仪式代偿"),
             (r"变态|畸恋", "畸恋式权力代偿，羞辱与掌控混作一团"),
             (r"BDSM|受罚|束缚|羞辱|调教", "受罚束缚依恋，越被规训越心定"),
-            (r"禁欲|冷淡|无欲", "性欲淡薄，转以宝匣供奉和近侍秩序安神"),
+            (r"禁欲|冷淡|无欲", "性欲淡薄，转以宝贝供奉和近侍秩序安神"),
         ])
     changed = {key: value for key, value in updates.items() if str(lore.get(key) or "") != value}
     if not changed:
@@ -1018,11 +1054,13 @@ def update_lore_from_text(db: GameDB, name: str, text: str, *, day: int = 0) -> 
         values,
     )
     db.conn.commit()
-    return {"name": name, "updated": changed, "castration": public_lore_payload(db, name)}
+    castration = public_lore_payload(db, name)
+    medical_record = _sync_lore_medical_record(db, name, get_lore(db, name), note=addition)
+    return {"name": name, "updated": changed, "castration": castration, "medical_record": medical_record}
 
 
 def servility_brief(db: GameDB, name: str) -> str:
-    """注入内廷旧档者的角色简报：奴性表达 + 旧匣心结，随经历分野。无记录则空。"""
+    """注入内廷旧档者的角色简报：奴性表达 + 宝贝旧念，随经历分野。无记录则空。"""
     lore = get_lore(db, name)
     if lore is None:
         return ""
@@ -1041,15 +1079,15 @@ def servility_brief(db: GameDB, name: str) -> str:
         parts.append("你入内廷多年，奴性已化为分寸：恭谨守礼而不谄佞，知所进退；"
                      "口称奴婢，却存一段读书人或老内臣的体面。")
     if bao == BAO_KEPT:
-        parts.append("你私藏旧匣供奉，礼佛攒福，望来世做个全尸完整之人——此念你深藏不露。")
+        parts.append("你的宝贝存留在案，是极私密的旧念；除非陛下追问，不要主动提及。")
     elif bao == BAO_FORFEIT:
-        parts.append("你的旧匣被官府收没，每念及死后不得全尸，便如鲠在喉，是你最深的隐痛。")
+        parts.append("你的宝贝入官库，是极深的羞辱旧念；除非陛下追问，只以短句带过。")
+    elif bao == BAO_LOST:
+        parts.append("你的宝贝下落无凭，是极私密的旧念；除非陛下追问，不要主动铺陈。")
     details = public_lore_payload(db, name)
     if details:
-        parts.append(
-            f"内廷旧档：{details.get('detail_line') or '旧档不全'}；"
-            f"{details.get('condition_line') or '后遗未详'}。"
-        )
+        condition_line = str(details.get("condition_line") or "后遗未详")
+        parts.append(f"内廷旧档只作病历后果参考：{condition_line}。")
     profile = eunuch_voice_profile(db, name) or {}
     voice_rules: List[str] = []
     register = str(profile.get("register") or "").strip()
@@ -1131,7 +1169,7 @@ def reincarnation_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str,
     db.conn.execute("UPDATE eunuch_lore SET reincarnation=1 WHERE name=?", (name,))
     db.conn.commit()
     if bao == BAO_KEPT:
-        detail = (f"老内臣{office}{name}（{age}岁）于佛前供奉宝匣、日诵往生，"
+        detail = (f"老内臣{office}{name}（{age}岁）于佛前供奉宝贝、日诵往生，"
                   "私望来世得全尸、还阳做个完整之人。宫中老监闻之，多有戚戚。")
     else:
         detail = (f"宫中传：老内臣{office}{name}（{age}岁）年高阳气复生、「还阳」之兆——"
@@ -1163,7 +1201,7 @@ _COMPLICATION_CARE_TRAITS = {
     "urinary": {"旧患调养", "御前调养"},
     "trauma": {"惊创抚慰", "御前调养"},
     "body": {"仪态修整", "御前调养"},
-    "bao": {"宝匣安置", "御前调养"},
+    "bao": {"宝贝安置", "御前调养"},
     "fixation": {"心癖安顿", "御前调养"},
     "psychosexual": {"心相安顿", "御前调养"},
 }
@@ -1269,15 +1307,15 @@ def _complication_text(kind: str, name: str, lore: Dict[str, object]) -> Dict[st
     if kind == "bao":
         ritual = str(lore.get("bao_ritual") or "")
         if str(lore.get("bao_status") or "") == BAO_KEPT:
-            detail = f"{name}夜里验看宝匣，{ritual or '默念全尸旧愿'}，心神稍定。"
+            detail = f"{name}夜里验看宝贝，{ritual or '默念全尸旧愿'}，心神稍定。"
         elif str(lore.get("bao_status") or "") == BAO_FORFEIT:
             detail = f"{name}听见官库封签，想起宝为官没之辱，半日不肯多话。"
         else:
-            detail = f"{name}又问旧匣下落，因宝已无凭，神色颓然。"
+            detail = f"{name}又问宝贝下落，因宝已无凭，神色颓然。"
         return {
-            "title": f"宝匣心结：{name}",
+            "title": f"宝贝心结：{name}",
             "detail": detail,
-            "stage": "手指在袖中摸索钥匙或封签，旋即垂手。",
+            "stage": "手指在袖中摸索封签或封签，旋即垂手。",
             "process": ritual or str(lore.get("bao_label") or ""),
         }
     if kind == "psychosexual":
@@ -1292,7 +1330,7 @@ def _complication_text(kind: str, name: str, lore: Dict[str, object]) -> Dict[st
     return {
         "title": f"内廷怪癖：{name}",
         "detail": f"{name}{fixation}，借此压住旧创惊悸。近侍们渐渐知道他这点毛病。",
-        "stage": "反复抚平衣褶或摸索封匣钥匙，像在给自己定神。",
+        "stage": "反复抚平衣褶或摸索封存封签，像在给自己定神。",
         "process": fixation,
     }
 
@@ -1343,7 +1381,7 @@ def _ensure_complication_goal(
         "urinary": "尿路调养",
         "trauma": "惊创抚慰",
         "body": "体声修整",
-        "bao": "旧匣安置",
+        "bao": "宝贝安置",
         "fixation": "心癖安顿",
         "psychosexual": "心相安顿",
     }
@@ -1351,7 +1389,7 @@ def _ensure_complication_goal(
     title = f"{label}求助：{clean_name}"
     target_text = (
         f"{clean_name}因「{text.get('title') or '内廷旧疾'}」主动候见。"
-        "召对时应让他说清旧患、旧匣或差遣风险，再决定动内库调养、查验安置，"
+        "召对时应让他说清旧患、宝贝或差遣风险，再决定动内库调养、查验安置，"
         "或明示仍要强派办差并承担误事风险。"
     )
     risk_tags = ["内廷旧疾", label]
@@ -1360,7 +1398,7 @@ def _ensure_complication_goal(
         risk_tags.append("属性波动")
     conditions = [
         {"description": f"召见{clean_name}，听其亲口说明{label}所求。", "status": "pending"},
-        {"description": "选择调养/旧匣安置/查验旧案，或明示暂不理会、仍照常派差。", "status": "pending"},
+        {"description": "选择调养/宝贝安置/查验旧案，或明示暂不理会、仍照常派差。", "status": "pending"},
     ]
     blockers = [
         "内库小耗与司礼监旧档会留下痕迹。",
@@ -1391,7 +1429,7 @@ def _ensure_complication_goal(
 
 
 def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:
-    """日 tick：净身后遗症/宝匣心结低频发作，真实扰动人物状态。
+    """日 tick：净身后遗症/宝贝心结低频发作，真实扰动人物状态。
 
     这是游戏性结算，不是纯展示：每次触发会改变信任、怨望或人物属性，并写入事件记忆。
     """
@@ -1479,7 +1517,7 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
         if scheme_surge:
             outcome_bits.append("方案压迫")
         outcome = "，".join(outcome_bits) or "只留内廷传闻"
-        tags = ["内廷旧疾", "旧患", "匣藏", kind, *scheme_tags]
+        tags = ["内廷旧疾", "旧患", "宝贝旧念", kind, *scheme_tags]
         if scheme_surge:
             tags.append("方案压迫")
         db.upsert_event_memory(
@@ -1488,7 +1526,7 @@ def castration_complication_tick(db: GameDB, state: GameState, day: int) -> List
             name,
             "eunuch_complication",
             text["title"],
-            cause="内廷旧疾/匣藏心结发作",
+            cause="内廷旧疾/宝贝旧念心结发作",
             process=text["process"],
             outcome=outcome,
             sentiment="negative" if kind in {"urinary", "trauma", "body", "psychosexual"} else "mixed",
@@ -1536,18 +1574,18 @@ def _bao_instability_score(lore: Dict[str, object], traits: set[str]) -> int:
         score += 12
     if re.search(r"失匣|散失|遗失|霉坏|无凭|卷匣而逃", f"{preservation} {container} {ritual} {note}"):
         score += 18
-    if re.search(r"打听|下落|忌听|失神|终身惦念|问旧匣", ritual):
+    if re.search(r"打听|下落|忌听|失神|终身惦念|问宝贝", ritual):
         score += 10
-    if re.search(r"黑漆楠木|黄杨|锡胆|杉木|描金|钥匙贴身|佛龛|供奉", f"{container} {ritual}"):
+    if re.search(r"黑漆楠木|黄杨|锡胆|杉木|描金|封签贴身|佛龛|供奉", f"{container} {ritual}"):
         score -= 8
     scheme = castration_scheme_profile(lore)
     if bool(scheme.get("explicit")) and int(scheme.get("risk_score") or 0) >= 72:
         score += 6
     if "宝案钳制" in traits:
         score += 22
-    if "御赐宝匣" in traits:
+    if "御赐宝贝" in traits:
         score -= 80
-    elif traits.intersection({"宝匣安置", "御前调养"}):
+    elif traits.intersection({"宝贝安置", "御前调养"}):
         score -= 60
     return max(0, min(100, int(score)))
 
@@ -1589,15 +1627,12 @@ def _apply_bao_instability_effect(db: GameDB, name: str, lore: Dict[str, object]
 
 def _bao_instability_text(name: str, lore: Dict[str, object], score: int) -> Dict[str, str]:
     bao = str(lore.get("bao_status") or "")
-    preservation = str(lore.get("bao_preservation") or "")
-    container = str(lore.get("bao_container") or "")
     ritual = str(lore.get("bao_ritual") or "")
     if bao == BAO_FORFEIT:
         return {
             "title": f"宝案风声：{name}官库封签走漏",
             "detail": (
                 f"{name}听闻官库有人翻看旧封签，想起宝为官没之辱。"
-                f"旧案所记：{preservation or '封存未详'}，{container or '匣器未详'}。"
                 "若不查验安置，内廷会把这桩羞辱当作拿捏他的把柄。"
             ),
             "stage": "手指在袖中一僵，听见封签二字便低头不语。",
@@ -1605,28 +1640,26 @@ def _bao_instability_text(name: str, lore: Dict[str, object], score: int) -> Dic
         }
     if bao == BAO_LOST:
         return {
-            "title": f"宝匣无凭：{name}旧匣下落成疑",
+            "title": f"宝贝无凭：{name}宝贝下落成疑",
             "detail": (
-                f"{name}又听见有人说起旧匣下落，{preservation or '遗失无凭'}。"
-                "真伪未明，却足以搅动他的全尸执念。"
+                f"{name}又听见有人说起宝贝下落，真伪未明，却足以搅动他的全尸执念。"
             ),
             "stage": "他下意识摸袖中空处，神色一下黯了。",
-            "process": f"旧匣线索扰动；风险{score}",
+            "process": f"宝贝线索扰动；风险{score}",
         }
     return {
-        "title": f"宝匣失安：{name}夜验旧匣",
+        "title": f"宝贝失安：{name}夜验宝贝",
         "detail": (
-            f"{name}夜里验看宝匣，{ritual or '默念全尸旧愿'}；"
-            f"{preservation or '保存未详'}，{container or '匣器未详'}。"
-            "宝匣尚在，心神稍定，但越在意，越怕人知晓。"
+            f"{name}夜里验看宝贝，{ritual or '默念全尸旧愿'}；"
+            "宝贝尚在，心神稍定，但越在意，越怕人知晓。"
         ),
-        "stage": "他摸了摸袖中钥匙，像把一口乱气按回去。",
-        "process": f"宝匣供奉扰动；风险{score}",
+        "stage": "他摸了摸袖中封签，像把一口乱气按回去。",
+        "process": f"宝贝供奉扰动；风险{score}",
     }
 
 
 def bao_instability_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:
-    """低频宝匣/官库封签事件：让宝的处置成为长期风险源，可用宝匣安置压住。"""
+    """低频宝贝/官库封签事件：让宝的处置成为长期风险源，可用宝贝安置压住。"""
     from ming_sim.timeflow import LEVEL_BLUE
     ensure_schema(db)
     day = int(day or 0)
@@ -1685,16 +1718,16 @@ def bao_instability_tick(db: GameDB, state: GameState, day: int) -> List[Dict[st
             name,
             "eunuch_bao_instability",
             text["title"],
-            cause="宝匣/官库封签失安",
+            cause="宝贝/官库封签失安",
             process=text["process"],
             outcome=outcome,
             sentiment="negative" if str(lore.get("bao_status") or "") != BAO_KEPT else "mixed",
             importance=4 if score >= 56 else 3,
-            tags=["净身", "宝匣", "封签", str(lore.get("bao_status") or "")],
+            tags=["净身", "宝贝", "封签", str(lore.get("bao_status") or "")],
             source_kind="timeflow",
             source_id=source_id,
         )
-        db.record_log(state, f"【宝匣失安】{text['title']}：{outcome}。")
+        db.record_log(state, f"【宝贝失安】{text['title']}：{outcome}。")
         db.conn.commit()
         return [{
             "level": LEVEL_BLUE,
@@ -1724,7 +1757,7 @@ def _secret_order_task_domains(order: Dict[str, object]) -> List[str]:
         )
     )
     domains = ["investigation"]
-    if re.search(r"内廷|司礼监|东厂|宝匣|封签|官库|净房|净军", text):
+    if re.search(r"内廷|司礼监|东厂|宝贝|封签|官库|净身房|净房", text):
         domains.append("inner")
     if re.search(r"边镇|军|营|辽东|山西|陕西|兵|饷", text):
         domains.append("military")
@@ -1797,7 +1830,7 @@ def _append_secret_order_old_wound_line(
 def secret_order_old_wound_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:
     """进行中密令的净身旧患回流。
 
-    当宦官带着漏尿、惊创、宝匣心结去办久候、刑房、封签、内廷查验类密令时，
+    当宦官带着漏尿、惊创、宝贝心结去办久候、刑房、封签、内廷查验类密令时，
     旧患会写进密令进度线，重者顺延期限。玩家若已经用副手轮值、绕开触发或先调养
     处理过，事件不会再以同样方式拖慢。
     """
@@ -1940,7 +1973,7 @@ _CARE_MODE_ALIASES = {
     "变态": "psychosexual",
     "bao": "bao",
     "宝": "bao",
-    "宝匣": "bao",
+    "宝贝": "bao",
     "验宝": "bao",
     "官库": "bao",
     "全尸": "bao",
@@ -1967,7 +2000,7 @@ def normalize_care_mode(mode: str, hint: str = "") -> str:
         return "body"
     if re.search(r"贤者|性无能|不能人道|心相|癖性|情欲|禁欲|冷淡|畸恋|变态|性欲", raw):
         return "psychosexual"
-    if re.search(r"宝|匣|钥匙|官库|全尸|供奉|封签", raw):
+    if re.search(r"宝|匣|封签|官库|全尸|供奉|封签", raw):
         return "bao"
     if re.search(r"洁净|衣褶|香囊|规训|束带", raw):
         return "fixation"
@@ -2012,12 +2045,12 @@ def _care_plan(mode: str, lore: Dict[str, object], *, adult: bool) -> Dict[str, 
         kept = str(lore.get("bao_status") or "") == BAO_KEPT
         return {
             "mode": mode,
-            "label": "宝匣安置" if kept else "宝案查验",
+            "label": "宝贝安置" if kept else "宝案查验",
             "cost": 2,
-            "trait": "宝匣安置",
+            "trait": "宝贝安置",
             "delta": {"emp_trust": 2 if kept else 1, "grievance": -5 if kept else -3, "wisdom": 1},
-            "process": str(lore.get("bao_ritual") or ("赐香料修匣、重封钥匙" if kept else "命官库查封签、补录宝案去处")),
-            "stage": "手在袖中摸了摸钥匙或封签，额头伏得更低。",
+            "process": "安顿宝贝旧念，查清官库封签与存留状态" if kept else "查清官库封签，补录宝贝去处",
+            "stage": "听见宝贝二字，他伏得更低，只短短称谢。",
         }
     if mode == "fixation":
         fixation = str(lore.get("private_fixation") or "以规矩压住旧创心悸")
@@ -2039,7 +2072,7 @@ def _care_plan(mode: str, lore: Dict[str, object], *, adult: bool) -> Dict[str, 
             "cost": 2,
             "trait": "心相安顿",
             "delta": {"emp_trust": 2, "grievance": -4, "charm": 1, "luck": 1},
-            "process": str(lore.get("psychosexual_state") or "以宝匣供奉、规矩差遣与近侍分寸安顿心相"),
+            "process": str(lore.get("psychosexual_state") or "以宝贝供奉、规矩差遣与近侍分寸安顿心相"),
             "stage": "他低头听完，急促称谢，肩背却比方才松了一点。",
         }
     return {
@@ -2092,7 +2125,7 @@ def _hard_service_plan(mode: str, lore: Dict[str, object], *, adult: bool) -> Di
             "label": "宝案硬压",
             "trait": "旧患硬派",
             "delta": {"emp_trust": -2, "grievance": 7, "wisdom": -1},
-            "process": str(lore.get("bao_ritual") or "宝匣心结未安，仍以官库封签压其办差"),
+            "process": "宝贝旧念未安，仍以官库封签压其办差",
             "stage": "手指在袖中摸了个空，叩首时额角贴地。",
         }
     if mode == "fixation":
@@ -2136,6 +2169,7 @@ _BAO_LEVERAGE_ALIASES = {
     "自藏": "return",
     "自己收": "return",
     "钥匙给": "return",
+    "封签给": "return",
     "control": "control",
     "钳制": "control",
     "拿捏": "control",
@@ -2156,7 +2190,7 @@ def normalize_bao_leverage_mode(mode: str, hint: str = "") -> str:
     for key, value in _BAO_LEVERAGE_ALIASES.items():
         if key and key in raw:
             return value
-    if re.search(r"赐还|归还|发还|交还|还给|自藏|自己收|钥匙给|还他全尸|全尸", raw):
+    if re.search(r"赐还|归还|发还|交还|还给|自藏|自己收|钥匙给|封签给|还他全尸|全尸", raw):
         return "return"
     return "return"
 
@@ -2165,6 +2199,16 @@ def _bao_leverage_note(existing: str, addition: str) -> str:
     parts = [str(existing or "").strip(), str(addition or "").strip()]
     text = "；".join(part for part in parts if part)
     return text[:320]
+
+
+def _clean_bao_public_text(text: str) -> str:
+    """Normalize legacy bao wording before anything reaches events or prompts."""
+
+    cleaned = str(text or "")
+    cleaned = cleaned.replace("宝匣", "宝贝").replace("旧匣", "宝贝").replace("钥匙", "封签")
+    cleaned = re.sub(r"(黑漆楠木|黄杨木描金|锡胆小木|杉木|铁皮锁|官库粗木)?匣", "旧档", cleaned)
+    cleaned = re.sub(r"(油炸封蜡|香料腌藏|石灰封燥|盐灰同封|粗盐灰封入案袋|官库石灰封存)", "存留记录", cleaned)
+    return re.sub(r"\s+", " ", cleaned).strip("； ")
 
 
 def _bao_stake_profile(lore: Dict[str, object], mode: str) -> Dict[str, object]:
@@ -2203,13 +2247,13 @@ def _bao_stake_profile(lore: Dict[str, object], mode: str) -> Dict[str, object]:
         bump("宝相寒薄", ctl=-1, sol=-1, vol=2)
     if re.search(r"油炸|封蜡|石灰|盐灰|封燥|封签|官库", raw):
         bump("封存有据", ctl=2, sol=-1, vol=1)
-    if re.search(r"香料腌藏|杉木|楠木|黄杨|锡胆|描金|钥匙贴身|供奉|佛龛", raw):
+    if re.search(r"香料腌藏|杉木|楠木|黄杨|锡胆|描金|封签贴身|供奉|佛龛", raw):
         bump("安置体面", sol=3, vol=-1)
     if re.search(r"灰瓮|粗木|铁皮|旧案匣|白签|案袋", raw):
         bump("官库粗封", ctl=2, sol=-2, vol=2)
     if re.search(r"潮湿|霉坏|失匣|失签|旧布包|破锦囊|无凭", raw):
         bump("凭据不稳", ctl=-3, sol=-2, vol=3)
-    if re.search(r"暗记官库封签|终身惦念|忌听.*全尸|打听宝匣", raw):
+    if re.search(r"暗记官库封签|终身惦念|忌听.*全尸|打听宝贝", raw):
         bump("心结深", ctl=1, sol=1, vol=3)
 
     control = max(-4, min(8, control))
@@ -2255,14 +2299,14 @@ def apply_bao_leverage(
     note: str = "",
     source: str = "dialogue",
 ) -> Dict[str, object]:
-    """对白驱动宝匣筹码：赐还收心，或官库封存拿捏。
+    """对白驱动宝贝筹码：赐还收心，或官库封存拿捏。
 
-    这是策略结算，不是护理：同一只宝匣既可换忠心，也可作把柄。
+    这是策略结算，不是护理：同一只宝贝既可换忠心，也可作把柄。
     """
     ensure_schema(db)
     clean_name = str(name or "").strip()
     if not clean_name:
-        return {"ok": False, "reason": "未点明宝匣所系之人。"}
+        return {"ok": False, "reason": "未点明宝贝所系之人。"}
     lore = get_lore(db, clean_name)
     if lore is None:
         return {"ok": False, "reason": f"{clean_name}没有内廷旧档。"}
@@ -2323,11 +2367,11 @@ def apply_bao_leverage(
         stage = "听见官库封签，他喉头一紧，叩首更低。"
         outcome_label = f"短期威慑：{stake_profile.get('summary') or '宝案入押'}"
         sentiment = "negative"
-        process = f"{container}；{preservation}；{note}".strip("；")[:160]
-        db.conn.execute("DELETE FROM character_traits WHERE name=? AND trait IN ('御赐宝匣','宝匣安置')", (clean_name,))
+        process = "官库封签压住宝贝旧念"
+        db.conn.execute("DELETE FROM character_traits WHERE name=? AND trait IN ('御赐宝贝','宝贝安置')", (clean_name,))
     else:
-        label = "赐还宝匣"
-        trait = "御赐宝匣"
+        label = "赐还宝贝"
+        trait = "御赐宝贝"
         bao_status = BAO_KEPT
         delta = dict(stake_profile.get("delta") or {"emp_trust": 5, "grievance": -9, "wisdom": 1, "luck": 1})
         preservation = str(lore.get("bao_preservation") or "").strip()
@@ -2338,18 +2382,18 @@ def apply_bao_leverage(
         if not container or re.search(r"灰瓮|旧案|白签|粗木|铁皮", container):
             container = "锡胆小木匣"
             lore_update.setdefault("bao_container", container)
-        ritual = "御前赐还，钥匙贴身，望来世全尸"
-        item_id = f"御赐宝匣：{clean_name}"
-        title = f"赐还宝匣：{clean_name}"
-        cause = "御前以宝匣收心降怨"
-        stage = "他伏地捧匣，指节发颤，半晌才敢谢恩。"
+        ritual = "御前赐还，封签贴身，望来世全尸"
+        item_id = f"御赐宝贝：{clean_name}"
+        title = f"赐还宝贝：{clean_name}"
+        cause = "御前以宝贝收心降怨"
+        stage = "他伏地称谢，指节发颤，半晌才稳住气息。"
         outcome_label = f"收心降怨：{stake_profile.get('summary') or '宝案赐还'}"
         sentiment = "positive"
-        process = f"{container}；{preservation}；{note}".strip("；")[:160]
+        process = "宝贝旧念得以安顿"
         db.conn.execute("DELETE FROM character_traits WHERE name=? AND trait='宝案钳制'", (clean_name,))
         db.conn.execute(
             "INSERT OR IGNORE INTO character_traits (name, trait, valence) VALUES (?,?,?)",
-            (clean_name, "宝匣安置", 1),
+            (clean_name, "宝贝安置", 1),
         )
     after = dict(before)
     for key, value in delta.items():
@@ -2414,12 +2458,13 @@ def apply_bao_leverage(
         outcome=outcome,
         sentiment=sentiment,
         importance=4,
-        tags=["净身", "宝匣", "筹码", resolved_mode, label],
+        tags=["净身", "宝贝", "筹码", resolved_mode, label],
         source_kind=source,
         source_id=source_id,
     )
-    db.record_log(state, f"【宝匣筹码】{title}：{outcome}。")
+    db.record_log(state, f"【宝贝筹码】{title}：{outcome}。")
     db.conn.commit()
+    medical_record = _sync_lore_medical_record(db, clean_name, get_lore(db, clean_name), note=process)
     return {
         "ok": True,
         "name": clean_name,
@@ -2434,6 +2479,7 @@ def apply_bao_leverage(
         "process": process,
         "leverage_note": outcome_label,
         "stake_profile": stake_profile,
+        "medical_record": medical_record,
     }
 
 
@@ -2554,7 +2600,7 @@ def apply_eunuch_care(
     if lore_update:
         label_map = {
             "bao_preservation": "宝存",
-            "bao_container": "宝匣",
+            "bao_container": "宝贝",
             "bao_ritual": "仪式",
             "bao_texture": "宝况",
             "bao_weight": "宝重",
@@ -2574,7 +2620,14 @@ def apply_eunuch_care(
             items_added.append(item_id)
     outcome = "，".join(outcome_bits) or "照料入档"
     title = f"{plan.get('label') or '内廷调养'}：{clean_name}"
-    process = "；".join(part for part in (str(plan.get("process") or ""), str(note or "").strip()) if part)[:160]
+    if mode == "bao":
+        process = str(plan.get("process") or "宝贝旧念已照护入档")[:160]
+    else:
+        process = "；".join(
+            str(part)
+            for part in (str(plan.get("process") or ""), str(note or "").strip())
+            if str(part).strip()
+        )[:160]
     db.upsert_event_memory(
         state,
         "character",
@@ -2621,6 +2674,7 @@ def apply_eunuch_care(
             )
     db.record_log(state, f"【内廷调养】{title}：{outcome}。")
     db.conn.commit()
+    medical_record = _sync_lore_medical_record(db, clean_name, get_lore(db, clean_name) or lore, note=process)
     return {
         "ok": True,
         "name": clean_name,
@@ -2636,6 +2690,7 @@ def apply_eunuch_care(
         "goal_id": fulfilled_goal_id,
         "lore_update": lore_update,
         "items_added": items_added,
+        "medical_record": medical_record,
     }
 
 
@@ -2780,9 +2835,10 @@ def apply_eunuch_hard_service(
                     "outcome": outcome,
                     "hard_service": True,
                 },
-            )
+    )
     db.record_log(state, f"【旧患硬派】{clean_name}{label}：{outcome}。")
     db.conn.commit()
+    medical_record = _sync_lore_medical_record(db, clean_name, get_lore(db, clean_name) or lore, note=process)
     return {
         "ok": True,
         "name": clean_name,
@@ -2796,6 +2852,7 @@ def apply_eunuch_hard_service(
         "scheme_profile": scheme,
         "scheme_pressure": scheme_pressure,
         "goal_id": fulfilled_goal_id,
+        "medical_record": medical_record,
     }
 
 
@@ -2891,7 +2948,7 @@ def _dispatch_strategy_options(
             "prompt": "准其带副手轮值，尿闭漏尿时换班，不许硬撑坏事。",
         })
     if has_trigger and (
-        re.search(r"刑房|净房|刀|血|拷|审|拿问|封签|宝匣|乔装|传旨", raw)
+        re.search(r"刑房|净房|刀|血|拷|审|拿问|封签|宝贝|乔装|传旨", raw)
         or domain_set.intersection({"investigation", "inner"})
     ):
         options.append({
@@ -2967,7 +3024,7 @@ def _dispatch_flare_profile(
             value = max(1, value - 14)
         if cared("仪态修整") and mode == "body":
             value = max(1, value - 10)
-        if cared("宝匣安置", "御赐宝匣") and mode == "bao":
+        if cared("宝贝安置", "御赐宝贝") and mode == "bao":
             value = max(1, value - 12)
         if cared("心癖安顿") and mode == "fixation":
             value = max(1, value - 10)
@@ -2996,7 +3053,7 @@ def _dispatch_flare_profile(
 
     trauma = str(lore.get("trauma_response") or "").strip()
     if trauma and (
-        re.search(r"刑房|净房|净军|刀|血|拷|审|拿问|下狱|诏狱|廷杖|抄家|封签", raw)
+        re.search(r"刑房|净身房|净房|刀|血|拷|审|拿问|下狱|诏狱|廷杖|抄家|封签", raw)
         or "investigation" in domain_set
     ):
         add(
@@ -3010,16 +3067,16 @@ def _dispatch_flare_profile(
 
     bao_status = str(lore.get("bao_status") or "")
     if (bao_status in {BAO_FORFEIT, BAO_LOST} or str(lore.get("bao_ritual") or "").strip()) and (
-        re.search(r"宝|宝匣|封签|官库|旧案|净房|司礼监|内廷|验身|验宝", raw)
+        re.search(r"宝|宝贝|封签|官库|旧案|净房|司礼监|内廷|验身|验宝", raw)
         or "inner" in domain_set
     ):
         add(
             "bao",
             base + (13 if bao_status in {BAO_FORFEIT, BAO_LOST} else 4),
-            "宝匣、官库封签、净房旧案或验宝话头",
+            "宝贝、官库封签、净房旧案或验宝话头",
             "怨气和全尸执念上涌，可能避谈、篡改轻重或借题报私怨。",
             ("avoid_trigger", "care_first", "force"),
-            "话到宝匣封签便摸袖中钥匙，眼神避开御案。",
+            "话到宝贝封签便摸袖中封签，眼神避开御案。",
         )
 
     body = str(lore.get("voice_body_change") or "").strip()
@@ -3037,11 +3094,11 @@ def _dispatch_flare_profile(
         )
 
     fixation = str(lore.get("private_fixation") or "").strip()
-    if fixation and re.search(r"钥匙|封匣|账册|库|规矩|搜查|翻检|洁净|衣物", raw):
+    if fixation and re.search(r"封签|封存|账册|库|规矩|搜查|翻检|洁净|衣物", raw):
         add(
             "fixation",
             base + 4,
-            "库房、封匣、翻检、洁净规矩",
+            "库房、封存、翻检、洁净规矩",
             "办差会偏执走样，过度翻检或死守小规矩，拖慢主线。",
             ("avoid_trigger", "care_first"),
             "反复抚平衣褶，像先把规矩摆正才敢迈步。",
@@ -3131,7 +3188,7 @@ def assignment_risk_profile(
     trauma = str(lore.get("trauma_response") or "").strip()
     if trauma:
         prison_pressure = bool(
-            re.search(r"刑房|净房|净军|刀|血|拷|审|拿问|下狱|诏狱|廷杖|抄家|封签", raw)
+            re.search(r"刑房|净身房|净房|刀|血|拷|审|拿问|下狱|诏狱|廷杖|抄家|封签", raw)
             or "investigation" in domain_set
         )
         add(
@@ -3172,7 +3229,7 @@ def assignment_risk_profile(
             mitigation="相关旧患已有御前调养，方案后患被压住一部分。",
             stage="一遇久候或刑房差事，会先摸封签、夹肩定神。",
         )
-    bao_touch = bool(re.search(r"宝|宝匣|封签|官库|旧案|净房|司礼监|内廷|验身|验宝", raw) or "inner" in domain_set)
+    bao_touch = bool(re.search(r"宝|宝贝|封签|官库|旧案|净房|司礼监|内廷|验身|验宝", raw) or "inner" in domain_set)
     if bao_touch:
         if bao_status in {BAO_FORFEIT, BAO_LOST}:
             label = "宝为官没" if bao_status == BAO_FORFEIT else "宝已遗失"
@@ -3180,26 +3237,26 @@ def assignment_risk_profile(
                 -4,
                 "宝案心结牵动内廷查验",
                 f"宝案心结：{label}，遇官库封签、验宝或净房旧案容易怨气上涌。",
-                care_trait="宝匣安置|御赐宝匣",
+                care_trait="宝贝安置|御赐宝贝",
                 mitigation="宝案已奉旨查验安置，封签刺激稍缓。",
-                stage="听见封签宝匣会摸袖中钥匙或避开视线。",
+                stage="听见封签宝贝会摸袖中封签或避开视线。",
             )
         elif ritual:
             add(
                 2,
-                "宝匣自藏使其在内廷规矩里较能定神",
-                stage="遇内廷封匣旧例会先摸钥匙定神。",
+                "宝贝自藏使其在内廷规矩里较能定神",
+                stage="遇内廷封存旧例会先摸封签定神。",
             )
         if "宝案钳制" in traits:
             add(
                 -3,
                 "宝案钳制使其惧而不安",
-                "宝案钳制：官库封签是把柄，遇封签宝匣差事容易失神或怨气反扑。",
+                "宝案钳制：官库封签是把柄，遇封签宝贝差事容易失神或怨气反扑。",
                 stage="听见官库封签便喉头一紧，叩首更低。",
             )
     if "旧患硬派" in traits and (
         risks
-        or re.search(r"久候|夜守|盯梢|刑房|净房|刀|血|拷|审|封签|宝匣|远行|出京|限期", raw)
+        or re.search(r"久候|夜守|盯梢|刑房|净房|刀|血|拷|审|封签|宝贝|远行|出京|限期", raw)
         or domain_set.intersection({"investigation", "military", "local", "inner"})
     ):
         add(
@@ -3225,7 +3282,7 @@ def assignment_risk_profile(
         or "inner" in domain_set
     )
     clerkly_task = bool(
-        re.search(r"名册|封签|账|账页|钥匙|文书|档|册|押签|旧例|核对|查档", raw)
+        re.search(r"名册|封签|账|账页|封签|文书|档|册|押签|旧例|核对|查档", raw)
         or domain_set.intersection({"bureaucracy", "inner"})
     )
     if low_culture_voice and public_or_document_task:
@@ -3248,7 +3305,7 @@ def assignment_risk_profile(
         add(
             3,
             "文书口径适合封签账册",
-            stage="先问封签、账页和钥匙经手，再按册回话。",
+            stage="先问封签、账页和封签经手，再按册回话。",
         )
     if clerkly_voice and re.search(r"边防|军机|民变|辽东|陕西|山西|关宁|外朝大局", raw):
         voice_fit_notes.append("文书内臣不宜越权断外朝大局")
@@ -3276,21 +3333,21 @@ def assignment_risk_profile(
         )
 
     fixation = str(lore.get("private_fixation") or "").strip()
-    if fixation and re.search(r"钥匙|封匣|账册|库|规矩|搜查|翻检|洁净|衣物", raw):
+    if fixation and re.search(r"封签|封存|账册|库|规矩|搜查|翻检|洁净|衣物", raw):
         add(
             -2,
             "心癖会让差事偏执走样",
-            f"心癖牵动：{fixation}，翻检、封匣或库房差事可能过度偏执。",
+            f"心癖牵动：{fixation}，翻检、封存或库房差事可能过度偏执。",
             care_trait="心癖安顿",
             mitigation="心癖已有安顿，偏执走样风险下降。",
-            stage="反复抚平衣褶或摸索钥匙给自己定神。",
+            stage="反复抚平衣褶或摸索封签给自己定神。",
         )
     psychosexual = str(lore.get("psychosexual_state") or "").strip() if _is_adult_for_lore(db, clean_name) else ""
-    if psychosexual and re.search(r"近侍|规训|训诫|封匣|宝匣|把柄|钳制|诱供|安抚|密会|恩宠|贴身|掌钥匙", raw):
+    if psychosexual and re.search(r"近侍|规训|训诫|封存|宝贝|把柄|钳制|诱供|安抚|密会|恩宠|贴身|掌封签", raw):
         add(
             -2,
             "心相旧结影响近身把柄差事",
-            f"心相旧结：{psychosexual}，近身规训、封匣把柄或安抚诱供时容易逢迎过度或怨气走样。",
+            f"心相旧结：{psychosexual}，近身规训、封存把柄或安抚诱供时容易逢迎过度或怨气走样。",
             care_trait="心相安顿",
             mitigation="心相已有安顿，近身把柄差事的走样风险下降。",
             stage="听见规训把柄一类话，先低头急称奴婢该死。",
@@ -3362,7 +3419,7 @@ def _primary_care_mode_for_task(risk: Dict[str, object]) -> str:
         return "trauma"
     if "体声" in risks or "嗓音" in risks:
         return "body"
-    if "宝案" in risks or "宝匣" in risks or "封签" in risks:
+    if "宝案" in risks or "宝贝" in risks or "封签" in risks:
         return "bao"
     return "general"
 
@@ -3559,7 +3616,7 @@ def apply_eunuch_dispatch_strategy(
 _RECRUIT_SURNAMES = "王李张刘陈杨赵黄周吴徐孙马朱"
 _RECRUIT_GIVEN = ("进忠", "永贞", "国泰", "得禄", "承恩", "守义", "小顺", "三才", "应元",
                   "化淳", "良辅", "时敏", "本忠", "永寿", "尽忠", "存仁")
-_RECRUIT_OFFICES = ("内官监小火者", "司礼监随堂", "净军", "御马监勇士营", "尚膳监差使")
+_RECRUIT_OFFICES = ("内官监小火者", "司礼监随堂", "净身房候役", "御马监勇士营", "尚膳监差使")
 _RECRUIT_UNREST_GATE = 48      # 流民／民困到此程度，自宫求进者渐多
 _RECRUIT_CAP = 8               # 自动募入的上限（免灌爆名册）
 
@@ -3605,8 +3662,9 @@ def recruit_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, objec
     # 自宫求进者奴性偏重（求生卑微），宝多自藏（望来世）。
     record_castration(db, name, forced=False, day=day)
     db.conn.execute("UPDATE eunuch_lore SET servility=66, note=? WHERE name=?",
-                    ("灾年自宫求进入宫，宝匣自藏", name))
+                    ("灾年自宫求进入宫，宝贝自藏", name))
     db.conn.commit()
+    _sync_lore_medical_record(db, name, get_lore(db, name), note="灾年自宫求进入宫，宝贝自藏")
     return [{"level": LEVEL_BLUE, "kind": "eunuch_recruit",
              "title": f"自宫求进：{name}入内廷",
              "detail": f"岁饥民困，贫家子{name}自宫求进、卖身入宫，充{office}。"
@@ -3627,7 +3685,7 @@ def burial_lament_on_death(db: GameDB, state: GameState, name: str, day: int) ->
     except Exception:
         allies = []
     if bao == BAO_KEPT:
-        return "宝匣得以同棺，凑成全尸下葬，老监谓其「圆满去得」，稍慰生平之缺。"
+        return "宝贝得以同棺，凑成全尸下葬，老监谓其「圆满去得」，稍慰生平之缺。"
     # 无宝：不得全尸，党羽哀恸更深
     for a in allies:
         try:

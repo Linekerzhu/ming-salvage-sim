@@ -41,9 +41,16 @@ EDICT_OUTCOME_PROMPT = """你是大明的结算判官，正为一道刚办结的
      若本旨明确把外朝人物强制净身/宫刑后改入内廷，必须加 "conversion_kind":"castration","force_castration":true。
      若本旨明确把内廷奴籍人物强制脱籍/还民，必须加 "conversion_kind":"emancipation","force_emancipation":true。
      只是查旧例、暂赴听差、问可否、讨论利弊，不得写身份转换字段。
-   - "character_status_changes": [{"name":"被处置者","status":"dismissed|imprisoned|exiled|retired|dead|castrated","reason":"简短"}]
+   - "character_status_changes": [{"name":"被处置者","status":"dismissed|imprisoned|exiled|retired|dead|castrated","reason":"简短","agency":"可选司法机关","facility":"可选狱名","pressure":可选1-5,"coercion_goal":"可选逼令"}]
      仅当本旨**罢免/革职/下狱/流放/勒令致仕/处死/处宫刑**某在朝大臣时填；name 须是旨意原文点到的在朝者，不得新造人名。
-     对照：罢免/革职=dismissed，下狱/逮问=imprisoned，流放/充军=exiled，致仕/乞休=retired，处死/弃市/赐死=dead，**处宫刑/腐刑/发净军/没入内廷为奴=castrated**。
+     对照：罢免/革职=dismissed，下狱/逮问=imprisoned，流放/充军=exiled，致仕/乞休=retired，处死/弃市/赐死=dead，**处宫刑/腐刑/押赴净身房/没入内廷为奴=castrated**。
+     下狱项若明写锦衣卫/北镇抚司/昭狱/刑部/都察院/东厂，补 agency/facility；若明写刑讯、逼供、逼其接受旨意，补 pressure/coercion_goal。
+   - "condition_changes": [{"name":"受害者","kind":"disease|injury|punishment|disability|prison_effect|terminal","system":"general|speech|nervous|mental|respiratory|circulatory|digestive|urinary|reproductive|musculoskeletal|skin","label":"短名","severity":1-5,"stage":"active|mild|serious|critical|disabled|chronic|recovering|resolved|dead","reason":"简短","fatal":可选boolean,"effects":{"speech":"可选奏对限制","ability_delta":"可选办事折损","record_group":"organic|pathological|psychological|other","organ":"可选器官/肢体","side":"左|右","state":"缺失/缺损/骨折/伤残","function":"可选功能","impact":"影响","course_kind":"acute|chronic","possible_outcomes":["恢复","加重"]}}]
+     仅当本旨**明确造成或确认**病历/身体事实时填：割舌/失声 system="speech"，廷杖/拷掠/狱中折磨 kind="punishment" 或 "prison_effect"。
+     强制宫刑/腐刑/净身/去势优先写 punishment_changes 的“宫刑”，程序会自动派生生殖系统病历；只有原文另明写部分损伤、尿闭、漏尿、幻肢痛等并发症时，才额外写 condition_changes。相关措辞必须是临床/档案风格，不写情色化描述。
+     name 必须是旨意原文点到的人名；单纯下狱但未明写伤病，不得凭空写刑伤。只有明写病逝/毙命/不治而亡才填 fatal=true 或 stage="dead"；濒死危笃用 kind="terminal", severity=5, stage="critical"。
+   - "punishment_changes": [{"name":"受刑者","taxonomy":"ordinary|ming_five|ancient_five","punishment":"笞刑|杖刑|徒刑|流刑|死刑|墨刑|劓刑|刖刑|宫刑|大辟|割舌|割耳|断腿|刑讯拷掠","severity":1-5,"stage":"sentenced|executed|stayed|remitted","executor":"可选执行机关","reason":"简短"}]
+     仅当本旨明确宣判或执行刑罚时填。明律五刑=笞/杖/徒/流/死；古五刑=墨/劓/刖/宫/大辟；普通刑罚包含割舌、割耳、断腿、刑讯拷掠等。
    不要凭空造 issue_id / 人名；不要超出给定地区/issue 范围。无数值后果时 "delta" 给 {}。
 直接输出 JSON，不要解释、不要 markdown 代码块。"""
 
@@ -337,6 +344,56 @@ def _scope_delta(delta: Dict[str, object], context: Dict[str, object]) -> Dict[s
             and str(s.get("name")).strip() in text
             and str(s.get("status") or "").strip().lower() in _VALID_STATUS
         ]
+    ccs = delta.get("condition_changes")
+    if isinstance(ccs, list):
+        guarded: List[Dict[str, object]] = []
+        for item in ccs:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name") or item.get("姓名") or "").strip()
+            label = str(
+                item.get("label")
+                or item.get("状况")
+                or item.get("病名")
+                or item.get("伤名")
+                or item.get("condition_key")
+                or item.get("key")
+                or ""
+            ).strip()
+            if not name or name not in text or not label:
+                continue
+            copy = dict(item)
+            copy["name"] = name
+            if "label" not in copy:
+                copy["label"] = label
+            try:
+                sev = int(copy.get("severity") or copy.get("严重度") or 1)
+            except (TypeError, ValueError):
+                sev = 1
+            copy["severity"] = max(1, min(5, sev))
+            guarded.append(copy)
+        delta["condition_changes"] = guarded
+    pcs = delta.get("punishment_changes")
+    if isinstance(pcs, list):
+        guarded_punishments: List[Dict[str, object]] = []
+        for item in pcs:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name") or item.get("姓名") or "").strip()
+            label = str(item.get("punishment") or item.get("label") or item.get("刑罚") or item.get("刑名") or "").strip()
+            if not name or name not in text or not label:
+                continue
+            copy = dict(item)
+            copy["name"] = name
+            if "punishment" not in copy and "label" not in copy:
+                copy["punishment"] = label
+            try:
+                sev = int(copy.get("severity") or copy.get("严重度") or 2)
+            except (TypeError, ValueError):
+                sev = 2
+            copy["severity"] = max(1, min(5, sev))
+            guarded_punishments.append(copy)
+        delta["punishment_changes"] = guarded_punishments
     return delta
 
 

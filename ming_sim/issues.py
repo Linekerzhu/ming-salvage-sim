@@ -25,6 +25,7 @@ from ming_sim.flows import (
     _apply_faction_dict,
     _apply_metric_dict,
 )
+from ming_sim.identity import normalize_sex
 from ming_sim.models import Event, GameState
 from ming_sim.personnel_actions import convert_character_to_eunuch, convert_eunuch_to_commoner, is_eunuch_office
 from ming_sim.negotiation import HANDSHAKE_SEALED
@@ -1302,6 +1303,15 @@ def apply_score_extraction(
     applied_status_changes: List[Dict[str, object]] = []
     political_reactions: List[Dict[str, object]] = []
     valid_status = {"dismissed", "imprisoned", "exiled", "retired", "dead", "offstage", "castrated"}
+    directive_id = str(extracted.get("_directive_id") or "").strip()
+    explicit_source_kind = str(extracted.get("_source_kind") or "").strip()
+    explicit_source_id = str(extracted.get("_source_id") or "").strip()
+    if explicit_source_kind:
+        extraction_source_kind = explicit_source_kind[:40]
+        extraction_source_id = explicit_source_id[:80] or f"{state.year}-{state.period}-turn-{state.turn}"
+    else:
+        extraction_source_kind = "directive" if directive_id else "turn_extraction"
+        extraction_source_id = directive_id or f"{state.year}-{state.period}-turn-{state.turn}"
     for item in extracted.get("character_status_changes") or []:
         if not isinstance(item, dict):
             continue
@@ -1328,9 +1338,12 @@ def apply_score_extraction(
             })
             continue
         old_row = character_political_row(db, name)
-        # 宫刑作刑罚（E2b）：没入内廷为奴（强阉）→ 宝官没·奴性扭曲（接 E2a）+ 外朝奇辱反弹 + 权阉微涨。
+        # 宫刑作刑罚（E2b）：没入内廷为奴 → 宝贝官库旧念（接 E2a）+ 外朝奇辱反弹 + 权阉微涨。
         if status == "castrated":
-            if is_eunuch_office(old_row.get("office", ""), old_row.get("office_type", "")):
+            if (
+                normalize_sex(old_row.get("sex", "")) == "eunuch"
+                or is_eunuch_office(old_row.get("office", ""), old_row.get("office_type", ""))
+            ):
                 applied_status_changes.append({
                     "name": name, "status": status, "rejected": True, "reason": "其人已是内臣"})
                 continue
@@ -1338,7 +1351,7 @@ def apply_score_extraction(
                 converted, reactions = convert_character_to_eunuch(
                     db, state, content, name, force=True,
                     source=reason[:60] or "诏处宫刑，没入内廷为奴",
-                    new_office="净军",
+                    new_office="净身房候役",
                     lore_text=f"{directive_text} {reason}",
                 )
                 if registry is not None:
@@ -1352,7 +1365,7 @@ def apply_score_extraction(
                     pass
                 applied_status_changes.append({
                     "name": name, "status": "castrated", "kind": "castration", "forced": True,
-                    "old_office": old_row.get("office", ""), "new_office": "净军",
+                    "old_office": old_row.get("office", ""), "new_office": "净身房候役",
                     "reason": reason or "诏处宫刑，没入内廷为奴"})
             except Exception as exc:
                 applied_status_changes.append({
@@ -1371,9 +1384,26 @@ def apply_score_extraction(
             ch.status = status
             if status in {"dismissed", "imprisoned", "exiled", "retired", "dead"}:
                 ch.office = ""
-        applied_status_changes.append({
+        status_payload: Dict[str, object] = {
             "name": name, "status": status, "reason": reason,
-        })
+        }
+        if status == "imprisoned":
+            try:
+                from ming_sim.custody import record_custody_from_status_item
+
+                custody_payload = record_custody_from_status_item(
+                    db,
+                    state,
+                    item,
+                    directive_text=directive_text,
+                    source_kind=extraction_source_kind,
+                    source_id=extraction_source_id,
+                )
+                if custody_payload:
+                    status_payload["custody"] = custody_payload
+            except Exception as exc:
+                status_payload["custody_rejected"] = str(exc)
+        applied_status_changes.append(status_payload)
         political_reactions.extend(apply_status_change_reaction(
             db,
             state,
@@ -1391,6 +1421,36 @@ def apply_score_extraction(
                 ripple_personnel(db, name, "oust")
             except Exception:
                 pass
+
+    # 9a) condition_changes：疾病、刑伤、残疾、狱中摧残等身体事实。
+    applied_condition_changes: List[Dict[str, object]] = []
+    try:
+        from ming_sim.conditions import apply_condition_changes
+
+        applied_condition_changes = apply_condition_changes(
+            db,
+            state,
+            extracted.get("condition_changes") or [],
+            source_kind=extraction_source_kind,
+            source_id=extraction_source_id,
+        )
+    except Exception as exc:
+        print(f"[WARN] condition_changes 落库失败：{exc}")
+
+    # 9a.5) punishment_changes：普通刑罚、明律五刑、古五刑的刑罚账及派生后果。
+    applied_punishment_changes: List[Dict[str, object]] = []
+    try:
+        from ming_sim.punishments import apply_punishment_changes
+
+        applied_punishment_changes = apply_punishment_changes(
+            db,
+            state,
+            extracted.get("punishment_changes") or [],
+            source_kind=extraction_source_kind,
+            source_id=extraction_source_id,
+        )
+    except Exception as exc:
+        print(f"[WARN] punishment_changes 落库失败：{exc}")
 
     # 9b) character_power_changes：人物易主（降将/叛臣/归正）
     applied_power_changes: List[Dict[str, object]] = []
@@ -1442,19 +1502,20 @@ def apply_score_extraction(
             new_type = str(item.get("new_office_type") or "").strip()
             old_row = character_political_row(db, name)
             old_office = old_row.get("office", "") or content.characters[name].office
-            old_is_eunuch = is_eunuch_office(old_office, old_row.get("office_type", ""))
+            old_in_eunuch_role = is_eunuch_office(old_office, old_row.get("office_type", ""))
+            old_sex_eunuch = normalize_sex(old_row.get("sex", "")) == "eunuch"
             new_is_eunuch = is_eunuch_office(new_office, new_type)
             eunuch_transfer = (
                 new_is_eunuch
-                and not old_is_eunuch
+                and not old_sex_eunuch
             )
             emancipation_consent = (
                 _emancipation_consent_recorded(db, state, name)
-                if old_is_eunuch
+                if old_in_eunuch_role
                 else False
             )
             commoner_transfer = (
-                old_is_eunuch
+                old_in_eunuch_role
                 and not new_is_eunuch
                 and (emancipation_consent or _structured_emancipation_transfer(item))
             )
@@ -1504,7 +1565,7 @@ def apply_score_extraction(
                     "reason": reason or ("未见同意奏对，按强旨改入内廷" if force_castration else "奏对同意后改入内廷"),
                 })
                 continue
-            if old_is_eunuch and not new_is_eunuch and not commoner_transfer:
+            if old_in_eunuch_role and not new_is_eunuch and not commoner_transfer:
                 applied_office_changes.append({
                     "name": name,
                     "old_status": cur_status,
@@ -1755,6 +1816,8 @@ def apply_score_extraction(
         "fiscal_removes": applied_fiscal_removes,
         "appointments": applied_appointments,
         "character_status_changes": applied_status_changes,
+        "condition_changes": applied_condition_changes,
+        "punishment_changes": applied_punishment_changes,
         "character_power_changes": applied_power_changes,
         "office_changes": applied_office_changes,
         "political_reactions": political_reactions,

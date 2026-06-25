@@ -201,6 +201,168 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             finally:
                 session.close()
 
+    def test_llm_agreement_with_pending_tasks_creates_ledger_and_resolves_source_card(self) -> None:
+        audit = StaticAudit(
+            {
+                "goal_decision": "new",
+                "goal_relation": "distinct_goal",
+                "action_kind": "court_commitment",
+                "title": "海防旧账限期交册",
+                "target_text": "韩爌接受一月内交海防账册并以举主名节担保",
+                "confidence": 96,
+                "public_hint": "识别为旧账谈判。",
+            },
+            {
+                "goal_decision": "new",
+                "goal_relation": "distinct_goal",
+                "action_kind": "court_commitment",
+                "title": "海防旧账限期交册",
+                "target_text": "韩爌接受一月内交海防账册并以举主名节担保",
+                "stance": "support",
+                "handshake_status": "sealed",
+                "goal_status": "sealed",
+                "score_delta": 40,
+                "score_after": 88,
+                "threshold": 70,
+                "conditions": [
+                    {"description": "一月内交海防账册", "status": "pending", "evidence": "臣认这一月之限。"},
+                    {"description": "举主名节担保新人试差", "status": "pending", "evidence": "臣愿以名节作保。"},
+                ],
+                "tasks": ["一月内交海防账册", "举主名节担保新人试差"],
+                "agreement_formed": True,
+                "performance_status": "pending",
+                "agreement_action": "create_pending",
+                "promise_type": "旧账限期担保",
+                "stakes": "举主名节、海防旧账",
+                "confidence": 96,
+                "public_hint": "双方已约定限期交册与担保边界。",
+                "private_reason": "没有关键词套话，但双方已把期限、账册和担保边界说定。",
+            },
+        )
+        with TemporaryDirectory() as tmp:
+            session = GameSession(
+                str(Path(tmp) / "semantic_agreement.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            try:
+                session.dialogue_audit_client = audit
+                actor = self.content.characters["韩爌"]
+                user_text = "那就照你说的边界办，一个月内交册，误了你担责。"
+                answer = "臣认这一月之限，也愿以名节作保，只请陛下按此边界核臣。"
+                _, prepared = session.prepare_chat_run(actor, user_text)
+                source_context = {
+                    "card_key": "bargain:test-semantic",
+                    "kind": "bargain",
+                    "title": "旧账求兑现：韩爌",
+                    "actor": "韩爌",
+                    "ref_kind": "memory",
+                    "ref_id": "unit-old-account",
+                }
+
+                result = session.record_dialogue_after_chat(
+                    actor,
+                    user_text,
+                    answer,
+                    prepared,
+                    source_context=source_context,
+                )
+
+                self.assertEqual(result["handshake_status"], "sealed")
+                self.assertGreater(int(result["agreement_id"]), 0)
+                decision = result["agreement_decision"]
+                self.assertTrue(decision["agreement_formed"])
+                self.assertEqual(decision["performance_status"], "pending")
+                goal = session.db.get_conversation_goal(int(result["goal"]["id"]))
+                self.assertEqual(goal["status"], "sealed")
+                self.assertEqual(goal["condition_status"], "pending")
+                agreements = session.db.list_negotiation_agreements(
+                    minister_name="韩爌",
+                    action_kind="court_commitment",
+                    status="pending",
+                )
+                self.assertEqual(len(agreements), 1)
+                self.assertEqual(agreements[0]["promise_type"], "旧账限期担保")
+                self.assertTrue(any("交海防账册" in str(task["description"]) for task in agreements[0]["tasks"]))
+                self.assertTrue(session.db.is_briefing_card_resolved("bargain:test-semantic"))
+            finally:
+                session.close()
+
+    def test_unaccepted_condition_does_not_create_agreement_or_clear_source_card(self) -> None:
+        audit = StaticAudit(
+            {
+                "goal_decision": "new",
+                "goal_relation": "distinct_goal",
+                "action_kind": "court_commitment",
+                "title": "举主担保边界",
+                "target_text": "韩爌说明愿担保到哪一步",
+                "confidence": 95,
+            },
+            {
+                "goal_decision": "new",
+                "goal_relation": "distinct_goal",
+                "action_kind": "court_commitment",
+                "title": "举主担保边界",
+                "target_text": "韩爌说明愿担保到哪一步",
+                "stance": "caution",
+                "handshake_status": "conditional",
+                "goal_status": "waiting_conditions",
+                "score_delta": 20,
+                "score_after": 42,
+                "threshold": 70,
+                "conditions": [
+                    {"description": "须先看新人试差结果", "status": "pending", "evidence": "臣须先看他试差。"},
+                ],
+                "agreement_formed": False,
+                "performance_status": "none",
+                "agreement_action": "none",
+                "confidence": 95,
+                "public_hint": "只是提出条件，尚未约定。",
+                "private_reason": "NPC 提了条件，但皇帝没有接受该条件。",
+            },
+        )
+        with TemporaryDirectory() as tmp:
+            session = GameSession(
+                str(Path(tmp) / "semantic_condition_only.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            try:
+                session.dialogue_audit_client = audit
+                actor = self.content.characters["韩爌"]
+                user_text = "你肯替他担保到哪一步？"
+                answer = "臣须先看他试差，未见实绩，不敢空口担保。"
+                _, prepared = session.prepare_chat_run(actor, user_text)
+                result = session.record_dialogue_after_chat(
+                    actor,
+                    user_text,
+                    answer,
+                    prepared,
+                    source_context={
+                        "card_key": "patronage:test-condition-only",
+                        "kind": "patronage",
+                        "title": "举主担保：韩爌荐某人",
+                        "actor": "韩爌",
+                        "target": "某人",
+                        "ref_kind": "relationship",
+                        "ref_id": "韩爌:某人",
+                    },
+                )
+
+                self.assertEqual(result["handshake_status"], "conditional")
+                self.assertEqual(int(result["agreement_id"]), 0)
+                self.assertFalse(session.db.is_briefing_card_resolved("patronage:test-condition-only"))
+                goals = session.db.list_conversation_goals(minister_name="韩爌", statuses=["waiting_conditions"])
+                self.assertEqual(len(goals), 1)
+                self.assertEqual(
+                    session.db.list_negotiation_agreements(minister_name="韩爌", action_kind="court_commitment"),
+                    [],
+                )
+            finally:
+                session.close()
+
     def test_rival_mention_pushes_opposition_and_selective_truth(self) -> None:
         profile = npc_dialogue_behavior_profile(
             "韩爌",
@@ -435,11 +597,11 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             self.assertTrue(profile["soft_hook_invoked"])
             self.assertIn("旧恩牵引", profile["risk_tags"])
             self.assertIn("旧恩软钩子", payload["behavior_brief"])
-            self.assertEqual(post.handshake_status, "sealed")
-            self.assertEqual(post.goal_status, "sealed")
-            self.assertEqual(post.agreement_action, "create_pending")
-            self.assertGreaterEqual(post.score_after, post.threshold)
-            self.assertTrue(post.raw["soft_hook"]["applied"])
+            self.assertEqual(post.handshake_status, "none")
+            self.assertEqual(post.goal_status, "active")
+            self.assertEqual(post.agreement_action, "none")
+            self.assertLess(post.score_after, post.threshold)
+            self.assertNotIn("soft_hook", post.raw)
             db.conn.close()
 
     def test_semantic_refine_reuses_active_goal_instead_of_creating_duplicate(self) -> None:
@@ -925,14 +1087,20 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 actor,
                 forced=True,
                 day=1,
-                detail_text="净军房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+                detail_text="净身房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+            )
+            el.update_lore_from_text(
+                db,
+                actor,
+                "净身房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+                day=1,
             )
             order_id = db.create_secret_order(
                 state,
                 actor,
-                "密查净军房封签",
+                "密查净身房封签",
                 "夜间久候盯梢刑房封签，拿问口供，查清官库旧案。",
-                ["刑房", "封签", "净军房"],
+                ["刑房", "封签", "净身房"],
                 deadline_months=1,
             )
 
@@ -963,14 +1131,20 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 actor,
                 forced=True,
                 day=1,
-                detail_text="净军房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+                detail_text="净身房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+            )
+            el.update_lore_from_text(
+                db,
+                actor,
+                "净身房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+                day=1,
             )
             order_id = db.create_secret_order(
                 state,
                 actor,
-                "密查净军房封签",
+                "密查净身房封签",
                 "夜间久候盯梢刑房封签，拿问口供，查清官库旧案。",
-                ["刑房", "封签", "净军房"],
+                ["刑房", "封签", "净身房"],
                 deadline_months=1,
             )
 
@@ -1246,16 +1420,16 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 actor,
                 forced=True,
                 day=1,
-                detail_text="净军房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+                detail_text="净身房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
             )
             tools = build_minister_tools(self.content.characters[actor], CourtContext(state=state, db=db))
             issue = next(tool for tool in tools if getattr(tool, "__name__", "") == "issue_secret_order")
             dispatch = next(tool for tool in tools if getattr(tool, "__name__", "") == "set_eunuch_dispatch_strategy")
 
             issue_result = issue(
-                "密查净军房封签",
+                "密查净身房封签",
                 "夜间久候盯梢刑房封签，拿问口供，查清官库旧案。",
-                tags_json='["刑房","封签","净军房"]',
+                tags_json='["刑房","封签","净身房"]',
                 deadline_months=1,
             )
             order_id = int(issue_result.split("__")[2])
@@ -1667,14 +1841,20 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 actor,
                 forced=True,
                 day=0,
-                detail_text="净军房无麻；宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+                detail_text="净身房无麻；宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+            )
+            el.update_lore_from_text(
+                session.db,
+                actor,
+                "净身房无麻；宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+                day=0,
             )
             session.db.create_secret_order(
                 session.state,
                 actor,
-                "密查净军房封签",
+                "密查净身房封签",
                 "夜间久候盯梢刑房封签，拿问口供，查清官库旧案。",
-                ["刑房", "封签", "净军房"],
+                ["刑房", "封签", "净身房"],
             )
 
             augmented, prepared = session.prepare_chat_run(
@@ -1718,12 +1898,18 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 name,
                 forced=True,
                 day=0,
-                detail_text="净军房无麻；宝官库石灰封存；近来漏尿尿闭，嗓音尖薄，常有幻肢痛。",
+                detail_text="净身房无麻；宝官库石灰封存；近来漏尿尿闭，嗓音尖薄，常有幻肢痛。",
+            )
+            el.update_lore_from_text(
+                session.db,
+                name,
+                "净身房无麻；宝官库石灰封存；近来漏尿尿闭，嗓音尖薄，常有幻肢痛。",
+                day=0,
             )
 
             augmented, prepared = session.prepare_chat_run(
                 self.content.characters[name],
-                "净军房旧档和御前跑腿，卿自己怎么回？",
+                "净身房旧档和御前跑腿，卿自己怎么回？",
             )
 
             self.assertIn("【内廷·心相】", augmented)
@@ -1741,7 +1927,7 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             self.assertIn("【口吻合约】", prepared.behavior_context)
             self.assertIn("【说话边界】", prepared.behavior_context)
             self.assertIn("动作神态必须与对白分离", prepared.behavior_context)
-            self.assertIn("净军房旧档", prepared.behavior_context)
+            self.assertIn("净身房旧档", prepared.behavior_context)
             session.close()
 
     def test_recorded_stance_uses_prepared_memory_behavior_context(self) -> None:

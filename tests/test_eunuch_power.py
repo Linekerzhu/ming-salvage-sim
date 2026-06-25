@@ -111,6 +111,24 @@ class DispositionTests(unittest.TestCase):
             # 掌印王体乾属阉党 → 惯于弄权
             self.assertEqual(eunuch_power.keeper_disposition(db, keeper), "scheming")
 
+    def test_chief_keeper_ignores_eunuch_office_without_eunuch_sex(self):
+        with TemporaryDirectory() as tmp:
+            db, _, _ = _fresh(tmp)
+            db.conn.execute(
+                "UPDATE characters SET sex='male' "
+                "WHERE office LIKE '%司礼监%' OR office_type LIKE '%司礼监%'"
+            )
+            db.conn.commit()
+            self.assertIsNone(eunuch_power.chief_keeper_name(db))
+
+    def test_saved_keeper_falls_back_when_no_longer_eunuch(self):
+        with TemporaryDirectory() as tmp:
+            db, _, _ = _fresh(tmp)
+            db.kv_set(eunuch_power.KV_DAIPIHONG_KEEPER, "王承恩")
+            db.conn.execute("UPDATE characters SET sex='male' WHERE name='王承恩'")
+            db.conn.commit()
+            self.assertEqual(eunuch_power.daipihong_keeper(db), eunuch_power.chief_keeper_name(db))
+
     def test_wang_chengen_is_upright(self):
         with TemporaryDirectory() as tmp:
             db, _, _ = _fresh(tmp)

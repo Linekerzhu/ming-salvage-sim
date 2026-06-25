@@ -9,6 +9,7 @@ The goal is to make the living-world layer legible without calling the LLM.
 from __future__ import annotations
 
 import json
+import hashlib
 import sqlite3
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -2039,7 +2040,17 @@ def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[
     _faction_cards(db, cards)
     _eunuch_cards(db, state, cards)
     _secret_cards(db, cards)
-    return cards
+    resolved = _resolved_briefing_card_keys(db)
+    if not resolved:
+        return cards
+    return [card for card in cards if str(card.get("card_key") or "").strip() not in resolved]
+
+
+def _resolved_briefing_card_keys(db: GameDB) -> Set[str]:
+    try:
+        return set(db.resolved_briefing_card_keys())
+    except Exception:
+        return set()
 
 
 def _card_rank(card: BriefCard) -> tuple:
@@ -2292,7 +2303,16 @@ def _card(
     stakes: Optional[List[Dict[str, str]]] = None,
     deal: Optional[Dict[str, str]] = None,
 ) -> BriefCard:
+    card_key = _brief_card_key(
+        kind=kind,
+        ref_kind=ref_kind,
+        ref_id=ref_id,
+        actor=actor,
+        target=target,
+        title=title,
+    )
     card: BriefCard = {
+        "card_key": card_key,
         "kind": kind,
         "title": title,
         "detail": detail,
@@ -2305,6 +2325,8 @@ def _card(
         "meta": meta,
         "ref_kind": ref_kind,
         "ref_id": ref_id,
+        "source_type": ref_kind or kind,
+        "source_id": ref_id or f"{actor}:{target}".strip(":") or title,
     }
     if effects:
         card["effects"] = effects
@@ -2313,6 +2335,24 @@ def _card(
     if stake_items:
         card["stakes"] = stake_items
     return card
+
+
+def _brief_card_key(
+    *,
+    kind: str,
+    ref_kind: str = "",
+    ref_id: str = "",
+    actor: str = "",
+    target: str = "",
+    title: str = "",
+) -> str:
+    raw = "|".join(
+        str(item or "").strip()
+        for item in (kind, ref_kind, ref_id, actor, target, title)
+    )
+    digest = hashlib.sha1(raw.encode("utf-8")).hexdigest()[:14]
+    safe_kind = "".join(ch for ch in str(kind or "brief") if ch.isalnum() or ch in {"_", "-"})
+    return f"{safe_kind or 'brief'}:{digest}"
 
 
 def _eunuch_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard]) -> None:

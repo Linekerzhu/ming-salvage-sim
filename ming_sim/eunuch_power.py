@@ -22,6 +22,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 
 from ming_sim.db import GameDB
+from ming_sim.identity import character_is_eunuch
 from ming_sim.models import GameState
 from ming_sim.upgrade_schema import (
     KV_SHI, SHI_DEFAULT, adjust_belief, kv_int, kv_set_int,
@@ -67,9 +68,21 @@ def _active_eunuch_row(db: GameDB, name: str):
     name = (name or "").strip()
     if not name:
         return None
-    return db.conn.execute(
-        "SELECT name, office, office_type, faction, integrity, loyalty FROM characters "
+    row = db.conn.execute(
+        "SELECT name, office, office_type, faction, sex, integrity, loyalty FROM characters "
         "WHERE name=? AND status='active' AND power_id='ming'", (name,)).fetchone()
+    if row is None:
+        return None
+    if not character_is_eunuch(
+        row,
+        sex=row["sex"],
+        office=row["office"],
+        office_type=row["office_type"],
+        faction=row["faction"],
+        allow_legacy_text_fallback=True,
+    ):
+        return None
+    return row
 
 
 def chief_keeper_name(db: GameDB) -> Optional[str]:
@@ -77,10 +90,20 @@ def chief_keeper_name(db: GameDB) -> Optional[str]:
     for cond in ("office LIKE '%司礼监%' AND office LIKE '%掌印%'",
                  "office_type LIKE '%司礼监%' AND office LIKE '%秉笔%'",
                  "office_type LIKE '%司礼监%'"):
-        row = db.conn.execute(
-            f"SELECT name FROM characters WHERE status='active' AND power_id='ming' AND {cond} "
-            "ORDER BY name LIMIT 1").fetchone()
-        if row:
+        rows = db.conn.execute(
+            f"SELECT name, office, office_type, faction, sex FROM characters "
+            f"WHERE status='active' AND power_id='ming' AND {cond} "
+            "ORDER BY name").fetchall()
+        for row in rows:
+            if not character_is_eunuch(
+                row,
+                sex=row["sex"],
+                office=row["office"],
+                office_type=row["office_type"],
+                faction=row["faction"],
+                allow_legacy_text_fallback=True,
+            ):
+                continue
             return str(row["name"])
     return None
 
@@ -89,9 +112,8 @@ def daipihong_keeper(db: GameDB) -> Optional[str]:
     """代批红委任者：KV 若设且为在朝宦官则用之，否则回退司礼监掌印。"""
     raw = (db.kv_get(KV_DAIPIHONG_KEEPER) or "").strip()
     if raw:
-        from ming_sim.eunuch import is_eunuch_like
         row = _active_eunuch_row(db, raw)
-        if row is not None and is_eunuch_like(str(row["office"] or ""), str(row["office_type"] or "")):
+        if row is not None:
             return raw
     return chief_keeper_name(db)
 
@@ -113,12 +135,15 @@ def keeper_disposition(db: GameDB, keeper: Optional[str]) -> str:
 
 def set_daipihong_keeper(db: GameDB, name: str) -> Dict[str, object]:
     """改委代批红之人（须委在朝内臣／宦官）。"""
-    from ming_sim.eunuch import is_eunuch_like
     row = _active_eunuch_row(db, name)
     if row is None:
+        exists = db.conn.execute(
+            "SELECT 1 FROM characters WHERE name=? AND status='active' AND power_id='ming'",
+            ((name or "").strip(),),
+        ).fetchone()
+        if exists is not None:
+            return {"ok": False, "message": "代批红之柄须委阉人内臣，外朝大臣不预批红。"}
         return {"ok": False, "message": "此人不在朝，无法代批红。"}
-    if not is_eunuch_like(str(row["office"] or ""), str(row["office_type"] or "")):
-        return {"ok": False, "message": "代批红之柄须委内臣（宦官），外朝大臣不预批红。"}
     db.kv_set(KV_DAIPIHONG_KEEPER, str(row["name"]))
     return {"ok": True, "keeper": str(row["name"])}
 

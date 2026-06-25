@@ -55,6 +55,7 @@ from ming_sim.skills import bind_content as _bind_skills
 
 AUTO_SAVE_PREFIX = "auto_"
 AUTO_SAVE_KEEP_TURNS = 3  # 每个 campaign 保留最近 N 个 turn 的全部自动存档（每 turn 含 begin + preresolve）
+SUMMONABLE_STATUSES = {"active", "imprisoned"}
 
 
 def prune_auto_saves(saves_dir: str, campaign_id: str, keep_turns: int = AUTO_SAVE_KEEP_TURNS) -> None:
@@ -351,7 +352,7 @@ def _sync_offices_from_db_impl(content: GameContent, db: "GameDB") -> None:
         SELECT name, office, office_type, faction, aliases, personal_skills,
                loyalty, ability, integrity, courage, style,
                birth_year, historical_death_year, historical_death_month,
-               debut_year, debut_month, status, portrait_id, power_id, location,
+               debut_year, debut_month, status, sex, portrait_id, power_id, location,
                summary,
                force, wisdom, charm, luck, cultivation, hp, max_hp, exp, level
         FROM characters
@@ -399,6 +400,7 @@ def _sync_offices_from_db_impl(content: GameContent, db: "GameDB") -> None:
             debut_year=int(row["debut_year"]),
             debut_month=int(row["debut_month"]),
             status=row["status"],
+            sex=row["sex"] or "unknown",
             power_id=row["power_id"],
             location=row["location"],
             portrait_id=row["portrait_id"],
@@ -450,6 +452,12 @@ class GameSession:
         _sync_offices_from_db_impl(self.content, self.db)
         self.agno_db = create_agno_db(db_path)
         self.state = self.db.load_state(start_ym)
+        try:
+            from ming_sim.conditions import sync_eunuch_identity_medical_records
+
+            sync_eunuch_identity_medical_records(self.db, self.state)
+        except Exception as exc:
+            print(f"[WARN] 阉人身份病历回填失败：{exc}")
         self.campaign_id = self._ensure_campaign_id()
         # 开局负面帝国修正：新档补全、旧档补缺、已达消除条件的不补/清残。不立 issue、不进推演。
         sync_opening_legacies(self.db, self.state)
@@ -665,7 +673,7 @@ class GameSession:
             reason = str(row["status_reason"] or "")
         else:
             status, reason = self.db.get_character_status(character.name)
-        if status == "active":
+        if status in SUMMONABLE_STATUSES:
             return (True, "")
         label = {
             "offstage": "尚未登场",
@@ -732,6 +740,9 @@ class GameSession:
         live_memory_brief = self._live_dialogue_memory_brief(character) if persistent else ""
         supplemental_context = str(supplemental_context or "").strip()
         servility_context = ""
+        condition_context = ""
+        custody_context = ""
+        punishment_context = ""
         # 净身·心相不只是 flavor：它影响该 NPC 应知范围、说话粗细、动作神态和后遗症风险。
         # 先放进 behavior_context，再由 npc_dialogue_behavior_brief 二次归纳，避免模型滑回通用大臣口吻。
         try:
@@ -739,6 +750,21 @@ class GameSession:
             servility_context = servility_brief(self.db, character.name)
         except Exception:
             servility_context = ""
+        try:
+            from ming_sim.conditions import dialogue_condition_brief
+            condition_context = dialogue_condition_brief(self.db, character.name)
+        except Exception:
+            condition_context = ""
+        try:
+            from ming_sim.custody import dialogue_custody_brief
+            custody_context = dialogue_custody_brief(self.db, character.name)
+        except Exception:
+            custody_context = ""
+        try:
+            from ming_sim.punishments import dialogue_punishment_brief
+            punishment_context = dialogue_punishment_brief(self.db, character.name)
+        except Exception:
+            punishment_context = ""
         if supplemental_context:
             augmented = f"{supplemental_context[:2200]}\n\n{augmented}"
         if live_memory_brief:
@@ -746,6 +772,12 @@ class GameSession:
         if dialogue_prep.prefix:
             augmented = f"{dialogue_prep.prefix}\n\n{augmented}"
         behavior_parts = [message]
+        if condition_context:
+            behavior_parts.append(condition_context[:1800])
+        if custody_context:
+            behavior_parts.append(custody_context[:1800])
+        if punishment_context:
+            behavior_parts.append(punishment_context[:1800])
         if servility_context:
             behavior_parts.append(servility_context[:2600])
         if supplemental_context:
@@ -782,9 +814,15 @@ class GameSession:
                 augmented = f"{cb}\n\n{augmented}"
         except Exception:
             pass
-        # 净身·心相（E2a）：与净身者对话时注入其奴性表达与「宝」之心结（强阉扭曲/自愿恭谨）。
+        # 净身·心相（E2a）：与净身者对话时注入其奴性表达与「宝」之心结（强制净身/自愿恭谨）。
         if servility_context:
             augmented = f"{servility_context}\n\n{augmented}"
+        if condition_context:
+            augmented = f"{condition_context}\n\n{augmented}"
+        if custody_context:
+            augmented = f"{custody_context}\n\n{augmented}"
+        if punishment_context:
+            augmented = f"{punishment_context}\n\n{augmented}"
         return augmented, dialogue_prep
 
     def record_dialogue_after_chat(
@@ -796,6 +834,7 @@ class GameSession:
         *,
         source_chat_turn_id: int = 0,
         directive_already_recorded: bool = False,
+        source_context: Optional[Dict[str, object]] = None,
     ) -> Dict[str, object]:
         return record_dialogue_effects(
             self.db,
@@ -810,6 +849,7 @@ class GameSession:
             audit_client=self.dialogue_audit_client,
             persistent=self._persistent_dialogue_character(character),
             directive_already_recorded=directive_already_recorded,
+            source_context=source_context,
         )
 
     def dialogue_route_allows_tool_summon(
@@ -824,15 +864,19 @@ class GameSession:
 
         The model calling a tool is not enough evidence to switch audience.
         This keeps direct summons under the same route audit as text-first
-        summons while preserving an opt-out for tests and legacy diagnostics.
+        summons.  When no semantic audit is available, the tool request is just
+        treated as NPC prose and must not switch audience.
         """
         clean_target = str(target_name or "").strip()
         if not clean_target:
             return False
-        if os.environ.get("MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes"):
-            return True
+        if (
+            os.environ.get("MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes")
+            and self.dialogue_audit_client is None
+        ):
+            return False
         try:
-            from ming_sim.dialogue_audit import dialogue_route_intent_audit
+            from ming_sim.dialogue_semantics import DialogueSemanticEngine
 
             target = self.content.characters.get(clean_target) or self.temporary_characters.get(clean_target)
             route_context = {
@@ -851,19 +895,21 @@ class GameSession:
                 "unknown_candidates": [],
                 "recent_implied_summon_name": "",
             }
-            review = dialogue_route_intent_audit(
+            decision = DialogueSemanticEngine(
                 self.db,
                 self.state,
+                llm_config=self.llm_config,
+                agno_db=self.agno_db,
+                audit_client=self.dialogue_audit_client,
+            ).evaluate_route(
                 character,
                 user_text,
                 pending_action=None,
                 route_context=route_context,
-                llm_config=self.llm_config,
-                agno_db=self.agno_db,
-                audit_client=self.dialogue_audit_client,
             )
         except Exception:
             return False
+        review = decision.to_route_review()
         if not isinstance(review, dict) or not review.get("allow"):
             return False
         if str(review.get("intent") or "") != "summon":
@@ -887,8 +933,11 @@ class GameSession:
         answer: str = "",
     ) -> bool:
         """Semantic gate for LLM-issued secret-order tool calls before DB writes."""
-        if os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes"):
-            return True
+        if (
+            os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes")
+            and self.dialogue_audit_client is None
+        ):
+            return False
         try:
             data = json.loads(payload) if payload else {}
         except (TypeError, ValueError):
@@ -901,11 +950,15 @@ class GameSession:
             return False
         assignee = str(data.get("assignee") or "").strip() or character.name
         try:
-            from ming_sim.dialogue_audit import dialogue_action_intent_audit
+            from ming_sim.dialogue_semantics import DialogueSemanticEngine
 
-            review = dialogue_action_intent_audit(
+            decision = DialogueSemanticEngine(
                 self.db,
                 self.state,
+                llm_config=self.llm_config,
+                agno_db=self.agno_db,
+                audit_client=self.dialogue_audit_client,
+            ).gate_tool_action(
                 character,
                 user_text,
                 {
@@ -922,12 +975,11 @@ class GameSession:
                     "tool_answer_excerpt": str(answer or "")[:240],
                 },
                 pending_action=None,
-                llm_config=self.llm_config,
-                agno_db=self.agno_db,
-                audit_client=self.dialogue_audit_client,
+                phase="confirm",
             )
         except Exception:
             return False
+        review = decision.to_review()
         if not isinstance(review, dict) or not review.get("allow"):
             return False
         return str(review.get("action_type") or "") == "secret_order" and str(review.get("phase") or "") == "confirm"
@@ -964,6 +1016,7 @@ class GameSession:
         *,
         source_chat_turn_id: int = 0,
         supplemental_context: str = "",
+        source_context: Optional[Dict[str, object]] = None,
     ) -> ChatTurnResult:
         """与大臣对话一轮，统一处理 court tool 截获。
         大臣 propose_directive 产生的草案以 status='pending' 入库，
@@ -1121,6 +1174,7 @@ class GameSession:
             dialogue_prep,
             source_chat_turn_id=source_chat_turn_id,
             directive_already_recorded=result.proposed_directive is not None,
+            source_context=source_context,
         )
         if result.proposed_directive is None:
             proposed = result.dialogue_goal.get("proposed_directive")
@@ -1508,6 +1562,7 @@ class GameSession:
             if isinstance(delta, dict):
                 delta = dict(delta)
                 delta["_directive_text"] = str(row["text"] or "")
+                delta["_directive_id"] = did
             applied: Dict[str, object] = {}
             if isinstance(delta, dict) and delta:
                 try:

@@ -715,6 +715,7 @@ export function briefUrgency(value?: number): { label: string; level: "danger" |
 export function audienceLeadFromBrief(card: PlaystyleBriefCard, actor = card.actor || "", target = card.target || ""): AudienceLead {
   const followup = card.kind === "directive_followup";
   return {
+    card_key: card.card_key,
     kind: card.kind,
     title: followup ? "复命后追问" : card.title,
     detail: card.detail,
@@ -730,6 +731,8 @@ export function audienceLeadFromBrief(card: PlaystyleBriefCard, actor = card.act
     refusal: card.refusal,
     ref_kind: card.ref_kind,
     ref_id: card.ref_id,
+    source_type: card.source_type,
+    source_id: card.source_id,
     opening: audienceOpeningFromBrief(card, actor, target),
     prompts: withClosurePrompt(withBargainPrompt(briefPrompts(card, actor, target), card, actor, target), card.kind, actor, target),
     stakes: card.stakes || [],

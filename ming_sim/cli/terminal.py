@@ -15,7 +15,7 @@ from ming_sim.assets import wrap
 from ming_sim.context import match_minister_from_text
 from ming_sim.exceptions import ExitGame
 from ming_sim.models import Character, GameState
-from ming_sim.session import GameSession, TurnPhase
+from ming_sim.session import GameSession, SUMMONABLE_STATUSES, TurnPhase
 from ming_sim.skills import print_all_skill_cards, print_skill_card, skill_display_name
 
 _STATUS_LABEL = {
@@ -44,18 +44,18 @@ def choose_minister(session: GameSession) -> Optional[Character]:
     # candidate（待选采女池）也不进名单——须经选妃诏书册封升 active 后方可召见。
     names = [
         name for name in characters
-        if session.db.get_character_status(name)[0] not in ("offstage", "candidate")
+        if session.db.get_character_status(name)[0] in SUMMONABLE_STATUSES
         and getattr(characters[name], "status", "active") != "candidate"
         and getattr(characters[name], "power_id", "ming") == "ming"
     ]
-    print("\n可召见大臣：")
+    print("\n可召见/押审大臣：")
     for idx, name in enumerate(names, 1):
         c = characters[name]
         status, _ = session.db.get_character_status(name)
         tag = "" if status == "active" else f"  [{_STATUS_LABEL.get(status, status)}]"
         print(f"{idx}. {c.name}（{c.office}，{c.faction}）{tag}")
     while True:
-        raw = input("召见谁？输入编号或姓名，skills 查看技能卡，quit 退朝审阅诏书，exit 退出游戏：").strip()
+        raw = input("召见/押审谁？输入编号或姓名，skills 查看技能卡，quit 退朝审阅诏书，exit 退出游戏：").strip()
         if not raw:
             print("请输入编号或姓名。")
             continue
@@ -93,10 +93,11 @@ def choose_minister(session: GameSession) -> Optional[Character]:
                 print(f"临时传{candidate.name}入殿。\n")
                 return candidate
         if candidate.name not in session.temporary_characters:
-            status, reason = session.db.get_character_status(candidate.name)
-            if status != "active":
+            ok, reason = session.can_summon(candidate)
+            if not ok:
+                status, _ = session.db.get_character_status(candidate.name)
                 tag = _STATUS_LABEL.get(status, status)
-                print(f"{candidate.name}已{tag}，无法召见。{reason}")
+                print(f"{candidate.name}已{tag}，无法召见/押审。{reason}")
                 continue
         return candidate
 
