@@ -1292,6 +1292,67 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_pending_action_confirm_uses_decision_payload_boundary(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "韩爌"
+            game._store_pending_dialogue_action(
+                actor,
+                {
+                    "type": "mediation",
+                    "actor": actor,
+                    "mode": "co_work",
+                    "condition": "调停派系旧怨",
+                },
+            )
+            calls = []
+
+            def capture(minister_name, action, *, review=None, chat_turn_id=0, decision_type="tool"):
+                calls.append({
+                    "minister_name": minister_name,
+                    "action": dict(action or {}),
+                    "review": dict(review or {}),
+                    "chat_turn_id": int(chat_turn_id or 0),
+                    "decision_type": decision_type,
+                })
+                return {"answer": "ok"}
+
+            game._execute_semantic_dialogue_action = capture
+            decision = SemanticDecision(
+                decision_type="pending",
+                action_type="mediation",
+                phase="confirm",
+                actor=actor,
+                mode="co_work",
+                payload={"faction": "东林"},
+                confidence=96,
+                trigger_quote="准，去调停东林旧怨。",
+                private_reason="test pending payload boundary",
+                raw={"faction": "阉党"},
+            )
+
+            response = game._dialogue_pending_action_response_from_decision(
+                actor,
+                "准，去调停东林旧怨。",
+                decision,
+                chat_turn_id=101,
+            )
+
+            self.assertEqual(response, {"answer": "ok"})
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(calls[0]["decision_type"], "pending")
+            self.assertEqual(calls[0]["chat_turn_id"], 101)
+            self.assertEqual(calls[0]["action"]["type"], "mediation")
+            self.assertEqual(calls[0]["action"]["faction"], "东林")
+            self.assertNotEqual(calls[0]["action"]["faction"], str(decision.raw.get("faction")))
+            self.assertEqual(calls[0]["review"].get("faction"), "东林")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_tool_response_uses_unified_semantic_gate_for_propose_and_confirm(self):
         game = web_app.WebGame(fresh=True)
         try:

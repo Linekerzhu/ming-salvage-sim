@@ -4973,25 +4973,26 @@ class WebGame:
         *,
         chat_turn_id: int = 0,
     ) -> Optional[Dict[str, Any]]:
-        review = decision.to_review()
-        if not isinstance(review, dict) or not review.get("allow"):
+        if not isinstance(decision, SemanticDecision) or not decision.allow:
             return None
-        if str(review.get("phase") or "") != "confirm":
+        if str(decision.phase or "") != "confirm":
             return None
         pending = self._load_pending_dialogue_action(minister_name)
         if not isinstance(pending, dict) or not pending:
             return None
         action_type = str(pending.get("type") or "").strip()
-        if review.get("action_type") not in {"", action_type}:
+        if str(decision.action_type or "") not in {"", action_type}:
             return None
+        review = decision.to_review()
+        payload = decision.payload if isinstance(decision.payload, dict) else {}
         if action_type == "recruitment":
             action = dict(pending)
-            if review.get("kind"):
-                action["kind"] = review.get("kind")
-            if review.get("trigger_quote"):
-                action["trigger_quote"] = review.get("trigger_quote")
-            if review.get("private_reason"):
-                action["semantic_reason"] = review.get("private_reason")
+            if decision.kind:
+                action["kind"] = decision.kind
+            if decision.trigger_quote:
+                action["trigger_quote"] = decision.trigger_quote
+            if decision.private_reason:
+                action["semantic_reason"] = decision.private_reason
             return self._execute_semantic_dialogue_action(
                 minister_name,
                 action,
@@ -5016,12 +5017,13 @@ class WebGame:
                 if part
             )
         for key in ("target", "actor", "faction", "kind", "mode"):
-            if review.get(key):
-                normalized[key] = review.get(key)
-        if review.get("trigger_quote"):
-            normalized["trigger_quote"] = review.get("trigger_quote")
-        if review.get("private_reason"):
-            normalized["semantic_reason"] = review.get("private_reason")
+            value = payload.get(key) if key == "faction" else getattr(decision, key, "")
+            if value:
+                normalized[key] = value
+        if decision.trigger_quote:
+            normalized["trigger_quote"] = decision.trigger_quote
+        if decision.private_reason:
+            normalized["semantic_reason"] = decision.private_reason
         if normalized.get("type") == "castration":
             normalized["force"] = True
             if not self._castration_action_target_is_valid(normalized):
