@@ -286,6 +286,16 @@ def _quote_supported_by_dialogue_text(quote: str, combined_text: str) -> bool:
     return clean_quote in clean_text
 
 
+def _quote_supported_by_player_text(quote: str, user_text: str) -> bool:
+    if _quote_supported_by_dialogue_text(quote, user_text):
+        return True
+    clean_quote = re.sub(r"[\W_]+", "", str(quote or ""), flags=re.UNICODE)
+    if not clean_quote:
+        return False
+    clean_user = re.sub(r"[\W_]+", "", str(user_text or ""), flags=re.UNICODE)
+    return clean_quote in clean_user
+
+
 def _known_dialogue_consequence_name(db: Any, name: str) -> bool:
     content = getattr(db, "content", None)
     characters = getattr(content, "characters", None)
@@ -360,6 +370,7 @@ def _apply_dialogue_immediate_consequences(
     character: Character,
     post_raw: Dict[str, object],
     *,
+    user_text: str,
     combined_text: str,
     source_chat_turn_id: int,
     confidence: int,
@@ -367,7 +378,7 @@ def _apply_dialogue_immediate_consequences(
     if int(confidence or 0) < CONSEQUENCE_CONFIDENCE_FLOOR:
         return {}
     trigger_quote = _immediate_consequence_trigger_quote(post_raw)
-    if not _quote_supported_by_dialogue_text(trigger_quote, combined_text):
+    if not _quote_supported_by_player_text(trigger_quote, user_text):
         return {}
     extracted = _extract_dialogue_immediate_consequences(
         post_raw,
@@ -829,6 +840,7 @@ def _create_directive_from_audit(
     character: Character,
     post: Any,
     *,
+    user_text: str,
     source_chat_turn_id: int = 0,
     already_recorded: bool = False,
 ) -> Dict[str, object]:
@@ -838,6 +850,12 @@ def _create_directive_from_audit(
         return {}
     text = str(getattr(post, "directive_text", "") or "").strip()
     if not text:
+        return {}
+    raw = getattr(post, "raw", {})
+    trigger_quote = ""
+    if isinstance(raw, dict):
+        trigger_quote = _compact(str(raw.get("trigger_quote") or raw.get("directive_trigger_quote") or ""), 180)
+    if not _quote_supported_by_player_text(trigger_quote, user_text):
         return {}
     actor = str(getattr(character, "name", "") or "").strip()
     try:
@@ -883,6 +901,7 @@ def _create_directive_from_audit(
         "notes": notes,
         "actor": actor,
         "already_recorded": False,
+        "trigger_quote": trigger_quote,
         "audit_confidence": int(getattr(post, "confidence", 0) or 0),
     }
 
@@ -943,6 +962,7 @@ def record_dialogue_effects(
         state,
         character,
         post,
+        user_text=user_text,
         source_chat_turn_id=source_chat_turn_id,
         already_recorded=directive_already_recorded,
     )
@@ -951,6 +971,7 @@ def record_dialogue_effects(
         state,
         character,
         post.raw,
+        user_text=user_text,
         combined_text=combined,
         source_chat_turn_id=source_chat_turn_id,
         confidence=post.confidence,

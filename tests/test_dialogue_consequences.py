@@ -256,6 +256,61 @@ class DialogueImmediateConsequenceTests(unittest.TestCase):
             status, _ = db.get_character_status("韩爌")
             self.assertEqual(status, "active")
 
+    def test_dialogue_consequence_requires_trigger_quote_from_user_text(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp, self.content)
+            character = self.content.characters["洪承畴"]
+
+            class Audit:
+                def post(self, payload):
+                    return {
+                        "goal_decision": "none",
+                        "goal_relation": "none",
+                        "action_kind": "general",
+                        "stance": "neutral",
+                        "handshake_status": "none",
+                        "goal_status": "active",
+                        "score_delta": 0,
+                        "score_after": 0,
+                        "threshold": 70,
+                        "conditions": [],
+                        "blockers": [],
+                        "agreement_action": "none",
+                        "immediate_consequence": True,
+                        "character_status_changes": [{
+                            "name": "洪承畴",
+                            "status": "imprisoned",
+                            "agency": "锦衣卫",
+                            "facility": "北镇抚司昭狱",
+                            "severity": 5,
+                            "reason": "臣知罪，愿入昭狱受罚",
+                        }],
+                        "confidence": 96,
+                        "trigger_quote": "臣知罪，愿入昭狱受罚",
+                        "public_hint": "口谕即时执行。",
+                        "private_reason": "trigger_quote 来自 NPC 回复，不应落库。",
+                    }
+
+            result = record_dialogue_effects(
+                db,
+                state,
+                character,
+                "朕问你辽事案情如何？",
+                "臣知罪，愿入昭狱受罚。",
+                prepared=self._prepared_none(),
+                audit_client=Audit(),
+                source_chat_turn_id=326,
+            )
+
+            self.assertEqual(result["event"], "none")
+            self.assertEqual(result["dialogue_consequences"], {})
+            status, _ = db.get_character_status("洪承畴")
+            self.assertEqual(status, "active")
+            self.assertIsNone(db.conn.execute(
+                "SELECT 1 FROM character_custodies WHERE name=?",
+                ("洪承畴",),
+            ).fetchone())
+
     def test_dialogue_consequences_filter_unknown_names_before_apply(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp, self.content)

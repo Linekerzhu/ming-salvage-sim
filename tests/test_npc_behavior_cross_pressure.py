@@ -772,6 +772,7 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                     "directive_action": "propose_pending",
                     "directive_text": directive_text,
                     "confidence": 96,
+                    "trigger_quote": "户部亏空先拟一道旨",
                     "public_hint": "NPC 已拟成一条可核定草案。",
                     "private_reason": "NPC 原文称臣已拟旨如下。",
                 },
@@ -793,6 +794,56 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             self.assertEqual(str(directives[0]["actor"]), "毕自严")
             self.assertEqual(result["event"], "directive_proposed")
             self.assertEqual(result["proposed_directive"]["id"], int(directives[0]["id"]))
+            db.conn.close()
+
+    def test_post_audit_directive_requires_trigger_quote_from_user_text(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db = GameDB(str(Path(tmp) / "npc_directive_from_answer_only.db"), content=self.content)
+            db.seed_static_data()
+            state = GameState(
+                year=1628,
+                period=1,
+                turn=1,
+                metrics={"国库": 100, "内库": 50, "民心": 50, "皇威": 50},
+            )
+            directive_text = "命户部核太仓亏空，三日内具实数以闻。"
+            audit = StaticAudit(
+                {"goal_decision": "none", "confidence": 93},
+                {
+                    "goal_decision": "none",
+                    "goal_relation": "none",
+                    "action_kind": "general",
+                    "stance": "neutral",
+                    "handshake_status": "none",
+                    "goal_status": "active",
+                    "score_delta": 0,
+                    "score_after": 0,
+                    "threshold": 70,
+                    "conditions": [],
+                    "blockers": [],
+                    "agreement_action": "none",
+                    "directive_action": "propose_pending",
+                    "directive_text": directive_text,
+                    "confidence": 96,
+                    "trigger_quote": "臣已拟旨如下",
+                    "public_hint": "NPC 已拟成一条可核定草案。",
+                    "private_reason": "trigger_quote 来自 NPC 回复，不应落库。",
+                },
+            )
+
+            result = record_dialogue_effects(
+                db,
+                state,
+                self.content.characters["毕自严"],
+                "这道旨意若颁布会怎样？",
+                f"臣已拟旨如下：{directive_text}",
+                audit_client=audit,
+            )
+
+            directives = db.list_directives(state, statuses=("pending", "draft"))
+            self.assertEqual(directives, [])
+            self.assertEqual(result["event"], "none")
+            self.assertEqual(result["proposed_directive"], {})
             db.conn.close()
 
     def test_hostile_relations_are_not_positive_recommendations(self) -> None:

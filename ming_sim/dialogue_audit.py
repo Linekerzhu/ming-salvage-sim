@@ -1246,9 +1246,9 @@ POST_AUDIT_PROMPT = """
 - 若本轮只是把同一 active_goal 从粗目标细化为具体官职/授权/名分/条件，输出 goal_relation=refine_goal，并把 title/target_text 改成修订后的版本；不要创建多个 goal。
 - 若确属另一个目标，输出 goal_relation=distinct_goal；若旧目标应让位，goal_decision=switch。
 - 若 active_goal 正在 waiting_conditions，而玩家/NPC 原文表明要求的明旨、授权、人手、钱粮、名分、保全、期限等已经给足，conditions 对应项应标 done；NPC 随即接受标的时可 sealed。
-- 如果 NPC 原文已经给出一段可直接进入旨意库的完整草案、条陈式诏令或“臣已拟旨如下”，但没有工具调用痕迹，输出 directive_action=propose_pending，并把 directive_text 填为可入库草案。只有建议、原则、口头意见、零散条款时仍为 none。
+- 如果玩家本轮明确要求拟旨、拟成可核定草案或授权把 NPC 草案落成待核旨意，且 NPC 原文已经给出一段可直接进入旨意库的完整草案、条陈式诏令或“臣已拟旨如下”，但没有工具调用痕迹，输出 directive_action=propose_pending，并把 directive_text 填为可入库草案，同时 trigger_quote 必须引用玩家本轮原话中证明“要求拟旨/落草案”的短句。只有 NPC 主动建议、玩家只是询问风险、原则、口头意见、零散条款时仍为 none。
 - 若玩家在本轮奏对中以皇帝身份直接下达即时口谕，明确命令将某个 NPC 下狱、押入昭狱、用刑、处刑、割舌、宫刑，或 NPC 原文明示该事实已经发生，可输出 immediate_consequence=true，并填写 character_status_changes / condition_changes / punishment_changes。只是询问、威胁、商议、拟旨、请 NPC 建议、未来可能执行时必须 immediate_consequence=false 且三个 changes 留空。
-- immediate_consequence=true 时必须填写 trigger_quote，且必须逐字引用本轮玩家原话或 NPC 回复中足以证明“已经即时执行/明确口谕”的短句；没有可引用证据时 immediate_consequence=false。
+- immediate_consequence=true 时必须填写 trigger_quote，且必须逐字引用本轮玩家原话中足以证明“已经即时执行/明确口谕”的短句；只有 NPC 回复自称已经执行、但玩家原话没有明确口谕时，不得输出 immediate_consequence=true。没有可引用证据时 immediate_consequence=false。
 - 即时后果必须有明确目标姓名；若只是“他/此人/他们”且本轮文本无法唯一指向，不得填写 changes。对当前奏对对象可用其姓名。
 - 刑罚分类：明律五刑用 taxonomy=ming_five，punishment=笞刑|杖刑|徒刑|流刑|死刑；古五刑用 taxonomy=ancient_five，punishment=墨刑|劓刑|刖刑|宫刑|大辟；普通酷刑/伤残用 taxonomy=ordinary，例如 punishment=割舌|割耳|断腿|拷掠|夹棍|廷杖。
 - 宫刑、腐刑、强制净身、去势等强制执行时优先写 punishment_changes 的“宫刑”；程序会自动派生病历中的生殖器官缺失、绝育、性功能丧失、尿道狭窄、慢性创痛等事实。condition_changes 只补原文另明写的病历并发症（如漏尿、尿闭、幻肢痛、失声等）。相关文字必须是临床/档案措辞，不写情色化描述。
@@ -1277,7 +1277,7 @@ JSON 字段：
   "performance_status": "none|pending|fulfilled|blocked|rejected|waived",
   "card_resolution": "handled|pending|fulfilled|blocked|rejected|waived|",
   "immediate_consequence": false,
-  "trigger_quote": "immediate_consequence=true 时引用本轮原文短句；否则空字符串",
+  "trigger_quote": "immediate_consequence=true 或 directive_action=propose_pending 时引用玩家本轮原话短句；否则空字符串",
   "character_status_changes": [{"name":"目标姓名","status":"imprisoned|exiled|dead|dismissed|retired|offstage|castrated","reason":"原文证据","agency":"锦衣卫|刑部|都察院|内廷|其他","facility":"北镇抚司昭狱|刑部大牢|诏狱|其他","coercion_goal":"逼供/迫使奉旨/株连线索/其他","severity":1}],
   "condition_changes": [{"name":"目标姓名","kind":"punishment|prison_effect|disease|injury|disability|terminal","system":"speech|nervous|circulatory|respiratory|digestive|musculoskeletal|urinary|reproductive|skin|mental|general","label":"病历短名","severity":1,"stage":"mild|serious|critical|disabled|chronic|dead","reason":"原文证据","effects":{"speech":"口齿含混等能力影响","record_group":"organic|pathological|psychological|other","organ":"器官/肢体","side":"左|右","state":"状态","function":"功能","impact":"影响","course_kind":"acute|chronic","possible_outcomes":["恢复","加重"]}}],
   "punishment_changes": [{"name":"目标姓名","taxonomy":"ordinary|ming_five|ancient_five","punishment":"刑罚名","severity":1,"stage":"ordered|executing|executed","executor":"锦衣卫/刑部等","reason":"原文证据"}],
