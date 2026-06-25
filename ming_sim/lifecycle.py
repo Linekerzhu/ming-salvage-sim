@@ -462,6 +462,18 @@ def _json_dict(raw: object) -> Dict[str, object]:
     return data if isinstance(data, dict) else {}
 
 
+def _quote_supported_by_text(quote: str, text: str) -> bool:
+    raw_quote = str(quote or "").strip()
+    raw_text = str(text or "").strip()
+    if not raw_quote or not raw_text:
+        return False
+    if raw_quote in raw_text:
+        return True
+    compact_quote = "".join(raw_quote.split())
+    compact_text = "".join(raw_text.split())
+    return bool(compact_quote and compact_quote in compact_text)
+
+
 _DIRECT_CASTRATION_RE = re.compile(r"净身|宫刑|腐刑|去势|阉割|(?:押赴|押入|送往|发往)净身房|没入内廷|入内廷为奴|入宫为奴|净身房")
 
 
@@ -623,6 +635,15 @@ def _court_castration_execution_review(
             "allow": False,
             "target_name": "",
             "private_reason": f"审计目标不在候选人物内：{target}",
+        })
+        return review
+    trigger_quote = str(review.get("trigger_quote") or "").strip()
+    if not _quote_supported_by_text(trigger_quote, text):
+        review = dict(review)
+        review.update({
+            "allow": False,
+            "target_name": "",
+            "private_reason": "强制净身执行审计触发句不在旨意文本中。",
         })
         return review
     return review

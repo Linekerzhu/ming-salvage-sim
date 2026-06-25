@@ -68,14 +68,18 @@ def _call_fake(audit_client: object, phase: str, payload: Dict[str, object]) -> 
 def _normalize_directive_castration_execution(data: Dict[str, object]) -> Dict[str, object]:
     confidence = _confidence(data.get("confidence"))
     target = _compact(data.get("target_name") or data.get("target"), 80)
-    allow = bool(data.get("allow")) and bool(target) and confidence >= CONFIDENCE_FLOOR
+    trigger_quote = _compact(data.get("trigger_quote"), 160)
+    private_reason = _compact(data.get("private_reason") or data.get("reason"), 520)
+    if bool(data.get("allow")) and not trigger_quote and not private_reason:
+        private_reason = "缺少强制净身执行触发句。"
+    allow = bool(data.get("allow")) and bool(target) and confidence >= CONFIDENCE_FLOOR and bool(trigger_quote)
     return {
         "allow": allow,
         "target_name": target if allow else "",
         "confidence": confidence,
-        "trigger_quote": _compact(data.get("trigger_quote"), 160),
+        "trigger_quote": trigger_quote,
         "public_hint": _compact(data.get("public_hint"), 200),
-        "private_reason": _compact(data.get("private_reason") or data.get("reason"), 520),
+        "private_reason": private_reason,
         "raw": data,
     }
 

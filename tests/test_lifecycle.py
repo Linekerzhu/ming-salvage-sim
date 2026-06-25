@@ -206,6 +206,94 @@ class ClassifyTests(unittest.TestCase):
                 else:
                     os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = old
 
+    def test_inner_court_castration_execution_requires_trigger_quote(self):
+        with TemporaryDirectory() as tmp:
+            old = os.environ.get("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT")
+            os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = "0"
+            db, state = _fresh(tmp)
+
+            def audit(phase, payload):
+                if phase == "directive_castration_execution":
+                    return {
+                        "allow": True,
+                        "target_name": "韩爌",
+                        "trigger_quote": "",
+                        "private_reason": "缺少可核验原旨意触发句。",
+                        "confidence": 97,
+                    }
+                return None
+
+            lifecycle.configure_directive_audit(audit_client=audit)
+            try:
+                did = _issue(db, state, "着王承恩押韩爌至净身房净身，发入内廷听差。", "王承恩")
+                timeflow.advance_days(db, state, 1, stop_on_yellow=False)
+                done = db.conn.execute(
+                    "SELECT lifecycle_status, chain FROM turn_directives WHERE id=?",
+                    (did,),
+                ).fetchone()
+                self.assertEqual(str(done["lifecycle_status"]), "done")
+                meta = json.loads(done["chain"])
+                self.assertTrue(meta["court_immediate_action"]["blocked"])
+                self.assertFalse(meta["court_immediate_action"]["applied"])
+                crow = db.conn.execute(
+                    "SELECT office, office_type, faction FROM characters WHERE name='韩爌'"
+                ).fetchone()
+                self.assertNotEqual(str(crow["faction"]), "内廷")
+                from ming_sim import eunuch_lore as el
+                self.assertIsNone(el.get_lore(db, "韩爌"))
+            finally:
+                lifecycle.configure_directive_audit()
+                if old is None:
+                    os.environ.pop("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT", None)
+                else:
+                    os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = old
+
+    def test_inner_court_castration_execution_requires_quote_from_decree(self):
+        with TemporaryDirectory() as tmp:
+            old = os.environ.get("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT")
+            os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = "0"
+            db, state = _fresh(tmp)
+
+            def audit(phase, payload):
+                if phase == "directive_castration_execution":
+                    return {
+                        "allow": True,
+                        "target_name": "韩爌",
+                        "trigger_quote": "臣已押韩爌净身",
+                        "private_reason": "误把执行回报当成原旨意证据。",
+                        "confidence": 97,
+                    }
+                return None
+
+            lifecycle.configure_directive_audit(audit_client=audit)
+            try:
+                did = _issue(db, state, "着王承恩押韩爌至净身房净身，发入内廷听差。", "王承恩")
+                timeflow.advance_days(db, state, 1, stop_on_yellow=False)
+                done = db.conn.execute(
+                    "SELECT lifecycle_status, chain FROM turn_directives WHERE id=?",
+                    (did,),
+                ).fetchone()
+                self.assertEqual(str(done["lifecycle_status"]), "done")
+                meta = json.loads(done["chain"])
+                self.assertTrue(meta["court_immediate_action"]["blocked"])
+                self.assertFalse(meta["court_immediate_action"]["applied"])
+                self.assertIn(
+                    "不在旨意文本中",
+                    meta["court_immediate_action"]["semantic_review"]["private_reason"],
+                )
+                crow = db.conn.execute(
+                    "SELECT office, office_type, faction FROM characters WHERE name='韩爌'"
+                ).fetchone()
+                self.assertNotEqual(str(crow["faction"]), "内廷")
+                from ming_sim import eunuch_lore as el
+                self.assertIsNone(el.get_lore(db, "韩爌"))
+            finally:
+                lifecycle.configure_directive_audit()
+                if old is None:
+                    os.environ.pop("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT", None)
+                else:
+                    os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = old
+
     def test_inner_court_castration_execution_allowed_by_semantic_audit(self):
         with TemporaryDirectory() as tmp:
             old = os.environ.get("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT")
