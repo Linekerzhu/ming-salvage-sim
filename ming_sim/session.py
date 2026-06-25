@@ -1163,18 +1163,43 @@ class GameSession:
         answer: str = "",
     ) -> bool:
         """Semantic gate for LLM-issued secret-order tool calls before DB writes."""
+        decision = self.dialogue_secret_order_decision(
+            character,
+            user_text,
+            payload,
+            answer=answer,
+        )
+        review = decision.to_review() if decision is not None else {}
+        kind = str(review.get("kind") or "").strip()
+        return bool(
+            isinstance(review, dict)
+            and review.get("allow")
+            and str(review.get("action_type") or "") == "secret_order"
+            and str(review.get("phase") or "") == "confirm"
+            and kind in {"", "issue", "secret_order"}
+        )
+
+    def dialogue_secret_order_decision(
+        self,
+        character: Character,
+        user_text: str,
+        payload: str,
+        *,
+        answer: str = "",
+    ) -> Optional[Any]:
+        """Return the semantic decision for an issue_secret_order tool call."""
         if (
             os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes")
             and self.dialogue_audit_client is None
         ):
-            return False
+            return None
         action = self.dialogue_secret_order_action_from_payload(payload, character, answer=answer)
         if not action:
-            return False
+            return None
         try:
             from ming_sim.dialogue_semantics import DialogueSemanticEngine
 
-            decision = DialogueSemanticEngine(
+            return DialogueSemanticEngine(
                 self.db,
                 self.state,
                 llm_config=self.llm_config,
@@ -1188,11 +1213,33 @@ class GameSession:
                 phase="confirm",
             )
         except Exception:
-            return False
-        review = decision.to_review()
-        if not isinstance(review, dict) or not review.get("allow"):
-            return False
-        return str(review.get("action_type") or "") == "secret_order" and str(review.get("phase") or "") == "confirm"
+            return None
+
+    def _secret_order_payload_with_decision(
+        self,
+        payload: object,
+        decision: object,
+    ) -> Dict[str, object]:
+        if isinstance(payload, dict):
+            data = dict(payload)
+        else:
+            try:
+                data = json.loads(str(payload or "")) if payload else {}
+            except (TypeError, ValueError):
+                data = {}
+        if not isinstance(data, dict):
+            return {}
+        normalized: Dict[str, object] = dict(data)
+        review_payload = getattr(decision, "payload", {})
+        if not isinstance(review_payload, dict):
+            review_payload = {}
+        for key in ("title", "content", "assignee", "deadline_months"):
+            value = review_payload.get(key)
+            if value not in (None, "", [], {}):
+                normalized[key] = value
+        if isinstance(review_payload.get("tags"), list):
+            normalized["tags"] = review_payload["tags"]
+        return normalized
 
     def dialogue_action_allows_secret_order_followup(
         self,
@@ -1876,6 +1923,35 @@ class GameSession:
         except ValueError as exc:
             print(f"[secret_order] 拒绝落库：{exc}")
             return 0
+
+    def _apply_secret_order_after_semantic_gate(
+        self,
+        payload: str,
+        character: Character,
+        user_text: str,
+        *,
+        answer: str = "",
+    ) -> int:
+        decision = self.dialogue_secret_order_decision(
+            character,
+            user_text,
+            payload,
+            answer=answer,
+        )
+        review = decision.to_review() if decision is not None else {}
+        kind = str(review.get("kind") or "").strip()
+        if not (
+            isinstance(review, dict)
+            and review.get("allow")
+            and str(review.get("action_type") or "") == "secret_order"
+            and str(review.get("phase") or "") == "confirm"
+            and kind in {"", "issue", "secret_order"}
+        ):
+            return 0
+        normalized = self._secret_order_payload_with_decision(payload, decision)
+        if not normalized:
+            return 0
+        return self._apply_secret_order(json.dumps(normalized, ensure_ascii=False), character.name)
 
     def _apply_secret_order_followup(self, payload: object, minister_name: str = "") -> Dict[str, object]:
         """Apply an audited secret-order follow-up such as rush/immediate review."""

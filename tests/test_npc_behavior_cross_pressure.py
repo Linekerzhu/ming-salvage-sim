@@ -1534,6 +1534,74 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 else:
                     os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = old_disable
 
+    def test_secret_order_issue_execution_uses_decision_payload_boundary(self) -> None:
+        with TemporaryDirectory() as tmp:
+            old_disable = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")
+            os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+            session = GameSession(
+                str(Path(tmp) / "npc_secret_issue_payload_boundary.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            try:
+                session.begin_turn()
+                character = session._character("温体仁")
+                payload = json.dumps(
+                    {
+                        "title": "密查错档",
+                        "content": "工具夹带了不该入档的密令内容。",
+                        "tags": ["错档"],
+                        "assignee": "温体仁",
+                        "deadline_months": 9,
+                    },
+                    ensure_ascii=False,
+                )
+
+                def allow_audit(phase, audit_payload):
+                    if phase != "dialogue_action_intent":
+                        return None
+                    tool_action = audit_payload.get("tool_action") or {}
+                    self.assertEqual(tool_action.get("title"), "密查错档")
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "secret_order",
+                        "kind": "issue",
+                        "target": "温体仁",
+                        "actor": "温体仁",
+                        "confidence": 96,
+                        "trigger_quote": "暗查钱谦益",
+                        "private_reason": "审计只准许钱谦益密令建档。",
+                        "payload": {
+                            "title": "密查钱谦益",
+                            "content": "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                            "tags": ["钱谦益", "东林", "起复"],
+                            "assignee": "温体仁",
+                            "deadline_months": 2,
+                        },
+                    }
+
+                session.dialogue_audit_client = allow_audit
+                order_id = session._apply_secret_order_after_semantic_gate(
+                    payload,
+                    character,
+                    "给温体仁下密令，暗查钱谦益起复东林旧臣之议，两月内回奏。",
+                )
+
+                self.assertGreater(order_id, 0)
+                order = session.db.get_secret_order(order_id) or {}
+                self.assertEqual(order.get("title"), "密查钱谦益")
+                self.assertIn("钱谦益起复", str(order.get("content") or ""))
+                self.assertNotIn("错档", str(order.get("title") or "") + str(order.get("content") or ""))
+                self.assertEqual(int(order.get("due_turn") or 0), int(session.state.turn) + 2)
+            finally:
+                session.close()
+                if old_disable is None:
+                    os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+                else:
+                    os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = old_disable
+
     def test_dialogue_secret_order_rush_requires_semantic_confirm_before_db_write(self) -> None:
         with TemporaryDirectory() as tmp:
             old_disable = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")

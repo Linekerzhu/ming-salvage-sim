@@ -1539,6 +1539,72 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_secret_order_issue_tool_action_uses_decision_payload_boundary(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "温体仁"
+            action = {
+                "type": "secret_order",
+                "phase": "confirm",
+                "kind": "issue",
+                "mode": "secret_order",
+                "target": actor,
+                "assignee": actor,
+                "title": "密查错档",
+                "content": "工具夹带了不该入档的密令内容。",
+                "tags": ["错档"],
+                "deadline_months": 9,
+            }
+
+            def audit(phase, payload):
+                if phase != "dialogue_action_intent":
+                    return None
+                tool_action = payload.get("tool_action") or {}
+                self.assertEqual(tool_action.get("title"), "密查错档")
+                return {
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "secret_order",
+                    "kind": "issue",
+                    "target": actor,
+                    "actor": actor,
+                    "confidence": 96,
+                    "trigger_quote": "暗查钱谦益",
+                    "private_reason": "审计只准许钱谦益密令建档。",
+                    "payload": {
+                        "title": "密查钱谦益",
+                        "content": "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                        "tags": ["钱谦益", "东林", "起复"],
+                        "assignee": actor,
+                        "deadline_months": 2,
+                    },
+                }
+
+            os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+            game.session.dialogue_audit_client = audit
+            response = game._dialogue_tool_response(
+                actor,
+                action,
+                "臣遵旨密办。",
+                "给温体仁下密令，暗查钱谦益起复东林旧臣之议，两月内回奏。",
+                chat_turn_id=103,
+            )
+
+            self.assertIsNotNone(response)
+            order_id = int(response.get("secret_order_id") or 0)
+            self.assertGreater(order_id, 0)
+            order = game.db.get_secret_order(order_id) or {}
+            self.assertEqual(order.get("title"), "密查钱谦益")
+            self.assertIn("钱谦益起复", str(order.get("content") or ""))
+            self.assertNotIn("错档", str(order.get("title") or "") + str(order.get("content") or ""))
+            self.assertEqual(int(order.get("due_turn") or 0), int(game.state.turn) + 2)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_tool_response_uses_unified_semantic_gate_for_propose_and_confirm(self):
         game = web_app.WebGame(fresh=True)
         try:
