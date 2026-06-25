@@ -1727,6 +1727,139 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_secret_order_progress_and_review_tool_response_uses_unified_semantic_gate(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "温体仁"
+            progress_id = game.db.create_secret_order(
+                game.state,
+                actor,
+                "密查钱谦益",
+                "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                ["钱谦益", "东林", "起复"],
+                deadline_months=3,
+            )
+            review_id = game.db.create_secret_order(
+                game.state,
+                actor,
+                "密查仓场钱粮",
+                "暗查仓场钱粮亏空。",
+                ["仓场", "钱粮"],
+                deadline_months=3,
+            )
+            game.state.period = 2
+            game.state.turn = 2
+
+            progress_action = {
+                "type": "secret_order",
+                "phase": "confirm",
+                "kind": "progress",
+                "mode": "progress",
+                "target": actor,
+                "assignee": actor,
+                "order_id": progress_id,
+                "progress": "探得钱谦益门生往来频密，尚须核实名帖。",
+            }
+
+            def deny_audit(phase, payload):
+                if phase != "dialogue_action_intent":
+                    return None
+                return {
+                    "allow": False,
+                    "phase": "none",
+                    "action_type": "none",
+                    "confidence": 96,
+                    "private_reason": "只是问何时办完，不是要求入档进展。",
+                }
+
+            os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+            game.session.dialogue_audit_client = deny_audit
+            denied = game._dialogue_tool_response(
+                actor,
+                progress_action,
+                "臣尚在查。",
+                "此事何时能办完？",
+            )
+            self.assertIsNone(denied)
+            self.assertEqual(game.db.get_secret_order(progress_id)["result"], "")
+
+            def allow_progress_audit(phase, payload):
+                if phase != "dialogue_action_intent":
+                    return None
+                tool_action = payload.get("tool_action") or {}
+                self.assertEqual(tool_action.get("kind"), "progress")
+                self.assertEqual(tool_action.get("order_id"), progress_id)
+                return {
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "secret_order",
+                    "kind": "progress",
+                    "target": actor,
+                    "actor": actor,
+                    "confidence": 96,
+                    "trigger_quote": "照实入档",
+                    "private_reason": "玩家明确要求承办人回奏并落档本月进展。",
+                }
+
+            game.session.dialogue_audit_client = allow_progress_audit
+            progress_response = game._dialogue_tool_response(
+                actor,
+                progress_action,
+                "臣照实回奏。",
+                "说说本月查到什么，照实入档。",
+                chat_turn_id=80,
+            )
+            self.assertIsNotNone(progress_response)
+            self.assertEqual((progress_response.get("dialogue_effect") or {}).get("title"), "密令进展")
+            self.assertIn("门生往来", game.db.get_secret_order(progress_id)["result"])
+
+            submit_action = {
+                "type": "secret_order",
+                "phase": "confirm",
+                "kind": "submit_review",
+                "mode": "submit_review",
+                "target": actor,
+                "assignee": actor,
+                "order_id": review_id,
+                "claim": "已查得仓场亏空名册，臣请付核。",
+            }
+
+            def allow_submit_audit(phase, payload):
+                if phase != "dialogue_action_intent":
+                    return None
+                tool_action = payload.get("tool_action") or {}
+                self.assertEqual(tool_action.get("kind"), "submit_review")
+                self.assertEqual(tool_action.get("order_id"), review_id)
+                return {
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "secret_order",
+                    "kind": "submit_review",
+                    "target": actor,
+                    "actor": actor,
+                    "confidence": 96,
+                    "trigger_quote": "提交核议",
+                    "private_reason": "玩家明确准许提交核议。",
+                }
+
+            game.session.dialogue_audit_client = allow_submit_audit
+            submit_response = game._dialogue_tool_response(
+                actor,
+                submit_action,
+                "臣请付核。",
+                "若已办到位，就提交核议。",
+                chat_turn_id=81,
+            )
+            self.assertIsNotNone(submit_response)
+            self.assertEqual((submit_response.get("dialogue_effect") or {}).get("title"), "密令核议")
+            self.assertEqual(game.db.get_secret_order(review_id)["status"], "pending_review")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_chat_applies_session_secret_order_action_through_web_semantic_gate(self):
         game = web_app.WebGame(fresh=True)
         try:

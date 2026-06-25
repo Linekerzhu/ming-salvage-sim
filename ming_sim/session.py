@@ -986,7 +986,9 @@ class GameSession:
             "旧患差遣",
         } or bool(data.get("strategy"))
         is_rush = raw_kind in {"rush", "hurry", "催办", "加急", "即核"}
-        if not is_rush and not is_dispatch_strategy:
+        is_progress = raw_kind in {"progress", "report_progress", "进展", "查办进展"}
+        is_submit_review = raw_kind in {"submit_review", "review", "submit", "核议", "提交核议"}
+        if not is_rush and not is_dispatch_strategy and not is_progress and not is_submit_review:
             return {}
         raw_id = str(data.get("order_id") or data.get("id") or "").strip().lstrip("#")
         try:
@@ -1013,6 +1015,36 @@ class GameSession:
                 "strategy": strategy,
                 "order_id": order_id,
                 "note": str(data.get("note") or data.get("reason") or "").strip()[:120],
+                "title": str(data.get("title") or "").strip()[:40],
+                "assignee": str(data.get("assignee") or data.get("minister_name") or "").strip(),
+            }
+        if is_progress:
+            progress = str(data.get("progress") or data.get("note") or "").strip()[:200]
+            if not progress:
+                return {}
+            return {
+                "action": "progress",
+                "type": "secret_order",
+                "kind": "progress",
+                "mode": "progress",
+                "order_id": order_id,
+                "progress": progress,
+                "note": progress,
+                "title": str(data.get("title") or "").strip()[:40],
+                "assignee": str(data.get("assignee") or data.get("minister_name") or "").strip(),
+            }
+        if is_submit_review:
+            claim = str(data.get("claim") or data.get("note") or "").strip()[:200]
+            if not claim:
+                return {}
+            return {
+                "action": "submit_review",
+                "type": "secret_order",
+                "kind": "submit_review",
+                "mode": "submit_review",
+                "order_id": order_id,
+                "claim": claim,
+                "note": claim,
                 "title": str(data.get("title") or "").strip()[:40],
                 "assignee": str(data.get("assignee") or data.get("minister_name") or "").strip(),
             }
@@ -1062,6 +1094,42 @@ class GameSession:
                 "title": title,
                 "assignee": assignee,
                 "note": note or f"按净身旧患调整密令 #{int(data['order_id'])}「{title}」差遣策略：{strategy}",
+                "tool_answer_excerpt": str(answer or "")[:240],
+            }
+        if str(data.get("kind") or "") == "progress":
+            progress = str(data.get("progress") or data.get("note") or "").strip()[:200]
+            if not progress:
+                return {}
+            return {
+                "type": "secret_order",
+                "phase": "confirm",
+                "target": assignee,
+                "actor": character.name,
+                "kind": "progress",
+                "mode": "progress",
+                "order_id": int(data["order_id"]),
+                "title": title,
+                "assignee": assignee,
+                "progress": progress,
+                "note": progress,
+                "tool_answer_excerpt": str(answer or "")[:240],
+            }
+        if str(data.get("kind") or "") == "submit_review":
+            claim = str(data.get("claim") or data.get("note") or "").strip()[:200]
+            if not claim:
+                return {}
+            return {
+                "type": "secret_order",
+                "phase": "confirm",
+                "target": assignee,
+                "actor": character.name,
+                "kind": "submit_review",
+                "mode": "submit_review",
+                "order_id": int(data["order_id"]),
+                "title": title,
+                "assignee": assignee,
+                "claim": claim,
+                "note": claim,
                 "tool_answer_excerpt": str(answer or "")[:240],
             }
         deadline = int(data.get("deadline_months") or 0)
@@ -1558,7 +1626,12 @@ class GameSession:
                     result.secret_order_id = order_id
                     result.secret_order_assignee = assignee or character.name
                     result.secret_order_effect = self.record_secret_order_effect(order_id, result.secret_order_assignee)
-            elif tool_name in {"rush_secret_order", "set_eunuch_dispatch_strategy"} or tool_result.startswith("__secret_order_followup__"):
+            elif tool_name in {
+                "report_secret_order_progress",
+                "submit_secret_order_for_review",
+                "rush_secret_order",
+                "set_eunuch_dispatch_strategy",
+            } or tool_result.startswith("__secret_order_followup__"):
                 payload = tool_result.removeprefix("__secret_order_followup__").strip()
                 if not payload:
                     payload = _tool_args_json(tool_exec)
@@ -1749,6 +1822,10 @@ class GameSession:
             return {}
         if str(data.get("kind") or "") == "dispatch_strategy":
             return self._apply_secret_order_dispatch_strategy(data, minister_name)
+        if str(data.get("kind") or "") == "progress":
+            return self._apply_secret_order_progress(data, minister_name)
+        if str(data.get("kind") or "") == "submit_review":
+            return self._apply_secret_order_submit_review(data, minister_name)
         order_id = int(data.get("order_id") or 0)
         order = self.db.get_secret_order(order_id)
         if order is None:
@@ -1778,6 +1855,83 @@ class GameSession:
             "due_turn": due_turn,
             "deadline_months": deadline,
             "reason": reason,
+        }
+
+    def _apply_secret_order_progress(self, payload: object, minister_name: str = "") -> Dict[str, object]:
+        data = self._secret_order_followup_payload(payload)
+        if not data or str(data.get("kind") or "") != "progress":
+            return {}
+        order_id = int(data.get("order_id") or 0)
+        order = self.db.get_secret_order(order_id)
+        if order is None:
+            return {}
+        assignee = str(order.get("minister_name") or "").strip()
+        if minister_name and assignee != str(minister_name or "").strip():
+            return {}
+        if str(order.get("status") or "") != "active":
+            return {}
+        if int(order.get("turn_issued") or 0) == int(self.state.turn):
+            return {}
+        try:
+            if self.db._has_secret_order_period_line(order_id, "result", self.state.year, self.state.period):
+                return {}
+        except Exception:
+            return {}
+        progress = str(data.get("progress") or data.get("note") or "").strip()[:200]
+        if not progress:
+            return {}
+        ok = self.db.update_secret_order_progress(
+            order_id,
+            progress,
+            year=self.state.year,
+            period=self.state.period,
+        )
+        if not ok:
+            return {}
+        title = str(order.get("title") or data.get("title") or f"#{order_id}")
+        return {
+            "kind": "secret_order_progress",
+            "order_id": order_id,
+            "title": title,
+            "assignee": assignee,
+            "minister_name": assignee,
+            "progress": progress,
+            "status": "active",
+        }
+
+    def _apply_secret_order_submit_review(self, payload: object, minister_name: str = "") -> Dict[str, object]:
+        data = self._secret_order_followup_payload(payload)
+        if not data or str(data.get("kind") or "") != "submit_review":
+            return {}
+        order_id = int(data.get("order_id") or 0)
+        order = self.db.get_secret_order(order_id)
+        if order is None:
+            return {}
+        assignee = str(order.get("minister_name") or "").strip()
+        if minister_name and assignee != str(minister_name or "").strip():
+            return {}
+        if str(order.get("status") or "") != "active":
+            return {}
+        claim = str(data.get("claim") or data.get("note") or "").strip()[:200]
+        if not claim:
+            return {}
+        ok = self.db.submit_secret_order_for_review(
+            order_id,
+            claim,
+            year=self.state.year,
+            period=self.state.period,
+        )
+        if not ok:
+            return {}
+        title = str(order.get("title") or data.get("title") or f"#{order_id}")
+        return {
+            "kind": "secret_order_submit_review",
+            "order_id": order_id,
+            "title": title,
+            "assignee": assignee,
+            "minister_name": assignee,
+            "claim": claim,
+            "status": "pending_review",
         }
 
     def _apply_secret_order_dispatch_strategy(self, payload: object, minister_name: str = "") -> Dict[str, object]:

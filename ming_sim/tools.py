@@ -941,6 +941,18 @@ def build_minister_tools(character: Character, context: CourtContext):
         note = (progress or "").strip()[:200]
         saved = False
         if note and not already_advanced and not is_issuing_turn:
+            payload = {
+                "action": "progress",
+                "type": "secret_order",
+                "kind": "progress",
+                "mode": "progress",
+                "order_id": int(order["id"]),
+                "title": str(order.get("title") or ""),
+                "assignee": str(order.get("minister_name") or character.name),
+                "progress": note,
+            }
+            if not bool(getattr(context, "tool_side_effects", True)):
+                return f"__secret_order_followup__{json.dumps(payload, ensure_ascii=False)}"
             saved = context.db.update_secret_order_progress(
                 order["id"], note, year=context.state.year, period=context.state.period
             )
@@ -980,6 +992,18 @@ def build_minister_tools(character: Character, context: CourtContext):
         text = (claim or "").strip()
         if not text:
             return "提交失败：claim 为空，须写明你声称办到了什么。"
+        payload = {
+            "action": "submit_review",
+            "type": "secret_order",
+            "kind": "submit_review",
+            "mode": "submit_review",
+            "order_id": int(order["id"]),
+            "title": str(order.get("title") or ""),
+            "assignee": str(order.get("minister_name") or character.name),
+            "claim": text[:200],
+        }
+        if not bool(getattr(context, "tool_side_effects", True)):
+            return f"__secret_order_followup__{json.dumps(payload, ensure_ascii=False)}"
         ok = context.db.submit_secret_order_for_review(
             order["id"], text, year=context.state.year, period=context.state.period
         )

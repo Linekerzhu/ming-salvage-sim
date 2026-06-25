@@ -4838,6 +4838,36 @@ class WebGame:
             }
         if action_type == "secret_order":
             kind = str(decision.kind or payload.get("kind") or payload.get("mode") or payload.get("action") or "").strip().lower()
+            if kind in {"progress", "report_progress", "进展", "查办进展", "submit_review", "review", "submit", "核议", "提交核议"}:
+                raw_order_id = str(payload.get("order_id") or payload.get("id") or "").strip().lstrip("#")
+                try:
+                    order_id = int(raw_order_id)
+                except (TypeError, ValueError):
+                    return {}
+                if order_id <= 0:
+                    return {}
+                is_submit = kind in {"submit_review", "review", "submit", "核议", "提交核议"}
+                note = str(
+                    payload.get("claim" if is_submit else "progress")
+                    or payload.get("note")
+                    or quote
+                    or text
+                ).strip()[:200]
+                if not note:
+                    return {}
+                return {
+                    "type": "secret_order",
+                    "target": target or actor or minister_name,
+                    "actor": actor or minister_name,
+                    "kind": "submit_review" if is_submit else "progress",
+                    "mode": "submit_review" if is_submit else "progress",
+                    "order_id": order_id,
+                    "title": str(payload.get("title") or "").strip()[:40],
+                    "assignee": str(payload.get("assignee") or target or actor or minister_name).strip(),
+                    "claim" if is_submit else "progress": note,
+                    "note": note,
+                    "trigger_quote": quote or text,
+                }
             if kind in {"dispatch_strategy", "strategy", "eunuch_dispatch_strategy", "差遣", "旧患差遣"}:
                 raw_order_id = str(payload.get("order_id") or payload.get("id") or "").strip().lstrip("#")
                 try:
@@ -6462,6 +6492,50 @@ class WebGame:
 
     def _execute_secret_order_action(self, minister_name: str, action: Dict[str, Any]) -> Dict[str, Any]:
         kind = str(action.get("kind") or action.get("mode") or action.get("action") or "issue").strip().lower()
+        if kind in {"progress", "report_progress", "进展", "查办进展"}:
+            effect = self.session._apply_secret_order_followup(action, minister_name)
+            if not effect:
+                return {}
+            order_id = int(effect.get("order_id") or 0)
+            title = str(effect.get("title") or f"#{order_id}")
+            assignee = str(effect.get("assignee") or minister_name)
+            progress = str(effect.get("progress") or "")
+            return {
+                "answer": f"{self._dialogue_speaker_self(minister_name)}遵旨。密令 #{order_id}「{title}」本月新进展已入档：{progress}",
+                "secret_order_id": order_id,
+                "secret_order_assignee": assignee,
+                "secret_order_effect": effect,
+                "dialogue_effect": {
+                    "title": "密令进展",
+                    "message": f"#{order_id} {title}：{progress}",
+                    "effects": [
+                        {"kind": "secret_order_progress", "label": f"#{order_id} 新进展", "tone": "neutral"},
+                        {"kind": "secret_order_actor", "label": f"承办：{assignee}", "tone": "neutral"},
+                    ],
+                },
+            }
+        if kind in {"submit_review", "review", "submit", "核议", "提交核议"}:
+            effect = self.session._apply_secret_order_followup(action, minister_name)
+            if not effect:
+                return {}
+            order_id = int(effect.get("order_id") or 0)
+            title = str(effect.get("title") or f"#{order_id}")
+            assignee = str(effect.get("assignee") or minister_name)
+            claim = str(effect.get("claim") or "")
+            return {
+                "answer": f"{self._dialogue_speaker_self(minister_name)}遵旨。密令 #{order_id}「{title}」已提交待推演核议，本月不再推进。",
+                "secret_order_id": order_id,
+                "secret_order_assignee": assignee,
+                "secret_order_effect": effect,
+                "dialogue_effect": {
+                    "title": "密令核议",
+                    "message": f"#{order_id} {title}：{claim}",
+                    "effects": [
+                        {"kind": "secret_order_submit_review", "label": f"#{order_id} 待核议", "tone": "warn"},
+                        {"kind": "secret_order_actor", "label": f"承办：{assignee}", "tone": "neutral"},
+                    ],
+                },
+            }
         if kind in {"dispatch_strategy", "strategy", "eunuch_dispatch_strategy", "差遣", "旧患差遣"}:
             effect = self.session._apply_secret_order_followup(action, minister_name)
             if not effect:
@@ -7258,6 +7332,28 @@ class WebGame:
             return {}
         if normalized.get("type") == "secret_order":
             kind = str(normalized.get("kind") or normalized.get("mode") or "").strip().lower()
+            if kind in {"progress", "report_progress", "进展", "查办进展", "submit_review", "review", "submit", "核议", "提交核议"}:
+                raw_order_id = str(normalized.get("order_id") or normalized.get("id") or "").strip().lstrip("#")
+                try:
+                    order_id = int(raw_order_id)
+                except (TypeError, ValueError):
+                    return {}
+                if order_id <= 0:
+                    return {}
+                is_submit = kind in {"submit_review", "review", "submit", "核议", "提交核议"}
+                note_key = "claim" if is_submit else "progress"
+                note = str(normalized.get(note_key) or normalized.get("note") or "").strip()[:200]
+                if not note:
+                    return {}
+                normalized["order_id"] = order_id
+                normalized["kind"] = "submit_review" if is_submit else "progress"
+                normalized["mode"] = "submit_review" if is_submit else "progress"
+                normalized[note_key] = note
+                normalized["note"] = note
+                normalized["actor"] = str(normalized.get("actor") or minister_name).strip()
+                if not normalized.get("target"):
+                    normalized["target"] = str(normalized.get("assignee") or minister_name).strip()
+                return normalized
             if kind in {"dispatch_strategy", "strategy", "eunuch_dispatch_strategy", "差遣", "旧患差遣"}:
                 raw_order_id = str(normalized.get("order_id") or normalized.get("id") or "").strip().lstrip("#")
                 try:
@@ -8784,7 +8880,12 @@ class WebGame:
                                 secret_order_id,
                                 secret_order_assignee or minister_name,
                             )
-                    elif tool_name in {"rush_secret_order", "set_eunuch_dispatch_strategy"} or res.startswith("__secret_order_followup__"):
+                    elif tool_name in {
+                        "report_secret_order_progress",
+                        "submit_secret_order_for_review",
+                        "rush_secret_order",
+                        "set_eunuch_dispatch_strategy",
+                    } or res.startswith("__secret_order_followup__"):
                         payload_json = res.removeprefix("__secret_order_followup__").strip()
                         if not payload_json:
                             args = getattr(tool_exec, "arguments", {}) or getattr(tool_exec, "tool_args", {}) or {}

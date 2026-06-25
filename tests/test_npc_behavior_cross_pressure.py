@@ -1406,6 +1406,57 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             self.assertEqual(state.metrics["内库"], 30)
             db.conn.close()
 
+    def test_dialogue_secret_order_progress_and_review_tools_return_payload_without_side_effects(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db = GameDB(str(Path(tmp) / "npc_secret_progress_no_side_effect_tool.db"), content=self.content)
+            db.seed_static_data()
+            state = GameState(
+                year=1628,
+                period=1,
+                turn=1,
+                metrics={"国库": 100, "内库": 50, "民心": 50, "皇威": 50},
+            )
+            wen = self.content.characters["温体仁"]
+            progress_id = db.create_secret_order(
+                state,
+                "温体仁",
+                "密查钱谦益",
+                "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                ["钱谦益", "东林", "起复"],
+                deadline_months=3,
+            )
+            review_id = db.create_secret_order(
+                state,
+                "温体仁",
+                "密查仓场钱粮",
+                "暗查仓场钱粮亏空。",
+                ["仓场", "钱粮"],
+                deadline_months=3,
+            )
+            state.period = 2
+            state.turn = 2
+            tools = build_minister_tools(wen, CourtContext(state=state, db=db, tool_side_effects=False))
+            report = next(tool for tool in tools if getattr(tool, "__name__", "") == "report_secret_order_progress")
+            submit = next(tool for tool in tools if getattr(tool, "__name__", "") == "submit_secret_order_for_review")
+
+            progress_result = report(progress_id, "探得钱谦益门生往来频密，尚须核实名帖。")
+            submit_result = submit(review_id, "已查得仓场亏空名册，臣请付核。")
+
+            self.assertTrue(progress_result.startswith("__secret_order_followup__"))
+            progress_payload = json.loads(progress_result.removeprefix("__secret_order_followup__"))
+            self.assertEqual(progress_payload["kind"], "progress")
+            self.assertEqual(progress_payload["order_id"], progress_id)
+            self.assertIn("门生往来", progress_payload["progress"])
+            self.assertEqual(db.get_secret_order(progress_id)["result"], "")
+
+            self.assertTrue(submit_result.startswith("__secret_order_followup__"))
+            submit_payload = json.loads(submit_result.removeprefix("__secret_order_followup__"))
+            self.assertEqual(submit_payload["kind"], "submit_review")
+            self.assertEqual(submit_payload["order_id"], review_id)
+            self.assertIn("亏空名册", submit_payload["claim"])
+            self.assertEqual(db.get_secret_order(review_id)["status"], "active")
+            db.conn.close()
+
     def test_dialogue_secret_order_requires_semantic_confirm_before_db_write(self) -> None:
         with TemporaryDirectory() as tmp:
             old_disable = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")
@@ -1678,6 +1729,186 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 self.assertEqual(effect.get("strategy"), "relay")
                 self.assertIn("分班轮值", session.db.get_secret_order(order_id)["sim_note"])
                 self.assertEqual(session.state.metrics["内库"], 29)
+            finally:
+                session.close()
+                if old_disable is None:
+                    os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+                else:
+                    os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = old_disable
+
+    def test_dialogue_secret_order_progress_requires_semantic_confirm_before_db_write(self) -> None:
+        with TemporaryDirectory() as tmp:
+            old_disable = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")
+            os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+            session = GameSession(
+                str(Path(tmp) / "npc_secret_progress_semantic_gate.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            try:
+                session.begin_turn()
+                character = session._character("温体仁")
+                order_id = session.db.create_secret_order(
+                    session.state,
+                    "温体仁",
+                    "密查钱谦益",
+                    "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                    ["钱谦益", "东林", "起复"],
+                    deadline_months=3,
+                )
+                session.state.period = 2
+                session.state.turn = 2
+                payload = json.dumps(
+                    {
+                        "action": "progress",
+                        "order_id": order_id,
+                        "title": "密查钱谦益",
+                        "assignee": "温体仁",
+                        "progress": "探得钱谦益门生往来频密，尚须核实名帖。",
+                    },
+                    ensure_ascii=False,
+                )
+
+                captured: dict[str, object] = {}
+
+                def deny_audit(phase, audit_payload):
+                    if phase != "dialogue_action_intent":
+                        return None
+                    captured["deny"] = audit_payload
+                    return {
+                        "allow": False,
+                        "phase": "none",
+                        "action_type": "none",
+                        "confidence": 95,
+                        "private_reason": "只是问何时办完，不是要求落档进展。",
+                    }
+
+                session.dialogue_audit_client = deny_audit
+                denied = session._apply_secret_order_followup_after_semantic_gate(
+                    payload,
+                    character,
+                    "此事何时能办完？",
+                )
+                self.assertEqual(denied, {})
+                self.assertEqual(session.db.get_secret_order(order_id)["result"], "")
+                tool_action = (captured["deny"] or {}).get("tool_action")  # type: ignore[union-attr]
+                self.assertEqual(tool_action["kind"], "progress")  # type: ignore[index]
+                self.assertEqual(tool_action["order_id"], order_id)  # type: ignore[index]
+
+                def allow_audit(phase, audit_payload):
+                    if phase != "dialogue_action_intent":
+                        return None
+                    tool_action = audit_payload.get("tool_action") or {}
+                    self.assertEqual(tool_action.get("kind"), "progress")
+                    self.assertEqual(tool_action.get("order_id"), order_id)
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "secret_order",
+                        "kind": "progress",
+                        "target": "温体仁",
+                        "actor": "温体仁",
+                        "confidence": 96,
+                        "trigger_quote": "照实入档",
+                        "private_reason": "玩家明确要求承办人回奏并落档本月进展。",
+                    }
+
+                session.dialogue_audit_client = allow_audit
+                effect = session._apply_secret_order_followup_after_semantic_gate(
+                    payload,
+                    character,
+                    "说说本月查到什么，照实入档。",
+                )
+                self.assertEqual(effect.get("kind"), "secret_order_progress")
+                self.assertEqual(effect.get("order_id"), order_id)
+                self.assertIn("门生往来", session.db.get_secret_order(order_id)["result"])
+            finally:
+                session.close()
+                if old_disable is None:
+                    os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+                else:
+                    os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = old_disable
+
+    def test_dialogue_secret_order_submit_review_requires_semantic_confirm_before_db_write(self) -> None:
+        with TemporaryDirectory() as tmp:
+            old_disable = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")
+            os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+            session = GameSession(
+                str(Path(tmp) / "npc_secret_submit_semantic_gate.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            try:
+                session.begin_turn()
+                character = session._character("温体仁")
+                order_id = session.db.create_secret_order(
+                    session.state,
+                    "温体仁",
+                    "密查仓场钱粮",
+                    "暗查仓场钱粮亏空。",
+                    ["仓场", "钱粮"],
+                    deadline_months=3,
+                )
+                payload = json.dumps(
+                    {
+                        "action": "submit_review",
+                        "order_id": order_id,
+                        "title": "密查仓场钱粮",
+                        "assignee": "温体仁",
+                        "claim": "已查得仓场亏空名册，臣请付核。",
+                    },
+                    ensure_ascii=False,
+                )
+
+                def deny_audit(phase, audit_payload):
+                    if phase != "dialogue_action_intent":
+                        return None
+                    return {
+                        "allow": False,
+                        "phase": "none",
+                        "action_type": "none",
+                        "confidence": 95,
+                        "private_reason": "只是问是否办妥，不是准许提交核议。",
+                    }
+
+                session.dialogue_audit_client = deny_audit
+                denied = session._apply_secret_order_followup_after_semantic_gate(
+                    payload,
+                    character,
+                    "办得如何？",
+                )
+                self.assertEqual(denied, {})
+                self.assertEqual(session.db.get_secret_order(order_id)["status"], "active")
+
+                def allow_audit(phase, audit_payload):
+                    if phase != "dialogue_action_intent":
+                        return None
+                    tool_action = audit_payload.get("tool_action") or {}
+                    self.assertEqual(tool_action.get("kind"), "submit_review")
+                    self.assertEqual(tool_action.get("order_id"), order_id)
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "secret_order",
+                        "kind": "submit_review",
+                        "target": "温体仁",
+                        "actor": "温体仁",
+                        "confidence": 96,
+                        "trigger_quote": "提交核议",
+                        "private_reason": "玩家明确准许办到位后提交核议。",
+                    }
+
+                session.dialogue_audit_client = allow_audit
+                effect = session._apply_secret_order_followup_after_semantic_gate(
+                    payload,
+                    character,
+                    "若已办到位，就提交核议。",
+                )
+                self.assertEqual(effect.get("kind"), "secret_order_submit_review")
+                self.assertEqual(effect.get("order_id"), order_id)
+                self.assertEqual(session.db.get_secret_order(order_id)["status"], "pending_review")
             finally:
                 session.close()
                 if old_disable is None:
