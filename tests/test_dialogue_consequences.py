@@ -6,6 +6,7 @@ from ming_sim.content import GameContent
 from ming_sim.db import GameDB
 from ming_sim.dialogue_audit import PreDialogueAudit
 from ming_sim.dialogue_goals import PreparedDialogue, record_dialogue_effects
+from ming_sim import issues
 from ming_sim.issues import bind_content as bind_issues
 
 
@@ -206,6 +207,77 @@ class DialogueImmediateConsequenceTests(unittest.TestCase):
             self.assertEqual(result["dialogue_consequences"], {})
             status, _ = db.get_character_status("韩爌")
             self.assertEqual(status, "active")
+
+    def test_dialogue_consequences_filter_unknown_names_before_apply(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp, self.content)
+            character = self.content.characters["韩爌"]
+            original_apply = issues.apply_score_extraction
+            captured = {}
+
+            class Audit:
+                def post(self, payload):
+                    return {
+                        "goal_decision": "none",
+                        "goal_relation": "none",
+                        "action_kind": "general",
+                        "stance": "neutral",
+                        "handshake_status": "none",
+                        "goal_status": "active",
+                        "score_delta": 0,
+                        "score_after": 0,
+                        "threshold": 70,
+                        "conditions": [],
+                        "blockers": [],
+                        "agreement_action": "none",
+                        "immediate_consequence": True,
+                        "character_status_changes": [
+                            {"name": "洪承畴", "status": "imprisoned", "reason": "押入昭狱"},
+                            {"name": "不存在的错档人", "status": "imprisoned", "reason": "夹带错名"},
+                        ],
+                        "condition_changes": [
+                            {"name": "洪承畴", "label": "舌伤", "reason": "割舌禁言"},
+                            {"name": "不存在的错档人", "label": "舌伤", "reason": "夹带错名"},
+                        ],
+                        "punishment_changes": [
+                            {"name": "洪承畴", "punishment": "割舌", "reason": "禁言"},
+                            {"name": "不存在的错档人", "punishment": "割舌", "reason": "夹带错名"},
+                        ],
+                        "confidence": 96,
+                        "public_hint": "口谕即时执行。",
+                        "private_reason": "玩家明令押人并割舌。",
+                    }
+
+            try:
+                def fake_apply(db_arg, state_arg, extracted):
+                    captured["extracted"] = {
+                        key: [dict(item) for item in (extracted.get(key) or [])]
+                        for key in ("character_status_changes", "condition_changes", "punishment_changes")
+                    }
+                    return {
+                        "character_status_changes": list(extracted.get("character_status_changes") or []),
+                        "condition_changes": list(extracted.get("condition_changes") or []),
+                        "punishment_changes": list(extracted.get("punishment_changes") or []),
+                    }
+
+                issues.apply_score_extraction = fake_apply
+                result = record_dialogue_effects(
+                    db,
+                    state,
+                    character,
+                    "朕命锦衣卫押洪承畴和不存在的错档人入昭狱，割舌禁言。",
+                    "臣遵旨。",
+                    prepared=self._prepared_none(),
+                    audit_client=Audit(),
+                    source_chat_turn_id=324,
+                )
+
+                self.assertEqual(result["event"], "dialogue_consequence")
+                extracted = captured.get("extracted") or {}
+                for key in ("character_status_changes", "condition_changes", "punishment_changes"):
+                    self.assertEqual([row.get("name") for row in extracted.get(key, [])], ["洪承畴"])
+            finally:
+                issues.apply_score_extraction = original_apply
 
 
 if __name__ == "__main__":

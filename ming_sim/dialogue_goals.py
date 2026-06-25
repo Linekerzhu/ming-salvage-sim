@@ -271,9 +271,19 @@ def _immediate_consequence_enabled(raw: Dict[str, object]) -> bool:
     return str(value or "").strip().lower() in {"true", "yes", "y", "1", "apply", "executed"}
 
 
-def _consequence_item_allowed(item: Dict[str, object], *, character: Character, combined_text: str) -> bool:
+def _known_dialogue_consequence_name(db: Any, name: str) -> bool:
+    content = getattr(db, "content", None)
+    characters = getattr(content, "characters", None)
+    if not isinstance(characters, dict):
+        return True
+    return str(name or "").strip() in characters
+
+
+def _consequence_item_allowed(item: Dict[str, object], *, db: Any, character: Character, combined_text: str) -> bool:
     name = str(item.get("name") or "").strip()
     if not name:
+        return False
+    if not _known_dialogue_consequence_name(db, name):
         return False
     if name == character.name:
         return True
@@ -283,6 +293,7 @@ def _consequence_item_allowed(item: Dict[str, object], *, character: Character, 
 def _filter_dialogue_consequence_items(
     items: object,
     *,
+    db: Any,
     character: Character,
     combined_text: str,
 ) -> List[Dict[str, object]]:
@@ -293,7 +304,7 @@ def _filter_dialogue_consequence_items(
         if not isinstance(item, dict):
             continue
         clean = dict(item)
-        if _consequence_item_allowed(clean, character=character, combined_text=combined_text):
+        if _consequence_item_allowed(clean, db=db, character=character, combined_text=combined_text):
             out.append(clean)
     return out
 
@@ -301,6 +312,7 @@ def _filter_dialogue_consequence_items(
 def _extract_dialogue_immediate_consequences(
     post_raw: Dict[str, object],
     *,
+    db: Any,
     character: Character,
     combined_text: str,
 ) -> Dict[str, object]:
@@ -310,6 +322,7 @@ def _extract_dialogue_immediate_consequences(
     for field in CONSEQUENCE_FIELDS:
         filtered = _filter_dialogue_consequence_items(
             post_raw.get(field),
+            db=db,
             character=character,
             combined_text=combined_text,
         )
@@ -340,6 +353,7 @@ def _apply_dialogue_immediate_consequences(
         return {}
     extracted = _extract_dialogue_immediate_consequences(
         post_raw,
+        db=db,
         character=character,
         combined_text=combined_text,
     )
