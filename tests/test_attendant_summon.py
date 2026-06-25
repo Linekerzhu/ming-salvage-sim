@@ -6003,6 +6003,161 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_propose_directive_tool_requires_semantic_audit_before_pending_write(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "王承恩"
+            character = game.session._character(actor)
+            draft_text = "着户部核明辽饷实欠，五日内具奏。"
+            calls = []
+
+            class ToolExec:
+                tool_name = "propose_directive"
+                result = f"__pending_directive__{draft_text}"
+                arguments = {}
+                tool_args = {}
+
+            class RunOutput:
+                content = f"臣已拟旨如下：{draft_text}"
+                tools = [ToolExec()]
+
+            class FakeAgent:
+                def run(self, _prompt):
+                    return RunOutput()
+
+            class FakeRegistry:
+                def build_draft_line(self):
+                    return "无"
+
+                def get(self, _character):
+                    return FakeAgent()
+
+            game.session.registry = FakeRegistry()
+
+            def deny_audit(phase, payload):
+                if phase == "dialogue_directive_fallback":
+                    calls.append(payload)
+                    self.assertIn(draft_text, str(payload.get("npc_answer") or ""))
+                    return {
+                        "allow": False,
+                        "subject": "",
+                        "directive_text": "",
+                        "trigger_quote": "要不要下旨",
+                        "confidence": 96,
+                        "private_reason": "玩家只是询问是否下旨，不是要求拟稿。",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = deny_audit
+            result = game.session.chat(actor, "你说，此事要不要下旨？")
+
+            self.assertIsNone(result.proposed_directive)
+            self.assertTrue(calls)
+            row = game.db.conn.execute(
+                "SELECT COUNT(*) AS n FROM turn_directives WHERE actor=? AND text=?",
+                (actor, draft_text),
+            ).fetchone()
+            self.assertEqual(int(row["n"]), 0)
+
+            def allow_audit(phase, payload):
+                if phase == "dialogue_directive_fallback":
+                    return {
+                        "allow": True,
+                        "subject": "核明辽饷实欠",
+                        "directive_text": draft_text,
+                        "trigger_quote": "拟一道旨意",
+                        "confidence": 95,
+                        "private_reason": "玩家明确要求当前 NPC 拟成可核定旨意。",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = allow_audit
+            result = game.session.chat(actor, "替朕拟一道旨意，命户部核明辽饷实欠。")
+
+            self.assertIsNotNone(result.proposed_directive)
+            self.assertEqual(result.proposed_directive.text, draft_text)
+            row = game.db.conn.execute(
+                "SELECT status, source, actor FROM turn_directives WHERE actor=? AND text=?",
+                (actor, draft_text),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertEqual(row["status"], "pending")
+            self.assertEqual(row["source"], "大臣拟旨")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_stream_tool_pending_directive_uses_same_semantic_gate(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "王承恩"
+            character = game.session._character(actor)
+            draft_text = "着兵部点验京营器械，三日内奏明缺额。"
+            seen = []
+
+            def deny_audit(phase, payload):
+                if phase == "dialogue_directive_fallback":
+                    seen.append(payload)
+                    return {
+                        "allow": False,
+                        "subject": "",
+                        "directive_text": "",
+                        "trigger_quote": "这道旨意若颁布会怎样",
+                        "confidence": 96,
+                        "private_reason": "假设后果，不是拟稿命令。",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = deny_audit
+            proposed = game._record_tool_pending_directive(
+                character,
+                "这道旨意若颁布会怎样？",
+                draft_text,
+                f"臣试拟：{draft_text}",
+            )
+            self.assertIsNone(proposed)
+            self.assertTrue(seen)
+
+            def allow_audit(phase, payload):
+                if phase == "dialogue_directive_fallback":
+                    self.assertIn(draft_text, str(payload.get("npc_answer") or ""))
+                    return {
+                        "allow": True,
+                        "subject": "点验京营器械",
+                        "directive_text": draft_text,
+                        "trigger_quote": "拟成可核定草案",
+                        "confidence": 96,
+                        "private_reason": "明确要求拟稿。",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = allow_audit
+            proposed = game._record_tool_pending_directive(
+                character,
+                "照你说的，拟成可核定草案。",
+                draft_text,
+                f"臣试拟：{draft_text}",
+            )
+            self.assertIsNotNone(proposed)
+            self.assertEqual(proposed["text"], draft_text)
+            row = game.db.conn.execute(
+                "SELECT status FROM turn_directives WHERE actor=? AND text=?",
+                (actor, draft_text),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertEqual(row["status"], "pending")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_directive_regex_fallback_ignores_generic_legacy_action_regex(self):
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"

@@ -1053,6 +1053,67 @@ class GameSession:
             return False
         return name in accepted
 
+    def dialogue_allows_pending_directive(
+        self,
+        character: Character,
+        user_text: str,
+        draft_text: str,
+        *,
+        answer: str = "",
+    ) -> bool:
+        """Semantic gate for NPC tool-generated pending directive drafts."""
+        draft = str(draft_text or "").strip()
+        if not draft:
+            return False
+        evidence = "\n".join(
+            part
+            for part in (
+                str(answer or "").strip(),
+                f"NPC 工具拟旨草案：{draft}",
+            )
+            if part
+        )
+        try:
+            from ming_sim.dialogue_semantics import DialogueSemanticEngine
+
+            decision = DialogueSemanticEngine(
+                self.db,
+                self.state,
+                llm_config=self.llm_config,
+                agno_db=self.agno_db,
+                audit_client=self.dialogue_audit_client,
+            ).evaluate_post_chat(
+                character,
+                user_text,
+                evidence,
+                kind="directive_fallback",
+            )
+        except Exception:
+            return False
+        return bool(decision.allow and decision.action_type == "directive_fallback")
+
+    def _record_pending_directive_from_tool(
+        self,
+        character: Character,
+        user_text: str,
+        draft_text: str,
+        *,
+        answer: str = "",
+    ) -> Optional[DirectiveView]:
+        """Record an NPC tool draft only after semantic review of the player utterance."""
+        draft = str(draft_text or "").strip()
+        if not draft or not self.dialogue_allows_pending_directive(character, user_text, draft, answer=answer):
+            return None
+        directive_id = self.db.add_directive(
+            self.state, None, draft, "大臣拟旨",
+            actor=character.name, notes=f"由{character.name}拟旨入档", status="pending",
+        )
+        return DirectiveView(
+            id=directive_id, text=draft, status="pending",
+            source="大臣拟旨", notes=f"由{character.name}拟旨入档",
+            actor=character.name,
+        )
+
     def _apply_unlisted_person_registration_after_route_audit(
         self,
         payload: str,
@@ -1095,7 +1156,7 @@ class GameSession:
         source_context: Optional[Dict[str, object]] = None,
     ) -> ChatTurnResult:
         """与大臣对话一轮，统一处理 court tool 截获。
-        大臣 propose_directive 产生的草案以 status='pending' 入库，
+        大臣 propose_directive 产生的草案经语义审计后以 status='pending' 入库，
         作为 proposed_directive 返回，确认/驳回由调用方下达。"""
         if self.registry is None:
             raise RuntimeError("GameSession.begin_turn() 未调用。")
@@ -1155,14 +1216,11 @@ class GameSession:
                     args = _tool_args(tool_exec)
                     draft_text = (args.get("decree_text") or "").strip()
                 if draft_text:
-                    directive_id = self.db.add_directive(
-                        self.state, None, draft_text, "大臣拟旨",
-                        actor=character.name, notes=f"由{character.name}拟旨入档", status="pending",
-                    )
-                    result.proposed_directive = DirectiveView(
-                        id=directive_id, text=draft_text, status="pending",
-                        source="大臣拟旨", notes=f"由{character.name}拟旨入档",
-                        actor=character.name,
+                    result.proposed_directive = self._record_pending_directive_from_tool(
+                        character,
+                        message,
+                        draft_text,
+                        answer=answer,
                     )
             elif tool_name == "propose_appointment" or tool_result.startswith("__pending_appointment__"):
                 payload = tool_result.removeprefix("__pending_appointment__").strip()

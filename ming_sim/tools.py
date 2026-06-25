@@ -436,7 +436,11 @@ def build_minister_tools(character: Character, context: CourtContext):
         return skill_template("allocate_payroll", target=target)
 
     def propose_directive(decree_text: str) -> str:
-        """把已定处置方案拟成一道圣旨草稿呈给皇帝审阅。decree_text 为完整圣旨正文。"""
+        """把已定处置方案拟成一道圣旨草稿呈给皇帝审阅。
+
+        工具只返回草案；是否写入 pending 旨意，仍由对白语义审计核验皇帝原话。
+        decree_text 为完整圣旨正文。
+        """
         text = (decree_text or "").strip()
         if not text:
             return "拟旨失败：圣旨正文为空。"

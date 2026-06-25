@@ -2,7 +2,7 @@
 """FastAPI web entry for Ming Salvage Sim.
 
 薄壳：路由调 ming_sim.session.GameSession（与 CLI 共用同一流转层）。
-拟旨 draft 待确认：大臣 propose_directive → pending → 前端 准/驳。
+拟旨 draft 待确认：大臣 propose_directive → 语义审计 → pending → 前端 准/驳。
 """
 
 from __future__ import annotations
@@ -2315,6 +2315,26 @@ class WebGame:
             "actor": character.name,
             "notes": notes,
         }
+
+    def _record_tool_pending_directive(
+        self,
+        character: Character,
+        user_text: str,
+        draft_text: str,
+        answer: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Record an NPC propose_directive tool draft only after semantic review."""
+        draft_text = (draft_text or "").strip()
+        if not draft_text:
+            return None
+        if not self.session.dialogue_allows_pending_directive(
+            character,
+            user_text,
+            draft_text,
+            answer=answer,
+        ):
+            return None
+        return self._record_pending_directive(character, draft_text)
 
     _DIRECTIVE_INTENT_RE = re.compile(r"(拟旨|拟诏|草案|旨意|谕旨|诏书|可直接颁布|下旨|颁布)")
     _DIRECTIVE_NEG_RE = re.compile(r"(不要|不必|无需|别|勿|暂不).{0,8}(拟旨|拟诏|草案|旨意|谕旨|诏书|下旨|颁布)")
@@ -8513,7 +8533,7 @@ class WebGame:
                         if not draft_text:
                             args = getattr(tool_exec, "arguments", {}) or getattr(tool_exec, "tool_args", {}) or {}
                             draft_text = (args.get("decree_text") or "").strip()
-                        proposed = self._record_pending_directive(character, draft_text)
+                        proposed = self._record_tool_pending_directive(character, text, draft_text, answer)
                     elif tool_name == "propose_appointment" or res.startswith("__pending_appointment__"):
                         payload_json = res.removeprefix("__pending_appointment__").strip()
                         if not payload_json:
