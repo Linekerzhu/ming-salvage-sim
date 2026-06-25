@@ -70,7 +70,7 @@ class DialogueImmediateConsequenceTests(unittest.TestCase):
                             "stage": "executed",
                             "severity": 5,
                             "executor": "锦衣卫",
-                            "reason": "禁其妄言",
+                            "reason": "割舌禁言",
                         }],
                         "confidence": 96,
                         "trigger_quote": "朕命锦衣卫押你入昭狱拷问，割舌禁言",
@@ -311,6 +311,94 @@ class DialogueImmediateConsequenceTests(unittest.TestCase):
                 ("洪承畴",),
             ).fetchone())
 
+    def test_dialogue_consequence_filters_unsupported_change_evidence(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp, self.content)
+            character = self.content.characters["韩爌"]
+            original_apply = issues.apply_score_extraction
+            captured = {}
+
+            class Audit:
+                def post(self, payload):
+                    return {
+                        "goal_decision": "none",
+                        "goal_relation": "none",
+                        "action_kind": "general",
+                        "stance": "neutral",
+                        "handshake_status": "none",
+                        "goal_status": "active",
+                        "score_delta": 0,
+                        "score_after": 0,
+                        "threshold": 70,
+                        "conditions": [],
+                        "blockers": [],
+                        "agreement_action": "none",
+                        "immediate_consequence": True,
+                        "character_status_changes": [{
+                            "name": "韩爌",
+                            "status": "imprisoned",
+                            "agency": "锦衣卫",
+                            "facility": "北镇抚司昭狱",
+                            "reason": "朕命锦衣卫押你入昭狱",
+                        }],
+                        "condition_changes": [{
+                            "name": "韩爌",
+                            "kind": "injury",
+                            "system": "musculoskeletal",
+                            "label": "断腿",
+                            "severity": 5,
+                            "stage": "disabled",
+                            "reason": "另案旧供称已打断双腿",
+                        }],
+                        "punishment_changes": [{
+                            "name": "韩爌",
+                            "taxonomy": "ordinary",
+                            "punishment": "割耳",
+                            "stage": "executed",
+                            "severity": 5,
+                            "reason": "另案旧供称已割耳",
+                        }],
+                        "confidence": 96,
+                        "trigger_quote": "朕命锦衣卫押你入昭狱",
+                        "public_hint": "口谕即时执行。",
+                        "private_reason": "总体口谕成立，但夹带的伤残和割耳证据不在本轮对话。",
+                    }
+
+            try:
+                def fake_apply(db_arg, state_arg, extracted):
+                    captured["extracted"] = {
+                        key: [dict(item) for item in (extracted.get(key) or [])]
+                        for key in ("character_status_changes", "condition_changes", "punishment_changes")
+                    }
+                    return {
+                        "character_status_changes": list(extracted.get("character_status_changes") or []),
+                        "condition_changes": list(extracted.get("condition_changes") or []),
+                        "punishment_changes": list(extracted.get("punishment_changes") or []),
+                    }
+
+                issues.apply_score_extraction = fake_apply
+                result = record_dialogue_effects(
+                    db,
+                    state,
+                    character,
+                    "朕命锦衣卫押你入昭狱。",
+                    "臣伏罪。",
+                    prepared=self._prepared_none(),
+                    audit_client=Audit(),
+                    source_chat_turn_id=327,
+                )
+
+                self.assertEqual(result["event"], "dialogue_consequence")
+                extracted = captured.get("extracted") or {}
+                self.assertEqual(
+                    [row.get("status") for row in extracted.get("character_status_changes", [])],
+                    ["imprisoned"],
+                )
+                self.assertEqual(extracted.get("condition_changes"), [])
+                self.assertEqual(extracted.get("punishment_changes"), [])
+            finally:
+                issues.apply_score_extraction = original_apply
+
     def test_dialogue_consequences_filter_unknown_names_before_apply(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp, self.content)
@@ -335,7 +423,7 @@ class DialogueImmediateConsequenceTests(unittest.TestCase):
                         "agreement_action": "none",
                         "immediate_consequence": True,
                         "character_status_changes": [
-                            {"name": "洪承畴", "status": "imprisoned", "reason": "押入昭狱"},
+                            {"name": "洪承畴", "status": "imprisoned", "reason": "入昭狱"},
                             {"name": "不存在的错档人", "status": "imprisoned", "reason": "夹带错名"},
                         ],
                         "condition_changes": [

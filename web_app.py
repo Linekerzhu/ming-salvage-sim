@@ -7261,10 +7261,24 @@ class WebGame:
             if int(chat_turn_id or 0)
             else f"{int(self.state.turn)}:{minister_name}"
         )
+        evidence_text = "\n".join(
+            str(action.get(key) or "").strip()
+            for key in ("trigger_quote", "source_quote", "user_quote")
+            if str(action.get(key) or "").strip()
+        )
         extracted = {
-            "character_status_changes": self._dialogue_consequence_known_rows(action.get("character_status_changes")),
-            "condition_changes": self._dialogue_consequence_known_rows(action.get("condition_changes")),
-            "punishment_changes": self._dialogue_consequence_known_rows(action.get("punishment_changes")),
+            "character_status_changes": self._dialogue_consequence_known_rows(
+                action.get("character_status_changes"),
+                evidence_text=evidence_text,
+            ),
+            "condition_changes": self._dialogue_consequence_known_rows(
+                action.get("condition_changes"),
+                evidence_text=evidence_text,
+            ),
+            "punishment_changes": self._dialogue_consequence_known_rows(
+                action.get("punishment_changes"),
+                evidence_text=evidence_text,
+            ),
             "_source_kind": "dialogue",
             "_source_id": source_id,
         }
@@ -7299,7 +7313,29 @@ class WebGame:
             },
         }
 
-    def _dialogue_consequence_known_rows(self, rows: Any) -> List[Dict[str, Any]]:
+    @staticmethod
+    def _dialogue_consequence_evidence_quote(row: Dict[str, Any]) -> str:
+        for key in ("evidence_quote", "source_quote", "quote", "reason"):
+            value = str(row.get(key) or "").strip()
+            if value:
+                return value[:180]
+        return ""
+
+    @staticmethod
+    def _dialogue_consequence_quote_supported(quote: str, evidence_text: str) -> bool:
+        clean_quote = re.sub(r"\s+", "", str(quote or ""))
+        if not clean_quote:
+            return False
+        clean_text = re.sub(r"\s+", "", str(evidence_text or ""))
+        if clean_text and clean_quote in clean_text:
+            return True
+        normalized_quote = re.sub(r"[\W_]+", "", str(quote or ""), flags=re.UNICODE)
+        if not normalized_quote:
+            return False
+        normalized_text = re.sub(r"[\W_]+", "", str(evidence_text or ""), flags=re.UNICODE)
+        return bool(normalized_text and normalized_quote in normalized_text)
+
+    def _dialogue_consequence_known_rows(self, rows: Any, *, evidence_text: str = "") -> List[Dict[str, Any]]:
         if not isinstance(rows, list):
             return []
         known = set(self.content.characters.keys())
@@ -7309,7 +7345,9 @@ class WebGame:
                 continue
             name = str(row.get("name") or "").strip()
             if name and name in known:
-                out.append(dict(row))
+                evidence_quote = self._dialogue_consequence_evidence_quote(row)
+                if self._dialogue_consequence_quote_supported(evidence_quote, evidence_text):
+                    out.append(dict(row))
         return out
 
     def _execute_dialogue_action(

@@ -1275,6 +1275,7 @@ POST_AUDIT_PROMPT = """
 - 如果玩家本轮明确要求拟旨、拟成可核定草案或授权把 NPC 草案落成待核旨意，且 NPC 原文已经给出一段可直接进入旨意库的完整草案、条陈式诏令或“臣已拟旨如下”，但没有工具调用痕迹，输出 directive_action=propose_pending，并把 directive_text 填为可入库草案，同时 trigger_quote 必须引用玩家本轮原话中证明“要求拟旨/落草案”的短句。只有 NPC 主动建议、玩家只是询问风险、原则、口头意见、零散条款时仍为 none。
 - 若玩家在本轮奏对中以皇帝身份直接下达即时口谕，明确命令将某个 NPC 下狱、押入昭狱、用刑、处刑、割舌、宫刑，或 NPC 原文明示该事实已经发生，可输出 immediate_consequence=true，并填写 character_status_changes / condition_changes / punishment_changes。只是询问、威胁、商议、拟旨、请 NPC 建议、未来可能执行时必须 immediate_consequence=false 且三个 changes 留空。
 - immediate_consequence=true 时必须填写 trigger_quote，且必须逐字引用本轮玩家原话中足以证明“已经即时执行/明确口谕”的短句；只有 NPC 回复自称已经执行、但玩家原话没有明确口谕时，不得输出 immediate_consequence=true。没有可引用证据时 immediate_consequence=false。
+- immediate_consequence=true 的每一条 character_status_changes / condition_changes / punishment_changes 都必须在 reason（或 evidence_quote/source_quote/quote）中摘录本轮玩家原话或 NPC 本轮回复里的证据短句；程序会丢弃证据句不在本轮对话中的单条变更。reason 不要写概括、推理或别处旧档。
 - 即时后果必须有明确目标姓名；若只是“他/此人/他们”且本轮文本无法唯一指向，不得填写 changes。对当前奏对对象可用其姓名。
 - 刑罚分类：明律五刑用 taxonomy=ming_five，punishment=笞刑|杖刑|徒刑|流刑|死刑；古五刑用 taxonomy=ancient_five，punishment=墨刑|劓刑|刖刑|宫刑|大辟；普通酷刑/伤残用 taxonomy=ordinary，例如 punishment=割舌|割耳|断腿|拷掠|夹棍|廷杖。
 - 宫刑、腐刑、强制净身、去势等强制执行时优先写 punishment_changes 的“宫刑”；程序会自动派生病历中的生殖器官缺失、绝育、性功能丧失、尿道狭窄、慢性创痛等事实。condition_changes 只补原文另明写的病历并发症（如漏尿、尿闭、幻肢痛、失声等）。相关文字必须是临床/档案措辞，不写情色化描述。
@@ -1304,9 +1305,9 @@ JSON 字段：
   "card_resolution": "handled|pending|fulfilled|blocked|rejected|waived|",
   "immediate_consequence": false,
   "trigger_quote": "immediate_consequence=true、directive_action=propose_pending、sealed/agreement/card_resolution 时引用玩家本轮原话短句；否则空字符串",
-  "character_status_changes": [{"name":"目标姓名","status":"imprisoned|exiled|dead|dismissed|retired|offstage|castrated","reason":"原文证据","agency":"锦衣卫|刑部|都察院|内廷|其他","facility":"北镇抚司昭狱|刑部大牢|诏狱|其他","coercion_goal":"逼供/迫使奉旨/株连线索/其他","severity":1}],
-  "condition_changes": [{"name":"目标姓名","kind":"punishment|prison_effect|disease|injury|disability|terminal","system":"speech|nervous|circulatory|respiratory|digestive|musculoskeletal|urinary|reproductive|skin|mental|general","label":"病历短名","severity":1,"stage":"mild|serious|critical|disabled|chronic|dead","reason":"原文证据","effects":{"speech":"口齿含混等能力影响","record_group":"organic|pathological|psychological|other","organ":"器官/肢体","side":"左|右","state":"状态","function":"功能","impact":"影响","course_kind":"acute|chronic","possible_outcomes":["恢复","加重"]}}],
-  "punishment_changes": [{"name":"目标姓名","taxonomy":"ordinary|ming_five|ancient_five","punishment":"刑罚名","severity":1,"stage":"ordered|executing|executed","executor":"锦衣卫/刑部等","reason":"原文证据"}],
+  "character_status_changes": [{"name":"目标姓名","status":"imprisoned|exiled|dead|dismissed|retired|offstage|castrated","reason":"本轮对话原文证据短句","agency":"锦衣卫|刑部|都察院|内廷|其他","facility":"北镇抚司昭狱|刑部大牢|诏狱|其他","coercion_goal":"逼供/迫使奉旨/株连线索/其他","severity":1}],
+  "condition_changes": [{"name":"目标姓名","kind":"punishment|prison_effect|disease|injury|disability|terminal","system":"speech|nervous|circulatory|respiratory|digestive|musculoskeletal|urinary|reproductive|skin|mental|general","label":"病历短名","severity":1,"stage":"mild|serious|critical|disabled|chronic|dead","reason":"本轮对话原文证据短句","effects":{"speech":"口齿含混等能力影响","record_group":"organic|pathological|psychological|other","organ":"器官/肢体","side":"左|右","state":"状态","function":"功能","impact":"影响","course_kind":"acute|chronic","possible_outcomes":["恢复","加重"]}}],
+  "punishment_changes": [{"name":"目标姓名","taxonomy":"ordinary|ming_five|ancient_five","punishment":"刑罚名","severity":1,"stage":"ordered|executing|executed","executor":"锦衣卫/刑部等","reason":"本轮对话原文证据短句"}],
   "public_hint": "玩家可见一句短解释",
   "private_reason": "debug 审计理由，含原文证据",
   "confidence": 0
@@ -1390,6 +1391,7 @@ DIALOGUE_ACTION_INTENT_PROMPT = """
 - phase=reject 用于玩家明确作罢、暂缓、不办、别惊动相关机构；可清除 pending_action。
 - 若 tool_action.type="semantic_probe"，你可以直接从玩家原话语义选择 action_type，用于在 LLM 工具漏调时启动对应待确认模块；可选择 recruitment，但必须同时给出 kind。
 - 刑罚、下狱、病历变更这类即时口谕，优先在 post_dialogue_audit 的 immediate_consequence 中落 character_status_changes / punishment_changes / condition_changes；本审计若返回 punishment/custody/condition_update，只能在 payload 中给出同一套结构化草案，不得凭关键词执行。
+- 若本审计返回 character_status_changes / condition_changes / punishment_changes，每条变更的 reason（或 evidence_quote/source_quote/quote）必须摘录本轮玩家原话或 NPC 本轮回复里的证据短句；不要写概括、推理或别处旧档。
 - 若 tool_action.type 不是 semantic_probe，action_type 必须来自工具动作或待确认动作；不要发明新系统。
 - trigger_quote 必须引用玩家原话中能证明意图的短句；没有可引用证据时 allow=false。
 
@@ -1442,9 +1444,9 @@ JSON 字段：
   "public_hint": "一句玩家可见提示",
   "private_reason": "审计理由，说明为什么是/不是执行动作",
   "payload": {"可选":"对应动作结构化草案"},
-  "character_status_changes": [{"name":"目标姓名","status":"imprisoned|exiled|dead|dismissed|retired|offstage|castrated","reason":"原文证据","agency":"锦衣卫|刑部|都察院|内廷|其他","facility":"北镇抚司昭狱|刑部大牢|诏狱|其他","coercion_goal":"逼供/迫使奉旨/株连线索/其他","severity":1}],
-  "condition_changes": [{"name":"目标姓名","kind":"disease|injury|punishment|disability|prison_effect|terminal","system":"general|speech|nervous|mental|respiratory|circulatory|digestive|urinary|reproductive|musculoskeletal|skin","label":"病历短名","severity":1,"stage":"active|mild|serious|critical|disabled|chronic|recovering|resolved|dead","reason":"原文证据","effects":{"record_group":"organic|pathological|psychological|other","organ":"器官/肢体","side":"左|右","state":"状态","function":"功能","impact":"影响","course_kind":"acute|chronic","possible_outcomes":["恢复","加重"]}}],
-  "punishment_changes": [{"name":"目标姓名","taxonomy":"ordinary|ming_five|ancient_five","punishment":"刑罚名","severity":1,"stage":"sentenced|executed|stayed|remitted","executor":"锦衣卫/刑部等","reason":"原文证据"}],
+  "character_status_changes": [{"name":"目标姓名","status":"imprisoned|exiled|dead|dismissed|retired|offstage|castrated","reason":"本轮对话原文证据短句","agency":"锦衣卫|刑部|都察院|内廷|其他","facility":"北镇抚司昭狱|刑部大牢|诏狱|其他","coercion_goal":"逼供/迫使奉旨/株连线索/其他","severity":1}],
+  "condition_changes": [{"name":"目标姓名","kind":"disease|injury|punishment|disability|prison_effect|terminal","system":"general|speech|nervous|mental|respiratory|circulatory|digestive|urinary|reproductive|musculoskeletal|skin","label":"病历短名","severity":1,"stage":"active|mild|serious|critical|disabled|chronic|recovering|resolved|dead","reason":"本轮对话原文证据短句","effects":{"record_group":"organic|pathological|psychological|other","organ":"器官/肢体","side":"左|右","state":"状态","function":"功能","impact":"影响","course_kind":"acute|chronic","possible_outcomes":["恢复","加重"]}}],
+  "punishment_changes": [{"name":"目标姓名","taxonomy":"ordinary|ming_five|ancient_five","punishment":"刑罚名","severity":1,"stage":"sentenced|executed|stayed|remitted","executor":"锦衣卫/刑部等","reason":"本轮对话原文证据短句"}],
   "confidence": 0
 }
 """.strip()

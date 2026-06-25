@@ -1313,6 +1313,66 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_dialogue_consequence_filters_unsupported_change_evidence_before_apply(self):
+        game = web_app.WebGame(fresh=True)
+        original_apply = issues.apply_score_extraction
+        captured = {}
+        try:
+            def fake_apply(db, state, extracted):
+                captured["extracted"] = {
+                    key: [dict(item) for item in (extracted.get(key) or [])]
+                    for key in ("character_status_changes", "condition_changes", "punishment_changes")
+                }
+                return {
+                    "character_status_changes": list(extracted.get("character_status_changes") or []),
+                    "condition_changes": list(extracted.get("condition_changes") or []),
+                    "punishment_changes": list(extracted.get("punishment_changes") or []),
+                }
+
+            issues.apply_score_extraction = fake_apply
+            response = game._execute_dialogue_consequence_action(
+                "王承恩",
+                {
+                    "type": "dialogue_consequence",
+                    "action_type": "punishment",
+                    "character_status_changes": [{
+                        "name": "洪承畴",
+                        "status": "imprisoned",
+                        "reason": "押入昭狱",
+                    }],
+                    "condition_changes": [{
+                        "name": "洪承畴",
+                        "kind": "injury",
+                        "system": "musculoskeletal",
+                        "label": "断腿",
+                        "reason": "另案旧供称已打断双腿",
+                    }],
+                    "punishment_changes": [{
+                        "name": "洪承畴",
+                        "punishment": "割耳",
+                        "reason": "另案旧供称已割耳",
+                    }],
+                    "trigger_quote": "押入昭狱",
+                },
+                chat_turn_id=79,
+            )
+
+            self.assertIn("已按口谕入档", response.get("answer") or "")
+            extracted = captured.get("extracted") or {}
+            self.assertEqual(
+                [row.get("status") for row in extracted.get("character_status_changes", [])],
+                ["imprisoned"],
+            )
+            self.assertEqual(extracted.get("condition_changes"), [])
+            self.assertEqual(extracted.get("punishment_changes"), [])
+        finally:
+            issues.apply_score_extraction = original_apply
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_chat_and_stream_pre_agent_use_unified_user_semantic_engine(self):
         def install_fake_engine(game, target):
             calls = []
@@ -3884,7 +3944,7 @@ class AttendantSummonTests(unittest.TestCase):
                             "stage": "executed",
                             "severity": 5,
                             "executor": "锦衣卫",
-                            "reason": "禁其妄言",
+                            "reason": "割舌禁言",
                         }],
                         "confidence": 96,
                         "private_reason": "明确即时口谕。",

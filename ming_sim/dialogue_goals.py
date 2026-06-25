@@ -306,7 +306,13 @@ def _quote_supported_by_dialogue_text(quote: str, combined_text: str) -> bool:
     if not clean_quote:
         return False
     clean_text = re.sub(r"\s+", "", str(combined_text or ""))
-    return clean_quote in clean_text
+    if clean_quote in clean_text:
+        return True
+    normalized_quote = re.sub(r"[\W_]+", "", str(quote or ""), flags=re.UNICODE)
+    if not normalized_quote:
+        return False
+    normalized_text = re.sub(r"[\W_]+", "", str(combined_text or ""), flags=re.UNICODE)
+    return bool(normalized_text and normalized_quote in normalized_text)
 
 
 def _quote_supported_by_player_text(quote: str, user_text: str) -> bool:
@@ -327,11 +333,22 @@ def _known_dialogue_consequence_name(db: Any, name: str) -> bool:
     return str(name or "").strip() in characters
 
 
+def _consequence_item_evidence_quote(item: Dict[str, object]) -> str:
+    for key in ("evidence_quote", "source_quote", "quote", "reason"):
+        value = _compact(str(item.get(key) or ""), 180)
+        if value:
+            return value
+    return ""
+
+
 def _consequence_item_allowed(item: Dict[str, object], *, db: Any, character: Character, combined_text: str) -> bool:
     name = str(item.get("name") or "").strip()
     if not name:
         return False
     if not _known_dialogue_consequence_name(db, name):
+        return False
+    evidence_quote = _consequence_item_evidence_quote(item)
+    if not _quote_supported_by_dialogue_text(evidence_quote, combined_text):
         return False
     if name == character.name:
         return True
