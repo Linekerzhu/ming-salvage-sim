@@ -1003,8 +1003,26 @@ def build_minister_tools(character: Character, context: CourtContext):
         if order["status"] != "active":
             return f"密令 #{order['id']} 当前状态 {order['status']}，不能再催办。"
         try:
+            deadline = max(0, min(int(deadline_months or 0), 36))
+        except (TypeError, ValueError):
+            deadline = 1
+        clean_reason = (reason or "").strip()[:120]
+        payload = {
+            "action": "rush",
+            "type": "secret_order",
+            "kind": "rush",
+            "mode": "rush",
+            "order_id": int(order["id"]),
+            "title": str(order.get("title") or ""),
+            "assignee": str(order.get("minister_name") or character.name),
+            "deadline_months": deadline,
+            "reason": clean_reason,
+        }
+        if not bool(getattr(context, "tool_side_effects", True)):
+            return f"__secret_order_followup__{json.dumps(payload, ensure_ascii=False)}"
+        try:
             rushed = context.db.rush_secret_order(
-                order["id"], context.state, deadline_months=deadline_months, reason=reason
+                order["id"], context.state, deadline_months=deadline, reason=clean_reason
             )
         except Exception as exc:
             return f"密令 #{order['id']} 催办失败：{exc}"

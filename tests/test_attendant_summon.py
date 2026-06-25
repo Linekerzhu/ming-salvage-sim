@@ -1536,6 +1536,96 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_secret_order_rush_tool_response_uses_unified_semantic_gate(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "温体仁"
+            order_id = game.db.create_secret_order(
+                game.state,
+                actor,
+                "密查钱谦益",
+                "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                ["钱谦益", "东林", "起复"],
+                deadline_months=3,
+            )
+            before = game.db.get_secret_order(order_id)
+            action = {
+                "type": "secret_order",
+                "phase": "confirm",
+                "kind": "rush",
+                "mode": "rush",
+                "target": actor,
+                "assignee": actor,
+                "order_id": order_id,
+                "deadline_months": 0,
+                "reason": "本月即核。",
+            }
+
+            def deny_audit(phase, payload):
+                if phase != "dialogue_action_intent":
+                    return None
+                return {
+                    "allow": False,
+                    "phase": "none",
+                    "action_type": "none",
+                    "confidence": 96,
+                    "private_reason": "只是追问进度，不是催办。",
+                }
+
+            os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+            game.session.dialogue_audit_client = deny_audit
+            denied = game._dialogue_tool_response(
+                actor,
+                action,
+                "臣可回奏查办进度。",
+                "这条密令查到哪了？",
+            )
+            self.assertIsNone(denied)
+            self.assertEqual(game.db.get_secret_order(order_id)["status"], "active")
+            self.assertEqual(game.db.get_secret_order(order_id)["due_turn"], before["due_turn"])
+
+            def allow_audit(phase, payload):
+                if phase != "dialogue_action_intent":
+                    return None
+                tool_action = payload.get("tool_action") or {}
+                self.assertEqual(tool_action.get("type"), "secret_order")
+                self.assertEqual(tool_action.get("kind"), "rush")
+                self.assertEqual(tool_action.get("order_id"), order_id)
+                return {
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "secret_order",
+                    "kind": "rush",
+                    "target": actor,
+                    "actor": actor,
+                    "confidence": 96,
+                    "trigger_quote": "本月即核",
+                    "private_reason": "玩家明确催办既有密令。",
+                }
+
+            game.session.dialogue_audit_client = allow_audit
+            allowed = game._dialogue_tool_response(
+                actor,
+                action,
+                "臣遵旨加急。",
+                "把这条密令本月即核。",
+                chat_turn_id=78,
+            )
+
+            self.assertIsNotNone(allowed)
+            self.assertEqual(int(allowed.get("secret_order_id") or 0), order_id)
+            self.assertEqual(allowed.get("secret_order_assignee"), actor)
+            self.assertEqual(game.db.get_secret_order(order_id)["status"], "pending_review")
+            effect = allowed.get("dialogue_effect") or {}
+            self.assertEqual(effect.get("title"), "密令催办")
+            self.assertIn("即核", allowed.get("answer") or "")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_chat_applies_session_secret_order_action_through_web_semantic_gate(self):
         game = web_app.WebGame(fresh=True)
         try:

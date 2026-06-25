@@ -1327,6 +1327,41 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             self.assertEqual(db.list_secret_orders(), [])
             db.conn.close()
 
+    def test_dialogue_secret_order_rush_tool_returns_payload_without_side_effects(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db = GameDB(str(Path(tmp) / "npc_secret_rush_no_side_effect_tool.db"), content=self.content)
+            db.seed_static_data()
+            state = GameState(
+                year=1628,
+                period=1,
+                turn=1,
+                metrics={"国库": 100, "内库": 50, "民心": 50, "皇威": 50},
+            )
+            wen = self.content.characters["温体仁"]
+            order_id = db.create_secret_order(
+                state,
+                "温体仁",
+                "密查钱谦益",
+                "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                ["钱谦益", "东林", "起复"],
+                deadline_months=3,
+            )
+            before = db.get_secret_order(order_id)
+            tools = build_minister_tools(wen, CourtContext(state=state, db=db, tool_side_effects=False))
+            rush = next(tool for tool in tools if getattr(tool, "__name__", "") == "rush_secret_order")
+
+            result = rush(order_id, deadline_months=0, reason="本月即核。")
+
+            self.assertTrue(result.startswith("__secret_order_followup__"))
+            payload = json.loads(result.removeprefix("__secret_order_followup__"))
+            self.assertEqual(payload["kind"], "rush")
+            self.assertEqual(payload["order_id"], order_id)
+            self.assertEqual(payload["deadline_months"], 0)
+            after = db.get_secret_order(order_id)
+            self.assertEqual(after["status"], "active")
+            self.assertEqual(after["due_turn"], before["due_turn"])
+            db.conn.close()
+
     def test_dialogue_secret_order_requires_semantic_confirm_before_db_write(self) -> None:
         with TemporaryDirectory() as tmp:
             old_disable = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")
@@ -1397,6 +1432,102 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 order_id = session._apply_secret_order(payload, "温体仁")
                 self.assertGreater(order_id, 0)
                 self.assertEqual(len(session.db.list_secret_orders()), 1)
+            finally:
+                session.close()
+                if old_disable is None:
+                    os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+                else:
+                    os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = old_disable
+
+    def test_dialogue_secret_order_rush_requires_semantic_confirm_before_db_write(self) -> None:
+        with TemporaryDirectory() as tmp:
+            old_disable = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")
+            os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+            session = GameSession(
+                str(Path(tmp) / "npc_secret_rush_semantic_gate.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            try:
+                session.begin_turn()
+                character = session._character("温体仁")
+                order_id = session.db.create_secret_order(
+                    session.state,
+                    "温体仁",
+                    "密查钱谦益",
+                    "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                    ["钱谦益", "东林", "起复"],
+                    deadline_months=3,
+                )
+                before = session.db.get_secret_order(order_id)
+                payload = json.dumps(
+                    {
+                        "action": "rush",
+                        "order_id": order_id,
+                        "title": "密查钱谦益",
+                        "assignee": "温体仁",
+                        "deadline_months": 0,
+                        "reason": "本月即核。",
+                    },
+                    ensure_ascii=False,
+                )
+
+                captured: dict[str, object] = {}
+
+                def deny_audit(phase, audit_payload):
+                    if phase != "dialogue_action_intent":
+                        return None
+                    captured["deny"] = audit_payload
+                    return {
+                        "allow": False,
+                        "phase": "none",
+                        "action_type": "none",
+                        "confidence": 95,
+                        "private_reason": "只是问进度，不是催办。",
+                    }
+
+                session.dialogue_audit_client = deny_audit
+                denied = session._apply_secret_order_followup_after_semantic_gate(
+                    payload,
+                    character,
+                    "这条密令查到哪了？",
+                )
+                self.assertEqual(denied, {})
+                self.assertEqual(session.db.get_secret_order(order_id)["status"], "active")
+                self.assertEqual(session.db.get_secret_order(order_id)["due_turn"], before["due_turn"])
+                tool_action = (captured["deny"] or {}).get("tool_action")  # type: ignore[union-attr]
+                self.assertEqual(tool_action["type"], "secret_order")  # type: ignore[index]
+                self.assertEqual(tool_action["kind"], "rush")  # type: ignore[index]
+                self.assertEqual(tool_action["order_id"], order_id)  # type: ignore[index]
+
+                def allow_audit(phase, audit_payload):
+                    if phase != "dialogue_action_intent":
+                        return None
+                    tool_action = audit_payload.get("tool_action") or {}
+                    self.assertEqual(tool_action.get("kind"), "rush")
+                    self.assertEqual(tool_action.get("order_id"), order_id)
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "secret_order",
+                        "kind": "rush",
+                        "target": "温体仁",
+                        "actor": "温体仁",
+                        "confidence": 96,
+                        "trigger_quote": "本月即核",
+                        "private_reason": "玩家明确催办既有密令。",
+                    }
+
+                session.dialogue_audit_client = allow_audit
+                effect = session._apply_secret_order_followup_after_semantic_gate(
+                    payload,
+                    character,
+                    "把这条密令本月即核。",
+                )
+                self.assertEqual(effect.get("kind"), "secret_order_rush")
+                self.assertEqual(effect.get("order_id"), order_id)
+                self.assertEqual(session.db.get_secret_order(order_id)["status"], "pending_review")
             finally:
                 session.close()
                 if old_disable is None:

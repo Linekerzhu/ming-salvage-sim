@@ -966,6 +966,83 @@ class GameSession:
             "tool_answer_excerpt": str(answer or "")[:240],
         }
 
+    def _secret_order_followup_payload(self, payload: object) -> Dict[str, object]:
+        if isinstance(payload, dict):
+            data = dict(payload)
+        else:
+            try:
+                data = json.loads(str(payload or "")) if payload else {}
+            except (TypeError, ValueError):
+                data = {}
+        if not isinstance(data, dict):
+            return {}
+        raw_kind = str(data.get("action") or data.get("kind") or data.get("mode") or "").strip().lower()
+        if raw_kind not in {"rush", "hurry", "催办", "加急", "即核"}:
+            return {}
+        raw_id = str(data.get("order_id") or data.get("id") or "").strip().lstrip("#")
+        try:
+            order_id = int(raw_id)
+        except (TypeError, ValueError):
+            return {}
+        if order_id <= 0:
+            return {}
+        try:
+            deadline = max(0, min(int(data.get("deadline_months") or 0), 36))
+        except (TypeError, ValueError):
+            deadline = 1
+        return {
+            "action": "rush",
+            "type": "secret_order",
+            "kind": "rush",
+            "mode": "rush",
+            "order_id": order_id,
+            "deadline_months": deadline,
+            "reason": str(data.get("reason") or data.get("note") or "").strip()[:120],
+            "title": str(data.get("title") or "").strip()[:40],
+            "assignee": str(data.get("assignee") or data.get("minister_name") or "").strip(),
+        }
+
+    def dialogue_secret_order_followup_action_from_payload(
+        self,
+        payload: str,
+        character: Character,
+        *,
+        answer: str = "",
+    ) -> Dict[str, object]:
+        """Normalize secret-order follow-up tool output into a semantic action."""
+
+        data = self._secret_order_followup_payload(payload)
+        if not data:
+            return {}
+        order = self.db.get_secret_order(int(data["order_id"]))
+        if order is None:
+            return {}
+        assignee = str(order.get("minister_name") or data.get("assignee") or character.name).strip()
+        if assignee != character.name:
+            return {}
+        title = str(order.get("title") or data.get("title") or f"#{data['order_id']}").strip()
+        deadline = int(data.get("deadline_months") or 0)
+        reason = str(data.get("reason") or "").strip()
+        note_parts = [f"催办密令 #{int(data['order_id'])}「{title}」"]
+        note_parts.append("本月即核" if deadline <= 0 else f"限 {deadline} 个月内核议")
+        if reason:
+            note_parts.append(reason)
+        return {
+            "type": "secret_order",
+            "phase": "confirm",
+            "target": assignee,
+            "actor": character.name,
+            "kind": "rush",
+            "mode": "rush",
+            "order_id": int(data["order_id"]),
+            "deadline_months": deadline,
+            "reason": reason,
+            "title": title,
+            "assignee": assignee,
+            "note": "；".join(note_parts),
+            "tool_answer_excerpt": str(answer or "")[:240],
+        }
+
     def dialogue_action_allows_secret_order(
         self,
         character: Character,
@@ -1005,6 +1082,49 @@ class GameSession:
         if not isinstance(review, dict) or not review.get("allow"):
             return False
         return str(review.get("action_type") or "") == "secret_order" and str(review.get("phase") or "") == "confirm"
+
+    def dialogue_action_allows_secret_order_followup(
+        self,
+        character: Character,
+        user_text: str,
+        payload: str,
+        *,
+        answer: str = "",
+    ) -> bool:
+        """Semantic gate for secret-order follow-up tool calls before DB writes."""
+        if (
+            os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes")
+            and self.dialogue_audit_client is None
+        ):
+            return False
+        action = self.dialogue_secret_order_followup_action_from_payload(payload, character, answer=answer)
+        if not action:
+            return False
+        try:
+            from ming_sim.dialogue_semantics import DialogueSemanticEngine
+
+            decision = DialogueSemanticEngine(
+                self.db,
+                self.state,
+                llm_config=self.llm_config,
+                agno_db=self.agno_db,
+                audit_client=self.dialogue_audit_client,
+            ).gate_tool_action(
+                character,
+                user_text,
+                action,
+                pending_action=None,
+                phase="confirm",
+            )
+        except Exception:
+            return False
+        review = decision.to_review()
+        return bool(
+            isinstance(review, dict)
+            and review.get("allow")
+            and str(review.get("action_type") or "") == "secret_order"
+            and str(review.get("phase") or "") == "confirm"
+        )
 
     def dialogue_allows_unlisted_person_registration(
         self,
@@ -1395,7 +1515,19 @@ class GameSession:
                     result.secret_order_id = order_id
                     result.secret_order_assignee = assignee or character.name
                     result.secret_order_effect = self.record_secret_order_effect(order_id, result.secret_order_assignee)
-            # report_secret_order_progress / submit_secret_order_for_review 工具内部直接落库，session 无需拦截
+            elif tool_name == "rush_secret_order" or tool_result.startswith("__secret_order_followup__"):
+                payload = tool_result.removeprefix("__secret_order_followup__").strip()
+                if not payload:
+                    payload = _tool_args_json(tool_exec)
+                action = self.dialogue_secret_order_followup_action_from_payload(
+                    payload,
+                    character,
+                    answer=answer,
+                )
+                if action:
+                    result.dialogue_action = action
+            # report_secret_order_progress / submit_secret_order_for_review 仍是承办人查办进度工具；
+            # rush_secret_order 已转为语义门后才可落库。
             # 密令结案 done/failed 由月末推演 + extractor 写入，不再走大臣工具
         result.dialogue_goal = self.record_dialogue_after_chat(
             character,
@@ -1566,6 +1698,59 @@ class GameSession:
         except ValueError as exc:
             print(f"[secret_order] 拒绝落库：{exc}")
             return 0
+
+    def _apply_secret_order_followup(self, payload: object, minister_name: str = "") -> Dict[str, object]:
+        """Apply an audited secret-order follow-up such as rush/immediate review."""
+        data = self._secret_order_followup_payload(payload)
+        if not data:
+            return {}
+        order_id = int(data.get("order_id") or 0)
+        order = self.db.get_secret_order(order_id)
+        if order is None:
+            return {}
+        assignee = str(order.get("minister_name") or "").strip()
+        if minister_name and assignee != str(minister_name or "").strip():
+            return {}
+        if str(order.get("status") or "") != "active":
+            return {}
+        deadline = int(data.get("deadline_months") or 0)
+        reason = str(data.get("reason") or "").strip()
+        try:
+            rushed = self.db.rush_secret_order(order_id, self.state, deadline_months=deadline, reason=reason)
+        except (TypeError, ValueError) as exc:
+            print(f"[secret_order] 催办拒绝落库：{exc}")
+            return {}
+        status = str(rushed.get("status") or "")
+        due_turn = int(rushed.get("due_turn") or 0)
+        title = str(rushed.get("title") or order.get("title") or f"#{order_id}")
+        return {
+            "kind": "secret_order_rush",
+            "order_id": order_id,
+            "title": title,
+            "assignee": assignee,
+            "minister_name": assignee,
+            "status": status,
+            "due_turn": due_turn,
+            "deadline_months": deadline,
+            "reason": reason,
+        }
+
+    def _apply_secret_order_followup_after_semantic_gate(
+        self,
+        payload: str,
+        character: Character,
+        user_text: str,
+        *,
+        answer: str = "",
+    ) -> Dict[str, object]:
+        if not self.dialogue_action_allows_secret_order_followup(
+            character,
+            user_text,
+            payload,
+            answer=answer,
+        ):
+            return {}
+        return self._apply_secret_order_followup(payload, character.name)
 
     def record_secret_order_effect(self, order_id: int, assignee: str = "") -> Dict[str, object]:
         """密令建档后的即时心理账：信任不等于轻松，秘密差遣会带来压力。"""

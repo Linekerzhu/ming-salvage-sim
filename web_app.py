@@ -4837,6 +4837,33 @@ class WebGame:
                 "trigger_quote": quote or text,
             }
         if action_type == "secret_order":
+            kind = str(decision.kind or payload.get("kind") or payload.get("mode") or payload.get("action") or "").strip().lower()
+            if kind in {"rush", "hurry", "催办", "加急", "即核"}:
+                raw_order_id = str(payload.get("order_id") or payload.get("id") or "").strip().lstrip("#")
+                try:
+                    order_id = int(raw_order_id)
+                except (TypeError, ValueError):
+                    return {}
+                if order_id <= 0:
+                    return {}
+                try:
+                    deadline_months = max(0, min(int(payload.get("deadline_months") or 0), 36))
+                except (TypeError, ValueError):
+                    deadline_months = 1
+                return {
+                    "type": "secret_order",
+                    "target": target or actor or minister_name,
+                    "actor": actor or minister_name,
+                    "kind": "rush",
+                    "mode": "rush",
+                    "order_id": order_id,
+                    "deadline_months": deadline_months,
+                    "reason": str(payload.get("reason") or quote or text).strip()[:120],
+                    "title": str(payload.get("title") or "").strip()[:40],
+                    "assignee": str(payload.get("assignee") or target or actor or minister_name).strip(),
+                    "note": str(payload.get("note") or quote or text).strip(),
+                    "trigger_quote": quote or text,
+                }
             assignee = target or actor or minister_name
             title = str(payload.get("title") or decision.public_hint or quote or text).strip()[:20]
             content = str(payload.get("content") or payload.get("note") or quote or text).strip()
@@ -6408,6 +6435,38 @@ class WebGame:
         return f"{self_ref}领会陛下意思，但此事须陛下再明白准一句，臣才敢办。"
 
     def _execute_secret_order_action(self, minister_name: str, action: Dict[str, Any]) -> Dict[str, Any]:
+        kind = str(action.get("kind") or action.get("mode") or action.get("action") or "issue").strip().lower()
+        if kind in {"rush", "hurry", "催办", "加急", "即核"}:
+            effect = self.session._apply_secret_order_followup(action, minister_name)
+            if not effect:
+                return {}
+            order_id = int(effect.get("order_id") or 0)
+            title = str(effect.get("title") or f"#{order_id}")
+            assignee = str(effect.get("assignee") or minister_name)
+            status = str(effect.get("status") or "")
+            deadline = int(effect.get("deadline_months") or 0)
+            due_turn = int(effect.get("due_turn") or 0)
+            if status == "pending_review":
+                status_text = "已奉旨即核，转入待核议"
+                detail = "本月月末推演必须核议"
+            else:
+                remain = max(0, due_turn - int(self.state.turn))
+                status_text = "已奉旨加急"
+                detail = f"限 {remain if remain else deadline} 个月内核议"
+            return {
+                "answer": f"{self._dialogue_speaker_self(minister_name)}遵旨。密令 #{order_id}「{title}」{status_text}，{detail}。",
+                "secret_order_id": order_id,
+                "secret_order_assignee": assignee,
+                "secret_order_effect": effect,
+                "dialogue_effect": {
+                    "title": "密令催办",
+                    "message": f"#{order_id} {title}：{status_text}，{detail}",
+                    "effects": [
+                        {"kind": "secret_order_rush", "label": f"#{order_id} {title}", "tone": "warn"},
+                        {"kind": "secret_order_actor", "label": f"承办：{assignee}", "tone": "neutral"},
+                    ],
+                },
+            }
         title = str(action.get("title") or "").strip()[:20]
         content = str(action.get("content") or action.get("note") or "").strip()
         assignee = str(action.get("assignee") or action.get("target") or action.get("actor") or minister_name).strip()
@@ -7143,6 +7202,22 @@ class WebGame:
         if normalized.get("type") == "recruitment" and not normalized.get("kind"):
             return {}
         if normalized.get("type") == "secret_order":
+            kind = str(normalized.get("kind") or normalized.get("mode") or "").strip().lower()
+            if kind in {"rush", "hurry", "催办", "加急", "即核"}:
+                raw_order_id = str(normalized.get("order_id") or normalized.get("id") or "").strip().lstrip("#")
+                try:
+                    order_id = int(raw_order_id)
+                except (TypeError, ValueError):
+                    return {}
+                if order_id <= 0:
+                    return {}
+                normalized["order_id"] = order_id
+                normalized["kind"] = "rush"
+                normalized["mode"] = "rush"
+                normalized["actor"] = str(normalized.get("actor") or minister_name).strip()
+                if not normalized.get("target"):
+                    normalized["target"] = str(normalized.get("assignee") or minister_name).strip()
+                return normalized
             title = str(normalized.get("title") or "").strip()
             content = str(normalized.get("content") or "").strip()
             if not title or not content:
@@ -8633,6 +8708,18 @@ class WebGame:
                                 secret_order_id,
                                 secret_order_assignee or minister_name,
                             )
+                    elif tool_name == "rush_secret_order" or res.startswith("__secret_order_followup__"):
+                        payload_json = res.removeprefix("__secret_order_followup__").strip()
+                        if not payload_json:
+                            args = getattr(tool_exec, "arguments", {}) or getattr(tool_exec, "tool_args", {}) or {}
+                            payload_json = json.dumps(args, ensure_ascii=False)
+                        action = self.session.dialogue_secret_order_followup_action_from_payload(
+                            payload_json,
+                            character,
+                            answer=answer,
+                        )
+                        if action:
+                            dialogue_tool_action = action
                     # 密令结案不再走大臣工具，由月末推演 + extractor 写入
             dialogue_tool_response = self._dialogue_tool_response(
                 minister_name,
