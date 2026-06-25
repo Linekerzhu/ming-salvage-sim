@@ -1188,6 +1188,44 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_semantic_executor_requires_allowed_review(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            calls = []
+
+            def capture(minister_name, action, *, chat_turn_id=0):
+                calls.append((minister_name, dict(action), int(chat_turn_id or 0)))
+                return {"answer": "should not execute"}
+
+            game._execute_dialogue_action = capture
+            action = {"type": "recruitment", "kind": "eunuch", "trigger_quote": "准，招一个小内侍"}
+
+            self.assertEqual(game._execute_semantic_dialogue_action(attendant, action), {})
+            self.assertEqual(
+                game._execute_semantic_dialogue_action(
+                    attendant,
+                    action,
+                    review={
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "recruitment",
+                        "kind": "eunuch",
+                        "trigger_quote": "准，招一个小内侍",
+                        "confidence": 45,
+                    },
+                    decision_type="tool",
+                ),
+                {},
+            )
+            self.assertEqual(calls, [])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_consequence_source_uses_chat_turn_id(self):
         game = web_app.WebGame(fresh=True)
         try:

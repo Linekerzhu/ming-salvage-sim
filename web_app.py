@@ -4285,6 +4285,8 @@ class WebGame:
             return {}
         embedded_review = action.get("_semantic_review") if isinstance(action.get("_semantic_review"), dict) else {}
         review = review if isinstance(review, dict) and review else embedded_review
+        if not isinstance(review, dict) or not review.get("allow"):
+            return {}
         payload = {key: value for key, value in action.items() if key != "_semantic_review"}
         raw_type = str(payload.get("type") or "").strip()
         action_type = str(payload.get("action_type") or raw_type).strip()
@@ -4298,7 +4300,7 @@ class WebGame:
             or ""
         ).strip()
         try:
-            confidence = int(review.get("confidence") or 100)
+            confidence = int(review.get("confidence") or 0)
         except (TypeError, ValueError):
             confidence = 0
         decision = SemanticDecision(
@@ -5423,12 +5425,30 @@ class WebGame:
                 "proposal_evidence": str(answer or "").strip()[:360],
                 "semantic_reason": "专用 legacy pending regex recovery 兼容路径。",
             }
+
+            def recovered_action(kind: str) -> Dict[str, Any]:
+                return {
+                    "type": "recruitment",
+                    "kind": kind,
+                    **recovered_base,
+                    "_semantic_review": {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "recruitment",
+                        "kind": kind,
+                        "trigger_quote": recovered_base["trigger_quote"],
+                        "proposal_evidence": recovered_base["proposal_evidence"],
+                        "private_reason": recovered_base["semantic_reason"],
+                        "confidence": 95,
+                    },
+                }
+
             if re.search(r"(内书堂|司礼监|小火者|小内侍|内侍|太监|内官(?!监))", answer) and re.search(r"(挑|招|募|取|带|领).{0,18}(?:一个|一人|小火者|内侍|太监|来)", answer):
-                return {"type": "recruitment", "kind": "eunuch", **recovered_base}
+                return recovered_action("eunuch")
             if re.search(r"(新科|庶吉士|科场|进士|取士|补入朝班)", answer):
-                return {"type": "recruitment", "kind": "exam", **recovered_base}
+                return recovered_action("exam")
             if re.search(r"(举荐|荐人|荐才|保举|访贤|寻贤|荐出|举出).{0,24}(?:一人|一个|新人|可试差)", answer):
-                return {"type": "recruitment", "kind": "recommend", **recovered_base}
+                return recovered_action("recommend")
         return {}
 
     def _recruitment_explicitly_blocked(self, text: str) -> bool:
