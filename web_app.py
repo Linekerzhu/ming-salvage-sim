@@ -4313,6 +4313,15 @@ class WebGame:
         action_type = str(payload.get("action_type") or raw_type).strip()
         if raw_type == "dialogue_consequence":
             action_type = str(payload.get("action_type") or "").strip()
+        review_phase = str(review.get("phase") or "").strip()
+        review_action_type = str(review.get("action_type") or review.get("type") or "").strip()
+        if review_phase != "confirm" or not action_type or review_action_type != action_type:
+            return {}
+        for field in ("target", "actor", "kind", "mode"):
+            payload_value = str(payload.get(field) or "").strip()
+            review_value = str(review.get(field) or "").strip()
+            if payload_value and review_value and payload_value != review_value:
+                return {}
         trigger_quote = str(review.get("trigger_quote") or payload.get("trigger_quote") or "").strip()
         try:
             confidence = int(review.get("confidence") or 0)

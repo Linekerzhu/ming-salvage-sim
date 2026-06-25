@@ -1228,6 +1228,90 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_semantic_executor_requires_confirm_phase_and_matching_action_type(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            calls = []
+
+            def capture(minister_name, action, *, chat_turn_id=0):
+                calls.append((minister_name, dict(action), int(chat_turn_id or 0)))
+                return {"answer": "should not execute"}
+
+            game._execute_dialogue_action = capture
+
+            phase_response = game._execute_semantic_dialogue_action(
+                attendant,
+                {"type": "recruitment", "kind": "eunuch", "trigger_quote": "宫里可有新的小内侍"},
+                review={
+                    "allow": True,
+                    "phase": "propose",
+                    "action_type": "recruitment",
+                    "kind": "eunuch",
+                    "trigger_quote": "宫里可有新的小内侍",
+                    "confidence": 96,
+                },
+                decision_type="tool",
+            )
+            type_response = game._execute_semantic_dialogue_action(
+                attendant,
+                {"type": "castration", "target": "洪承畴", "trigger_quote": "准，招一个小内侍"},
+                review={
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "recruitment",
+                    "kind": "eunuch",
+                    "trigger_quote": "准，招一个小内侍",
+                    "confidence": 96,
+                },
+                decision_type="tool",
+            )
+
+            self.assertEqual(phase_response, {})
+            self.assertEqual(type_response, {})
+            self.assertEqual(calls, [])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_executor_requires_matching_recruitment_kind(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            calls = []
+
+            def capture(minister_name, action, *, chat_turn_id=0):
+                calls.append((minister_name, dict(action), int(chat_turn_id or 0)))
+                return {"answer": "should not execute"}
+
+            game._execute_dialogue_action = capture
+
+            response = game._execute_semantic_dialogue_action(
+                attendant,
+                {"type": "recruitment", "kind": "eunuch", "trigger_quote": "准，取个新科进士"},
+                review={
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "recruitment",
+                    "kind": "exam",
+                    "trigger_quote": "准，取个新科进士",
+                    "confidence": 96,
+                },
+                decision_type="tool",
+            )
+
+            self.assertEqual(response, {})
+            self.assertEqual(calls, [])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_semantic_executor_does_not_use_pending_source_quote_as_confirmation(self):
         game = web_app.WebGame(fresh=True)
         try:
