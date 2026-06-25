@@ -7012,6 +7012,50 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_semantic_directive_fallback_requires_trigger_quote_from_current_user_text(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            character = game.session._character(actor)
+
+            def audit(phase, payload):
+                if phase == "dialogue_directive_fallback":
+                    return {
+                        "allow": True,
+                        "subject": "核出本月辽饷实欠",
+                        "directive_text": "着户部核出本月辽饷实欠，五日内具奏。",
+                        "trigger_quote": "臣以为可令户部先核辽饷",
+                        "private_reason": "审计误把 NPC 回答当成玩家拟旨命令。",
+                        "confidence": 95,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            proposed = game._fallback_pending_directive(
+                character,
+                "照你刚才说的，写成一份可核定文书。",
+                "臣以为可令户部先核辽饷。",
+            )
+
+            self.assertIsNone(proposed)
+            row = game.db.conn.execute(
+                "SELECT COUNT(*) AS n FROM turn_directives WHERE actor=?",
+                (actor,),
+            ).fetchone()
+            self.assertEqual(int(row["n"]), 0)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_semantic_directive_fallback_denial_blocks_keyword_fallback(self):
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
         game = web_app.WebGame(fresh=True)
@@ -7041,6 +7085,48 @@ class AttendantSummonTests(unittest.TestCase):
                 character,
                 "你说，这道旨意若颁布会怎样？",
                 "臣以为阻力不小。",
+            )
+
+            self.assertIsNone(proposed)
+            row = game.db.conn.execute(
+                "SELECT COUNT(*) AS n FROM turn_directives WHERE actor=?",
+                (actor,),
+            ).fetchone()
+            self.assertEqual(int(row["n"]), 0)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_tool_pending_directive_requires_trigger_quote_from_current_user_text(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "王承恩"
+            character = game.session._character(actor)
+            tool_draft_text = "着户部即刻加征辽饷，违者重责。"
+
+            def audit(phase, payload):
+                if phase == "dialogue_directive_fallback":
+                    self.assertIn(tool_draft_text, str(payload.get("npc_answer") or ""))
+                    return {
+                        "allow": True,
+                        "subject": "辽饷加征",
+                        "directive_text": "着户部核明辽饷实欠，五日内具奏。",
+                        "trigger_quote": "臣已拟旨如下",
+                        "confidence": 96,
+                        "private_reason": "审计误把 NPC 工具回答当成玩家授权。",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+            proposed = game._record_tool_pending_directive(
+                character,
+                "你说，此事要不要下旨？",
+                tool_draft_text,
+                f"臣已拟旨如下：{tool_draft_text}",
             )
 
             self.assertIsNone(proposed)

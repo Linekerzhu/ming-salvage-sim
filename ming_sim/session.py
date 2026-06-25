@@ -1631,6 +1631,8 @@ class GameSession:
         )
         if decision is None or not decision.allow or decision.action_type != "directive_fallback":
             return ""
+        if not self._semantic_decision_quote_supported_by_user_text(decision, user_text):
+            return ""
         return self._pending_directive_text_with_decision(draft_text, decision)
 
     def _record_pending_directive_from_tool(

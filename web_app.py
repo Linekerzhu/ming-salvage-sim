@@ -2439,6 +2439,8 @@ class WebGame:
         if decision is not None:
             if not decision.allow:
                 return None
+            if not self._semantic_quote_supported_by_user_text(decision.trigger_quote, user_text):
+                return None
             review = decision.payload if isinstance(decision.payload, dict) else {}
             subject = str(review.get("subject") or "").strip()
             draft_text = str(review.get("directive_text") or "").strip()
