@@ -3198,6 +3198,36 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_semantic_action_builder_uses_decision_payload_boundary(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            decision = SemanticDecision(
+                decision_type="action",
+                action_type="mediation",
+                phase="propose",
+                actor="韩爌",
+                target="",
+                mode="co_work",
+                payload={"faction": "东林"},
+                confidence=96,
+                trigger_quote="调停东林旧怨",
+                private_reason="test decision payload boundary",
+                raw={"faction": "阉党"},
+            )
+
+            action = game._action_from_semantic_decision("韩爌", "朕要你调停东林旧怨。", decision)
+
+            self.assertEqual(action.get("type"), "mediation")
+            self.assertEqual(action.get("actor"), "韩爌")
+            self.assertEqual(action.get("faction"), "东林")
+            self.assertNotEqual(action.get("faction"), str(decision.raw.get("faction")))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_semantic_route_summons_when_regex_summon_fallback_is_off(self):
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS"] = "0"
         os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "0"
@@ -3412,7 +3442,15 @@ class AttendantSummonTests(unittest.TestCase):
 
             game.session.dialogue_audit_client = audit
 
-            response = game._dialogue_route_response(actor, "准，去调停。")
+            decision = game._dialogue_route_semantic_decision(actor, "准，去调停。")
+            self.assertIsInstance(decision, SemanticDecision)
+            self.assertTrue(decision.allow)
+            self.assertEqual(decision.decision_type, "route")
+            self.assertEqual(decision.action_type, "confirm_pending")
+            self.assertEqual(decision.phase, "confirm")
+            self.assertEqual(decision.payload.get("pending_action_type"), "mediation")
+
+            response = game._dialogue_route_response_from_decision(actor, "准，去调停。", decision)
 
             self.assertIsNotNone(response)
             self.assertIn("dialogue_effect", response)
