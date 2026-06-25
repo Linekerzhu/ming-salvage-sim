@@ -4312,13 +4312,7 @@ class WebGame:
         action_type = str(payload.get("action_type") or raw_type).strip()
         if raw_type == "dialogue_consequence":
             action_type = str(payload.get("action_type") or "").strip()
-        trigger_quote = str(
-            payload.get("trigger_quote")
-            or payload.get("source_quote")
-            or review.get("trigger_quote")
-            or review.get("proposal_evidence")
-            or ""
-        ).strip()
+        trigger_quote = str(review.get("trigger_quote") or payload.get("trigger_quote") or "").strip()
         try:
             confidence = int(review.get("confidence") or 0)
         except (TypeError, ValueError):
