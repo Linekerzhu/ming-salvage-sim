@@ -1177,6 +1177,11 @@ class GameSession:
             and str(review.get("action_type") or "") == "secret_order"
             and str(review.get("phase") or "") == "confirm"
             and kind in {"", "issue", "secret_order"}
+            and not self._semantic_decision_changes_payload(
+                self._json_object_payload(payload),
+                decision,
+                keys=("title", "content", "assignee", "deadline_months", "tags"),
+            )
         )
 
     def dialogue_secret_order_decision(
@@ -1220,13 +1225,7 @@ class GameSession:
         payload: object,
         decision: object,
     ) -> Dict[str, object]:
-        if isinstance(payload, dict):
-            data = dict(payload)
-        else:
-            try:
-                data = json.loads(str(payload or "")) if payload else {}
-            except (TypeError, ValueError):
-                data = {}
+        data = self._json_object_payload(payload)
         if not isinstance(data, dict):
             return {}
         normalized: Dict[str, object] = dict(data)
@@ -1240,6 +1239,58 @@ class GameSession:
         if isinstance(review_payload.get("tags"), list):
             normalized["tags"] = review_payload["tags"]
         return normalized
+
+    def _json_object_payload(self, payload: object) -> Dict[str, object]:
+        if isinstance(payload, dict):
+            return dict(payload)
+        try:
+            data = json.loads(str(payload or "")) if payload else {}
+        except (TypeError, ValueError):
+            return {}
+        return dict(data) if isinstance(data, dict) else {}
+
+    def _semantic_decision_changes_payload(
+        self,
+        source: Dict[str, object],
+        decision: object,
+        *,
+        keys: Tuple[str, ...],
+        attr_keys: Tuple[str, ...] = (),
+        attr_key_map: Optional[Dict[str, str]] = None,
+    ) -> bool:
+        review_payload = getattr(decision, "payload", {})
+        if not isinstance(review_payload, dict):
+            review_payload = {}
+        for key in keys:
+            if key not in review_payload:
+                continue
+            value = review_payload.get(key)
+            if value in (None, "", [], {}):
+                continue
+            if not self._semantic_payload_value_matches(source.get(key), value):
+                return True
+        attr_sources = dict(attr_key_map or {})
+        for key in attr_keys:
+            source_key = attr_sources.get(key, key)
+            value = str(getattr(decision, key, "") or "").strip()
+            if not value:
+                continue
+            if not self._semantic_payload_value_matches(source.get(source_key), value):
+                return True
+        return False
+
+    @staticmethod
+    def _semantic_payload_value_matches(left: object, right: object) -> bool:
+        if left == right:
+            return True
+        if isinstance(left, (int, float)) or isinstance(right, (int, float)):
+            try:
+                return float(left) == float(right)  # type: ignore[arg-type]
+            except (TypeError, ValueError):
+                return False
+        if isinstance(left, list) or isinstance(right, list):
+            return list(left or []) == list(right or []) if isinstance(left, list) and isinstance(right, list) else False
+        return str(left or "").strip() == str(right or "").strip()
 
     def dialogue_action_allows_secret_order_followup(
         self,
@@ -1262,6 +1313,25 @@ class GameSession:
             and review.get("allow")
             and str(review.get("action_type") or "") == "secret_order"
             and str(review.get("phase") or "") == "confirm"
+            and not self._semantic_decision_changes_payload(
+                self._secret_order_followup_payload(payload),
+                decision,
+                keys=(
+                    "order_id",
+                    "id",
+                    "title",
+                    "assignee",
+                    "deadline_months",
+                    "progress",
+                    "claim",
+                    "note",
+                    "reason",
+                    "strategy",
+                    "kind",
+                    "mode",
+                ),
+                attr_keys=("target", "actor", "kind", "mode"),
+            )
         )
 
     def dialogue_secret_order_followup_decision(
@@ -1634,6 +1704,13 @@ class GameSession:
             and review.get("allow")
             and str(review.get("action_type") or "") == "office_change"
             and str(review.get("phase") or "") == "confirm"
+            and not self._semantic_decision_changes_payload(
+                self._json_object_payload(payload),
+                decision,
+                keys=("name", "office", "office_type", "replaces", "faction", "reason", "recommendation_basis"),
+                attr_keys=("target",),
+                attr_key_map={"target": "name"},
+            )
         )
 
     def dialogue_appointment_decision(
@@ -1672,13 +1749,7 @@ class GameSession:
         payload: object,
         decision: object,
     ) -> Dict[str, object]:
-        if isinstance(payload, dict):
-            data = dict(payload)
-        else:
-            try:
-                data = json.loads(str(payload or "")) if payload else {}
-            except (TypeError, ValueError):
-                data = {}
+        data = self._json_object_payload(payload)
         if not isinstance(data, dict):
             return {}
         normalized: Dict[str, object] = dict(data)

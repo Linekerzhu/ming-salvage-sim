@@ -7330,6 +7330,14 @@ class AttendantSummonTests(unittest.TestCase):
                 }
 
             game.session.dialogue_audit_client = allow_audit
+            self.assertFalse(
+                game.session.dialogue_allows_appointment(
+                    character,
+                    f"任{approved_target}为{approved_office}，着吏部建档。",
+                    payload,
+                    answer=f"臣拟任{wrong_target}为{wrong_office}。",
+                )
+            )
             appointed, displaced, displaced_effect = game.session._apply_appointment_after_semantic_gate(
                 payload,
                 character,

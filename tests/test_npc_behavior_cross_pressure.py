@@ -1583,6 +1583,13 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                     }
 
                 session.dialogue_audit_client = allow_audit
+                self.assertFalse(
+                    session.dialogue_action_allows_secret_order(
+                        character,
+                        "给温体仁下密令，暗查钱谦益起复东林旧臣之议，两月内回奏。",
+                        payload,
+                    )
+                )
                 order_id = session._apply_secret_order_after_semantic_gate(
                     payload,
                     character,
@@ -1883,6 +1890,13 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                     }
 
                 session.dialogue_audit_client = allow_audit
+                self.assertFalse(
+                    session.dialogue_action_allows_secret_order_followup(
+                        character,
+                        "说说本月查到什么，照实入档。",
+                        payload,
+                    )
+                )
                 effect = session._apply_secret_order_followup_after_semantic_gate(
                     payload,
                     character,
