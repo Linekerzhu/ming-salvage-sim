@@ -4543,7 +4543,23 @@ class WebGame:
             except ValueError:
                 return {}
         else:
+            normalized_target_name = self._normalize_dialogue_person_name(target_name)
+            if not normalized_target_name:
+                return {}
+            target_name = normalized_target_name
             stored = self._load_unknown_dialogue_mentions()
+            stored_source = stored.get(target_name, {}) if isinstance(stored.get(target_name), dict) else {}
+            mention_decision = self._semantic_route_unknown_summon_decision(
+                minister_name,
+                text,
+                target_name,
+                stored_source,
+            )
+            if not mention_decision.allow:
+                return {}
+            accepted = mention_decision.payload.get("accepted_names", []) if isinstance(mention_decision.payload, dict) else []
+            if target_name not in accepted:
+                return {}
             stored.setdefault(target_name, {
                 "name": target_name,
                 "source_minister": minister_name,
@@ -4551,6 +4567,8 @@ class WebGame:
                 "mention_index": len(stored),
                 "excerpt": str(text or "")[:160],
             })
+            if isinstance(stored.get(target_name), dict):
+                stored[target_name]["semantic_review"] = mention_decision.to_review()
             self._save_unknown_dialogue_mentions(stored)
             generated_character = self._materialize_dialogue_mention_from_text(
                 minister_name,
@@ -4572,6 +4590,39 @@ class WebGame:
             "generated": generated,
             "source": "semantic",
         }
+
+    def _semantic_route_unknown_summon_decision(
+        self,
+        minister_name: str,
+        text: str,
+        target_name: str,
+        source: Optional[Dict[str, Any]] = None,
+    ) -> SemanticDecision:
+        if not self._dialogue_mention_llm_audit_available():
+            return SemanticDecision.none("名册外召见补档语义审计不可用。")
+        target = self._normalize_dialogue_person_name(target_name)
+        if not target:
+            return SemanticDecision.none("名册外召见缺少可补档姓名。")
+        source = source if isinstance(source, dict) else {}
+        evidence = "\n".join(
+            part
+            for part in (
+                str(source.get("excerpt") or "").strip(),
+                str(text or "").strip(),
+                f"语义路由拟召见名册外人物：{target}",
+            )
+            if part
+        )
+        try:
+            character = self.session._character(minister_name)
+            return self._dialogue_semantic_engine().evaluate_unknown_mentions_decision(
+                character,
+                evidence,
+                candidate_names=[target],
+                purpose="route_summon",
+            )
+        except Exception as exc:
+            return SemanticDecision.none(str(exc))
 
     def _dialogue_route_response_from_decision(
         self,

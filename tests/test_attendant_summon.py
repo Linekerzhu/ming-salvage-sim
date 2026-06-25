@@ -4400,6 +4400,110 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_semantic_route_unknown_summon_requires_unknown_mention_gate(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS"] = "0"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "0"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            target = "顾路生"
+            self.assertNotIn(target, game.content.characters)
+            seen_purposes = []
+
+            def deny_audit(phase, payload):
+                if phase == "dialogue_route_intent":
+                    return {
+                        "allow": True,
+                        "intent": "summon",
+                        "target_name": target,
+                        "trigger_quote": f"传{target}入殿",
+                        "confidence": 96,
+                        "private_reason": "route allows the audience switch only.",
+                    }
+                if phase == "dialogue_unknown_mention_intake":
+                    seen_purposes.append(payload.get("purpose"))
+                    return {
+                        "allow": False,
+                        "accepted_names": [],
+                        "rejected_names": [target],
+                        "trigger_quote": f"传{target}入殿",
+                        "confidence": 96,
+                        "private_reason": "名册外补档审计拒绝。",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = deny_audit
+            response = game._dialogue_route_response(attendant, f"传{target}入殿奏对。")
+
+            self.assertIsNone(response)
+            self.assertNotIn(target, game.content.characters)
+            self.assertEqual(seen_purposes[-1], "route_summon")
+            self.assertNotIn(target, game._load_unknown_dialogue_mentions())
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_route_unknown_summon_materializes_after_two_gates(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS"] = "0"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "0"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            target = "顾路生"
+            self.assertNotIn(target, game.content.characters)
+
+            def audit(phase, payload):
+                if phase == "dialogue_route_intent":
+                    return {
+                        "allow": True,
+                        "intent": "summon",
+                        "target_name": target,
+                        "trigger_quote": f"传{target}入殿",
+                        "confidence": 96,
+                        "private_reason": "皇帝明确召见该名册外人物。",
+                    }
+                if phase == "dialogue_unknown_mention_intake":
+                    self.assertEqual(payload.get("purpose"), "route_summon")
+                    self.assertIn(target, payload.get("candidate_names") or [])
+                    return {
+                        "allow": True,
+                        "accepted_names": [target],
+                        "rejected_names": [],
+                        "trigger_quote": f"传{target}入殿",
+                        "confidence": 96,
+                        "private_reason": "皇帝原话明确要求把该具体姓名补档召入殿。",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+            response = game._dialogue_route_response(attendant, f"传{target}入殿奏对。")
+
+            self.assertIsNotNone(response)
+            self.assertEqual(response.get("court_action"), "summon")
+            self.assertEqual(response.get("next_minister"), target)
+            self.assertEqual(response.get("registered_minister"), target)
+            self.assertIn(target, game.content.characters)
+            stored = game._load_unknown_dialogue_mentions()
+            self.assertNotIn(target, stored)
+            row = game.db.conn.execute(
+                "SELECT status_reason, summary FROM characters WHERE name=?",
+                (target,),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertEqual(row["status_reason"], "对白线索补档")
+            self.assertIn("当前活动存档", str(row["summary"] or ""))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_tool_summon_requires_route_semantic_audit(self):
         os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "0"
         game = web_app.WebGame(fresh=True)
