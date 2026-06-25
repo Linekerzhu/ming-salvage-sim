@@ -68,6 +68,7 @@ DIALOGUE_ROUTE_INTENTS = {"none", "summon", "confirm_pending", "reject_pending"}
 BARGAIN_ATTITUDES = {"none", "accept", "press", "refuse"}
 DIRECTIVE_PRESSURE_KINDS = {"none", "pressed", "needs_support", "evasive"}
 DIRECTIVE_FOLLOWUP_KINDS = {"none", "rewarded", "accounted", "followup_evasive", "next_step", "reviewed"}
+DECISION_TESTIMONY_KINDS = {"none", "evidence", "liability", "faction", "protection", "defense", "statement"}
 RECOVERABLE_DIALOGUE_ACTION_TYPES = {
     "recruitment",
     "mediation",
@@ -836,6 +837,30 @@ def _normalize_dialogue_directive_pressure(data: Dict[str, object]) -> Dict[str,
 
 def _normalize_dialogue_directive_followup(data: Dict[str, object]) -> Dict[str, object]:
     kind = _enum(data.get("kind"), DIRECTIVE_FOLLOWUP_KINDS, "none")
+    raw_confidence = data.get("confidence")
+    try:
+        parsed_confidence = float(raw_confidence)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        parsed_confidence = 0.0
+    if 0 < parsed_confidence <= 1:
+        confidence = _clamp_int(parsed_confidence * 100)
+    else:
+        confidence = _clamp_int(raw_confidence)
+    allow = bool(data.get("allow")) and kind != "none" and confidence >= CONFIDENCE_FLOOR
+    return {
+        "allow": allow,
+        "kind": kind if allow else "none",
+        "confidence": confidence,
+        "trigger_quote": _compact(data.get("trigger_quote"), 140),
+        "answer_evidence": _compact(data.get("answer_evidence"), 240),
+        "public_hint": _compact(data.get("public_hint"), 180),
+        "private_reason": _compact(data.get("private_reason") or data.get("reason"), 520),
+        "raw": data,
+    }
+
+
+def _normalize_dialogue_decision_testimony(data: Dict[str, object]) -> Dict[str, object]:
+    kind = _enum(data.get("kind"), DECISION_TESTIMONY_KINDS, "none")
     raw_confidence = data.get("confidence")
     try:
         parsed_confidence = float(raw_confidence)  # type: ignore[arg-type]
@@ -1632,6 +1657,42 @@ JSON 字段：
 """.strip()
 
 
+DIALOGUE_DECISION_TESTIMONY_PROMPT = """
+你是明末历史策略游戏的“待裁抉择证词审计官”。你只输出 JSON，不写 Markdown。
+任务：阅读当前待裁决事件、召对上下文、皇帝本轮原话和 NPC 回复，判断这次对话是否应写入该待裁案卷作为证词。
+
+核心原则：
+- 这是语义判定，不按“证据、担责、冤、账册”等词机械入案。
+- allow=true 只用于：当前 NPC 是待裁事件的当事人、牵涉人或被皇帝明确点名询问的人，且皇帝本轮是在就这件待裁事件取证、问责、听辩、要求担保、询问党争牵连或记录其供述。
+- allow=false：只是普通闲聊、假设“如果朕问证据会怎样”、泛论朝局、NPC 自行多说、上下文人物不相关、皇帝没有就待裁事件取证/问责/听辩，或证据不足。
+- kind=evidence：证词重点是账册、人证、物证、实据、查验。
+- kind=liability：证词重点是担责、担保、请罪、领罪、连坐。
+- kind=faction：证词重点是党争、政敌、同党、派系牵连。
+- kind=protection：证词重点是求护持、求台阶、求保全。
+- kind=defense：证词重点是自辩、喊冤、开脱、解释责任。
+- kind=statement：确实在案卷相关召对中留下陈述，但不属于以上类型。
+- trigger_quote 必须逐字引用皇帝原话中能证明“正在为此待裁事件取证/问责/听辩/要求入案”的短句；answer_evidence 必须引用 NPC 回复中可入案的短句。没有两边证据 allow=false。
+
+判例：
+- 待裁为 A 劾 B；皇帝问 A：“未裁断前，先问你弹劾B有何证据？” A 答：“臣有账册与人证。” => allow=true, kind=evidence。
+- 待裁为旧约逾期；皇帝问承诺人：“误期谁担责？” NPC 答：“臣愿担责。” => allow=true, kind=liability。
+- 皇帝：“你怎么看朝中风气？” NPC 泛谈党争 => allow=false。
+- 皇帝：“若朕问你证据，你会如何答？” NPC 泛谈准备 => allow=false。
+- NPC 自己主动说“臣有证据”，但皇帝本轮只闲聊、没有就待裁事件发问或要求入案 => allow=false。
+
+JSON 字段：
+{
+  "allow": false,
+  "kind": "none|evidence|liability|faction|protection|defense|statement",
+  "trigger_quote": "皇帝原话短句",
+  "answer_evidence": "NPC 回复证据",
+  "public_hint": "一句玩家可见提示",
+  "private_reason": "审计理由",
+  "confidence": 0
+}
+""".strip()
+
+
 DIALOGUE_EUNUCH_LORE_INTAKE_PROMPT = """
 你是明末历史策略游戏的“净身旧档入档审计官”。你只输出 JSON，不写 Markdown。
 任务：阅读一段皇帝或 NPC 的对白，判断是否允许把其中的净身旧档/宝贝去处/旧患/心相细节写入人物长期档案，并给出允许写入的目标人物。
@@ -1734,6 +1795,7 @@ def _agent(llm_config: LLMConfig, agno_db: object, *, phase: str, prompt: str, m
         "dialogue_directive_fallback": "llm.dialogue_directive_fallback",
         "dialogue_directive_pressure": "llm.dialogue_directive_pressure",
         "dialogue_directive_followup": "llm.dialogue_directive_followup",
+        "dialogue_decision_testimony": "llm.dialogue_decision_testimony",
         "dialogue_eunuch_lore_intake": "llm.dialogue_eunuch_lore_intake",
         "dialogue_unknown_mention_intake": "llm.dialogue_unknown_mention_intake",
     }.get(phase, "llm.dialogue_condition_audit")
@@ -2274,6 +2336,89 @@ def dialogue_directive_followup_audit(
         return _normalize_dialogue_directive_followup(data)
     except Exception as exc:
         return _normalize_dialogue_directive_followup({
+            "allow": False,
+            "kind": "none",
+            "confidence": 0,
+            "private_reason": str(exc),
+        })
+
+
+def dialogue_decision_testimony_audit(
+    db: Any,
+    state: GameState,
+    character: Character,
+    user_text: str,
+    answer: str,
+    decision_context: Dict[str, object],
+    *,
+    llm_config: Optional[LLMConfig] = None,
+    agno_db: object = None,
+    audit_client: object = None,
+) -> Dict[str, object]:
+    payload = _context_payload(db, state, character)
+    payload["user_text"] = user_text
+    payload["npc_answer"] = answer
+    payload["decision_context"] = {
+        key: value
+        for key, value in (decision_context or {}).items()
+        if key in {
+            "kind",
+            "ref_kind",
+            "id",
+            "ref_id",
+            "title",
+            "actor",
+            "target",
+            "motive",
+            "ask",
+            "exchange",
+            "cost",
+            "meta",
+            "narrative",
+            "choices",
+            "pending",
+            "payload",
+        }
+    }
+    try:
+        from ming_sim.court_events import get_pending, pending_payload
+
+        pending = get_pending(db)
+        pending_case = pending_payload(db)
+        if isinstance(pending, dict):
+            payload["decision_context"]["pending"] = pending
+        if isinstance(pending_case, dict):
+            payload["decision_context"]["payload"] = pending_case
+    except Exception:
+        pass
+    _attach_behavior_context(payload, character, text=f"{user_text}\n{answer}")
+    try:
+        fake = _call_fake(audit_client, "dialogue_decision_testimony", payload)
+        if fake is not None:
+            return _normalize_dialogue_decision_testimony(fake)
+        if llm_config is None:
+            return _normalize_dialogue_decision_testimony({
+                "allow": False,
+                "kind": "none",
+                "confidence": 0,
+                "private_reason": "未配置 LLM，不由奏对写入待裁案卷证词。",
+            })
+        agent = _agent(
+            llm_config,
+            agno_db,
+            phase="dialogue_decision_testimony",
+            prompt=DIALOGUE_DECISION_TESTIMONY_PROMPT,
+            max_tokens=850,
+        )
+        raw = run_agent_text(
+            agent,
+            json.dumps(payload, ensure_ascii=False, sort_keys=False),
+            tag="dialogue-audit/decision-testimony",
+        )
+        data = parse_agent_json(raw, "待裁抉择证词审计")
+        return _normalize_dialogue_decision_testimony(data)
+    except Exception as exc:
+        return _normalize_dialogue_decision_testimony({
             "allow": False,
             "kind": "none",
             "confidence": 0,

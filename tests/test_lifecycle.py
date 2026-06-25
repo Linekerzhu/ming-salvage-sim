@@ -81,8 +81,21 @@ class ClassifyTests(unittest.TestCase):
     def test_issued_inner_court_order_finishes_after_one_day(self):
         with TemporaryDirectory() as tmp:
             old = os.environ.get("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT")
-            os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = "1"
+            os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = "0"
             db, state = _fresh(tmp)
+
+            def audit(phase, payload):
+                if phase == "directive_castration_execution":
+                    return {
+                        "allow": True,
+                        "target_name": "韩爌",
+                        "trigger_quote": "押韩爌至净身房净身",
+                        "private_reason": "旨意明确命令对韩爌执行净身并发入内廷。",
+                        "confidence": 97,
+                    }
+                return None
+
+            lifecycle.configure_directive_audit(audit_client=audit)
             try:
                 did = _issue(db, state, "着王承恩押韩爌至净身房净身，发入内廷听差。", "王承恩")
                 row = db.conn.execute(
@@ -114,6 +127,36 @@ class ClassifyTests(unittest.TestCase):
                 lore = el.get_lore(db, "韩爌")
                 self.assertIsNotNone(lore)
                 self.assertTrue(lore["forced"])
+            finally:
+                lifecycle.configure_directive_audit()
+                if old is None:
+                    os.environ.pop("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT", None)
+                else:
+                    os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = old
+
+    def test_disabled_inner_court_castration_audit_blocks_regex_execution(self):
+        with TemporaryDirectory() as tmp:
+            old = os.environ.get("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT")
+            os.environ["MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"] = "1"
+            db, state = _fresh(tmp)
+            try:
+                did = _issue(db, state, "着王承恩押韩爌至净身房净身，发入内廷听差。", "王承恩")
+                timeflow.advance_days(db, state, 1, stop_on_yellow=False)
+                done = db.conn.execute(
+                    "SELECT lifecycle_status, progress, chain FROM turn_directives WHERE id=?",
+                    (did,),
+                ).fetchone()
+                self.assertEqual(str(done["lifecycle_status"]), "done")
+                meta = json.loads(done["chain"])
+                self.assertTrue(meta["court_immediate_action"]["blocked"])
+                self.assertFalse(meta["court_immediate_action"]["applied"])
+                self.assertIn("不退回正则执行", meta["court_immediate_action"]["semantic_review"]["private_reason"])
+                crow = db.conn.execute(
+                    "SELECT office, office_type, faction FROM characters WHERE name='韩爌'"
+                ).fetchone()
+                self.assertNotEqual(str(crow["faction"]), "内廷")
+                from ming_sim import eunuch_lore as el
+                self.assertIsNone(el.get_lore(db, "韩爌"))
             finally:
                 if old is None:
                     os.environ.pop("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT", None)

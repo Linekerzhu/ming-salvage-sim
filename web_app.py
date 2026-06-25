@@ -8117,6 +8117,11 @@ class WebGame:
         if kind != "decision" and ref_kind != "decision":
             return {}
         ref_id = context.get("ref_id") or context.get("id")
+        decision = self._decision_testimony_decision(minister_name, context, user_text, answer)
+        if decision is None or not decision.allow:
+            return {}
+        if not self._semantic_quote_supported_by_user_text(decision.trigger_quote, user_text):
+            return {}
         try:
             from ming_sim.playstyle import record_decision_testimony
             return record_decision_testimony(
@@ -8127,9 +8132,31 @@ class WebGame:
                 user_text,
                 answer,
                 target=str(context.get("target") or ""),
+                semantic_review=decision.payload if isinstance(decision.payload, dict) else decision.to_review(),
             )
         except Exception:
             return {}
+
+    def _decision_testimony_decision(
+        self,
+        minister_name: str,
+        context: Dict[str, Any],
+        user_text: str,
+        answer: str,
+    ) -> Optional[SemanticDecision]:
+        if not self._dialogue_action_llm_audit_available():
+            return None
+        try:
+            character = self.session._character(minister_name)
+            return self._dialogue_semantic_engine().evaluate_post_chat(
+                character,
+                user_text,
+                answer,
+                kind="decision_testimony",
+                context=context,
+            )
+        except Exception as exc:
+            return SemanticDecision.none(str(exc))
 
     def _combine_dialogue_effects(self, *effects: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         cleaned: List[Dict[str, Any]] = []

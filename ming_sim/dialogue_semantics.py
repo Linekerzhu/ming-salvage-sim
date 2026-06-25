@@ -20,6 +20,7 @@ from ming_sim.models import Character, GameState, LLMConfig
 ACTION_TYPES = {
     "none",
     "bargain_attitude",
+    "decision_testimony",
     "directive_fallback",
     "directive_followup",
     "directive_pressure",
@@ -990,6 +991,7 @@ class DialogueSemanticEngine:
             return SemanticDecision.none("对话后语义审计不可用。")
         phase_by_kind = {
             "bargain_attitude": "dialogue_bargain_attitude",
+            "decision_testimony": "dialogue_decision_testimony",
             "directive_fallback": "dialogue_directive_fallback",
             "directive_followup": "dialogue_directive_followup",
             "directive_pressure": "dialogue_directive_pressure",
@@ -1005,6 +1007,8 @@ class DialogueSemanticEngine:
             }
             if kind == "bargain_attitude":
                 payload["bargain_context"] = context if isinstance(context, dict) else {}
+            if kind == "decision_testimony":
+                payload["decision_context"] = context if isinstance(context, dict) else {}
             if kind in {"directive_pressure", "directive_followup"}:
                 payload["directive_context"] = context if isinstance(context, dict) else {}
             try:
@@ -1017,6 +1021,20 @@ class DialogueSemanticEngine:
                 from ming_sim.dialogue_audit import dialogue_bargain_attitude_audit
 
                 review = dialogue_bargain_attitude_audit(
+                    self.db,
+                    self.state,
+                    character,
+                    user_text,
+                    answer,
+                    context if isinstance(context, dict) else {},
+                    llm_config=self.llm_config,
+                    agno_db=self.agno_db,
+                    audit_client=None,
+                )
+            elif kind == "decision_testimony":
+                from ming_sim.dialogue_audit import dialogue_decision_testimony_audit
+
+                review = dialogue_decision_testimony_audit(
                     self.db,
                     self.state,
                     character,
@@ -1083,6 +1101,15 @@ class DialogueSemanticEngine:
             decision = SemanticDecision.from_post_review(review, action_type="bargain_attitude", required_all=["attitude"])
             if decision.allow and decision.kind not in {"accept", "press", "refuse"}:
                 return SemanticDecision.none("御前交易态度无效。", raw=decision.raw)
+            return decision
+        if kind == "decision_testimony":
+            decision = SemanticDecision.from_post_review(
+                review,
+                action_type="decision_testimony",
+                required_all=["kind", "answer_evidence"],
+            )
+            if decision.allow and decision.kind not in {"evidence", "liability", "faction", "protection", "defense", "statement"}:
+                return SemanticDecision.none("待裁证词类型无效。", raw=decision.raw)
             return decision
         if kind == "directive_pressure":
             decision = SemanticDecision.from_post_review(

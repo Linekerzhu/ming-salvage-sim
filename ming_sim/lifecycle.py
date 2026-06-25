@@ -583,7 +583,13 @@ def _court_castration_execution_review(
     if not _DIRECT_CASTRATION_RE.search(str(text or "")):
         return {}
     if _env_true("MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT"):
-        return _legacy_court_castration_review(db, text, assignee)
+        return {
+            "allow": False,
+            "target_name": "",
+            "confidence": 0,
+            "trigger_quote": "",
+            "private_reason": "强制净身执行语义审计已关闭；高风险旨意不退回正则执行。",
+        }
     candidates = _mentioned_active_ming_characters(db, text)
     if not candidates:
         return {}

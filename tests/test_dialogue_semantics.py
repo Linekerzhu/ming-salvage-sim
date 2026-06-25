@@ -458,6 +458,65 @@ class DialogueSemanticEngineTests(unittest.TestCase):
             self.assertFalse(decision.allow)
             self.assertEqual(decision.decision_type, "none")
 
+    def test_post_chat_decision_testimony_is_coordinated_by_semantic_engine(self):
+        with TemporaryDirectory() as tmp:
+            content, db, state = _fresh(tmp)
+            character = content.characters["韩爌"]
+            calls = []
+
+            def audit(phase, payload):
+                calls.append(phase)
+                if phase == "dialogue_decision_testimony":
+                    self.assertEqual((payload.get("decision_context") or {}).get("ref_id"), "rival_feud")
+                    return {
+                        "allow": True,
+                        "kind": "evidence",
+                        "trigger_quote": "弹劾魏忠贤有何证据",
+                        "answer_evidence": "臣有账册与人证",
+                        "private_reason": "皇帝正在为待裁案取证。",
+                        "confidence": 96,
+                    }
+                return None
+
+            decision = DialogueSemanticEngine(db, state, audit_client=audit).evaluate_post_chat(
+                character,
+                "弹劾魏忠贤有何证据？",
+                "臣有账册与人证。",
+                kind="decision_testimony",
+                context={"kind": "decision", "ref_id": "rival_feud"},
+            )
+
+            self.assertEqual(calls, ["dialogue_decision_testimony"])
+            self.assertTrue(decision.allow)
+            self.assertEqual(decision.action_type, "decision_testimony")
+            self.assertEqual(decision.kind, "evidence")
+
+    def test_post_chat_decision_testimony_requires_answer_evidence(self):
+        with TemporaryDirectory() as tmp:
+            content, db, state = _fresh(tmp)
+            character = content.characters["韩爌"]
+
+            def audit(phase, payload):
+                if phase == "dialogue_decision_testimony":
+                    return {
+                        "allow": True,
+                        "kind": "evidence",
+                        "trigger_quote": "弹劾魏忠贤有何证据",
+                        "confidence": 96,
+                    }
+                return None
+
+            decision = DialogueSemanticEngine(db, state, audit_client=audit).evaluate_post_chat(
+                character,
+                "弹劾魏忠贤有何证据？",
+                "臣惶恐。",
+                kind="decision_testimony",
+                context={"kind": "decision", "ref_id": "rival_feud"},
+            )
+
+            self.assertFalse(decision.allow)
+            self.assertEqual(decision.decision_type, "none")
+
     def test_post_chat_bargain_attitude_is_coordinated_by_semantic_engine(self):
         with TemporaryDirectory() as tmp:
             content, db, state = _fresh(tmp)

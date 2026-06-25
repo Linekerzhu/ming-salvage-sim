@@ -1678,9 +1678,14 @@ def record_decision_testimony(
     answer: str = "",
     *,
     target: str = "",
+    semantic_review: Optional[Dict[str, object]] = None,
 ) -> Dict[str, object]:
     """Persist a summoned person's pre-decision testimony as case-file context."""
 
+    if semantic_review is not None and (
+        not isinstance(semantic_review, dict) or not semantic_review.get("allow")
+    ):
+        return {}
     name = str(minister_name or "").strip()
     if not name:
         return {}
@@ -1720,7 +1725,10 @@ def record_decision_testimony(
             other = candidate
             break
     role = "当事人" if name == actor else "牵涉人" if name in {extracted_target, explicit_target} else "问询人"
-    stance = _decision_testimony_stance(user_text, answer)
+    semantic_kind = ""
+    if isinstance(semantic_review, dict):
+        semantic_kind = str(semantic_review.get("kind") or "").strip()
+    stance = _decision_testimony_stance_from_kind(semantic_kind) or _decision_testimony_stance(user_text, answer)
     try:
         day = int(pending.get("day") or db.kv_get("upgrade.current_day") or 0)
     except (TypeError, ValueError):
@@ -1843,6 +1851,17 @@ def _decision_testimony_stance(user_text: str, answer: str) -> str:
         if any(needle in text for needle in needles):
             return label
     return "陈情"
+
+
+def _decision_testimony_stance_from_kind(kind: str) -> str:
+    return {
+        "evidence": "证据",
+        "liability": "担责",
+        "faction": "党争",
+        "protection": "求护",
+        "defense": "自辩",
+        "statement": "陈情",
+    }.get(str(kind or "").strip(), "")
 
 
 def relationship_chat_context_brief(

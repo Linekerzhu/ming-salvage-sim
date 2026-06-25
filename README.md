@@ -228,7 +228,7 @@ python3 main.py
 | `MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK` | 否 | 空 | 废弃：从 NPC 回答里反推召见；仅在 legacy 总闸同时开启时用于本地兼容测试 |
 | `MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT` | 否 | 空 | 设为 `1` 时关闭净身旧档/宝匣/旧患自动入档的 LLM 语义闸门；未同时开启 legacy 总闸和专用 fallback 时不会退回正则入档 |
 | `MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT` | 否 | 空 | 设为 `1` 时关闭 NPC 回答中新人物候选/暗示召见的 LLM 语义闸门；未同时开启 legacy 总闸和专用 fallback 时不会退回正则缓存 |
-| `MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT` | 否 | 空 | 设为 `1` 时关闭旨意办结后“强制净身/宫刑”执行语义审计，退回旧版正则执行 |
+| `MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT` | 否 | 空 | 设为 `1` 时关闭旨意办结后“强制净身/宫刑”执行语义审计；高风险净身旨意会被阻断，不退回旧版正则执行 |
 | `MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS` | 否 | 空 | 设为 `1` 时关闭 LLM 生成的推荐回复；不会自动显示本地静态按钮 |
 | `MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS` | 否 | 空 | 显式开启本地静态推荐回复兜底；正常游玩建议关闭，让推荐回复由 LLM 按上下文生成 |
 | `CLI_API_KEY` | 否 | 回退 `OPENAI_API_KEY` | CLI 单独 API Key |
