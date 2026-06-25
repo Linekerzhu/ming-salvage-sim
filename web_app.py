@@ -4266,12 +4266,22 @@ class WebGame:
         )
 
     @staticmethod
-    def _semantic_quote_supported_by_user_text(quote: str, user_text: str) -> bool:
+    def _semantic_quote_supported_by_text(quote: str, text: str) -> bool:
         clean_quote = re.sub(r"[\W_]+", "", str(quote or ""), flags=re.UNICODE)
         if not clean_quote:
             return False
-        clean_text = re.sub(r"[\W_]+", "", str(user_text or ""), flags=re.UNICODE)
+        clean_text = re.sub(r"[\W_]+", "", str(text or ""), flags=re.UNICODE)
         return bool(clean_text and clean_quote in clean_text)
+
+    @staticmethod
+    def _semantic_quote_supported_by_user_text(quote: str, user_text: str) -> bool:
+        return WebGame._semantic_quote_supported_by_text(quote, user_text)
+
+    @staticmethod
+    def _semantic_answer_evidence_supported(decision: SemanticDecision, answer: str) -> bool:
+        payload = decision.payload if isinstance(decision.payload, dict) else {}
+        evidence = str(payload.get("answer_evidence") or "").strip()
+        return WebGame._semantic_quote_supported_by_text(evidence, answer)
 
     def _dialogue_action_executor(self, minister_name: str) -> DialogueActionExecutor:
         return DialogueActionExecutor(
@@ -8092,6 +8102,13 @@ class WebGame:
                 "confidence": decision.confidence,
                 "private_reason": "审计触发句不在玩家当前原话中。",
             }
+        if decision.allow and not self._semantic_answer_evidence_supported(decision, answer):
+            return {
+                "allow": False,
+                "kind": "none",
+                "confidence": decision.confidence,
+                "private_reason": "审计 NPC 证据句不在本轮回复中。",
+            }
         if decision.allow:
             return dict(decision.payload)
         return {
@@ -8172,6 +8189,8 @@ class WebGame:
         if decision is None or not decision.allow:
             return {}
         if not self._semantic_quote_supported_by_user_text(decision.trigger_quote, user_text):
+            return {}
+        if not self._semantic_answer_evidence_supported(decision, answer):
             return {}
         try:
             from ming_sim.playstyle import record_decision_testimony

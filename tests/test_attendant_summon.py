@@ -6608,6 +6608,71 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_decision_chat_effect_requires_answer_evidence_from_current_reply(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            names = [
+                str(r["name"]) for r in game.db.conn.execute(
+                    "SELECT name FROM characters "
+                    "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                    "LIMIT 2"
+                ).fetchall()
+            ]
+            a, b = names
+            court._set_opinion(game.db, a, b, -75, "夺功旧怨", 1)
+            court._set_opinion(game.db, b, a, -70, "反劾旧怨", 1)
+            memorials.create_memorial(
+                game.db,
+                game.state,
+                day=1,
+                author_name=a,
+                org="都察院",
+                kind="弹章",
+                urgency=3,
+                summary=f"{a}劾{b}",
+                ref_kind="character",
+                ref_id=b,
+            )
+            court_events.evaluate_decisions(game.db, game.state, 1)
+            context = {
+                "kind": "decision",
+                "actor": a,
+                "target": b,
+                "ref_kind": "decision",
+                "ref_id": "rival_feud",
+            }
+
+            def audit(phase, payload):
+                if phase == "dialogue_decision_testimony":
+                    return {
+                        "allow": True,
+                        "kind": "evidence",
+                        "trigger_quote": f"弹劾{b}有何证据",
+                        "answer_evidence": "臣有账册与人证",
+                        "private_reason": "审计误把别处证词当成本轮 NPC 回答。",
+                        "confidence": 96,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+            effect = game._decision_chat_effect(
+                a,
+                context,
+                f"朕未裁断前，先问你弹劾{b}有何证据？",
+                "臣尚无实证，只能回去再查。",
+            )
+
+            from ming_sim.playstyle import decision_testimonies_for_pending
+
+            self.assertEqual(effect, {})
+            self.assertEqual(decision_testimonies_for_pending(game.db), [])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_decision_chat_effect_requires_semantic_testimony_audit(self):
         game = web_app.WebGame(fresh=True)
         try:
@@ -8063,6 +8128,65 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_directive_pressure_requires_answer_evidence_from_current_reply(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "袁崇焕"
+            did = game.db.add_directive(
+                game.state,
+                None,
+                "令袁崇焕整顿辽东军饷。",
+                "test",
+                actor=actor,
+                status="confirmed",
+            )
+            game.db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='executing', "
+                "progress=40, exec_days=10, eta_day=12, anomaly=?, chain=? WHERE id=?",
+                (
+                    actor,
+                    json.dumps({"kind": "delay"}, ensure_ascii=False),
+                    json.dumps({"resistance": 45, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            game.db.conn.commit()
+
+            def audit(phase, payload):
+                if phase != "dialogue_directive_pressure":
+                    return None
+                return {
+                    "allow": True,
+                    "kind": "pressed",
+                    "forceful": True,
+                    "trigger_quote": "把这件差使压实",
+                    "answer_evidence": "臣即日具奏",
+                    "confidence": 96,
+                    "private_reason": "审计误把别处回复当成本轮 NPC 证据。",
+                }
+
+            game.session.dialogue_audit_client = audit
+
+            effect = game._directive_chat_effect(
+                actor,
+                {"kind": "directive", "ref_id": did},
+                "把这件差使压实。",
+                "臣尚未成案，只能请罪。",
+            )
+            progress = int(game.db.conn.execute(
+                "SELECT progress FROM turn_directives WHERE id=?", (did,)
+            ).fetchone()["progress"])
+
+            self.assertEqual(effect, {})
+            self.assertEqual(progress, 40)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_semantic_directive_pressure_denial_blocks_keyword_fallback(self):
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
         game = web_app.WebGame(fresh=True)
@@ -8287,6 +8411,75 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(str(row["lifecycle_status"]), "done")
             self.assertEqual(int(row["progress"]), 100)
             self.assertEqual(json.loads(row["chain"])["last_followup_action"]["kind"], "rewarded")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_done_directive_followup_requires_answer_evidence_from_current_reply(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "袁崇焕"
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=50, grievance=30 WHERE name=?",
+                (actor,),
+            )
+            did = game.db.add_directive(
+                game.state,
+                None,
+                "令袁崇焕整顿辽东军饷。",
+                "test",
+                actor=actor,
+                status="confirmed",
+            )
+            game.db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='done', "
+                "progress=100, integrity_actual=90, integrity_reported=92, "
+                "outcome_status='applied', chain=? WHERE id=?",
+                (
+                    actor,
+                    json.dumps({"resistance": 20, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            game.db.conn.commit()
+
+            def audit(phase, payload):
+                if phase != "dialogue_directive_followup":
+                    return {"allow": False, "kind": "none", "confidence": 100}
+                return {
+                    "allow": True,
+                    "kind": "rewarded",
+                    "trigger_quote": "入清班旧账",
+                    "answer_evidence": "臣谢恩",
+                    "confidence": 96,
+                    "private_reason": "审计误把别处谢恩当成本轮 NPC 证据。",
+                }
+
+            game.session.dialogue_audit_client = audit
+
+            effect = game._directive_chat_effect(
+                actor,
+                {"kind": "directive", "ref_id": did},
+                "这件差使可入清班旧账。",
+                "臣不敢居功，愿继续清册具奏。",
+            )
+            ch = game.db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (actor,),
+            ).fetchone()
+            chain = json.loads(game.db.conn.execute(
+                "SELECT chain FROM turn_directives WHERE id=?",
+                (did,),
+            ).fetchone()["chain"])
+
+            self.assertEqual(effect, {})
+            self.assertEqual(int(ch["emp_trust"]), 50)
+            self.assertEqual(int(ch["grievance"]), 30)
+            self.assertNotIn("last_followup_action", chain)
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
