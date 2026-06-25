@@ -23,6 +23,8 @@ ACTION_TYPES = {
     "directive_fallback",
     "directive_followup",
     "directive_pressure",
+    "lore_intake",
+    "unknown_mention",
     "secret_order",
     "recruitment",
     "mediation",
@@ -298,6 +300,52 @@ class SemanticDecision:
             phase="confirm",
             kind=_compact(review.get("kind") or review.get("attitude"), 60),
             payload=dict(review),
+            confidence=confidence,
+            trigger_quote=trigger_quote,
+            private_reason=_compact(review.get("private_reason") or review.get("reason"), 520),
+            public_hint=_compact(review.get("public_hint"), 180),
+            raw=dict(review),
+        )
+
+    @classmethod
+    def from_lore_review(cls, review: Optional[Dict[str, Any]]) -> "SemanticDecision":
+        if not isinstance(review, dict) or not review.get("allow"):
+            return cls.none(str((review or {}).get("private_reason") or ""), raw=review if isinstance(review, dict) else {})
+        target_names = [_compact(name, 80) for name in (review.get("target_names") or review.get("targets") or [])]
+        target_names = [name for name in target_names if name]
+        confidence = _confidence(review.get("confidence"))
+        trigger_quote = _compact(review.get("trigger_quote"), 180)
+        if not target_names or confidence < CONFIDENCE_FLOOR or not trigger_quote:
+            return cls.none(str(review.get("private_reason") or "净身旧档入档审计证据不足。"), raw=review)
+        return cls(
+            decision_type="lore",
+            action_type="lore_intake",
+            phase="confirm",
+            target=target_names[0],
+            payload={"target_names": target_names},
+            confidence=confidence,
+            trigger_quote=trigger_quote,
+            private_reason=_compact(review.get("private_reason") or review.get("reason"), 520),
+            public_hint=_compact(review.get("public_hint"), 180),
+            raw=dict(review),
+        )
+
+    @classmethod
+    def from_unknown_mention_review(cls, review: Optional[Dict[str, Any]]) -> "SemanticDecision":
+        if not isinstance(review, dict) or not review.get("allow"):
+            return cls.none(str((review or {}).get("private_reason") or ""), raw=review if isinstance(review, dict) else {})
+        accepted_names = [_compact(name, 80) for name in (review.get("accepted_names") or review.get("names") or [])]
+        accepted_names = [name for name in accepted_names if name]
+        confidence = _confidence(review.get("confidence"))
+        trigger_quote = _compact(review.get("trigger_quote"), 180)
+        if not accepted_names or confidence < CONFIDENCE_FLOOR or not trigger_quote:
+            return cls.none(str(review.get("private_reason") or "未知人物线索入池审计证据不足。"), raw=review)
+        return cls(
+            decision_type="mention",
+            action_type="unknown_mention",
+            phase="confirm",
+            target=accepted_names[0],
+            payload={"accepted_names": accepted_names},
             confidence=confidence,
             trigger_quote=trigger_quote,
             private_reason=_compact(review.get("private_reason") or review.get("reason"), 520),
@@ -778,21 +826,26 @@ class DialogueSemanticEngine:
     ) -> List[str]:
         if not self._mention_available() or not candidate_names:
             return []
+        candidates = [_compact(name, 80) for name in (candidate_names or []) if _compact(name, 80)]
+        if not candidates:
+            return []
         if self.audit_client is not None:
             try:
                 review = self._call_injected_audit(
                     "dialogue_unknown_mention_intake",
                     {
                         "user_text": text,
-                        "candidate_names": list(candidate_names or []),
+                        "text": text,
+                        "candidate_names": candidates,
                         "purpose": purpose,
                     },
                 )
             except Exception:
                 return []
-            if not isinstance(review, dict) or not review.get("allow"):
+            decision = SemanticDecision.from_unknown_mention_review(review)
+            if not decision.allow:
                 return []
-            return [_compact(name, 80) for name in (review.get("accepted_names") or []) if _compact(name, 80)]
+            return [name for name in decision.payload.get("accepted_names", []) if name in candidates]
         try:
             from ming_sim.dialogue_audit import dialogue_unknown_mention_intake_audit
 
@@ -801,7 +854,7 @@ class DialogueSemanticEngine:
                 self.state,
                 character,
                 text,
-                candidate_names=candidate_names,
+                candidate_names=candidates,
                 purpose=purpose,
                 llm_config=self.llm_config,
                 agno_db=self.agno_db,
@@ -809,9 +862,10 @@ class DialogueSemanticEngine:
             )
         except Exception:
             return []
-        if not isinstance(review, dict) or not review.get("allow"):
+        decision = SemanticDecision.from_unknown_mention_review(review)
+        if not decision.allow:
             return []
-        return [_compact(name, 80) for name in (review.get("accepted_names") or []) if _compact(name, 80)]
+        return [name for name in decision.payload.get("accepted_names", []) if name in candidates]
 
     def evaluate_lore_intake(
         self,
@@ -824,22 +878,27 @@ class DialogueSemanticEngine:
     ) -> List[str]:
         if not self._lore_available() or not candidate_names:
             return []
+        candidates = [_compact(name, 80) for name in (candidate_names or []) if _compact(name, 80)]
+        if not candidates:
+            return []
         if self.audit_client is not None:
             try:
                 review = self._call_injected_audit(
                     "dialogue_eunuch_lore_intake",
                     {
                         "user_text": text,
-                        "candidate_names": list(candidate_names or []),
+                        "text": text,
+                        "candidate_names": candidates,
                         "pending_target": pending_target,
                         "source_role": source_role,
                     },
                 )
             except Exception:
                 return []
-            if not isinstance(review, dict) or not review.get("allow"):
+            decision = SemanticDecision.from_lore_review(review)
+            if not decision.allow:
                 return []
-            return [_compact(name, 80) for name in (review.get("target_names") or []) if _compact(name, 80)]
+            return [name for name in decision.payload.get("target_names", []) if name in candidates]
         try:
             from ming_sim.dialogue_audit import dialogue_eunuch_lore_intake_audit
 
@@ -848,7 +907,7 @@ class DialogueSemanticEngine:
                 self.state,
                 character,
                 text,
-                candidate_names=candidate_names,
+                candidate_names=candidates,
                 pending_target=pending_target,
                 source_role=source_role,
                 llm_config=self.llm_config,
@@ -857,9 +916,10 @@ class DialogueSemanticEngine:
             )
         except Exception:
             return []
-        if not isinstance(review, dict) or not review.get("allow"):
+        decision = SemanticDecision.from_lore_review(review)
+        if not decision.allow:
             return []
-        return [_compact(name, 80) for name in (review.get("target_names") or []) if _compact(name, 80)]
+        return [name for name in decision.payload.get("target_names", []) if name in candidates]
 
     def evaluate_post_chat(
         self,

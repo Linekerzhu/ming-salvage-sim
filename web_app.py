@@ -55,7 +55,7 @@ from ming_sim.llm_contract import fail_if_llm_error
 from ming_sim.issues import _format_issue_ongoing
 from ming_sim.session import GameSession, SUMMONABLE_STATUSES
 from ming_sim.session import AUTO_SAVE_PREFIX, _parse_registered_secret_order_result
-from ming_sim.dialogue_semantics import DialogueActionExecutor, DialogueSemanticEngine
+from ming_sim.dialogue_semantics import DialogueActionExecutor, DialogueSemanticEngine, PendingDialogueAction, SemanticDecision
 from ming_sim.skills import available_skill_ids, skill_display_name, skill_source_labels
 from ming_sim.traits import MEDICAL_RECORD_TRAITS, TRAIT_DEFS, derive_traits
 from ming_sim.context import (
@@ -4206,18 +4206,23 @@ class WebGame:
             return {}
         if not isinstance(data, dict):
             return {}
+        pending = PendingDialogueAction.from_mapping(data, current_turn=int(self.state.turn))
         try:
-            if int(data.get("turn") or self.state.turn) < int(self.state.turn):
+            if int(pending.expires_turn or data.get("turn") or self.state.turn) < int(self.state.turn):
                 self._clear_pending_dialogue_action(minister_name)
                 return {}
         except (TypeError, ValueError):
             pass
-        return data
+        return pending.to_mapping()
 
     def _store_pending_dialogue_action(self, minister_name: str, action: Dict[str, Any]) -> None:
-        payload = dict(action)
+        current_turn = int(self.state.turn)
+        pending = PendingDialogueAction.from_mapping(action, current_turn=current_turn)
+        payload = pending.to_mapping()
         payload["minister"] = minister_name
-        payload["turn"] = int(self.state.turn)
+        payload["turn"] = current_turn
+        payload.setdefault("created_turn", current_turn)
+        payload.setdefault("expires_turn", current_turn)
         self.db.kv_set(self._dialogue_action_key(minister_name), json.dumps(payload, ensure_ascii=False))
 
     def _clear_pending_dialogue_action(self, minister_name: str) -> None:
@@ -4236,6 +4241,52 @@ class WebGame:
         return DialogueActionExecutor(
             lambda action, chat_turn_id=0: self._execute_dialogue_action(minister_name, action)
         )
+
+    def _execute_semantic_dialogue_action(
+        self,
+        minister_name: str,
+        action: Dict[str, Any],
+        *,
+        review: Optional[Dict[str, Any]] = None,
+        chat_turn_id: int = 0,
+        decision_type: str = "tool",
+    ) -> Dict[str, Any]:
+        if not isinstance(action, dict) or not action:
+            return {}
+        embedded_review = action.get("_semantic_review") if isinstance(action.get("_semantic_review"), dict) else {}
+        review = review if isinstance(review, dict) and review else embedded_review
+        payload = {key: value for key, value in action.items() if key != "_semantic_review"}
+        raw_type = str(payload.get("type") or "").strip()
+        action_type = str(payload.get("action_type") or raw_type).strip()
+        if raw_type == "dialogue_consequence":
+            action_type = str(payload.get("action_type") or "").strip()
+        trigger_quote = str(
+            payload.get("trigger_quote")
+            or payload.get("source_quote")
+            or review.get("trigger_quote")
+            or review.get("proposal_evidence")
+            or ""
+        ).strip()
+        try:
+            confidence = int(review.get("confidence") or 100)
+        except (TypeError, ValueError):
+            confidence = 0
+        decision = SemanticDecision(
+            decision_type=decision_type,
+            action_type=action_type,
+            phase="confirm",
+            target=str(payload.get("target") or review.get("target") or "").strip(),
+            actor=str(payload.get("actor") or review.get("actor") or "").strip(),
+            kind=str(payload.get("kind") or review.get("kind") or "").strip(),
+            mode=str(payload.get("mode") or review.get("mode") or "").strip(),
+            payload=payload,
+            confidence=confidence,
+            trigger_quote=trigger_quote,
+            private_reason=str(payload.get("semantic_reason") or review.get("private_reason") or "").strip(),
+            public_hint=str(review.get("public_hint") or payload.get("need") or "").strip(),
+            raw=dict(review),
+        )
+        return self._dialogue_action_executor(minister_name).execute(decision, chat_turn_id)
 
     def _dialogue_speaker_self(self, minister_name: str) -> str:
         try:
@@ -4484,7 +4535,7 @@ class WebGame:
                 action["note"] = " ".join(
                     part for part in (str(action.get("note") or "").strip(), extra) if part
                 )
-        return self._execute_dialogue_action(minister_name, action)
+        return self._execute_semantic_dialogue_action(minister_name, action, review=review, decision_type="route")
 
     def _dialogue_route_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
         review = self._dialogue_route_semantic_review(minister_name, text)
@@ -4682,7 +4733,7 @@ class WebGame:
             action = self._action_from_semantic_probe(minister_name, text, review)
             if not action or action.get("type") != "dialogue_consequence":
                 return None
-            return self._execute_dialogue_action(minister_name, action)
+            return self._execute_semantic_dialogue_action(minister_name, action, review=review, decision_type="action")
         if phase != "propose":
             return None
         action = self._action_from_semantic_probe(minister_name, text, review)
@@ -4732,7 +4783,7 @@ class WebGame:
         action = self._semantic_pending_recovery_action(minister_name, text)
         if not action:
             return None
-        return self._execute_dialogue_action(minister_name, action)
+        return self._execute_semantic_dialogue_action(minister_name, action, decision_type="recovery")
 
     def _dialogue_semantic_pending_action_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
         """Confirm an existing pending dialogue action through semantic review.
@@ -4763,7 +4814,7 @@ class WebGame:
                 action["trigger_quote"] = review.get("trigger_quote")
             if review.get("private_reason"):
                 action["semantic_reason"] = review.get("private_reason")
-            return self._execute_dialogue_action(minister_name, action)
+            return self._execute_semantic_dialogue_action(minister_name, action, review=review, decision_type="pending")
         if action_type not in {"mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
             return None
         normalized = dict(pending)
@@ -4794,7 +4845,7 @@ class WebGame:
             normalized["force"] = True
             if not self._castration_action_target_is_valid(normalized):
                 return None
-        return self._execute_dialogue_action(minister_name, normalized)
+        return self._execute_semantic_dialogue_action(minister_name, normalized, review=review, decision_type="pending")
 
     def _dialogue_action_llm_audit_available(self) -> bool:
         try:
@@ -4854,6 +4905,8 @@ class WebGame:
         if review.get("private_reason"):
             action = dict(action)
             action["semantic_reason"] = str(review.get("private_reason") or "")
+        action = dict(action)
+        action["_semantic_review"] = dict(review)
         return action
 
     def _dialogue_action_semantic_gate(
@@ -4999,12 +5052,19 @@ class WebGame:
             proposal_like = re.search(r"(陛下若准|若陛下准|若准|不敢擅专|不能当作无根之木)", answer)
             if not proposal_like:
                 continue
+            recovered_base = {
+                "recovered": True,
+                "trigger_quote": str(text or "").strip()[:180],
+                "source_quote": str(text or "").strip()[:180],
+                "proposal_evidence": str(answer or "").strip()[:360],
+                "semantic_reason": "专用 legacy pending regex recovery 兼容路径。",
+            }
             if re.search(r"(内书堂|司礼监|小火者|小内侍|内侍|太监|内官(?!监))", answer) and re.search(r"(挑|招|募|取|带|领).{0,18}(?:一个|一人|小火者|内侍|太监|来)", answer):
-                return {"type": "recruitment", "kind": "eunuch", "recovered": True}
+                return {"type": "recruitment", "kind": "eunuch", **recovered_base}
             if re.search(r"(新科|庶吉士|科场|进士|取士|补入朝班)", answer):
-                return {"type": "recruitment", "kind": "exam", "recovered": True}
+                return {"type": "recruitment", "kind": "exam", **recovered_base}
             if re.search(r"(举荐|荐人|荐才|保举|访贤|寻贤|荐出|举出).{0,24}(?:一人|一个|新人|可试差)", answer):
-                return {"type": "recruitment", "kind": "recommend", "recovered": True}
+                return {"type": "recruitment", "kind": "recommend", **recovered_base}
         return {}
 
     def _recruitment_explicitly_blocked(self, text: str) -> bool:
@@ -6701,7 +6761,7 @@ class WebGame:
             return self._dialogue_semantic_pending_action_response(minister_name, text)
         recovered = self._recover_pending_dialogue_action_from_recent_answer(minister_name, text)
         if recovered:
-            return self._execute_dialogue_action(minister_name, recovered)
+            return self._execute_semantic_dialogue_action(minister_name, recovered, decision_type="recovery")
         # Regex detectors below this point are legacy classifiers only.  Normal
         # play creates new world-changing dialogue actions through
         # _dialogue_semantic_action_response(), LLM tools, or post-dialogue
@@ -6802,7 +6862,7 @@ class WebGame:
                     normalized["semantic_reason"] = review.get("private_reason")
             if normalized.get("type") == "castration" and not self._castration_action_target_is_valid(normalized):
                 return None
-            return self._execute_dialogue_action(minister_name, normalized)
+            return self._execute_semantic_dialogue_action(minister_name, normalized, review=review, decision_type="tool")
         if normalized.get("type") in {"recruitment", "mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
             if normalized.get("type") == "recruitment":
                 review = self._recruitment_semantic_gate(minister_name, normalized, user_text, "propose")

@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 from ming_sim.content import GameContent
 from ming_sim.db import GameDB
 from ming_sim.dialogue_goals import prepare_dialogue_context, record_dialogue_effects
-from ming_sim.dialogue_semantics import DialogueSemanticEngine, PendingDialogueAction
+from ming_sim.dialogue_semantics import DialogueActionExecutor, DialogueSemanticEngine, PendingDialogueAction, SemanticDecision
 from ming_sim.eunuch_lore import get_lore, record_castration
 from ming_sim.models import LLMConfig
 
@@ -226,6 +226,139 @@ class DialogueSemanticEngineTests(unittest.TestCase):
         self.assertEqual(pending.type, "eunuch_care")
         self.assertEqual(pending.source_quote, "请太医调养")
         self.assertEqual(pending.to_mapping()["trigger_quote"], "请太医调养")
+
+    def test_action_executor_requires_allowed_semantic_decision(self):
+        calls = []
+
+        def execute(action, chat_turn_id=0):
+            calls.append((dict(action), int(chat_turn_id or 0)))
+            return {"ok": True, "chat_turn_id": chat_turn_id}
+
+        executor = DialogueActionExecutor(execute)
+        denied = SemanticDecision(
+            decision_type="tool",
+            action_type="recruitment",
+            phase="confirm",
+            kind="eunuch",
+            payload={"type": "recruitment", "kind": "eunuch"},
+            confidence=96,
+            trigger_quote="",
+        )
+        self.assertEqual(executor.execute(denied, chat_turn_id=7), {})
+        self.assertEqual(calls, [])
+
+        allowed = SemanticDecision(
+            decision_type="tool",
+            action_type="recruitment",
+            phase="confirm",
+            kind="eunuch",
+            payload={"type": "recruitment", "kind": "eunuch"},
+            confidence=96,
+            trigger_quote="准，招一个小内侍",
+        )
+        self.assertEqual(executor.execute(allowed, chat_turn_id=9), {"ok": True, "chat_turn_id": 9})
+        self.assertEqual(calls[0][0]["type"], "recruitment")
+        self.assertEqual(calls[0][0]["kind"], "eunuch")
+        self.assertEqual(calls[0][0]["trigger_quote"], "准，招一个小内侍")
+        self.assertEqual(calls[0][1], 9)
+
+    def test_lore_intake_requires_trigger_quote(self):
+        with TemporaryDirectory() as tmp:
+            content, db, state = _fresh(tmp)
+            character = content.characters["王承恩"]
+
+            def audit(phase, payload):
+                if phase == "dialogue_eunuch_lore_intake":
+                    return {
+                        "allow": True,
+                        "target_names": ["王承恩"],
+                        "private_reason": "少了证据短句，不得入档。",
+                        "confidence": 96,
+                    }
+                return None
+
+            targets = DialogueSemanticEngine(db, state, audit_client=audit).evaluate_lore_intake(
+                character,
+                "请把王承恩的旧档补进去。",
+                candidate_names=["王承恩"],
+                source_role="user",
+            )
+
+            self.assertEqual(targets, [])
+
+    def test_lore_intake_accepts_only_candidate_targets(self):
+        with TemporaryDirectory() as tmp:
+            content, db, state = _fresh(tmp)
+            character = content.characters["王承恩"]
+
+            def audit(phase, payload):
+                if phase == "dialogue_eunuch_lore_intake":
+                    return {
+                        "allow": True,
+                        "target_names": ["王承恩", "虚构人"],
+                        "trigger_quote": "请把王承恩的旧档补进去",
+                        "private_reason": "只可写入候选中的目标。",
+                        "confidence": 96,
+                    }
+                return None
+
+            targets = DialogueSemanticEngine(db, state, audit_client=audit).evaluate_lore_intake(
+                character,
+                "请把王承恩的旧档补进去。",
+                candidate_names=["王承恩"],
+                source_role="user",
+            )
+
+            self.assertEqual(targets, ["王承恩"])
+
+    def test_unknown_mention_requires_trigger_quote(self):
+        with TemporaryDirectory() as tmp:
+            content, db, state = _fresh(tmp)
+            character = content.characters["王承恩"]
+
+            def audit(phase, payload):
+                if phase == "dialogue_unknown_mention_intake":
+                    return {
+                        "allow": True,
+                        "accepted_names": ["小禄子"],
+                        "private_reason": "少了证据短句，不得入候选池。",
+                        "confidence": 96,
+                    }
+                return None
+
+            names = DialogueSemanticEngine(db, state, audit_client=audit).evaluate_unknown_mentions(
+                character,
+                "内书堂有个小禄子可带来问话。",
+                candidate_names=["小禄子"],
+                purpose="cache_candidate",
+            )
+
+            self.assertEqual(names, [])
+
+    def test_unknown_mention_accepts_only_candidate_names(self):
+        with TemporaryDirectory() as tmp:
+            content, db, state = _fresh(tmp)
+            character = content.characters["王承恩"]
+
+            def audit(phase, payload):
+                if phase == "dialogue_unknown_mention_intake":
+                    return {
+                        "allow": True,
+                        "accepted_names": ["小禄子", "小顺子"],
+                        "trigger_quote": "小禄子可带来问话",
+                        "private_reason": "只可接受候选名单中的人物。",
+                        "confidence": 96,
+                    }
+                return None
+
+            names = DialogueSemanticEngine(db, state, audit_client=audit).evaluate_unknown_mentions(
+                character,
+                "内书堂有个小禄子可带来问话。",
+                candidate_names=["小禄子"],
+                purpose="cache_candidate",
+            )
+
+            self.assertEqual(names, ["小禄子"])
 
     def test_post_chat_directive_pressure_is_coordinated_by_semantic_engine(self):
         with TemporaryDirectory() as tmp:

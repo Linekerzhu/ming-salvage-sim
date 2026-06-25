@@ -807,6 +807,37 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_pending_dialogue_action_storage_uses_semantic_schema(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            game._store_pending_dialogue_action(attendant, {
+                "type": "eunuch_care",
+                "target": attendant,
+                "mode": "urinary",
+                "note": "给王承恩请太医调养小解旧患",
+                "trigger_quote": "请太医调养",
+            })
+
+            pending = game._load_pending_dialogue_action(attendant)
+            self.assertEqual(pending["type"], "eunuch_care")
+            self.assertEqual(pending["target"], attendant)
+            self.assertEqual(pending["mode"], "urinary")
+            self.assertEqual(pending["source_quote"], "请太医调养")
+            self.assertEqual(pending["trigger_quote"], "请太医调养")
+            self.assertEqual(int(pending["created_turn"]), int(game.state.turn))
+            self.assertEqual(int(pending["expires_turn"]), int(game.state.turn))
+            self.assertEqual(int(pending["turn"]), int(game.state.turn))
+
+            game.state.turn += 1
+            self.assertEqual(game._load_pending_dialogue_action(attendant), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_pronoun_choice_from_single_attendant_candidate_summons_person(self):
         game = web_app.WebGame(fresh=True)
         try:
