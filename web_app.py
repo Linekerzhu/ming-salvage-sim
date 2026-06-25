@@ -4239,7 +4239,11 @@ class WebGame:
 
     def _dialogue_action_executor(self, minister_name: str) -> DialogueActionExecutor:
         return DialogueActionExecutor(
-            lambda action, chat_turn_id=0: self._execute_dialogue_action(minister_name, action)
+            lambda action, chat_turn_id=0: self._execute_dialogue_action(
+                minister_name,
+                action,
+                chat_turn_id=chat_turn_id,
+            )
         )
 
     def _execute_semantic_dialogue_action(
@@ -4418,6 +4422,7 @@ class WebGame:
         return {
             "handler": minister_name,
             "can_route_summon": self._summon_handler_character(minister_name) is not None,
+            "semantic_route_enabled": self._dialogue_route_llm_audit_available(),
             "known_mentions": known,
             "unknown_candidates": unknown,
             "recent_implied_summon_name": self._recent_attendant_implied_summon_name(minister_name),
@@ -4468,6 +4473,21 @@ class WebGame:
                 return {}
         return review
 
+    def _dialogue_route_review_is_valid(self, minister_name: str, review: Dict[str, Any]) -> bool:
+        if not isinstance(review, dict) or not review.get("allow"):
+            return False
+        intent = str(review.get("intent") or "")
+        if intent == "summon" and self._summon_handler_character(minister_name) is None:
+            return False
+        if intent in {"confirm_pending", "reject_pending"}:
+            pending = self._load_pending_dialogue_action(minister_name)
+            if not pending:
+                return False
+            action_type = str(review.get("action_type") or "").strip()
+            if action_type and action_type != str(pending.get("type") or ""):
+                return False
+        return True
+
     def _semantic_summon_result(self, minister_name: str, text: str, review: Dict[str, Any]) -> Dict[str, Any]:
         current = self._summon_handler_character(minister_name)
         if current is None:
@@ -4514,7 +4534,66 @@ class WebGame:
             "source": "semantic",
         }
 
-    def _dialogue_pending_action_from_route(self, minister_name: str, text: str, review: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _dialogue_route_response_from_review(
+        self,
+        minister_name: str,
+        text: str,
+        review: Dict[str, Any],
+        *,
+        chat_turn_id: int = 0,
+    ) -> Optional[Dict[str, Any]]:
+        if not self._dialogue_route_review_is_valid(minister_name, review):
+            return None
+        intent = str(review.get("intent") or "")
+        if intent == "summon":
+            result = self._semantic_summon_result(minister_name, text, review)
+            if result:
+                answer = self._attendant_summon_answer(
+                    str(result.get("name") or ""),
+                    generated=bool(result.get("generated")),
+                    source=str(result.get("source") or "semantic"),
+                )
+                return {
+                    "answer": answer,
+                    "court_action": "summon",
+                    "next_minister": str(result.get("name") or ""),
+                    "registered_minister": str(result.get("name") or "") if result.get("generated") else "",
+                }
+        if intent in {"confirm_pending", "reject_pending"}:
+            return self._dialogue_pending_action_from_route(
+                minister_name,
+                text,
+                review,
+                chat_turn_id=chat_turn_id,
+            )
+        return None
+
+    def _dialogue_regex_summon_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
+        if not self._dialogue_regex_summons_enabled():
+            return None
+        deterministic_summon = self._attendant_summon_target(minister_name, text)
+        if not deterministic_summon:
+            return None
+        target_name = str(deterministic_summon.get("name") or "")
+        return {
+            "answer": self._attendant_summon_answer(
+                target_name,
+                generated=bool(deterministic_summon.get("generated")),
+                source=str(deterministic_summon.get("source") or ""),
+            ),
+            "court_action": "summon",
+            "next_minister": target_name,
+            "registered_minister": target_name if deterministic_summon.get("generated") else "",
+        }
+
+    def _dialogue_pending_action_from_route(
+        self,
+        minister_name: str,
+        text: str,
+        review: Dict[str, Any],
+        *,
+        chat_turn_id: int = 0,
+    ) -> Optional[Dict[str, Any]]:
         pending = self._load_pending_dialogue_action(minister_name)
         if not pending:
             return None
@@ -4535,53 +4614,114 @@ class WebGame:
                 action["note"] = " ".join(
                     part for part in (str(action.get("note") or "").strip(), extra) if part
                 )
-        return self._execute_semantic_dialogue_action(minister_name, action, review=review, decision_type="route")
+        return self._execute_semantic_dialogue_action(
+            minister_name,
+            action,
+            review=review,
+            chat_turn_id=chat_turn_id,
+            decision_type="route",
+        )
 
-    def _dialogue_route_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
+    def _dialogue_route_response(
+        self,
+        minister_name: str,
+        text: str,
+        *,
+        chat_turn_id: int = 0,
+    ) -> Optional[Dict[str, Any]]:
         review = self._dialogue_route_semantic_review(minister_name, text)
         if review:
-            intent = str(review.get("intent") or "")
-            if intent == "summon":
-                result = self._semantic_summon_result(minister_name, text, review)
-                if result:
-                    answer = self._attendant_summon_answer(
-                        str(result.get("name") or ""),
-                        generated=bool(result.get("generated")),
-                        source=str(result.get("source") or "semantic"),
-                    )
-                    return {
-                        "answer": answer,
-                        "court_action": "summon",
-                        "next_minister": str(result.get("name") or ""),
-                        "registered_minister": str(result.get("name") or "") if result.get("generated") else "",
-                    }
-            if intent in {"confirm_pending", "reject_pending"}:
-                return self._dialogue_pending_action_from_route(minister_name, text, review)
-        if self._dialogue_regex_summons_enabled():
-            deterministic_summon = self._attendant_summon_target(minister_name, text)
-            if deterministic_summon:
-                target_name = str(deterministic_summon.get("name") or "")
-                return {
-                    "answer": self._attendant_summon_answer(
-                        target_name,
-                        generated=bool(deterministic_summon.get("generated")),
-                        source=str(deterministic_summon.get("source") or ""),
-                    ),
-                    "court_action": "summon",
-                    "next_minister": target_name,
-                    "registered_minister": target_name if deterministic_summon.get("generated") else "",
-                }
-        return None
+            return self._dialogue_route_response_from_review(
+                minister_name,
+                text,
+                review,
+                chat_turn_id=chat_turn_id,
+            )
+        return self._dialogue_regex_summon_response(minister_name, text)
 
-    def _dialogue_initial_semantic_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
+    def _dialogue_initial_semantic_response(
+        self,
+        minister_name: str,
+        text: str,
+        *,
+        chat_turn_id: int = 0,
+    ) -> Optional[Dict[str, Any]]:
         """Unified pre-agent semantic gate for both sync and streaming chat."""
 
-        return (
-            self._dialogue_route_response(minister_name, text)
-            or self._dialogue_semantic_pending_action_response(minister_name, text)
-            or self._dialogue_semantic_recovery_response(minister_name, text)
-            or self._dialogue_semantic_action_response(minister_name, text)
+        decision = self._dialogue_user_semantic_decision(minister_name, text)
+        response = self._dialogue_response_from_user_semantic_decision(
+            minister_name,
+            text,
+            decision,
+            chat_turn_id=chat_turn_id,
         )
+        if response is not None:
+            return response
+        return self._dialogue_regex_summon_response(minister_name, text)
+
+    def _dialogue_user_semantic_decision(self, minister_name: str, text: str) -> SemanticDecision:
+        try:
+            character = self.session._character(minister_name)
+            pending = self._load_pending_dialogue_action(minister_name)
+            route_context = self._dialogue_route_context(minister_name, text)
+            recent_answers = self._recent_minister_answer_texts(minister_name, limit=4)
+            return self._dialogue_semantic_engine().evaluate_user_message(
+                character,
+                text,
+                pending_action=pending if isinstance(pending, dict) and pending else None,
+                route_context=route_context,
+                recent_answers=recent_answers,
+            )
+        except Exception as exc:
+            return SemanticDecision.none(str(exc))
+
+    def _dialogue_response_from_user_semantic_decision(
+        self,
+        minister_name: str,
+        text: str,
+        decision: SemanticDecision,
+        *,
+        chat_turn_id: int = 0,
+    ) -> Optional[Dict[str, Any]]:
+        if not isinstance(decision, SemanticDecision) or not decision.allow:
+            return None
+        if decision.decision_type == "route":
+            return self._dialogue_route_response_from_review(
+                minister_name,
+                text,
+                decision.to_route_review(),
+                chat_turn_id=chat_turn_id,
+            )
+        if decision.decision_type == "pending":
+            return self._dialogue_pending_action_response_from_decision(
+                minister_name,
+                text,
+                decision,
+                chat_turn_id=chat_turn_id,
+            )
+        if decision.decision_type == "recovery":
+            action = self._action_from_pending_recovery_review(
+                minister_name,
+                text,
+                decision.to_review(),
+            )
+            if not action:
+                return None
+            return self._execute_semantic_dialogue_action(
+                minister_name,
+                action,
+                review=decision.to_review(),
+                chat_turn_id=chat_turn_id,
+                decision_type="recovery",
+            )
+        if decision.decision_type == "action":
+            return self._dialogue_semantic_action_response_from_decision(
+                minister_name,
+                text,
+                decision,
+                chat_turn_id=chat_turn_id,
+            )
+        return None
 
     def _resolve_semantic_action_name(self, value: str, minister_name: str) -> str:
         raw = str(value or "").strip()
@@ -4706,7 +4846,47 @@ class WebGame:
             }
         return {}
 
-    def _dialogue_semantic_action_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
+    def _dialogue_semantic_action_response_from_decision(
+        self,
+        minister_name: str,
+        text: str,
+        decision: SemanticDecision,
+        *,
+        chat_turn_id: int = 0,
+    ) -> Optional[Dict[str, Any]]:
+        review = decision.to_review()
+        if not isinstance(review, dict) or not review.get("allow"):
+            return None
+        phase = str(review.get("phase") or "")
+        if phase == "reject":
+            self._clear_pending_dialogue_action(minister_name)
+            return {"answer": f"{self._dialogue_speaker_self(minister_name)}明白。此事暂且按下，不入档、不用人，也不惊动外朝。"}
+        if phase == "confirm":
+            action = self._action_from_semantic_probe(minister_name, text, review)
+            if not action or action.get("type") != "dialogue_consequence":
+                return None
+            return self._execute_semantic_dialogue_action(
+                minister_name,
+                action,
+                review=review,
+                chat_turn_id=chat_turn_id,
+                decision_type=decision.decision_type or "action",
+            )
+        if phase != "propose":
+            return None
+        action = self._action_from_semantic_probe(minister_name, text, review)
+        if not action:
+            return None
+        self._store_pending_dialogue_action(minister_name, action)
+        return {"answer": self._proposal_answer_for_action(minister_name, action)}
+
+    def _dialogue_semantic_action_response(
+        self,
+        minister_name: str,
+        text: str,
+        *,
+        chat_turn_id: int = 0,
+    ) -> Optional[Dict[str, Any]]:
         """LLM-first module activation when the minister agent misses a tool call.
 
         This replaces old content-regex interception for normal play: the model
@@ -4722,25 +4902,12 @@ class WebGame:
             decision = self._dialogue_semantic_engine().evaluate_action_probe(character, text)
         except Exception:
             return None
-        review = decision.to_review()
-        if not isinstance(review, dict) or not review.get("allow"):
-            return None
-        phase = str(review.get("phase") or "")
-        if phase == "reject":
-            self._clear_pending_dialogue_action(minister_name)
-            return {"answer": f"{self._dialogue_speaker_self(minister_name)}明白。此事暂且按下，不入档、不用人，也不惊动外朝。"}
-        if phase == "confirm":
-            action = self._action_from_semantic_probe(minister_name, text, review)
-            if not action or action.get("type") != "dialogue_consequence":
-                return None
-            return self._execute_semantic_dialogue_action(minister_name, action, review=review, decision_type="action")
-        if phase != "propose":
-            return None
-        action = self._action_from_semantic_probe(minister_name, text, review)
-        if not action:
-            return None
-        self._store_pending_dialogue_action(minister_name, action)
-        return {"answer": self._proposal_answer_for_action(minister_name, action)}
+        return self._dialogue_semantic_action_response_from_decision(
+            minister_name,
+            text,
+            decision,
+            chat_turn_id=chat_turn_id,
+        )
 
     def _dialogue_semantic_recruitment_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
         """Deprecated compatibility shim; recruitment now comes from the unified probe."""
@@ -4777,15 +4944,101 @@ class WebGame:
         self._store_pending_dialogue_action(minister_name, action)
         return {"answer": self._proposal_answer_for_action(minister_name, action)}
 
-    def _dialogue_semantic_recovery_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
+    def _dialogue_semantic_recovery_response(
+        self,
+        minister_name: str,
+        text: str,
+        *,
+        chat_turn_id: int = 0,
+    ) -> Optional[Dict[str, Any]]:
         """Recover and execute a lost pending action through semantic review."""
 
         action = self._semantic_pending_recovery_action(minister_name, text)
         if not action:
             return None
-        return self._execute_semantic_dialogue_action(minister_name, action, decision_type="recovery")
+        return self._execute_semantic_dialogue_action(
+            minister_name,
+            action,
+            chat_turn_id=chat_turn_id,
+            decision_type="recovery",
+        )
 
-    def _dialogue_semantic_pending_action_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
+    def _dialogue_pending_action_response_from_decision(
+        self,
+        minister_name: str,
+        text: str,
+        decision: SemanticDecision,
+        *,
+        chat_turn_id: int = 0,
+    ) -> Optional[Dict[str, Any]]:
+        review = decision.to_review()
+        if not isinstance(review, dict) or not review.get("allow"):
+            return None
+        if str(review.get("phase") or "") != "confirm":
+            return None
+        pending = self._load_pending_dialogue_action(minister_name)
+        if not isinstance(pending, dict) or not pending:
+            return None
+        action_type = str(pending.get("type") or "").strip()
+        if review.get("action_type") not in {"", action_type}:
+            return None
+        if action_type == "recruitment":
+            action = dict(pending)
+            if review.get("kind"):
+                action["kind"] = review.get("kind")
+            if review.get("trigger_quote"):
+                action["trigger_quote"] = review.get("trigger_quote")
+            if review.get("private_reason"):
+                action["semantic_reason"] = review.get("private_reason")
+            return self._execute_semantic_dialogue_action(
+                minister_name,
+                action,
+                review=review,
+                chat_turn_id=chat_turn_id,
+                decision_type=decision.decision_type or "pending",
+            )
+        if action_type not in {"mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
+            return None
+        normalized = dict(pending)
+        normalized["phase"] = "confirm"
+        if action_type == "castration":
+            normalized["scheme_text"] = " ".join(
+                part
+                for part in (str(pending.get("scheme_text") or "").strip(), str(text or "").strip())
+                if part
+            )
+        elif action_type in {"eunuch_care", "eunuch_hard_service", "bao_leverage"}:
+            normalized["note"] = " ".join(
+                part
+                for part in (str(pending.get("note") or "").strip(), str(text or "").strip())
+                if part
+            )
+        for key in ("target", "actor", "faction", "kind", "mode"):
+            if review.get(key):
+                normalized[key] = review.get(key)
+        if review.get("trigger_quote"):
+            normalized["trigger_quote"] = review.get("trigger_quote")
+        if review.get("private_reason"):
+            normalized["semantic_reason"] = review.get("private_reason")
+        if normalized.get("type") == "castration":
+            normalized["force"] = True
+            if not self._castration_action_target_is_valid(normalized):
+                return None
+        return self._execute_semantic_dialogue_action(
+            minister_name,
+            normalized,
+            review=review,
+            chat_turn_id=chat_turn_id,
+            decision_type=decision.decision_type or "pending",
+        )
+
+    def _dialogue_semantic_pending_action_response(
+        self,
+        minister_name: str,
+        text: str,
+        *,
+        chat_turn_id: int = 0,
+    ) -> Optional[Dict[str, Any]]:
         """Confirm an existing pending dialogue action through semantic review.
 
         Pending actions are already structured.  This path only asks the
@@ -4814,7 +5067,13 @@ class WebGame:
                 action["trigger_quote"] = review.get("trigger_quote")
             if review.get("private_reason"):
                 action["semantic_reason"] = review.get("private_reason")
-            return self._execute_semantic_dialogue_action(minister_name, action, review=review, decision_type="pending")
+            return self._execute_semantic_dialogue_action(
+                minister_name,
+                action,
+                review=review,
+                chat_turn_id=chat_turn_id,
+                decision_type="pending",
+            )
         if action_type not in {"mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
             return None
         normalized = dict(pending)
@@ -4845,7 +5104,13 @@ class WebGame:
             normalized["force"] = True
             if not self._castration_action_target_is_valid(normalized):
                 return None
-        return self._execute_semantic_dialogue_action(minister_name, normalized, review=review, decision_type="pending")
+        return self._execute_semantic_dialogue_action(
+            minister_name,
+            normalized,
+            review=review,
+            chat_turn_id=chat_turn_id,
+            decision_type="pending",
+        )
 
     def _dialogue_action_llm_audit_available(self) -> bool:
         try:
@@ -4874,6 +5139,18 @@ class WebGame:
         except Exception:
             return {}
         review = decision.to_review()
+        if not isinstance(review, dict) or not review.get("allow"):
+            return {}
+        if str(review.get("phase") or "") != "confirm":
+            return {}
+        return self._action_from_pending_recovery_review(minister_name, text, review)
+
+    def _action_from_pending_recovery_review(
+        self,
+        minister_name: str,
+        text: str,
+        review: Dict[str, Any],
+    ) -> Dict[str, Any]:
         if not isinstance(review, dict) or not review.get("allow"):
             return {}
         if str(review.get("phase") or "") != "confirm":
@@ -6699,13 +6976,24 @@ class WebGame:
         self._clear_pending_dialogue_action(minister_name)
         return {"answer": f"{self_ref}回陛下，此事缺少双方名目，臣不敢虚报已调停。请陛下点明人名或派系，再容臣去说合。"}
 
-    def _execute_dialogue_consequence_action(self, minister_name: str, action: Dict[str, Any]) -> Dict[str, Any]:
+    def _execute_dialogue_consequence_action(
+        self,
+        minister_name: str,
+        action: Dict[str, Any],
+        *,
+        chat_turn_id: int = 0,
+    ) -> Dict[str, Any]:
+        source_id = (
+            f"chat_turn:{int(chat_turn_id)}"
+            if int(chat_turn_id or 0)
+            else f"{int(self.state.turn)}:{minister_name}"
+        )
         extracted = {
             "character_status_changes": action.get("character_status_changes") or [],
             "condition_changes": action.get("condition_changes") or [],
             "punishment_changes": action.get("punishment_changes") or [],
-            "_source_kind": "dialogue_action",
-            "_source_id": f"{int(self.state.turn)}:{minister_name}",
+            "_source_kind": "dialogue",
+            "_source_id": source_id,
         }
         try:
             from ming_sim.issues import apply_score_extraction
@@ -6738,9 +7026,19 @@ class WebGame:
             },
         }
 
-    def _execute_dialogue_action(self, minister_name: str, action: Dict[str, Any]) -> Dict[str, Any]:
+    def _execute_dialogue_action(
+        self,
+        minister_name: str,
+        action: Dict[str, Any],
+        *,
+        chat_turn_id: int = 0,
+    ) -> Dict[str, Any]:
         if action.get("type") == "dialogue_consequence":
-            return self._execute_dialogue_consequence_action(minister_name, action)
+            return self._execute_dialogue_consequence_action(
+                minister_name,
+                action,
+                chat_turn_id=chat_turn_id,
+            )
         if action.get("type") == "recruitment":
             return self._execute_recruitment_action(minister_name, action)
         if action.get("type") == "castration":
@@ -6755,13 +7053,28 @@ class WebGame:
             return self._execute_bao_leverage_action(minister_name, action)
         return {"answer": self._proposal_answer_for_action(minister_name, action)}
 
-    def _dialogue_action_response(self, minister_name: str, text: str) -> Optional[Dict[str, Any]]:
+    def _dialogue_action_response(
+        self,
+        minister_name: str,
+        text: str,
+        *,
+        chat_turn_id: int = 0,
+    ) -> Optional[Dict[str, Any]]:
         pending = self._load_pending_dialogue_action(minister_name)
         if pending:
-            return self._dialogue_semantic_pending_action_response(minister_name, text)
+            return self._dialogue_semantic_pending_action_response(
+                minister_name,
+                text,
+                chat_turn_id=chat_turn_id,
+            )
         recovered = self._recover_pending_dialogue_action_from_recent_answer(minister_name, text)
         if recovered:
-            return self._execute_semantic_dialogue_action(minister_name, recovered, decision_type="recovery")
+            return self._execute_semantic_dialogue_action(
+                minister_name,
+                recovered,
+                chat_turn_id=chat_turn_id,
+                decision_type="recovery",
+            )
         # Regex detectors below this point are legacy classifiers only.  Normal
         # play creates new world-changing dialogue actions through
         # _dialogue_semantic_action_response(), LLM tools, or post-dialogue
@@ -6776,6 +7089,8 @@ class WebGame:
         action: Optional[Dict[str, Any]],
         fallback_answer: str,
         user_text: str = "",
+        *,
+        chat_turn_id: int = 0,
     ) -> Optional[Dict[str, Any]]:
         if not isinstance(action, dict) or not action:
             return None
@@ -6862,7 +7177,13 @@ class WebGame:
                     normalized["semantic_reason"] = review.get("private_reason")
             if normalized.get("type") == "castration" and not self._castration_action_target_is_valid(normalized):
                 return None
-            return self._execute_semantic_dialogue_action(minister_name, normalized, review=review, decision_type="tool")
+            return self._execute_semantic_dialogue_action(
+                minister_name,
+                normalized,
+                review=review,
+                chat_turn_id=chat_turn_id,
+                decision_type="tool",
+            )
         if normalized.get("type") in {"recruitment", "mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
             if normalized.get("type") == "recruitment":
                 review = self._recruitment_semantic_gate(minister_name, normalized, user_text, "propose")
@@ -7913,7 +8234,11 @@ class WebGame:
         user_lore_effect = self._eunuch_lore_dialogue_effect(
             self._absorb_eunuch_lore_from_text(minister_name, text, source_role="user")
         )
-        dialogue_response = self._dialogue_initial_semantic_response(minister_name, text)
+        dialogue_response = self._dialogue_initial_semantic_response(
+            minister_name,
+            text,
+            chat_turn_id=chat_turn_id,
+        )
         if dialogue_response is not None:
             answer = str(dialogue_response.get("answer") or "")
             answer_lore_effect = self._eunuch_lore_dialogue_effect(
@@ -7975,6 +8300,7 @@ class WebGame:
             getattr(result, "dialogue_action", None),
             result.answer,
             text,
+            chat_turn_id=chat_turn_id,
         )
         if tool_dialogue_response is not None:
             result.answer = str(tool_dialogue_response.get("answer") or result.answer)
@@ -8073,7 +8399,11 @@ class WebGame:
         user_lore_effect = self._eunuch_lore_dialogue_effect(
             self._absorb_eunuch_lore_from_text(minister_name, text, source_role="user")
         )
-        dialogue_response = self._dialogue_initial_semantic_response(minister_name, text)
+        dialogue_response = self._dialogue_initial_semantic_response(
+            minister_name,
+            text,
+            chat_turn_id=chat_turn_id,
+        )
         if dialogue_response is not None:
             answer = str(dialogue_response.get("answer") or "")
             visible_answer = self._conditioned_dialogue_answer(minister_name, answer)
@@ -8274,6 +8604,7 @@ class WebGame:
                 dialogue_tool_action,
                 answer,
                 text,
+                chat_turn_id=chat_turn_id,
             )
             if dialogue_tool_response is not None:
                 updated_answer = str(dialogue_tool_response.get("answer") or answer)

@@ -486,9 +486,11 @@ class DialogueSemanticEngine:
         route_context: Optional[Dict[str, Any]] = None,
         recent_answers: Optional[List[str]] = None,
     ) -> SemanticDecision:
-        route = self.evaluate_route(character, user_text, pending_action=pending_action, route_context=route_context)
-        if route.allow:
-            return route
+        route_context = route_context if isinstance(route_context, dict) else {}
+        if bool(route_context.get("semantic_route_enabled", True)):
+            route = self.evaluate_route(character, user_text, pending_action=pending_action, route_context=route_context)
+            if route.allow:
+                return route
         pending = PendingDialogueAction.from_mapping(pending_action, current_turn=int(getattr(self.state, "turn", 0) or 0))
         if pending.type != "none":
             decision = self.gate_tool_action(character, user_text, pending.to_mapping(), phase="confirm", pending_action=pending.to_mapping())

@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 
 import web_app
 from ming_sim import court, court_events, issues, memorials
+from ming_sim.dialogue_semantics import SemanticDecision
 from ming_sim.models import Character
 from ming_sim.personnel_actions import is_eunuch_office
 import ming_sim.session as session_module
@@ -1074,6 +1075,156 @@ class AttendantSummonTests(unittest.TestCase):
                 stop_worker(game.db_path)
             finally:
                 game.session.close()
+
+    def test_semantic_executor_receives_chat_turn_id(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            calls = []
+
+            def capture(minister_name, action, *, chat_turn_id=0):
+                calls.append((minister_name, dict(action), int(chat_turn_id or 0)))
+                return {"answer": "ok"}
+
+            game._execute_dialogue_action = capture
+
+            response = game._execute_semantic_dialogue_action(
+                attendant,
+                {"type": "recruitment", "kind": "eunuch", "trigger_quote": "准，招一个小内侍"},
+                review={
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "recruitment",
+                    "kind": "eunuch",
+                    "trigger_quote": "准，招一个小内侍",
+                    "confidence": 96,
+                },
+                chat_turn_id=42,
+                decision_type="tool",
+            )
+
+            self.assertEqual(response, {"answer": "ok"})
+            self.assertEqual(calls[0][0], attendant)
+            self.assertEqual(calls[0][1]["type"], "recruitment")
+            self.assertEqual(calls[0][1]["kind"], "eunuch")
+            self.assertEqual(calls[0][2], 42)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_dialogue_consequence_source_uses_chat_turn_id(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            response = game._execute_dialogue_consequence_action(
+                "王承恩",
+                {
+                    "type": "dialogue_consequence",
+                    "action_type": "custody",
+                    "character_status_changes": [{
+                        "name": "洪承畴",
+                        "status": "imprisoned",
+                        "reason": "押入昭狱",
+                    }],
+                    "trigger_quote": "押入昭狱",
+                },
+                chat_turn_id=77,
+            )
+
+            self.assertIn("已按口谕入档", response.get("answer") or "")
+            row = game.db.conn.execute(
+                """
+                SELECT source_kind, source_id
+                FROM character_custodies
+                WHERE source_kind='dialogue' AND source_id='chat_turn:77'
+                ORDER BY id DESC LIMIT 1
+                """
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertEqual(row["source_id"], "chat_turn:77")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_chat_and_stream_pre_agent_use_unified_user_semantic_engine(self):
+        def install_fake_engine(game, target):
+            calls = []
+
+            class FakeEngine:
+                def evaluate_user_message(
+                    self,
+                    character,
+                    user_text,
+                    *,
+                    pending_action=None,
+                    route_context=None,
+                    recent_answers=None,
+                ):
+                    calls.append({
+                        "character": character.name,
+                        "user_text": user_text,
+                        "pending_action": pending_action,
+                        "route_context": dict(route_context or {}),
+                        "recent_answers": list(recent_answers or []),
+                    })
+                    return SemanticDecision(
+                        decision_type="route",
+                        action_type="summon",
+                        phase="confirm",
+                        target=target,
+                        confidence=96,
+                        trigger_quote=user_text,
+                    )
+
+            game._dialogue_semantic_engine = lambda: FakeEngine()
+            return calls
+
+        attendant = "王承恩"
+        target = "韩爌"
+        sync_game = None
+        stream_game = None
+        try:
+            sync_game = web_app.WebGame(fresh=True)
+            sync_calls = install_fake_engine(sync_game, target)
+            sync_payload = sync_game.chat(attendant, f"传{target}入殿。")
+
+            self.assertEqual(sync_payload["court_action"], "summon")
+            self.assertEqual(sync_payload["next_minister"], target)
+            self.assertEqual(len(sync_calls), 1)
+            self.assertEqual(sync_calls[0]["character"], attendant)
+            self.assertTrue(sync_calls[0]["route_context"].get("can_route_summon"))
+
+            sync_game.session.close()
+            sync_game = None
+
+            stream_game = web_app.WebGame(fresh=True)
+            stream_calls = install_fake_engine(stream_game, target)
+            events = list(stream_game.chat_stream(attendant, f"传{target}入殿。"))
+
+            self.assertEqual(events[-1]["type"], "done")
+            stream_payload = events[-1]["payload"]
+            self.assertEqual(stream_payload["court_action"], "summon")
+            self.assertEqual(stream_payload["next_minister"], target)
+            self.assertEqual(len(stream_calls), 1)
+            self.assertEqual(stream_calls[0]["character"], attendant)
+            self.assertTrue(stream_calls[0]["route_context"].get("can_route_summon"))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                if sync_game is not None:
+                    stop_worker(sync_game.db_path)
+                if stream_game is not None:
+                    stop_worker(stream_game.db_path)
+            finally:
+                if sync_game is not None:
+                    sync_game.session.close()
+                if stream_game is not None:
+                    stream_game.session.close()
 
     def test_ambiguous_who_is_usable_does_not_open_recommendation_pool(self):
         game = web_app.WebGame(fresh=True)

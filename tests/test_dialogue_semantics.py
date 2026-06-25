@@ -211,6 +211,44 @@ class DialogueSemanticEngineTests(unittest.TestCase):
             self.assertEqual(decision.to_route_review()["intent"], "summon")
             self.assertEqual(decision.target, "韩爌")
 
+    def test_user_message_respects_route_disabled_context_and_continues_action_probe(self):
+        with TemporaryDirectory() as tmp:
+            content, db, state = _fresh(tmp)
+            character = content.characters["王承恩"]
+            calls = []
+
+            def audit(phase, payload):
+                calls.append(phase)
+                if phase == "dialogue_route_intent":
+                    return {
+                        "allow": True,
+                        "intent": "summon",
+                        "target_name": "韩爌",
+                        "trigger_quote": "传韩爌入殿",
+                        "confidence": 96,
+                    }
+                if phase == "dialogue_action_intent":
+                    return {
+                        "allow": True,
+                        "phase": "propose",
+                        "action_type": "recruitment",
+                        "kind": "eunuch",
+                        "trigger_quote": "宫里可有新的小内侍可用",
+                        "confidence": 96,
+                    }
+                return None
+
+            decision = DialogueSemanticEngine(db, state, audit_client=audit).evaluate_user_message(
+                character,
+                "宫里可有新的小内侍可用？",
+                route_context={"handler": "王承恩", "semantic_route_enabled": False},
+            )
+
+            self.assertEqual(calls, ["dialogue_action_intent"])
+            self.assertTrue(decision.allow)
+            self.assertEqual(decision.decision_type, "action")
+            self.assertEqual(decision.action_type, "recruitment")
+
     def test_pending_action_schema_round_trips_legacy_payload(self):
         pending = PendingDialogueAction.from_mapping(
             {
