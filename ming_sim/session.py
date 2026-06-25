@@ -1114,6 +1114,98 @@ class GameSession:
             actor=character.name,
         )
 
+    def dialogue_appointment_action_from_payload(
+        self,
+        payload: str,
+        appointer: Character,
+        *,
+        answer: str = "",
+    ) -> Dict[str, object]:
+        """Normalize propose_appointment tool output into a semantic office-change action."""
+        import json as _json
+        try:
+            data = _json.loads(payload) if payload else {}
+        except (ValueError, TypeError):
+            return {}
+        if not isinstance(data, dict):
+            return {}
+        name = str(data.get("name") or "").strip()
+        office = str(data.get("office") or "").strip()
+        if not name or not office:
+            return {}
+        replaces = str(data.get("replaces") or "").strip()
+        reason = str(data.get("reason") or "").strip()
+        recommendation = str(data.get("recommendation_basis") or "").strip()
+        note_parts = [
+            f"拟任{name}为{office}",
+            f"腾缺：{replaces}" if replaces else "",
+            f"理由：{reason}" if reason else "",
+            f"工具依据：{recommendation[:240]}" if recommendation else "",
+        ]
+        return {
+            "type": "office_change",
+            "phase": "confirm",
+            "target": name,
+            "actor": appointer.name,
+            "kind": "appointment",
+            "mode": "appoint",
+            "office": office,
+            "replaces": replaces,
+            "faction": str(data.get("faction") or "").strip(),
+            "note": "；".join(part for part in note_parts if part),
+            "tool_answer_excerpt": str(answer or "")[:240],
+        }
+
+    def dialogue_allows_appointment(
+        self,
+        appointer: Character,
+        user_text: str,
+        payload: str,
+        *,
+        answer: str = "",
+    ) -> bool:
+        """Semantic gate for NPC-proposed office changes before appointment writes."""
+        action = self.dialogue_appointment_action_from_payload(payload, appointer, answer=answer)
+        if not action:
+            return False
+        try:
+            from ming_sim.dialogue_semantics import DialogueSemanticEngine
+
+            decision = DialogueSemanticEngine(
+                self.db,
+                self.state,
+                llm_config=self.llm_config,
+                agno_db=self.agno_db,
+                audit_client=self.dialogue_audit_client,
+            ).gate_tool_action(
+                appointer,
+                user_text,
+                action,
+                pending_action=None,
+                phase="confirm",
+            )
+        except Exception:
+            return False
+        review = decision.to_review()
+        return bool(
+            isinstance(review, dict)
+            and review.get("allow")
+            and str(review.get("action_type") or "") == "office_change"
+            and str(review.get("phase") or "") == "confirm"
+        )
+
+    def _apply_appointment_after_semantic_gate(
+        self,
+        payload: str,
+        appointer: Character,
+        user_text: str,
+        *,
+        answer: str = "",
+    ) -> Tuple[str, str, Dict[str, object]]:
+        if not self.dialogue_allows_appointment(appointer, user_text, payload, answer=answer):
+            return ("", "", {})
+        return self._apply_appointment(payload, appointer)
+
     def _apply_unlisted_person_registration_after_route_audit(
         self,
         payload: str,
@@ -1226,7 +1318,12 @@ class GameSession:
                 payload = tool_result.removeprefix("__pending_appointment__").strip()
                 if not payload:
                     payload = _tool_args_json(tool_exec)
-                appointed, displaced, displaced_effect = self._apply_appointment(payload, character)
+                appointed, displaced, displaced_effect = self._apply_appointment_after_semantic_gate(
+                    payload,
+                    character,
+                    message,
+                    answer=answer,
+                )
                 if appointed:
                     result.appointed_minister = appointed
                     result.refresh_ministers.append(appointed)

@@ -6158,6 +6158,198 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_propose_appointment_tool_requires_semantic_audit_before_write(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "韩爌"
+            target = "顾任免"
+            office = "兵部督师"
+            character = game.session._character(actor)
+            payload = json.dumps(
+                {
+                    "name": target,
+                    "office": office,
+                    "faction": "中立",
+                    "reason": "测试任免语义门",
+                    "recommendation_basis": "测试工具依据；不应越过玩家原话。",
+                    "replaces": "",
+                },
+                ensure_ascii=False,
+            )
+            calls = []
+
+            class ToolExec:
+                tool_name = "propose_appointment"
+                result = f"__pending_appointment__{payload}"
+                arguments = {}
+                tool_args = {}
+
+            class RunOutput:
+                content = f"臣以为{target}或可任{office}。"
+                tools = [ToolExec()]
+
+            class FakeAgent:
+                def run(self, _prompt):
+                    return RunOutput()
+
+            class FakeRegistry:
+                def build_draft_line(self):
+                    return "无"
+
+                def get(self, _character):
+                    return FakeAgent()
+
+                def register(self, _character):
+                    return None
+
+            game.session.registry = FakeRegistry()
+
+            def deny_audit(phase, audit_payload):
+                if phase == "dialogue_action_intent":
+                    calls.append(audit_payload)
+                    action = audit_payload.get("tool_action") or {}
+                    self.assertEqual(action.get("type"), "office_change")
+                    self.assertEqual(action.get("target"), target)
+                    self.assertEqual(action.get("office"), office)
+                    return {
+                        "allow": False,
+                        "phase": "none",
+                        "action_type": "none",
+                        "trigger_quote": "谁可任兵部督师",
+                        "confidence": 96,
+                        "private_reason": "只是请 NPC 推荐人选，不是皇帝任命。",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = deny_audit
+            result = game.session.chat(actor, "你看谁可任兵部督师？")
+
+            self.assertEqual(result.appointed_minister, "")
+            self.assertTrue(calls)
+            self.assertNotIn(target, game.content.characters)
+            row = game.db.conn.execute("SELECT name FROM characters WHERE name=?", (target,)).fetchone()
+            self.assertIsNone(row)
+
+            def allow_audit(phase, audit_payload):
+                if phase == "dialogue_action_intent":
+                    action = audit_payload.get("tool_action") or {}
+                    self.assertEqual(action.get("type"), "office_change")
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "office_change",
+                        "target": target,
+                        "trigger_quote": f"任{target}为{office}",
+                        "confidence": 95,
+                        "private_reason": "玩家明确以皇帝身份任命具体人物到具体官职。",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = allow_audit
+            result = game.session.chat(actor, f"任{target}为{office}，即刻建档。")
+
+            self.assertEqual(result.appointed_minister, target)
+            self.assertIn(target, game.content.characters)
+            row = game.db.conn.execute(
+                "SELECT office, status FROM characters WHERE name=?",
+                (target,),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertEqual(row["office"], office)
+            self.assertEqual(row["status"], "active")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_stream_tool_appointment_uses_same_semantic_gate(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "韩爌"
+            target = "顾流任"
+            office = "户部主事"
+            character = game.session._character(actor)
+            payload = json.dumps(
+                {
+                    "name": target,
+                    "office": office,
+                    "faction": "中立",
+                    "reason": "测试流式任免语义门",
+                    "recommendation_basis": "测试工具依据",
+                    "replaces": "",
+                },
+                ensure_ascii=False,
+            )
+            seen = []
+
+            def deny_audit(phase, audit_payload):
+                if phase == "dialogue_action_intent":
+                    seen.append(audit_payload)
+                    return {
+                        "allow": False,
+                        "phase": "none",
+                        "action_type": "none",
+                        "trigger_quote": "可否任他",
+                        "confidence": 96,
+                        "private_reason": "只是询问可否任命，不是执行口谕。",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = deny_audit
+            appointed, displaced, displaced_effect = game.session._apply_appointment_after_semantic_gate(
+                payload,
+                character,
+                f"你说可否任{target}为{office}？",
+                answer=f"臣拟任{target}为{office}。",
+            )
+            self.assertEqual((appointed, displaced, displaced_effect), ("", "", {}))
+            self.assertTrue(seen)
+            self.assertNotIn(target, game.content.characters)
+
+            def allow_audit(phase, audit_payload):
+                if phase == "dialogue_action_intent":
+                    action = audit_payload.get("tool_action") or {}
+                    self.assertEqual(action.get("target"), target)
+                    self.assertEqual(action.get("office"), office)
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "office_change",
+                        "target": target,
+                        "trigger_quote": f"任{target}为{office}",
+                        "confidence": 96,
+                        "private_reason": "明确任命。",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = allow_audit
+            appointed, displaced, displaced_effect = game.session._apply_appointment_after_semantic_gate(
+                payload,
+                character,
+                f"任{target}为{office}，着吏部建档。",
+                answer=f"臣拟任{target}为{office}。",
+            )
+            self.assertEqual(appointed, target)
+            self.assertEqual(displaced, "")
+            self.assertEqual(displaced_effect, {})
+            row = game.db.conn.execute(
+                "SELECT office, status FROM characters WHERE name=?",
+                (target,),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertEqual(row["office"], office)
+            self.assertEqual(row["status"], "active")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_directive_regex_fallback_ignores_generic_legacy_action_regex(self):
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"

@@ -448,7 +448,11 @@ def build_minister_tools(character: Character, context: CourtContext):
         return f"__pending_directive__{text}"
 
     def propose_appointment(name: str, office: str, faction: str = "中立", reason: str = "", replaces: str = "") -> str:
-        """吏部铨选拟任。name 为拟任者，office 为拟授官职，replaces 为需腾缺的现任官员。"""
+        """吏部铨选拟任。
+
+        工具只返回拟任方案；是否真正建档/腾缺，仍由对白语义审计核验皇帝原话。
+        name 为拟任者，office 为拟授官职，replaces 为需腾缺的现任官员。
+        """
         nm = (name or "").strip()
         off = (office or "").strip()
         if not nm or not off:

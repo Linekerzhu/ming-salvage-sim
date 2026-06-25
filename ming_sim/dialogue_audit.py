@@ -1331,7 +1331,7 @@ DIALOGUE_ACTION_INTENT_PROMPT = """
 - 这是语义判定，不按关键词机械触发。提到某个词、旧例、身体状况、历史传闻、奏报疑点，不能等于下旨执行。
 - phase=propose 只表示“可向玩家复述待确认方案”，不能落库执行；requires_confirmation 必须为 true。
 - phase=confirm 必须存在 pending_action，且玩家本轮是在批准上一轮那个方案；追问细节、讨价还价、改口、闲聊、历史解释都不算确认。
-- 例外：secret_order 是一次性密令建档动作；只有玩家本轮明确“下密令/密旨/命某人暗查某事”时，才可在没有 pending_action 时返回 phase=confirm 并允许即时落库。
+- 例外：secret_order 是一次性密令建档动作；office_change 是一次性任免动作。只有玩家本轮明确“下密令/密旨/命某人暗查某事”或明确任命/授官/补某人某缺时，才可在没有 pending_action 时返回 phase=confirm 并允许即时落库。
 - phase=reject 用于玩家明确作罢、暂缓、不办、别惊动相关机构；可清除 pending_action。
 - 若 tool_action.type="semantic_probe"，你可以直接从玩家原话语义选择 action_type，用于在 LLM 工具漏调时启动对应待确认模块；可选择 recruitment，但必须同时给出 kind。
 - 刑罚、下狱、病历变更这类即时口谕，优先在 post_dialogue_audit 的 immediate_consequence 中落 character_status_changes / punishment_changes / condition_changes；本审计若返回 punishment/custody/condition_update，只能在 payload 中给出同一套结构化草案，不得凭关键词执行。
@@ -1345,6 +1345,7 @@ DIALOGUE_ACTION_INTENT_PROMPT = """
 - bao_leverage：只有玩家明确要“赐还/归还宝贝”或“封存/拿捏/钳制宝案”，才可 allow=true。单纯查问宝案或补旧档不是筹码处置。
 - mediation：只有玩家明确要调停、共办、担保、说合某两人/某派，才可 allow=true；普通问旧怨、问证据、听两面之词不是执行调停。
 - secret_order：只有玩家明确下达密令/密旨，且能从玩家原话读出承办人或承办对象、暗查/取证/盯梢等任务目标，才可 allow=true 且 phase=confirm。只是问“要不要暗查”“查得如何”“此事能否密办”、NPC 自行建议密查，必须 false。
+- office_change：只有玩家明确以皇帝身份任命、授官、补缺、改授、罢某人腾缺并任某人为某职，且工具动作里的 target/office 与玩家原话或明确续接语境一致，才可 allow=true 且 phase=confirm。只是问“谁可用”“你看谁合适”“可否如此任命”“先议人选”、NPC 自行推荐，必须 false。
 - recruitment：只有玩家明确要求找/招/挑/荐/保举/访求/取士/补一个新人/带一个新人来，才可 allow=true，并必须填 kind=eunuch|exam|recommend。问现有人手、关系网、谁可用但要求先盘点现有人，不是 recruitment。
 - custody/punishment/condition_update：只有玩家以皇帝身份直接明令把某 NPC 下狱、押入昭狱、执行刑罚、确认疾病/刑伤/身体事实，才可 allow=true。威胁、假设、询问后果、听 NPC 建议、讨论旧例必须 false。若涉及宫刑/腐刑/净身，强制执行优先 punishment_changes=宫刑，程序派生病历和阉人身份。
 
@@ -1361,6 +1362,8 @@ DIALOGUE_ACTION_INTENT_PROMPT = """
 - pending_action 是 mediation，“可以，就这么办。” => allow=true, phase=confirm。
 - “此事能否暗查？” + secret_order 工具 => allow=false。
 - “给韩爌下密令，暗查魏忠贤余党牵连，两月内回奏。” + secret_order 工具 => allow=true, phase=confirm。
+- “你看谁可任兵部督师？” + office_change 工具 => allow=false。
+- “任张宗衡为兵部督师，原任先去职。” + office_change 工具 => allow=true, phase=confirm, target=张宗衡。
 
 JSON 字段：
 {
@@ -1828,6 +1831,10 @@ def dialogue_action_intent_audit(
             "title",
             "content",
             "assignee",
+            "office",
+            "replaces",
+            "recommendation_basis",
+            "tool_answer_excerpt",
             "trigger_quote",
         }
     }

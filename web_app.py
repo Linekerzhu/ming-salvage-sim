@@ -8539,7 +8539,12 @@ class WebGame:
                         if not payload_json:
                             args = getattr(tool_exec, "arguments", {}) or getattr(tool_exec, "tool_args", {}) or {}
                             payload_json = json.dumps(args, ensure_ascii=False)
-                        appointed, displaced, displaced_effect = self.session._apply_appointment(payload_json, character)
+                        appointed, displaced, displaced_effect = self.session._apply_appointment_after_semantic_gate(
+                            payload_json,
+                            character,
+                            text,
+                            answer=answer,
+                        )
                     elif tool_name == "register_unlisted_person" or res.startswith("__pending_unlisted_person__"):
                         payload_json = res.removeprefix("__pending_unlisted_person__").strip()
                         if not payload_json:
