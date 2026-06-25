@@ -97,6 +97,62 @@ class DialogueSemanticEngineTests(unittest.TestCase):
             self.assertFalse(decision.allow)
             self.assertEqual(decision.decision_type, "none")
 
+    def test_pending_recovery_requires_recent_proposal_evidence(self):
+        with TemporaryDirectory() as tmp:
+            content, db, state = _fresh(tmp)
+            character = content.characters["王承恩"]
+
+            def audit(phase, payload):
+                if phase == "dialogue_pending_recovery":
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "recruitment",
+                        "kind": "eunuch",
+                        "trigger_quote": "准，照办",
+                        "proposal_evidence": "旧档里说过可以挑人",
+                        "private_reason": "误把外部旧档当成最近提案。",
+                        "confidence": 96,
+                    }
+                return None
+
+            decision = DialogueSemanticEngine(db, state, audit_client=audit).evaluate_pending_recovery(
+                character,
+                "准，照办。",
+                ["陛下若准，奴婢便去挑一个忠谨可用的小火者来。"],
+            )
+
+            self.assertFalse(decision.allow)
+            self.assertEqual(decision.decision_type, "none")
+
+    def test_pending_recovery_requires_trigger_quote_from_current_user_text(self):
+        with TemporaryDirectory() as tmp:
+            content, db, state = _fresh(tmp)
+            character = content.characters["王承恩"]
+
+            def audit(phase, payload):
+                if phase == "dialogue_pending_recovery":
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "recruitment",
+                        "kind": "eunuch",
+                        "trigger_quote": "准，照办",
+                        "proposal_evidence": "陛下若准，奴婢便去挑一个忠谨可用的小火者来",
+                        "private_reason": "误把旧确认句当成本轮原话。",
+                        "confidence": 96,
+                    }
+                return None
+
+            decision = DialogueSemanticEngine(db, state, audit_client=audit).evaluate_pending_recovery(
+                character,
+                "先说风险，不要招。",
+                ["陛下若准，奴婢便去挑一个忠谨可用的小火者来。"],
+            )
+
+            self.assertFalse(decision.allow)
+            self.assertEqual(decision.decision_type, "none")
+
     def test_no_llm_or_audit_client_does_not_mutate_semantically(self):
         with TemporaryDirectory() as tmp:
             content, db, state = _fresh(tmp)

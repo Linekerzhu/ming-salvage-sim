@@ -10,6 +10,7 @@ but it must not be treated as permission to mutate game state.
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
@@ -82,6 +83,20 @@ def _enabled_env(name: str) -> bool:
 
 def _disabled_env(name: str) -> bool:
     return _enabled_env(name)
+
+
+def _quote_supported_by_text(quote: str, text: str) -> bool:
+    clean_quote = re.sub(r"\s+", "", str(quote or ""))
+    if not clean_quote:
+        return False
+    clean_text = re.sub(r"\s+", "", str(text or ""))
+    if clean_text and clean_quote in clean_text:
+        return True
+    normalized_quote = re.sub(r"[\W_]+", "", str(quote or ""), flags=re.UNICODE)
+    if not normalized_quote:
+        return False
+    normalized_text = re.sub(r"[\W_]+", "", str(text or ""), flags=re.UNICODE)
+    return bool(normalized_text and normalized_quote in normalized_text)
 
 
 def _accepted_profiles(review: Dict[str, Any], accepted_names: List[str]) -> Dict[str, Dict[str, Any]]:
@@ -765,7 +780,7 @@ class DialogueSemanticEngine:
                 )
             except Exception as exc:
                 return SemanticDecision.none(str(exc))
-            return SemanticDecision.from_recovery_review(review)
+            return self._recovery_decision_from_review(review, user_text, recent_answers)
         try:
             from ming_sim.dialogue_audit import dialogue_pending_recovery_audit
 
@@ -781,7 +796,26 @@ class DialogueSemanticEngine:
             )
         except Exception as exc:
             return SemanticDecision.none(str(exc))
-        return SemanticDecision.from_recovery_review(review)
+        return self._recovery_decision_from_review(review, user_text, recent_answers)
+
+    def _recovery_decision_from_review(
+        self,
+        review: Optional[Dict[str, Any]],
+        user_text: str,
+        recent_answers: List[str],
+    ) -> SemanticDecision:
+        decision = SemanticDecision.from_recovery_review(review)
+        if not decision.allow:
+            return decision
+        if not _quote_supported_by_text(decision.trigger_quote, user_text):
+            return SemanticDecision.none("待办恢复确认语句不在玩家本轮原话中。", raw=decision.raw)
+        proposal = _compact((decision.payload or {}).get("proposal_evidence"), 360)
+        if not proposal:
+            return SemanticDecision.none("待办恢复缺少最近 NPC 方案证据。", raw=decision.raw)
+        recent_text = "\n".join(str(answer or "") for answer in recent_answers or [])
+        if not _quote_supported_by_text(proposal, recent_text):
+            return SemanticDecision.none("待办恢复方案证据不在最近 NPC 回复中。", raw=decision.raw)
+        return decision
 
     def gate_tool_action(
         self,
