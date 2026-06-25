@@ -1353,6 +1353,42 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_tool_action_merge_uses_decision_payload_boundary(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            decision = SemanticDecision(
+                decision_type="tool",
+                action_type="mediation",
+                phase="propose",
+                actor="韩爌",
+                mode="co_work",
+                payload={"faction": "东林"},
+                confidence=96,
+                trigger_quote="调停东林党争",
+                private_reason="test tool payload boundary",
+                raw={"faction": "阉党"},
+            )
+
+            action = game._apply_tool_decision_to_action(
+                "韩爌",
+                {"type": "mediation", "mode": "co_work"},
+                "朕要你调停东林党争。",
+                decision,
+            )
+
+            self.assertEqual(action.get("type"), "mediation")
+            self.assertEqual(action.get("actor"), "韩爌")
+            self.assertEqual(action.get("faction"), "东林")
+            self.assertNotEqual(action.get("faction"), str(decision.raw.get("faction")))
+            self.assertEqual(action.get("trigger_quote"), "调停东林党争")
+            self.assertEqual(action.get("semantic_reason"), "test tool payload boundary")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_tool_response_uses_unified_semantic_gate_for_propose_and_confirm(self):
         game = web_app.WebGame(fresh=True)
         try:

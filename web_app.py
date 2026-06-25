@@ -7039,19 +7039,18 @@ class WebGame:
         user_text: str,
         decision: SemanticDecision,
     ) -> Dict[str, Any]:
-        review = decision.to_review()
-        if not isinstance(review, dict) or not review.get("allow"):
+        if not isinstance(decision, SemanticDecision) or not decision.allow:
             return {}
         normalized = dict(action or {})
-        payload = review.get("payload") if isinstance(review.get("payload"), dict) else {}
+        payload = decision.payload if isinstance(decision.payload, dict) else {}
         for key in ("target", "actor", "faction", "kind", "mode"):
-            value = review.get(key) or payload.get(key)
+            value = payload.get(key) if key == "faction" else getattr(decision, key, "")
             if value:
                 normalized[key] = value
-        if review.get("trigger_quote"):
-            normalized["trigger_quote"] = review.get("trigger_quote")
-        if review.get("private_reason"):
-            normalized["semantic_reason"] = review.get("private_reason")
+        if decision.trigger_quote:
+            normalized["trigger_quote"] = decision.trigger_quote
+        if decision.private_reason:
+            normalized["semantic_reason"] = decision.private_reason
         if normalized.get("type") == "recruitment" and not normalized.get("kind"):
             return {}
         if normalized.get("type") == "castration":
