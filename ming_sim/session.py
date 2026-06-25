@@ -1268,8 +1268,6 @@ class GameSession:
             if key not in review_payload:
                 continue
             value = review_payload.get(key)
-            if value in (None, "", [], {}):
-                continue
             if not self._semantic_payload_value_matches(source.get(key), value):
                 return True
         attr_sources = dict(attr_key_map or {})
