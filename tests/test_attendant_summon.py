@@ -1312,6 +1312,102 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_semantic_executor_uses_review_payload_for_nested_fields(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "韩爌"
+            calls = []
+
+            def capture(minister_name, action, *, chat_turn_id=0):
+                calls.append((minister_name, dict(action), int(chat_turn_id or 0)))
+                return {"answer": "ok"}
+
+            game._execute_dialogue_action = capture
+
+            response = game._execute_semantic_dialogue_action(
+                actor,
+                {
+                    "type": "mediation",
+                    "actor": actor,
+                    "faction": "阉党",
+                    "mode": "co_work",
+                    "trigger_quote": "准，去调停东林旧怨",
+                },
+                review={
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "mediation",
+                    "actor": actor,
+                    "mode": "co_work",
+                    "payload": {"faction": "东林"},
+                    "trigger_quote": "准，去调停东林旧怨",
+                    "confidence": 96,
+                },
+                decision_type="pending",
+            )
+
+            self.assertEqual(response, {"answer": "ok"})
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(calls[0][1]["faction"], "东林")
+            self.assertNotEqual(calls[0][1]["faction"], "阉党")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_executor_honors_empty_review_payload_lists(self):
+        game = web_app.WebGame(fresh=True)
+        original_apply = issues.apply_score_extraction
+        captured = {}
+        try:
+            def fake_apply(db, state, extracted):
+                captured["extracted"] = {
+                    key: [dict(item) for item in (extracted.get(key) or [])]
+                    for key in ("character_status_changes", "condition_changes", "punishment_changes")
+                }
+                return {
+                    "character_status_changes": list(extracted.get("character_status_changes") or []),
+                    "condition_changes": list(extracted.get("condition_changes") or []),
+                    "punishment_changes": list(extracted.get("punishment_changes") or []),
+                }
+
+            issues.apply_score_extraction = fake_apply
+            response = game._execute_semantic_dialogue_action(
+                "王承恩",
+                {
+                    "type": "dialogue_consequence",
+                    "action_type": "custody",
+                    "character_status_changes": [{
+                        "name": "洪承畴",
+                        "status": "imprisoned",
+                        "reason": "押入昭狱",
+                    }],
+                    "trigger_quote": "押入昭狱",
+                },
+                review={
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "custody",
+                    "payload": {"character_status_changes": []},
+                    "trigger_quote": "押入昭狱",
+                    "confidence": 96,
+                },
+                chat_turn_id=80,
+                decision_type="tool",
+            )
+
+            self.assertIn("未见可入档", response.get("answer") or "")
+            self.assertEqual(captured.get("extracted", {}).get("character_status_changes"), [])
+        finally:
+            issues.apply_score_extraction = original_apply
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_semantic_executor_does_not_use_pending_source_quote_as_confirmation(self):
         game = web_app.WebGame(fresh=True)
         try:

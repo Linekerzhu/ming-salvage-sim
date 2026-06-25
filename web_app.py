@@ -4322,6 +4322,34 @@ class WebGame:
             review_value = str(review.get(field) or "").strip()
             if payload_value and review_value and payload_value != review_value:
                 return {}
+        authoritative_payload = dict(review.get("payload") or {}) if isinstance(review.get("payload"), dict) else {}
+        authoritative_payload_keys = set(authoritative_payload.keys())
+        for key in (
+            "faction",
+            "order_id",
+            "id",
+            "title",
+            "content",
+            "assignee",
+            "deadline_months",
+            "progress",
+            "claim",
+            "note",
+            "reason",
+            "strategy",
+            "tags",
+            "character_status_changes",
+            "condition_changes",
+            "punishment_changes",
+        ):
+            value = review.get(key)
+            if value not in (None, "", [], {}):
+                authoritative_payload[key] = value
+        for key, value in authoritative_payload.items():
+            if key in {"type", "action_type", "phase", "trigger_quote", "source_quote", "user_quote", "proposal_evidence"}:
+                continue
+            if key in authoritative_payload_keys or value not in (None, "", [], {}):
+                payload[key] = value
         trigger_quote = str(review.get("trigger_quote") or payload.get("trigger_quote") or "").strip()
         try:
             confidence = int(review.get("confidence") or 0)
