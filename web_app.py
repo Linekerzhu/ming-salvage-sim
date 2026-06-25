@@ -4263,6 +4263,14 @@ class WebGame:
             audit_client=self.session.dialogue_audit_client,
         )
 
+    @staticmethod
+    def _semantic_quote_supported_by_user_text(quote: str, user_text: str) -> bool:
+        clean_quote = re.sub(r"[\W_]+", "", str(quote or ""), flags=re.UNICODE)
+        if not clean_quote:
+            return False
+        clean_text = re.sub(r"[\W_]+", "", str(user_text or ""), flags=re.UNICODE)
+        return bool(clean_text and clean_quote in clean_text)
+
     def _dialogue_action_executor(self, minister_name: str) -> DialogueActionExecutor:
         return DialogueActionExecutor(
             lambda action, chat_turn_id=0: self._execute_dialogue_action(
@@ -7354,10 +7362,15 @@ class WebGame:
             return SemanticDecision.none("没有待确认的同类对白动作。")
         try:
             character = self.session._character(minister_name)
+            gate_action = dict(action)
+            current_quote = str(user_text or "").strip()
+            if current_quote:
+                gate_action["trigger_quote"] = " ".join(current_quote.split())[:180]
+                gate_action.pop("source_quote", None)
             decision = self._dialogue_semantic_engine().gate_tool_action(
                 character,
                 user_text,
-                action,
+                gate_action,
                 phase=phase,
                 pending_action=pending if isinstance(pending, dict) else None,
             )
@@ -7375,6 +7388,8 @@ class WebGame:
                 f"审计动作类型不匹配：{decision.action_type} != {action_type}",
                 raw=decision.raw,
             )
+        if not self._semantic_quote_supported_by_user_text(decision.trigger_quote, user_text):
+            return SemanticDecision.none("审计触发句不在玩家当前原话中。", raw=decision.raw)
         decision.decision_type = "tool"
         return decision
 

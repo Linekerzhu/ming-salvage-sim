@@ -1841,6 +1841,102 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_tool_response_requires_trigger_quote_from_current_user_text(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "温体仁"
+            action = {
+                "type": "secret_order",
+                "phase": "confirm",
+                "target": actor,
+                "assignee": actor,
+                "title": "密查钱谦益",
+                "content": "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                "tags": ["钱谦益", "东林", "起复"],
+                "deadline_months": 2,
+            }
+
+            def allow_with_unsupported_quote(phase, payload):
+                if phase != "dialogue_action_intent":
+                    return None
+                return {
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "secret_order",
+                    "target": actor,
+                    "actor": actor,
+                    "confidence": 96,
+                    "trigger_quote": "给温体仁下密令",
+                    "private_reason": "审计误把追问当成密令。",
+                }
+
+            os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+            game.session.dialogue_audit_client = allow_with_unsupported_quote
+            response = game._dialogue_tool_response(
+                actor,
+                action,
+                "臣可密查。",
+                "此事能否暗查钱谦益？",
+            )
+
+            self.assertIsNone(response)
+            self.assertEqual(game.db.list_secret_orders(), [])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_pending_tool_confirmation_rejects_stale_source_quote(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "王承恩"
+            pending = {
+                "type": "recruitment",
+                "kind": "eunuch",
+                "source_quote": "宫里可有新的小内侍可用",
+                "trigger_quote": "宫里可有新的小内侍可用",
+                "proposal_evidence": "拟招一个小内侍。",
+            }
+            game._store_pending_dialogue_action(actor, pending)
+            before = len(game.content.characters)
+
+            def allow_with_stale_quote(phase, payload):
+                if phase != "recruitment_intent":
+                    return None
+                action = payload.get("tool_action") or {}
+                self.assertEqual(action.get("trigger_quote"), "先说风险，不要招。")
+                self.assertNotIn("source_quote", action)
+                return {
+                    "allow": True,
+                    "phase": "confirm",
+                    "kind": "eunuch",
+                    "trigger_quote": "宫里可有新的小内侍可用",
+                    "private_reason": "审计误用 pending 原句当成本轮确认。",
+                    "confidence": 96,
+                }
+
+            os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+            game.session.dialogue_audit_client = allow_with_stale_quote
+            response = game._dialogue_tool_response(
+                actor,
+                {"type": "recruitment", "phase": "confirm", "kind": "eunuch"},
+                "奴婢可以去招。",
+                "先说风险，不要招。",
+            )
+
+            self.assertIsNone(response)
+            self.assertEqual(len(game.content.characters), before)
+            still_pending = game._load_pending_dialogue_action(actor)
+            self.assertEqual(still_pending.get("type"), "recruitment")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_secret_order_rush_tool_response_uses_unified_semantic_gate(self):
         game = web_app.WebGame(fresh=True)
         try:
