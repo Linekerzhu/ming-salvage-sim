@@ -1505,13 +1505,36 @@ class GameSession:
         answer: str = "",
     ) -> bool:
         """Semantic gate for NPC-proposed office changes before appointment writes."""
+        decision = self.dialogue_appointment_decision(
+            appointer,
+            user_text,
+            payload,
+            answer=answer,
+        )
+        review = decision.to_review() if decision is not None else {}
+        return bool(
+            isinstance(review, dict)
+            and review.get("allow")
+            and str(review.get("action_type") or "") == "office_change"
+            and str(review.get("phase") or "") == "confirm"
+        )
+
+    def dialogue_appointment_decision(
+        self,
+        appointer: Character,
+        user_text: str,
+        payload: str,
+        *,
+        answer: str = "",
+    ) -> Optional[Any]:
+        """Return the semantic decision for an NPC-proposed office change."""
         action = self.dialogue_appointment_action_from_payload(payload, appointer, answer=answer)
         if not action:
-            return False
+            return None
         try:
             from ming_sim.dialogue_semantics import DialogueSemanticEngine
 
-            decision = DialogueSemanticEngine(
+            return DialogueSemanticEngine(
                 self.db,
                 self.state,
                 llm_config=self.llm_config,
@@ -1525,14 +1548,35 @@ class GameSession:
                 phase="confirm",
             )
         except Exception:
-            return False
-        review = decision.to_review()
-        return bool(
-            isinstance(review, dict)
-            and review.get("allow")
-            and str(review.get("action_type") or "") == "office_change"
-            and str(review.get("phase") or "") == "confirm"
-        )
+            return None
+
+    def _appointment_payload_with_decision(
+        self,
+        payload: object,
+        decision: object,
+    ) -> Dict[str, object]:
+        if isinstance(payload, dict):
+            data = dict(payload)
+        else:
+            try:
+                data = json.loads(str(payload or "")) if payload else {}
+            except (TypeError, ValueError):
+                data = {}
+        if not isinstance(data, dict):
+            return {}
+        normalized: Dict[str, object] = dict(data)
+        review_payload = getattr(decision, "payload", {})
+        if not isinstance(review_payload, dict):
+            review_payload = {}
+        decision_target = str(getattr(decision, "target", "") or "").strip()
+        if decision_target:
+            normalized["name"] = decision_target
+        for key in ("name", "office", "office_type", "replaces", "faction", "reason", "recommendation_basis"):
+            value = review_payload.get(key)
+            if value not in (None, "", [], {}):
+                normalized[key] = value
+        normalized["approved"] = True
+        return normalized
 
     def _apply_appointment_after_semantic_gate(
         self,
@@ -1542,9 +1586,24 @@ class GameSession:
         *,
         answer: str = "",
     ) -> Tuple[str, str, Dict[str, object]]:
-        if not self.dialogue_allows_appointment(appointer, user_text, payload, answer=answer):
+        decision = self.dialogue_appointment_decision(
+            appointer,
+            user_text,
+            payload,
+            answer=answer,
+        )
+        review = decision.to_review() if decision is not None else {}
+        if not (
+            isinstance(review, dict)
+            and review.get("allow")
+            and str(review.get("action_type") or "") == "office_change"
+            and str(review.get("phase") or "") == "confirm"
+        ):
             return ("", "", {})
-        return self._apply_appointment(payload, appointer)
+        normalized = self._appointment_payload_with_decision(payload, decision)
+        if not normalized:
+            return ("", "", {})
+        return self._apply_appointment(json.dumps(normalized, ensure_ascii=False), appointer)
 
     def _apply_unlisted_person_registration_after_route_audit(
         self,
