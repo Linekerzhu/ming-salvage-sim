@@ -3575,7 +3575,94 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_unlisted_registration_without_summon_requires_unknown_mention_semantic_audit(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            target = "顾补档"
+            self.assertNotIn(target, game.content.characters)
+            character = game.session._character(attendant)
+            payload = json.dumps(
+                {
+                    "name": target,
+                    "office": "御前候补小内侍",
+                    "office_type": "司礼监",
+                    "faction": "中立",
+                    "aliases": [],
+                    "summary": "测试用补档人物",
+                    "source": "user_confirmed",
+                    "summon_after": False,
+                },
+                ensure_ascii=False,
+            )
+            seen_payloads = []
+
+            def deny_audit(phase, audit_payload):
+                if phase == "dialogue_unknown_mention_intake":
+                    seen_payloads.append(audit_payload)
+                    return {
+                        "allow": False,
+                        "accepted_names": [],
+                        "rejected_names": [target],
+                        "trigger_quote": "只是问旧例",
+                        "confidence": 96,
+                        "private_reason": "玩家没有确认或要求把此人补入名册。",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = deny_audit
+            registered, summon_after = game.session._apply_unlisted_person_registration_after_route_audit(
+                payload,
+                character,
+                "朕只是问旧例，不必添人。",
+                answer=f"臣记得旧案里有个{target}。",
+            )
+            self.assertEqual((registered, summon_after), ("", False))
+            self.assertNotIn(target, game.content.characters)
+            self.assertEqual(seen_payloads[-1]["purpose"], "register_unlisted_person")
+
+            def allow_audit(phase, audit_payload):
+                if phase == "dialogue_unknown_mention_intake":
+                    self.assertEqual(audit_payload.get("purpose"), "register_unlisted_person")
+                    self.assertIn(target, audit_payload.get("candidate_names") or [])
+                    return {
+                        "allow": True,
+                        "accepted_names": [target],
+                        "rejected_names": [],
+                        "trigger_quote": f"{target}可补入名册备查",
+                        "confidence": 95,
+                        "private_reason": "NPC 明确介绍且玩家允许补入可查名册。",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = allow_audit
+            registered, summon_after = game.session._apply_unlisted_person_registration_after_route_audit(
+                payload,
+                character,
+                f"{target}可补入名册备查，暂不召见。",
+                answer=f"臣遵旨，先将{target}留名备查。",
+            )
+
+            self.assertEqual(registered, target)
+            self.assertFalse(summon_after)
+            self.assertIn(target, game.content.characters)
+            row = game.db.conn.execute(
+                "SELECT office, office_type, status_reason FROM characters WHERE name=?",
+                (target,),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertEqual(row["office"], "御前候补小内侍")
+            self.assertEqual(row["status_reason"], "皇帝确认背景补档")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_unlisted_registration_summon_requires_route_semantic_audit(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT"] = "0"
         os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "0"
         game = web_app.WebGame(fresh=True)
         try:
@@ -3599,6 +3686,16 @@ class AttendantSummonTests(unittest.TestCase):
             seen_payloads = []
 
             def deny_audit(phase, audit_payload):
+                if phase == "dialogue_unknown_mention_intake":
+                    self.assertEqual(audit_payload.get("purpose"), "register_unlisted_person")
+                    return {
+                        "allow": True,
+                        "accepted_names": [target],
+                        "rejected_names": [],
+                        "trigger_quote": f"{target}可留名备查",
+                        "confidence": 96,
+                        "private_reason": "先允许补档语义，专门测试 route 拦截。",
+                    }
                 if phase == "dialogue_route_intent":
                     seen_payloads.append(audit_payload)
                     return {
@@ -3624,6 +3721,16 @@ class AttendantSummonTests(unittest.TestCase):
             )
 
             def allow_audit(phase, audit_payload):
+                if phase == "dialogue_unknown_mention_intake":
+                    self.assertEqual(audit_payload.get("purpose"), "register_unlisted_person")
+                    return {
+                        "allow": True,
+                        "accepted_names": [target],
+                        "rejected_names": [],
+                        "trigger_quote": f"{target}可补入名册并入殿",
+                        "confidence": 96,
+                        "private_reason": "玩家明确点名补档且召见。",
+                    }
                 if phase == "dialogue_route_intent":
                     return {
                         "allow": True,

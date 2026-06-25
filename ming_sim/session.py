@@ -1006,6 +1006,53 @@ class GameSession:
             return False
         return str(review.get("action_type") or "") == "secret_order" and str(review.get("phase") or "") == "confirm"
 
+    def dialogue_allows_unlisted_person_registration(
+        self,
+        character: Character,
+        user_text: str,
+        payload: str,
+        *,
+        answer: str = "",
+    ) -> bool:
+        """Semantic gate for registering unlisted people before any character DB write."""
+        data = self._unlisted_person_registration_payload(payload)
+        if not data:
+            return False
+        name = str(data.get("name") or "").strip()
+        if not name:
+            return False
+        office = str(data.get("office") or "").strip()
+        office_type = str(data.get("office_type") or "").strip()
+        source = str(data.get("source") or "").strip()
+        summary = str(data.get("summary") or "").strip()
+        evidence = "\n".join(
+            part
+            for part in (
+                str(user_text or "").strip(),
+                str(answer or "").strip(),
+                f"工具拟补档：{name}；职衔：{office}；官署类型：{office_type}；来源：{source}；摘要：{summary}",
+            )
+            if part
+        )
+        try:
+            from ming_sim.dialogue_semantics import DialogueSemanticEngine
+
+            accepted = DialogueSemanticEngine(
+                self.db,
+                self.state,
+                llm_config=self.llm_config,
+                agno_db=self.agno_db,
+                audit_client=self.dialogue_audit_client,
+            ).evaluate_unknown_mentions(
+                character,
+                evidence,
+                candidate_names=[name],
+                purpose="register_unlisted_person",
+            )
+        except Exception:
+            return False
+        return name in accepted
+
     def _apply_unlisted_person_registration_after_route_audit(
         self,
         payload: str,
@@ -1014,12 +1061,19 @@ class GameSession:
         *,
         answer: str = "",
     ) -> Tuple[str, bool]:
-        """补档属于真实数据写入；若还要立即召见，先过对白路由语义门。"""
+        """补档和召见都是真实状态变更，必须分别通过语义门。"""
         data = self._unlisted_person_registration_payload(payload)
         if not data:
             return ("", False)
         name = str(data.get("name") or "").strip()
         if not name:
+            return ("", False)
+        if not self.dialogue_allows_unlisted_person_registration(
+            character,
+            user_text,
+            payload,
+            answer=answer,
+        ):
             return ("", False)
         summon_after = bool(data.get("summon_after", True))
         if summon_after and not self.dialogue_route_allows_tool_summon(

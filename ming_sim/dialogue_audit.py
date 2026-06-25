@@ -1627,6 +1627,7 @@ DIALOGUE_UNKNOWN_MENTION_INTAKE_PROMPT = """
 - allow=true 只用于 NPC 明确介绍、举荐、点名、带来、传入、说明某个具体新人物可被玩家后续召见/问话/任用。
 - purpose=answer_summon 或 recent_summon 时更严格：必须明确此人已被传入、带到、在殿外/御前候旨，或 NPC 正在执行“把此人带来”的动作。
 - purpose=cache_candidate 时，可接受 NPC 推荐/介绍的具体新人，但不能接受历史掌故、比喻、泛称、官署名、职位名、组织名、尊称片段。
+- purpose=register_unlisted_person 时最严格：必须能从皇帝原话、NPC 回答或工具上下文看出这是被明确确认、介绍或要求补入可召见名册的具体人物；只是模型自行补充、历史掌故、比喻、泛谈不得 allow。
 - 不要把当前说话人、已知人物、官署/机构/职称、朝代地名、引文里的旧案人物、泛称“一个老百户/小火者”等当成新候选。
 - accepted_names 只能从 candidate_names 中选择；不要发明新名字。
 - 若 NPC 只是说“某某旧案里有人如何”“听闻某某曾经如何”，但没有把此人作为可见/可召见/可用候选提出，必须 allow=false。
