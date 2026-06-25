@@ -7835,6 +7835,65 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_directive_pressure_requires_trigger_quote_from_current_user_text(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "袁崇焕"
+            did = game.db.add_directive(
+                game.state,
+                None,
+                "令袁崇焕整顿辽东军饷。",
+                "test",
+                actor=actor,
+                status="confirmed",
+            )
+            game.db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='executing', "
+                "progress=40, exec_days=10, eta_day=12, anomaly=?, chain=? WHERE id=?",
+                (
+                    actor,
+                    json.dumps({"kind": "delay"}, ensure_ascii=False),
+                    json.dumps({"resistance": 45, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            game.db.conn.commit()
+
+            def audit(phase, payload):
+                if phase != "dialogue_directive_pressure":
+                    return None
+                return {
+                    "allow": True,
+                    "kind": "pressed",
+                    "forceful": True,
+                    "trigger_quote": "臣即日具奏",
+                    "answer_evidence": "臣即日具奏",
+                    "confidence": 96,
+                    "private_reason": "审计误把 NPC 答复当成玩家催办。",
+                }
+
+            game.session.dialogue_audit_client = audit
+
+            effect = game._directive_chat_effect(
+                actor,
+                {"kind": "directive", "ref_id": did},
+                "朕问你进度，欠饷实数到底办到几分？",
+                "臣即日具奏，三日内交清册。",
+            )
+            progress = int(game.db.conn.execute(
+                "SELECT progress FROM turn_directives WHERE id=?", (did,)
+            ).fetchone()["progress"])
+
+            self.assertEqual(effect, {})
+            self.assertEqual(progress, 40)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_semantic_directive_pressure_denial_blocks_keyword_fallback(self):
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
         game = web_app.WebGame(fresh=True)
@@ -8157,6 +8216,56 @@ class AttendantSummonTests(unittest.TestCase):
                 {"kind": "petition", "actor": actor, "title": "求展限办差"},
                 "准，朕暂且护持你，给你人手。",
                 "臣叩谢天恩。",
+            )
+
+            self.assertEqual(effect, {})
+            after = game.db.conn.execute(
+                "SELECT emp_trust, grievance FROM characters WHERE name=?",
+                (actor,),
+            ).fetchone()
+            self.assertEqual(int(after["emp_trust"]), 40)
+            self.assertEqual(int(after["grievance"]), 60)
+            self.assertEqual(game.db.list_conversation_goals(minister_name=actor), [])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_bargain_attitude_requires_trigger_quote_from_current_user_text(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = str(game.db.conn.execute(
+                "SELECT name FROM characters "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫' "
+                "AND name!='王承恩' ORDER BY ability DESC LIMIT 1"
+            ).fetchone()["name"])
+            game.db.conn.execute(
+                "UPDATE characters SET emp_trust=40, grievance=60 WHERE name=?",
+                (actor,),
+            )
+            game.db.conn.commit()
+
+            def audit(phase, payload):
+                if phase != "dialogue_bargain_attitude":
+                    return None
+                return {
+                    "allow": True,
+                    "attitude": "accept",
+                    "trigger_quote": "臣谢陛下准许",
+                    "private_reason": "审计误把 NPC 谢恩当成玩家许诺。",
+                    "confidence": 96,
+                }
+
+            game.session.dialogue_audit_client = audit
+
+            effect = game._bargain_chat_effect(
+                actor,
+                {"kind": "petition", "actor": actor, "title": "求展限办差"},
+                "朕想听你细说条件。",
+                "臣谢陛下准许。",
             )
 
             self.assertEqual(effect, {})

@@ -8034,6 +8034,13 @@ class WebGame:
         )
         if decision is None:
             return None
+        if decision.allow and not self._semantic_quote_supported_by_user_text(decision.trigger_quote, user_text):
+            return {
+                "allow": False,
+                "kind": "none",
+                "confidence": decision.confidence,
+                "private_reason": "审计触发句不在玩家当前原话中。",
+            }
         if decision.allow:
             return dict(decision.payload)
         return {
@@ -8215,6 +8222,8 @@ class WebGame:
         except Exception:
             return ""
         if not decision.allow:
+            return ""
+        if not self._semantic_quote_supported_by_user_text(decision.trigger_quote, user_text):
             return ""
         attitude = str(decision.kind or "").strip()
         return attitude if attitude in {"accept", "press", "refuse"} else ""
