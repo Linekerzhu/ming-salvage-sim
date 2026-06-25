@@ -1269,6 +1269,58 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_semantic_executor_does_not_pass_stale_source_quote_to_consequence(self):
+        game = web_app.WebGame(fresh=True)
+        original_apply = issues.apply_score_extraction
+        captured = {}
+        try:
+            def fake_apply(db, state, extracted):
+                captured["extracted"] = {
+                    key: [dict(item) for item in (extracted.get(key) or [])]
+                    for key in ("character_status_changes", "condition_changes", "punishment_changes")
+                }
+                return {
+                    "character_status_changes": list(extracted.get("character_status_changes") or []),
+                    "condition_changes": list(extracted.get("condition_changes") or []),
+                    "punishment_changes": list(extracted.get("punishment_changes") or []),
+                }
+
+            issues.apply_score_extraction = fake_apply
+            response = game._execute_semantic_dialogue_action(
+                "王承恩",
+                {
+                    "type": "dialogue_consequence",
+                    "action_type": "custody",
+                    "character_status_changes": [{
+                        "name": "洪承畴",
+                        "status": "imprisoned",
+                        "reason": "押入昭狱",
+                    }],
+                    "source_quote": "押入昭狱",
+                    "user_quote": "押入昭狱",
+                    "proposal_evidence": "臣请押入昭狱。",
+                },
+                review={
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "custody",
+                    "trigger_quote": "准，照办",
+                    "confidence": 96,
+                },
+                chat_turn_id=79,
+                decision_type="tool",
+            )
+
+            self.assertIn("未见可入档", response.get("answer") or "")
+            self.assertEqual(captured.get("extracted", {}).get("character_status_changes"), [])
+        finally:
+            issues.apply_score_extraction = original_apply
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_dialogue_consequence_source_uses_chat_turn_id(self):
         game = web_app.WebGame(fresh=True)
         try:

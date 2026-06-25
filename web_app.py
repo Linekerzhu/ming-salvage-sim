@@ -4307,7 +4307,8 @@ class WebGame:
         review = review if isinstance(review, dict) and review else embedded_review
         if not isinstance(review, dict) or not review.get("allow"):
             return {}
-        payload = {key: value for key, value in action.items() if key != "_semantic_review"}
+        stale_evidence_keys = {"_semantic_review", "source_quote", "user_quote", "proposal_evidence"}
+        payload = {key: value for key, value in action.items() if key not in stale_evidence_keys}
         raw_type = str(payload.get("type") or "").strip()
         action_type = str(payload.get("action_type") or raw_type).strip()
         if raw_type == "dialogue_consequence":
@@ -4317,6 +4318,8 @@ class WebGame:
             confidence = int(review.get("confidence") or 0)
         except (TypeError, ValueError):
             confidence = 0
+        if trigger_quote:
+            payload["trigger_quote"] = trigger_quote
         decision = SemanticDecision(
             decision_type=decision_type,
             action_type=action_type,
