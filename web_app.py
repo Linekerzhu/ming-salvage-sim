@@ -4631,6 +4631,7 @@ class WebGame:
         if intent != "confirm_pending":
             return None
         action = dict(pending)
+        action["phase"] = "confirm"
         extra = str(text or "").strip()
         if extra:
             if action.get("type") == "castration":
@@ -4641,12 +4642,25 @@ class WebGame:
                 action["note"] = " ".join(
                     part for part in (str(action.get("note") or "").strip(), extra) if part
                 )
-        return self._execute_semantic_dialogue_action(
+        try:
+            character = self.session._character(minister_name)
+            action_decision = self._dialogue_semantic_engine().gate_tool_action(
+                character,
+                text,
+                action,
+                phase="confirm",
+                pending_action=pending,
+            )
+        except Exception:
+            return None
+        if not action_decision.allow:
+            return None
+        action_decision.decision_type = "pending"
+        return self._dialogue_pending_action_response_from_decision(
             minister_name,
-            action,
-            review=decision.to_route_review(),
+            text,
+            action_decision,
             chat_turn_id=chat_turn_id,
-            decision_type="route",
         )
 
     def _dialogue_route_response(

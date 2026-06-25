@@ -4583,6 +4583,23 @@ class AttendantSummonTests(unittest.TestCase):
                         "confidence": 95,
                         "private_reason": "test semantic pending confirmation",
                     }
+                if phase == "dialogue_action_intent":
+                    action = payload.get("tool_action") or {}
+                    pending = payload.get("pending_action") or {}
+                    self.assertEqual(action.get("type"), "mediation")
+                    self.assertEqual(action.get("phase"), "confirm")
+                    self.assertEqual(pending.get("type"), "mediation")
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "mediation",
+                        "actor": actor,
+                        "target": target,
+                        "mode": "co_work",
+                        "trigger_quote": "准，去调停",
+                        "confidence": 95,
+                        "private_reason": "test action semantic pending confirmation",
+                    }
                 return None
 
             game.session.dialogue_audit_client = audit
@@ -4601,6 +4618,67 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertIn("dialogue_effect", response)
             self.assertGreater(court.get_opinion(game.db, actor, target), before)
             self.assertEqual(game._load_pending_dialogue_action(actor), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_semantic_route_pending_confirmation_requires_action_gate(self):
+        os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "0"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "韩爌"
+            target = "魏忠贤"
+            court.adjust_opinion(game.db, actor, target, -60, "测试旧怨", day=1, reciprocal=True)
+            before = court.get_opinion(game.db, actor, target)
+            game._store_pending_dialogue_action(actor, {
+                "type": "mediation",
+                "actor": actor,
+                "target": target,
+                "mode": "co_work",
+            })
+            calls = []
+
+            def audit(phase, payload):
+                calls.append(phase)
+                if phase == "dialogue_route_intent":
+                    return {
+                        "allow": True,
+                        "intent": "confirm_pending",
+                        "action_type": "mediation",
+                        "trigger_quote": "准，去调停",
+                        "confidence": 95,
+                        "private_reason": "route sees a pending confirmation",
+                    }
+                if phase == "dialogue_action_intent":
+                    action = payload.get("tool_action") or {}
+                    self.assertEqual(action.get("type"), "mediation")
+                    self.assertEqual(action.get("phase"), "confirm")
+                    self.assertEqual((payload.get("pending_action") or {}).get("target"), target)
+                    return {
+                        "allow": False,
+                        "phase": "none",
+                        "action_type": "mediation",
+                        "trigger_quote": "准，去调停",
+                        "confidence": 95,
+                        "private_reason": "action gate denies stale pending execution",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            decision = game._dialogue_route_semantic_decision(actor, "准，去调停。")
+            self.assertTrue(decision.allow)
+
+            response = game._dialogue_route_response_from_decision(actor, "准，去调停。", decision)
+
+            self.assertIsNone(response)
+            self.assertEqual(court.get_opinion(game.db, actor, target), before)
+            self.assertEqual(game._load_pending_dialogue_action(actor).get("type"), "mediation")
+            self.assertEqual(calls, ["dialogue_route_intent", "dialogue_action_intent"])
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
