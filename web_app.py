@@ -2338,20 +2338,18 @@ class WebGame:
         character: Character,
         user_text: str,
         answer: str,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[SemanticDecision]:
         if not self._dialogue_action_llm_audit_available():
             return None
         try:
-            decision = self._dialogue_semantic_engine().evaluate_post_chat(
+            return self._dialogue_semantic_engine().evaluate_post_chat(
                 character,
                 user_text,
                 answer,
                 kind="directive_fallback",
             )
-        except Exception:
-            return {"allow": False}
-        review = decision.payload if decision.allow and isinstance(decision.payload, dict) else {"allow": False}
-        return review if isinstance(review, dict) else {"allow": False}
+        except Exception as exc:
+            return SemanticDecision.none(str(exc))
 
     def _fallback_directive_draft(self, character: Character, subject: str) -> str:
         subject = str(subject or "").strip()
@@ -2410,10 +2408,11 @@ class WebGame:
         The minister's cautious reply remains intact; this only files a conservative
         editable draft so the player can continue to confirmation/edict.
         """
-        review = self._fallback_directive_review(character, user_text, answer)
-        if review is not None:
-            if not review.get("allow"):
+        decision = self._fallback_directive_review(character, user_text, answer)
+        if decision is not None:
+            if not decision.allow:
                 return None
+            review = decision.payload if isinstance(decision.payload, dict) else {}
             subject = str(review.get("subject") or "").strip()
             draft_text = str(review.get("directive_text") or "").strip()
             if not draft_text:
@@ -5050,66 +5049,31 @@ class WebGame:
         if not isinstance(pending, dict) or not pending:
             return None
         action_type = str(pending.get("type") or "").strip()
-        if action_type == "recruitment":
-            normalized = {
-                "type": "recruitment",
-                "phase": "confirm",
-                "kind": pending.get("kind"),
-                "trigger_quote": text,
-            }
-            review = self._recruitment_semantic_gate(minister_name, normalized, text, "confirm", pending)
-            if not review.get("allow"):
-                return None
-            action = dict(pending)
-            if review.get("kind"):
-                action["kind"] = review.get("kind")
-            if review.get("trigger_quote"):
-                action["trigger_quote"] = review.get("trigger_quote")
-            if review.get("private_reason"):
-                action["semantic_reason"] = review.get("private_reason")
-            return self._execute_semantic_dialogue_action(
-                minister_name,
-                action,
-                review=review,
-                chat_turn_id=chat_turn_id,
-                decision_type="pending",
-            )
-        if action_type not in {"mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
+        if action_type not in {"recruitment", "mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
             return None
         normalized = dict(pending)
         normalized["phase"] = "confirm"
-        if action_type == "castration":
-            normalized["scheme_text"] = " ".join(
-                part
-                for part in (str(pending.get("scheme_text") or "").strip(), str(text or "").strip())
-                if part
-            )
-        elif action_type in {"eunuch_care", "eunuch_hard_service", "bao_leverage"}:
-            normalized["note"] = " ".join(
-                part
-                for part in (str(pending.get("note") or "").strip(), str(text or "").strip())
-                if part
-            )
-        review = self._dialogue_action_semantic_gate(minister_name, normalized, text, "confirm", pending)
-        if not review.get("allow"):
+        if action_type == "recruitment" and not normalized.get("kind"):
             return None
-        for key in ("target", "actor", "faction", "kind", "mode"):
-            if review.get(key):
-                normalized[key] = review.get(key)
-        if review.get("trigger_quote"):
-            normalized["trigger_quote"] = review.get("trigger_quote")
-        if review.get("private_reason"):
-            normalized["semantic_reason"] = review.get("private_reason")
-        if normalized.get("type") == "castration":
-            normalized["force"] = True
-            if not self._castration_action_target_is_valid(normalized):
-                return None
-        return self._execute_semantic_dialogue_action(
+        try:
+            character = self.session._character(minister_name)
+            decision = self._dialogue_semantic_engine().gate_tool_action(
+                character,
+                text,
+                normalized,
+                phase="confirm",
+                pending_action=pending,
+            )
+        except Exception:
+            return None
+        if not decision.allow:
+            return None
+        decision.decision_type = "pending"
+        return self._dialogue_pending_action_response_from_decision(
             minister_name,
-            normalized,
-            review=review,
+            text,
+            decision,
             chat_turn_id=chat_turn_id,
-            decision_type="pending",
         )
 
     def _dialogue_action_llm_audit_available(self) -> bool:
@@ -5185,63 +5149,6 @@ class WebGame:
         action = dict(action)
         action["_semantic_review"] = dict(review)
         return action
-
-    def _dialogue_action_semantic_gate(
-        self,
-        minister_name: str,
-        action: Dict[str, Any],
-        user_text: str,
-        phase: str,
-        pending_action: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
-        action_type = str(action.get("type") or "").strip()
-        if action_type == "recruitment":
-            return self._recruitment_semantic_gate(minister_name, action, user_text, phase, pending_action)
-        normalized = dict(action)
-        normalized["phase"] = phase
-        if action_type not in {"mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
-            return {"allow": False, "phase": "none", "action_type": "none", "confidence": 100, "private_reason": "动作类型无效。"}
-        if phase == "confirm" and not (
-            isinstance(pending_action, dict)
-            and pending_action.get("type") == action_type
-        ):
-            return {"allow": False, "phase": "none", "action_type": "none", "confidence": 100, "private_reason": "没有待确认的同类对白动作。"}
-        if not self._dialogue_action_llm_audit_available():
-            return {"allow": False, "phase": "none", "action_type": "none", "confidence": 0, "private_reason": "对白动作语义审计已禁用。"}
-        try:
-            character = self.session._character(minister_name)
-            decision = self._dialogue_semantic_engine().gate_tool_action(
-                character,
-                user_text,
-                normalized,
-                pending_action=pending_action if isinstance(pending_action, dict) else None,
-                phase=phase,
-            )
-        except Exception as exc:
-            review = {
-                "allow": False,
-                "phase": "none",
-                "action_type": "none",
-                "confidence": 0,
-                "private_reason": str(exc),
-            }
-        else:
-            review = decision.to_review()
-        if review.get("allow") and review.get("phase") != phase:
-            review = dict(review)
-            review["allow"] = False
-            review["private_reason"] = (
-                str(review.get("private_reason") or "").strip()
-                or f"审计阶段不匹配：{review.get('phase')} != {phase}"
-            )
-        if review.get("allow") and review.get("action_type") not in {"", action_type}:
-            review = dict(review)
-            review["allow"] = False
-            review["private_reason"] = (
-                str(review.get("private_reason") or "").strip()
-                or f"审计动作类型不匹配：{review.get('action_type')} != {action_type}"
-            )
-        return review
 
     def _castration_action_target_is_valid(self, action: Dict[str, Any]) -> bool:
         if action.get("type") != "castration":
@@ -5354,58 +5261,6 @@ class WebGame:
             r"|不要荐新人|别再荐新人|先说现有人|不是要荐人|不是要招人",
             raw,
         ))
-
-    def _recruitment_semantic_gate(
-        self,
-        minister_name: str,
-        action: Dict[str, Any],
-        user_text: str,
-        phase: str,
-        pending_action: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
-        if action.get("type") != "recruitment":
-            return {"allow": True, "kind": str(action.get("kind") or ""), "phase": phase, "confidence": 100}
-        normalized = dict(action)
-        normalized["phase"] = phase
-        kind = str(normalized.get("kind") or (pending_action or {}).get("kind") or "").strip()
-        if kind not in {"eunuch", "exam", "recommend"}:
-            return {"allow": False, "kind": kind, "phase": "none", "confidence": 100, "private_reason": "用人类型无效。"}
-        normalized["kind"] = kind
-        if phase == "confirm" and not (
-            isinstance(pending_action, dict)
-            and pending_action.get("type") == "recruitment"
-            and str(pending_action.get("kind") or "") in {"eunuch", "exam", "recommend"}
-        ):
-            return {"allow": False, "kind": kind, "phase": "none", "confidence": 100, "private_reason": "没有待确认的用人意图。"}
-        try:
-            character = self.session._character(minister_name)
-            decision = self._dialogue_semantic_engine().gate_tool_action(
-                character,
-                user_text,
-                normalized,
-                pending_action=pending_action if isinstance(pending_action, dict) else None,
-                phase=phase,
-            )
-        except Exception as exc:
-            review = {
-                "allow": False,
-                "kind": kind,
-                "phase": "none",
-                "confidence": 0,
-                "private_reason": str(exc),
-            }
-        else:
-            review = decision.to_review()
-            if review.get("allow"):
-                review["kind"] = decision.kind
-        if review.get("allow") and review.get("phase") != phase:
-            review = dict(review)
-            review["allow"] = False
-            review["private_reason"] = (
-                str(review.get("private_reason") or "").strip()
-                or f"审计阶段不匹配：{review.get('phase')} != {phase}"
-            )
-        return review
 
     def _castration_topic_mentioned(self, text: str) -> bool:
         raw = str(text or "").strip()
@@ -7083,6 +6938,114 @@ class WebGame:
             return None
         return None
 
+    def _dialogue_world_action_types(self) -> Tuple[str, ...]:
+        return ("recruitment", "mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage")
+
+    def _merge_pending_tool_action(self, action: Dict[str, Any], pending: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+        normalized = dict(action or {})
+        action_type = str(normalized.get("type") or "")
+        if not (isinstance(pending, dict) and pending.get("type") == action_type):
+            return normalized
+        if action_type == "recruitment" and not normalized.get("kind"):
+            normalized["kind"] = pending.get("kind")
+        if action_type == "castration":
+            if not normalized.get("target"):
+                normalized["target"] = pending.get("target")
+            normalized["force"] = True
+            normalized["scheme_text"] = " ".join(
+                part
+                for part in (
+                    str(pending.get("scheme_text") or "").strip(),
+                    str(normalized.get("scheme_text") or "").strip(),
+                )
+                if part
+            )
+        if action_type == "mediation":
+            for key in ("actor", "target", "faction"):
+                if not normalized.get(key):
+                    normalized[key] = pending.get(key)
+        if action_type in {"eunuch_care", "eunuch_hard_service", "bao_leverage"}:
+            for key in ("target", "mode", "note"):
+                if not normalized.get(key):
+                    normalized[key] = pending.get(key)
+            note_parts = [
+                str(pending.get("note") or "").strip(),
+                str(normalized.get("note") or "").strip(),
+            ]
+            normalized["note"] = " ".join(dict.fromkeys(part for part in note_parts if part))
+        return normalized
+
+    def _dialogue_gate_tool_decision(
+        self,
+        minister_name: str,
+        action: Dict[str, Any],
+        user_text: str,
+        phase: str,
+        pending: Optional[Dict[str, Any]] = None,
+    ) -> SemanticDecision:
+        action_type = str(action.get("type") or "").strip()
+        if action_type not in self._dialogue_world_action_types():
+            return SemanticDecision.none("工具动作类型不属于对白世界状态变更。")
+        if action_type == "recruitment" and not action.get("kind"):
+            return SemanticDecision.none("用人工具动作缺少 kind。")
+        if phase == "confirm" and not (isinstance(pending, dict) and pending.get("type") == action_type):
+            return SemanticDecision.none("没有待确认的同类对白动作。")
+        try:
+            character = self.session._character(minister_name)
+            decision = self._dialogue_semantic_engine().gate_tool_action(
+                character,
+                user_text,
+                action,
+                phase=phase,
+                pending_action=pending if isinstance(pending, dict) else None,
+            )
+        except Exception as exc:
+            return SemanticDecision.none(str(exc))
+        if not decision.allow:
+            return decision
+        if decision.phase != phase:
+            return SemanticDecision.none(
+                f"审计阶段不匹配：{decision.phase} != {phase}",
+                raw=decision.raw,
+            )
+        if decision.action_type not in {"", action_type}:
+            return SemanticDecision.none(
+                f"审计动作类型不匹配：{decision.action_type} != {action_type}",
+                raw=decision.raw,
+            )
+        decision.decision_type = "tool"
+        return decision
+
+    def _apply_tool_decision_to_action(
+        self,
+        minister_name: str,
+        action: Dict[str, Any],
+        user_text: str,
+        decision: SemanticDecision,
+    ) -> Dict[str, Any]:
+        review = decision.to_review()
+        if not isinstance(review, dict) or not review.get("allow"):
+            return {}
+        normalized = dict(action or {})
+        payload = review.get("payload") if isinstance(review.get("payload"), dict) else {}
+        for key in ("target", "actor", "faction", "kind", "mode"):
+            value = review.get(key) or payload.get(key)
+            if value:
+                normalized[key] = value
+        if review.get("trigger_quote"):
+            normalized["trigger_quote"] = review.get("trigger_quote")
+        if review.get("private_reason"):
+            normalized["semantic_reason"] = review.get("private_reason")
+        if normalized.get("type") == "recruitment" and not normalized.get("kind"):
+            return {}
+        if normalized.get("type") == "castration":
+            normalized["force"] = True
+            if not str(normalized.get("scheme_text") or "").strip():
+                normalized["scheme_text"] = str(user_text or "").strip()
+            if not self._castration_action_target_is_valid(normalized):
+                return {}
+        return normalized
+
     def _dialogue_tool_response(
         self,
         minister_name: str,
@@ -7100,118 +7063,25 @@ class WebGame:
         if phase == "confirm":
             pending = self._load_pending_dialogue_action(minister_name)
             action_type = str(normalized.get("type") or "")
-            if action_type in {"recruitment", "mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"} and not (
-                pending and pending.get("type") == action_type
-            ):
+            if action_type in self._dialogue_world_action_types() and not (pending and pending.get("type") == action_type):
                 return None
-            if pending and pending.get("type") == normalized.get("type"):
-                if normalized.get("type") == "recruitment" and not normalized.get("kind"):
-                    normalized["kind"] = pending.get("kind")
-                if normalized.get("type") == "castration":
-                    if not normalized.get("target"):
-                        normalized["target"] = pending.get("target")
-                    normalized["force"] = True
-                    normalized["scheme_text"] = " ".join(
-                        part
-                        for part in (
-                            str(pending.get("scheme_text") or "").strip(),
-                            str(normalized.get("scheme_text") or "").strip(),
-                        )
-                        if part
-                    )
-                if normalized.get("type") == "mediation":
-                    for key in ("actor", "target", "faction"):
-                        if not normalized.get(key):
-                            normalized[key] = pending.get(key)
-                if normalized.get("type") == "eunuch_care":
-                    for key in ("target", "mode", "note"):
-                        if not normalized.get(key):
-                            normalized[key] = pending.get(key)
-                    note_parts = [
-                        str(pending.get("note") or "").strip(),
-                        str(normalized.get("note") or "").strip(),
-                    ]
-                    normalized["note"] = " ".join(dict.fromkeys(part for part in note_parts if part))
-                if normalized.get("type") == "eunuch_hard_service":
-                    for key in ("target", "mode", "note"):
-                        if not normalized.get(key):
-                            normalized[key] = pending.get(key)
-                    note_parts = [
-                        str(pending.get("note") or "").strip(),
-                        str(normalized.get("note") or "").strip(),
-                    ]
-                    normalized["note"] = " ".join(dict.fromkeys(part for part in note_parts if part))
-                if normalized.get("type") == "bao_leverage":
-                    for key in ("target", "mode", "note"):
-                        if not normalized.get(key):
-                            normalized[key] = pending.get(key)
-                    note_parts = [
-                        str(pending.get("note") or "").strip(),
-                        str(normalized.get("note") or "").strip(),
-                    ]
-                    normalized["note"] = " ".join(dict.fromkeys(part for part in note_parts if part))
-            if normalized.get("type") == "recruitment" and not normalized.get("kind"):
-                return None
-            if normalized.get("type") == "recruitment":
-                if not (pending and pending.get("type") == "recruitment"):
-                    return None
-                review = self._recruitment_semantic_gate(minister_name, normalized, user_text, "confirm", pending)
-                if not review.get("allow"):
-                    return None
-                if review.get("kind"):
-                    normalized["kind"] = review.get("kind")
-                if review.get("trigger_quote"):
-                    normalized["trigger_quote"] = review.get("trigger_quote")
-                if review.get("private_reason"):
-                    normalized["semantic_reason"] = review.get("private_reason")
-            elif normalized.get("type") in {"mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
-                review = self._dialogue_action_semantic_gate(minister_name, normalized, user_text, "confirm", pending)
-                if not review.get("allow"):
-                    return None
-                for key in ("target", "actor", "faction", "kind", "mode"):
-                    if review.get(key):
-                        normalized[key] = review.get(key)
-                if review.get("trigger_quote"):
-                    normalized["trigger_quote"] = review.get("trigger_quote")
-                if review.get("private_reason"):
-                    normalized["semantic_reason"] = review.get("private_reason")
-            if normalized.get("type") == "castration" and not self._castration_action_target_is_valid(normalized):
+            normalized = self._merge_pending_tool_action(normalized, pending)
+            decision = self._dialogue_gate_tool_decision(minister_name, normalized, user_text, "confirm", pending)
+            normalized = self._apply_tool_decision_to_action(minister_name, normalized, user_text, decision)
+            if not normalized:
                 return None
             return self._execute_semantic_dialogue_action(
                 minister_name,
                 normalized,
-                review=review,
+                review=decision.to_review(),
                 chat_turn_id=chat_turn_id,
                 decision_type="tool",
             )
-        if normalized.get("type") in {"recruitment", "mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage"}:
-            if normalized.get("type") == "recruitment":
-                review = self._recruitment_semantic_gate(minister_name, normalized, user_text, "propose")
-                if not review.get("allow"):
-                    return None
-                if review.get("kind"):
-                    normalized["kind"] = review.get("kind")
-                if review.get("trigger_quote"):
-                    normalized["trigger_quote"] = review.get("trigger_quote")
-                if review.get("private_reason"):
-                    normalized["semantic_reason"] = review.get("private_reason")
-            else:
-                review = self._dialogue_action_semantic_gate(minister_name, normalized, user_text, "propose")
-                if not review.get("allow"):
-                    return None
-                for key in ("target", "actor", "faction", "kind", "mode"):
-                    if review.get(key):
-                        normalized[key] = review.get(key)
-                if review.get("trigger_quote"):
-                    normalized["trigger_quote"] = review.get("trigger_quote")
-                if review.get("private_reason"):
-                    normalized["semantic_reason"] = review.get("private_reason")
-            if normalized.get("type") == "castration":
-                normalized["force"] = True
-                if not str(normalized.get("scheme_text") or "").strip():
-                    normalized["scheme_text"] = str(user_text or "").strip()
-                if not self._castration_action_target_is_valid(normalized):
-                    return None
+        if normalized.get("type") in self._dialogue_world_action_types():
+            decision = self._dialogue_gate_tool_decision(minister_name, normalized, user_text, "propose")
+            normalized = self._apply_tool_decision_to_action(minister_name, normalized, user_text, decision)
+            if not normalized:
+                return None
             self._store_pending_dialogue_action(minister_name, normalized)
             return {"answer": fallback_answer or self._proposal_answer_for_action(minister_name, normalized)}
         return None
@@ -7681,12 +7551,38 @@ class WebGame:
         user_text: str,
         answer: str,
     ) -> Optional[Dict[str, Any]]:
+        decision = self._directive_audience_pressure_decision(
+            minister_name,
+            directive_id,
+            context,
+            user_text,
+            answer,
+        )
+        if decision is None:
+            return None
+        if decision.allow:
+            return dict(decision.payload)
+        return {
+            "allow": False,
+            "kind": "none",
+            "confidence": decision.confidence,
+            "private_reason": decision.private_reason,
+        }
+
+    def _directive_audience_pressure_decision(
+        self,
+        minister_name: str,
+        directive_id: object,
+        context: Dict[str, Any],
+        user_text: str,
+        answer: str,
+    ) -> Optional[SemanticDecision]:
         if not self._dialogue_action_llm_audit_available():
             return None
         try:
             did = int(str(directive_id or "0"))
         except (TypeError, ValueError):
-            return {"allow": False, "kind": "none", "private_reason": "旨意编号无效。"}
+            return SemanticDecision.none("旨意编号无效。")
         try:
             row = self.db.conn.execute(
                 """
@@ -7698,9 +7594,9 @@ class WebGame:
                 (did,),
             ).fetchone()
         except Exception:
-            return {"allow": False, "kind": "none", "private_reason": "旨意档案不可读取。"}
+            return SemanticDecision.none("旨意档案不可读取。")
         if row is None:
-            return {"allow": False, "kind": "none", "private_reason": "旨意不存在。"}
+            return SemanticDecision.none("旨意不存在。")
         lifecycle_status = str(row["lifecycle_status"] or "").strip()
         directive_context = {key: row[key] for key in row.keys()}
         directive_context["context"] = dict(context or {})
@@ -7723,8 +7619,8 @@ class WebGame:
                     context=directive_context,
                 )
         except Exception as exc:
-            return {"allow": False, "kind": "none", "confidence": 0, "private_reason": str(exc)}
-        return decision.raw if decision.allow else {"allow": False, "kind": "none", "confidence": decision.confidence, "private_reason": decision.private_reason}
+            return SemanticDecision.none(str(exc))
+        return decision
 
     def _decision_chat_effect(
         self,
@@ -7846,7 +7742,7 @@ class WebGame:
             return ""
         if not decision.allow:
             return ""
-        attitude = str(decision.raw.get("attitude") or "").strip()
+        attitude = str(decision.kind or "").strip()
         return attitude if attitude in {"accept", "press", "refuse"} else ""
 
     def _bargain_context_applies(self, minister_name: str, context: Optional[Dict[str, Any]]) -> bool:

@@ -1226,6 +1226,143 @@ class AttendantSummonTests(unittest.TestCase):
                 if stream_game is not None:
                     stream_game.session.close()
 
+    def test_pending_action_compat_entry_uses_unified_semantic_gate(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            game._store_pending_dialogue_action(
+                attendant,
+                {
+                    "type": "recruitment",
+                    "kind": "eunuch",
+                    "need": "挑一个小内侍",
+                    "trigger_quote": "宫里可有新的小内侍可用",
+                },
+            )
+            calls = []
+
+            class FakeEngine:
+                def gate_tool_action(
+                    self,
+                    character,
+                    user_text,
+                    action,
+                    *,
+                    phase="",
+                    pending_action=None,
+                ):
+                    calls.append({
+                        "character": character.name,
+                        "user_text": user_text,
+                        "action": dict(action or {}),
+                        "phase": phase,
+                        "pending_action": dict(pending_action or {}),
+                    })
+                    return SemanticDecision(
+                        decision_type="tool",
+                        action_type="recruitment",
+                        phase="confirm",
+                        kind="eunuch",
+                        confidence=96,
+                        trigger_quote=user_text,
+                        private_reason="test unified pending gate",
+                    )
+
+            game._dialogue_semantic_engine = lambda: FakeEngine()
+
+            response = game._dialogue_semantic_pending_action_response(
+                attendant,
+                "准，去挑一个忠谨小内侍。",
+                chat_turn_id=88,
+            )
+
+            self.assertIsNotNone(response)
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(calls[0]["character"], attendant)
+            self.assertEqual(calls[0]["phase"], "confirm")
+            self.assertEqual(calls[0]["action"]["type"], "recruitment")
+            self.assertEqual(calls[0]["pending_action"]["type"], "recruitment")
+            self.assertEqual(game._load_pending_dialogue_action(attendant), {})
+            self.assertEqual(response.get("court_action"), "summon")
+            self.assertTrue(response.get("recruited_minister"))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_tool_response_uses_unified_semantic_gate_for_propose_and_confirm(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            calls = []
+
+            class FakeEngine:
+                def gate_tool_action(
+                    self,
+                    character,
+                    user_text,
+                    action,
+                    *,
+                    phase="",
+                    pending_action=None,
+                ):
+                    calls.append({
+                        "character": character.name,
+                        "user_text": user_text,
+                        "action": dict(action or {}),
+                        "phase": phase,
+                        "pending_action": dict(pending_action or {}),
+                    })
+                    return SemanticDecision(
+                        decision_type="tool",
+                        action_type="recruitment",
+                        phase=phase,
+                        kind="eunuch",
+                        confidence=96,
+                        trigger_quote=user_text,
+                        private_reason=f"test tool {phase}",
+                    )
+
+            game._dialogue_semantic_engine = lambda: FakeEngine()
+
+            proposed = game._dialogue_tool_response(
+                attendant,
+                {"type": "recruitment", "kind": "eunuch"},
+                "陛下若准，奴婢便去挑一个忠谨可用的来。",
+                "宫里可有新的小内侍可用？",
+            )
+
+            self.assertIsNotNone(proposed)
+            self.assertIn("陛下若准", proposed["answer"])
+            pending = game._load_pending_dialogue_action(attendant)
+            self.assertEqual(pending.get("type"), "recruitment")
+            self.assertEqual(pending.get("kind"), "eunuch")
+
+            confirmed = game._dialogue_tool_response(
+                attendant,
+                {"type": "recruitment", "phase": "confirm"},
+                "",
+                "准，挑一个。",
+                chat_turn_id=99,
+            )
+
+            self.assertIsNotNone(confirmed)
+            self.assertEqual([call["phase"] for call in calls], ["propose", "confirm"])
+            self.assertEqual(calls[0]["pending_action"], {})
+            self.assertEqual(calls[1]["pending_action"]["type"], "recruitment")
+            self.assertEqual(calls[1]["action"]["kind"], "eunuch")
+            self.assertEqual(game._load_pending_dialogue_action(attendant), {})
+            self.assertEqual(confirmed.get("court_action"), "summon")
+            self.assertTrue(confirmed.get("recruited_minister"))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_ambiguous_who_is_usable_does_not_open_recommendation_pool(self):
         game = web_app.WebGame(fresh=True)
         try:
@@ -5587,6 +5724,73 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertEqual(effect["kind"], "pressed")
             self.assertEqual(effect["progress_delta"], 6)
             self.assertEqual(progress, 46)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_directive_pressure_helper_preserves_semantic_decision_boundary(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "袁崇焕"
+            did = game.db.add_directive(
+                game.state,
+                None,
+                "令袁崇焕整顿辽东军饷。",
+                "test",
+                actor=actor,
+                status="confirmed",
+            )
+            game.db.conn.execute(
+                "UPDATE turn_directives SET assignee=?, lifecycle_status='executing', "
+                "progress=40, exec_days=10, eta_day=12, anomaly=?, chain=? WHERE id=?",
+                (
+                    actor,
+                    json.dumps({"kind": "delay"}, ensure_ascii=False),
+                    json.dumps({"resistance": 45, "chain": []}, ensure_ascii=False),
+                    did,
+                ),
+            )
+            game.db.conn.commit()
+
+            def audit(phase, payload):
+                if phase == "dialogue_directive_pressure":
+                    return {
+                        "allow": True,
+                        "kind": "pressed",
+                        "forceful": True,
+                        "trigger_quote": "把这件差使压实",
+                        "answer_evidence": "臣即日具奏",
+                        "confidence": 96,
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+
+            decision = game._directive_audience_pressure_decision(
+                actor,
+                did,
+                {"kind": "directive", "ref_id": did},
+                "把这件差使压实。",
+                "臣即日具奏，三日内交清册。",
+            )
+            review = game._directive_audience_pressure_review(
+                actor,
+                did,
+                {"kind": "directive", "ref_id": did},
+                "把这件差使压实。",
+                "臣即日具奏，三日内交清册。",
+            )
+
+            self.assertIsInstance(decision, SemanticDecision)
+            self.assertTrue(decision.allow)
+            self.assertEqual(decision.action_type, "directive_pressure")
+            self.assertEqual(decision.kind, "pressed")
+            self.assertTrue(review.get("allow"))
+            self.assertEqual(review.get("kind"), "pressed")
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

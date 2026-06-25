@@ -174,6 +174,10 @@ class SemanticDecision:
         if action_type not in ACTION_TYPES or phase not in PHASES or confidence < CONFIDENCE_FLOOR or not trigger_quote:
             return cls.none(str(review.get("private_reason") or "语义审计证据不足。"), raw=review)
         payload = dict(review.get("payload") or {}) if isinstance(review.get("payload"), dict) else {}
+        for key in ("faction",):
+            value = _compact(review.get(key), 80)
+            if value:
+                payload[key] = value
         for key in ("character_status_changes", "condition_changes", "punishment_changes"):
             value = review.get(key)
             if isinstance(value, list):
@@ -411,7 +415,7 @@ class SemanticDecision:
         for key in ("character_status_changes", "condition_changes", "punishment_changes"):
             if key in self.payload:
                 data[key] = self.payload[key]
-        for key in ("proposal_evidence",):
+        for key in ("proposal_evidence", "faction"):
             if key in self.payload:
                 data[key] = self.payload[key]
         return data
@@ -1027,7 +1031,7 @@ class DialogueSemanticEngine:
             )
         if kind == "bargain_attitude":
             decision = SemanticDecision.from_post_review(review, action_type="bargain_attitude", required_all=["attitude"])
-            if decision.allow and str(decision.raw.get("attitude") or "") not in {"accept", "press", "refuse"}:
+            if decision.allow and decision.kind not in {"accept", "press", "refuse"}:
                 return SemanticDecision.none("御前交易态度无效。", raw=decision.raw)
             return decision
         if kind == "directive_pressure":
@@ -1036,7 +1040,7 @@ class DialogueSemanticEngine:
                 action_type="directive_pressure",
                 required_all=["kind", "answer_evidence"],
             )
-            if decision.allow and str(decision.raw.get("kind") or "") not in {"pressed", "needs_support", "evasive"}:
+            if decision.allow and decision.kind not in {"pressed", "needs_support", "evasive"}:
                 return SemanticDecision.none("旨意压力类型无效。", raw=decision.raw)
             return decision
         if kind == "directive_followup":
@@ -1045,7 +1049,7 @@ class DialogueSemanticEngine:
                 action_type="directive_followup",
                 required_all=["kind", "answer_evidence"],
             )
-            if decision.allow and str(decision.raw.get("kind") or "") not in {"rewarded", "accounted", "followup_evasive", "next_step", "reviewed"}:
+            if decision.allow and decision.kind not in {"rewarded", "accounted", "followup_evasive", "next_step", "reviewed"}:
                 return SemanticDecision.none("复命处置类型无效。", raw=decision.raw)
             return decision
         return SemanticDecision.none("未知对话后语义审计。", raw=review if isinstance(review, dict) else {})
