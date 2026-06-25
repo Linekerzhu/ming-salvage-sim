@@ -83,6 +83,39 @@ def _disabled_env(name: str) -> bool:
     return _enabled_env(name)
 
 
+def _accepted_profiles(review: Dict[str, Any], accepted_names: List[str]) -> Dict[str, Dict[str, Any]]:
+    raw_profiles = review.get("accepted_profiles") or review.get("profiles") or {}
+    profiles: Dict[str, Dict[str, Any]] = {}
+
+    def add_profile(name: str, profile: object) -> None:
+        clean_name = _compact(name, 80)
+        if clean_name not in accepted_names or not isinstance(profile, dict):
+            return
+        item: Dict[str, Any] = {}
+        for key in ("office", "office_type", "faction", "summary", "source"):
+            value = _compact(profile.get(key), 360 if key == "summary" else 80)
+            if value:
+                item[key] = value
+        aliases_raw = profile.get("aliases")
+        if isinstance(aliases_raw, list):
+            aliases = [_compact(alias, 80) for alias in aliases_raw]
+            aliases = [alias for alias in aliases if alias and alias != clean_name]
+            if aliases:
+                item["aliases"] = aliases[:8]
+        if item:
+            profiles[clean_name] = item
+
+    if isinstance(raw_profiles, dict):
+        for name, profile in raw_profiles.items():
+            add_profile(str(name or ""), profile)
+    elif isinstance(raw_profiles, list):
+        for profile in raw_profiles:
+            if not isinstance(profile, dict):
+                continue
+            add_profile(str(profile.get("name") or profile.get("target") or ""), profile)
+    return profiles
+
+
 @dataclass
 class PendingDialogueAction:
     type: str = "none"
@@ -344,12 +377,16 @@ class SemanticDecision:
         trigger_quote = _compact(review.get("trigger_quote"), 180)
         if not accepted_names or confidence < CONFIDENCE_FLOOR or not trigger_quote:
             return cls.none(str(review.get("private_reason") or "未知人物线索入池审计证据不足。"), raw=review)
+        payload: Dict[str, Any] = {"accepted_names": accepted_names}
+        profiles = _accepted_profiles(review, accepted_names)
+        if profiles:
+            payload["accepted_profiles"] = profiles
         return cls(
             decision_type="mention",
             action_type="unknown_mention",
             phase="confirm",
             target=accepted_names[0],
-            payload={"accepted_names": accepted_names},
+            payload=payload,
             confidence=confidence,
             trigger_quote=trigger_quote,
             private_reason=_compact(review.get("private_reason") or review.get("reason"), 520),
@@ -830,11 +867,30 @@ class DialogueSemanticEngine:
         candidate_names: List[str],
         purpose: str = "cache_candidate",
     ) -> List[str]:
-        if not self._mention_available() or not candidate_names:
+        decision = self.evaluate_unknown_mentions_decision(
+            character,
+            text,
+            candidate_names=candidate_names,
+            purpose=purpose,
+        )
+        if not decision.allow:
             return []
         candidates = [_compact(name, 80) for name in (candidate_names or []) if _compact(name, 80)]
+        return [name for name in decision.payload.get("accepted_names", []) if name in candidates]
+
+    def evaluate_unknown_mentions_decision(
+        self,
+        character: Character,
+        text: str,
+        *,
+        candidate_names: List[str],
+        purpose: str = "cache_candidate",
+    ) -> SemanticDecision:
+        if not self._mention_available() or not candidate_names:
+            return SemanticDecision.none("未知人物审计不可用。")
+        candidates = [_compact(name, 80) for name in (candidate_names or []) if _compact(name, 80)]
         if not candidates:
-            return []
+            return SemanticDecision.none("无未知人物候选。")
         if self.audit_client is not None:
             try:
                 review = self._call_injected_audit(
@@ -847,11 +903,8 @@ class DialogueSemanticEngine:
                     },
                 )
             except Exception:
-                return []
-            decision = SemanticDecision.from_unknown_mention_review(review)
-            if not decision.allow:
-                return []
-            return [name for name in decision.payload.get("accepted_names", []) if name in candidates]
+                return SemanticDecision.none("未知人物注入审计异常。")
+            return SemanticDecision.from_unknown_mention_review(review)
         try:
             from ming_sim.dialogue_audit import dialogue_unknown_mention_intake_audit
 
@@ -867,11 +920,8 @@ class DialogueSemanticEngine:
                 audit_client=self.audit_client,
             )
         except Exception:
-            return []
-        decision = SemanticDecision.from_unknown_mention_review(review)
-        if not decision.allow:
-            return []
-        return [name for name in decision.payload.get("accepted_names", []) if name in candidates]
+            return SemanticDecision.none("未知人物审计异常。")
+        return SemanticDecision.from_unknown_mention_review(review)
 
     def evaluate_lore_intake(
         self,

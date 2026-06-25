@@ -663,9 +663,36 @@ def _normalize_dialogue_unknown_mention_intake(data: Dict[str, object]) -> Dict[
         confidence = _clamp_int(raw_confidence)
     accepted_names = _list_strings(data.get("accepted_names") or data.get("names"), limit=8, item_limit=80)
     allow = bool(data.get("allow")) and bool(accepted_names) and confidence >= CONFIDENCE_FLOOR
+    accepted_profiles: Dict[str, Dict[str, object]] = {}
+    raw_profiles = data.get("accepted_profiles") or data.get("profiles") or {}
+
+    def add_profile(raw_name: object, profile: object) -> None:
+        name = _compact(raw_name, 80)
+        if name not in accepted_names or not isinstance(profile, dict):
+            return
+        normalized: Dict[str, object] = {}
+        for key in ("office", "office_type", "faction", "summary", "source"):
+            value = _compact(profile.get(key), 360 if key == "summary" else 80)
+            if value:
+                normalized[key] = value
+        aliases = _list_strings(profile.get("aliases"), limit=8, item_limit=80)
+        aliases = [alias for alias in aliases if alias and alias != name]
+        if aliases:
+            normalized["aliases"] = aliases
+        if normalized:
+            accepted_profiles[name] = normalized
+
+    if allow and isinstance(raw_profiles, dict):
+        for raw_name, profile in raw_profiles.items():
+            add_profile(raw_name, profile)
+    elif allow and isinstance(raw_profiles, list):
+        for profile in raw_profiles:
+            if isinstance(profile, dict):
+                add_profile(profile.get("name") or profile.get("target"), profile)
     return {
         "allow": allow,
         "accepted_names": accepted_names if allow else [],
+        "accepted_profiles": accepted_profiles if allow else {},
         "rejected_names": _list_strings(data.get("rejected_names"), limit=8, item_limit=80),
         "confidence": confidence,
         "trigger_quote": _compact(data.get("trigger_quote"), 160),
@@ -1647,6 +1674,16 @@ JSON 字段：
 {
   "allow": false,
   "accepted_names": ["允许入池的人名"],
+  "accepted_profiles": {
+    "人名": {
+      "office": "审计确认的职衔/身份；没有证据则留空",
+      "office_type": "审计确认的官署类型；没有证据则留空",
+      "faction": "审计确认的派系；没有证据则留空",
+      "aliases": ["审计确认的别名"],
+      "summary": "审计确认的人物摘要",
+      "source": "historical|user_confirmed|unlisted"
+    }
+  },
   "rejected_names": ["拒绝的人名"],
   "trigger_quote": "原文短句",
   "public_hint": "一句玩家可见提示",

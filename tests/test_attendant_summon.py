@@ -4467,6 +4467,96 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_unlisted_registration_uses_semantic_profile_and_route_boundary(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT"] = "0"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            attendant = "王承恩"
+            target = "顾补正"
+            self.assertNotIn(target, game.content.characters)
+            character = game.session._character(attendant)
+            payload = json.dumps(
+                {
+                    "name": target,
+                    "office": "锦衣卫错档掌案",
+                    "office_type": "锦衣卫",
+                    "faction": "阉党",
+                    "aliases": ["错号"],
+                    "summary": "工具夹带了不该入档的身份摘要。",
+                    "source": "historical",
+                    "summon_after": False,
+                },
+                ensure_ascii=False,
+            )
+
+            def audit(phase, audit_payload):
+                if phase == "dialogue_unknown_mention_intake":
+                    self.assertEqual(audit_payload.get("purpose"), "register_unlisted_person")
+                    self.assertIn(target, audit_payload.get("candidate_names") or [])
+                    return {
+                        "allow": True,
+                        "accepted_names": [target],
+                        "accepted_profiles": {
+                            target: {
+                                "office": "御前候补小内侍",
+                                "office_type": "司礼监",
+                                "faction": "中立",
+                                "aliases": ["小正"],
+                                "summary": "审计确认：随王承恩在御前候旨的小内侍。",
+                                "source": "user_confirmed",
+                            }
+                        },
+                        "rejected_names": [],
+                        "trigger_quote": f"传{target}入殿",
+                        "confidence": 96,
+                        "private_reason": "玩家明确补档并传入殿，身份以审计 profile 为准。",
+                    }
+                if phase == "dialogue_route_intent":
+                    self.assertEqual(
+                        audit_payload["route_context"]["tool_requested_summon_target"],
+                        target,
+                    )
+                    return {
+                        "allow": True,
+                        "intent": "summon",
+                        "target_name": target,
+                        "trigger_quote": f"传{target}入殿",
+                        "confidence": 96,
+                        "private_reason": "玩家明确传此人入殿。",
+                    }
+                return None
+
+            game.session.dialogue_audit_client = audit
+            registered, summon_after = game.session._apply_unlisted_person_registration_after_route_audit(
+                payload,
+                character,
+                f"{target}补入名册，传{target}入殿奏对。",
+                answer=f"臣遵旨，传{target}入殿。",
+            )
+
+            self.assertEqual(registered, target)
+            self.assertTrue(summon_after)
+            self.assertIn(target, game.content.characters)
+            row = game.db.conn.execute(
+                "SELECT office, office_type, faction, aliases, summary, status_reason FROM characters WHERE name=?",
+                (target,),
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertEqual(row["office"], "御前候补小内侍")
+            self.assertEqual(row["office_type"], "司礼监")
+            self.assertEqual(row["faction"], "中立")
+            self.assertIn("小正", str(row["aliases"] or ""))
+            self.assertIn("审计确认", row["summary"])
+            self.assertEqual(row["status_reason"], "皇帝确认背景补档")
+            self.assertNotIn("错档", row["office"] + row["summary"] + str(row["aliases"] or ""))
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_semantic_route_confirms_pending_action_when_regex_actions_are_off(self):
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "0"
         os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "0"

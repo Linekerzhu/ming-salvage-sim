@@ -1355,12 +1355,32 @@ class GameSession:
         answer: str = "",
     ) -> bool:
         """Semantic gate for registering unlisted people before any character DB write."""
+        decision = self.dialogue_unlisted_person_registration_decision(
+            character,
+            user_text,
+            payload,
+            answer=answer,
+        )
+        data = self._unlisted_person_registration_payload(payload)
+        name = str(data.get("name") or "").strip() if data else ""
+        accepted = decision.payload.get("accepted_names", []) if decision is not None and isinstance(decision.payload, dict) else []
+        return bool(decision is not None and decision.allow and name in accepted)
+
+    def dialogue_unlisted_person_registration_decision(
+        self,
+        character: Character,
+        user_text: str,
+        payload: str,
+        *,
+        answer: str = "",
+    ) -> Optional[Any]:
+        """Return the semantic decision for registering an unlisted person."""
         data = self._unlisted_person_registration_payload(payload)
         if not data:
-            return False
+            return None
         name = str(data.get("name") or "").strip()
         if not name:
-            return False
+            return None
         office = str(data.get("office") or "").strip()
         office_type = str(data.get("office_type") or "").strip()
         source = str(data.get("source") or "").strip()
@@ -1377,21 +1397,60 @@ class GameSession:
         try:
             from ming_sim.dialogue_semantics import DialogueSemanticEngine
 
-            accepted = DialogueSemanticEngine(
+            return DialogueSemanticEngine(
                 self.db,
                 self.state,
                 llm_config=self.llm_config,
                 agno_db=self.agno_db,
                 audit_client=self.dialogue_audit_client,
-            ).evaluate_unknown_mentions(
+            ).evaluate_unknown_mentions_decision(
                 character,
                 evidence,
                 candidate_names=[name],
                 purpose="register_unlisted_person",
             )
         except Exception:
-            return False
-        return name in accepted
+            return None
+
+    def _unlisted_person_registration_payload_with_decision(
+        self,
+        payload: object,
+        decision: object,
+    ) -> Dict[str, object]:
+        if isinstance(payload, dict):
+            data = dict(payload)
+        else:
+            try:
+                data = json.loads(str(payload or "")) if payload else {}
+            except (TypeError, ValueError):
+                data = {}
+        if not isinstance(data, dict):
+            return {}
+        normalized: Dict[str, object] = dict(data)
+        accepted = []
+        profiles = {}
+        review_payload = getattr(decision, "payload", {})
+        if isinstance(review_payload, dict):
+            accepted = [str(name).strip() for name in (review_payload.get("accepted_names") or []) if str(name).strip()]
+            raw_profiles = review_payload.get("accepted_profiles") or {}
+            profiles = raw_profiles if isinstance(raw_profiles, dict) else {}
+        decision_target = str(getattr(decision, "target", "") or "").strip()
+        name = str(normalized.get("name") or decision_target or "").strip()
+        if decision_target:
+            name = decision_target
+            normalized["name"] = decision_target
+        if name not in accepted:
+            return {}
+        profile = profiles.get(name) if isinstance(profiles.get(name), dict) else {}
+        if isinstance(profile, dict):
+            for key in ("office", "office_type", "faction", "summary", "source"):
+                value = profile.get(key)
+                if value not in (None, "", [], {}):
+                    normalized[key] = value
+            if isinstance(profile.get("aliases"), list):
+                normalized["aliases"] = [str(alias).strip() for alias in profile["aliases"] if str(alias).strip()]
+        normalized["name"] = name
+        return normalized
 
     def dialogue_allows_pending_directive(
         self,
@@ -1620,22 +1679,31 @@ class GameSession:
         name = str(data.get("name") or "").strip()
         if not name:
             return ("", False)
-        if not self.dialogue_allows_unlisted_person_registration(
+        decision = self.dialogue_unlisted_person_registration_decision(
             character,
             user_text,
             payload,
             answer=answer,
-        ):
+        )
+        if decision is None or not decision.allow:
             return ("", False)
-        summon_after = bool(data.get("summon_after", True))
-        if summon_after and not self.dialogue_route_allows_tool_summon(
+        normalized = self._unlisted_person_registration_payload_with_decision(payload, decision)
+        if not normalized:
+            return ("", False)
+        name = str(normalized.get("name") or "").strip()
+        if not name:
+            return ("", False)
+        requested_summon = bool(normalized.get("summon_after", True))
+        route_allows_summon = self.dialogue_route_allows_tool_summon(
             character,
             user_text,
             name,
             answer=answer,
-        ):
+        )
+        if requested_summon and not route_allows_summon:
             return ("", False)
-        return self._apply_unlisted_person_registration(payload)
+        normalized["summon_after"] = bool(route_allows_summon or requested_summon)
+        return self._apply_unlisted_person_registration(json.dumps(normalized, ensure_ascii=False))
 
     def chat(
         self,
