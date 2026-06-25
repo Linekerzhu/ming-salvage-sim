@@ -2007,6 +2007,167 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_chat_and_stream_apply_secret_order_progress_with_same_semantic_payload(self):
+        actor = "温体仁"
+        progress = "探得钱谦益门生往来频密，尚须核实名帖。"
+        user_text = "说说本月查到什么，照实入档。"
+
+        def install_audit(game: web_app.WebGame, order_id: int) -> None:
+            def audit(phase, payload):
+                if phase == "dialogue_route_intent":
+                    return {
+                        "allow": False,
+                        "intent": "none",
+                        "confidence": 95,
+                        "private_reason": "not route",
+                    }
+                if phase != "dialogue_action_intent":
+                    return None
+                tool_action = payload.get("tool_action") or {}
+                if tool_action.get("type") == "semantic_probe":
+                    return {
+                        "allow": False,
+                        "phase": "none",
+                        "action_type": "none",
+                        "confidence": 95,
+                        "private_reason": "let NPC tool path run",
+                    }
+                self.assertEqual(tool_action.get("type"), "secret_order")
+                self.assertEqual(tool_action.get("kind"), "progress")
+                self.assertEqual(int(tool_action.get("order_id") or 0), order_id)
+                return {
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "secret_order",
+                    "kind": "progress",
+                    "target": actor,
+                    "actor": actor,
+                    "confidence": 96,
+                    "trigger_quote": "照实入档",
+                    "private_reason": "玩家明确要求承办人回奏并落档本月进展。",
+                }
+
+            os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+            os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "0"
+            game.session.dialogue_audit_client = audit
+
+        base_root = Path(self.tmp.name)
+
+        def use_data_root(label: str) -> None:
+            root = base_root / label
+
+            def user_data_dir() -> Path:
+                root.mkdir(parents=True, exist_ok=True)
+                return root
+
+            def user_data_path(*parts: str) -> str:
+                path = root.joinpath(*parts)
+                path.parent.mkdir(parents=True, exist_ok=True)
+                return str(path)
+
+            web_app.user_data_dir = user_data_dir
+            web_app.user_data_path = user_data_path
+
+        def make_game(label: str) -> tuple[web_app.WebGame, int, dict]:
+            use_data_root(label)
+            game = web_app.WebGame(fresh=True)
+            order_id = game.db.create_secret_order(
+                game.state,
+                actor,
+                "密查钱谦益",
+                "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                ["钱谦益", "东林", "起复"],
+                deadline_months=3,
+            )
+            game.state.period = 2
+            game.state.turn = 2
+            action = {
+                "type": "secret_order",
+                "phase": "confirm",
+                "kind": "progress",
+                "mode": "progress",
+                "target": actor,
+                "assignee": actor,
+                "order_id": order_id,
+                "progress": progress,
+            }
+            install_audit(game, order_id)
+            return game, order_id, action
+
+        sync_game, sync_order_id, sync_action = make_game("secret-order-sync")
+        stream_game, stream_order_id, _stream_action = make_game("secret-order-stream")
+        try:
+            def fake_chat(minister_name, message, *, source_chat_turn_id=0, supplemental_context="", source_context=None):
+                return session_module.ChatTurnResult(
+                    answer="臣照实回奏。",
+                    dialogue_action=dict(sync_action),
+                )
+
+            sync_game.session.chat = fake_chat  # type: ignore[method-assign]
+            sync_payload = sync_game.chat(actor, user_text)
+
+            class ToolExec:
+                tool_name = "report_secret_order_progress"
+                result = "__secret_order_followup__" + json.dumps(
+                    {
+                        "action": "progress",
+                        "type": "secret_order",
+                        "kind": "progress",
+                        "mode": "progress",
+                        "order_id": stream_order_id,
+                        "title": "密查钱谦益",
+                        "assignee": actor,
+                        "progress": progress,
+                    },
+                    ensure_ascii=False,
+                )
+                arguments = {}
+                tool_args = {}
+
+            class RunContent:
+                event = "RunContent"
+                content = "臣照实回奏。"
+
+            class RunCompletedEvent:
+                tools = [ToolExec()]
+
+            class FakeAgent:
+                def run(self, _prompt, **_kwargs):
+                    yield RunContent()
+                    yield RunCompletedEvent()
+
+            class FakeRegistry:
+                session_ids = {}
+                campaign_id = "test-campaign"
+
+                def build_draft_line(self):
+                    return "无"
+
+                def get(self, _character):
+                    return FakeAgent()
+
+            stream_game.session.registry = FakeRegistry()
+            events = list(stream_game.chat_stream(actor, user_text))
+            self.assertEqual(events[-1]["type"], "done")
+            stream_payload = events[-1]["payload"]
+
+            self.assertEqual(sync_payload.get("secret_order_id"), sync_order_id)
+            self.assertEqual(stream_payload.get("secret_order_id"), stream_order_id)
+            self.assertEqual(sync_payload.get("secret_order_assignee"), actor)
+            self.assertEqual(stream_payload.get("secret_order_assignee"), actor)
+            self.assertEqual((sync_payload.get("dialogue_effect") or {}).get("title"), "密令进展")
+            self.assertEqual((stream_payload.get("dialogue_effect") or {}).get("title"), "密令进展")
+            self.assertIn("门生往来", sync_game.db.get_secret_order(sync_order_id)["result"])
+            self.assertIn("门生往来", stream_game.db.get_secret_order(stream_order_id)["result"])
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(sync_game.db_path)
+                stop_worker(stream_game.db_path)
+            finally:
+                sync_game.session.close()
+                stream_game.session.close()
+
     def test_ambiguous_who_is_usable_does_not_open_recommendation_pool(self):
         game = web_app.WebGame(fresh=True)
         try:
