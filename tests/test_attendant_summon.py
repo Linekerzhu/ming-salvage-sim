@@ -1460,6 +1460,157 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_secret_order_tool_response_uses_unified_semantic_gate(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "温体仁"
+            action = {
+                "type": "secret_order",
+                "phase": "confirm",
+                "target": actor,
+                "assignee": actor,
+                "title": "密查钱谦益",
+                "content": "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                "tags": ["钱谦益", "东林", "起复"],
+                "deadline_months": 2,
+            }
+
+            def deny_audit(phase, payload):
+                if phase != "dialogue_action_intent":
+                    return None
+                return {
+                    "allow": False,
+                    "phase": "none",
+                    "action_type": "none",
+                    "confidence": 96,
+                    "private_reason": "只是问是否可暗查，不是下密令。",
+                }
+
+            os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+            game.session.dialogue_audit_client = deny_audit
+            denied = game._dialogue_tool_response(
+                actor,
+                action,
+                "臣可密查。",
+                "此事能否暗查？",
+            )
+            self.assertIsNone(denied)
+            self.assertEqual(game.db.list_secret_orders(), [])
+
+            def allow_audit(phase, payload):
+                if phase != "dialogue_action_intent":
+                    return None
+                tool_action = payload.get("tool_action") or {}
+                self.assertEqual(tool_action.get("type"), "secret_order")
+                return {
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "secret_order",
+                    "target": actor,
+                    "actor": actor,
+                    "confidence": 96,
+                    "trigger_quote": "给温体仁下密令",
+                    "private_reason": "玩家明确下密令并指定暗查目标。",
+                }
+
+            game.session.dialogue_audit_client = allow_audit
+            allowed = game._dialogue_tool_response(
+                actor,
+                action,
+                "臣遵旨密办。",
+                "给温体仁下密令，暗查钱谦益起复东林旧臣之议，两月内回奏。",
+                chat_turn_id=77,
+            )
+
+            self.assertIsNotNone(allowed)
+            self.assertGreater(int(allowed.get("secret_order_id") or 0), 0)
+            self.assertEqual(allowed.get("secret_order_assignee"), actor)
+            self.assertEqual(len(game.db.list_secret_orders()), 1)
+            effect = allowed.get("dialogue_effect") or {}
+            self.assertEqual(effect.get("title"), "密令建档")
+            self.assertIn("密令 #", allowed.get("answer") or "")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_chat_applies_session_secret_order_action_through_web_semantic_gate(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "温体仁"
+            action = {
+                "type": "secret_order",
+                "phase": "confirm",
+                "target": actor,
+                "assignee": actor,
+                "title": "密查钱谦益",
+                "content": "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                "tags": ["钱谦益", "东林", "起复"],
+                "deadline_months": 2,
+            }
+            calls = []
+
+            def fake_chat(minister_name, message, *, source_chat_turn_id=0, supplemental_context="", source_context=None):
+                calls.append((minister_name, message, source_chat_turn_id))
+                return session_module.ChatTurnResult(
+                    answer="臣遵旨密办。",
+                    dialogue_action=dict(action),
+                )
+
+            def audit(phase, payload):
+                if phase == "dialogue_route_intent":
+                    return {
+                        "allow": False,
+                        "intent": "none",
+                        "confidence": 95,
+                        "private_reason": "not route",
+                    }
+                if phase != "dialogue_action_intent":
+                    return None
+                tool_action = payload.get("tool_action") or {}
+                if tool_action.get("type") == "semantic_probe":
+                    return {
+                        "allow": False,
+                        "phase": "none",
+                        "action_type": "none",
+                        "confidence": 95,
+                        "private_reason": "let NPC tool path run",
+                    }
+                return {
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "secret_order",
+                    "target": actor,
+                    "actor": actor,
+                    "confidence": 96,
+                    "trigger_quote": "给温体仁下密令",
+                    "private_reason": "玩家明确下密令并指定暗查目标。",
+                }
+
+            os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+            os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "0"
+            game.session.dialogue_audit_client = audit
+            game.session.chat = fake_chat  # type: ignore[method-assign]
+
+            payload = game.chat(
+                actor,
+                "给温体仁下密令，暗查钱谦益起复东林旧臣之议，两月内回奏。",
+            )
+
+            self.assertEqual(len(calls), 1)
+            self.assertGreater(int(payload.get("secret_order_id") or 0), 0)
+            self.assertEqual(payload.get("secret_order_assignee"), actor)
+            self.assertEqual((payload.get("dialogue_effect") or {}).get("title"), "密令建档")
+            self.assertEqual(len(game.db.list_secret_orders()), 1)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_ambiguous_who_is_usable_does_not_open_recommendation_pool(self):
         game = web_app.WebGame(fresh=True)
         try:

@@ -924,6 +924,48 @@ class GameSession:
             return {}
         return data if isinstance(data, dict) else {}
 
+    def dialogue_secret_order_action_from_payload(
+        self,
+        payload: str,
+        character: Character,
+        *,
+        answer: str = "",
+    ) -> Dict[str, object]:
+        """Normalize issue_secret_order tool output into a semantic dialogue action."""
+
+        try:
+            data = json.loads(payload) if payload else {}
+        except (TypeError, ValueError):
+            return {}
+        if not isinstance(data, dict):
+            return {}
+        title = str(data.get("title") or "").strip()
+        content = str(data.get("content") or "").strip()
+        if not title or not content:
+            return {}
+        tags_raw = data.get("tags") or []
+        tags = [str(item).strip() for item in tags_raw if str(item).strip()] if isinstance(tags_raw, list) else []
+        assignee = str(data.get("assignee") or "").strip() or character.name
+        try:
+            deadline = max(0, min(int(data.get("deadline_months") or 0), 36))
+        except (TypeError, ValueError):
+            deadline = 0
+        return {
+            "type": "secret_order",
+            "phase": "confirm",
+            "target": assignee,
+            "actor": character.name,
+            "kind": "issue",
+            "mode": "secret_order",
+            "title": title[:20],
+            "content": content,
+            "tags": tags,
+            "assignee": assignee,
+            "deadline_months": deadline,
+            "note": f"{title[:20]}：{content}",
+            "tool_answer_excerpt": str(answer or "")[:240],
+        }
+
     def dialogue_action_allows_secret_order(
         self,
         character: Character,
@@ -938,17 +980,9 @@ class GameSession:
             and self.dialogue_audit_client is None
         ):
             return False
-        try:
-            data = json.loads(payload) if payload else {}
-        except (TypeError, ValueError):
+        action = self.dialogue_secret_order_action_from_payload(payload, character, answer=answer)
+        if not action:
             return False
-        if not isinstance(data, dict):
-            return False
-        title = str(data.get("title") or "").strip()
-        content = str(data.get("content") or "").strip()
-        if not title or not content:
-            return False
-        assignee = str(data.get("assignee") or "").strip() or character.name
         try:
             from ming_sim.dialogue_semantics import DialogueSemanticEngine
 
@@ -961,19 +995,7 @@ class GameSession:
             ).gate_tool_action(
                 character,
                 user_text,
-                {
-                    "type": "secret_order",
-                    "phase": "confirm",
-                    "target": assignee,
-                    "actor": character.name,
-                    "kind": "issue",
-                    "mode": "secret_order",
-                    "title": title,
-                    "content": content,
-                    "assignee": assignee,
-                    "note": f"{title}：{content}",
-                    "tool_answer_excerpt": str(answer or "")[:240],
-                },
+                action,
                 pending_action=None,
                 phase="confirm",
             )
@@ -1156,11 +1178,10 @@ class GameSession:
                             assignee = str(payload_data.get("assignee") or "").strip() or character.name
                     except (TypeError, ValueError):
                         assignee = character.name
-                    order_id = (
-                        self._apply_secret_order(payload, character.name)
-                        if self.dialogue_action_allows_secret_order(character, message, payload, answer=answer)
-                        else 0
-                    )
+                    action = self.dialogue_secret_order_action_from_payload(payload, character, answer=answer)
+                    if action:
+                        result.dialogue_action = action
+                    order_id = 0
                 if order_id:
                     result.secret_order_id = order_id
                     result.secret_order_assignee = assignee or character.name

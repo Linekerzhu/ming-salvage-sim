@@ -4816,6 +4816,31 @@ class WebGame:
                 "need": str(decision.public_hint or quote or text).strip(),
                 "trigger_quote": quote or text,
             }
+        if action_type == "secret_order":
+            assignee = target or actor or minister_name
+            title = str(payload.get("title") or decision.public_hint or quote or text).strip()[:20]
+            content = str(payload.get("content") or payload.get("note") or quote or text).strip()
+            if not assignee or not title or not content:
+                return {}
+            tags = payload.get("tags") if isinstance(payload.get("tags"), list) else []
+            try:
+                deadline_months = max(0, min(int(payload.get("deadline_months") or 0), 36))
+            except (TypeError, ValueError):
+                deadline_months = 0
+            return {
+                "type": "secret_order",
+                "target": assignee,
+                "actor": actor or minister_name,
+                "kind": decision.kind or "issue",
+                "mode": decision.mode or "secret_order",
+                "title": title,
+                "content": content,
+                "tags": [str(item).strip() for item in tags if str(item).strip()],
+                "assignee": assignee,
+                "deadline_months": deadline_months,
+                "note": f"{title}：{content}",
+                "trigger_quote": quote or text,
+            }
         if action_type in {"custody", "punishment", "condition_update"}:
             status_changes = payload.get("character_status_changes") if isinstance(payload.get("character_status_changes"), list) else []
             condition_changes = payload.get("condition_changes") if isinstance(payload.get("condition_changes"), list) else []
@@ -4865,7 +4890,7 @@ class WebGame:
             return {"answer": f"{self._dialogue_speaker_self(minister_name)}明白。此事暂且按下，不入档、不用人，也不惊动外朝。"}
         if phase == "confirm":
             action = self._action_from_semantic_decision(minister_name, text, decision)
-            if not action or action.get("type") != "dialogue_consequence":
+            if not action or action.get("type") not in {"dialogue_consequence", "secret_order"}:
                 return None
             return self._execute_semantic_dialogue_action(
                 minister_name,
@@ -6362,6 +6387,48 @@ class WebGame:
             )
         return f"{self_ref}领会陛下意思，但此事须陛下再明白准一句，臣才敢办。"
 
+    def _execute_secret_order_action(self, minister_name: str, action: Dict[str, Any]) -> Dict[str, Any]:
+        title = str(action.get("title") or "").strip()[:20]
+        content = str(action.get("content") or action.get("note") or "").strip()
+        assignee = str(action.get("assignee") or action.get("target") or action.get("actor") or minister_name).strip()
+        if not title or not content or not assignee:
+            return {}
+        tags_raw = action.get("tags") if isinstance(action.get("tags"), list) else []
+        tags = [str(item).strip() for item in tags_raw if str(item).strip()]
+        try:
+            deadline = max(0, min(int(action.get("deadline_months") or 0), 36))
+        except (TypeError, ValueError):
+            deadline = 0
+        payload = json.dumps(
+            {
+                "title": title,
+                "content": content,
+                "tags": tags,
+                "assignee": assignee,
+                "deadline_months": deadline,
+            },
+            ensure_ascii=False,
+        )
+        order_id = self.session._apply_secret_order(payload, minister_name)
+        if not order_id:
+            return {}
+        effect = self.session.record_secret_order_effect(order_id, assignee)
+        deadline_text = f"御限 {deadline} 个月" if deadline else "无硬期限"
+        return {
+            "answer": f"{self._dialogue_speaker_self(minister_name)}遵旨。密令 #{int(order_id)} 已登记入档，{assignee}承办，{deadline_text}。",
+            "secret_order_id": int(order_id),
+            "secret_order_assignee": assignee,
+            "secret_order_effect": effect,
+            "dialogue_effect": {
+                "title": "密令建档",
+                "message": f"#{int(order_id)} {title}：{assignee}承办，{deadline_text}",
+                "effects": [
+                    {"kind": "secret_order", "label": f"#{int(order_id)} {title}", "tone": "warn"},
+                    {"kind": "secret_order_actor", "label": f"承办：{assignee}", "tone": "neutral"},
+                ],
+            },
+        }
+
     def _execute_recruitment_action(self, minister_name: str, action: Dict[str, Any]) -> Dict[str, Any]:
         kind = str(action.get("kind") or "")
         if kind == "eunuch":
@@ -6910,6 +6977,8 @@ class WebGame:
                 action,
                 chat_turn_id=chat_turn_id,
             )
+        if action.get("type") == "secret_order":
+            return self._execute_secret_order_action(minister_name, action)
         if action.get("type") == "recruitment":
             return self._execute_recruitment_action(minister_name, action)
         if action.get("type") == "castration":
@@ -6955,7 +7024,7 @@ class WebGame:
         return None
 
     def _dialogue_world_action_types(self) -> Tuple[str, ...]:
-        return ("recruitment", "mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage")
+        return ("secret_order", "recruitment", "mediation", "castration", "eunuch_care", "eunuch_hard_service", "bao_leverage")
 
     def _merge_pending_tool_action(self, action: Dict[str, Any], pending: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         normalized = dict(action or {})
@@ -7004,7 +7073,7 @@ class WebGame:
             return SemanticDecision.none("工具动作类型不属于对白世界状态变更。")
         if action_type == "recruitment" and not action.get("kind"):
             return SemanticDecision.none("用人工具动作缺少 kind。")
-        if phase == "confirm" and not (isinstance(pending, dict) and pending.get("type") == action_type):
+        if phase == "confirm" and action_type != "secret_order" and not (isinstance(pending, dict) and pending.get("type") == action_type):
             return SemanticDecision.none("没有待确认的同类对白动作。")
         try:
             character = self.session._character(minister_name)
@@ -7053,6 +7122,17 @@ class WebGame:
             normalized["semantic_reason"] = decision.private_reason
         if normalized.get("type") == "recruitment" and not normalized.get("kind"):
             return {}
+        if normalized.get("type") == "secret_order":
+            title = str(normalized.get("title") or "").strip()
+            content = str(normalized.get("content") or "").strip()
+            if not title or not content:
+                return {}
+            assignee = str(normalized.get("assignee") or normalized.get("target") or normalized.get("actor") or minister_name).strip()
+            if not assignee:
+                return {}
+            normalized["assignee"] = assignee
+            normalized["target"] = assignee
+            normalized["actor"] = str(normalized.get("actor") or minister_name).strip()
         if normalized.get("type") == "castration":
             normalized["force"] = True
             if not str(normalized.get("scheme_text") or "").strip():
@@ -7078,7 +7158,11 @@ class WebGame:
         if phase == "confirm":
             pending = self._load_pending_dialogue_action(minister_name)
             action_type = str(normalized.get("type") or "")
-            if action_type in self._dialogue_world_action_types() and not (pending and pending.get("type") == action_type):
+            if (
+                action_type in self._dialogue_world_action_types()
+                and action_type != "secret_order"
+                and not (pending and pending.get("type") == action_type)
+            ):
                 return None
             normalized = self._merge_pending_tool_action(normalized, pending)
             decision = self._dialogue_gate_tool_decision(minister_name, normalized, user_text, "confirm", pending)
@@ -8169,6 +8253,13 @@ class WebGame:
                     answer_lore_effect,
                 ),
                 dialogue_goal=dialogue_response.get("dialogue_goal") if isinstance(dialogue_response.get("dialogue_goal"), dict) else None,
+                secret_order_id=int(dialogue_response.get("secret_order_id") or 0),
+                secret_order_assignee=str(dialogue_response.get("secret_order_assignee") or ""),
+                secret_order_effect=(
+                    dialogue_response.get("secret_order_effect")
+                    if isinstance(dialogue_response.get("secret_order_effect"), dict)
+                    else None
+                ),
                 chat_turn_id=chat_turn_id,
                 chat_day=current_day,
             )
@@ -8275,9 +8366,13 @@ class WebGame:
             recruited_minister=str((tool_dialogue_response or {}).get("recruited_minister") or ""),
             displaced_minister=result.displaced_minister,
             displaced_effect=result.displaced_effect,
-            secret_order_id=result.secret_order_id,
-            secret_order_assignee=result.secret_order_assignee,
-            secret_order_effect=result.secret_order_effect,
+            secret_order_id=int((tool_dialogue_response or {}).get("secret_order_id") or result.secret_order_id or 0),
+            secret_order_assignee=str((tool_dialogue_response or {}).get("secret_order_assignee") or result.secret_order_assignee or ""),
+            secret_order_effect=(
+                (tool_dialogue_response or {}).get("secret_order_effect")
+                if isinstance((tool_dialogue_response or {}).get("secret_order_effect"), dict)
+                else result.secret_order_effect
+            ),
             directive_effect=directive_effect,
             dialogue_effect=dialogue_effect,
             chat_turn_id=chat_turn_id,
@@ -8336,6 +8431,13 @@ class WebGame:
                     answer_lore_effect,
                 ),
                 dialogue_goal=dialogue_response.get("dialogue_goal") if isinstance(dialogue_response.get("dialogue_goal"), dict) else None,
+                secret_order_id=int(dialogue_response.get("secret_order_id") or 0),
+                secret_order_assignee=str(dialogue_response.get("secret_order_assignee") or ""),
+                secret_order_effect=(
+                    dialogue_response.get("secret_order_effect")
+                    if isinstance(dialogue_response.get("secret_order_effect"), dict)
+                    else None
+                ),
                 chat_turn_id=chat_turn_id,
                 chat_day=current_day,
             )
@@ -8494,16 +8596,13 @@ class WebGame:
                                     secret_order_assignee = str(payload_data.get("assignee") or "").strip() or minister_name
                             except (TypeError, ValueError):
                                 secret_order_assignee = minister_name
-                            secret_order_id = (
-                                self.session._apply_secret_order(payload_json, minister_name)
-                                if self.session.dialogue_action_allows_secret_order(
-                                    character,
-                                    text,
-                                    payload_json,
-                                    answer=answer,
-                                )
-                                else 0
+                            action = self.session.dialogue_secret_order_action_from_payload(
+                                payload_json,
+                                character,
+                                answer=answer,
                             )
+                            if action:
+                                dialogue_tool_action = action
                         if secret_order_id:
                             secret_order_effect = self.session.record_secret_order_effect(
                                 secret_order_id,
@@ -8529,6 +8628,11 @@ class WebGame:
                 if not court_action and dialogue_tool_response.get("court_action"):
                     court_action = str(dialogue_tool_response.get("court_action") or "")
                     next_minister = str(dialogue_tool_response.get("next_minister") or "")
+                if dialogue_tool_response.get("secret_order_id"):
+                    secret_order_id = int(dialogue_tool_response.get("secret_order_id") or 0)
+                    secret_order_assignee = str(dialogue_tool_response.get("secret_order_assignee") or secret_order_assignee or minister_name)
+                    effect = dialogue_tool_response.get("secret_order_effect")
+                    secret_order_effect = effect if isinstance(effect, dict) else secret_order_effect
             if not court_action and self._dialogue_answer_summon_fallback_enabled():
                 implied_summon = self._attendant_answer_summon_target(minister_name, answer)
                 if implied_summon:
