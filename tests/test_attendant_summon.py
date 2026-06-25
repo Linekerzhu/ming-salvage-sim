@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 
 import web_app
 from ming_sim import court, court_events, issues, memorials
+from ming_sim import eunuch_lore as el
 from ming_sim.dialogue_semantics import SemanticDecision
 from ming_sim.models import Character
 from ming_sim.personnel_actions import is_eunuch_office
@@ -1619,6 +1620,106 @@ class AttendantSummonTests(unittest.TestCase):
             effect = allowed.get("dialogue_effect") or {}
             self.assertEqual(effect.get("title"), "密令催办")
             self.assertIn("即核", allowed.get("answer") or "")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_secret_order_dispatch_strategy_tool_response_uses_unified_semantic_gate(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "王承恩"
+            game.state.metrics["内库"] = 30
+            el.record_castration(
+                game.db,
+                actor,
+                forced=True,
+                day=1,
+                detail_text="净身房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+            )
+            order_id = game.db.create_secret_order(
+                game.state,
+                actor,
+                "密查净身房封签",
+                "夜间久候盯梢刑房封签，拿问口供，查清官库旧案。",
+                ["刑房", "封签", "净身房"],
+                deadline_months=1,
+            )
+            action = {
+                "type": "secret_order",
+                "phase": "confirm",
+                "kind": "dispatch_strategy",
+                "mode": "relay",
+                "strategy": "relay",
+                "target": actor,
+                "assignee": actor,
+                "order_id": order_id,
+                "note": "准副手轮值，别硬撑坏事。",
+            }
+
+            def deny_audit(phase, payload):
+                if phase != "dialogue_action_intent":
+                    return None
+                return {
+                    "allow": False,
+                    "phase": "none",
+                    "action_type": "none",
+                    "confidence": 96,
+                    "private_reason": "只是问可选策略，不是准许执行。",
+                }
+
+            os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+            game.session.dialogue_audit_client = deny_audit
+            denied = game._dialogue_tool_response(
+                actor,
+                action,
+                "奴婢可列几策。",
+                "你看旧患差遣怎么稳妥？",
+            )
+            self.assertIsNone(denied)
+            self.assertFalse(str(game.db.get_secret_order(order_id).get("sim_note") or "").strip())
+            self.assertEqual(game.state.metrics["内库"], 30)
+
+            def allow_audit(phase, payload):
+                if phase != "dialogue_action_intent":
+                    return None
+                tool_action = payload.get("tool_action") or {}
+                self.assertEqual(tool_action.get("type"), "secret_order")
+                self.assertEqual(tool_action.get("kind"), "dispatch_strategy")
+                self.assertEqual(tool_action.get("strategy"), "relay")
+                self.assertEqual(tool_action.get("order_id"), order_id)
+                return {
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "secret_order",
+                    "kind": "dispatch_strategy",
+                    "mode": "relay",
+                    "target": actor,
+                    "actor": actor,
+                    "confidence": 96,
+                    "trigger_quote": "副手轮值",
+                    "private_reason": "玩家明确准许按净身旧患调整差遣策略。",
+                }
+
+            game.session.dialogue_audit_client = allow_audit
+            allowed = game._dialogue_tool_response(
+                actor,
+                action,
+                "奴婢遵旨。",
+                "准，副手轮值，别硬撑坏事。",
+                chat_turn_id=79,
+            )
+
+            self.assertIsNotNone(allowed)
+            self.assertEqual(int(allowed.get("secret_order_id") or 0), order_id)
+            self.assertEqual(allowed.get("secret_order_assignee"), actor)
+            self.assertIn("分班轮值", game.db.get_secret_order(order_id)["sim_note"])
+            self.assertEqual(game.state.metrics["内库"], 29)
+            effect = allowed.get("dialogue_effect") or {}
+            self.assertEqual(effect.get("title"), "旧患差遣")
+            self.assertIn("旧患风险", allowed.get("answer") or "")
         finally:
             try:
                 from ming_sim.scheduler import stop_worker

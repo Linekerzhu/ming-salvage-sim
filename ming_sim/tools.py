@@ -1048,6 +1048,25 @@ def build_minister_tools(character: Character, context: CourtContext):
             return err
         if order["status"] != "active":
             return f"密令 #{order['id']} 当前状态 {order['status']}，不能再调整差遣。"
+        try:
+            from ming_sim.eunuch_lore import normalize_dispatch_strategy
+            clean_strategy = normalize_dispatch_strategy(strategy)
+        except Exception:
+            clean_strategy = "relay"
+        clean_note = (note or "").strip()[:120]
+        payload = {
+            "action": "dispatch_strategy",
+            "type": "secret_order",
+            "kind": "dispatch_strategy",
+            "mode": clean_strategy,
+            "strategy": clean_strategy,
+            "order_id": int(order["id"]),
+            "title": str(order.get("title") or ""),
+            "assignee": str(order.get("minister_name") or character.name),
+            "note": clean_note,
+        }
+        if not bool(getattr(context, "tool_side_effects", True)):
+            return f"__secret_order_followup__{json.dumps(payload, ensure_ascii=False)}"
         text = "\n".join(
             str(order.get(key) or "")
             for key in ("title", "content", "result", "sim_note")
@@ -1065,10 +1084,10 @@ def build_minister_tools(character: Character, context: CourtContext):
                 context.state,
                 str(order["minister_name"]),
                 text,
-                strategy,
+                clean_strategy,
                 order_id=int(order["id"]),
                 domains=domains,
-                note=note,
+                note=clean_note,
                 source="secret_order_tool",
             )
         except Exception as exc:

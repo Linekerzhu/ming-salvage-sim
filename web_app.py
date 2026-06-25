@@ -4838,6 +4838,32 @@ class WebGame:
             }
         if action_type == "secret_order":
             kind = str(decision.kind or payload.get("kind") or payload.get("mode") or payload.get("action") or "").strip().lower()
+            if kind in {"dispatch_strategy", "strategy", "eunuch_dispatch_strategy", "差遣", "旧患差遣"}:
+                raw_order_id = str(payload.get("order_id") or payload.get("id") or "").strip().lstrip("#")
+                try:
+                    order_id = int(raw_order_id)
+                except (TypeError, ValueError):
+                    return {}
+                if order_id <= 0:
+                    return {}
+                try:
+                    from ming_sim.eunuch_lore import normalize_dispatch_strategy
+                    strategy = normalize_dispatch_strategy(str(payload.get("strategy") or payload.get("mode") or "relay"))
+                except Exception:
+                    strategy = "relay"
+                return {
+                    "type": "secret_order",
+                    "target": target or actor or minister_name,
+                    "actor": actor or minister_name,
+                    "kind": "dispatch_strategy",
+                    "mode": strategy,
+                    "strategy": strategy,
+                    "order_id": order_id,
+                    "title": str(payload.get("title") or "").strip()[:40],
+                    "assignee": str(payload.get("assignee") or target or actor or minister_name).strip(),
+                    "note": str(payload.get("note") or quote or text).strip()[:120],
+                    "trigger_quote": quote or text,
+                }
             if kind in {"rush", "hurry", "催办", "加急", "即核"}:
                 raw_order_id = str(payload.get("order_id") or payload.get("id") or "").strip().lstrip("#")
                 try:
@@ -6436,6 +6462,35 @@ class WebGame:
 
     def _execute_secret_order_action(self, minister_name: str, action: Dict[str, Any]) -> Dict[str, Any]:
         kind = str(action.get("kind") or action.get("mode") or action.get("action") or "issue").strip().lower()
+        if kind in {"dispatch_strategy", "strategy", "eunuch_dispatch_strategy", "差遣", "旧患差遣"}:
+            effect = self.session._apply_secret_order_followup(action, minister_name)
+            if not effect:
+                return {}
+            order_id = int(effect.get("order_id") or 0)
+            title = str(effect.get("title") or f"#{order_id}")
+            assignee = str(effect.get("assignee") or minister_name)
+            before = int((effect.get("risk_before") or {}).get("score_delta") or 0) if isinstance(effect.get("risk_before"), dict) else 0
+            after = int((effect.get("risk_after") or {}).get("score_delta") or 0) if isinstance(effect.get("risk_after"), dict) else before
+            strategy = str(effect.get("strategy") or "")
+            outcome = str(effect.get("outcome") or "差遣策略入档")
+            message = f"#{order_id} {title}：{assignee}旧患差遣 {strategy}；{outcome}"
+            return {
+                "answer": (
+                    f"{self._dialogue_speaker_self(minister_name)}遵旨。密令 #{order_id}「{title}」已按"
+                    f"{assignee}净身旧患调整差遣；旧患风险{before:+d}->{after:+d}。"
+                ),
+                "secret_order_id": order_id,
+                "secret_order_assignee": assignee,
+                "secret_order_effect": effect,
+                "dialogue_effect": {
+                    "title": "旧患差遣",
+                    "message": message,
+                    "effects": [
+                        {"kind": "secret_order_dispatch_strategy", "label": f"#{order_id} {strategy or '差遣'}", "tone": "warn"},
+                        {"kind": "secret_order_actor", "label": f"承办：{assignee}", "tone": "neutral"},
+                    ],
+                },
+            }
         if kind in {"rush", "hurry", "催办", "加急", "即核"}:
             effect = self.session._apply_secret_order_followup(action, minister_name)
             if not effect:
@@ -7203,6 +7258,27 @@ class WebGame:
             return {}
         if normalized.get("type") == "secret_order":
             kind = str(normalized.get("kind") or normalized.get("mode") or "").strip().lower()
+            if kind in {"dispatch_strategy", "strategy", "eunuch_dispatch_strategy", "差遣", "旧患差遣"}:
+                raw_order_id = str(normalized.get("order_id") or normalized.get("id") or "").strip().lstrip("#")
+                try:
+                    order_id = int(raw_order_id)
+                except (TypeError, ValueError):
+                    return {}
+                if order_id <= 0:
+                    return {}
+                try:
+                    from ming_sim.eunuch_lore import normalize_dispatch_strategy
+                    strategy = normalize_dispatch_strategy(str(normalized.get("strategy") or normalized.get("mode") or "relay"))
+                except Exception:
+                    strategy = "relay"
+                normalized["order_id"] = order_id
+                normalized["kind"] = "dispatch_strategy"
+                normalized["mode"] = strategy
+                normalized["strategy"] = strategy
+                normalized["actor"] = str(normalized.get("actor") or minister_name).strip()
+                if not normalized.get("target"):
+                    normalized["target"] = str(normalized.get("assignee") or minister_name).strip()
+                return normalized
             if kind in {"rush", "hurry", "催办", "加急", "即核"}:
                 raw_order_id = str(normalized.get("order_id") or normalized.get("id") or "").strip().lstrip("#")
                 try:
@@ -8708,7 +8784,7 @@ class WebGame:
                                 secret_order_id,
                                 secret_order_assignee or minister_name,
                             )
-                    elif tool_name == "rush_secret_order" or res.startswith("__secret_order_followup__"):
+                    elif tool_name in {"rush_secret_order", "set_eunuch_dispatch_strategy"} or res.startswith("__secret_order_followup__"):
                         payload_json = res.removeprefix("__secret_order_followup__").strip()
                         if not payload_json:
                             args = getattr(tool_exec, "arguments", {}) or getattr(tool_exec, "tool_args", {}) or {}

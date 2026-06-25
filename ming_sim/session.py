@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Tuple
 
 from ming_sim.agents import bind_content as _bind_agents
 from ming_sim.agents import _dump_llm_messages
+from ming_sim.bureaucracy import secret_order_actor_assessment
 from ming_sim.constants import TURN_UNIT
 from ming_sim.content import GameContent
 from ming_sim.context import (
@@ -977,7 +978,15 @@ class GameSession:
         if not isinstance(data, dict):
             return {}
         raw_kind = str(data.get("action") or data.get("kind") or data.get("mode") or "").strip().lower()
-        if raw_kind not in {"rush", "hurry", "催办", "加急", "即核"}:
+        is_dispatch_strategy = raw_kind in {
+            "dispatch_strategy",
+            "strategy",
+            "eunuch_dispatch_strategy",
+            "差遣",
+            "旧患差遣",
+        } or bool(data.get("strategy"))
+        is_rush = raw_kind in {"rush", "hurry", "催办", "加急", "即核"}
+        if not is_rush and not is_dispatch_strategy:
             return {}
         raw_id = str(data.get("order_id") or data.get("id") or "").strip().lstrip("#")
         try:
@@ -990,6 +999,23 @@ class GameSession:
             deadline = max(0, min(int(data.get("deadline_months") or 0), 36))
         except (TypeError, ValueError):
             deadline = 1
+        if is_dispatch_strategy:
+            try:
+                from ming_sim.eunuch_lore import normalize_dispatch_strategy
+                strategy = normalize_dispatch_strategy(str(data.get("strategy") or data.get("mode") or raw_kind))
+            except Exception:
+                strategy = "relay"
+            return {
+                "action": "dispatch_strategy",
+                "type": "secret_order",
+                "kind": "dispatch_strategy",
+                "mode": strategy,
+                "strategy": strategy,
+                "order_id": order_id,
+                "note": str(data.get("note") or data.get("reason") or "").strip()[:120],
+                "title": str(data.get("title") or "").strip()[:40],
+                "assignee": str(data.get("assignee") or data.get("minister_name") or "").strip(),
+            }
         return {
             "action": "rush",
             "type": "secret_order",
@@ -1021,6 +1047,23 @@ class GameSession:
         if assignee != character.name:
             return {}
         title = str(order.get("title") or data.get("title") or f"#{data['order_id']}").strip()
+        if str(data.get("kind") or "") == "dispatch_strategy":
+            strategy = str(data.get("strategy") or data.get("mode") or "relay").strip() or "relay"
+            note = str(data.get("note") or "").strip()
+            return {
+                "type": "secret_order",
+                "phase": "confirm",
+                "target": assignee,
+                "actor": character.name,
+                "kind": "dispatch_strategy",
+                "mode": strategy,
+                "strategy": strategy,
+                "order_id": int(data["order_id"]),
+                "title": title,
+                "assignee": assignee,
+                "note": note or f"按净身旧患调整密令 #{int(data['order_id'])}「{title}」差遣策略：{strategy}",
+                "tool_answer_excerpt": str(answer or "")[:240],
+            }
         deadline = int(data.get("deadline_months") or 0)
         reason = str(data.get("reason") or "").strip()
         note_parts = [f"催办密令 #{int(data['order_id'])}「{title}」"]
@@ -1515,7 +1558,7 @@ class GameSession:
                     result.secret_order_id = order_id
                     result.secret_order_assignee = assignee or character.name
                     result.secret_order_effect = self.record_secret_order_effect(order_id, result.secret_order_assignee)
-            elif tool_name == "rush_secret_order" or tool_result.startswith("__secret_order_followup__"):
+            elif tool_name in {"rush_secret_order", "set_eunuch_dispatch_strategy"} or tool_result.startswith("__secret_order_followup__"):
                 payload = tool_result.removeprefix("__secret_order_followup__").strip()
                 if not payload:
                     payload = _tool_args_json(tool_exec)
@@ -1527,7 +1570,7 @@ class GameSession:
                 if action:
                     result.dialogue_action = action
             # report_secret_order_progress / submit_secret_order_for_review 仍是承办人查办进度工具；
-            # rush_secret_order 已转为语义门后才可落库。
+            # rush_secret_order / set_eunuch_dispatch_strategy 已转为语义门后才可落库。
             # 密令结案 done/failed 由月末推演 + extractor 写入，不再走大臣工具
         result.dialogue_goal = self.record_dialogue_after_chat(
             character,
@@ -1704,6 +1747,8 @@ class GameSession:
         data = self._secret_order_followup_payload(payload)
         if not data:
             return {}
+        if str(data.get("kind") or "") == "dispatch_strategy":
+            return self._apply_secret_order_dispatch_strategy(data, minister_name)
         order_id = int(data.get("order_id") or 0)
         order = self.db.get_secret_order(order_id)
         if order is None:
@@ -1733,6 +1778,65 @@ class GameSession:
             "due_turn": due_turn,
             "deadline_months": deadline,
             "reason": reason,
+        }
+
+    def _apply_secret_order_dispatch_strategy(self, payload: object, minister_name: str = "") -> Dict[str, object]:
+        data = self._secret_order_followup_payload(payload)
+        if not data or str(data.get("kind") or "") != "dispatch_strategy":
+            return {}
+        order_id = int(data.get("order_id") or 0)
+        order = self.db.get_secret_order(order_id)
+        if order is None:
+            return {}
+        assignee = str(order.get("minister_name") or "").strip()
+        if minister_name and assignee != str(minister_name or "").strip():
+            return {}
+        if str(order.get("status") or "") != "active":
+            return {}
+        task_text = "\n".join(
+            str(order.get(key) or "")
+            for key in ("title", "content", "result", "sim_note")
+            if str(order.get(key) or "").strip()
+        )
+        try:
+            assessment = secret_order_actor_assessment(self.state, self.db, order)
+            domains = assessment.get("domains") if isinstance(assessment.get("domains"), list) else []
+        except Exception:
+            domains = []
+        try:
+            from ming_sim.eunuch_lore import apply_eunuch_dispatch_strategy
+
+            applied = apply_eunuch_dispatch_strategy(
+                self.db,
+                self.state,
+                assignee,
+                task_text,
+                str(data.get("strategy") or data.get("mode") or "relay"),
+                order_id=order_id,
+                domains=domains,
+                note=str(data.get("note") or ""),
+                source="dialogue_semantic_tool",
+            )
+        except Exception as exc:
+            print(f"[secret_order] 旧患差遣拒绝落库：{exc}")
+            return {}
+        if not isinstance(applied, dict) or not applied.get("ok"):
+            return {}
+        title = str(order.get("title") or data.get("title") or f"#{order_id}")
+        return {
+            "kind": "secret_order_dispatch_strategy",
+            "order_id": order_id,
+            "title": title,
+            "assignee": assignee,
+            "minister_name": assignee,
+            "strategy": str(applied.get("strategy") or data.get("strategy") or data.get("mode") or ""),
+            "process": str(applied.get("process") or ""),
+            "outcome": str(applied.get("outcome") or ""),
+            "cost": int(applied.get("cost") or 0),
+            "delta": applied.get("delta") if isinstance(applied.get("delta"), dict) else {},
+            "risk_before": applied.get("risk_before") if isinstance(applied.get("risk_before"), dict) else {},
+            "risk_after": applied.get("risk_after") if isinstance(applied.get("risk_after"), dict) else {},
+            "flare_after": applied.get("flare_after") if isinstance(applied.get("flare_after"), dict) else {},
         }
 
     def _apply_secret_order_followup_after_semantic_gate(

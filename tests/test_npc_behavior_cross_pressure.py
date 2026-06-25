@@ -1362,6 +1362,50 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             self.assertEqual(after["due_turn"], before["due_turn"])
             db.conn.close()
 
+    def test_dialogue_secret_order_dispatch_strategy_tool_returns_payload_without_side_effects(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db = GameDB(str(Path(tmp) / "npc_secret_dispatch_no_side_effect_tool.db"), content=self.content)
+            db.seed_static_data()
+            state = GameState(
+                year=1628,
+                period=1,
+                turn=1,
+                metrics={"国库": 100, "内库": 30, "民心": 50, "皇威": 50},
+            )
+            actor = "王承恩"
+            el.record_castration(
+                db,
+                actor,
+                forced=True,
+                day=1,
+                detail_text="净身房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+            )
+            order_id = db.create_secret_order(
+                state,
+                actor,
+                "密查净身房封签",
+                "夜间久候盯梢刑房封签，拿问口供，查清官库旧案。",
+                ["刑房", "封签", "净身房"],
+                deadline_months=1,
+            )
+            tools = build_minister_tools(
+                self.content.characters[actor],
+                CourtContext(state=state, db=db, tool_side_effects=False),
+            )
+            dispatch = next(tool for tool in tools if getattr(tool, "__name__", "") == "set_eunuch_dispatch_strategy")
+
+            result = dispatch(order_id, strategy="relay", note="准副手轮值，别硬撑坏事。")
+
+            self.assertTrue(result.startswith("__secret_order_followup__"))
+            payload = json.loads(result.removeprefix("__secret_order_followup__"))
+            self.assertEqual(payload["kind"], "dispatch_strategy")
+            self.assertEqual(payload["strategy"], "relay")
+            self.assertEqual(payload["order_id"], order_id)
+            updated = db.get_secret_order(order_id)
+            self.assertFalse(str(updated.get("sim_note") or "").strip())
+            self.assertEqual(state.metrics["内库"], 30)
+            db.conn.close()
+
     def test_dialogue_secret_order_requires_semantic_confirm_before_db_write(self) -> None:
         with TemporaryDirectory() as tmp:
             old_disable = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")
@@ -1528,6 +1572,112 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 self.assertEqual(effect.get("kind"), "secret_order_rush")
                 self.assertEqual(effect.get("order_id"), order_id)
                 self.assertEqual(session.db.get_secret_order(order_id)["status"], "pending_review")
+            finally:
+                session.close()
+                if old_disable is None:
+                    os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+                else:
+                    os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = old_disable
+
+    def test_dialogue_secret_order_dispatch_strategy_requires_semantic_confirm_before_db_write(self) -> None:
+        with TemporaryDirectory() as tmp:
+            old_disable = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")
+            os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+            session = GameSession(
+                str(Path(tmp) / "npc_secret_dispatch_semantic_gate.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            try:
+                session.begin_turn()
+                session.state.metrics["内库"] = 30
+                actor = "王承恩"
+                character = session._character(actor)
+                el.record_castration(
+                    session.db,
+                    actor,
+                    forced=True,
+                    day=1,
+                    detail_text="净身房无麻，宝官库石灰封存；近来漏尿尿闭，幻肢痛，按肩会僵住。",
+                )
+                order_id = session.db.create_secret_order(
+                    session.state,
+                    actor,
+                    "密查净身房封签",
+                    "夜间久候盯梢刑房封签，拿问口供，查清官库旧案。",
+                    ["刑房", "封签", "净身房"],
+                    deadline_months=1,
+                )
+                payload = json.dumps(
+                    {
+                        "action": "dispatch_strategy",
+                        "order_id": order_id,
+                        "title": "密查净身房封签",
+                        "assignee": actor,
+                        "strategy": "relay",
+                        "note": "准副手轮值，别硬撑坏事。",
+                    },
+                    ensure_ascii=False,
+                )
+
+                captured: dict[str, object] = {}
+
+                def deny_audit(phase, audit_payload):
+                    if phase != "dialogue_action_intent":
+                        return None
+                    captured["deny"] = audit_payload
+                    return {
+                        "allow": False,
+                        "phase": "none",
+                        "action_type": "none",
+                        "confidence": 95,
+                        "private_reason": "只是询问旧患风险，不是准许差遣策略。",
+                    }
+
+                session.dialogue_audit_client = deny_audit
+                denied = session._apply_secret_order_followup_after_semantic_gate(
+                    payload,
+                    character,
+                    "你看王承恩旧患该怎么办？",
+                )
+                self.assertEqual(denied, {})
+                self.assertFalse(str(session.db.get_secret_order(order_id).get("sim_note") or "").strip())
+                self.assertEqual(session.state.metrics["内库"], 30)
+                tool_action = (captured["deny"] or {}).get("tool_action")  # type: ignore[union-attr]
+                self.assertEqual(tool_action["kind"], "dispatch_strategy")  # type: ignore[index]
+                self.assertEqual(tool_action["strategy"], "relay")  # type: ignore[index]
+
+                def allow_audit(phase, audit_payload):
+                    if phase != "dialogue_action_intent":
+                        return None
+                    tool_action = audit_payload.get("tool_action") or {}
+                    self.assertEqual(tool_action.get("kind"), "dispatch_strategy")
+                    self.assertEqual(tool_action.get("strategy"), "relay")
+                    self.assertEqual(tool_action.get("order_id"), order_id)
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "secret_order",
+                        "kind": "dispatch_strategy",
+                        "mode": "relay",
+                        "target": actor,
+                        "actor": actor,
+                        "confidence": 96,
+                        "trigger_quote": "准副手轮值",
+                        "private_reason": "玩家明确准许按净身旧患调整差遣策略。",
+                    }
+
+                session.dialogue_audit_client = allow_audit
+                effect = session._apply_secret_order_followup_after_semantic_gate(
+                    payload,
+                    character,
+                    "准，副手轮值，别硬撑坏事。",
+                )
+                self.assertEqual(effect.get("kind"), "secret_order_dispatch_strategy")
+                self.assertEqual(effect.get("strategy"), "relay")
+                self.assertIn("分班轮值", session.db.get_secret_order(order_id)["sim_note"])
+                self.assertEqual(session.state.metrics["内库"], 29)
             finally:
                 session.close()
                 if old_disable is None:
