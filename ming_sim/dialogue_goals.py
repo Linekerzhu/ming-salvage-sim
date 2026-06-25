@@ -271,6 +271,21 @@ def _immediate_consequence_enabled(raw: Dict[str, object]) -> bool:
     return str(value or "").strip().lower() in {"true", "yes", "y", "1", "apply", "executed"}
 
 
+def _immediate_consequence_trigger_quote(raw: Dict[str, object]) -> str:
+    return _compact(
+        str(raw.get("trigger_quote") or raw.get("immediate_consequence_quote") or ""),
+        180,
+    )
+
+
+def _quote_supported_by_dialogue_text(quote: str, combined_text: str) -> bool:
+    clean_quote = re.sub(r"\s+", "", str(quote or ""))
+    if not clean_quote:
+        return False
+    clean_text = re.sub(r"\s+", "", str(combined_text or ""))
+    return clean_quote in clean_text
+
+
 def _known_dialogue_consequence_name(db: Any, name: str) -> bool:
     content = getattr(db, "content", None)
     characters = getattr(content, "characters", None)
@@ -350,6 +365,9 @@ def _apply_dialogue_immediate_consequences(
     confidence: int,
 ) -> Dict[str, object]:
     if int(confidence or 0) < CONSEQUENCE_CONFIDENCE_FLOOR:
+        return {}
+    trigger_quote = _immediate_consequence_trigger_quote(post_raw)
+    if not _quote_supported_by_dialogue_text(trigger_quote, combined_text):
         return {}
     extracted = _extract_dialogue_immediate_consequences(
         post_raw,

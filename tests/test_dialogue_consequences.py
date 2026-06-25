@@ -73,6 +73,7 @@ class DialogueImmediateConsequenceTests(unittest.TestCase):
                             "reason": "禁其妄言",
                         }],
                         "confidence": 96,
+                        "trigger_quote": "朕命锦衣卫押你入昭狱拷问，割舌禁言",
                         "public_hint": "口谕即时执行。",
                         "private_reason": "玩家明令锦衣卫押入昭狱并割舌。",
                     }
@@ -208,6 +209,53 @@ class DialogueImmediateConsequenceTests(unittest.TestCase):
             status, _ = db.get_character_status("韩爌")
             self.assertEqual(status, "active")
 
+    def test_dialogue_consequence_requires_trigger_quote(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp, self.content)
+            character = self.content.characters["韩爌"]
+
+            class Audit:
+                def post(self, payload):
+                    return {
+                        "goal_decision": "none",
+                        "goal_relation": "none",
+                        "action_kind": "general",
+                        "stance": "neutral",
+                        "handshake_status": "none",
+                        "goal_status": "active",
+                        "score_delta": 0,
+                        "score_after": 0,
+                        "threshold": 70,
+                        "conditions": [],
+                        "blockers": [],
+                        "agreement_action": "none",
+                        "immediate_consequence": True,
+                        "character_status_changes": [{
+                            "name": "韩爌",
+                            "status": "imprisoned",
+                            "reason": "缺少原文证据",
+                        }],
+                        "confidence": 96,
+                        "public_hint": "口谕即时执行。",
+                        "private_reason": "缺少 trigger_quote，不应落库。",
+                    }
+
+            result = record_dialogue_effects(
+                db,
+                state,
+                character,
+                "朕命锦衣卫押你入昭狱拷问。",
+                "臣伏罪。",
+                prepared=self._prepared_none(),
+                audit_client=Audit(),
+                source_chat_turn_id=325,
+            )
+
+            self.assertEqual(result["event"], "none")
+            self.assertEqual(result["dialogue_consequences"], {})
+            status, _ = db.get_character_status("韩爌")
+            self.assertEqual(status, "active")
+
     def test_dialogue_consequences_filter_unknown_names_before_apply(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp, self.content)
@@ -244,6 +292,7 @@ class DialogueImmediateConsequenceTests(unittest.TestCase):
                             {"name": "不存在的错档人", "punishment": "割舌", "reason": "夹带错名"},
                         ],
                         "confidence": 96,
+                        "trigger_quote": "押洪承畴和不存在的错档人入昭狱，割舌禁言",
                         "public_hint": "口谕即时执行。",
                         "private_reason": "玩家明令押人并割舌。",
                     }
