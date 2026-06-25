@@ -1534,6 +1534,59 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 else:
                     os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = old_disable
 
+    def test_secret_order_issue_requires_trigger_quote_from_current_user_text(self) -> None:
+        with TemporaryDirectory() as tmp:
+            old_disable = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")
+            os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+            session = GameSession(
+                str(Path(tmp) / "npc_secret_issue_quote_gate.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            try:
+                session.begin_turn()
+                character = session._character("温体仁")
+                payload = json.dumps(
+                    {
+                        "title": "密查钱谦益",
+                        "content": "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                        "tags": ["钱谦益", "东林", "起复"],
+                        "assignee": "温体仁",
+                        "deadline_months": 2,
+                    },
+                    ensure_ascii=False,
+                )
+
+                def allow_with_unsupported_quote(phase, audit_payload):
+                    if phase != "dialogue_action_intent":
+                        return None
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "secret_order",
+                        "kind": "issue",
+                        "target": "温体仁",
+                        "actor": "温体仁",
+                        "confidence": 96,
+                        "trigger_quote": "给温体仁下密令",
+                        "private_reason": "审计误把追问当成密令。",
+                    }
+
+                session.dialogue_audit_client = allow_with_unsupported_quote
+                user_text = "此事能否暗查钱谦益？"
+                self.assertFalse(session.dialogue_action_allows_secret_order(character, user_text, payload))
+                order_id = session._apply_secret_order_after_semantic_gate(payload, character, user_text)
+
+                self.assertEqual(order_id, 0)
+                self.assertEqual(session.db.list_secret_orders(), [])
+            finally:
+                session.close()
+                if old_disable is None:
+                    os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+                else:
+                    os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = old_disable
+
     def test_secret_order_issue_execution_uses_decision_payload_boundary(self) -> None:
         with TemporaryDirectory() as tmp:
             old_disable = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")
@@ -1698,6 +1751,72 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 self.assertEqual(effect.get("kind"), "secret_order_rush")
                 self.assertEqual(effect.get("order_id"), order_id)
                 self.assertEqual(session.db.get_secret_order(order_id)["status"], "pending_review")
+            finally:
+                session.close()
+                if old_disable is None:
+                    os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+                else:
+                    os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = old_disable
+
+    def test_secret_order_followup_requires_trigger_quote_from_current_user_text(self) -> None:
+        with TemporaryDirectory() as tmp:
+            old_disable = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")
+            os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+            session = GameSession(
+                str(Path(tmp) / "npc_secret_followup_quote_gate.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            try:
+                session.begin_turn()
+                character = session._character("温体仁")
+                order_id = session.db.create_secret_order(
+                    session.state,
+                    "温体仁",
+                    "密查钱谦益",
+                    "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                    ["钱谦益", "东林", "起复"],
+                    deadline_months=3,
+                )
+                before = session.db.get_secret_order(order_id)
+                payload = json.dumps(
+                    {
+                        "action": "rush",
+                        "order_id": order_id,
+                        "title": "密查钱谦益",
+                        "assignee": "温体仁",
+                        "deadline_months": 0,
+                        "reason": "本月即核。",
+                    },
+                    ensure_ascii=False,
+                )
+
+                def allow_with_unsupported_quote(phase, audit_payload):
+                    if phase != "dialogue_action_intent":
+                        return None
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "secret_order",
+                        "kind": "rush",
+                        "target": "温体仁",
+                        "actor": "温体仁",
+                        "confidence": 96,
+                        "trigger_quote": "本月即核",
+                        "private_reason": "审计误把追问当成催办。",
+                    }
+
+                session.dialogue_audit_client = allow_with_unsupported_quote
+                user_text = "这条密令查到哪了？"
+                self.assertFalse(
+                    session.dialogue_action_allows_secret_order_followup(character, user_text, payload)
+                )
+                effect = session._apply_secret_order_followup_after_semantic_gate(payload, character, user_text)
+
+                self.assertEqual(effect, {})
+                self.assertEqual(session.db.get_secret_order(order_id)["status"], "active")
+                self.assertEqual(session.db.get_secret_order(order_id)["due_turn"], before["due_turn"])
             finally:
                 session.close()
                 if old_disable is None:

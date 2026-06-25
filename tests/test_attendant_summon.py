@@ -7404,6 +7404,67 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_appointment_requires_trigger_quote_from_current_user_text(self):
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "韩爌"
+            target = "顾幻任"
+            office = "兵部督师"
+            character = game.session._character(actor)
+            payload = json.dumps(
+                {
+                    "name": target,
+                    "office": office,
+                    "faction": "中立",
+                    "reason": "测试任命触发句必须来自玩家原话。",
+                    "recommendation_basis": "审计误报时不应落库。",
+                    "replaces": "",
+                },
+                ensure_ascii=False,
+            )
+
+            def allow_with_unsupported_quote(phase, audit_payload):
+                if phase != "dialogue_action_intent":
+                    return None
+                return {
+                    "allow": True,
+                    "phase": "confirm",
+                    "action_type": "office_change",
+                    "target": target,
+                    "confidence": 97,
+                    "trigger_quote": f"任{target}为{office}",
+                    "private_reason": "审计误把询问当成任命。",
+                }
+
+            game.session.dialogue_audit_client = allow_with_unsupported_quote
+            user_text = f"你看谁可任{office}？"
+            self.assertFalse(
+                game.session.dialogue_allows_appointment(
+                    character,
+                    user_text,
+                    payload,
+                    answer=f"臣拟任{target}为{office}。",
+                )
+            )
+            appointed, displaced, displaced_effect = game.session._apply_appointment_after_semantic_gate(
+                payload,
+                character,
+                user_text,
+                answer=f"臣拟任{target}为{office}。",
+            )
+
+            self.assertEqual((appointed, displaced, displaced_effect), ("", "", {}))
+            self.assertNotIn(target, game.content.characters)
+            row = game.db.conn.execute("SELECT name FROM characters WHERE name=?", (target,)).fetchone()
+            self.assertIsNone(row)
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_directive_regex_fallback_ignores_generic_legacy_action_regex(self):
         os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
         os.environ["MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS"] = "1"

@@ -1204,7 +1204,7 @@ class GameSession:
         try:
             from ming_sim.dialogue_semantics import DialogueSemanticEngine
 
-            return DialogueSemanticEngine(
+            decision = DialogueSemanticEngine(
                 self.db,
                 self.state,
                 llm_config=self.llm_config,
@@ -1217,6 +1217,9 @@ class GameSession:
                 pending_action=None,
                 phase="confirm",
             )
+            if decision.allow and not self._semantic_decision_quote_supported_by_user_text(decision, user_text):
+                return None
+            return decision
         except Exception:
             return None
 
@@ -1292,6 +1295,22 @@ class GameSession:
             return list(left or []) == list(right or []) if isinstance(left, list) and isinstance(right, list) else False
         return str(left or "").strip() == str(right or "").strip()
 
+    @staticmethod
+    def _semantic_decision_quote_supported_by_user_text(decision: object, user_text: str) -> bool:
+        quote = str(getattr(decision, "trigger_quote", "") or "").strip()
+        if not quote and hasattr(decision, "to_review"):
+            try:
+                review = decision.to_review()
+            except Exception:
+                review = {}
+            if isinstance(review, dict):
+                quote = str(review.get("trigger_quote") or "").strip()
+        clean_quote = re.sub(r"[\W_]+", "", quote, flags=re.UNICODE)
+        if not clean_quote:
+            return False
+        clean_text = re.sub(r"[\W_]+", "", str(user_text or ""), flags=re.UNICODE)
+        return bool(clean_text and clean_quote in clean_text)
+
     def dialogue_action_allows_secret_order_followup(
         self,
         character: Character,
@@ -1354,7 +1373,7 @@ class GameSession:
         try:
             from ming_sim.dialogue_semantics import DialogueSemanticEngine
 
-            return DialogueSemanticEngine(
+            decision = DialogueSemanticEngine(
                 self.db,
                 self.state,
                 llm_config=self.llm_config,
@@ -1367,6 +1386,9 @@ class GameSession:
                 pending_action=None,
                 phase="confirm",
             )
+            if decision.allow and not self._semantic_decision_quote_supported_by_user_text(decision, user_text):
+                return None
+            return decision
         except Exception:
             return None
 
@@ -1467,7 +1489,7 @@ class GameSession:
         try:
             from ming_sim.dialogue_semantics import DialogueSemanticEngine
 
-            return DialogueSemanticEngine(
+            decision = DialogueSemanticEngine(
                 self.db,
                 self.state,
                 llm_config=self.llm_config,
@@ -1479,6 +1501,7 @@ class GameSession:
                 candidate_names=[name],
                 purpose="register_unlisted_person",
             )
+            return decision
         except Exception:
             return None
 
@@ -1728,7 +1751,7 @@ class GameSession:
         try:
             from ming_sim.dialogue_semantics import DialogueSemanticEngine
 
-            return DialogueSemanticEngine(
+            decision = DialogueSemanticEngine(
                 self.db,
                 self.state,
                 llm_config=self.llm_config,
@@ -1741,6 +1764,9 @@ class GameSession:
                 pending_action=None,
                 phase="confirm",
             )
+            if decision.allow and not self._semantic_decision_quote_supported_by_user_text(decision, user_text):
+                return None
+            return decision
         except Exception:
             return None
 
