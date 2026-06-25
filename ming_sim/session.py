@@ -1461,9 +1461,27 @@ class GameSession:
         answer: str = "",
     ) -> bool:
         """Semantic gate for NPC tool-generated pending directive drafts."""
+        return bool(
+            self.dialogue_pending_directive_text_after_semantic_gate(
+                character,
+                user_text,
+                draft_text,
+                answer=answer,
+            )
+        )
+
+    def dialogue_pending_directive_decision(
+        self,
+        character: Character,
+        user_text: str,
+        draft_text: str,
+        *,
+        answer: str = "",
+    ) -> Optional[Any]:
+        """Return the semantic decision for an NPC tool-generated directive draft."""
         draft = str(draft_text or "").strip()
         if not draft:
-            return False
+            return None
         evidence = "\n".join(
             part
             for part in (
@@ -1475,7 +1493,7 @@ class GameSession:
         try:
             from ming_sim.dialogue_semantics import DialogueSemanticEngine
 
-            decision = DialogueSemanticEngine(
+            return DialogueSemanticEngine(
                 self.db,
                 self.state,
                 llm_config=self.llm_config,
@@ -1488,8 +1506,39 @@ class GameSession:
                 kind="directive_fallback",
             )
         except Exception:
-            return False
-        return bool(decision.allow and decision.action_type == "directive_fallback")
+            return None
+
+    def _pending_directive_text_with_decision(
+        self,
+        draft_text: str,
+        decision: object,
+    ) -> str:
+        review_payload = getattr(decision, "payload", {})
+        if not isinstance(review_payload, dict):
+            review_payload = {}
+        for key in ("directive_text", "draft_text", "text"):
+            value = str(review_payload.get(key) or "").strip()
+            if value:
+                return value[:1600]
+        return ""
+
+    def dialogue_pending_directive_text_after_semantic_gate(
+        self,
+        character: Character,
+        user_text: str,
+        draft_text: str,
+        *,
+        answer: str = "",
+    ) -> str:
+        decision = self.dialogue_pending_directive_decision(
+            character,
+            user_text,
+            draft_text,
+            answer=answer,
+        )
+        if decision is None or not decision.allow or decision.action_type != "directive_fallback":
+            return ""
+        return self._pending_directive_text_with_decision(draft_text, decision)
 
     def _record_pending_directive_from_tool(
         self,
@@ -1501,8 +1550,17 @@ class GameSession:
     ) -> Optional[DirectiveView]:
         """Record an NPC tool draft only after semantic review of the player utterance."""
         draft = str(draft_text or "").strip()
-        if not draft or not self.dialogue_allows_pending_directive(character, user_text, draft, answer=answer):
+        if not draft:
             return None
+        reviewed_draft = self.dialogue_pending_directive_text_after_semantic_gate(
+            character,
+            user_text,
+            draft,
+            answer=answer,
+        )
+        if not reviewed_draft:
+            return None
+        draft = reviewed_draft
         directive_id = self.db.add_directive(
             self.state, None, draft, "大臣拟旨",
             actor=character.name, notes=f"由{character.name}拟旨入档", status="pending",

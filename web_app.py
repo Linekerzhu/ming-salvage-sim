@@ -2333,14 +2333,15 @@ class WebGame:
         draft_text = (draft_text or "").strip()
         if not draft_text:
             return None
-        if not self.session.dialogue_allows_pending_directive(
+        reviewed_draft = self.session.dialogue_pending_directive_text_after_semantic_gate(
             character,
             user_text,
             draft_text,
             answer=answer,
-        ):
+        )
+        if not reviewed_draft:
             return None
-        return self._record_pending_directive(character, draft_text)
+        return self._record_pending_directive(character, reviewed_draft)
 
     _DIRECTIVE_INTENT_RE = re.compile(r"(拟旨|拟诏|草案|旨意|谕旨|诏书|可直接颁布|下旨|颁布)")
     _DIRECTIVE_NEG_RE = re.compile(r"(不要|不必|无需|别|勿|暂不).{0,8}(拟旨|拟诏|草案|旨意|谕旨|诏书|下旨|颁布)")

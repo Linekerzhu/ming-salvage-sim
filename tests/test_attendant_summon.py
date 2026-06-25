@@ -6800,16 +6800,17 @@ class AttendantSummonTests(unittest.TestCase):
             actor = "王承恩"
             character = game.session._character(actor)
             draft_text = "着户部核明辽饷实欠，五日内具奏。"
+            tool_draft_text = "着户部即刻加征辽饷，违者重责。"
             calls = []
 
             class ToolExec:
                 tool_name = "propose_directive"
-                result = f"__pending_directive__{draft_text}"
+                result = f"__pending_directive__{tool_draft_text}"
                 arguments = {}
                 tool_args = {}
 
             class RunOutput:
-                content = f"臣已拟旨如下：{draft_text}"
+                content = f"臣已拟旨如下：{tool_draft_text}"
                 tools = [ToolExec()]
 
             class FakeAgent:
@@ -6828,7 +6829,7 @@ class AttendantSummonTests(unittest.TestCase):
             def deny_audit(phase, payload):
                 if phase == "dialogue_directive_fallback":
                     calls.append(payload)
-                    self.assertIn(draft_text, str(payload.get("npc_answer") or ""))
+                    self.assertIn(tool_draft_text, str(payload.get("npc_answer") or ""))
                     return {
                         "allow": False,
                         "subject": "",
@@ -6846,7 +6847,7 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertTrue(calls)
             row = game.db.conn.execute(
                 "SELECT COUNT(*) AS n FROM turn_directives WHERE actor=? AND text=?",
-                (actor, draft_text),
+                (actor, tool_draft_text),
             ).fetchone()
             self.assertEqual(int(row["n"]), 0)
 
@@ -6874,6 +6875,11 @@ class AttendantSummonTests(unittest.TestCase):
             self.assertIsNotNone(row)
             self.assertEqual(row["status"], "pending")
             self.assertEqual(row["source"], "大臣拟旨")
+            wrong_row = game.db.conn.execute(
+                "SELECT COUNT(*) AS n FROM turn_directives WHERE actor=? AND text=?",
+                (actor, tool_draft_text),
+            ).fetchone()
+            self.assertEqual(int(wrong_row["n"]), 0)
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
@@ -6888,6 +6894,7 @@ class AttendantSummonTests(unittest.TestCase):
             actor = "王承恩"
             character = game.session._character(actor)
             draft_text = "着兵部点验京营器械，三日内奏明缺额。"
+            tool_draft_text = "着兵部暂缓点验京营器械，诸缺勿问。"
             seen = []
 
             def deny_audit(phase, payload):
@@ -6907,15 +6914,15 @@ class AttendantSummonTests(unittest.TestCase):
             proposed = game._record_tool_pending_directive(
                 character,
                 "这道旨意若颁布会怎样？",
-                draft_text,
-                f"臣试拟：{draft_text}",
+                tool_draft_text,
+                f"臣试拟：{tool_draft_text}",
             )
             self.assertIsNone(proposed)
             self.assertTrue(seen)
 
             def allow_audit(phase, payload):
                 if phase == "dialogue_directive_fallback":
-                    self.assertIn(draft_text, str(payload.get("npc_answer") or ""))
+                    self.assertIn(tool_draft_text, str(payload.get("npc_answer") or ""))
                     return {
                         "allow": True,
                         "subject": "点验京营器械",
@@ -6930,8 +6937,8 @@ class AttendantSummonTests(unittest.TestCase):
             proposed = game._record_tool_pending_directive(
                 character,
                 "照你说的，拟成可核定草案。",
-                draft_text,
-                f"臣试拟：{draft_text}",
+                tool_draft_text,
+                f"臣试拟：{tool_draft_text}",
             )
             self.assertIsNotNone(proposed)
             self.assertEqual(proposed["text"], draft_text)
@@ -6941,6 +6948,11 @@ class AttendantSummonTests(unittest.TestCase):
             ).fetchone()
             self.assertIsNotNone(row)
             self.assertEqual(row["status"], "pending")
+            wrong_row = game.db.conn.execute(
+                "SELECT COUNT(*) AS n FROM turn_directives WHERE actor=? AND text=?",
+                (actor, tool_draft_text),
+            ).fetchone()
+            self.assertEqual(int(wrong_row["n"]), 0)
         finally:
             try:
                 from ming_sim.scheduler import stop_worker
