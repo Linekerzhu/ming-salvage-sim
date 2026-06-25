@@ -1830,6 +1830,90 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 else:
                     os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = old_disable
 
+    def test_secret_order_followup_execution_uses_decision_payload_boundary(self) -> None:
+        with TemporaryDirectory() as tmp:
+            old_disable = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")
+            os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+            session = GameSession(
+                str(Path(tmp) / "npc_secret_followup_payload_boundary.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            try:
+                session.begin_turn()
+                actor = "温体仁"
+                character = session._character(actor)
+                wrong_id = session.db.create_secret_order(
+                    session.state,
+                    actor,
+                    "密查错档",
+                    "此档不该由本轮语义落入进展。",
+                    ["错档"],
+                    deadline_months=3,
+                )
+                allowed_id = session.db.create_secret_order(
+                    session.state,
+                    actor,
+                    "密查钱谦益",
+                    "暗查钱谦益起复东林旧臣之议，摸清同党牵连。",
+                    ["钱谦益", "东林", "起复"],
+                    deadline_months=3,
+                )
+                session.state.turn = 2
+                session.state.period = 2
+                payload = json.dumps(
+                    {
+                        "action": "progress",
+                        "order_id": wrong_id,
+                        "title": "密查错档",
+                        "assignee": actor,
+                        "progress": "工具夹带的错档进展。",
+                    },
+                    ensure_ascii=False,
+                )
+
+                def allow_audit(phase, audit_payload):
+                    if phase != "dialogue_action_intent":
+                        return None
+                    tool_action = audit_payload.get("tool_action") or {}
+                    self.assertEqual(tool_action.get("order_id"), wrong_id)
+                    return {
+                        "allow": True,
+                        "phase": "confirm",
+                        "action_type": "secret_order",
+                        "kind": "progress",
+                        "target": actor,
+                        "actor": actor,
+                        "confidence": 96,
+                        "trigger_quote": "照实入档",
+                        "private_reason": "审计只准许钱谦益密令写入本月进展。",
+                        "payload": {
+                            "order_id": allowed_id,
+                            "progress": "审计准许：探得钱谦益门生往来频密。",
+                            "assignee": actor,
+                            "title": "密查钱谦益",
+                        },
+                    }
+
+                session.dialogue_audit_client = allow_audit
+                effect = session._apply_secret_order_followup_after_semantic_gate(
+                    payload,
+                    character,
+                    "说说本月查到什么，照实入档。",
+                )
+
+                self.assertEqual(effect.get("kind"), "secret_order_progress")
+                self.assertEqual(effect.get("order_id"), allowed_id)
+                self.assertEqual(session.db.get_secret_order(wrong_id)["result"], "")
+                self.assertIn("审计准许", session.db.get_secret_order(allowed_id)["result"])
+            finally:
+                session.close()
+                if old_disable is None:
+                    os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+                else:
+                    os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = old_disable
+
     def test_dialogue_secret_order_submit_review_requires_semantic_confirm_before_db_write(self) -> None:
         with TemporaryDirectory() as tmp:
             old_disable = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")

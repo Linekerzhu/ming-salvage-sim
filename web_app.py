@@ -7352,6 +7352,28 @@ class WebGame:
         if normalized.get("type") == "recruitment" and not normalized.get("kind"):
             return {}
         if normalized.get("type") == "secret_order":
+            for key in (
+                "order_id",
+                "id",
+                "title",
+                "content",
+                "assignee",
+                "deadline_months",
+                "progress",
+                "claim",
+                "note",
+                "reason",
+                "strategy",
+            ):
+                value = payload.get(key)
+                if value not in (None, "", [], {}):
+                    normalized[key] = value
+            if isinstance(payload.get("tags"), list):
+                normalized["tags"] = payload["tags"]
+            if payload.get("kind") and not str(decision.kind or "").strip():
+                normalized["kind"] = payload.get("kind")
+            if payload.get("mode") and not str(decision.mode or "").strip():
+                normalized["mode"] = payload.get("mode")
             kind = str(normalized.get("kind") or normalized.get("mode") or "").strip().lower()
             if kind in {"progress", "report_progress", "进展", "查办进展", "submit_review", "review", "submit", "核议", "提交核议"}:
                 raw_order_id = str(normalized.get("order_id") or normalized.get("id") or "").strip().lstrip("#")

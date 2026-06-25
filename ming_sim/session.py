@@ -13,7 +13,7 @@ import re
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from ming_sim.agents import bind_content as _bind_agents
 from ming_sim.agents import _dump_llm_messages
@@ -1203,18 +1203,41 @@ class GameSession:
         answer: str = "",
     ) -> bool:
         """Semantic gate for secret-order follow-up tool calls before DB writes."""
+        decision = self.dialogue_secret_order_followup_decision(
+            character,
+            user_text,
+            payload,
+            answer=answer,
+        )
+        review = decision.to_review() if decision is not None else {}
+        return bool(
+            isinstance(review, dict)
+            and review.get("allow")
+            and str(review.get("action_type") or "") == "secret_order"
+            and str(review.get("phase") or "") == "confirm"
+        )
+
+    def dialogue_secret_order_followup_decision(
+        self,
+        character: Character,
+        user_text: str,
+        payload: str,
+        *,
+        answer: str = "",
+    ) -> Optional[Any]:
+        """Return the semantic decision for a secret-order follow-up tool call."""
         if (
             os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes")
             and self.dialogue_audit_client is None
         ):
-            return False
+            return None
         action = self.dialogue_secret_order_followup_action_from_payload(payload, character, answer=answer)
         if not action:
-            return False
+            return None
         try:
             from ming_sim.dialogue_semantics import DialogueSemanticEngine
 
-            decision = DialogueSemanticEngine(
+            return DialogueSemanticEngine(
                 self.db,
                 self.state,
                 llm_config=self.llm_config,
@@ -1228,14 +1251,53 @@ class GameSession:
                 phase="confirm",
             )
         except Exception:
-            return False
-        review = decision.to_review()
-        return bool(
-            isinstance(review, dict)
-            and review.get("allow")
-            and str(review.get("action_type") or "") == "secret_order"
-            and str(review.get("phase") or "") == "confirm"
-        )
+            return None
+
+    def _secret_order_followup_payload_with_decision(
+        self,
+        payload: object,
+        decision: object,
+    ) -> Dict[str, object]:
+        data = self._secret_order_followup_payload(payload)
+        if not data:
+            return {}
+        normalized: Dict[str, object] = dict(data)
+        review_payload = getattr(decision, "payload", {})
+        if not isinstance(review_payload, dict):
+            review_payload = {}
+        decision_kind = ""
+        for attr in ("target", "actor", "kind", "mode"):
+            value = str(getattr(decision, attr, "") or "").strip()
+            if value:
+                normalized[attr] = value
+                if attr in {"kind", "mode"} and not decision_kind:
+                    decision_kind = value
+        for key in (
+            "order_id",
+            "id",
+            "title",
+            "assignee",
+            "deadline_months",
+            "progress",
+            "claim",
+            "note",
+            "reason",
+            "strategy",
+        ):
+            value = review_payload.get(key)
+            if value not in (None, "", [], {}):
+                normalized[key] = value
+        if review_payload.get("kind") and not str(getattr(decision, "kind", "") or "").strip():
+            normalized["kind"] = review_payload.get("kind")
+            decision_kind = str(review_payload.get("kind") or "").strip() or decision_kind
+        if review_payload.get("mode") and not str(getattr(decision, "mode", "") or "").strip():
+            normalized["mode"] = review_payload.get("mode")
+            decision_kind = str(review_payload.get("mode") or "").strip() or decision_kind
+        if decision_kind:
+            normalized["action"] = decision_kind
+        elif not normalized.get("action"):
+            normalized["action"] = normalized.get("kind") or normalized.get("mode") or ""
+        return self._secret_order_followup_payload(normalized)
 
     def dialogue_allows_unlisted_person_registration(
         self,
@@ -2001,14 +2063,24 @@ class GameSession:
         *,
         answer: str = "",
     ) -> Dict[str, object]:
-        if not self.dialogue_action_allows_secret_order_followup(
+        decision = self.dialogue_secret_order_followup_decision(
             character,
             user_text,
             payload,
             answer=answer,
+        )
+        review = decision.to_review() if decision is not None else {}
+        if not (
+            isinstance(review, dict)
+            and review.get("allow")
+            and str(review.get("action_type") or "") == "secret_order"
+            and str(review.get("phase") or "") == "confirm"
         ):
             return {}
-        return self._apply_secret_order_followup(payload, character.name)
+        normalized = self._secret_order_followup_payload_with_decision(payload, decision)
+        if not normalized:
+            return {}
+        return self._apply_secret_order_followup(normalized, character.name)
 
     def record_secret_order_effect(self, order_id: int, assignee: str = "") -> Dict[str, object]:
         """密令建档后的即时心理账：信任不等于轻松，秘密差遣会带来压力。"""
