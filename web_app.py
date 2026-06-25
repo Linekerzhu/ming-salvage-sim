@@ -1678,8 +1678,14 @@ class WebGame:
         except Exception:
             return False
 
+    def _legacy_dialogue_regex_world_actions_enabled(self) -> bool:
+        return os.environ.get("MING_SIM_ENABLE_LEGACY_DIALOGUE_REGEX_WORLD_ACTIONS", "").strip().lower() in ("1", "true", "yes")
+
     def _dialogue_lore_regex_fallback_enabled(self) -> bool:
-        return os.environ.get("MING_SIM_ENABLE_DIALOGUE_LORE_REGEX_FALLBACK", "").strip().lower() in ("1", "true", "yes")
+        return (
+            self._legacy_dialogue_regex_world_actions_enabled()
+            and os.environ.get("MING_SIM_ENABLE_DIALOGUE_LORE_REGEX_FALLBACK", "").strip().lower() in ("1", "true", "yes")
+        )
 
     def _pending_eunuch_lore_target(self, minister_name: str) -> str:
         try:
@@ -4335,33 +4341,45 @@ class WebGame:
 
     def _dialogue_regex_actions_enabled(self) -> bool:
         return (
-            os.environ.get("MING_SIM_ENABLE_LEGACY_DIALOGUE_REGEX_WORLD_ACTIONS", "").strip().lower() in ("1", "true", "yes")
+            self._legacy_dialogue_regex_world_actions_enabled()
             and os.environ.get("MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS", "").strip().lower() in ("1", "true", "yes")
         )
 
     def _dialogue_regex_summons_enabled(self) -> bool:
         return (
-            os.environ.get("MING_SIM_ENABLE_LEGACY_DIALOGUE_REGEX_WORLD_ACTIONS", "").strip().lower() in ("1", "true", "yes")
+            self._legacy_dialogue_regex_world_actions_enabled()
             and os.environ.get("MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS", "").strip().lower() in ("1", "true", "yes")
         )
 
     def _dialogue_answer_summon_fallback_enabled(self) -> bool:
         return (
-            os.environ.get("MING_SIM_ENABLE_LEGACY_DIALOGUE_REGEX_WORLD_ACTIONS", "").strip().lower() in ("1", "true", "yes")
+            self._legacy_dialogue_regex_world_actions_enabled()
             and os.environ.get("MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK", "").strip().lower() in ("1", "true", "yes")
         )
 
     def _dialogue_directive_regex_fallback_enabled(self) -> bool:
-        return os.environ.get("MING_SIM_ENABLE_DIALOGUE_DIRECTIVE_REGEX_FALLBACK", "").strip().lower() in ("1", "true", "yes")
+        return (
+            self._legacy_dialogue_regex_world_actions_enabled()
+            and os.environ.get("MING_SIM_ENABLE_DIALOGUE_DIRECTIVE_REGEX_FALLBACK", "").strip().lower() in ("1", "true", "yes")
+        )
 
     def _dialogue_bargain_regex_fallback_enabled(self) -> bool:
-        return os.environ.get("MING_SIM_ENABLE_DIALOGUE_BARGAIN_REGEX_FALLBACK", "").strip().lower() in ("1", "true", "yes")
+        return (
+            self._legacy_dialogue_regex_world_actions_enabled()
+            and os.environ.get("MING_SIM_ENABLE_DIALOGUE_BARGAIN_REGEX_FALLBACK", "").strip().lower() in ("1", "true", "yes")
+        )
 
     def _dialogue_pending_regex_recovery_enabled(self) -> bool:
-        return os.environ.get("MING_SIM_ENABLE_DIALOGUE_PENDING_REGEX_RECOVERY", "").strip().lower() in ("1", "true", "yes")
+        return (
+            self._legacy_dialogue_regex_world_actions_enabled()
+            and os.environ.get("MING_SIM_ENABLE_DIALOGUE_PENDING_REGEX_RECOVERY", "").strip().lower() in ("1", "true", "yes")
+        )
 
     def _dialogue_mention_regex_fallback_enabled(self) -> bool:
-        return os.environ.get("MING_SIM_ENABLE_DIALOGUE_MENTION_REGEX_FALLBACK", "").strip().lower() in ("1", "true", "yes")
+        return (
+            self._legacy_dialogue_regex_world_actions_enabled()
+            and os.environ.get("MING_SIM_ENABLE_DIALOGUE_MENTION_REGEX_FALLBACK", "").strip().lower() in ("1", "true", "yes")
+        )
 
     def _dialogue_mention_llm_audit_available(self) -> bool:
         if os.environ.get("MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT", "").strip().lower() in ("1", "true", "yes"):
@@ -5312,7 +5330,10 @@ class WebGame:
         # Recruitment mutates the activity save by creating new NPCs, so normal
         # play should use the LLM tool + semantic audit path instead of keyword
         # interception.  This legacy fallback is opt-in for local diagnostics.
-        if os.environ.get("MING_SIM_ENABLE_RECRUITMENT_REGEX_FALLBACK", "").strip().lower() not in ("1", "true", "yes"):
+        if (
+            not self._legacy_dialogue_regex_world_actions_enabled()
+            or os.environ.get("MING_SIM_ENABLE_RECRUITMENT_REGEX_FALLBACK", "").strip().lower() not in ("1", "true", "yes")
+        ):
             return {}
         raw = str(text or "").strip()
         if not raw:

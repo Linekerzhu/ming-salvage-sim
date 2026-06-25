@@ -840,6 +840,78 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_legacy_regex_fallbacks_require_master_world_action_gate(self):
+        for key in (
+            "MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS",
+            "MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS",
+            "MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK",
+            "MING_SIM_ENABLE_DIALOGUE_LORE_REGEX_FALLBACK",
+            "MING_SIM_ENABLE_DIALOGUE_DIRECTIVE_REGEX_FALLBACK",
+            "MING_SIM_ENABLE_DIALOGUE_BARGAIN_REGEX_FALLBACK",
+            "MING_SIM_ENABLE_DIALOGUE_PENDING_REGEX_RECOVERY",
+            "MING_SIM_ENABLE_DIALOGUE_MENTION_REGEX_FALLBACK",
+            "MING_SIM_ENABLE_RECRUITMENT_REGEX_FALLBACK",
+        ):
+            os.environ[key] = "1"
+        os.environ.pop("MING_SIM_ENABLE_LEGACY_DIALOGUE_REGEX_WORLD_ACTIONS", None)
+        os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "1"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT"] = "1"
+        os.environ["MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT"] = "1"
+        game = web_app.WebGame(fresh=True)
+        try:
+            self.assertFalse(game._dialogue_regex_actions_enabled())
+            self.assertFalse(game._dialogue_regex_summons_enabled())
+            self.assertFalse(game._dialogue_answer_summon_fallback_enabled())
+            self.assertFalse(game._dialogue_lore_regex_fallback_enabled())
+            self.assertFalse(game._dialogue_directive_regex_fallback_enabled())
+            self.assertFalse(game._dialogue_bargain_regex_fallback_enabled())
+            self.assertFalse(game._dialogue_pending_regex_recovery_enabled())
+            self.assertFalse(game._dialogue_mention_regex_fallback_enabled())
+            self.assertEqual(game._detect_recruitment_intent("宫里可有新的小内侍可用？"), {})
+
+            attendant = "王承恩"
+            character = game.session._character(attendant)
+            proposed = game._fallback_pending_directive(
+                character,
+                "替朕拟一道旨意，命户部核出本月辽饷实欠，五日内具奏。",
+                "臣以为可照此办理。",
+            )
+            self.assertIsNone(proposed)
+            self.assertEqual(
+                int(game.db.conn.execute("SELECT COUNT(*) AS n FROM turn_directives").fetchone()["n"]),
+                0,
+            )
+
+            el.record_castration(game.db, attendant, forced=False, day=0)
+            game.db.conn.execute(
+                """
+                UPDATE eunuch_lore
+                SET bao_container='', bao_preservation='', bao_ritual=''
+                WHERE name=?
+                """,
+                (attendant,),
+            )
+            game.db.conn.commit()
+            absorbed = game._absorb_eunuch_lore_from_text(
+                attendant,
+                "请把王承恩的宝匣改用黑漆楠木匣，油炸封蜡，钥匙贴身，记入旧档。",
+                source_role="user",
+            )
+            self.assertEqual(absorbed, {})
+            lore = game.db.conn.execute(
+                "SELECT bao_container, bao_preservation, bao_ritual FROM eunuch_lore WHERE name=?",
+                (attendant,),
+            ).fetchone()
+            self.assertEqual(str(lore["bao_container"] or ""), "")
+            self.assertEqual(str(lore["bao_preservation"] or ""), "")
+            self.assertEqual(str(lore["bao_ritual"] or ""), "")
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_pronoun_choice_from_single_attendant_candidate_summons_person(self):
         game = web_app.WebGame(fresh=True)
         try:

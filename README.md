@@ -222,11 +222,12 @@ python3 main.py
 | `MING_SIM_SEED` | 否 | `7` | 随机种子 |
 | `MING_FOUNDATION_DB` | 否 | 自动探测 | NPC 数据基座（只读增强：人格/特质/人才池），缺失时自动降级 |
 | `MING_SIM_START_YM` | 否 | 空 | 新存档起始年月，如 `1629.04` |
-| `MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS` | 否 | 空 | 旧版玩家召见关键词兜底；正常游玩建议关闭，使用 LLM 语义路由 |
-| `MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS` | 否 | 空 | 旧版对白动作关键词兜底；正常游玩建议关闭，净身/调停/招募/拟旨兜底等走 LLM 语义审计 |
-| `MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK` | 否 | 空 | 旧版“从 NPC 回答里反推召见”；风险最高，默认关闭 |
-| `MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT` | 否 | 空 | 设为 `1` 时关闭净身旧档/宝匣/旧患自动入档的 LLM 语义闸门，退回旧版文本解析 |
-| `MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT` | 否 | 空 | 设为 `1` 时关闭 NPC 回答中新人物候选/暗示召见的 LLM 语义闸门，退回旧版文本抽取 |
+| `MING_SIM_ENABLE_LEGACY_DIALOGUE_REGEX_WORLD_ACTIONS` | 否 | 空 | 废弃诊断总闸；正常游玩不要设置。未设置时所有旧版对白正则世界状态变更兜底均无效 |
+| `MING_SIM_ENABLE_DIALOGUE_REGEX_SUMMONS` | 否 | 空 | 废弃：旧版玩家召见关键词兜底；仅在 legacy 总闸同时开启时用于本地兼容测试 |
+| `MING_SIM_ENABLE_DIALOGUE_REGEX_ACTIONS` | 否 | 空 | 废弃：旧版对白动作关键词兜底；仅在 legacy 总闸同时开启时用于本地兼容测试 |
+| `MING_SIM_ENABLE_DIALOGUE_ANSWER_SUMMON_FALLBACK` | 否 | 空 | 废弃：从 NPC 回答里反推召见；仅在 legacy 总闸同时开启时用于本地兼容测试 |
+| `MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT` | 否 | 空 | 设为 `1` 时关闭净身旧档/宝匣/旧患自动入档的 LLM 语义闸门；未同时开启 legacy 总闸和专用 fallback 时不会退回正则入档 |
+| `MING_SIM_DISABLE_DIALOGUE_MENTION_LLM_AUDIT` | 否 | 空 | 设为 `1` 时关闭 NPC 回答中新人物候选/暗示召见的 LLM 语义闸门；未同时开启 legacy 总闸和专用 fallback 时不会退回正则缓存 |
 | `MING_SIM_DISABLE_DIRECTIVE_CASTRATION_LLM_AUDIT` | 否 | 空 | 设为 `1` 时关闭旨意办结后“强制净身/宫刑”执行语义审计，退回旧版正则执行 |
 | `MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS` | 否 | 空 | 设为 `1` 时关闭 LLM 生成的推荐回复；不会自动显示本地静态按钮 |
 | `MING_SIM_ENABLE_LOCAL_QUICK_SUGGESTIONS` | 否 | 空 | 显式开启本地静态推荐回复兜底；正常游玩建议关闭，让推荐回复由 LLM 按上下文生成 |
