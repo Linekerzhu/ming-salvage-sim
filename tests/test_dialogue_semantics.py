@@ -227,6 +227,95 @@ class DialogueSemanticEngineTests(unittest.TestCase):
         self.assertEqual(pending.source_quote, "请太医调养")
         self.assertEqual(pending.to_mapping()["trigger_quote"], "请太医调养")
 
+    def test_post_chat_directive_pressure_is_coordinated_by_semantic_engine(self):
+        with TemporaryDirectory() as tmp:
+            content, db, state = _fresh(tmp)
+            character = content.characters["韩爌"]
+            calls = []
+
+            def audit(phase, payload):
+                calls.append(phase)
+                if phase == "dialogue_directive_pressure":
+                    self.assertEqual((payload.get("directive_context") or {}).get("id"), 42)
+                    return {
+                        "allow": True,
+                        "kind": "pressed",
+                        "forceful": True,
+                        "trigger_quote": "把这件差使压实",
+                        "answer_evidence": "臣即日具奏",
+                        "private_reason": "明确压实旨意。",
+                        "confidence": 96,
+                    }
+                return None
+
+            decision = DialogueSemanticEngine(db, state, audit_client=audit).evaluate_post_chat(
+                character,
+                "把这件差使压实。",
+                "臣即日具奏。",
+                kind="directive_pressure",
+                context={"id": 42},
+            )
+
+            self.assertEqual(calls, ["dialogue_directive_pressure"])
+            self.assertTrue(decision.allow)
+            self.assertEqual(decision.action_type, "directive_pressure")
+            self.assertEqual(decision.raw["kind"], "pressed")
+
+    def test_post_chat_directive_pressure_requires_answer_evidence(self):
+        with TemporaryDirectory() as tmp:
+            content, db, state = _fresh(tmp)
+            character = content.characters["韩爌"]
+
+            def audit(phase, payload):
+                if phase == "dialogue_directive_pressure":
+                    return {
+                        "allow": True,
+                        "kind": "pressed",
+                        "trigger_quote": "把这件差使压实",
+                        "confidence": 96,
+                    }
+                return None
+
+            decision = DialogueSemanticEngine(db, state, audit_client=audit).evaluate_post_chat(
+                character,
+                "把这件差使压实。",
+                "臣惶恐。",
+                kind="directive_pressure",
+                context={"id": 42},
+            )
+
+            self.assertFalse(decision.allow)
+            self.assertEqual(decision.decision_type, "none")
+
+    def test_post_chat_bargain_attitude_is_coordinated_by_semantic_engine(self):
+        with TemporaryDirectory() as tmp:
+            content, db, state = _fresh(tmp)
+            character = content.characters["韩爌"]
+
+            def audit(phase, payload):
+                if phase == "dialogue_bargain_attitude":
+                    self.assertEqual((payload.get("bargain_context") or {}).get("kind"), "petition")
+                    return {
+                        "allow": True,
+                        "attitude": "press",
+                        "trigger_quote": "先交账册",
+                        "private_reason": "明确索证。",
+                        "confidence": 95,
+                    }
+                return None
+
+            decision = DialogueSemanticEngine(db, state, audit_client=audit).evaluate_post_chat(
+                character,
+                "先交账册，再议。",
+                "臣遵旨。",
+                kind="bargain_attitude",
+                context={"kind": "petition"},
+            )
+
+            self.assertTrue(decision.allow)
+            self.assertEqual(decision.action_type, "bargain_attitude")
+            self.assertEqual(decision.raw["attitude"], "press")
+
     def test_goal_agreement_audits_are_coordinated_by_semantic_engine(self):
         with TemporaryDirectory() as tmp:
             content, db, state = _fresh(tmp)

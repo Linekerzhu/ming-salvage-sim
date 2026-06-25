@@ -7326,36 +7326,24 @@ class WebGame:
         try:
             character = self.session._character(minister_name)
             if lifecycle_status == "done":
-                from ming_sim.dialogue_audit import dialogue_directive_followup_audit
-
-                review = dialogue_directive_followup_audit(
-                    self.db,
-                    self.state,
+                decision = self._dialogue_semantic_engine().evaluate_post_chat(
                     character,
                     user_text,
                     answer,
-                    directive_context,
-                    llm_config=self.session.llm_config,
-                    agno_db=self.session.agno_db,
-                    audit_client=self.session.dialogue_audit_client,
+                    kind="directive_followup",
+                    context=directive_context,
                 )
             else:
-                from ming_sim.dialogue_audit import dialogue_directive_pressure_audit
-
-                review = dialogue_directive_pressure_audit(
-                    self.db,
-                    self.state,
+                decision = self._dialogue_semantic_engine().evaluate_post_chat(
                     character,
                     user_text,
                     answer,
-                    directive_context,
-                    llm_config=self.session.llm_config,
-                    agno_db=self.session.agno_db,
-                    audit_client=self.session.dialogue_audit_client,
+                    kind="directive_pressure",
+                    context=directive_context,
                 )
         except Exception as exc:
             return {"allow": False, "kind": "none", "confidence": 0, "private_reason": str(exc)}
-        return review if isinstance(review, dict) else {"allow": False, "kind": "none"}
+        return decision.raw if decision.allow else {"allow": False, "kind": "none", "confidence": decision.confidence, "private_reason": decision.private_reason}
 
     def _decision_chat_effect(
         self,
@@ -7465,25 +7453,19 @@ class WebGame:
         if not self._dialogue_action_llm_audit_available():
             return None
         try:
-            from ming_sim.dialogue_audit import dialogue_bargain_attitude_audit
-
             character = self.session._character(minister_name)
-            review = dialogue_bargain_attitude_audit(
-                self.db,
-                self.state,
+            decision = self._dialogue_semantic_engine().evaluate_post_chat(
                 character,
                 user_text,
                 answer,
-                context if isinstance(context, dict) else {},
-                llm_config=self.session.llm_config,
-                agno_db=self.session.agno_db,
-                audit_client=self.session.dialogue_audit_client,
+                kind="bargain_attitude",
+                context=context if isinstance(context, dict) else {},
             )
         except Exception:
             return ""
-        if not isinstance(review, dict) or not review.get("allow"):
+        if not decision.allow:
             return ""
-        attitude = str(review.get("attitude") or "").strip()
+        attitude = str(decision.raw.get("attitude") or "").strip()
         return attitude if attitude in {"accept", "press", "refuse"} else ""
 
     def _bargain_context_applies(self, minister_name: str, context: Optional[Dict[str, Any]]) -> bool:

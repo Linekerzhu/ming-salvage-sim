@@ -15,9 +15,22 @@ from ming_sim.custody import (
     sync_custodies_for_character_status,
 )
 from ming_sim.db import GameDB
-from ming_sim.dialogue_audit import post_dialogue_audit
+from ming_sim.dialogue_semantics import DialogueSemanticEngine
 from ming_sim.models import LLMConfig
 from ming_sim.session import GameSession
+
+
+def _no_goal_audit(phase, payload):
+    if phase == "pre":
+        return {
+            "goal_decision": "none",
+            "goal_relation": "none",
+            "action_kind": "general",
+            "confidence": 90,
+        }
+    if phase == "dialogue_suggestions":
+        return {"suggestions": []}
+    return None
 
 
 def _fresh(tmp: str):
@@ -110,6 +123,7 @@ class CustodyRecordTests(unittest.TestCase):
                     source_kind="test",
                     source_id="summon",
                 )
+                sess.dialogue_audit_client = _no_goal_audit
 
                 ok, reason = sess.can_summon(character)
                 augmented, _prepared = sess.prepare_chat_run(character, "朕要听你的供状。")
@@ -203,13 +217,14 @@ class CustodyRecordTests(unittest.TestCase):
                             "private_reason": "原文只是惧祸。",
                         }
 
-                post = post_dialogue_audit(
+                post = DialogueSemanticEngine(
                     sess.db,
                     sess.state,
+                    audit_client=Audit(),
+                ).evaluate_post_dialogue(
                     character,
                     "朕在昭狱中问你，此事若不奉旨，刑讯不止。",
                     "臣不敢不从，愿按旨交代同党线索。",
-                    audit_client=Audit(),
                 )
 
                 self.assertEqual(post.goal_status, "active")
@@ -261,13 +276,14 @@ class CustodyRecordTests(unittest.TestCase):
                             "private_reason": "不具备明确自愿。",
                         }
 
-                post = post_dialogue_audit(
+                post = DialogueSemanticEngine(
                     sess.db,
                     sess.state,
+                    audit_client=Audit(),
+                ).evaluate_post_dialogue(
                     character,
                     "若不净身入内廷，昭狱严刑不止。",
                     "臣不敢不从。",
-                    audit_client=Audit(),
                 )
 
                 self.assertNotEqual(post.goal_status, "sealed")
@@ -283,7 +299,7 @@ class CustodyRecordTests(unittest.TestCase):
         old_verify_llm = session_module.verify_llm_available
         old_env = {
             key: os.environ.get(key)
-            for key in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL")
+            for key in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL", "MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS")
         }
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -304,8 +320,10 @@ class CustodyRecordTests(unittest.TestCase):
             os.environ["OPENAI_API_KEY"] = "test-key"
             os.environ["OPENAI_BASE_URL"] = "https://example.test/v1"
             os.environ["OPENAI_MODEL"] = "test-model"
+            os.environ["MING_SIM_DISABLE_LLM_QUICK_SUGGESTIONS"] = "1"
             game = web_app.WebGame(fresh=True)
             try:
+                game.session.dialogue_audit_client = _no_goal_audit
                 name = str(game.db.conn.execute(
                     "SELECT name FROM characters WHERE status='active' AND power_id='ming' LIMIT 1"
                 ).fetchone()["name"])

@@ -19,6 +19,10 @@ from ming_sim.models import Character, GameState, LLMConfig
 
 ACTION_TYPES = {
     "none",
+    "bargain_attitude",
+    "directive_fallback",
+    "directive_followup",
+    "directive_pressure",
     "secret_order",
     "recruitment",
     "mediation",
@@ -262,6 +266,38 @@ class SemanticDecision:
             kind=_compact(review.get("kind"), 40),
             mode=_compact(review.get("mode"), 40),
             payload=payload,
+            confidence=confidence,
+            trigger_quote=trigger_quote,
+            private_reason=_compact(review.get("private_reason") or review.get("reason"), 520),
+            public_hint=_compact(review.get("public_hint"), 180),
+            raw=dict(review),
+        )
+
+    @classmethod
+    def from_post_review(
+        cls,
+        review: Optional[Dict[str, Any]],
+        *,
+        action_type: str,
+        required_any: Optional[List[str]] = None,
+        required_all: Optional[List[str]] = None,
+    ) -> "SemanticDecision":
+        if not isinstance(review, dict) or not review.get("allow"):
+            return cls.none(str((review or {}).get("private_reason") or ""), raw=review if isinstance(review, dict) else {})
+        confidence = _confidence(review.get("confidence"))
+        trigger_quote = _compact(review.get("trigger_quote"), 180)
+        if confidence < CONFIDENCE_FLOOR or not trigger_quote:
+            return cls.none(str(review.get("private_reason") or "对话后审计证据不足。"), raw=review)
+        if required_any and not any(_compact(review.get(key), 240) for key in required_any):
+            return cls.none(str(review.get("private_reason") or "对话后审计缺少必要字段。"), raw=review)
+        if required_all and not all(_compact(review.get(key), 240) for key in required_all):
+            return cls.none(str(review.get("private_reason") or "对话后审计缺少必要证据。"), raw=review)
+        return cls(
+            decision_type="post",
+            action_type=_compact(action_type, 60),
+            phase="confirm",
+            kind=_compact(review.get("kind") or review.get("attitude"), 60),
+            payload=dict(review),
             confidence=confidence,
             trigger_quote=trigger_quote,
             private_reason=_compact(review.get("private_reason") or review.get("reason"), 520),
@@ -832,71 +868,125 @@ class DialogueSemanticEngine:
         answer: str,
         *,
         kind: str = "directive_fallback",
+        context: Optional[Dict[str, Any]] = None,
     ) -> SemanticDecision:
         if not self._action_available():
             return SemanticDecision.none("对话后语义审计不可用。")
-        if kind != "directive_fallback":
+        phase_by_kind = {
+            "bargain_attitude": "dialogue_bargain_attitude",
+            "directive_fallback": "dialogue_directive_fallback",
+            "directive_followup": "dialogue_directive_followup",
+            "directive_pressure": "dialogue_directive_pressure",
+        }
+        phase = phase_by_kind.get(kind)
+        if not phase:
             return SemanticDecision.none("未知对话后语义审计。")
         if self.audit_client is not None:
+            payload: Dict[str, Any] = {
+                "user_text": user_text,
+                "answer": answer,
+                "npc_answer": answer,
+            }
+            if kind == "bargain_attitude":
+                payload["bargain_context"] = context if isinstance(context, dict) else {}
+            if kind in {"directive_pressure", "directive_followup"}:
+                payload["directive_context"] = context if isinstance(context, dict) else {}
             try:
-                review = self._call_injected_audit(
-                    "dialogue_directive_fallback",
-                    {
-                        "user_text": user_text,
-                        "answer": answer,
-                    },
-                )
+                review = self._call_injected_audit(phase, payload)
             except Exception as exc:
                 return SemanticDecision.none(str(exc))
-            if not isinstance(review, dict) or not review.get("allow"):
-                return SemanticDecision.none(str((review or {}).get("private_reason") or ""), raw=review if isinstance(review, dict) else {})
-            confidence = _confidence(review.get("confidence"))
-            trigger_quote = _compact(review.get("trigger_quote"), 180)
-            if confidence < CONFIDENCE_FLOOR or not trigger_quote:
-                return SemanticDecision.none("拟旨兜底证据不足。", raw=review)
-            return SemanticDecision(
-                decision_type="post",
-                action_type="directive_fallback",
-                phase="propose",
-                payload=dict(review),
-                confidence=confidence,
-                trigger_quote=trigger_quote,
-                private_reason=_compact(review.get("private_reason") or review.get("reason"), 520),
-                public_hint=_compact(review.get("public_hint"), 180),
-                raw=dict(review),
-            )
+            return self._post_decision_from_review(kind, review)
         try:
-            from ming_sim.dialogue_audit import dialogue_directive_fallback_audit
+            if kind == "bargain_attitude":
+                from ming_sim.dialogue_audit import dialogue_bargain_attitude_audit
 
-            review = dialogue_directive_fallback_audit(
-                self.db,
-                self.state,
-                character,
-                user_text,
-                answer,
-                llm_config=self.llm_config,
-                agno_db=self.agno_db,
-                audit_client=self.audit_client,
-            )
+                review = dialogue_bargain_attitude_audit(
+                    self.db,
+                    self.state,
+                    character,
+                    user_text,
+                    answer,
+                    context if isinstance(context, dict) else {},
+                    llm_config=self.llm_config,
+                    agno_db=self.agno_db,
+                    audit_client=None,
+                )
+            elif kind == "directive_pressure":
+                from ming_sim.dialogue_audit import dialogue_directive_pressure_audit
+
+                review = dialogue_directive_pressure_audit(
+                    self.db,
+                    self.state,
+                    character,
+                    user_text,
+                    answer,
+                    context if isinstance(context, dict) else {},
+                    llm_config=self.llm_config,
+                    agno_db=self.agno_db,
+                    audit_client=None,
+                )
+            elif kind == "directive_followup":
+                from ming_sim.dialogue_audit import dialogue_directive_followup_audit
+
+                review = dialogue_directive_followup_audit(
+                    self.db,
+                    self.state,
+                    character,
+                    user_text,
+                    answer,
+                    context if isinstance(context, dict) else {},
+                    llm_config=self.llm_config,
+                    agno_db=self.agno_db,
+                    audit_client=None,
+                )
+            else:
+                from ming_sim.dialogue_audit import dialogue_directive_fallback_audit
+
+                review = dialogue_directive_fallback_audit(
+                    self.db,
+                    self.state,
+                    character,
+                    user_text,
+                    answer,
+                    llm_config=self.llm_config,
+                    agno_db=self.agno_db,
+                    audit_client=None,
+                )
         except Exception as exc:
             return SemanticDecision.none(str(exc))
-        if not isinstance(review, dict) or not review.get("allow"):
-            return SemanticDecision.none(str((review or {}).get("private_reason") or ""), raw=review if isinstance(review, dict) else {})
-        confidence = _confidence(review.get("confidence"))
-        trigger_quote = _compact(review.get("trigger_quote"), 180)
-        if confidence < CONFIDENCE_FLOOR or not trigger_quote:
-            return SemanticDecision.none("拟旨兜底证据不足。", raw=review)
-        return SemanticDecision(
-            decision_type="post",
-            action_type="directive_fallback",
-            phase="propose",
-            payload=dict(review),
-            confidence=confidence,
-            trigger_quote=trigger_quote,
-            private_reason=_compact(review.get("private_reason") or review.get("reason"), 520),
-            public_hint=_compact(review.get("public_hint"), 180),
-            raw=dict(review),
-        )
+        return self._post_decision_from_review(kind, review)
+
+    def _post_decision_from_review(self, kind: str, review: Optional[Dict[str, Any]]) -> SemanticDecision:
+        if kind == "directive_fallback":
+            return SemanticDecision.from_post_review(
+                review,
+                action_type="directive_fallback",
+                required_any=["subject", "directive_text"],
+            )
+        if kind == "bargain_attitude":
+            decision = SemanticDecision.from_post_review(review, action_type="bargain_attitude", required_all=["attitude"])
+            if decision.allow and str(decision.raw.get("attitude") or "") not in {"accept", "press", "refuse"}:
+                return SemanticDecision.none("御前交易态度无效。", raw=decision.raw)
+            return decision
+        if kind == "directive_pressure":
+            decision = SemanticDecision.from_post_review(
+                review,
+                action_type="directive_pressure",
+                required_all=["kind", "answer_evidence"],
+            )
+            if decision.allow and str(decision.raw.get("kind") or "") not in {"pressed", "needs_support", "evasive"}:
+                return SemanticDecision.none("旨意压力类型无效。", raw=decision.raw)
+            return decision
+        if kind == "directive_followup":
+            decision = SemanticDecision.from_post_review(
+                review,
+                action_type="directive_followup",
+                required_all=["kind", "answer_evidence"],
+            )
+            if decision.allow and str(decision.raw.get("kind") or "") not in {"rewarded", "accounted", "followup_evasive", "next_step", "reviewed"}:
+                return SemanticDecision.none("复命处置类型无效。", raw=decision.raw)
+            return decision
+        return SemanticDecision.none("未知对话后语义审计。", raw=review if isinstance(review, dict) else {})
 
 
 class DialogueActionExecutor:
