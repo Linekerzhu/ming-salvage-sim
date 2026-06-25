@@ -1224,6 +1224,57 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_dialogue_consequence_filters_unknown_names_before_apply(self):
+        game = web_app.WebGame(fresh=True)
+        original_apply = issues.apply_score_extraction
+        captured = {}
+        try:
+            def fake_apply(db, state, extracted):
+                captured["extracted"] = {
+                    key: [dict(item) for item in (extracted.get(key) or [])]
+                    for key in ("character_status_changes", "condition_changes", "punishment_changes")
+                }
+                return {
+                    "character_status_changes": list(extracted.get("character_status_changes") or []),
+                    "condition_changes": list(extracted.get("condition_changes") or []),
+                    "punishment_changes": list(extracted.get("punishment_changes") or []),
+                }
+
+            issues.apply_score_extraction = fake_apply
+            response = game._execute_dialogue_consequence_action(
+                "王承恩",
+                {
+                    "type": "dialogue_consequence",
+                    "action_type": "punishment",
+                    "character_status_changes": [
+                        {"name": "洪承畴", "status": "imprisoned", "reason": "押入昭狱"},
+                        {"name": "不存在的错档人", "status": "imprisoned", "reason": "夹带错名"},
+                    ],
+                    "condition_changes": [
+                        {"name": "洪承畴", "label": "舌伤", "reason": "割舌禁言"},
+                        {"name": "不存在的错档人", "label": "舌伤", "reason": "夹带错名"},
+                    ],
+                    "punishment_changes": [
+                        {"name": "洪承畴", "punishment": "割舌", "reason": "禁言"},
+                        {"name": "不存在的错档人", "punishment": "割舌", "reason": "夹带错名"},
+                    ],
+                    "trigger_quote": "押入昭狱，割舌禁言",
+                },
+                chat_turn_id=78,
+            )
+
+            self.assertIn("已按口谕入档", response.get("answer") or "")
+            extracted = captured.get("extracted") or {}
+            for key in ("character_status_changes", "condition_changes", "punishment_changes"):
+                self.assertEqual([row.get("name") for row in extracted.get(key, [])], ["洪承畴"])
+        finally:
+            issues.apply_score_extraction = original_apply
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_chat_and_stream_pre_agent_use_unified_user_semantic_engine(self):
         def install_fake_engine(game, target):
             calls = []

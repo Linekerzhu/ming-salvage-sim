@@ -7171,9 +7171,9 @@ class WebGame:
             else f"{int(self.state.turn)}:{minister_name}"
         )
         extracted = {
-            "character_status_changes": action.get("character_status_changes") or [],
-            "condition_changes": action.get("condition_changes") or [],
-            "punishment_changes": action.get("punishment_changes") or [],
+            "character_status_changes": self._dialogue_consequence_known_rows(action.get("character_status_changes")),
+            "condition_changes": self._dialogue_consequence_known_rows(action.get("condition_changes")),
+            "punishment_changes": self._dialogue_consequence_known_rows(action.get("punishment_changes")),
             "_source_kind": "dialogue",
             "_source_id": source_id,
         }
@@ -7207,6 +7207,19 @@ class WebGame:
                 "effects": effects[:8],
             },
         }
+
+    def _dialogue_consequence_known_rows(self, rows: Any) -> List[Dict[str, Any]]:
+        if not isinstance(rows, list):
+            return []
+        known = set(self.content.characters.keys())
+        out: List[Dict[str, Any]] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            name = str(row.get("name") or "").strip()
+            if name and name in known:
+                out.append(dict(row))
+        return out
 
     def _execute_dialogue_action(
         self,
