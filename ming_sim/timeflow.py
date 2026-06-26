@@ -541,6 +541,14 @@ def _tick_day(db: GameDB, state: GameState, day: int) -> DayReport:
     except ImportError:
         pass
 
+    # 承办差遣风险：病伤、猝疾与私德把柄由规则层低频触发，身体后果入病历。
+    try:
+        from ming_sim.occupational_risks import occupational_risk_tick
+        for ev in occupational_risk_tick(db, state, day):
+            report.events.append(ev)
+    except ImportError:
+        pass
+
     # 御案奏疏流与注意力（S4/S5）
     try:
         from ming_sim.memorials import memorials_daily_tick

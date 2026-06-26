@@ -666,6 +666,7 @@ EMPTY_EXTRACTION: Dict[str, object] = {
     "character_status_changes": [],
     "condition_changes": [],
     "punishment_changes": [],
+    "task_risk_profiles": [],
     "character_power_changes": [],
     "secret_order_updates": [],
     "secret_order_closes": [],
@@ -678,7 +679,7 @@ MODULE_FIELDS: Dict[str, set[str]] = {
     "issues": {"issue_advances", "new_issues", "cancels", "close_issues"},
     "personnel_secret": {
         "office_changes", "character_status_changes", "condition_changes", "punishment_changes", "character_power_changes", "appointments",
-        "secret_order_updates", "secret_order_closes", "emperor_fate",
+        "task_risk_profiles", "secret_order_updates", "secret_order_closes", "emperor_fate",
     },
 }
 

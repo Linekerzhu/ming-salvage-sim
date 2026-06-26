@@ -13,6 +13,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from ming_sim.db import GameDB
+from ming_sim.effect_catalog import condition_catalog_payload
 from ming_sim.models import GameState
 
 
@@ -1100,6 +1101,10 @@ def apply_condition_changes(
     for item in items:
         if not isinstance(item, dict):
             continue
+        catalog_row = apply_condition_catalog_effect(db, state, item, source_kind=source_kind, source_id=source_id)
+        if catalog_row is not None:
+            applied.append(catalog_row)
+            continue
         try:
             norm = normalize_condition_item(item)
         except Exception as exc:
@@ -1131,3 +1136,59 @@ def apply_condition_changes(
         except Exception as exc:
             applied.append({"name": norm["name"], "rejected": True, "reason": str(exc)})
     return applied
+
+
+def apply_condition_catalog_effect(
+    db: GameDB,
+    state: GameState,
+    item: Dict[str, object],
+    *,
+    source_kind: str = "",
+    source_id: str = "",
+) -> Optional[Dict[str, object]]:
+    """Apply a known semantic condition through the fixed catalog.
+
+    Unknown legacy/body facts return None so callers can retain compatibility.
+    """
+
+    merged = dict(item)
+    try:
+        norm = normalize_condition_item(item)
+        merged.update(norm)
+    except Exception:
+        norm = {}
+    payload = condition_catalog_payload(merged, day=_current_day(db))
+    if payload is None:
+        return None
+    name = _clean_text(merged.get("name") or norm.get("name"), 80)
+    if not name:
+        return {"name": "", "rejected": True, "reason": "姓名为空"}
+    note = _clean_text(
+        merged.get("note")
+        or merged.get("reason")
+        or merged.get("evidence_quote")
+        or payload.get("note")
+        or payload.get("label"),
+        240,
+    )
+    try:
+        return add_condition(
+            db,
+            state,
+            name,
+            kind=str(payload.get("kind") or "disease"),
+            system=str(payload.get("system") or "general"),
+            condition_key=str(payload.get("condition_key") or ""),
+            label=str(payload.get("label") or ""),
+            severity=int(payload.get("severity") or 1),
+            stage=str(payload.get("stage") or ""),
+            note=note,
+            effects=payload.get("effects") if isinstance(payload.get("effects"), dict) else {},
+            hidden=bool(payload.get("hidden") or False),
+            chronic=bool(payload.get("chronic") or False),
+            duration_days=int(payload.get("duration_days") or 0),
+            source_kind=source_kind,
+            source_id=source_id,
+        )
+    except Exception as exc:
+        return {"name": name, "rejected": True, "reason": str(exc)}

@@ -810,6 +810,7 @@ class GameDB:
                 agreement_id INTEGER NOT NULL,
                 description TEXT NOT NULL,
                 task_kind TEXT NOT NULL DEFAULT 'general',
+                risk_profile_json TEXT NOT NULL DEFAULT '{}',
                 status TEXT NOT NULL DEFAULT 'pending',
                 evidence TEXT NOT NULL DEFAULT '',
                 last_checked_turn INTEGER NOT NULL DEFAULT 0,
@@ -830,6 +831,7 @@ class GameDB:
                 title TEXT NOT NULL,
                 content TEXT NOT NULL DEFAULT '',
                 tags TEXT NOT NULL DEFAULT '[]',
+                risk_profile_json TEXT NOT NULL DEFAULT '{}',
                 importance INTEGER NOT NULL DEFAULT 4,
                 status TEXT NOT NULL DEFAULT 'active',
                 result TEXT NOT NULL DEFAULT '',
@@ -870,6 +872,7 @@ class GameDB:
                 source TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'draft',
                 notes TEXT NOT NULL DEFAULT '',
+                risk_profile_json TEXT NOT NULL DEFAULT '{}',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(event_id) REFERENCES events(id),
@@ -1095,6 +1098,7 @@ class GameDB:
         self.ensure_column("secret_orders", "sim_note", "TEXT NOT NULL DEFAULT ''")
         # 密令期限：0=无硬期限；到 due_turn 时自动转入待核议，由推演当月判 done/failed。
         self.ensure_column("secret_orders", "due_turn", "INTEGER NOT NULL DEFAULT 0")
+        self.ensure_column("secret_orders", "risk_profile_json", "TEXT NOT NULL DEFAULT '{}'")
         # fiscal_config 科目元数据列（数据驱动预算目录）：budget_role=fixed 的 base 项靠
         # account/direction/display 由 flows.compute_budget_lines 动态生成预算行；
         # dynamic 项（田赋/辽饷/盐税/商税/皇庄）走省级公式/皇庄专路，这三列留空。
@@ -1137,6 +1141,7 @@ class GameDB:
         self.ensure_column("negotiation_agreements", "llm_review_json", "TEXT NOT NULL DEFAULT '{}'")
         self.ensure_column("negotiation_agreements", "goal_id", "INTEGER NOT NULL DEFAULT 0")
         self.ensure_column("negotiation_tasks", "task_kind", "TEXT NOT NULL DEFAULT 'general'")
+        self.ensure_column("negotiation_tasks", "risk_profile_json", "TEXT NOT NULL DEFAULT '{}'")
         self.ensure_column("negotiation_tasks", "last_checked_turn", "INTEGER NOT NULL DEFAULT 0")
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS briefing_card_resolutions (
@@ -5478,6 +5483,7 @@ class GameDB:
         conditions: str = "",
         summary: str = "",
         tasks: List[str] | None = None,
+        task_risk_profiles: List[Dict[str, object]] | None = None,
         goal_id: int = 0,
     ) -> int:
         clean_name = str(minister_name or "").strip()
@@ -5541,16 +5547,30 @@ class GameDB:
             ),
         )
         agreement_id = int(cur.lastrowid)
-        for desc in task_list:
+        profiles = list(task_risk_profiles or [])
+        for idx, desc in enumerate(task_list):
+            profile = profiles[idx] if idx < len(profiles) and isinstance(profiles[idx], dict) else {}
             self.conn.execute(
                 """
-                INSERT INTO negotiation_tasks (agreement_id, description, task_kind, status)
-                VALUES (?, ?, ?, 'pending')
+                INSERT INTO negotiation_tasks (agreement_id, description, task_kind, risk_profile_json, status)
+                VALUES (?, ?, ?, ?, 'pending')
                 """,
-                (agreement_id, desc[:180], classify_task_kind(desc)),
+                (agreement_id, desc[:180], classify_task_kind(desc), json.dumps(profile, ensure_ascii=False, sort_keys=True)),
             )
         self.conn.commit()
         return agreement_id
+
+    def set_task_risk_profile(self, table: str, row_id: int, profile: Dict[str, object]) -> bool:
+        allowed = {"turn_directives", "secret_orders", "negotiation_tasks"}
+        if table not in allowed:
+            return False
+        payload = json.dumps(profile or {}, ensure_ascii=False, sort_keys=True)
+        cur = self.conn.execute(
+            f"UPDATE {table} SET risk_profile_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+            (payload, int(row_id)),
+        )
+        self.conn.commit()
+        return cur.rowcount > 0
 
     def update_negotiation_task(self, task_id: int, status: str, evidence: str = "") -> None:
         status = str(status or "pending").strip()
@@ -7538,16 +7558,18 @@ class GameDB:
         skill_id: str = "",
         notes: str = "",
         status: str = "draft",
+        task_risk_profile: Optional[Dict[str, object]] = None,
     ) -> int:
         # status: 'draft'=已确认颁诏候选；'pending'=大臣拟旨待皇帝核定。
         cursor = self.conn.execute(
             """
             INSERT INTO turn_directives
-            (turn, year, period, event_id, actor, skill_id, text, source, status, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (turn, year, period, event_id, actor, skill_id, text, source, status, notes, risk_profile_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (state.turn, state.year, state.period, event.id if event else "",
-             actor, skill_id, text, source, status, notes),
+             actor, skill_id, text, source, status, notes,
+             json.dumps(task_risk_profile or {}, ensure_ascii=False, sort_keys=True)),
         )
         self.conn.commit()
         return int(cursor.lastrowid)
@@ -8169,6 +8191,7 @@ class GameDB:
         tags: List[str],
         importance: int = 4,
         deadline_months: int = 0,
+        task_risk_profile: Optional[Dict[str, object]] = None,
     ) -> int:
         clean_minister = str(minister_name or "").strip()
         if not clean_minister:
@@ -8197,10 +8220,14 @@ class GameDB:
         cur = self.conn.execute(
             """
             INSERT INTO secret_orders
-                (turn_issued, due_turn, year_issued, period_issued, minister_name, title, content, tags, importance, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+                (turn_issued, due_turn, year_issued, period_issued, minister_name, title, content, tags, risk_profile_json, importance, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
             """,
-            (state.turn, due_turn, state.year, state.period, clean_minister, title[:20], content, tags_json, importance),
+            (
+                state.turn, due_turn, state.year, state.period, clean_minister, title[:20],
+                content, tags_json, json.dumps(task_risk_profile or {}, ensure_ascii=False, sort_keys=True),
+                importance,
+            ),
         )
         self.conn.commit()
         tlog(f"[secret_order] create id={cur.lastrowid} minister={clean_minister} title={title[:20]}")

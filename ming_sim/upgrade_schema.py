@@ -171,6 +171,7 @@ def ensure_upgrade_schema(db: "GameDB") -> None:
         "eta_day": "INTEGER NOT NULL DEFAULT 0",           # 预计完成日
         "assignee": "TEXT NOT NULL DEFAULT ''",            # 主办官员
         "chain": "TEXT NOT NULL DEFAULT '[]'",             # 经手链条 JSON
+        "risk_profile_json": "TEXT NOT NULL DEFAULT '{}'",  # LLM 结构化任务风险画像
         "integrity_actual": "INTEGER NOT NULL DEFAULT 100",    # 真实执行率（隐藏）
         "integrity_reported": "INTEGER NOT NULL DEFAULT 100",  # 奏报执行率（玩家可见）
         "anomaly": "TEXT NOT NULL DEFAULT ''",             # 当前未处置异常 JSON

@@ -1,11 +1,13 @@
+import json
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from ming_sim.content import GameContent
 from ming_sim.db import GameDB
-from ming_sim.dialogue_audit import PreDialogueAudit
+from ming_sim.dialogue_audit import PreDialogueAudit, _normalize_dialogue_action_intent
 from ming_sim.dialogue_goals import PreparedDialogue, record_dialogue_effects
+from ming_sim.dialogue_semantics import SemanticDecision
 from ming_sim import issues
 from ming_sim.issues import bind_content as bind_issues
 
@@ -110,6 +112,125 @@ class DialogueImmediateConsequenceTests(unittest.TestCase):
             self.assertEqual(str(condition["label"]), "舌伤")
             self.assertEqual(str(condition["source_kind"]), "dialogue")
             self.assertEqual(str(condition["source_id"]), "chat_turn:321")
+
+    def test_post_dialogue_directive_writes_task_risk_profile(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp, self.content)
+            character = self.content.characters["韩爌"]
+
+            class Audit:
+                def post(self, payload):
+                    return {
+                        "goal_decision": "none",
+                        "goal_relation": "none",
+                        "action_kind": "general",
+                        "stance": "neutral",
+                        "handshake_status": "none",
+                        "goal_status": "active",
+                        "score_delta": 0,
+                        "score_after": 0,
+                        "threshold": 70,
+                        "conditions": [],
+                        "blockers": [],
+                        "agreement_action": "none",
+                        "directive_action": "propose_pending",
+                        "directive_text": "着韩爌连日核验户部账册，三日内回奏。",
+                        "task_risk_profile": {
+                            "risk_tags": ["desk_bureaucratic"],
+                            "pressure": 75,
+                            "confidence": 0.9,
+                            "evidence_quote": "连日核验户部账册",
+                        },
+                        "confidence": 95,
+                        "trigger_quote": "把这份草案落入待核旨意",
+                        "public_hint": "拟旨已入档。",
+                        "private_reason": "玩家明确要求落草案。",
+                    }
+
+            result = record_dialogue_effects(
+                db,
+                state,
+                character,
+                "把这份草案落入待核旨意。",
+                "臣已拟旨：着韩爌连日核验户部账册，三日内回奏。",
+                prepared=self._prepared_none(),
+                audit_client=Audit(),
+                source_chat_turn_id=331,
+            )
+
+            self.assertEqual(result["event"], "directive_proposed")
+            row = db.conn.execute(
+                "SELECT risk_profile_json FROM turn_directives WHERE id=?",
+                (int(result["proposed_directive"]["id"]),),
+            ).fetchone()
+            profile = json.loads(str(row["risk_profile_json"]))
+            self.assertEqual(profile["risk_tags"], ["desk_bureaucratic"])
+
+    def test_post_dialogue_agreement_task_writes_task_risk_profile(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp, self.content)
+            character = self.content.characters["韩爌"]
+
+            class Audit:
+                def post(self, payload):
+                    return {
+                        "goal_decision": "new",
+                        "goal_relation": "distinct_goal",
+                        "action_kind": "court_commitment",
+                        "title": "核验户部账册",
+                        "target_text": "韩爌限期核验户部账册",
+                        "stance": "support",
+                        "handshake_status": "sealed",
+                        "goal_status": "sealed",
+                        "agreement_formed": True,
+                        "performance_status": "pending",
+                        "agreement_action": "create_pending",
+                        "conditions": [{
+                            "description": "三日内提交户部账册核验结果",
+                            "status": "pending",
+                            "evidence": "准你三日内核账回奏",
+                        }],
+                        "tasks": ["三日内提交户部账册核验结果"],
+                        "blockers": [],
+                        "score_delta": 100,
+                        "score_after": 100,
+                        "threshold": 70,
+                        "task_risk_profiles": [{
+                            "risk_tags": ["desk_bureaucratic"],
+                            "pressure": 82,
+                            "confidence": 0.9,
+                            "evidence_quote": "三日内核账回奏",
+                        }],
+                        "confidence": 95,
+                        "trigger_quote": "准你三日内核账回奏",
+                        "public_hint": "双方约定限期核账。",
+                        "private_reason": "玩家与韩爌形成待履约约定。",
+                    }
+
+            result = record_dialogue_effects(
+                db,
+                state,
+                character,
+                "准你三日内核账回奏。",
+                "臣领旨，三日内提交户部账册核验结果。",
+                prepared=self._prepared_none(),
+                audit_client=Audit(),
+                source_chat_turn_id=332,
+            )
+
+            self.assertEqual(result["event"], "sealed")
+            row = db.conn.execute(
+                """
+                SELECT t.risk_profile_json
+                FROM negotiation_tasks t
+                JOIN negotiation_agreements a ON a.id=t.agreement_id
+                WHERE a.minister_name='韩爌'
+                ORDER BY t.id DESC
+                LIMIT 1
+                """
+            ).fetchone()
+            profile = json.loads(str(row["risk_profile_json"]))
+            self.assertEqual(profile["risk_tags"], ["desk_bureaucratic"])
 
     def test_dialogue_consequences_require_immediate_confirmation(self):
         with TemporaryDirectory() as tmp:
@@ -470,6 +591,50 @@ class DialogueImmediateConsequenceTests(unittest.TestCase):
                     self.assertEqual([row.get("name") for row in extracted.get(key, [])], ["洪承畴"])
             finally:
                 issues.apply_score_extraction = original_apply
+
+
+class DialogueTaskRiskProfileTests(unittest.TestCase):
+    def test_dialogue_action_intent_syncs_task_risk_profile_into_payload(self):
+        normalized = _normalize_dialogue_action_intent({
+            "allow": True,
+            "phase": "confirm",
+            "action_type": "secret_order",
+            "actor": "韩爌",
+            "confidence": 90,
+            "trigger_quote": "命韩爌连日核验户部账册",
+            "task_risk_profile": {
+                "risk_tags": ["desk_bureaucratic"],
+                "pressure": 80,
+                "confidence": 0.9,
+                "evidence_quote": "连日核验户部账册",
+            },
+        })
+
+        self.assertEqual(normalized["task_risk_profile"]["risk_tags"], ["desk_bureaucratic"])
+        self.assertEqual(normalized["payload"]["task_risk_profile"]["risk_tags"], ["desk_bureaucratic"])
+
+    def test_semantic_decision_to_review_preserves_raw_task_risk_profile(self):
+        decision = SemanticDecision(
+            decision_type="action",
+            action_type="secret_order",
+            phase="confirm",
+            actor="王承恩",
+            confidence=90,
+            trigger_quote="命王承恩密查诏狱旧案",
+            raw={
+                "task_risk_profile": {
+                    "risk_tags": ["high_pressure_investigation"],
+                    "pressure": 88,
+                    "confidence": 0.8,
+                    "evidence_quote": "密查诏狱旧案",
+                }
+            },
+        )
+
+        review = decision.to_review()
+
+        self.assertEqual(review["task_risk_profile"]["risk_tags"], ["high_pressure_investigation"])
+        self.assertEqual(review["payload"]["task_risk_profile"]["risk_tags"], ["high_pressure_investigation"])
 
 
 if __name__ == "__main__":

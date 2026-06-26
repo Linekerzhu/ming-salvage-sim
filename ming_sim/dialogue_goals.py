@@ -18,6 +18,7 @@ from ming_sim.dialogue_audit import (
     review_goal_conditions_audit,
 )
 from ming_sim.dialogue_semantics import DialogueSemanticEngine
+from ming_sim.effect_catalog import task_risk_profiles_from_payload
 from ming_sim.context import npc_dialogue_behavior_profile
 from ming_sim.models import Character, GameState, LLMConfig
 from ming_sim.negotiation import (
@@ -1028,6 +1029,11 @@ def _create_agreement_for_goal(
     promise_type = _audit_text_field(audit, "promise_type", 80) or action_kind
     stakes = _audit_text_field(audit, "stakes", 160) or _audit_text_field(audit, "blocked_reason", 160)
     due_turn = _audit_due_turn(state, audit, tasks)
+    task_risk_profiles = task_risk_profiles_from_payload(
+        audit or {},
+        actor=str(goal.get("minister_name") or ""),
+        limit=max(1, len(tasks) or 1),
+    )
     agreement_id = db.create_negotiation_agreement(
         state,
         minister_name=str(goal.get("minister_name") or ""),
@@ -1048,6 +1054,7 @@ def _create_agreement_for_goal(
         conditions=conditions,
         summary=summary or f"奏对目的已握手：{topic}",
         tasks=tasks,
+        task_risk_profiles=task_risk_profiles,
     )
     if audit:
         try:
@@ -1086,6 +1093,8 @@ def _create_directive_from_audit(
     if not _quote_supported_by_player_text(trigger_quote, user_text):
         return {}
     actor = str(getattr(character, "name", "") or "").strip()
+    profiles = task_risk_profiles_from_payload(raw if isinstance(raw, dict) else {}, actor=actor, limit=1)
+    task_risk_profile = profiles[0] if profiles else {}
     try:
         existing = db.conn.execute(
             """
@@ -1100,6 +1109,11 @@ def _create_directive_from_audit(
     except Exception:
         existing = None
     if existing is not None:
+        if task_risk_profile:
+            try:
+                db.set_task_risk_profile("turn_directives", int(existing["id"]), task_risk_profile)
+            except Exception:
+                pass
         return {
             "id": int(existing["id"]),
             "text": str(existing["text"] or text),
@@ -1120,6 +1134,7 @@ def _create_directive_from_audit(
         actor=actor,
         notes=notes,
         status="pending",
+        task_risk_profile=task_risk_profile,
     )
     return {
         "id": int(directive_id),

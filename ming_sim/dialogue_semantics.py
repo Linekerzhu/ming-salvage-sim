@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
 from ming_sim.dialogue_audit import CONFIDENCE_FLOOR
+from ming_sim.effect_catalog import accepted_task_risk_profile
 from ming_sim.models import Character, GameState, LLMConfig
 
 
@@ -231,6 +232,12 @@ class SemanticDecision:
             value = review.get(key)
             if isinstance(value, list):
                 payload[key] = value
+        profile = accepted_task_risk_profile(
+            review.get("task_risk_profile") or payload.get("task_risk_profile"),
+            actor=_compact(review.get("actor") or review.get("target"), 80),
+        )
+        if profile:
+            payload["task_risk_profile"] = profile
         return cls(
             decision_type=decision_type if decision_type in DECISION_TYPES else "action",
             action_type=action_type,
@@ -468,6 +475,15 @@ class SemanticDecision:
         for key in ("character_status_changes", "condition_changes", "punishment_changes"):
             if key in self.payload:
                 data[key] = self.payload[key]
+        raw_profile = self.raw.get("task_risk_profile") if isinstance(self.raw, dict) else {}
+        profile = accepted_task_risk_profile(
+            self.payload.get("task_risk_profile") or raw_profile,
+            actor=self.actor or self.target,
+        )
+        if profile:
+            data["task_risk_profile"] = profile
+            data["payload"] = dict(data.get("payload") or {})
+            data["payload"]["task_risk_profile"] = profile
         for key in ("proposal_evidence", "faction"):
             if key in self.payload:
                 data[key] = self.payload[key]

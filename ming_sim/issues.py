@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from ming_sim.constants import (
     TURN_UNIT, REGION_SCORE_FIELDS, ARMY_SCORE_FIELDS, FISCAL_SCORE_FIELDS,
@@ -17,6 +17,7 @@ from ming_sim.constants import (
 from ming_sim.content import GameContent
 from ming_sim.context import victory_status
 from ming_sim.db import GameDB, normalize_office
+from ming_sim.effect_catalog import accepted_task_risk_profile
 from ming_sim.flows import (
     ISSUE_METRIC_KEYS,
     ISSUE_METRIC_LOCK_CAPS,
@@ -48,6 +49,92 @@ _ISSUE_PSEUDO_EVENT = Event(
 def bind_content(content: GameContent) -> None:
     global _content
     _content = content
+
+
+_TASK_RISK_TABLE_ALIASES = {
+    "directive": "turn_directives",
+    "turn_directive": "turn_directives",
+    "turn_directives": "turn_directives",
+    "secret_order": "secret_orders",
+    "secret_orders": "secret_orders",
+    "order": "secret_orders",
+    "agreement_task": "negotiation_tasks",
+    "negotiation_task": "negotiation_tasks",
+    "negotiation_tasks": "negotiation_tasks",
+}
+
+
+def _task_risk_rows(extracted: Dict[str, object]) -> List[Dict[str, object]]:
+    rows = extracted.get("task_risk_profiles")
+    if isinstance(rows, list):
+        return [row for row in rows if isinstance(row, dict)]
+    if isinstance(rows, dict):
+        return [rows]
+    single = extracted.get("task_risk_profile")
+    return [single] if isinstance(single, dict) else []
+
+
+def _task_risk_target(
+    item: Dict[str, object],
+    *,
+    default_source_kind: str = "",
+    default_source_id: str = "",
+) -> tuple[str, int]:
+    raw_table = str(
+        item.get("table")
+        or item.get("source_table")
+        or item.get("target_table")
+        or item.get("source_kind")
+        or default_source_kind
+        or ""
+    ).strip()
+    table = _TASK_RISK_TABLE_ALIASES.get(raw_table, "")
+    id_keys = {
+        "turn_directives": ("directive_id", "source_id", "row_id", "id"),
+        "secret_orders": ("order_id", "secret_order_id", "source_id", "row_id", "id"),
+        "negotiation_tasks": ("task_id", "negotiation_task_id", "source_id", "row_id", "id"),
+    }.get(table, ("source_id", "row_id", "id"))
+    raw_id: object = ""
+    for key in id_keys:
+        if item.get(key) not in (None, ""):
+            raw_id = item.get(key)
+            break
+    if raw_id in (None, "") and table and _TASK_RISK_TABLE_ALIASES.get(default_source_kind) == table:
+        raw_id = default_source_id
+    try:
+        row_id = int(str(raw_id or "").strip())
+    except (TypeError, ValueError):
+        row_id = 0
+    return table, row_id
+
+
+def _apply_task_risk_profiles(
+    db: GameDB,
+    extracted: Dict[str, object],
+    *,
+    default_source_kind: str = "",
+    default_source_id: str = "",
+) -> List[Dict[str, object]]:
+    applied: List[Dict[str, object]] = []
+    rows = _task_risk_rows(extracted)
+    for item in rows:
+        table, row_id = _task_risk_target(
+            item,
+            default_source_kind=default_source_kind,
+            default_source_id=default_source_id,
+        )
+        if not table or row_id <= 0:
+            continue
+        raw_profile: Any = item.get("profile") or item.get("task_risk_profile") or item
+        profile = accepted_task_risk_profile(
+            raw_profile,
+            actor=str(item.get("actor") or item.get("assignee") or item.get("name") or ""),
+        )
+        if not profile:
+            continue
+        if db.set_task_risk_profile(table, row_id, profile):
+            applied.append({"table": table, "source_id": row_id, "task_risk_profile": profile})
+    return applied
 
 
 def _ctx() -> GameContent:
@@ -1312,6 +1399,12 @@ def apply_score_extraction(
     else:
         extraction_source_kind = "directive" if directive_id else "turn_extraction"
         extraction_source_id = directive_id or f"{state.year}-{state.period}-turn-{state.turn}"
+    applied_task_risk_profiles = _apply_task_risk_profiles(
+        db,
+        extracted,
+        default_source_kind=extraction_source_kind,
+        default_source_id=extraction_source_id,
+    )
     for item in extracted.get("character_status_changes") or []:
         if not isinstance(item, dict):
             continue
@@ -1818,6 +1911,7 @@ def apply_score_extraction(
         "character_status_changes": applied_status_changes,
         "condition_changes": applied_condition_changes,
         "punishment_changes": applied_punishment_changes,
+        "task_risk_profiles": applied_task_risk_profiles,
         "character_power_changes": applied_power_changes,
         "office_changes": applied_office_changes,
         "political_reactions": political_reactions,

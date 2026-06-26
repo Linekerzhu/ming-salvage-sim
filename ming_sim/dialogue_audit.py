@@ -26,6 +26,7 @@ from ming_sim.llm_config import for_role as llm_for_role
 from ming_sim.llm_model import create_chat_model
 from ming_sim.models import Character, GameState, LLMConfig
 from ming_sim.pipeline_registry import llm_output_token_budget
+from ming_sim.effect_catalog import accepted_task_risk_profile
 
 
 CONFIDENCE_FLOOR = 70
@@ -602,6 +603,16 @@ def _normalize_dialogue_action_intent(data: Dict[str, object]) -> Dict[str, obje
     allow = bool(data.get("allow")) and action_type != "none" and phase in {"propose", "confirm", "reject"} and confidence >= CONFIDENCE_FLOOR
     if phase == "reject" and action_type == "none" and confidence >= CONFIDENCE_FLOOR:
         allow = bool(data.get("allow"))
+    payload = data.get("payload") if isinstance(data.get("payload"), dict) else {}
+    payload = dict(payload)
+    task_risk_profile = accepted_task_risk_profile(
+        data.get("task_risk_profile") or payload.get("task_risk_profile"),
+        actor=_compact(data.get("actor") or data.get("target"), 80),
+    )
+    if not allow:
+        task_risk_profile = {}
+    if task_risk_profile:
+        payload["task_risk_profile"] = task_risk_profile
     return {
         "allow": allow,
         "phase": phase if allow else "none",
@@ -616,10 +627,11 @@ def _normalize_dialogue_action_intent(data: Dict[str, object]) -> Dict[str, obje
         "trigger_quote": _compact(data.get("trigger_quote"), 140),
         "public_hint": _compact(data.get("public_hint"), 180),
         "private_reason": _compact(data.get("private_reason") or data.get("reason"), 520),
-        "payload": data.get("payload") if isinstance(data.get("payload"), dict) else {},
+        "payload": payload,
         "character_status_changes": data.get("character_status_changes") if isinstance(data.get("character_status_changes"), list) else [],
         "condition_changes": data.get("condition_changes") if isinstance(data.get("condition_changes"), list) else [],
         "punishment_changes": data.get("punishment_changes") if isinstance(data.get("punishment_changes"), list) else [],
+        "task_risk_profile": task_risk_profile,
         "raw": data,
     }
 
@@ -1321,8 +1333,10 @@ POST_AUDIT_PROMPT = """
 - immediate_consequence=true 时必须填写 trigger_quote，且必须逐字引用本轮玩家原话中足以证明“已经即时执行/明确口谕”的短句；只有 NPC 回复自称已经执行、但玩家原话没有明确口谕时，不得输出 immediate_consequence=true。没有可引用证据时 immediate_consequence=false。
 - immediate_consequence=true 的每一条 character_status_changes / condition_changes / punishment_changes 都必须在 reason（或 evidence_quote/source_quote/quote）中摘录本轮玩家原话或 NPC 本轮回复里的证据短句；程序会丢弃证据句不在本轮对话中的单条变更。reason 不要写概括、推理或别处旧档。
 - 即时后果必须有明确目标姓名；若只是“他/此人/他们”且本轮文本无法唯一指向，不得填写 changes。对当前奏对对象可用其姓名。
-- 刑罚分类：明律五刑用 taxonomy=ming_five，punishment=笞刑|杖刑|徒刑|流刑|死刑；古五刑用 taxonomy=ancient_five，punishment=墨刑|劓刑|刖刑|宫刑|大辟；普通酷刑/伤残用 taxonomy=ordinary，例如 punishment=割舌|割耳|断腿|拷掠|夹棍|廷杖。
+- 疾病、刑罚、任务风险采用“语义识别 + 固定后果目录”：你只识别事件原子、目标、证据和置信度，不要自行发明身体后果。已知疾病只填目录病名：风寒、肺痨、痔疾、癃闭、虚劳、惊悸失眠、心神失常。程序会固定派生病历、HP、奏对限制和任务后果。
+- 刑罚分类：明律五刑用 taxonomy=ming_five，punishment=笞刑|杖刑|徒刑|流刑|死刑；古五刑用 taxonomy=ancient_five，punishment=墨刑|劓刑|刖刑|宫刑|大辟；普通酷刑/伤残用 taxonomy=ordinary，例如 punishment=割舌|割耳|断腿|拷掠|夹棍。
 - 宫刑、腐刑、强制净身、去势等强制执行时优先写 punishment_changes 的“宫刑”；程序会自动派生病历中的生殖器官缺失、绝育、性功能丧失、尿道狭窄、慢性创痛等事实。condition_changes 只补原文另明写的病历并发症（如漏尿、尿闭、幻肢痛、失声等）。相关文字必须是临床/档案措辞，不写情色化描述。
+- 任务风险只输出结构化 profile，不靠关键词推理。可用 risk_tags：mounted_military、desk_bureaucratic、high_pressure_investigation、corrupt_debauchery、private_morality。没有明确语义证据时不要填写。
 
 JSON 字段：
 {
@@ -1359,6 +1373,7 @@ JSON 字段：
   "character_status_changes": [{"name":"目标姓名","status":"imprisoned|exiled|dead|dismissed|retired|offstage|castrated","reason":"本轮对话原文证据短句","agency":"锦衣卫|刑部|都察院|内廷|其他","facility":"北镇抚司昭狱|刑部大牢|诏狱|其他","coercion_goal":"逼供/迫使奉旨/株连线索/其他","severity":1}],
   "condition_changes": [{"name":"目标姓名","kind":"punishment|prison_effect|disease|injury|disability|terminal","system":"speech|nervous|circulatory|respiratory|digestive|musculoskeletal|urinary|reproductive|skin|mental|general","label":"病历短名","severity":1,"stage":"mild|serious|critical|disabled|chronic|dead","reason":"本轮对话原文证据短句","effects":{"speech":"口齿含混等能力影响","record_group":"organic|pathological|psychological|other","organ":"器官/肢体","side":"左|右","state":"状态","function":"功能","impact":"影响","course_kind":"acute|chronic","possible_outcomes":["恢复","加重"]}}],
   "punishment_changes": [{"name":"目标姓名","taxonomy":"ordinary|ming_five|ancient_five","punishment":"刑罚名","severity":1,"stage":"ordered|executing|executed","executor":"锦衣卫/刑部等","reason":"本轮对话原文证据短句"}],
+  "task_risk_profile": {"actor":"承办人；无则空","risk_tags":["mounted_military|desk_bureaucratic|high_pressure_investigation|corrupt_debauchery|private_morality"],"pressure":0,"privacy":"public|private","evidence_quote":"本轮原文证据短句","confidence":0,"decision_source":"llm"},
   "public_hint": "玩家可见一句短解释",
   "private_reason": "debug 审计理由，含原文证据",
   "confidence": 0
@@ -1496,8 +1511,9 @@ JSON 字段：
   "private_reason": "审计理由，说明为什么是/不是执行动作",
   "payload": {"可选":"对应动作结构化草案"},
   "character_status_changes": [{"name":"目标姓名","status":"imprisoned|exiled|dead|dismissed|retired|offstage|castrated","reason":"本轮对话原文证据短句","agency":"锦衣卫|刑部|都察院|内廷|其他","facility":"北镇抚司昭狱|刑部大牢|诏狱|其他","coercion_goal":"逼供/迫使奉旨/株连线索/其他","severity":1}],
-  "condition_changes": [{"name":"目标姓名","kind":"disease|injury|punishment|disability|prison_effect|terminal","system":"general|speech|nervous|mental|respiratory|circulatory|digestive|urinary|reproductive|musculoskeletal|skin","label":"病历短名","severity":1,"stage":"active|mild|serious|critical|disabled|chronic|recovering|resolved|dead","reason":"本轮对话原文证据短句","effects":{"record_group":"organic|pathological|psychological|other","organ":"器官/肢体","side":"左|右","state":"状态","function":"功能","impact":"影响","course_kind":"acute|chronic","possible_outcomes":["恢复","加重"]}}],
+  "condition_changes": [{"name":"目标姓名","kind":"disease|injury|punishment|disability|prison_effect|terminal","system":"general|speech|nervous|mental|respiratory|circulatory|digestive|urinary|reproductive|musculoskeletal|skin","label":"目录病名或病历短名","severity":1,"stage":"active|mild|serious|critical|disabled|chronic|recovering|resolved|dead","reason":"本轮对话原文证据短句","confidence":0,"decision_source":"llm","effects":{}}],
   "punishment_changes": [{"name":"目标姓名","taxonomy":"ordinary|ming_five|ancient_five","punishment":"刑罚名","severity":1,"stage":"sentenced|executed|stayed|remitted","executor":"锦衣卫/刑部等","reason":"本轮对话原文证据短句"}],
+  "task_risk_profile": {"actor":"承办人；无则空","risk_tags":["mounted_military|desk_bureaucratic|high_pressure_investigation|corrupt_debauchery|private_morality"],"pressure":0,"privacy":"public|private","evidence_quote":"本轮原文证据短句","confidence":0,"decision_source":"llm"},
   "confidence": 0
 }
 """.strip()

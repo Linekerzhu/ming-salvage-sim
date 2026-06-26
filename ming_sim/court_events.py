@@ -11,6 +11,7 @@ import json
 from typing import Callable, Dict, List, Optional
 
 from ming_sim.db import GameDB
+from ming_sim.effect_catalog import task_risk_profiles_from_payload
 from ming_sim.models import GameState, period_label
 from ming_sim import court
 from ming_sim.negotiation import HANDSHAKE_SEALED, promise_type_from_terms, stakes_from_terms
@@ -101,6 +102,7 @@ def _create_obligation(db: GameDB, state: GameState, item: Dict[str, object], da
         conditions=conditions,
         summary=str(item.get("summary") or f"{minister}奉旨领下待办：{title}")[:300],
         tasks=tasks,
+        task_risk_profiles=task_risk_profiles_from_payload(item, actor=minister, limit=max(1, len(tasks) or 1)),
         goal_id=goal_id,
     )
     db.update_conversation_goal(

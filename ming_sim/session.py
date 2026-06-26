@@ -31,6 +31,7 @@ from ming_sim.context import (
 from ming_sim.db import GameDB, effective_stored_office_type, infer_assignment_office_type, normalize_office
 from ming_sim.decree import advance_without_edict, resolve_directives, write_decree_with_agno
 from ming_sim.dialogue_goals import PreparedDialogue, prepare_dialogue_context, record_dialogue_effects
+from ming_sim.effect_catalog import task_risk_profiles_from_payload
 from ming_sim.endings import evaluate_and_finalize
 from ming_sim.issues import apply_score_extraction, bind_content as _bind_issues
 from ming_sim.issues import sync_opening_legacies
@@ -965,6 +966,7 @@ class GameSession:
             "deadline_months": deadline,
             "note": f"{title[:20]}：{content}",
             "tool_answer_excerpt": str(answer or "")[:240],
+            "task_risk_profile": data.get("task_risk_profile") if isinstance(data.get("task_risk_profile"), dict) else {},
         }
 
     def _secret_order_followup_payload(self, payload: object) -> Dict[str, object]:
@@ -1241,6 +1243,14 @@ class GameSession:
                 normalized[key] = value
         if isinstance(review_payload.get("tags"), list):
             normalized["tags"] = review_payload["tags"]
+        review = decision.to_review() if hasattr(decision, "to_review") else {}
+        profiles = task_risk_profiles_from_payload(
+            review if isinstance(review, dict) else review_payload,
+            actor=str(normalized.get("assignee") or ""),
+            limit=1,
+        )
+        if profiles:
+            normalized["task_risk_profile"] = profiles[0]
         return normalized
 
     def _json_object_payload(self, payload: object) -> Dict[str, object]:
@@ -1645,18 +1655,27 @@ class GameSession:
         draft = str(draft_text or "").strip()
         if not draft:
             return None
-        reviewed_draft = self.dialogue_pending_directive_text_after_semantic_gate(
+        decision = self.dialogue_pending_directive_decision(
             character,
             user_text,
             draft,
             answer=answer,
         )
+        if decision is None or not decision.allow or decision.action_type != "directive_fallback":
+            return None
+        if not self._semantic_decision_quote_supported_by_user_text(decision, user_text):
+            return None
+        reviewed_draft = self._pending_directive_text_with_decision(draft, decision)
         if not reviewed_draft:
             return None
         draft = reviewed_draft
+        review = decision.to_review() if hasattr(decision, "to_review") else {}
+        profiles = task_risk_profiles_from_payload(review, actor=character.name, limit=1)
+        task_risk_profile = profiles[0] if profiles else {}
         directive_id = self.db.add_directive(
             self.state, None, draft, "大臣拟旨",
             actor=character.name, notes=f"由{character.name}拟旨入档", status="pending",
+            task_risk_profile=task_risk_profile,
         )
         return DirectiveView(
             id=directive_id, text=draft, status="pending",
@@ -2201,7 +2220,17 @@ class GameSession:
             deadline = 0
         print(f"[secret_order] 截获密令 minister={minister_name} assignee={assignee} title={title!r} tags={tags}")
         try:
-            return self.db.create_secret_order(self.state, assignee, title, content, tags, deadline_months=deadline)
+            profiles = task_risk_profiles_from_payload(data, actor=assignee, limit=1)
+            task_risk_profile = profiles[0] if profiles else {}
+            return self.db.create_secret_order(
+                self.state,
+                assignee,
+                title,
+                content,
+                tags,
+                deadline_months=deadline,
+                task_risk_profile=task_risk_profile,
+            )
         except ValueError as exc:
             print(f"[secret_order] 拒绝落库：{exc}")
             return 0

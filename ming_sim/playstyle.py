@@ -43,6 +43,7 @@ _KIND_PRIORITY = {
     "agenda": 14,
     "rivalry": 15,
     "hook": 16,
+    "health_risk": 17,
 }
 
 _KIND_LABELS = {
@@ -65,6 +66,7 @@ _KIND_LABELS = {
     "agenda": "私图",
     "rivalry": "怨隙",
     "hook": "把柄",
+    "health_risk": "病职",
 }
 
 _RANK_LABELS = {
@@ -116,6 +118,7 @@ _CARD_MOTIVES = {
     "agenda": "私图可交易",
     "rivalry": "旧怨求边界",
     "hook": "把柄可试探",
+    "health_risk": "病中承办待处置",
 }
 
 _CARD_DEALS = {
@@ -203,6 +206,11 @@ _CARD_DEALS = {
         "ask": "求暂不发作把柄",
         "exchange": "用把柄换效忠、难差或线索",
         "refusal": "逼急可能毁证或投靠他人",
+    },
+    "health_risk": {
+        "ask": "求展限、调养或改派差遣",
+        "exchange": "交代病势、能办边界和替手安排",
+        "refusal": "硬撑可能拖坏差事或使病势再重",
     },
 }
 
@@ -2058,6 +2066,7 @@ def _briefing_candidates(db: GameDB, state: Optional[GameState] = None) -> List[
     _army_cards(db, cards)
     _faction_cards(db, cards)
     _eunuch_cards(db, state, cards)
+    _occupational_risk_cards(db, state, cards)
     _secret_cards(db, cards)
     resolved = _resolved_briefing_card_keys(db)
     if not resolved:
@@ -2296,6 +2305,11 @@ def _card_stakes(kind: str) -> List[Dict[str, str]]:
             ("gain", "把柄可用", "good"),
             ("cost", "逼急毁证", "bad"),
             ("ask", "换效忠", "neutral"),
+        ],
+        "health_risk": [
+            ("gain", "换人保差", "good"),
+            ("cost", "病拖成败", "bad"),
+            ("ask", "问病与期限", "neutral"),
         ],
     }
     return [
@@ -4660,6 +4674,74 @@ def _faction_cards(db: GameDB, cards: List[BriefCard]) -> None:
                 meta=f"势{lev}/怨{100 - sat}",
                 ref_kind="faction",
                 ref_id=name,
+                effects=effects,
+            )
+        )
+
+
+def _occupational_risk_cards(db: GameDB, state: Optional[GameState], cards: List[BriefCard]) -> None:
+    if not _table_exists(db, "event_memories") or not _table_exists(db, "characters"):
+        return
+    min_turn = max(0, int(state.turn) - 2) if state is not None else 0
+    rows = _safe_fetchall(
+        db,
+        """
+        SELECT
+            m.subject_id AS name,
+            m.title AS title,
+            m.cause AS cause,
+            m.process AS process,
+            m.outcome AS outcome,
+            m.importance AS importance,
+            m.source_id AS source_id,
+            c.office AS office,
+            c.hp AS hp
+        FROM event_memories m
+        JOIN characters c ON c.name=m.subject_id
+        WHERE m.event_type='occupational_risk'
+          AND m.turn>=?
+          AND c.status='active'
+          AND c.power_id='ming'
+          AND c.office_type!='后宫'
+        ORDER BY m.importance DESC, m.id DESC
+        LIMIT 4
+        """,
+        (min_turn,),
+    )
+    for row in rows:
+        name = str(row["name"] or "").strip()
+        title = str(row["title"] or "病中承办").strip()
+        process = str(row["process"] or "").strip()
+        outcome = str(row["outcome"] or "").strip()
+        cause = str(row["cause"] or "").strip()
+        hp = int(row["hp"] or 100)
+        importance = int(row["importance"] or 3)
+        tone = "danger" if hp <= 25 or importance >= 4 else "warn"
+        urgency = min(94, 54 + importance * 8 + (12 if hp <= 40 else 0))
+        office = _short_office(str(row["office"] or ""))
+        effects = [
+            {"kind": "medical", "label": "病历已变", "tone": "bad" if hp <= 40 else "warn"},
+            {"kind": "assignment", "label": "差遣风险", "tone": "warn"},
+        ]
+        if hp <= 40:
+            effects.append({"kind": "hp", "label": f"体力 {hp}", "tone": "bad"})
+        cards.append(
+            _card(
+                kind="health_risk",
+                title=f"病中承办：{name}",
+                detail=(
+                    f"{office}{name}近因「{title}」入档。"
+                    f"{process or outcome or '病势牵动差遣。'}"
+                    + (f" 原差：{_short_text(cause, 48)}。" if cause else "")
+                ),
+                urgency=urgency,
+                tone=tone,
+                cta="召来问疾",
+                tab=_TAB_AUDIENCE,
+                actor=name,
+                meta=f"体力{hp}",
+                ref_kind="occupational_risk",
+                ref_id=str(row["source_id"] or name),
                 effects=effects,
             )
         )

@@ -109,6 +109,59 @@ class PunishmentRecordTests(unittest.TestCase):
             self.assertIn("尿道狭窄", titles)
             self.assertIn("生殖伤残", payload["tags"])
 
+    def test_gong_catalog_forces_ancient_five_identity_transform(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            name = str(db.conn.execute(
+                "SELECT name FROM characters WHERE status='active' AND power_id='ming' LIMIT 1"
+            ).fetchone()["name"])
+
+            applied = apply_punishment_changes(db, state, [{
+                "name": name,
+                "taxonomy": "ordinary",
+                "punishment": "宫刑",
+                "severity": 2,
+                "stage": "executed",
+                "reason": "处宫刑",
+            }], source_kind="test", source_id="gong-catalog")
+
+            self.assertEqual(applied[0]["taxonomy"], "ancient_five")
+            self.assertEqual(applied[0]["severity"], 5)
+            self.assertTrue(applied[0]["side_effect"]["conditions"])
+            self.assertEqual(
+                str(db.conn.execute("SELECT sex FROM characters WHERE name=?", (name,)).fetchone()["sex"]),
+                "eunuch",
+            )
+
+    def test_tingzhang_catalog_forces_ming_five_label(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            name = str(db.conn.execute(
+                "SELECT name FROM characters WHERE status='active' AND power_id='ming' LIMIT 1"
+            ).fetchone()["name"])
+
+            applied = apply_punishment_changes(db, state, [{
+                "name": name,
+                "taxonomy": "ordinary",
+                "punishment": "廷杖",
+                "severity": 2,
+                "stage": "executed",
+                "reason": "廷杖示惩",
+            }], source_kind="test", source_id="tingzhang-catalog")
+
+            self.assertEqual(applied[0]["punishment_key"], "zhang")
+            self.assertEqual(applied[0]["taxonomy"], "ming_five")
+            self.assertEqual(applied[0]["label"], "杖刑")
+
+    def test_dialogue_prompt_no_longer_lists_tingzhang_as_ordinary(self):
+        import inspect
+        from ming_sim import dialogue_audit
+
+        source = inspect.getsource(dialogue_audit)
+
+        self.assertIn("普通酷刑/伤残用 taxonomy=ordinary，例如 punishment=割舌|割耳|断腿|拷掠|夹棍。", source)
+        self.assertNotIn("普通酷刑/伤残用 taxonomy=ordinary，例如 punishment=割舌|割耳|断腿|拷掠|夹棍|廷杖。", source)
+
     def test_voluntary_castration_conversion_writes_medical_record_without_punishment(self):
         from ming_sim.content import GameContent
         from ming_sim.personnel_actions import convert_character_to_eunuch

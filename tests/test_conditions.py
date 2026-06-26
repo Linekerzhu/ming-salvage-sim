@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from ming_sim.conditions import (
     add_condition,
+    apply_condition_changes,
     apply_dialogue_answer_impairment,
     condition_summary,
     dialogue_condition_brief,
@@ -394,6 +395,38 @@ class CharacterConditionTests(unittest.TestCase):
 
 
 class ApplyConditionExtractionTests(unittest.TestCase):
+    def test_catalog_condition_uses_fixed_effects_over_llm_effects(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            name = str(db.conn.execute(
+                "SELECT name FROM characters WHERE status='active' AND power_id='ming' LIMIT 1"
+            ).fetchone()["name"])
+
+            applied = apply_condition_changes(db, state, [{
+                "name": name,
+                "kind": "terminal",
+                "system": "circulatory",
+                "label": "风寒",
+                "severity": 5,
+                "stage": "dead",
+                "reason": "他昨夜染风寒",
+                "confidence": 0.92,
+                "decision_source": "llm",
+                "effects": {"fatal": True, "impact": "LLM自由编造后果"},
+            }], source_kind="dialogue", source_id="wind")
+
+            self.assertEqual(applied[0]["label"], "风寒")
+            self.assertEqual(applied[0]["system"], "respiratory")
+            self.assertEqual(applied[0]["severity"], 2)
+            self.assertEqual(applied[0]["stage"], "active")
+            effects = json.loads(db.conn.execute(
+                "SELECT effects_json FROM character_conditions WHERE name=? AND condition_key='natural:wind_cold'",
+                (name,),
+            ).fetchone()["effects_json"])
+            self.assertTrue(effects["catalog_fixed"])
+            self.assertNotEqual(effects.get("impact"), "LLM自由编造后果")
+            self.assertNotIn("fatal", effects)
+
     def test_apply_score_extraction_persists_condition_change(self):
         from ming_sim.content import GameContent
         from ming_sim.issues import apply_score_extraction, bind_content

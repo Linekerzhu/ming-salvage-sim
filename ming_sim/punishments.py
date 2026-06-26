@@ -12,6 +12,11 @@ import re
 from typing import Any, Dict, List
 
 from ming_sim.db import GameDB
+from ming_sim.effect_catalog import (
+    apply_punishment_catalog_effect,
+    normalize_punishment_key,
+    punishment_catalog_entry,
+)
 from ming_sim.models import GameState
 
 
@@ -156,17 +161,7 @@ def _pick(raw: Dict[str, object], *keys: str, default: object = "") -> object:
 
 
 def _norm_key(value: object, label: object = "") -> str:
-    raw = _clean_text(value, 60).lower()
-    if raw in _KEY_LABELS:
-        return raw
-    cn = _KEY_ALIASES.get(_clean_text(value, 60)) or _KEY_ALIASES.get(_clean_text(label, 60))
-    if cn:
-        return cn
-    label_text = _clean_text(label or value, 80)
-    for token, key in _KEY_ALIASES.items():
-        if token and token in label_text:
-            return key
-    return raw or "punishment"
+    return normalize_punishment_key(value, label)
 
 
 def _norm_taxonomy(value: object, key: str) -> str:
@@ -266,174 +261,7 @@ def _row_payload(row: Any) -> Dict[str, object]:
 
 
 def punishment_side_effect(item: Dict[str, object]) -> Dict[str, object]:
-    key = str(item.get("punishment_key") or "")
-    label = str(item.get("label") or _KEY_LABELS.get(key) or "刑罚")
-    severity = int(item.get("severity") or _DEFAULT_SEVERITY.get(key, 2))
-    side = _side_from_text(label, item.get("note"), item.get("executor"))
-    if key in {"si", "dabi"}:
-        return {"status": "dead", "reason": label, "fatal": True}
-    if key == "liu":
-        return {"status": "exiled", "reason": label}
-    if key == "tu":
-        return {"custody": True, "agency": "刑部", "facility": "徒刑羁押", "severity": severity}
-    if key == "gong":
-        return {
-            "castration_medical": True,
-            "forced": True,
-            "reason": label,
-        }
-    if key == "tongue_cut":
-        return {
-            "conditions": [
-                _condition(
-                    "tongue:organ",
-                    system="speech",
-                    label="舌伤",
-                    severity=5,
-                    group="organic",
-                    organ="舌",
-                    state="缺损",
-                    impact="发声含混，长篇奏对须改短句或书写",
-                    speech="口齿含混，不能正常奏对",
-                ),
-                _condition(
-                    "tongue:speech",
-                    kind="disability",
-                    system="speech",
-                    label="言语受损",
-                    severity=5,
-                    group="pathological",
-                    function="言语",
-                    impact="口齿含混，不能正常奏对",
-                    speech="口齿含混，不能正常奏对",
-                ),
-            ]
-        }
-    if key == "yi":
-        return {
-            "conditions": [
-                _condition(
-                    "nose:organ",
-                    system="respiratory",
-                    label="劓刑鼻伤",
-                    severity=4,
-                    group="organic",
-                    organ="鼻",
-                    state="缺损",
-                    impact="面鼻重创，气息不稳",
-                ),
-                _condition(
-                    "nose:breathing",
-                    kind="disability",
-                    system="respiratory",
-                    label="呼吸受损",
-                    severity=3,
-                    stage="chronic",
-                    group="pathological",
-                    function="呼吸",
-                    impact="鼻道伤残，气息不稳",
-                ),
-            ]
-        }
-    if key == "yue":
-        return {
-            "conditions": [
-                _condition(
-                    "leg:organ",
-                    system="musculoskeletal",
-                    label="刖刑足伤",
-                    severity=5,
-                    group="organic",
-                    organ="足",
-                    side=side,
-                    state="缺失",
-                    impact="行走久立困难",
-                ),
-                _condition(
-                    "leg:walking",
-                    kind="disability",
-                    system="musculoskeletal",
-                    label="行走受损",
-                    severity=5,
-                    group="pathological",
-                    function="行走",
-                    impact="不能正常行走，久立难支",
-                ),
-            ]
-        }
-    if key == "ear_cut":
-        return {
-            "condition": _condition(
-                "ear:organ",
-                system="nervous",
-                label="耳伤",
-                severity=max(4, severity),
-                group="organic",
-                organ="耳",
-                side=side,
-                state="缺失",
-                impact="听辨受损，仪容伤残",
-            )
-        }
-    if key == "leg_break":
-        return {
-            "conditions": [
-                _condition(
-                    "leg:fracture",
-                    kind="injury",
-                    system="musculoskeletal",
-                    label="腿骨折伤",
-                    severity=max(4, severity),
-                    stage="serious",
-                    group="organic",
-                    organ="腿",
-                    side=side,
-                    state="骨折",
-                    impact="行走久立困难",
-                    chronic=False,
-                ),
-                _condition(
-                    "leg:walking",
-                    kind="disability",
-                    system="musculoskeletal",
-                    label="行走受损",
-                    severity=max(4, severity),
-                    stage="serious",
-                    group="pathological",
-                    function="行走",
-                    impact="行走久立困难，差遣执行受限",
-                    chronic=False,
-                ),
-            ]
-        }
-    if key == "mo":
-        return {
-            "condition": {
-                "kind": "punishment",
-                "system": "skin",
-                "label": "墨刑黥面",
-                "severity": 3,
-                "stage": "active",
-                "effects": {"ability_delta": "面刺成辱，出入受限"},
-            }
-        }
-    if key in {"chi", "zhang", "torture"}:
-        return {
-            "condition": {
-                "kind": "punishment",
-                "system": "musculoskeletal",
-                "label": label if key == "torture" else f"{label}伤",
-                "severity": max(2, severity),
-                "stage": "serious" if severity >= 4 else "active",
-                "condition_key": "body:beating",
-                "effects": {
-                    "record_group": "other",
-                    "impact": "久立行动受限" if severity >= 4 else "受创疼痛",
-                    "ability_delta": "久立行动受限" if severity >= 4 else "受创疼痛",
-                },
-            }
-        }
-    return {}
+    return apply_punishment_catalog_effect(item)
 
 
 def record_punishment(
@@ -454,6 +282,13 @@ def record_punishment(
     taxonomy = _norm_taxonomy(_pick(item, "taxonomy", "体系", "类别", default=""), key)
     label = _clean_text(label_raw, 80) or _KEY_LABELS.get(key, "刑罚")
     severity = _clamp(_pick(item, "severity", "严重度", default=_DEFAULT_SEVERITY.get(key, 2)), default=_DEFAULT_SEVERITY.get(key, 2))
+    catalog = punishment_catalog_entry(key)
+    if catalog.get("taxonomy"):
+        taxonomy = str(catalog["taxonomy"])
+    if key in _KEY_LABELS:
+        label = str(catalog.get("label") or _KEY_LABELS[key])
+    if catalog.get("identity_transform"):
+        severity = max(severity, int(catalog.get("severity") or 5))
     stage = _norm_stage(_pick(item, "stage", "阶段", default="executed"))
     executor = _clean_text(_pick(item, "executor", "执行机关", "机关", default=""), 80)
     note = _clean_text(_pick(item, "note", "reason", "原因", default=""), 240)
