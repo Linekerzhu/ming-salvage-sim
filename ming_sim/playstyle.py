@@ -3179,7 +3179,7 @@ def _fallback_monthly_followups(
             SELECT minister_name, status, title, target_text, score, threshold,
                    condition_status, conditions_json, blockers_json, expires_turn, last_delta_json
             FROM conversation_goals
-            WHERE status IN ('active','waiting_conditions','blocked','expired')
+            WHERE status IN ('waiting_conditions','blocked','expired')
             ORDER BY id DESC
             LIMIT 60
             """,
@@ -3309,9 +3309,36 @@ def _monthly_followup_cards(db: GameDB, state: Optional[GameState], cards: List[
         reasons = [str(reason) for reason in (item.get("reason_types") or []) if str(reason).strip()]
         hooks = [str(hook) for hook in (item.get("memory_hooks") or []) if str(hook).strip()]
         risks = [str(tag) for tag in (item.get("risk_tags") or []) if str(tag).strip()]
-        obligation_states = [
+        raw_obligation_states = [
             state for state in (item.get("obligation_states") or [])
             if isinstance(state, dict)
+        ]
+        actionable_reasons = [
+            reason for reason in reasons
+            if (
+                reason.startswith("secret_order")
+                or reason.startswith("agreement")
+                or reason.startswith("conversation_goal:waiting_conditions")
+                or reason.startswith("conversation_goal:blocked")
+                or reason.startswith("conversation_goal:expired")
+                or reason in {
+                    "resource_support_followup",
+                    "patronage_followup",
+                    "co_work_followup",
+                    "policy_audit_followup",
+                    "secret_evidence_followup",
+                    "favor_service_followup",
+                    "bargain_followup",
+                    "petition_service_followup",
+                    "eunuch_old_wound_followup",
+                }
+            )
+        ]
+        if not actionable_reasons:
+            continue
+        obligation_states = [
+            state for state in raw_obligation_states
+            if str(state.get("status") or "") != "active"
         ]
         if not reasons and not hooks:
             continue

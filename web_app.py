@@ -6879,6 +6879,19 @@ class WebGame:
             detail = f"{recommender} 举荐 {result['minister']['name']} 入朝听用"
         minister = result.get("minister") or {}
         name = str(minister.get("name") or "")
+        office = str(minister.get("office") or "")
+        office_type = str(minister.get("office_type") or "")
+        if name:
+            try:
+                self.db.resolve_personnel_agreements_for_roster_change(
+                    state=self.state,
+                    name=name,
+                    office=office,
+                    office_type=office_type,
+                    source=detail,
+                )
+            except Exception as exc:
+                print(f"[WARN] 人事履约闭环失败：{name} {exc}")
         self._clear_pending_dialogue_action(minister_name)
         court_action = ""
         next_minister = ""

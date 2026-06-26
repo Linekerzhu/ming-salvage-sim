@@ -1431,7 +1431,7 @@ def build_npc_monthly_followups(
             ):
                 states.append(obligation_state)
 
-    for goal in db.list_conversation_goals(statuses=["active", "waiting_conditions", "blocked", "expired"], limit=80):
+    for goal in db.list_conversation_goals(statuses=["waiting_conditions", "blocked", "expired"], limit=80):
         name = str(goal.get("minister_name") or "")
         status = str(goal.get("status") or "")
         title = str(goal.get("title") or goal.get("target_text") or "未竟奏对")

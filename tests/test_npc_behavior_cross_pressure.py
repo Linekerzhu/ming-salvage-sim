@@ -443,6 +443,73 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             finally:
                 session.close()
 
+    def test_llm_pending_agreement_without_material_tasks_does_not_create_ledger(self) -> None:
+        audit = StaticAudit(
+            {
+                "goal_decision": "new",
+                "goal_relation": "distinct_goal",
+                "action_kind": "court_commitment",
+                "title": "泛泛旧账",
+                "target_text": "韩爌继续说明旧账",
+                "confidence": 95,
+            },
+            {
+                "goal_decision": "new",
+                "goal_relation": "distinct_goal",
+                "action_kind": "court_commitment",
+                "title": "泛泛旧账",
+                "target_text": "韩爌继续说明旧账",
+                "stance": "support",
+                "handshake_status": "sealed",
+                "goal_status": "sealed",
+                "score_delta": 40,
+                "score_after": 88,
+                "threshold": 70,
+                "conditions": [],
+                "tasks": ["实际履行奏对标的：继续说明旧账"],
+                "agreement_formed": True,
+                "performance_status": "pending",
+                "agreement_action": "create_pending",
+                "trigger_quote": "照你说的再议",
+                "confidence": 95,
+                "public_hint": "审计误判为待办。",
+                "private_reason": "任务不可核查。",
+            },
+        )
+        with TemporaryDirectory() as tmp:
+            session = GameSession(
+                str(Path(tmp) / "semantic_empty_task_agreement.db"),
+                LLMConfig(api_key="test", base_url="http://test.invalid/v1", model="test-model"),
+                content=self.content,
+                verify_llm=False,
+            )
+            try:
+                session.dialogue_audit_client = audit
+                actor = self.content.characters["韩爌"]
+                user_text = "照你说的再议。"
+                answer = "臣遵旨，容臣继续说明旧账。"
+                _, prepared = session.prepare_chat_run(actor, user_text)
+                result = session.record_dialogue_after_chat(
+                    actor,
+                    user_text,
+                    answer,
+                    prepared,
+                    source_context={
+                        "card_key": "bargain:test-empty-task",
+                        "kind": "bargain",
+                        "title": "御前旧账：韩爌",
+                        "actor": "韩爌",
+                    },
+                )
+
+                self.assertEqual(int(result["agreement_id"]), 0)
+                self.assertEqual(result["handshake_status"], "none")
+                self.assertFalse(session.db.is_briefing_card_resolved("bargain:test-empty-task"))
+                self.assertEqual(session.db.list_negotiation_agreements(minister_name="韩爌"), [])
+                self.assertEqual(result["goal"]["status"], "active")
+            finally:
+                session.close()
+
     def test_rival_mention_pushes_opposition_and_selective_truth(self) -> None:
         profile = npc_dialogue_behavior_profile(
             "韩爌",
@@ -2618,7 +2685,7 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
             followups = build_npc_monthly_followups(db, current_state, limit=5)
             han_item = next(item for item in followups if item["minister_name"] == "韩爌")
 
-            self.assertIn("conversation_goal:active", han_item["reason_types"])
+            self.assertNotIn("conversation_goal:active", han_item["reason_types"])
             self.assertIn("secret_order_due", han_item["reason_types"])
             self.assertIn("last_month_stance", han_item["reason_types"])
             self.assertIn("speech_continuity", han_item["reason_types"])

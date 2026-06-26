@@ -2462,6 +2462,12 @@ class GameDB:
         if name in self.content.characters:
             self.content.characters[name].office = office
             self.content.characters[name].office_type = eff_type
+        self.resolve_personnel_agreements_for_roster_change(
+            name=name,
+            office=office,
+            office_type=eff_type,
+            source=source,
+        )
 
     def apply_historical_deaths(self, state: GameState) -> List[Dict[str, str]]:
         """月初 tick：只有仍 active 的人到点自然死。被玩家提前罢/狱/流/杀的不走此分支。
@@ -5565,6 +5571,171 @@ class GameDB:
             self._refresh_negotiation_agreement_status(int(row["agreement_id"]))
         self.conn.commit()
 
+    def resolve_personnel_agreements_for_roster_change(
+        self,
+        *,
+        state: Optional[GameState] = None,
+        name: str = "",
+        office: str = "",
+        office_type: str = "",
+        source: str = "",
+    ) -> List[Dict[str, object]]:
+        """Close explicit personnel/recruitment agreement tasks from roster facts.
+
+        This is deliberately narrower than the LLM agreement reviewer: it only
+        consumes already-written roster state, so ordinary narrative wording
+        cannot mark a promise done.
+        """
+
+        clean_name = str(name or "").strip()
+        clean_office = normalize_office(str(office or "").strip())
+        clean_type = str(office_type or "").strip()
+        if not clean_name and not clean_office:
+            return []
+        if not clean_office and clean_name:
+            row = self.conn.execute(
+                "SELECT office, office_type FROM characters WHERE name=? AND status='active' AND power_id='ming'",
+                (clean_name,),
+            ).fetchone()
+            if row is not None:
+                clean_office = normalize_office(str(row["office"] or ""))
+                clean_type = str(row["office_type"] or clean_type or "")
+        if not clean_office and not clean_name:
+            return []
+        current_state = state or self.load_state("")
+        try:
+            turn = int(current_state.turn)
+        except Exception:
+            turn = 0
+        evidence = (
+            str(source or "").strip()[:120]
+            or f"名册已落库：{clean_name}{('授' + clean_office) if clean_office else '已入朝'}。"
+        )
+        rows = self.conn.execute(
+            """
+            SELECT t.id AS task_id, t.description, t.task_kind, a.*
+            FROM negotiation_tasks t
+            JOIN negotiation_agreements a ON a.id=t.agreement_id
+            WHERE t.status='pending'
+              AND a.status IN ('pending','sealed')
+              AND (
+                a.action_kind='personnel'
+                OR t.task_kind='office'
+                OR t.description GLOB '*任*'
+                OR t.description GLOB '*授*'
+                OR t.description GLOB '*补*'
+                OR t.description GLOB '*招*'
+                OR t.description GLOB '*荐*'
+                OR t.description GLOB '*铨*'
+              )
+            ORDER BY a.id DESC, t.id
+            LIMIT 120
+            """
+        ).fetchall()
+        changed: Dict[int, Dict[str, object]] = {}
+        for row in rows:
+            agreement = dict(row)
+            desc = str(row["description"] or "")
+            if not self._personnel_task_matches_roster_change(
+                agreement,
+                desc,
+                name=clean_name,
+                office=clean_office,
+                office_type=clean_type,
+            ):
+                continue
+            task_id = int(row["task_id"])
+            self.conn.execute(
+                """
+                UPDATE negotiation_tasks
+                SET status='done', evidence=?, last_checked_turn=?, updated_at=CURRENT_TIMESTAMP
+                WHERE id=?
+                """,
+                (f"名册事实：{evidence}"[:240], turn, task_id),
+            )
+            changed[int(row["id"])] = agreement
+        closed: List[Dict[str, object]] = []
+        for agreement_id, agreement in changed.items():
+            self._refresh_negotiation_agreement_status(agreement_id)
+            statuses = [
+                str(task["status"] or "pending")
+                for task in self.conn.execute(
+                    "SELECT status FROM negotiation_tasks WHERE agreement_id=?",
+                    (agreement_id,),
+                ).fetchall()
+            ]
+            if statuses and all(status == "done" for status in statuses):
+                target_evidence = f"人事名册已落库：{evidence}"[:240]
+                self.conn.execute(
+                    """
+                    UPDATE negotiation_agreements
+                    SET status='fulfilled',
+                        condition_status='satisfied',
+                        target_status='achieved',
+                        last_checked_turn=?,
+                        resolved_turn=CASE WHEN resolved_turn>0 THEN resolved_turn ELSE ? END,
+                        fulfillment_score=100,
+                        fulfillment_evidence=?,
+                        target_evidence=?,
+                        updated_at=CURRENT_TIMESTAMP
+                    WHERE id=?
+                    """,
+                    (turn, turn, "人事相关待办已由名册事实闭环。", target_evidence, agreement_id),
+                )
+                goal_id = int(agreement.get("goal_id") or 0)
+                if goal_id:
+                    self.conn.execute(
+                        """
+                        UPDATE conversation_goals
+                        SET status='fulfilled',
+                            condition_status='satisfied',
+                            score=100,
+                            updated_at=CURRENT_TIMESTAMP
+                        WHERE id=?
+                          AND status IN ('active','waiting_conditions','sealed','blocked','expired')
+                        """,
+                        (goal_id,),
+                    )
+                closed.append({
+                    "agreement_id": agreement_id,
+                    "minister_name": agreement.get("minister_name"),
+                    "target_text": agreement.get("target_text"),
+                    "evidence": target_evidence,
+                })
+        self.conn.commit()
+        return closed
+
+    def _personnel_task_matches_roster_change(
+        self,
+        agreement: Dict[str, object],
+        description: str,
+        *,
+        name: str,
+        office: str,
+        office_type: str = "",
+    ) -> bool:
+        text = " ".join(
+            str(part or "")
+            for part in (
+                description,
+                agreement.get("topic"),
+                agreement.get("core_topic"),
+                agreement.get("target_text"),
+                agreement.get("summary"),
+                agreement.get("conditions"),
+            )
+        )
+        if name and name in text:
+            return True
+        office_parts = [part for part in re.split(r"[,，、\s]+", office or "") if len(part.strip()) >= 2]
+        if any(part and part in text for part in office_parts):
+            return True
+        if office_type and office_type in text:
+            return True
+        if str(agreement.get("action_kind") or "") != "personnel":
+            return False
+        return bool(re.search(r"招募|取士|举贤|荐人|新人|入朝|补缺|授官|任命|铨选|起复|补入", text))
+
     def _refresh_negotiation_agreement_status(self, agreement_id: int) -> None:
         agreement = self.conn.execute(
             "SELECT status FROM negotiation_agreements WHERE id=?", (int(agreement_id),)
@@ -5705,6 +5876,48 @@ class GameDB:
                 evidence = str(item.get("evidence") or item.get("reason") or "LLM 判定。").strip()
                 return status, f"LLM判定：{evidence}"[:240]
         return None
+
+    def _structured_personnel_task_reviews(
+        self,
+        agreement: Dict[str, object],
+        tasks: List[Dict[str, object]],
+        applied: Optional[Dict[str, object]],
+    ) -> List[Dict[str, object]]:
+        if not isinstance(applied, dict):
+            return []
+        changes: List[Dict[str, object]] = []
+        for key in ("office_changes", "appointments"):
+            raw_items = applied.get(key)
+            if not isinstance(raw_items, list):
+                continue
+            for item in raw_items:
+                if isinstance(item, dict) and not item.get("rejected"):
+                    changes.append(item)
+        if not changes:
+            return []
+        reviews: List[Dict[str, object]] = []
+        for task in tasks:
+            if str(task.get("status") or "pending") != "pending":
+                continue
+            desc = str(task.get("description") or "")
+            for change in changes:
+                name = str(change.get("name") or "")
+                office = str(change.get("new_office") or change.get("office") or "")
+                office_type = str(change.get("new_office_type") or change.get("office_type") or "")
+                if self._personnel_task_matches_roster_change(
+                    agreement,
+                    desc,
+                    name=name,
+                    office=office,
+                    office_type=office_type,
+                ):
+                    reviews.append({
+                        "task_id": int(task.get("id") or 0),
+                        "status": "done",
+                        "evidence": f"结构化人事结果：{name}{('授' + office) if office else '已入朝'}。",
+                    })
+                    break
+        return reviews
 
     def _condition_target_statuses(
         self,
@@ -5892,8 +6105,6 @@ class GameDB:
         for row in rows:
             agreement = dict(row)
             llm_review = llm_review_by_id.get(int(agreement["id"]), {})
-            if not llm_review:
-                continue
             tasks = [
                 dict(task)
                 for task in self.conn.execute(
@@ -5901,6 +6112,16 @@ class GameDB:
                     (int(agreement["id"]),),
                 ).fetchall()
             ]
+            structured_task_reviews = self._structured_personnel_task_reviews(agreement, tasks, applied)
+            if structured_task_reviews:
+                merged_review = dict(llm_review) if isinstance(llm_review, dict) else {}
+                existing_task_reviews = merged_review.get("task_reviews")
+                if not isinstance(existing_task_reviews, list):
+                    existing_task_reviews = []
+                merged_review["task_reviews"] = [*existing_task_reviews, *structured_task_reviews]
+                llm_review = merged_review
+            if not llm_review:
+                continue
             changed_tasks = False
             for task in tasks:
                 llm_task = self._llm_task_review(llm_review, task) if isinstance(llm_review, dict) else None

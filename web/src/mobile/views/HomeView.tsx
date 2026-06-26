@@ -130,8 +130,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
   const [briefLead, setBriefLead] = useState<PlaystyleBriefCard | null>(null);
   const [briefCount, setBriefCount] = useState({ shown: 0, total: 0, hidden: 0 });
   const [briefBuckets, setBriefBuckets] = useState<BriefBucket[]>([]);
-  const [briefRanks, setBriefRanks] = useState<Array<{ level: string; label: string; count: number }>>([]);
-  const [briefLimit, setBriefLimit] = useState(5);
+  const [briefLimit, setBriefLimit] = useState(4);
   const [briefKind, setBriefKind] = useState("");
   const [fiscalCenter, setFiscalCenter] = useState<FiscalCenterPayload | null>(null);
   const [organizations, setOrganizations] = useState<OrgInstitution[] | null>(null);
@@ -149,7 +148,6 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
       .then((r) => {
         const cards = r.cards || [];
         const buckets = (r.buckets || []).filter((b) => Number(b.total || 0) > 0);
-        const ranks = (r.ranks || []).filter((rank) => Number(rank.count || 0) > 0);
         setBriefCards(cards);
         setBriefLead(r.lead || cards[0] || null);
         setBriefCount({
@@ -158,7 +156,6 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
           hidden: Number(r.hidden ?? 0),
         });
         setBriefBuckets(buckets);
-        setBriefRanks(ranks);
         if (briefKind && !buckets.some((b) => b.kind === briefKind)) setBriefKind("");
       })
       .catch(() => {
@@ -166,7 +163,6 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
         setBriefLead(null);
         setBriefCount({ shown: 0, total: 0, hidden: 0 });
         setBriefBuckets([]);
-        setBriefRanks([]);
       });
   }, [worldVersion, briefLimit, briefKind]);
   const replies = (desk?.pending || []).filter((m) => INFORMATIONAL_KINDS.includes(m.kind));
@@ -208,16 +204,15 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
     const who = String(name || "").trim();
     if (who) openPerson(focus ? { name: who, focus } : who);
   };
-  const canExpandBrief = briefLimit < 8 && briefCount.hidden > 0;
-  const canCollapseBrief = briefLimit > 5 && briefCount.total > 5;
+  const canExpandBrief = briefLimit < 7 && briefCount.hidden > 0;
+  const canCollapseBrief = briefLimit > 4 && briefCount.total > 4;
   const activeBriefBucket = briefBuckets.find((b) => b.kind === briefKind);
   const allBriefTotal = briefBuckets.reduce((sum, b) => sum + Number(b.total || 0), 0);
   const leadUrgency = briefLead ? briefUrgency(briefLead.urgency) : null;
-  const leadContract = briefLead ? briefContract(briefLead) : "";
   const leadResolution = briefLead ? briefResolution(briefLead) : [];
   const chooseBriefKind = (kind: string) => {
     setBriefKind((current) => (current === kind ? "" : kind));
-    setBriefLimit(5);
+    setBriefLimit(4);
   };
 
   return (
@@ -261,21 +256,12 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                 <button
                   type="button"
                   className="m-brief-toggle"
-                  onClick={() => setBriefLimit((v) => (v > 5 ? 5 : 8))}
+                  onClick={() => setBriefLimit((v) => (v > 4 ? 4 : 7))}
                 >
-                  {briefLimit > 5 ? "收起" : "展开"}
+                  {briefLimit > 4 ? "收起" : "展开"}
                 </button>
               )}
             </h2>
-            {briefRanks.length > 0 && (
-              <div className="m-brief-ranks" aria-label="朝局危急分布">
-                {briefRanks.map((rank) => (
-                  <span key={rank.level} className={`m-brief-rank level-${rank.level}`}>
-                    {rank.label}<b>{rank.count}</b>
-                  </span>
-                ))}
-              </div>
-            )}
             {briefLead && (
               <button type="button" className="m-brief-lead" onClick={() => openBrief(briefLead)}>
                 <span className="m-brief-lead-main">
@@ -286,33 +272,15 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                   <b>{briefLead.title}</b>
                   <em>{briefLead.cta || "处置"}›</em>
                 </span>
-                {briefLead.effects?.length ? (
-                  <span className="m-brief-lead-effects" aria-label="首要影响">
-                    {briefLead.effects.slice(0, 2).map((it, idx) => (
-                      <span key={`${it.label}-${idx}`} className={`m-effect-chip tone-${it.tone || "neutral"}`}>
-                        {it.label}
-                      </span>
-                    ))}
-                  </span>
-                ) : null}
-                {leadContract && <span className="m-brief-contract">{leadContract}</span>}
-                {briefLead.stakes?.length ? (
-                  <span className="m-brief-lead-stakes" aria-label="首要两难">
-                    {briefLead.stakes.slice(0, 3).map((it, idx) => (
-                      <span key={`${it.label}-${idx}`} className={`m-stake-chip tone-${it.tone || "neutral"}`}>
-                        {it.label}
-                      </span>
-                    ))}
-                  </span>
-                ) : null}
+                {briefLead.detail && <span className="m-brief-lead-detail">{briefLead.detail}</span>}
                 {leadResolution.length > 0 && (
                   <span className="m-brief-resolution">
-                    消除条件：{leadResolution.slice(0, 2).join("；")}
+                    下一步：{leadResolution[0]}
                   </span>
                 )}
               </button>
             )}
-            {briefBuckets.length > 0 && (
+            {briefBuckets.length > 0 && (briefLimit > 4 || briefKind) && (
               <div className="m-brief-buckets" aria-label="朝局系统构成">
                 <button
                   type="button"
@@ -347,6 +315,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
               const urgency = briefUrgency(card.urgency);
               const contract = briefContract(card);
               const resolution = briefResolution(card);
+              const primaryResolution = resolution[0] || (contract ? contract : "");
               return (
                 <li key={`${card.kind}-${card.ref_id || i}`} className={`m-brief-card tone-${card.tone || "info"}`}>
                   <button className="m-brief-main" onClick={() => openBrief(card)}>
@@ -362,28 +331,9 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                         {card.meta && <span className="m-brief-meta">{card.meta}</span>}
                       </span>
                       <span className="m-brief-detail">{card.detail}</span>
-                      {card.effects?.length ? (
-                        <span className="m-brief-effects" aria-label="预期影响">
-                          {card.effects.slice(0, 6).map((it, idx) => (
-                            <span key={`${it.label}-${idx}`} className={`m-effect-chip tone-${it.tone || "neutral"}`}>
-                              {it.label}
-                            </span>
-                          ))}
-                        </span>
-                      ) : null}
-                      {contract && <span className="m-brief-contract">{contract}</span>}
-                      {card.stakes?.length ? (
-                        <span className="m-brief-stakes" aria-label="奏对两难">
-                          {card.stakes.slice(0, 3).map((it, idx) => (
-                            <span key={`${it.label}-${idx}`} className={`m-stake-chip tone-${it.tone || "neutral"}`}>
-                              {it.label}
-                            </span>
-                          ))}
-                        </span>
-                      ) : null}
-                      {resolution.length > 0 && (
+                      {primaryResolution && (
                         <span className="m-brief-resolution">
-                          消除条件：{resolution.slice(0, 2).join("；")}
+                          下一步：{primaryResolution}
                         </span>
                       )}
                     </span>
@@ -458,7 +408,7 @@ export function HomeView({ go, summon }: { go: (t: Tab) => void; summon: (name: 
                       <>
                         <button className="m-brief-action primary" onClick={() => inspect(card.actor, "intrigue")}>用把柄</button>
                         {canSummon(card.actor, activeMinisters) && (
-                          <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, "")}>召试探</button>
+                          <button className="m-brief-action primary" onClick={() => summonFromBrief(card, card.actor!, "")}>召问证据</button>
                         )}
                         <button className="m-brief-action" onClick={() => inspect(card.actor)}>查此人</button>
                       </>

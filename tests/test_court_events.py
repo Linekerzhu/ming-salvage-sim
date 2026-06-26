@@ -893,6 +893,66 @@ class ResolveTests(unittest.TestCase):
             self.assertEqual(str(task["status"]), "pending")
             self.assertEqual(str(task["evidence"]), "")
 
+    def test_personnel_roster_change_closes_matching_agreement_task(self):
+        with TemporaryDirectory() as tmp:
+            db, state, _day = _fresh(tmp)
+            sponsor, candidate = _two_ming(db)
+            goal_id = db.create_conversation_goal(
+                state,
+                minister_name=sponsor,
+                action_kind="personnel",
+                title="招募新人授官",
+                target_text=f"{sponsor}须荐一名新人入朝并授官。",
+                threshold=70,
+                score=100,
+                status="waiting_conditions",
+                condition_status="pending",
+                conditions=[{"description": "招募新人并授官", "status": "pending"}],
+                expires_turn=int(state.turn) + 2,
+                last_delta={"source": "test:personnel_roster_close"},
+            )
+            agreement_id = db.create_negotiation_agreement(
+                state,
+                minister_name=sponsor,
+                topic="招募新人授官",
+                action_kind="personnel",
+                status="pending",
+                stance_id=0,
+                handshake_status="sealed",
+                psychological_score=100,
+                threshold=70,
+                verbal_only=False,
+                core_topic="招募新人授官",
+                target_text=f"{sponsor}须荐一名新人入朝并授官。",
+                promise_type="名分程序承诺",
+                stakes="官缺名分",
+                due_turn=int(state.turn) + 1,
+                conditions="招募新人并授官",
+                summary="荐人入朝后授官。",
+                tasks=["招募新人并授官"],
+                goal_id=goal_id,
+            )
+            db.bind_conversation_goal_agreement(goal_id, agreement_id)
+
+            db.set_character_office(candidate, "吏部主事", "吏部", source="测试授官")
+
+            row = db.conn.execute(
+                "SELECT status, condition_status, target_status FROM negotiation_agreements WHERE id=?",
+                (agreement_id,),
+            ).fetchone()
+            self.assertEqual(str(row["status"]), "fulfilled")
+            self.assertEqual(str(row["condition_status"]), "satisfied")
+            self.assertEqual(str(row["target_status"]), "achieved")
+            task = db.conn.execute(
+                "SELECT status, evidence FROM negotiation_tasks WHERE agreement_id=?",
+                (agreement_id,),
+            ).fetchone()
+            self.assertEqual(str(task["status"]), "done")
+            self.assertIn("名册事实", str(task["evidence"]))
+            goal = db.get_conversation_goal(goal_id) or {}
+            self.assertEqual(str(goal.get("status")), "fulfilled")
+            self.assertEqual(str(goal.get("condition_status")), "satisfied")
+
     def test_overdue_punish_fails_agreement_and_goal(self):
         with TemporaryDirectory() as tmp:
             db, state, day = _fresh(tmp)

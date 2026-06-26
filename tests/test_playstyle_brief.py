@@ -530,6 +530,30 @@ class PlaystyleBriefTests(unittest.TestCase):
             buckets = {str(b["kind"]): b for b in payload["buckets"]}
             self.assertEqual(buckets["monthly_followup"]["label"], "候见")
 
+    def test_active_conversation_goal_alone_does_not_become_home_task(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            name = _active_minister(db)
+            db.create_conversation_goal(
+                state,
+                minister_name=name,
+                action_kind="court_commitment",
+                title="泛问清查风向",
+                target_text=f"{name}继续说明清查利害。",
+                threshold=70,
+                score=35,
+                status="active",
+                condition_status="none",
+                conditions=[],
+                expires_turn=int(state.turn) + 1,
+                last_delta={"source": "casual_probe"},
+            )
+
+            payload = briefing_payload(db, state, limit=5, kind="monthly_followup")
+
+            self.assertEqual(payload["filter"], "monthly_followup")
+            self.assertEqual(payload["total"], 0)
+
     def test_monthly_followup_chat_context_brief_rebuilds_from_live_db(self):
         with TemporaryDirectory() as tmp:
             db, state = _fresh(tmp)

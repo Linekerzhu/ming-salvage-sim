@@ -759,6 +759,7 @@ def _agreement_tasks_for_goal(goal: Dict[str, object]) -> List[str]:
 def _agreement_tasks_from_audit(
     audit: Optional[Dict[str, object]],
     conditions: List[Dict[str, str]],
+    action_kind: str = "",
 ) -> List[str]:
     tasks: List[str] = []
     if isinstance(audit, dict):
@@ -766,11 +767,11 @@ def _agreement_tasks_from_audit(
         if isinstance(raw_tasks, list):
             for item in raw_tasks:
                 text = _compact(str(item or ""), 180)
-                if text and text not in tasks:
+                if _is_material_agreement_task(text, action_kind) and text not in tasks:
                     tasks.append(text)
         elif isinstance(raw_tasks, str):
             text = _compact(raw_tasks, 180)
-            if text:
+            if _is_material_agreement_task(text, action_kind):
                 tasks.append(text)
     if not tasks:
         for item in conditions:
@@ -779,9 +780,30 @@ def _agreement_tasks_from_audit(
             if str(item.get("status") or "pending") == "done":
                 continue
             text = _compact(str(item.get("description") or ""), 180)
-            if text and text not in tasks:
+            if _is_material_agreement_task(text, action_kind) and text not in tasks:
                 tasks.append(text)
-    return tasks[:8]
+    return tasks[:3]
+
+
+def _is_material_agreement_task(text: str, action_kind: str = "") -> bool:
+    """Keep only concrete, auditable tasks out of an LLM audit payload."""
+
+    clean = _compact(text, 180)
+    if len(clean) < 4:
+        return False
+    if re.search(r"^(实际履行|继续推进|完成本次|落实本次|本次奏对|奏对目的|口头表态)", clean):
+        return False
+    if action_kind in {"castration", "emancipation"}:
+        return bool(re.search(r"净身|入内廷|脱籍|民籍|家眷|安置|保全|明旨|限期|回奏|证据", clean))
+    return bool(
+        re.search(
+            r"银|钱|饷|粮|人手|属官|书吏|兵|官|任|授|补|擢|调|职|名分|"
+            r"明旨|圣旨|廷议|会审|期限|限期|日|月|旬|证|账|册|回奏|复命|"
+            r"密|保密|线索|取证|家眷|安置|保全|担保|画押|试差|共办|查|"
+            r"交|拨|筹|验|提交|入档|承办|协办|办成",
+            clean,
+        )
+    )
 
 
 def _audit_text_field(audit: Optional[Dict[str, object]], key: str, limit: int = 160) -> str:
@@ -829,10 +851,9 @@ def _create_agreement_for_goal(
     raw_conditions = goal.get("conditions")
     if isinstance(raw_conditions, list):
         condition_items = [item for item in raw_conditions if isinstance(item, dict)]
-    tasks = _agreement_tasks_from_audit(audit, condition_items)
+    tasks = _agreement_tasks_from_audit(audit, condition_items, action_kind)
     if agreement_action == "create_pending" and not tasks and action_kind not in INSTANT_AGREEMENT_ACTIONS:
-        fallback = _compact(str(goal.get("target_text") or goal.get("title") or "本次奏对目的"), 160)
-        tasks = [f"实际履行奏对标的：{fallback}"[:180]]
+        return 0
     status = "sealed" if not tasks or agreement_action == "create_achieved" else "pending"
     score = int(goal.get("score") or 100)
     threshold = int(goal.get("threshold") or commitment_required(action_kind))
@@ -1337,6 +1358,37 @@ def record_dialogue_effects(
             )
         if not agreement_id:
             post.agreement_action = "none"
+            try:
+                post.handshake_status = HANDSHAKE_CONDITIONAL if condition_items else HANDSHAKE_NONE
+                post.goal_status = GOAL_WAITING if condition_items else GOAL_ACTIVE
+                handshake_status = post.handshake_status
+                next_status = post.goal_status
+                condition_status = "pending" if condition_items else "none"
+                event = "waiting_conditions" if condition_items else "progress"
+                next_score = min(next_score, max(0, threshold - 1))
+                if goal:
+                    db.update_conversation_goal(
+                        int(goal["id"]),
+                        state=state,
+                        event_kind=event,
+                        event_summary="未形成可核查履约账本：缺少明确待办条件。",
+                        source_chat_turn_id=source_chat_turn_id,
+                        status=post.goal_status,
+                        score=next_score,
+                        threshold=threshold,
+                        condition_status=condition_status,
+                        conditions_json=condition_items,
+                        blockers_json=[*blockers, "缺少明确可核查待办条件"][:8],
+                        expires_turn=int(state.turn) + (3 if condition_items else 1),
+                    )
+                    goal = db.get_conversation_goal(int(goal["id"])) or goal
+                if isinstance(post.raw, dict):
+                    post.raw["agreement_formed"] = False
+                    post.raw["agreement_action"] = "none"
+                    post.raw["performance_status"] = "none"
+                    post.raw["card_resolution"] = ""
+            except Exception:
+                pass
     if agreement_id:
         db.update_minister_stance_agreement(stance_id, agreement_id)
         db.add_conversation_goal_event(
