@@ -4970,6 +4970,9 @@ class WebGame:
             kind = str(decision.kind or "").strip()
             if kind not in {"eunuch", "exam", "recommend"}:
                 return {}
+            phase = str(decision.phase or "propose").strip() or "propose"
+            if not self._dialogue_recruitment_text_supports_phase(text, kind=kind, phase=phase):
+                return {}
             return {
                 "type": "recruitment",
                 "kind": kind,
@@ -5203,6 +5206,8 @@ class WebGame:
             return None
         if not decision.allow or decision.action_type != "recruitment" or decision.phase != "propose":
             return None
+        if not self._dialogue_recruitment_text_supports_phase(text, kind=str(decision.kind or ""), phase="propose"):
+            return None
         action = {
             "type": "recruitment",
             "kind": decision.kind,
@@ -5254,6 +5259,11 @@ class WebGame:
         review = decision.to_review()
         payload = decision.payload if isinstance(decision.payload, dict) else {}
         if action_type == "recruitment":
+            kind = str(pending.get("kind") or decision.kind or "").strip()
+            if not self._dialogue_recruitment_text_supports_phase(text, kind=kind, phase="confirm"):
+                if self._dialogue_recruitment_text_diverts_elsewhere(text):
+                    self._clear_pending_dialogue_action(minister_name)
+                return None
             action = dict(pending)
             if decision.kind:
                 action["kind"] = decision.kind
@@ -5328,6 +5338,14 @@ class WebGame:
         normalized["phase"] = "confirm"
         if action_type == "recruitment" and not normalized.get("kind"):
             return None
+        if action_type == "recruitment" and not self._dialogue_recruitment_text_supports_phase(
+            text,
+            kind=str(normalized.get("kind") or ""),
+            phase="confirm",
+        ):
+            if self._dialogue_recruitment_text_diverts_elsewhere(text):
+                self._clear_pending_dialogue_action(minister_name)
+            return None
         try:
             character = self.session._character(minister_name)
             decision = self._dialogue_semantic_engine().gate_tool_action(
@@ -5393,6 +5411,8 @@ class WebGame:
         if action_type == "recruitment":
             kind = str(decision.kind or "").strip()
             if kind not in {"eunuch", "exam", "recommend"}:
+                return {}
+            if not self._dialogue_recruitment_text_supports_phase(text, kind=kind, phase="confirm"):
                 return {}
             action = {
                 "type": "recruitment",
@@ -5566,6 +5586,50 @@ class WebGame:
             r"|不要荐新人|别再荐新人|先说现有人|不是要荐人|不是要招人",
             raw,
         ))
+
+    def _dialogue_recruitment_text_diverts_elsewhere(self, text: str) -> bool:
+        raw = str(text or "").strip()
+        if not raw:
+            return False
+        if re.search(
+            r"(拟旨|草稿|章程|专款专用|太仓|内库|税银|海关|海禁|缉私|走私|水师|布政司|"
+            r"第一条路|第二条路|第三条路|调档|会商|拨[一二三四五六七八九十百千万0-9]+万?两|凑[一二三四五六七八九十百千万0-9]+万?两)",
+            raw,
+        ):
+            return True
+        return bool(re.search(
+            r"(任|授|补|改授|署理|见习|试任|试差|做个|作个|充作|安置).{0,16}"
+            r"(主事|郎中|员外郎|侍郎|尚书|督师|总督|巡抚|知府|知县|官|缺|差|职|衔)",
+            raw,
+        ))
+
+    def _dialogue_recruitment_text_supports_phase(self, text: str, *, kind: str = "", phase: str = "") -> bool:
+        raw = str(text or "").strip()
+        if not raw or self._recruitment_explicitly_blocked(raw):
+            return False
+        normalized_kind = str(kind or "").strip()
+        normalized_phase = str(phase or "").strip()
+        if normalized_phase == "confirm":
+            return bool(
+                re.search(r"(招募|去招|再招|招一个|募一个|挑一个|选一个|取一个|荐一人|荐一个|举出一人|保举一人|荐人|荐才)", raw)
+                or re.search(r"(带|领|引|传).{0,10}(人|新人|小内侍|小火者|太监|内侍).{0,10}(来|过来|入殿|进来|到御前)", raw)
+                or re.search(r"(人|新人|小内侍|小火者|太监|内侍).{0,10}(带|领|引|传).{0,10}(来|过来|入殿|进来|到御前)", raw)
+            )
+        if normalized_phase != "propose":
+            return False
+        if normalized_kind == "eunuch":
+            return bool(
+                re.search(r"(新|再|另|招|募|挑|取|补|可有|有没有|有无).{0,20}(太监|内侍|内臣|内官(?!监)|小火者|小内侍)", raw)
+                or re.search(r"(太监|内侍|内臣|内官(?!监)|小火者|小内侍).{0,20}(新|再|另|招|募|挑|取|补|可用|人手)", raw)
+            )
+        if normalized_kind == "exam":
+            return bool(re.search(r"(科举|科场|新科|进士|庶吉士|取士|选士).{0,24}(人|才|人选|可用|入朝|补缺|荐|取|选|挑|招)", raw))
+        if normalized_kind == "recommend":
+            return bool(
+                re.search(r"(举荐|荐人|荐才|保举|访贤|寻贤|荐出|举出|可荐|谁可荐|有谁可荐|可有人才|可有贤才|新人|新进|在野)", raw)
+                or re.search(r"(人选|人才|贤才).{0,18}(举荐|荐|保举|访求|寻访|找|寻)", raw)
+            )
+        return False
 
     def _castration_topic_mentioned(self, text: str) -> bool:
         raw = str(text or "").strip()
@@ -7493,6 +7557,12 @@ class WebGame:
             return SemanticDecision.none("工具动作类型不属于对白世界状态变更。")
         if action_type == "recruitment" and not action.get("kind"):
             return SemanticDecision.none("用人工具动作缺少 kind。")
+        if action_type == "recruitment" and not self._dialogue_recruitment_text_supports_phase(
+            user_text,
+            kind=str(action.get("kind") or ""),
+            phase=phase,
+        ):
+            return SemanticDecision.none("玩家当前原话不足以支持招募/举荐动作。")
         if phase == "confirm" and action_type != "secret_order" and not (isinstance(pending, dict) and pending.get("type") == action_type):
             return SemanticDecision.none("没有待确认的同类对白动作。")
         try:
@@ -7673,6 +7743,14 @@ class WebGame:
             ):
                 return None
             normalized = self._merge_pending_tool_action(normalized, pending)
+            if action_type == "recruitment" and not self._dialogue_recruitment_text_supports_phase(
+                user_text,
+                kind=str(normalized.get("kind") or ""),
+                phase="confirm",
+            ):
+                if self._dialogue_recruitment_text_diverts_elsewhere(user_text):
+                    self._clear_pending_dialogue_action(minister_name)
+                return None
             decision = self._dialogue_gate_tool_decision(minister_name, normalized, user_text, "confirm", pending)
             normalized = self._apply_tool_decision_to_action(minister_name, normalized, user_text, decision)
             if not normalized:
@@ -7685,6 +7763,12 @@ class WebGame:
                 decision_type="tool",
             )
         if normalized.get("type") in self._dialogue_world_action_types():
+            if normalized.get("type") == "recruitment" and not self._dialogue_recruitment_text_supports_phase(
+                user_text,
+                kind=str(normalized.get("kind") or ""),
+                phase="propose",
+            ):
+                return None
             decision = self._dialogue_gate_tool_decision(minister_name, normalized, user_text, "propose")
             normalized = self._apply_tool_decision_to_action(minister_name, normalized, user_text, decision)
             if not normalized:

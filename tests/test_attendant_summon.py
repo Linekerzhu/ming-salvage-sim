@@ -2885,6 +2885,97 @@ class AttendantSummonTests(unittest.TestCase):
             finally:
                 game.session.close()
 
+    def test_policy_request_does_not_create_recommendation_pending_even_if_audit_allows(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "毕自严"
+            game.session.dialogue_audit_client = self._recruitment_audit(allow=True, kind="recommend")
+
+            response = game._dialogue_tool_response(
+                actor,
+                {
+                    "type": "recruitment",
+                    "phase": "propose",
+                    "kind": "recommend",
+                    "trigger_quote": "解除海禁 设立海关 打击走私",
+                },
+                "臣回陛下，朝外与部院夹缝里确有几个人可荐。",
+                "我要解除海禁 设立海关 打击走私",
+            )
+
+            self.assertIsNone(response)
+            self.assertEqual(game._load_pending_dialogue_action(actor), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_pending_recommendation_policy_approval_does_not_recruit(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "毕自严"
+            game._store_pending_dialogue_action(actor, {
+                "type": "recruitment",
+                "kind": "recommend",
+                "need": "朝外与部院夹缝里确有几个人可荐",
+                "trigger_quote": "朝外与部院夹缝里确有几个人可荐",
+            })
+            before = game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"]
+            decision = SemanticDecision(
+                decision_type="pending",
+                action_type="recruitment",
+                phase="confirm",
+                kind="recommend",
+                confidence=96,
+                trigger_quote="第一条路朕准了",
+                private_reason="test overly broad pending confirmation",
+            )
+
+            response = game._dialogue_pending_action_response_from_decision(
+                actor,
+                "第一条路朕准了。内库拨十五万两，户部凑五万，福建布政司出五万，郑芝龙水师折算五万。你即刻拟旨，海关税银专款专用，先还内库再补太仓。",
+                decision,
+            )
+
+            after = game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"]
+            self.assertIsNone(response)
+            self.assertEqual(after, before)
+            self.assertEqual(game._load_pending_dialogue_action(actor), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
+    def test_existing_recommended_candidate_assignment_does_not_recruit_another_person(self):
+        game = web_app.WebGame(fresh=True)
+        try:
+            actor = "毕自严"
+            game.session.dialogue_audit_client = self._recruitment_audit(allow=True, kind="recommend")
+            game._store_pending_dialogue_action(actor, {
+                "type": "recruitment",
+                "kind": "recommend",
+                "need": "前日举荐入京的那位邵伯言",
+                "trigger_quote": "前日举荐入京的那位邵伯言",
+            })
+            before = game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"]
+
+            response = game._dialogue_action_response(actor, "好，就依你，做个户部见习主事")
+
+            after = game.db.conn.execute("SELECT COUNT(*) AS n FROM characters").fetchone()["n"]
+            self.assertIsNone(response)
+            self.assertEqual(after, before)
+            self.assertEqual(game._load_pending_dialogue_action(actor), {})
+        finally:
+            try:
+                from ming_sim.scheduler import stop_worker
+                stop_worker(game.db_path)
+            finally:
+                game.session.close()
+
     def test_recruitment_confirm_without_pending_is_ignored(self):
         game = web_app.WebGame(fresh=True)
         try:
