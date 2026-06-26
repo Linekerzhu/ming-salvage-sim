@@ -1455,7 +1455,7 @@ def build_npc_monthly_followups(
         name = str(agreement.get("minister_name") or "")
         target_status = str(agreement.get("target_status") or "")
         status = str(agreement.get("status") or "")
-        if target_status == "achieved" or status == "fulfilled":
+        if target_status in {"achieved", "waived", "superseded"} or status in {"fulfilled", "waived", "superseded"}:
             continue
         topic = str(agreement.get("core_topic") or agreement.get("topic") or "履约事项")
         due_turn = int(agreement.get("due_turn") or 0)

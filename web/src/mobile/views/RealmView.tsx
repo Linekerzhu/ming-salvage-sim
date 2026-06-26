@@ -497,7 +497,7 @@ function WorkstreamBoard({ center }: { center: any }) {
           {agreements.slice(0, 4).map((a: any) => (
             <li key={`a-${a.id}`} className="m-row">
               <span className="m-row-name">履约 · {a.core_topic || a.topic}</span>
-              <span className="m-row-tag">{a.status}</span>
+              <span className="m-row-tag">{a.status_label || a.status}</span>
               <span className="m-row-sub">{a.minister_name}{a.evidence ? ` · ${a.evidence}` : ""}</span>
             </li>
           ))}

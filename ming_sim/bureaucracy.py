@@ -732,6 +732,8 @@ def _relationship_score(db: Any, state: Any, actor: str) -> tuple[int, str]:
         elif target_status in {"blocked", "abandoned"}:
             score -= 10
             notes.append(f"{topic}未说服")
+        elif target_status in {"waived", "superseded"}:
+            notes.append(f"{topic}旧约已{'免除' if target_status == 'waived' else '改约'}")
     try:
         profile = npc_network_profile(actor, db=db, limit=8)
     except Exception:
@@ -913,6 +915,8 @@ def _stance_score(db: Any, turn: int, actor: str, directive_text: str = "") -> t
             return 42, f"履约条件待证：{topic}"
         if target_status in {"blocked", "failed"} or status in {"blocked", "failed"}:
             return 28, f"履约未成：{topic}"
+        if target_status in {"waived", "superseded"} or status in {"waived", "superseded"}:
+            return 50, f"旧约已{'免除' if target_status == 'waived' or status == 'waived' else '改约'}：{topic}"
     try:
         stances = db.list_minister_stances(turn=turn, minister_name=actor, limit=4)
     except Exception:
@@ -942,6 +946,8 @@ def _stance_score(db: Any, turn: int, actor: str, directive_text: str = "") -> t
                 return 42, f"履约条件待证：{topic}"
             if target_status in {"blocked", "failed"} or status in {"blocked", "failed"}:
                 return 28, f"履约未成：{topic}"
+            if target_status in {"waived", "superseded"} or status in {"waived", "superseded"}:
+                return 50, f"旧约已{'免除' if target_status == 'waived' or status == 'waived' else '改约'}：{topic}"
     stance_goal_id = int(best.get("goal_id") or 0)
     if stance_goal_id:
         try:

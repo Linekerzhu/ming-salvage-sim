@@ -136,6 +136,54 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
         for binder in (bind_context, bind_issues, bind_registry, bind_skills):
             binder(cls.content)
 
+    def _fresh_state(self, tmp: str, name: str = "semantic_resolution.db"):
+        db = GameDB(str(Path(tmp) / name), content=self.content)
+        db.seed_static_data()
+        state = GameState(
+            year=1628,
+            period=1,
+            turn=4,
+            metrics={"国库": 100, "内库": 50, "民心": 50, "皇威": 50},
+        )
+        return db, state
+
+    def _pending_agreement(self, db: GameDB, state: GameState, *, task: str = "三日内交海防账册") -> tuple[int, int]:
+        goal_id = db.create_conversation_goal(
+            state,
+            minister_name="韩爌",
+            action_kind="court_commitment",
+            title="海防旧账限期交册",
+            target_text="韩爌按期交出海防旧账册",
+            threshold=70,
+            score=100,
+            status="sealed",
+            condition_status="pending",
+            conditions=[{"description": task, "status": "pending", "evidence": ""}],
+        )
+        agreement_id = db.create_negotiation_agreement(
+            state,
+            minister_name="韩爌",
+            topic="海防旧账限期交册",
+            action_kind="court_commitment",
+            status="pending",
+            stance_id=0,
+            goal_id=goal_id,
+            handshake_status="sealed",
+            psychological_score=100,
+            threshold=70,
+            verbal_only=False,
+            core_topic="海防旧账限期交册",
+            target_text="韩爌按期交出海防旧账册",
+            promise_type="旧账交册",
+            stakes="身家名节",
+            due_turn=int(state.turn) + 1,
+            conditions=task,
+            summary="韩爌已承诺限期交册。",
+            tasks=[task],
+        )
+        db.bind_conversation_goal_agreement(goal_id, agreement_id)
+        return goal_id, agreement_id
+
     def test_identity_conversion_words_do_not_create_goal_when_semantic_audit_says_none(self) -> None:
         audit = StaticAudit(
             {
@@ -509,6 +557,185 @@ class NPCBehaviorCrossPressureTests(unittest.TestCase):
                 self.assertEqual(result["goal"]["status"], "active")
             finally:
                 session.close()
+
+    def test_semantic_waiver_closes_existing_agreement_without_manual_abandon(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db, state = self._fresh_state(tmp, "semantic_waiver.db")
+            goal_id, agreement_id = self._pending_agreement(db, state)
+            audit = StaticAudit(
+                {"goal_decision": "none", "confidence": 95, "public_hint": "追及旧约。"},
+                {
+                    "goal_decision": "none",
+                    "goal_relation": "none",
+                    "action_kind": "general",
+                    "stance": "neutral",
+                    "handshake_status": "none",
+                    "goal_status": "active",
+                    "agreement_resolution": "waive",
+                    "agreement_id": agreement_id,
+                    "performance_status": "waived",
+                    "resolution_reason": "皇帝明言免除旧账，韩爌谢恩接受。",
+                    "political_cost_level": "low",
+                    "trigger_quote": "此事作罢，朕免你此约",
+                    "confidence": 96,
+                    "public_hint": "已免除履约账。",
+                    "private_reason": "玩家明确免除，NPC 未反对。",
+                },
+            )
+
+            result = record_dialogue_effects(
+                db,
+                state,
+                self.content.characters["韩爌"],
+                "此事作罢，朕免你此约。",
+                "臣谢陛下宽宥，此约臣不再执为旧账。",
+                audit_client=audit,
+            )
+
+            self.assertEqual(result["event"], "agreement_waive")
+            agreement = db.list_negotiation_agreements(minister_name="韩爌", limit=1)[0]
+            self.assertEqual(agreement["status"], "waived")
+            self.assertEqual(agreement["target_status"], "waived")
+            self.assertTrue(all(str(task["status"]) == "done" for task in agreement["tasks"]))
+            goal = db.get_conversation_goal(goal_id) or {}
+            self.assertEqual(goal["status"], "abandoned")
+            self.assertEqual(goal["last_delta"]["agreement_resolution"], "waive")
+            event = db.conn.execute(
+                "SELECT event_kind, payload_json FROM conversation_goal_events WHERE goal_id=? ORDER BY id DESC LIMIT 1",
+                (goal_id,),
+            ).fetchone()
+            self.assertEqual(str(event["event_kind"]), "agreement_waive")
+            self.assertIn(str(agreement_id), str(event["payload_json"]))
+            db.conn.close()
+
+    def test_semantic_amend_replaces_old_task_and_keeps_agreement_pending(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db, state = self._fresh_state(tmp, "semantic_amend.db")
+            goal_id, agreement_id = self._pending_agreement(db, state, task="三日内交海防账册")
+            audit = StaticAudit(
+                {"goal_decision": "none", "confidence": 95, "public_hint": "改写旧约。"},
+                {
+                    "goal_decision": "none",
+                    "goal_relation": "none",
+                    "action_kind": "general",
+                    "stance": "neutral",
+                    "handshake_status": "none",
+                    "goal_status": "active",
+                    "agreement_resolution": "amend",
+                    "agreement_id": agreement_id,
+                    "performance_status": "pending",
+                    "resolution_reason": "双方把三日期限改为一月内交两册。",
+                    "revised_target_text": "韩爌一月内交出海防旧账与关防两册",
+                    "new_tasks": ["一月内交出海防旧账与关防两册"],
+                    "political_cost_level": "none",
+                    "trigger_quote": "原来三日交册，改为一月内交两册",
+                    "confidence": 96,
+                    "public_hint": "已改为新约。",
+                    "private_reason": "玩家明确改约，NPC 接受新期限。",
+                },
+            )
+
+            result = record_dialogue_effects(
+                db,
+                state,
+                self.content.characters["韩爌"],
+                "原来三日交册，改为一月内交两册。",
+                "臣领新限，一月内交海防旧账与关防两册。",
+                audit_client=audit,
+            )
+
+            self.assertEqual(result["event"], "agreement_amend")
+            agreement = db.list_negotiation_agreements(minister_name="韩爌", limit=1)[0]
+            self.assertEqual(agreement["status"], "pending")
+            self.assertEqual(agreement["target_status"], "pending_conditions")
+            self.assertIn("一月内交出海防旧账与关防两册", str(agreement["target_text"]))
+            task_statuses = {str(task["description"]): str(task["status"]) for task in agreement["tasks"]}
+            self.assertEqual(task_statuses.get("三日内交海防账册"), "done")
+            self.assertEqual(task_statuses.get("一月内交出海防旧账与关防两册"), "pending")
+            goal = db.get_conversation_goal(goal_id) or {}
+            self.assertEqual(goal["status"], "waiting_conditions")
+            self.assertEqual(goal["last_delta"]["agreement_resolution"], "amend")
+            db.conn.close()
+
+    def test_progress_question_does_not_change_existing_agreement(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db, state = self._fresh_state(tmp, "semantic_progress_question.db")
+            _goal_id, agreement_id = self._pending_agreement(db, state)
+            audit = StaticAudit(
+                {"goal_decision": "none", "confidence": 94, "public_hint": "只问进度。"},
+                {
+                    "goal_decision": "none",
+                    "goal_relation": "none",
+                    "action_kind": "general",
+                    "stance": "neutral",
+                    "handshake_status": "none",
+                    "goal_status": "active",
+                    "agreement_resolution": "none",
+                    "agreement_id": agreement_id,
+                    "performance_status": "pending",
+                    "agreement_action": "none",
+                    "confidence": 94,
+                    "public_hint": "只是追问旧约进度。",
+                    "private_reason": "玩家没有免除、改约或追责。",
+                },
+            )
+
+            result = record_dialogue_effects(
+                db,
+                state,
+                self.content.characters["韩爌"],
+                "此事办得如何？",
+                "臣尚在查册，仍需数日。",
+                audit_client=audit,
+            )
+
+            self.assertEqual(result["event"], "none")
+            agreement = db.list_negotiation_agreements(minister_name="韩爌", limit=1)[0]
+            self.assertEqual(int(agreement["id"]), agreement_id)
+            self.assertEqual(agreement["status"], "pending")
+            self.assertTrue(any(str(task["status"]) == "pending" for task in agreement["tasks"]))
+            db.conn.close()
+
+    def test_agreement_resolution_requires_player_trigger_quote(self) -> None:
+        with TemporaryDirectory() as tmp:
+            db, state = self._fresh_state(tmp, "semantic_resolution_quote.db")
+            goal_id, agreement_id = self._pending_agreement(db, state)
+            audit = StaticAudit(
+                {"goal_decision": "none", "confidence": 95, "public_hint": "试图免除旧约。"},
+                {
+                    "goal_decision": "none",
+                    "goal_relation": "none",
+                    "action_kind": "general",
+                    "stance": "neutral",
+                    "handshake_status": "none",
+                    "goal_status": "active",
+                    "agreement_resolution": "waive",
+                    "agreement_id": agreement_id,
+                    "performance_status": "waived",
+                    "resolution_reason": "审计声称免除，但证据句不在玩家原话。",
+                    "trigger_quote": "朕免你此约",
+                    "confidence": 96,
+                    "public_hint": "不应落账。",
+                    "private_reason": "缺少玩家原话证据。",
+                },
+            )
+
+            result = record_dialogue_effects(
+                db,
+                state,
+                self.content.characters["韩爌"],
+                "此事再等等。",
+                "臣遵旨。",
+                audit_client=audit,
+            )
+
+            self.assertEqual(result["event"], "agreement_resolution_required")
+            agreement = db.list_negotiation_agreements(minister_name="韩爌", limit=1)[0]
+            self.assertEqual(agreement["status"], "pending")
+            self.assertEqual(agreement["target_status"], "pending_conditions")
+            goal = db.get_conversation_goal(goal_id) or {}
+            self.assertEqual(goal["status"], "sealed")
+            db.conn.close()
 
     def test_rival_mention_pushes_opposition_and_selective_truth(self) -> None:
         profile = npc_dialogue_behavior_profile(

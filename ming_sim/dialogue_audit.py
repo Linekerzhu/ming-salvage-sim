@@ -45,6 +45,8 @@ STANCES = {"support", "caution", "oppose", "neutral"}
 HANDSHAKES = {"none", "conditional", "sealed", "blocked"}
 GOAL_STATUSES = {"active", "waiting_conditions", "sealed", "blocked", "abandoned", "expired"}
 AGREEMENT_ACTIONS = {"none", "create_achieved", "create_pending", "bind_existing"}
+AGREEMENT_RESOLUTIONS = {"none", "fulfill", "fail", "block", "waive", "supersede", "amend", "append_task"}
+POLITICAL_COST_LEVELS = {"none", "low", "medium", "high"}
 DIRECTIVE_ACTIONS = {"none", "propose_pending"}
 INSTANT_AGREEMENT_ACTIONS = {"castration", "emancipation", "personnel"}
 IDENTITY_CONVERSION_ACTIONS = {"castration", "emancipation"}
@@ -104,6 +106,14 @@ def _clamp_int(value: object, low: int = 0, high: int = 100, default: int = 0) -
     except (TypeError, ValueError):
         parsed = default
     return max(low, min(high, parsed))
+
+
+def _nonnegative_int(value: object, default: int = 0) -> int:
+    try:
+        parsed = int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return default
+    return max(0, parsed)
 
 
 def _enum(value: object, allowed: set[str], default: str) -> str:
@@ -326,6 +336,13 @@ class PostDialogueAudit:
     blockers: List[str] = field(default_factory=list)
     explicit_consent: bool = False
     agreement_action: str = "none"
+    agreement_resolution: str = "none"
+    agreement_id: int = 0
+    supersedes_agreement_id: int = 0
+    new_tasks: List[str] = field(default_factory=list)
+    revised_target_text: str = ""
+    resolution_reason: str = ""
+    political_cost_level: str = "none"
     directive_action: str = "none"
     directive_text: str = ""
     public_hint: str = ""
@@ -388,6 +405,16 @@ def _normalize_pre(data: Dict[str, object]) -> PreDialogueAudit:
 
 def _normalize_post(data: Dict[str, object], *, existing_threshold: int = 70) -> PostDialogueAudit:
     decision = _enum(data.get("goal_decision"), GOAL_DECISIONS, "none")
+    performance_status = str(data.get("performance_status") or "").strip()
+    agreement_resolution = _enum(data.get("agreement_resolution"), AGREEMENT_RESOLUTIONS, "none")
+    if agreement_resolution == "none":
+        agreement_resolution = {
+            "fulfilled": "fulfill",
+            "blocked": "block",
+            "rejected": "fail",
+            "waived": "waive",
+            "superseded": "supersede",
+        }.get(performance_status, "none")
     default_relation = {
         "none": "none",
         "continue": "same_goal",
@@ -398,7 +425,7 @@ def _normalize_post(data: Dict[str, object], *, existing_threshold: int = 70) ->
     relation = _enum(data.get("goal_relation"), GOAL_RELATIONS, default_relation)
     action_kind = _enum(data.get("action_kind"), ACTION_KINDS, "general")
     confidence = _clamp_int(data.get("confidence"))
-    if decision != "none" and confidence < CONFIDENCE_FLOOR:
+    if (decision != "none" or agreement_resolution != "none") and confidence < CONFIDENCE_FLOOR:
         return _post_failure(f"审计置信度不足：{confidence}", raw=data)
     stance = _enum(data.get("stance"), STANCES, "neutral")
     handshake = _enum(data.get("handshake_status"), HANDSHAKES, "none")
@@ -412,7 +439,12 @@ def _normalize_post(data: Dict[str, object], *, existing_threshold: int = 70) ->
     explicit_consent = bool(data.get("explicit_consent"))
     agreement_action = _enum(data.get("agreement_action"), AGREEMENT_ACTIONS, "none")
     agreement_formed = bool(data.get("agreement_formed"))
-    performance_status = str(data.get("performance_status") or "").strip()
+    new_tasks = _list_strings(data.get("new_tasks"), limit=8, item_limit=180)
+    agreement_id = _nonnegative_int(data.get("agreement_id"))
+    supersedes_agreement_id = _nonnegative_int(data.get("supersedes_agreement_id"))
+    revised_target_text = _compact(data.get("revised_target_text"), 240)
+    resolution_reason = _compact(data.get("resolution_reason") or data.get("agreement_resolution_reason"), 400)
+    political_cost_level = _enum(data.get("political_cost_level"), POLITICAL_COST_LEVELS, "none")
     directive_action = _enum(data.get("directive_action"), DIRECTIVE_ACTIONS, "none")
     directive_text = _compact(data.get("directive_text"), 1800)
     public_hint = _compact(data.get("public_hint"), 180)
@@ -514,6 +546,13 @@ def _normalize_post(data: Dict[str, object], *, existing_threshold: int = 70) ->
         blockers=blockers[:8],
         explicit_consent=explicit_consent,
         agreement_action=agreement_action,
+        agreement_resolution=agreement_resolution,
+        agreement_id=agreement_id,
+        supersedes_agreement_id=supersedes_agreement_id,
+        new_tasks=new_tasks,
+        revised_target_text=revised_target_text,
+        resolution_reason=resolution_reason,
+        political_cost_level=political_cost_level,
         directive_action=directive_action,
         directive_text=directive_text,
         public_hint=public_hint,
@@ -1258,7 +1297,8 @@ POST_AUDIT_PROMPT = """
 - policy、secret_order、court_commitment sealed 后默认 create_pending；personnel、castration、emancipation 若即时完成且无待办任务才 create_achieved。
 - castration/emancipation 必须 explicit_consent=true 且 private_reason/public_hint 说明 NPC 原文明确自愿，否则不能 sealed。
 - recent_dialogue 是近期原文上下文，可用于续接指代；但 post audit 必须优先引用本轮 NPC 原文回复。
-- 已 sealed/achieved 的目的只作为背景和账本证据；不要把它重新当作 active goal 推进，也不要让 NPC 每轮复述。
+- 已 sealed/achieved/pending 的目的只作为背景和账本证据；不要把它重新当作 active goal 推进，也不要让 NPC 每轮复述。
+- 已进入 agreements 的履约账不是绝对铁板：若玩家本轮明确免除、作罢、改约、追加条件、截断追责，且 NPC 原文接受/反对/说明代价，你要输出 agreement_resolution，由履约账本语义裁断变更。只是追问“办得如何/为何未办/还缺什么”时 agreement_resolution=none。
 - pre_audit 为 none 且本轮文本没有明确谈判标的时，通常 goal_decision=none；不要因为历史 goal 存在而补判。
 - “臣谨听”“容臣斟酌”不是 sealed；“不敢不从”通常也不是 sealed，除非 active_custodies 显示其正受高强度羁押/刑讯且 NPC 原文明确屈服奉旨，此时可作为被迫应承处理，private_reason 必须写明“被迫”。
 - 若 pre_audit.npc_guidance 或隐藏档案提示半真半假、阳奉阴违、护短、政敌牵动，NPC 的客套答应、泛泛称是、转移矛头不得直接判 sealed；必须有清楚承诺、可审计条件或实际工具落库。
@@ -1269,6 +1309,10 @@ POST_AUDIT_PROMPT = """
 - sealed、agreement_formed=true、agreement_action=create_achieved/create_pending/bind_existing、或 card_resolution 非空时，必须填写 trigger_quote，且 trigger_quote 必须逐字引用玩家本轮原话中能证明“皇帝接受/下令/给条件/批准/拒绝/划边界”的短句；只有 NPC 回复自称愿办、主动承诺或自行解释，玩家本轮没有对应同意/要求/处置原话时，不得判 sealed 或清掉 briefing card。
 - audience_temporal_context 说明本次召对距上次召对多久；裁定“刚才/上回/此事/久未回报”等指代时必须参考它，隔了多日时可判为追问旧事或履约压力，而非同席续句。
 - briefing_context 若存在，表示玩家从某张“朝局风向”卡进入本轮召对。你要判断这张卡是否被本轮语义处理：双方约定则 sealed + create_pending/create_achieved；明确驳回、免除、撤回担保或划死边界则 blocked/none 并在 performance_status/card_resolution 写 rejected/waived/blocked；只是继续询问则不要写已处理。
+- agreement_resolution 含义：fulfill=本轮证据足以确认旧约履行；fail=明确裁为负约/不再给机会；block=旧约被事实或政治阻力卡死；waive=皇帝明确免除旧约；supersede=旧约由新约替代并终止；amend=旧约仍存但目标/期限/任务被改写；append_task=旧约仍存且追加待办。
+- agreement_resolution 非 none 时，agreement_id 应填写被裁断的账本 id；若只能从 active_goal.agreement_id 或 agreements 唯一项判断，可以填写该 id。必须填写 trigger_quote，逐字引用玩家本轮“免除/改约/追责/确认履约”的原话；没有玩家原话证据时 agreement_resolution=none。
+- 改约/追加时 new_tasks 只写新的可核查待办，revised_target_text 写修订后的标的；不要把“继续推进/实际履行”这类空泛任务写入 new_tasks。
+- political_cost_level 按政治代价裁量：none=顺理成章或纯技术修订；low=小幅人情/观感；medium=损皇威或派系不满；high=明显失信、反复赖账或伤及身家名节。
 - 若本轮只是把同一 active_goal 从粗目标细化为具体官职/授权/名分/条件，输出 goal_relation=refine_goal，并把 title/target_text 改成修订后的版本；不要创建多个 goal。
 - 若确属另一个目标，输出 goal_relation=distinct_goal；若旧目标应让位，goal_decision=switch。
 - 若 active_goal 正在 waiting_conditions，而玩家/NPC 原文表明要求的明旨、授权、人手、钱粮、名分、保全、期限等已经给足，conditions 对应项应标 done；NPC 随即接受标的时可 sealed。
@@ -1298,10 +1342,17 @@ JSON 字段：
   "blockers": ["阻碍"],
   "explicit_consent": false,
   "agreement_action": "none|create_achieved|create_pending|bind_existing",
+  "agreement_resolution": "none|fulfill|fail|block|waive|supersede|amend|append_task",
+  "agreement_id": 0,
+  "supersedes_agreement_id": 0,
+  "new_tasks": ["改约/追加后的新待办；没有则空数组"],
+  "revised_target_text": "改约后的标的；没有则空字符串",
+  "resolution_reason": "账本裁断理由；没有则空字符串",
+  "political_cost_level": "none|low|medium|high",
   "directive_action": "none|propose_pending",
   "directive_text": "NPC 已拟成、可入库的旨意草案；无则空字符串",
   "agreement_formed": false,
-  "performance_status": "none|pending|fulfilled|blocked|rejected|waived",
+  "performance_status": "none|pending|fulfilled|blocked|rejected|waived|superseded",
   "card_resolution": "handled|pending|fulfilled|blocked|rejected|waived|",
   "immediate_consequence": false,
   "trigger_quote": "immediate_consequence=true、directive_action=propose_pending、sealed/agreement/card_resolution 时引用玩家本轮原话短句；否则空字符串",

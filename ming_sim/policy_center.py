@@ -164,9 +164,18 @@ def _route_agreements(db: GameDB, *, limit: int = 40) -> List[Dict[str, object]]
     rows = db.list_negotiation_agreements(limit=max(1, min(100, int(limit))))
     policy_kinds = {"policy", "court_commitment", "secret_order", "personnel", "castration", "general"}
     out: List[Dict[str, object]] = []
+    status_labels = {
+        "pending": "待履约",
+        "sealed": "已立约",
+        "fulfilled": "已履约",
+        "failed": "已负约",
+        "blocked": "受阻",
+        "waived": "已免除",
+        "superseded": "已改约",
+    }
     for row in rows:
         status = str(row.get("status") or "")
-        if status not in {"pending", "sealed", "fulfilled", "failed", "blocked"}:
+        if status not in {"pending", "sealed", "fulfilled", "failed", "blocked", "waived", "superseded"}:
             continue
         action_kind = str(row.get("action_kind") or "general")
         if action_kind not in policy_kinds:
@@ -178,6 +187,7 @@ def _route_agreements(db: GameDB, *, limit: int = 40) -> List[Dict[str, object]]
             "core_topic": str(row.get("core_topic") or ""),
             "action_kind": action_kind,
             "status": status,
+            "status_label": status_labels.get(status, status),
             "condition_status": str(row.get("condition_status") or ""),
             "target_status": str(row.get("target_status") or ""),
             "handshake_status": str(row.get("handshake_status") or ""),

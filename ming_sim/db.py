@@ -5128,7 +5128,7 @@ class GameDB:
         if not goal:
             raise ValueError("奏对目的不存在。")
         if str(goal.get("status") or "") == "sealed" or int(goal.get("agreement_id") or 0):
-            raise ValueError("已握手入账的奏对目的不可放弃，只能由履约账本裁断。")
+            raise ValueError("已入账的奏对目的不能手动丢弃；请继续召对说明免除、改约或追责，由语义履约账本裁断。")
         if str(goal.get("status") or "") not in {"active", "waiting_conditions", "blocked", "expired"}:
             raise ValueError("该奏对目的当前不可放弃。")
         self.update_conversation_goal(
@@ -5484,7 +5484,7 @@ class GameDB:
         if not clean_name:
             return 0
         status = str(status or "pending").strip()
-        if status not in {"sealed", "pending", "blocked", "fulfilled", "failed"}:
+        if status not in {"sealed", "pending", "blocked", "fulfilled", "failed", "waived", "superseded"}:
             status = "pending"
         task_list = [str(task or "").strip() for task in (tasks or []) if str(task or "").strip()]
         if status == "blocked":
@@ -5570,6 +5570,285 @@ class GameDB:
         if row is not None:
             self._refresh_negotiation_agreement_status(int(row["agreement_id"]))
         self.conn.commit()
+
+    def resolve_negotiation_agreement_semantically(
+        self,
+        state: GameState,
+        agreement_id: int,
+        *,
+        resolution: str,
+        evidence: str = "",
+        political_cost_level: str = "none",
+        revised_target_text: str = "",
+        new_tasks: Optional[List[str]] = None,
+        llm_review: Optional[Dict[str, object]] = None,
+        source_chat_turn_id: int = 0,
+    ) -> Dict[str, object]:
+        """Apply an LLM-reviewed renegotiation/waiver to an existing ledger row."""
+
+        agreement_id = int(agreement_id or 0)
+        resolution = str(resolution or "none").strip()
+        if agreement_id <= 0 or resolution not in {"fulfill", "fail", "block", "waive", "supersede", "amend", "append_task"}:
+            return {}
+        row = self.conn.execute(
+            "SELECT * FROM negotiation_agreements WHERE id=?",
+            (agreement_id,),
+        ).fetchone()
+        if row is None:
+            return {}
+        agreement = dict(row)
+        evidence = str(evidence or "").strip()[:240]
+        if not evidence:
+            evidence = "LLM 奏对审计裁断履约账本。"
+        political_cost_level = str(political_cost_level or "none").strip()
+        if political_cost_level not in {"none", "low", "medium", "high"}:
+            political_cost_level = "none"
+        revised_target = str(revised_target_text or "").strip()[:180]
+        task_texts: List[str] = []
+        for task in new_tasks or []:
+            text = str(task or "").strip()[:180]
+            if text and text not in task_texts:
+                task_texts.append(text)
+            if len(task_texts) >= 8:
+                break
+        current_tasks = [
+            dict(task)
+            for task in self.conn.execute(
+                "SELECT * FROM negotiation_tasks WHERE agreement_id=? ORDER BY id",
+                (agreement_id,),
+            ).fetchall()
+        ]
+
+        status = str(agreement.get("status") or "pending")
+        condition_status = str(agreement.get("condition_status") or "pending")
+        target_status = str(agreement.get("target_status") or "pending_conditions")
+        score = int(agreement.get("fulfillment_score") or 0)
+        fulfillment_evidence = str(agreement.get("fulfillment_evidence") or "")
+        target_evidence = str(agreement.get("target_evidence") or "")
+        resolved_turn = int(agreement.get("resolved_turn") or 0)
+        update_target_text = revised_target or str(agreement.get("target_text") or "")
+
+        if resolution == "fulfill":
+            status = "fulfilled"
+            condition_status = "satisfied"
+            target_status = "achieved"
+            score = 100
+            fulfillment_evidence = evidence
+            target_evidence = evidence
+            resolved_turn = int(state.turn)
+            for task in current_tasks:
+                if str(task.get("status") or "pending") == "pending":
+                    self.conn.execute(
+                        """
+                        UPDATE negotiation_tasks
+                        SET status='done', evidence=?, last_checked_turn=?, updated_at=CURRENT_TIMESTAMP
+                        WHERE id=?
+                        """,
+                        (f"语义裁断履约：{evidence}"[:240], int(state.turn), int(task["id"])),
+                    )
+        elif resolution in {"fail", "block"}:
+            status = "failed" if resolution == "fail" else "blocked"
+            condition_status = "failed"
+            target_status = "failed" if resolution == "fail" else "blocked"
+            score = 0
+            fulfillment_evidence = evidence
+            target_evidence = evidence
+            resolved_turn = int(state.turn)
+            for task in current_tasks:
+                if str(task.get("status") or "pending") == "pending":
+                    self.conn.execute(
+                        """
+                        UPDATE negotiation_tasks
+                        SET status='failed', evidence=?, last_checked_turn=?, updated_at=CURRENT_TIMESTAMP
+                        WHERE id=?
+                        """,
+                        (f"语义裁断未履约：{evidence}"[:240], int(state.turn), int(task["id"])),
+                    )
+        elif resolution in {"waive", "supersede"}:
+            status = "waived" if resolution == "waive" else "superseded"
+            condition_status = "satisfied"
+            target_status = "waived" if resolution == "waive" else "superseded"
+            score = 100
+            fulfillment_evidence = evidence
+            target_evidence = evidence
+            resolved_turn = int(state.turn)
+            task_prefix = "语义免除" if resolution == "waive" else "语义改约替代"
+            for task in current_tasks:
+                if str(task.get("status") or "pending") == "pending":
+                    self.conn.execute(
+                        """
+                        UPDATE negotiation_tasks
+                        SET status='done', evidence=?, last_checked_turn=?, updated_at=CURRENT_TIMESTAMP
+                        WHERE id=?
+                        """,
+                        (f"{task_prefix}，不再作为待办：{evidence}"[:240], int(state.turn), int(task["id"])),
+                    )
+        elif resolution == "amend":
+            status = "pending"
+            condition_status = "pending"
+            target_status = "pending_conditions"
+            fulfillment_evidence = f"旧约已改写：{evidence}"[:240]
+            target_evidence = "改约后仍待新条件闭环。"
+            for task in current_tasks:
+                if str(task.get("status") or "pending") == "pending":
+                    self.conn.execute(
+                        """
+                        UPDATE negotiation_tasks
+                        SET status='done', evidence=?, last_checked_turn=?, updated_at=CURRENT_TIMESTAMP
+                        WHERE id=?
+                        """,
+                        (f"已由改约替代：{evidence}"[:240], int(state.turn), int(task["id"])),
+                    )
+            for text in task_texts:
+                self.conn.execute(
+                    """
+                    INSERT INTO negotiation_tasks (agreement_id, description, task_kind, status)
+                    VALUES (?, ?, ?, 'pending')
+                    """,
+                    (agreement_id, text, classify_task_kind(text)),
+                )
+        elif resolution == "append_task":
+            status = "pending"
+            condition_status = "pending"
+            target_status = "pending_conditions"
+            fulfillment_evidence = f"追加待办：{evidence}"[:240]
+            target_evidence = "旧约仍在，追加待办仍待闭环。"
+            existing_desc = {str(task.get("description") or "") for task in current_tasks}
+            for text in task_texts:
+                if text in existing_desc:
+                    continue
+                self.conn.execute(
+                    """
+                    INSERT INTO negotiation_tasks (agreement_id, description, task_kind, status)
+                    VALUES (?, ?, ?, 'pending')
+                    """,
+                    (agreement_id, text, classify_task_kind(text)),
+                )
+
+        due_turn = int(agreement.get("due_turn") or 0)
+        if isinstance(llm_review, dict):
+            raw_due = llm_review.get("due_turn", llm_review.get("due_turns"))
+            try:
+                parsed_due = int(raw_due)  # type: ignore[arg-type]
+            except (TypeError, ValueError):
+                parsed_due = 0
+            if parsed_due > 0:
+                due_turn = parsed_due if parsed_due > int(state.turn) else int(state.turn) + parsed_due
+
+        effect: Dict[str, object] = {}
+        if target_status != str(agreement.get("target_status") or ""):
+            effect = self._apply_negotiation_political_effect(
+                state,
+                agreement,
+                new_status=status,
+                evidence=target_evidence or evidence,
+                political_cost_level=political_cost_level,
+                resolution=resolution,
+            )
+        review = {
+            "source": "llm_dialogue_audit",
+            "resolution": resolution,
+            "turn": int(state.turn),
+            "status": status,
+            "condition_status": condition_status,
+            "target_status": target_status,
+            "evidence": evidence,
+            "political_cost_level": political_cost_level,
+            "revised_target_text": revised_target,
+            "new_tasks": task_texts,
+            "source_chat_turn_id": int(source_chat_turn_id or 0),
+        }
+        self.conn.execute(
+            """
+            UPDATE negotiation_agreements
+            SET status=?, condition_status=?, target_status=?,
+                last_checked_turn=?, resolved_turn=?,
+                fulfillment_score=?, fulfillment_evidence=?, target_evidence=?,
+                target_text=?,
+                due_turn=?,
+                political_effect_json=?, auto_review_json=?, llm_review_json=?,
+                updated_at=CURRENT_TIMESTAMP
+            WHERE id=?
+            """,
+            (
+                status,
+                condition_status,
+                target_status,
+                int(state.turn),
+                resolved_turn,
+                score,
+                fulfillment_evidence[:240],
+                target_evidence[:240],
+                update_target_text,
+                due_turn,
+                json.dumps(effect, ensure_ascii=False) if effect else str(agreement.get("political_effect_json") or "{}"),
+                json.dumps(review, ensure_ascii=False),
+                json.dumps(llm_review or {}, ensure_ascii=False),
+                agreement_id,
+            ),
+        )
+
+        goal_payload: Dict[str, object] = {
+            "source": "llm_dialogue_audit",
+            "agreement_id": agreement_id,
+            "agreement_resolution": resolution,
+            "evidence": evidence,
+            "political_cost_level": political_cost_level,
+            "revised_target_text": revised_target,
+            "new_tasks": task_texts,
+            "political_effect": effect,
+        }
+        goal_id = int(agreement.get("goal_id") or 0)
+        if goal_id:
+            goal_status = {
+                "fulfill": "fulfilled",
+                "fail": "blocked",
+                "block": "blocked",
+                "waive": "abandoned",
+                "supersede": "abandoned",
+                "amend": "waiting_conditions",
+                "append_task": "waiting_conditions",
+            }[resolution]
+            goal_condition = "satisfied" if resolution in {"fulfill", "waive", "supersede"} else "failed" if resolution in {"fail", "block"} else "pending"
+            goal_score = 100 if resolution in {"fulfill", "waive", "supersede"} else 0 if resolution in {"fail", "block"} else int(agreement.get("psychological_score") or 0)
+            self.update_conversation_goal(
+                goal_id,
+                state=state,
+                event_kind=f"agreement_{resolution}",
+                event_summary=evidence,
+                source_chat_turn_id=source_chat_turn_id,
+                status=goal_status,
+                score=goal_score,
+                condition_status=goal_condition,
+                target_text=revised_target if revised_target and resolution in {"amend", "append_task"} else str(agreement.get("target_text") or ""),
+                last_delta_json=goal_payload,
+                expires_turn=int(state.turn) + 3 if resolution in {"amend", "append_task"} else 0,
+                abandoned_reason=evidence if resolution in {"waive", "supersede"} else "",
+            )
+        self.conn.commit()
+        updated_row = self.conn.execute(
+            "SELECT * FROM negotiation_agreements WHERE id=?",
+            (agreement_id,),
+        ).fetchone()
+        updated_agreement = dict(updated_row or {})
+        if updated_agreement:
+            task_rows = self.conn.execute(
+                """
+                SELECT id, description, task_kind, status, evidence, last_checked_turn
+                FROM negotiation_tasks
+                WHERE agreement_id=?
+                ORDER BY id
+                """,
+                (agreement_id,),
+            ).fetchall()
+            updated_agreement["tasks"] = [dict(task) for task in task_rows]
+        return {
+            "agreement": updated_agreement,
+            "goal": self.get_conversation_goal(goal_id) if goal_id else None,
+            "resolution": resolution,
+            "summary": evidence,
+            "political_effect": effect,
+        }
 
     def resolve_personnel_agreements_for_roster_change(
         self,
@@ -5741,6 +6020,8 @@ class GameDB:
             "SELECT status FROM negotiation_agreements WHERE id=?", (int(agreement_id),)
         ).fetchone()
         if agreement is None:
+            return
+        if str(agreement["status"] or "") in {"fulfilled", "failed", "blocked", "waived", "superseded"}:
             return
         rows = self.conn.execute(
             "SELECT status FROM negotiation_tasks WHERE agreement_id=?",
@@ -5932,6 +6213,8 @@ class GameDB:
         old_target = str(agreement.get("target_status") or "")
         if old_target == "blocked":
             return "failed", "blocked", 0, str(agreement.get("fulfillment_evidence") or ""), str(agreement.get("target_evidence") or "")
+        if old_target in {"waived", "superseded"}:
+            return "satisfied", old_target, 100, str(agreement.get("fulfillment_evidence") or ""), str(agreement.get("target_evidence") or "")
 
         statuses = [str(task.get("status") or "pending") for task in tasks]
         llm_condition = str(llm_review.get("condition_status") or "").strip()
@@ -5973,7 +6256,7 @@ class GameDB:
 
         if condition_status == "satisfied":
             llm_target = str(llm_review.get("target_status") or "").strip()
-            if llm_target in {"failed", "blocked"}:
+            if llm_target in {"failed", "blocked", "waived", "superseded"}:
                 target_status = llm_target
             else:
                 target_status = "achieved"
@@ -6006,6 +6289,10 @@ class GameDB:
             return "blocked"
         if target_status == "failed":
             return "failed"
+        if target_status == "waived":
+            return "waived"
+        if target_status == "superseded":
+            return "superseded"
         return "pending"
 
     def _apply_negotiation_political_effect(
@@ -6015,6 +6302,8 @@ class GameDB:
         *,
         new_status: str,
         evidence: str,
+        political_cost_level: str = "",
+        resolution: str = "",
     ) -> Dict[str, object]:
         try:
             old_effect = json.loads(str(agreement.get("political_effect_json") or "{}"))
@@ -6034,6 +6323,8 @@ class GameDB:
         effect: Dict[str, object] = {
             "applied_turn": int(state.turn),
             "applied_status": new_status,
+            "resolution": str(resolution or ""),
+            "political_cost_level": str(political_cost_level or "none"),
             "evidence": evidence[:180],
             "metric_delta": {},
             "faction_delta": {},
@@ -6064,6 +6355,28 @@ class GameDB:
                 "expected_behavior": "后续召对须把此事当作失信旧账；本人可能补奏、拖延、求保全，相关党争关系会借题清算。",
             }
             self.record_log(state, f"奏对标的失信：{minister}「{agreement.get('target_text') or agreement.get('core_topic') or agreement.get('topic')}」未达成。")
+        elif new_status in {"waived", "superseded"}:
+            level = str(political_cost_level or "none")
+            wei_delta = {"none": 0, "low": 0, "medium": -1, "high": -2}.get(level, 0)
+            faction_delta = {"none": 0, "low": -1, "medium": -2, "high": -4}.get(level, 0)
+            if wei_delta:
+                state.metrics["皇威"] = max(0, min(100, int(state.metrics.get("皇威", 0)) + wei_delta))
+                effect["metric_delta"] = {"皇威": wei_delta}
+            if faction and faction_delta:
+                self.adjust_factions({faction: {"satisfaction": faction_delta}})
+                effect["faction_delta"] = {faction: {"satisfaction": faction_delta}}
+            if new_status == "waived":
+                effect["npc_influence"] = {
+                    "memory_signal": "agreement_waived",
+                    "expected_behavior": "旧约已由皇帝免除；后续不能当成负约追责，但旁人可据代价轻重议论皇帝是否守约。",
+                }
+                self.record_log(state, f"奏对旧约免除：{minister}「{agreement.get('target_text') or agreement.get('core_topic') or agreement.get('topic')}」。")
+            else:
+                effect["npc_influence"] = {
+                    "memory_signal": "agreement_superseded",
+                    "expected_behavior": "旧约已被新裁断替代；后续应按新约或新条件判断，不得再用旧待办卡死。",
+                }
+                self.record_log(state, f"奏对旧约改写：{minister}「{agreement.get('target_text') or agreement.get('core_topic') or agreement.get('topic')}」。")
         self.save_state(state)
         return effect
 
@@ -6196,7 +6509,7 @@ class GameDB:
                 UPDATE negotiation_agreements
                 SET status=?, condition_status=?, target_status=?,
                     last_checked_turn=?,
-                    resolved_turn=CASE WHEN ? IN ('fulfilled','failed','blocked') THEN ? ELSE resolved_turn END,
+                    resolved_turn=CASE WHEN ? IN ('fulfilled','failed','blocked','waived','superseded') THEN ? ELSE resolved_turn END,
                     fulfillment_score=?, fulfillment_evidence=?, target_evidence=?,
                     political_effect_json=?, auto_review_json=?, llm_review_json=?,
                     updated_at=CURRENT_TIMESTAMP
@@ -6300,7 +6613,7 @@ class GameDB:
         ledger: List[Dict[str, object]] = []
         for row in rows:
             status = str(row.get("status") or "")
-            if status not in {"pending", "sealed", "fulfilled", "failed", "blocked"}:
+            if status not in {"pending", "sealed", "fulfilled", "failed", "blocked", "waived", "superseded"}:
                 continue
             try:
                 auto_review = json.loads(str(row.get("auto_review_json") or "{}"))
@@ -6381,6 +6694,10 @@ class GameDB:
             return f"已成失信记录：刺痛{stakes or '一般政务'}，月末推演应写入不信任、补奏、拖延、清议或派系反噬。"
         if target_status == "blocked" or status == "blocked":
             return "未说服：若强推，按高压诏令和真实阻力结算，不能视为臣工协办。"
+        if target_status == "waived" or status == "waived":
+            return "皇帝已语义免除此约：不再作为待办或负约追责，也不能作为执行背书。"
+        if target_status == "superseded" or status == "superseded":
+            return "旧约已被新裁断替代：后续按新约或新条件判断，旧待办不再卡死。"
         return ""
 
     def has_successful_agreement(

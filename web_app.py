@@ -1490,6 +1490,8 @@ class WebGame:
             "expired": "失期",
             "sealed": "已立约",
             "fulfilled": "已履约",
+            "waived": "已免除",
+            "superseded": "已改约",
             "abandoned": "已放弃",
         }
         condition_labels = {
@@ -3890,6 +3892,23 @@ class WebGame:
         }
 
     def agreement_payload(self, minister_name: str = "") -> List[Dict[str, Any]]:
+        status_labels = {
+            "pending": "待履约",
+            "sealed": "已立约",
+            "fulfilled": "已履约",
+            "failed": "已负约",
+            "blocked": "受阻",
+            "waived": "已免除",
+            "superseded": "已改约",
+        }
+        target_labels = {
+            "pending_conditions": "待条件",
+            "achieved": "已达成",
+            "failed": "未达成",
+            "blocked": "受阻",
+            "waived": "已免除",
+            "superseded": "已改约",
+        }
         rows = self.db.list_negotiation_agreements(minister_name=minister_name, limit=80)
         out: List[Dict[str, Any]] = []
         for row in rows:
@@ -3897,6 +3916,8 @@ class WebGame:
             item["verbal_only"] = bool(int(item.get("verbal_only") or 0))
             item["handshake_label"] = handshake_label(str(item.get("handshake_status") or "none"))
             item["core_topic"] = item.get("core_topic") or item.get("topic") or ""
+            item["status_label"] = status_labels.get(str(item.get("status") or ""), str(item.get("status") or ""))
+            item["target_status_label"] = target_labels.get(str(item.get("target_status") or ""), str(item.get("target_status") or ""))
             try:
                 item["auto_review"] = json.loads(str(item.get("auto_review_json") or "{}"))
             except Exception:

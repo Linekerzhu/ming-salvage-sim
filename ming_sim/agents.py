@@ -500,7 +500,7 @@ AGREEMENT_REVIEWER_PROMPT = """
     {
       "agreement_id": 1,
       "condition_status": "pending|satisfied|failed",
-      "target_status": "pending_conditions|achieved|failed|blocked",
+      "target_status": "pending_conditions|achieved|failed|blocked|waived|superseded",
       "condition_score": 0,
       "condition_evidence": "用一句话说明条件证据",
       "target_evidence": "用一句话说明标的为何达成/未达成",

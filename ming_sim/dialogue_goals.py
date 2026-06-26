@@ -53,6 +53,9 @@ class DialogueAgreementDecision:
     confidence: int = 0
     source_card_key: str = ""
     blocked_reason: str = ""
+    agreement_resolution: str = "none"
+    agreement_id: int = 0
+    political_cost_level: str = "none"
 
 @dataclass
 class GoalDetection:
@@ -166,13 +169,66 @@ def _post_agreement_formed(post: Any) -> bool:
 def _post_performance_status(post: Any, *, agreement_id: int = 0) -> str:
     raw = getattr(post, "raw", {}) if isinstance(getattr(post, "raw", {}), dict) else {}
     status = str(raw.get("performance_status") or "").strip()
-    if status in {"fulfilled", "pending", "blocked", "rejected", "waived", "none"}:
+    if status in {"fulfilled", "pending", "blocked", "rejected", "waived", "superseded", "none"}:
         return status
     if str(getattr(post, "handshake_status", "") or "") == HANDSHAKE_BLOCKED:
         return "blocked"
     if agreement_id:
         return "pending" if str(getattr(post, "agreement_action", "") or "") == "create_pending" else "fulfilled"
     return "none"
+
+
+def _post_agreement_resolution(post: Any) -> str:
+    raw = getattr(post, "raw", {}) if isinstance(getattr(post, "raw", {}), dict) else {}
+    resolution = str(getattr(post, "agreement_resolution", "") or raw.get("agreement_resolution") or "").strip()
+    if resolution in {"fulfill", "fail", "block", "waive", "supersede", "amend", "append_task"}:
+        return resolution
+    performance = str(raw.get("performance_status") or "").strip()
+    return {
+        "fulfilled": "fulfill",
+        "blocked": "block",
+        "rejected": "fail",
+        "waived": "waive",
+        "superseded": "supersede",
+    }.get(performance, "none")
+
+
+def _post_resolution_agreement_id(post: Any, active_goal: Optional[Dict[str, object]], db: Any, minister_name: str) -> int:
+    raw = getattr(post, "raw", {}) if isinstance(getattr(post, "raw", {}), dict) else {}
+    for value in (
+        getattr(post, "agreement_id", 0),
+        raw.get("agreement_id") if isinstance(raw, dict) else 0,
+        raw.get("supersedes_agreement_id") if isinstance(raw, dict) else 0,
+        getattr(post, "supersedes_agreement_id", 0),
+        (active_goal or {}).get("agreement_id") if active_goal else 0,
+    ):
+        try:
+            agreement_id = int(value or 0)
+        except (TypeError, ValueError):
+            agreement_id = 0
+        if agreement_id > 0:
+            return agreement_id
+    try:
+        rows = [
+            row for row in db.list_negotiation_agreements(minister_name=minister_name, limit=8)
+            if str(row.get("status") or "") in {"pending", "sealed"}
+        ]
+    except Exception:
+        rows = []
+    return int(rows[0].get("id") or 0) if len(rows) == 1 else 0
+
+
+def _post_resolution_new_tasks(post: Any) -> List[str]:
+    tasks = list(getattr(post, "new_tasks", []) or [])
+    raw = getattr(post, "raw", {}) if isinstance(getattr(post, "raw", {}), dict) else {}
+    if not tasks and isinstance(raw.get("new_tasks"), list):
+        tasks = [str(item or "").strip() for item in raw.get("new_tasks") or [] if str(item or "").strip()]
+    return [_compact(task, 180) for task in tasks if _compact(task, 180)][:8]
+
+
+def _post_resolution_detail(post: Any, key: str, limit: int = 240) -> str:
+    raw = getattr(post, "raw", {}) if isinstance(getattr(post, "raw", {}), dict) else {}
+    return _compact(str(getattr(post, key, "") or raw.get(key) or ""), limit)
 
 
 def _post_trigger_quote(post: Any) -> str:
@@ -210,11 +266,25 @@ def _dialogue_agreement_decision(
                 text = _compact(str(item.get("description") or ""), 180)
                 if text and text not in tasks:
                     tasks.append(text)
+    resolved_agreement_id = int(agreement_id or 0)
+    if resolved_agreement_id <= 0:
+        for value in (
+            getattr(post, "agreement_id", 0),
+            raw.get("agreement_id"),
+            raw.get("supersedes_agreement_id"),
+            getattr(post, "supersedes_agreement_id", 0),
+        ):
+            try:
+                resolved_agreement_id = int(value or 0)
+            except (TypeError, ValueError):
+                resolved_agreement_id = 0
+            if resolved_agreement_id > 0:
+                break
     return DialogueAgreementDecision(
         intent=str(raw.get("intent") or getattr(post, "action_kind", "") or "none"),
         target=str(getattr(post, "target_text", "") or getattr(post, "title", "") or ""),
-        agreement_formed=_post_agreement_formed(post) or bool(agreement_id),
-        performance_status=_post_performance_status(post, agreement_id=agreement_id),
+        agreement_formed=_post_agreement_formed(post) or bool(resolved_agreement_id),
+        performance_status=_post_performance_status(post, agreement_id=resolved_agreement_id),
         conditions=list(getattr(post, "conditions", []) or []),
         tasks=tasks[:8],
         due_turn=int(raw.get("due_turn") or raw.get("due_turns") or 0) if str(raw.get("due_turn") or raw.get("due_turns") or "").isdigit() else 0,
@@ -222,15 +292,18 @@ def _dialogue_agreement_decision(
         confidence=int(getattr(post, "confidence", 0) or 0),
         source_card_key=context.get("card_key", ""),
         blocked_reason=_compact(str(raw.get("blocked_reason") or "；".join(getattr(post, "blockers", []) or [])), 240),
+        agreement_resolution=_post_agreement_resolution(post),
+        agreement_id=resolved_agreement_id,
+        political_cost_level=str(getattr(post, "political_cost_level", "") or raw.get("political_cost_level") or "none"),
     )
 
 
 def _briefing_resolution_for_decision(post: Any, decision: DialogueAgreementDecision, *, agreement_id: int = 0) -> str:
     raw = getattr(post, "raw", {}) if isinstance(getattr(post, "raw", {}), dict) else {}
     explicit = str(raw.get("card_resolution") or "").strip()
-    if explicit in {"handled", "pending", "fulfilled", "blocked", "rejected", "waived"}:
+    if explicit in {"handled", "pending", "fulfilled", "blocked", "rejected", "waived", "superseded"}:
         return explicit
-    if decision.performance_status in {"fulfilled", "pending", "blocked", "rejected", "waived"}:
+    if decision.performance_status in {"fulfilled", "pending", "blocked", "rejected", "waived", "superseded"}:
         return decision.performance_status
     if agreement_id or decision.agreement_formed:
         return "pending" if decision.tasks else "fulfilled"
@@ -285,6 +358,100 @@ def _record_source_briefing_resolution(
     except Exception:
         pass
     return decision
+
+
+def _agreement_resolution_required_response(
+    post: Any,
+    *,
+    dialogue_consequences: Dict[str, object],
+    proposed_directive: Dict[str, object],
+    reason: str = "",
+) -> Dict[str, object]:
+    hint = reason or "已入账的奏对事项不能直接丢弃；请在奏对中说明免除、改约、追加条件或追责，由语义账本裁断。"
+    return {
+        "audit_status": "recorded",
+        "event": "agreement_resolution_required",
+        "proposed_directive": proposed_directive,
+        "dialogue_consequences": dialogue_consequences,
+        "agreement_id": 0,
+        "agreement_resolution": _post_agreement_resolution(post),
+        "public_hint": hint,
+        "audit_confidence": int(getattr(post, "confidence", 0) or 0),
+    }
+
+
+def _resolve_existing_agreement_from_post(
+    db: Any,
+    state: GameState,
+    character: Character,
+    post: Any,
+    *,
+    user_text: str,
+    active_goal: Optional[Dict[str, object]],
+    source_chat_turn_id: int,
+    dialogue_consequences: Dict[str, object],
+    proposed_directive: Dict[str, object],
+    source_context: Optional[Dict[str, object]],
+) -> Optional[Dict[str, object]]:
+    resolution = _post_agreement_resolution(post)
+    if resolution == "none":
+        return None
+    if not _post_quote_supported_by_player_text(post, user_text):
+        return _agreement_resolution_required_response(
+            post,
+            dialogue_consequences=dialogue_consequences,
+            proposed_directive=proposed_directive,
+            reason="未改动履约账本：缺少玩家本轮原话中的免除、改约、确认履约或追责证据。",
+        )
+    agreement_id = _post_resolution_agreement_id(post, active_goal, db, character.name)
+    if agreement_id <= 0:
+        return _agreement_resolution_required_response(
+            post,
+            dialogue_consequences=dialogue_consequences,
+            proposed_directive=proposed_directive,
+            reason="未改动履约账本：本轮语义没有对应到明确的旧账本条目。",
+        )
+    evidence = (
+        _post_resolution_detail(post, "resolution_reason", 400)
+        or str(getattr(post, "private_reason", "") or "")
+        or str(getattr(post, "public_hint", "") or "")
+    )
+    result = db.resolve_negotiation_agreement_semantically(
+        state,
+        agreement_id,
+        resolution=resolution,
+        evidence=evidence,
+        political_cost_level=_post_resolution_detail(post, "political_cost_level", 20) or "none",
+        revised_target_text=_post_resolution_detail(post, "revised_target_text", 240),
+        new_tasks=_post_resolution_new_tasks(post),
+        llm_review=getattr(post, "raw", {}) if isinstance(getattr(post, "raw", {}), dict) else {},
+        source_chat_turn_id=source_chat_turn_id,
+    )
+    agreement_decision = _record_source_briefing_resolution(
+        db,
+        state,
+        post,
+        user_text=user_text,
+        source_context=source_context,
+        agreement_id=agreement_id,
+        source_chat_turn_id=source_chat_turn_id,
+    )
+    goal = result.get("goal") if isinstance(result, dict) else None
+    return {
+        "audit_status": "recorded",
+        "goal": goal,
+        "agreement_id": agreement_id,
+        "agreement_resolution": resolution,
+        "agreement_result": result,
+        "proposed_directive": proposed_directive,
+        "dialogue_consequences": dialogue_consequences,
+        "agreement_decision": agreement_decision.__dict__,
+        "event": f"agreement_{resolution}",
+        "handshake_status": str(getattr(post, "handshake_status", "") or "none"),
+        "score": int(getattr(post, "score_after", 0) or 0),
+        "public_hint": str(getattr(post, "public_hint", "") or result.get("summary") or ""),
+        "audit_confidence": int(getattr(post, "confidence", 0) or 0),
+    }
 
 
 def _immediate_consequence_enabled(raw: Dict[str, object]) -> bool:
@@ -1037,6 +1204,20 @@ def record_dialogue_effects(
         source_chat_turn_id=source_chat_turn_id,
         confidence=post.confidence,
     )
+    agreement_resolution_result = _resolve_existing_agreement_from_post(
+        db,
+        state,
+        character,
+        post,
+        user_text=user_text,
+        active_goal=active_goal,
+        source_chat_turn_id=source_chat_turn_id,
+        dialogue_consequences=dialogue_consequences,
+        proposed_directive=proposed_directive,
+        source_context=source_context,
+    )
+    if agreement_resolution_result is not None:
+        return agreement_resolution_result
     if post.goal_decision == "none":
         agreement_decision = _record_source_briefing_resolution(
             db,
@@ -1068,6 +1249,14 @@ def record_dialogue_effects(
     elif distinct_active and active_goal:
         post.goal_decision = "switch"
         post.goal_relation = "distinct_goal"
+
+    active_agreement_id = int((active_goal or {}).get("agreement_id") or 0)
+    if active_agreement_id and post.goal_decision in {"abandon", "new", "switch"} and not refines_active:
+        return _agreement_resolution_required_response(
+            post,
+            dialogue_consequences=dialogue_consequences,
+            proposed_directive=proposed_directive,
+        )
 
     if post.goal_decision == "abandon" and active_goal:
         updated = db.abandon_conversation_goal(
