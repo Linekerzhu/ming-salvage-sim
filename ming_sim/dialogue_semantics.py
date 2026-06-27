@@ -1106,6 +1106,18 @@ class DialogueSemanticEngine:
         phase = phase_by_kind.get(kind)
         if not phase:
             return SemanticDecision.none("未知对话后语义审计。")
+        # 生产路径（无 audit_client 注入）：走合并 post-chat 审计（单次 LLM 判 5 类）
+        if self.audit_client is None and self._action_available():
+            from ming_sim.dialogue_audit import dialogue_combined_post_audit
+            ctx = context if isinstance(context, dict) else {}
+            review = dialogue_combined_post_audit(
+                self.db, self.state, character, user_text, answer,
+                kind=kind,
+                directive_text=str(ctx.get("directive_text") or ctx.get("text") or ""),
+                subject=str(ctx.get("subject") or ""),
+                llm_config=self.llm_config, agno_db=self.agno_db,
+            )
+            return self._post_decision_from_review(kind, review)
         if self.audit_client is not None:
             payload: Dict[str, Any] = {
                 "user_text": user_text,

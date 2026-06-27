@@ -2592,6 +2592,78 @@ def dialogue_decision_testimony_audit(
         })
 
 
+COMBINED_POST_PROMPT = """你是奏对语义引擎。请一次性判定以下 5 类 post-chat 后果（仅返回命中的那类）：
+
+- directive_pressure（旨意压力：催办后大臣是否承压/推诿/需支持）
+- directive_followup（旨意后续：复命后是否需追加跟进）
+- directive_fallback（旨意兜底：无明旨时是否需补旨）
+- bargain_attitude（御前交易：大臣对交易的态度）
+- decision_testimony（待裁证词：大臣证词类型）
+
+只返回命中的那一类；若都不命中，返回 allow=false。
+
+返回 JSON：
+{
+  "allow": true/false,
+  "action_type": "directive_pressure|directive_followup|directive_fallback|bargain_attitude|decision_testimony",
+  "kind": "具体子类（如 pressed/needs_support/evasive/accept/refuse/evidence/liability 等）",
+  "answer_evidence": "大臣回复中支撑判定的原话",
+  "confidence": 0-100,
+  "private_reason": "判定理由（可空）"
+}
+"""
+
+
+def dialogue_combined_post_audit(
+    db: Any,
+    state: GameState,
+    character: Character,
+    user_text: str,
+    answer: str,
+    *,
+    kind: str = "",
+    directive_text: str = "",
+    subject: str = "",
+    llm_config: Optional[LLMConfig] = None,
+    agno_db: object = None,
+    audit_client: object = None,
+) -> Dict[str, object]:
+    """合并 5 类 post-chat 审计为单次 LLM 调用。
+
+    替代 dialogue_directive_pressure_audit / followup / fallback /
+    bargain_attitude / decision_testimony 的独立调用。
+    返回 dict：action_type 标识命中类型；下游 _post_decision_from_review 据此分发。
+    """
+    payload = _context_payload(db, state, character)
+    payload["user_text"] = user_text
+    payload["answer"] = answer
+    payload["candidate_kind"] = kind
+    payload["directive_text"] = directive_text
+    payload["subject"] = subject
+    _attach_behavior_context(payload, character, text=user_text)
+    try:
+        fake = _call_fake(audit_client, "combined_post", payload)
+        if fake is not None:
+            return fake
+        if llm_config is None:
+            return {"allow": False, "confidence": 0,
+                    "private_reason": "未配置 LLM，合并 post-chat 审计不落档。"}
+        agent = _agent(
+            llm_config, agno_db,
+            phase="dialogue_directive_pressure",
+            prompt=COMBINED_POST_PROMPT,
+            max_tokens=1200,
+        )
+        raw = run_agent_text(
+            agent,
+            json.dumps(payload, ensure_ascii=False, sort_keys=False),
+            tag="dialogue-audit/combined-post",
+        )
+        return parse_agent_json(raw, "合并 post-chat 审计")
+    except Exception as exc:
+        return {"allow": False, "confidence": 0, "private_reason": str(exc)}
+
+
 def dialogue_suggestions_audit(
     db: Any,
     state: GameState,

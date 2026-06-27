@@ -180,5 +180,83 @@ class CombinedIntentAuditTests(unittest.TestCase):
                     os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT", None)
 
 
+class CombinedPostChatAuditTests(unittest.TestCase):
+    """合并 post_chat 5 类审计：dialogue_combined_post_audit 函数本身正确性。
+    evaluate_post_chat 在生产路径（无 audit_client）走合并；注入时回退串行。"""
+
+    def test_combined_post_returns_directive_pressure(self):
+        """audit_client 响应 combined_post phase → 正确返回 directive_pressure 决策。"""
+        from ming_sim.dialogue_audit import dialogue_combined_post_audit
+        from ming_sim.models import LLMConfig
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            character = db.content.characters["韩爌"]
+
+            def audit(phase, payload):
+                if phase == "combined_post":
+                    return {
+                        "allow": True,
+                        "action_type": "directive_pressure",
+                        "kind": "pressed",
+                        "answer_evidence": "臣遵旨",
+                        "trigger_quote": payload.get("user_text"),
+                        "confidence": 88,
+                    }
+                return None
+
+            review = dialogue_combined_post_audit(
+                db, state, character, "朕已催办此事", "臣遵旨",
+                kind="directive_pressure",
+                llm_config=LLMConfig(model="t", api_key="t", base_url="http://t"),
+                audit_client=audit,
+            )
+            self.assertTrue(review.get("allow"))
+            self.assertEqual(review.get("action_type"), "directive_pressure")
+            self.assertEqual(review.get("kind"), "pressed")
+
+    def test_engine_post_chat_falls_back_when_audit_client_injected(self):
+        """evaluate_post_chat 在 audit_client 注入时走原有串行路径（兼容性）。"""
+        import os
+        from ming_sim.dialogue_semantics import DialogueSemanticEngine
+        from ming_sim.models import LLMConfig
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            character = db.content.characters["韩爌"]
+            call_log = []
+            old = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")
+            os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+            try:
+                def audit(phase, payload):
+                    call_log.append(phase)
+                    if phase == "dialogue_directive_pressure":
+                        return {
+                            "allow": True,
+                            "kind": "pressed",
+                            "answer_evidence": "臣遵旨",
+                            "trigger_quote": payload.get("user_text"),
+                            "confidence": 88,
+                        }
+                    return None
+
+                engine = DialogueSemanticEngine(
+                    db, state,
+                    llm_config=LLMConfig(model="t", api_key="t", base_url="http://t"),
+                    audit_client=audit,
+                )
+                decision = engine.evaluate_post_chat(
+                    character, "朕已催办此事", "臣遵旨",
+                    kind="directive_pressure",
+                    context={"directive_text": "着办某事"},
+                )
+                self.assertTrue(decision.allow)
+                self.assertNotIn("combined_post", call_log,
+                    f"audit_client 注入时不得走合并路径；实际 {call_log}")
+            finally:
+                if old is not None:
+                    os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = old
+                else:
+                    os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+
+
 if __name__ == "__main__":
     unittest.main()
