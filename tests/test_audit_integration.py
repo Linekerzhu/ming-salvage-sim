@@ -1507,5 +1507,129 @@ class FactionDynamicsDefectionIdempotencyTests(unittest.TestCase):
                                  f"同 day defection_tick 双调总改换 ≤ 1；实际 {total}")
 
 
+class EunuchPowerTickIdempotencyTests(unittest.TestCase):
+    """eunuch_power.eunuch_power_tick 月度中枢：基线漂移 + 阉党 faction 自固。"""
+
+    def test_double_tick_same_day_no_double_faction_adjust(self):
+        """同 day 双调不得让 factions.leverage 叠加。"""
+        from ming_sim import eunuch_power
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            # 强制开权阉批红 + 弄权者代笔（让基线 ≥60）
+            eunuch_power.set_daipihong(db, True, keeper=None)
+            # 选一名宦官并设其 disposition=弄权（实际通过 keeper_disposition 推断）
+            # 若无法弄权，power 不会达 60 → 测试只锁定「幂等：不叠加」
+            leverage_before = db.conn.execute(
+                "SELECT name, leverage, satisfaction FROM factions ORDER BY name"
+            ).fetchall()
+            belief_before = db.kv_get("eunuch.power")
+
+            eunuch_power.eunuch_power_tick(db, state, day=day)
+            leverage_mid = db.conn.execute(
+                "SELECT name, leverage, satisfaction FROM factions ORDER BY name"
+            ).fetchall()
+
+            eunuch_power.eunuch_power_tick(db, state, day=day)
+            leverage_after = db.conn.execute(
+                "SELECT name, leverage, satisfaction FROM factions ORDER BY name"
+            ).fetchall()
+
+            # 两次调之间的 factions 增量必须 ≤ 单次
+            # 即第二次调不应对 factions 重复加权
+            for before_row, mid_row, after_row in zip(leverage_before, leverage_mid, leverage_after):
+                delta_first = int(mid_row["leverage"]) - int(before_row["leverage"])
+                delta_second = int(after_row["leverage"]) - int(mid_row["leverage"])
+                self.assertEqual(delta_second, 0,
+                                 f"factions.{before_row['name']}.leverage 二次 tick 不应再叠加"
+                                 f"（首次 {delta_first:+d}、二次 {delta_second:+d}）")
+
+    def test_adjust_eunuch_power_clamped_to_0_100(self):
+        from ming_sim import eunuch_power
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            # 连续 +50 直到超过 100 必须 clamp
+            for _ in range(5):
+                eunuch_power.adjust_eunuch_power(db, 50, "test", day=day)
+            power = eunuch_power.get_eunuch_power(db)
+            self.assertLessEqual(power, 100,
+                                 f"权阉之势必须 clamp ≤ 100；实际 {power}")
+            self.assertGreaterEqual(power, 0,
+                                    f"权阉之势必须 clamp ≥ 0；实际 {power}")
+
+
+class ReportLedgerContractTests(unittest.TestCase):
+    """report.build_period_report 是只读聚合；不应写任何表。"""
+
+    def test_period_report_does_not_modify_db(self):
+        from ming_sim import report
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            rows_before = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM report_ledger").fetchone()["n"]
+            events_before = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM events").fetchone()["n"]
+
+            try:
+                text = report.build_period_report(state, db, days=30)
+            except Exception:
+                # 可能因 schema 字段缺失而抛错；只看 DB 是否被改动
+                pass
+
+            rows_after = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM report_ledger").fetchone()["n"]
+            events_after = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM events").fetchone()["n"]
+            self.assertEqual(rows_after, rows_before,
+                             "report.build_period_report 不得追加 report_ledger")
+            self.assertEqual(events_after, events_before,
+                             "report.build_period_report 不得追加 events")
+
+
+class RuleAuditDirectCastrationAuditTests(unittest.TestCase):
+    """rule_audit.directive_castration_execution_audit 是审计函数：返回 dict，不写表。
+    验证它对错配数据不抛异常、且不污染数据库。"""
+
+    def test_audit_call_does_not_write(self):
+        from ming_sim import rule_audit
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            # rule_audit 函数本身是审计查询，不应依赖任何专属表（read-only 路径）
+            # 故此测试只验证函数不抛异常、不修改 characters / events / 等通用表
+            chars_before = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM characters").fetchone()["n"]
+            events_before = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM events").fetchone()["n"]
+
+            payload = {
+                "phase": "execution",
+                "directive_id": 0,
+                "character_name": "",
+                "action_kind": "castration",
+            }
+            try:
+                res = rule_audit.directive_castration_execution_audit(
+                    db, state, decree_text="着令阉割净身",
+                    assignee="", directive_id=0, day=0,
+                )
+            except Exception as exc:
+                self.fail(f"directive_castration_execution_audit 不得抛异常：{exc}")
+            self.assertIsInstance(res, dict)
+
+            chars_after = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM characters").fetchone()["n"]
+            events_after = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM events").fetchone()["n"]
+            self.assertEqual(chars_after, chars_before,
+                             "rule_audit 不得增删 characters")
+            self.assertEqual(events_after, events_before,
+                             "rule_audit 不得追加 events")
+
+
 if __name__ == "__main__":
     unittest.main()
