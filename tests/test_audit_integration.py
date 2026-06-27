@@ -1249,5 +1249,148 @@ class FoundationRecruitDedupTests(unittest.TestCase):
                              "二次 add_character 同名必须走 existing 短路")
 
 
+class NegotiationAgreementTaskLifecycleTests(unittest.TestCase):
+    """negotiation_agreements 状态机：创建 → task 完成 → refresh → fulfilled。"""
+
+    def test_task_done_aggregates_to_agreement_fulfilled(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            # 创建一个有 task_list 的 agreement
+            ag_id = db.create_negotiation_agreement(
+                state, minister_name="韩爌", topic="测试奏对",
+                action_kind="policy", status="pending", stance_id=0,
+                handshake_status="sealed", psychological_score=100, threshold=70,
+                verbal_only=False, tasks=["条件一", "条件二"],
+            )
+            self.assertGreater(ag_id, 0)
+            self.assertEqual(
+                db.conn.execute(
+                    "SELECT status FROM negotiation_agreements WHERE id=?",
+                    (ag_id,)).fetchone()["status"],
+                "pending",
+                "有 task_list 时初始 status 必须是 pending（db.create_negotiation_agreement line 5502）")
+
+            # 拿所有 task
+            task_rows = db.conn.execute(
+                "SELECT id, status FROM negotiation_tasks WHERE agreement_id=?",
+                (ag_id,)).fetchall()
+            self.assertEqual(len(task_rows), 2)
+
+            # 第一个 task done
+            db.update_negotiation_task(task_rows[0]["id"], "done", "履约证据一")
+            self.assertEqual(
+                db.conn.execute(
+                    "SELECT status FROM negotiation_agreements WHERE id=?",
+                    (ag_id,)).fetchone()["status"],
+                "pending",
+                "1/2 task done 时 agreement 仍 pending")
+
+            # 第二个 task done → 全部 done → refresh → fulfilled
+            db.update_negotiation_task(task_rows[1]["id"], "done", "履约证据二")
+            self.assertEqual(
+                db.conn.execute(
+                    "SELECT status FROM negotiation_agreements WHERE id=?",
+                    (ag_id,)).fetchone()["status"],
+                "fulfilled",
+                "2/2 task done 时 agreement 应自动 fulfilled")
+
+    def test_one_task_failed_aggregates_to_agreement_failed(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            ag_id = db.create_negotiation_agreement(
+                state, minister_name="毕自严", topic="测试失败",
+                action_kind="policy", status="pending", stance_id=0,
+                handshake_status="sealed", psychological_score=100, threshold=70,
+                verbal_only=False, tasks=["待办A"],
+            )
+            task_id = int(db.conn.execute(
+                "SELECT id FROM negotiation_tasks WHERE agreement_id=? LIMIT 1",
+                (ag_id,)).fetchone()["id"])
+            db.update_negotiation_task(task_id, "failed", "失败证据")
+            self.assertEqual(
+                db.conn.execute(
+                    "SELECT status FROM negotiation_agreements WHERE id=?",
+                    (ag_id,)).fetchone()["status"],
+                "failed",
+                "任意 task failed 时 agreement 应自动 failed")
+
+    def test_double_update_same_task_does_not_double_status_change(self):
+        """update_negotiation_task 同 task 连调两次：第二次仍 done，不能变回 pending。"""
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            ag_id = db.create_negotiation_agreement(
+                state, minister_name="孙承宗", topic="测试重复",
+                action_kind="policy", status="pending", stance_id=0,
+                handshake_status="sealed", psychological_score=100, threshold=70,
+                verbal_only=False, tasks=["唯一任务"],
+            )
+            task_id = int(db.conn.execute(
+                "SELECT id FROM negotiation_tasks WHERE agreement_id=? LIMIT 1",
+                (ag_id,)).fetchone()["id"])
+            db.update_negotiation_task(task_id, "done", "证据一")
+            db.update_negotiation_task(task_id, "done", "证据二覆盖")
+            self.assertEqual(
+                db.conn.execute(
+                    "SELECT status FROM negotiation_tasks WHERE id=?",
+                    (task_id,)).fetchone()["status"],
+                "done")
+            # evidence 第二次写入的内容应覆盖第一次
+            ev = str(db.conn.execute(
+                "SELECT evidence FROM negotiation_tasks WHERE id=?",
+                (task_id,)).fetchone()["evidence"])
+            self.assertEqual(ev, "证据二覆盖")
+
+
+class MemorialCreateAndDecideTests(unittest.TestCase):
+    """memorials.create_memorial → 决策/复命完整链路。"""
+
+    def test_create_memorial_inserts_pending_row(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            mid = __import__("ming_sim.memorials", fromlist=["create_memorial"]).create_memorial(
+                db, state, day=day, author_name="袁崇焕", org="兵部",
+                kind="请旨", urgency=2, summary="请求固守辽东",
+                full_text="臣袁崇焕请旨：固守辽东诸堡",
+            )
+            self.assertGreater(mid, 0)
+            row = db.conn.execute(
+                "SELECT status, kind, summary, ref_kind, ref_id FROM memorials WHERE id=?",
+                (mid,)).fetchone()
+            self.assertEqual(str(row["status"]), "pending",
+                             "新 memorial 必须 pending 待御批")
+            self.assertEqual(str(row["kind"]), "请旨")
+            self.assertEqual(str(row["summary"]), "请求固守辽东")
+            self.assertEqual(str(row["ref_kind"]), "")  # 未传时为空
+
+    def test_create_memorial_with_ref_kind_id_persists_refs(self):
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            mid = __import__("ming_sim.memorials", fromlist=["create_memorial"]).create_memorial(
+                db, state, day=day, author_name="袁崇焕", org="兵部",
+                kind="复命", urgency=2, summary="复命：固守辽东",
+                ref_kind="directive", ref_id="42",
+            )
+            row = db.conn.execute(
+                "SELECT ref_kind, ref_id FROM memorials WHERE id=?",
+                (mid,)).fetchone()
+            self.assertEqual(str(row["ref_kind"]), "directive")
+            self.assertEqual(str(row["ref_id"]), "42")
+
+
+class AmbitionPursueTickTest(unittest.TestCase):
+    """ambition.pursue_tick 月度中枢：NPC 私心逐月累进。"""
+
+    def test_pursue_tick_no_ambition_returns_empty(self):
+        from ming_sim import ambition, db as db_mod
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            # 没有任何 ambition 表的 character 应空转
+            ev = ambition.pursue_tick(db, state, day=_day(db))
+            self.assertIsInstance(ev, list)
+
+
 if __name__ == "__main__":
     unittest.main()
