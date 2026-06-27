@@ -2718,8 +2718,15 @@ class GameSession:
             except Exception as exc:
                 from ming_sim.token_stats import tlog
                 tlog(f"[drain_outcome] 旨意#{did} 长期政策兜底失败，跳过：{exc}")
-            self.db.conn.execute(
-                "UPDATE turn_directives SET outcome_status='applied' WHERE id=?", (did,))
+            # CAS 闸门：仅在 outcome_status='extracted' 时才推进到 applied。
+            # 防止两个 drain 并发读到 extracted、都跑 apply_score_extraction + policy_legacies
+            # 后才各自 commit——这会让 metric_delta / economy_moves / legacies 双计。
+            cas = self.db.conn.execute(
+                "UPDATE turn_directives SET outcome_status='applied' "
+                "WHERE id=? AND outcome_status='extracted'", (did,))
+            if int(cas.rowcount or 0) == 0:
+                # 别的 drain 已先一步落地；跳过本次结果记录。
+                continue
             self.db.conn.commit()
             self.db.save_state(self.state)
             results.append({"directive_id": did, "applied": applied})

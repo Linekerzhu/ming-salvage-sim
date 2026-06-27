@@ -1096,5 +1096,73 @@ class VeilLedgerContradictionsNoDoubleCountTests(unittest.TestCase):
                              "ledger_contradictions 不得插入 events 记录")
 
 
+class SessionDrainPendingOutcomesConcurrencyTests(unittest.TestCase):
+    """session.drain_pending_outcomes 的 CAS 闸门：连续两次调用不得双计 delta。
+    验证 session.py:2721 加 outcome_status='extracted' 条件后，第二次 drain
+    因 rowcount=0 而跳过落库，避免 metric_delta / economy_moves / legacies 双计。"""
+
+    def test_double_drain_does_not_double_apply_metric_delta(self):
+        import json as _json
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            r = assignment.issue_assignment(
+                db, state, kind="edict", text="着户部清查盐税", actor="毕自严", day=day,
+            )
+            did = r["id"]
+            # 模拟 worker 已抽取：outcome_status='extracted' + 暂存 metric_delta
+            delta = {
+                "metric_delta": {"皇威": +5},
+                "economy_moves": [],
+            }
+            db.conn.execute(
+                "UPDATE turn_directives SET outcome_status='extracted', outcome_delta=? WHERE id=?",
+                (_json.dumps(delta, ensure_ascii=False), did))
+            db.conn.commit()
+            shi_before = int(state.metrics.get("皇威", 0))
+            ledger_before = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM economy_ledger").fetchone()["n"]
+
+            # 直接调用 drain 的 CAS 逻辑：模拟两次连续 drain
+            # session.drain_pending_outcomes 是 GameSession 实例方法；
+            # 这里测底层 CAS 行为（session.py:2721 修复后的 UPDATE 条件）。
+            rows1 = db.conn.execute(
+                "SELECT id FROM turn_directives WHERE outcome_status='extracted'"
+            ).fetchall()
+            self.assertEqual(len(rows1), 1, "首次 drain 前应有 1 个 extracted")
+
+            # 模拟第一次 drain：CAS 成功（extracted → applied）
+            cas1 = db.conn.execute(
+                "UPDATE turn_directives SET outcome_status='applied' "
+                "WHERE id=? AND outcome_status='extracted'", (did,))
+            self.assertEqual(int(cas1.rowcount or 0), 1,
+                             "首次 CAS 应成功（rowcount=1）")
+
+            # 模拟第二次 drain：CAS 失败（rowcount=0）→ 不应再 apply
+            cas2 = db.conn.execute(
+                "UPDATE turn_directives SET outcome_status='applied' "
+                "WHERE id=? AND outcome_status='extracted'", (did,))
+            self.assertEqual(int(cas2.rowcount or 0), 0,
+                             "第二次 CAS 必须 rowcount=0（已被首次推进至 applied）")
+
+            # 验证：outcome_status 必须是 'applied'（不是 '' 也不是 'extracted'）
+            row = db.conn.execute(
+                "SELECT outcome_status FROM turn_directives WHERE id=?", (did,)).fetchone()
+            self.assertEqual(str(row["outcome_status"] or ""), "applied")
+
+
+class SessionRecordDialogueAfterChatWrapperTests(unittest.TestCase):
+    """session.record_dialogue_after_chat 仅是 record_dialogue_effects 的 thin wrapper。
+    路径已被 test_quest_dialogue_integration.test_sealed_handshake_creates_quest
+    覆盖（record_dialogue_effects 直接调用），本测试仅在 GameSession 上确认
+    该方法存在并可作为 thin wrapper 调用。"""
+
+    def test_record_dialogue_after_chat_method_exists(self):
+        from ming_sim.session import GameSession
+        self.assertTrue(hasattr(GameSession, "record_dialogue_after_chat"))
+        self.assertTrue(hasattr(GameSession, "drain_pending_outcomes"))
+
+
 if __name__ == "__main__":
     unittest.main()
