@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useGame } from "../GameData";
 import { ChatPane } from "../ChatPane";
 import { Portrait } from "../Portrait";
-import { consortCandidates, loadEunuch, loadEunuchCandidates, loadNpcQuests, loadPlaystyleBrief, loadSummonHints, replaceEunuch, selectConsort } from "../api";
-import type { AudienceLead, ChatContext, ConsortCandidate, NpcQuests, PlaystyleBriefCard, PublicCharacter, Suggestion, SummonHint, Tab } from "../api";
+import { consortCandidates, grantPetition, loadEunuch, loadEunuchCandidates, loadPetitions, loadPlaystyleBrief, loadSummonHints, rejectPetition, replaceEunuch, selectConsort } from "../api";
+import type { AudienceLead, ChatContext, ConsortCandidate, Petition, PlaystyleBriefCard, PublicCharacter, Suggestion, SummonHint, Tab } from "../api";
 import { usePerson } from "../personCtx";
 import { audienceLeadFromBrief, briefUrgency, closurePromptForAudience, shortName } from "./HomeView";
 
@@ -33,7 +33,7 @@ export function AudienceView({
   const [leads, setLeads] = useState<PlaystyleBriefCard[]>([]);
   const [summonHints, setSummonHints] = useState<Record<string, SummonHint>>({});
   const [pendingConsorts, setPendingConsorts] = useState<ConsortCandidate[]>([]);
-  const [npcQuests, setNpcQuests] = useState<NpcQuests | null>(null);
+  const [npcPetitions, setNpcPetitions] = useState<Petition[] | null>(null);
 
   useEffect(() => {
     loadEunuch().then((r) => setEunuch(r.eunuch)).catch(() => setEunuch(null));
@@ -42,13 +42,15 @@ export function AudienceView({
     if (audience) return;  // 仅随侍枢纽视图加载待册封秀女
     consortCandidates().then((r) => setPendingConsorts(r.candidates || [])).catch(() => setPendingConsorts([]));
   }, [audience, worldVersion]);
-  // 加载NPC任务（当选择特定大臣时）
+  // 加载该大臣的相关奏请（召对面板任务入口）。原 /api/quests/npc/{name} 已被奏请语义替代。
   useEffect(() => {
     if (!audience || audience === eunuch?.name) {
-      setNpcQuests(null);
+      setNpcPetitions(null);
       return;
     }
-    loadNpcQuests(audience).then((r) => setNpcQuests(r)).catch(() => setNpcQuests(null));
+    loadPetitions("available", audience)
+      .then((r) => setNpcPetitions(r.items || []))
+      .catch(() => setNpcPetitions([]));
   }, [audience, worldVersion, eunuch?.name]);
   const doSelectConsort = async (name: string) => {
     try {
@@ -166,14 +168,14 @@ export function AudienceView({
                 案{dossierCount}
               </button>
             )}
-            {npcQuests && (npcQuests.active?.length || 0) + (npcQuests.completable?.length || 0) > 0 && (
+            {npcPetitions && npcPetitions.length > 0 && (
               <button
                 className="m-mini m-audience-quest-act"
                 onClick={() => setSheet("quests")}
-                aria-label={`${audience}的相关任务`}
-                title={`${npcQuests.active?.length || 0}项进行中 · ${npcQuests.completable?.length || 0}项可完成`}
+                aria-label={`${audience}的相关奏请`}
+                title={`${npcPetitions.length}项待批奏请`}
               >
-                任{(npcQuests.active?.length || 0) + (npcQuests.completable?.length || 0)}
+                奏{npcPetitions.length}
               </button>
             )}
             <button className="m-mini" onClick={() => openPerson(audience)} aria-label={`查看${audience}档案`}>查档</button>
@@ -316,12 +318,14 @@ export function AudienceView({
                   }}
                 />
               )}
-              {sheet === "quests" && npcQuests && (
-                <AudienceQuestList
-                  quests={npcQuests}
+              {sheet === "quests" && npcPetitions && (
+                <AudiencePetitionList
+                  petitions={npcPetitions}
                   npcName={audience}
                   onRefresh={() => {
-                    loadNpcQuests(audience).then((r) => setNpcQuests(r)).catch(() => setNpcQuests(null));
+                    loadPetitions("available", audience)
+                      .then((r) => setNpcPetitions(r.items || []))
+                      .catch(() => setNpcPetitions([]));
                     refresh();
                   }}
                 />
@@ -772,77 +776,64 @@ function counterpartPrompts(kind: string, next: string, previous: string) {
   ];
 }
 
-// ── 任务列表组件 ─────────────────────────────────────────────────────────
-function AudienceQuestList({
-  quests,
+// ── 奏请列表组件（替换原 RPG 任务列表，奏请可御批/驳回）──────────────────
+function AudiencePetitionList({
+  petitions,
   npcName,
   onRefresh,
 }: {
-  quests: NpcQuests;
+  petitions: Petition[];
   npcName: string;
   onRefresh: () => void;
 }) {
-  const active = quests.active || [];
-  const completable = quests.completable || [];
-
-  if (active.length === 0 && completable.length === 0) {
+  if (petitions.length === 0) {
     return (
       <div className="m-sheet-empty">
-        <p className="m-hint">{npcName} 当前没有进行中的任务。</p>
-        <p className="m-hint">与大臣对话达成约定后，任务将自动记录在此处。</p>
+        <p className="m-hint">{npcName} 当前没有待批奏请。</p>
+        <p className="m-hint">奏请来源于 NPC 主动上奏或事件触发；可在「奏请」抽屉中查看全部并御批。</p>
       </div>
     );
   }
 
   return (
     <div className="m-quest-list">
-      {completable.length > 0 && (
-        <div className="m-quest-section">
-          <h4 className="m-quest-section-title">可完成 ({completable.length})</h4>
-          {completable.map((pq) => (
-            <div key={pq.id} className="m-card m-quest-card m-quest-card-completable">
-              <div className="m-quest-header">
-                <span className="m-quest-title">{pq.title || pq.quest_key}</span>
-                <span className="m-quest-badge tone-success">可完成</span>
-              </div>
-              <div className="m-quest-progress">
-                <span>进度 {pq.progress_current}/{pq.progress_target}</span>
-              </div>
-              <div className="m-quest-acts">
-                <button className="m-mini m-mini-complete">完成任务</button>
-              </div>
+      <div className="m-quest-section">
+        <h4 className="m-quest-section-title">待批奏请 ({petitions.length})</h4>
+        {petitions.map((p) => (
+          <div key={p.id} className="m-card m-quest-card m-quest-card-completable">
+            <div className="m-quest-header">
+              <span className="m-quest-title">{p.title}</span>
+              <span className="m-quest-badge tone-success">待御批</span>
             </div>
-          ))}
-        </div>
-      )}
-
-      {active.length > 0 && (
-        <div className="m-quest-section">
-          <h4 className="m-quest-section-title">进行中 ({active.length})</h4>
-          {active.map((pq) => (
-            <div key={pq.id} className="m-card m-quest-card">
-              <div className="m-quest-header">
-                <span className="m-quest-title">{pq.title || pq.quest_key}</span>
-                <span className={`m-quest-status tone-${pq.status === "active" ? "info" : "warn"}`}>
-                  {pq.status === "active" ? "进行中" : pq.status}
-                </span>
-              </div>
-              <div className="m-quest-progress">
-                <span>进度 {pq.progress_current}/{pq.progress_target}</span>
-                <div className="m-quest-progress-bar">
-                  <div
-                    className="m-quest-progress-fill"
-                    style={{ width: `${Math.min(100, (pq.progress_current / pq.progress_target) * 100)}%` }}
-                  />
-                </div>
-              </div>
+            {p.description && <p className="m-hint" style={{ margin: "4px 0" }}>{p.description}</p>}
+            <div className="m-quest-acts">
+              <button
+                className="m-mini m-mini-complete"
+                onClick={() => {
+                  grantPetition(p.id, "", "")
+                    .then(() => onRefresh())
+                    .catch(() => onRefresh());
+                }}
+              >
+                准
+              </button>
+              <button
+                className="m-mini"
+                onClick={() => {
+                  rejectPetition(p.id, "")
+                    .then(() => onRefresh())
+                    .catch(() => onRefresh());
+                }}
+              >
+                驳
+              </button>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
 
       <p className="m-hint" style={{ margin: "12px 4px 4px" }}>
-        继续与{npcName}对话推进任务进度。条件达成后任务将自动完成。
+        准则转一道差使走 lifecycle；驳则关闭奏请单。
       </p>
     </div>
   );

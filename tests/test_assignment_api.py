@@ -142,6 +142,68 @@ class PetitionRouteTests(unittest.TestCase):
             # 重复驳回应失败（已不在 available）
             self.assertEqual(client.post(f"/api/petitions/{pid}/reject", json={}).status_code, 400)
 
+    def test_npc_filter_isolates_proposer(self):
+        """``/api/petitions?npc=<name>`` 只返回 proposer_name 匹配该 NPC 的奏请。"""
+        with TemporaryDirectory() as tmp:
+            client, _ = _make_client(tmp)
+            client.post("/api/petitions", json={
+                "petition_key": "alpha", "title": "甲奏",
+                "proposer_name": "周延儒", "draft_directive": "甲事",
+            })
+            client.post("/api/petitions", json={
+                "petition_key": "beta", "title": "乙奏",
+                "proposer_name": "梁廷栋", "draft_directive": "乙事",
+            })
+            client.post("/api/petitions", json={
+                "petition_key": "gamma", "title": "丙奏",
+                "proposer_name": "周延儒", "draft_directive": "丙事",
+            })
+            r = client.get("/api/petitions?npc=周延儒").json()
+            keys = sorted(p["petition_key"] for p in r["items"])
+            self.assertEqual(keys, ["alpha", "gamma"])
+            r2 = client.get("/api/petitions?npc=梁廷栋").json()
+            self.assertEqual([p["petition_key"] for p in r2["items"]], ["beta"])
+            r3 = client.get("/api/petitions").json()
+            self.assertEqual(len(r3["items"]), 3)
+
+
+class DeprecatedQuestRouteTests(unittest.TestCase):
+    """Quest 端点已重定位为 NPC 奏请；保留路由只为返回 410 Gone 引导。"""
+
+    def _client(self, tmp: str):
+        from ming_sim.quest_api import register_quest_routes
+
+        db = GameDB(str(Path(tmp) / "t.db"))
+        db.seed_static_data()
+        state = db.load_state()
+        timeflow.ensure_active(db, state)
+        db.save_state(state)
+        apply_quest_schema(db.conn)
+        assignment.ensure_assignment_schema(db)
+
+        app = FastAPI()
+        register_quest_routes(app, lambda: db)
+        return TestClient(app)
+
+    def test_old_routes_return_410(self):
+        with TemporaryDirectory() as tmp:
+            client = self._client(tmp)
+            for path in (
+                "/api/quests",
+                "/api/quests/foo",
+                "/api/quests/foo/accept",
+                "/api/quests/1/progress",
+                "/api/quests/1/complete",
+                "/api/quests/1/abandon",
+                "/api/quests/npc/周延儒",
+            ):
+                method = client.post if "progress" in path or "complete" in path or "abandon" in path or "accept" in path else client.get
+                r = method(path)
+                self.assertEqual(r.status_code, 410, msg=path)
+                body = r.json()
+                self.assertEqual(body["detail"]["error"], "gone")
+                self.assertIn("奏请", body["detail"]["message"])
+
 
 if __name__ == "__main__":
     unittest.main()

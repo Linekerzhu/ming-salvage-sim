@@ -161,6 +161,26 @@ EXCLUDED_WEB_PAYLOAD_ROUTES: Dict[str, str] = {
     "/api/portraits/{name}/status": "Portrait job status boundary; use a portrait-specific hook before extending.",
     "/api/saves": "In-game save-file menu boundary.",
     "/api/saves/{name}": "In-game save-file operation boundary.",
+    # ── 差使大厅 P0（assignment-hall）直挂 FastAPI，绕开 web.payload.encode。
+    #    写入 turn_directives + 落 lifecycle，副作用重大；将来如要纳入通用 hook，
+    #    必须先为差使写一套专用 mutation hook（与 /api/directives 同源）。
+    "/api/assignments": "差使大厅聚合视图；assignment-owned payload。",
+    "/api/assignments/needs_action": "差使待处置专注队列；assignment-owned payload。",
+    "/api/assignments/overloaded": "超载官员列表；assignment-owned payload。",
+    "/api/assignments/recent_settled": "近期结案差使；assignment-owned payload。",
+    "/api/assignments/{directive_id}": "单条差使详情；assignment-owned payload。",
+    "/api/assignments/{directive_id}/transform": "调查转弹劾；assignment-owned mutation。",
+    "/api/petitions": "NPC 奏请单列表/提交；assignment-owned payload。",
+    "/api/petitions/{petition_id}/grant": "御批奏请；assignment-owned mutation。",
+    "/api/petitions/{petition_id}/reject": "驳回奏请；assignment-owned mutation。",
+    "/api/petitions/history": "奏请历史；assignment-owned payload。",
+    "/api/merit": "全员功过册排行；assignment-owned payload。",
+    "/api/merit/actions": "赏罚兑现历史；assignment-owned payload。",
+    "/api/merit/{minister}": "某官员办差功过册；assignment-owned payload。",
+    "/api/merit/{minister}/reward": "奖叙；assignment-owned mutation。",
+    "/api/merit/{minister}/punish": "惩处；assignment-owned mutation。",
+    "/api/postings": "授常驻差使；assignment-owned mutation。",
+    "/api/postings/{directive_id}/revoke": "撤差；assignment-owned mutation。",
 }
 
 

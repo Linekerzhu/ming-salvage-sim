@@ -149,9 +149,15 @@ def register_assignment_routes(app, get_db_func) -> None:
     # ════════════ NPC 奏请（/api/petitions）════════════
 
     @app.get("/api/petitions")
-    def list_petitions(status: str = "available"):
-        """奏请单列表。status ∈ available/granted/rejected/settled。"""
-        return {"status": status, "items": assignment.list_petitions(_db(), status=status)}
+    def list_petitions(status: str = "available", npc: str = ""):
+        """奏请单列表。status ∈ available/granted/rejected/settled。
+
+        ``npc`` 非空时按 proposer_name 过滤，用于召对页面展示该大臣相关奏请。
+        """
+        return {
+            "status": status,
+            "items": assignment.list_petitions(_db(), status=status, npc=npc),
+        }
 
     @app.post("/api/petitions")
     def submit_petition(body: SubmitPetitionBody):

@@ -629,8 +629,8 @@ export type Petition = {
   id: number; petition_key: string; title: string; description?: string; status: string;
   proposer_name: string; proposer_office: string; draft_directive: string; category_hint?: string;
 };
-export const loadPetitions = async (status = "available"): Promise<{ status: string; items: Petition[] }> =>
-  api(`/api/petitions?status=${status}`);
+export const loadPetitions = async (status = "available", npc = ""): Promise<{ status: string; items: Petition[] }> =>
+  api(`/api/petitions?status=${status}${npc ? `&npc=${encodeURIComponent(npc)}` : ""}`);
 export const grantPetition = (id: number, draft_text = "", actor = "") =>
   api<{ ok: boolean; id: number; assignment_kind: string; entry_label: string }>(
     `/api/petitions/${id}/grant`, { method: "POST", body: JSON.stringify({ draft_text, actor }) }
@@ -780,58 +780,6 @@ export const loadChat = (name: string) =>
     `/api/ministers/${encodeURIComponent(name)}/chat`,
   );
 
-// ── 任务系统（Quest System）───────────────────────────────────────────────
-export type Quest = {
-  quest_key: string;
-  title: string;
-  description: string;
-  category: string;
-  tier: number;
-  objective_type?: string;
-  objective_config?: Record<string, any>;
-  reward_config?: Record<string, any>;
-};
-
-export type PlayerQuest = {
-  id: number;
-  quest_key: string;
-  title?: string;
-  status: string;
-  progress_current: number;
-  progress_target: number;
-  accepted_turn?: number;
-  expires_turn?: number;
-  source_npc_name?: string;
-  reward_config?: Record<string, any>;
-};
-
-export type NpcQuests = {
-  available?: Quest[];
-  active?: PlayerQuest[];
-  completable?: Array<PlayerQuest & { reward_config?: Record<string, any> }>;
-};
-
-// 获取特定NPC的任务（可用/进行中/可完成）
-export const loadNpcQuests = (npcName: string) =>
-  api<NpcQuests>(`/api/quests/npc/${encodeURIComponent(npcName)}`);
-
-// 接受任务
-export const acceptQuest = (questKey: string, sourceNpcName?: string) =>
-  api<{ success: boolean; player_quest_id?: number; status?: string }>(
-    `/api/quests/${encodeURIComponent(questKey)}/accept`,
-    { method: "POST", body: JSON.stringify({ source_npc_name: sourceNpcName || "" }) },
-  );
-
-// 完成任务并领取奖励
-export const completeQuest = (playerQuestId: number) =>
-  api<{ success: boolean; rewards?: Record<string, any> }>(
-    `/api/quests/${playerQuestId}/complete`,
-    { method: "POST" },
-  );
-
-// 放弃任务
-export const abandonQuest = (playerQuestId: number) =>
-  api<{ success: boolean }>(
-    `/api/quests/${playerQuestId}/abandon`,
-    { method: "POST" },
-  );
+// ── 任务系统（已重定位为 NPC 奏请，详见 ming_sim/assignment.list_petitions）────
+// 原 /api/quests/* 端点已被 /api/petitions/* 取代；旧的 RPG 任务辅助函数移除。
+// 奏请相关接口见上文 loadPetitions / grantPetition / rejectPetition。

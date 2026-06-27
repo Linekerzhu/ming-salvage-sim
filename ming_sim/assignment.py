@@ -1009,16 +1009,30 @@ def reject_petition(db: GameDB, petition_id: int, *, reason: str = "") -> Dict[s
     return {"ok": cur.rowcount > 0, "petition_id": int(petition_id), "status": "rejected"}
 
 
-def list_petitions(db: GameDB, *, status: str = "available") -> List[Dict[str, Any]]:
-    """列出奏请单（默认待批）。合并 quests 模板里的 draft_directive/proposer 信息。"""
+def list_petitions(
+    db: GameDB,
+    *,
+    status: str = "available",
+    npc: str = "",
+) -> List[Dict[str, Any]]:
+    """列出奏请单（默认待批）。合并 quests 模板里的 draft_directive/proposer 信息。
+
+    npc 为非空时只返回 proposer_name 匹配该 NPC 的奏请，用于
+    ``/api/petitions?npc=<name>`` 过滤召对面板里的"该大臣相关奏请"。
+    """
     ensure_quest_schema(db)
-    rows = db.conn.execute(
+    sql = (
         "SELECT pq.id, pq.quest_key, pq.status, pq.source_npc_name, pq.objective_data, "
         "q.title, q.description, q.objective_config AS tpl_objective "
         "FROM player_quests pq LEFT JOIN quests q ON q.quest_key=pq.quest_key "
-        "WHERE pq.status=? ORDER BY pq.id DESC",
-        (status,),
-    ).fetchall()
+        "WHERE pq.status=?"
+    )
+    params: List[Any] = [status]
+    if npc:
+        sql += " AND pq.source_npc_name=?"
+        params.append(npc)
+    sql += " ORDER BY pq.id DESC"
+    rows = db.conn.execute(sql, params).fetchall()
     out: List[Dict[str, Any]] = []
     for r in rows:
         import json as _json
