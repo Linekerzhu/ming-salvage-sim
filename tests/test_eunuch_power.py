@@ -185,10 +185,10 @@ class DispositionTests(unittest.TestCase):
             eunuch_power.eunuch_power_tick(db, state, day)
             up = eunuch_power.get_eunuch_power(db)
             self.assertLess(up, 80)  # 向低基线 40 落
-            # 委权阉：基线 62
+            # 委权阉：基线 62（不同 day 触发新漂移）
             eunuch_power.set_daipihong(db, True, keeper=eunuch_power.chief_keeper_name(db), day=day)
             kv_set_int(db, eunuch_power.KV_EUNUCH_POWER, 30)
-            eunuch_power.eunuch_power_tick(db, state, day)
+            eunuch_power.eunuch_power_tick(db, state, day + 30)
             self.assertGreater(eunuch_power.get_eunuch_power(db), 30)  # 向高基线 62 张
 
 
@@ -203,10 +203,10 @@ class DriftTests(unittest.TestCase):
             eunuch_power.eunuch_power_tick(db, state, day)
             rely = eunuch_power.get_eunuch_power(db)
             self.assertGreater(rely, 30)
-            # 亲政：代批红已罢 → 权阉向低基线漂移
+            # 亲政：代批红已罢 → 权阉向低基线漂移（不同 day 让闸门 bucket 变化）
             kv_set_int(db, eunuch_power.KV_DAIPIHONG, 0)
             kv_set_int(db, eunuch_power.KV_EUNUCH_POWER, 60)
-            eunuch_power.eunuch_power_tick(db, state, day)
+            eunuch_power.eunuch_power_tick(db, state, day + 30)
             self.assertLess(eunuch_power.get_eunuch_power(db), 60)
 
 

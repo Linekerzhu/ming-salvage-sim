@@ -21,6 +21,8 @@ KV_SHI = "upgrade.shi"                          # 势 0-100（S6）
 KV_RISK_AVERSION = "upgrade.risk_aversion"      # 任事风险先验 0-100（S5）
 KV_ATTENTION = "upgrade.attention_today"        # 今日注意力余量（S4）
 KV_DAILY_BUDGET_CACHE = "upgrade.daily_budget_cache"   # 当月日摊预算缓存 JSON
+KV_INERTIA_LAST_TURN = "upgrade.issue_inertia_last_turn"   # issues.apply_issue_inertia_and_ongoing 已落账的 (year*1000+period)；同 turn 双调闸门
+KV_EUNUCH_POWER_TICK_DAY = "upgrade.eunuch_power_tick_day"  # eunuch_power_tick 已漂移的 day；同 day 双调闸门
 
 DAYS_PER_MONTH = 30  # 抽象月长；turn = (current_day-1)//30 + 1
 

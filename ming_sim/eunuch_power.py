@@ -290,6 +290,12 @@ def eunuch_power_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, 
     权阉高（≥60，唯弄权一途可至）则阉党月度自固、东林清流受挤。挂 rollover。"""
     from ming_sim.timeflow import LEVEL_YELLOW
     events: List[Dict[str, object]] = []
+    # 闸门：同 day 双调只生效一次。timeflow.rollover_month 月初唯一调用，但
+    # 调试脚本 / 测试可能双调；用 KV 已落库 trick 防双漂移 + 双 faction 调权。
+    from ming_sim.upgrade_schema import KV_EUNUCH_POWER_TICK_DAY, kv_int, kv_set_int
+    if kv_int(db, KV_EUNUCH_POWER_TICK_DAY, -1) == int(day):
+        return events
+    kv_set_int(db, KV_EUNUCH_POWER_TICK_DAY, int(day))
     shi = kv_int(db, KV_SHI, SHI_DEFAULT)
     on = is_daipihong_on(db)
     upright = on and keeper_disposition(db, daipihong_keeper(db)) == "upright"

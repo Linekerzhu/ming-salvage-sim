@@ -1940,6 +1940,13 @@ def apply_issue_inertia_and_ongoing(
     # inertia 是每月自然漂移基础量，对所有进行中 issue 都生效（含本月被 advance 触动的）。
     # advance 的 delta_bar 是皇帝本月实旨推动的额外量，与 inertia 叠加，互不顶替。
     _ = touched_ids  # 保留入参不破坏调用方；inertia 漂移不再按它跳过
+    # 闸门：同 (year, period) 双调只生效一次。timeflow.rollover_month 月初唯一调用，
+    # 但调试脚本 / 测试可能双调；用 KV 已落库 trick 防双漂移 + 双 metric_delta。
+    from ming_sim.upgrade_schema import KV_INERTIA_LAST_TURN, kv_int, kv_set_int
+    bucket = int(state.year) * 1000 + int(state.period)
+    if kv_int(db, KV_INERTIA_LAST_TURN, -1) == bucket:
+        return
+    kv_set_int(db, KV_INERTIA_LAST_TURN, bucket)
     active = db.list_active_issues()
     # 累计单月 metric 落账，用于上限 clamp
     period_metric_acc: Dict[str, int] = {}
