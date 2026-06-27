@@ -1164,5 +1164,90 @@ class SessionRecordDialogueAfterChatWrapperTests(unittest.TestCase):
         self.assertTrue(hasattr(GameSession, "drain_pending_outcomes"))
 
 
+class HaremTickConsortLifecycleTests(unittest.TestCase):
+    """harem.harem_tick 月度中枢：seed_static_data 默认有妃（周皇后等）。
+    验证：(1) 单次 tick 最多 1 个 event；(2) 同 day 二次 tick 幂等（不叠加 factions.leverage）。"""
+
+    def test_harem_tick_no_runtime_dup_event(self):
+        from ming_sim import harem
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            ev = harem.harem_tick(db, state, day=day)
+            self.assertLessEqual(len(ev), 1,
+                                 f"harem_tick 单次调用最多 1 个 event；实际 {len(ev)}")
+
+    def test_harem_tick_same_day_is_idempotent_on_factions(self):
+        from ming_sim import harem
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            # 取 factions 表（seed_static_data 注入）
+            leverage_before = db.conn.execute(
+                "SELECT name, leverage FROM factions ORDER BY name"
+            ).fetchall()
+            ev1 = harem.harem_tick(db, state, day=day)
+            leverage_mid = db.conn.execute(
+                "SELECT name, leverage FROM factions ORDER BY name"
+            ).fetchall()
+            ev2 = harem.harem_tick(db, state, day=day)
+            leverage_after = db.conn.execute(
+                "SELECT name, leverage FROM factions ORDER BY name"
+            ).fetchall()
+
+            # RNG 用 day-seeded；两次结果应完全一致
+            self.assertEqual(len(ev1), len(ev2),
+                             "同 day 二次 harem_tick 应返相同数量事件")
+
+            for before_row, after_row in zip(leverage_mid, leverage_after):
+                self.assertEqual(int(before_row["leverage"]), int(after_row["leverage"]),
+                                 f"factions.{before_row['name']}.leverage 二次 tick 必须不叠加")
+
+
+class FoundationRecruitDedupTests(unittest.TestCase):
+    """foundation.recruit_from_foundation：同名重复调用必须不创建重复 character。
+    验证路径：db.add_character 的 existing 短路（line 2734-2738）。"""
+
+    def test_double_recruit_same_name_no_duplicate_character(self):
+        from ming_sim import foundation
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            # 选一个 foundation profile 中存在且 content.characters 里没有的人名
+            name = None
+            avail = foundation.candidates(exclude_names=set(db.content.characters.keys()), limit=50)
+            for c in avail:
+                cn = str(c.get("name") or "")
+                if cn:
+                    name = cn
+                    break
+            if not name:
+                self.skipTest("foundation profile 不可用，跳过")
+            self.assertIsNotNone(name)
+            self.assertNotIn(name, db.content.characters)
+
+            before = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM characters WHERE name=?", (name,)).fetchone()["n"]
+            self.assertEqual(before, 0, "首次征辟前该人不在 characters 表")
+
+            character = foundation.build_game_character(name, state.year)
+            self.assertIsNotNone(character)
+
+            # 第一次
+            db.add_character(state, character, source="基座起复")
+            after_first = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM characters WHERE name=?", (name,)).fetchone()["n"]
+            self.assertEqual(after_first, 1, "首次 add_character 应插入 1 行")
+
+            # 第二次：existing 短路，不重复插入
+            db.add_character(state, character, source="基座起复")
+            after_second = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM characters WHERE name=?", (name,)).fetchone()["n"]
+            self.assertEqual(after_second, 1,
+                             "二次 add_character 同名必须走 existing 短路")
+
+
 if __name__ == "__main__":
     unittest.main()
