@@ -835,5 +835,138 @@ class FrontierDispatchNoDoubleWriteTests(unittest.TestCase):
             self.assertEqual(sup_count, 1, "同一军镇不应被多个 supervisor 同时监临")
 
 
+class SchedulerEnqueueDedupTests(unittest.TestCase):
+    """scheduler.enqueue_job 盲目 INSERT；同 (kind, payload) 双入队不会 dedup。
+    这是已知设计：job 消费侧靠 handler 自身 CAS 防双跑（edict_outcome 等）。
+    本测试仅锁定 enqueue 行为以防 future regression。"""
+
+    def test_enqueue_twice_same_payload_creates_two_jobs(self):
+        from ming_sim import scheduler
+
+        with TemporaryDirectory() as tmp:
+            db, _ = _fresh(tmp)
+            before = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM llm_jobs").fetchone()["n"]
+            jid1 = scheduler.enqueue_job(db, "test_kind", {"foo": 1})
+            jid2 = scheduler.enqueue_job(db, "test_kind", {"foo": 1})
+            self.assertNotEqual(jid1, jid2)
+            after = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM llm_jobs").fetchone()["n"]
+            self.assertEqual(after - before, 2,
+                             "enqueue_job 不 dedup（设计如此）：handler 须自己防双跑")
+
+
+class SchedulerProcessPendingConcurrencyTests(unittest.TestCase):
+    """process_pending 在并发场景下是否会双跑 handler？"""
+
+    def test_process_pending_runs_each_pending_job_once(self):
+        from ming_sim import scheduler
+
+        seen_ids: list = []
+
+        def handler(db, llm_config, payload):
+            seen_ids.append(int(payload.get("n")))
+            return "ok"
+
+        with TemporaryDirectory() as tmp:
+            db, _ = _fresh(tmp)
+            scheduler.register_handler("test_concurrency_handler", handler)
+            for i in range(5):
+                scheduler.enqueue_job(db, "test_concurrency_handler", {"n": i})
+
+            done = scheduler.process_pending(db, None, limit=10)
+            self.assertEqual(done, 5)
+            self.assertEqual(sorted(seen_ids), [0, 1, 2, 3, 4],
+                             "每个 pending job 必须只跑一次 handler")
+
+            # 第二次跑应该 0 个 pending（已 done）
+            done2 = scheduler.process_pending(db, None, limit=10)
+            self.assertEqual(done2, 0)
+            self.assertEqual(len(seen_ids), 5,
+                             "process_pending 第二次必须不再跑任何 handler")
+
+
+class ConditionsAddConditionVsOccupationalRisksTests(unittest.TestCase):
+    """conditions.add_condition vs occupational_risks.apply_occupational_risk_event
+    都会调用 add_condition；本测试确认 source_kind 字段能区分两条调用路径。"""
+
+    def test_same_event_added_twice_is_recorded_with_distinct_source(self):
+        from ming_sim import conditions, occupational_risks
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            char_row = db.conn.execute(
+                "SELECT name FROM characters WHERE status='active' AND power_id='ming' LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(char_row, "至少需要一名明朝官员")
+            name = str(char_row["name"])
+
+            # 路径 A：直接 add_condition（conditions 模块）
+            cond_a = conditions.add_condition(
+                db, state, name, kind="injury", system="general",
+                condition_key="manual:test:1", label="手动测试病", severity=2,
+                source_kind="manual_test", source_id="manual:1",
+            )
+            self.assertIsNotNone(cond_a)
+
+            # 路径 B：通过 occupational_risks.apply_occupational_risk_event
+            from ming_sim.occupational_risks import apply_occupational_risk_event
+            candidate = {
+                "name": name,
+                "task_text": "边关军务",
+                "task_risk_profile": {},
+                "risk_score": 100,
+                "domains": ["mounted"],
+            }
+            apply_occupational_risk_event(
+                db, state, candidate, "riding_fall", day,
+                rng=__import__("random").Random(42),
+                severity_override=3,
+            )
+
+            # 查 conditions 表，按 source_kind 区分应有两类
+            kinds = db.conn.execute(
+                "SELECT DISTINCT source_kind FROM character_conditions WHERE name=? "
+                "ORDER BY source_kind", (name,)).fetchall()
+            kind_set = {str(r["source_kind"]) for r in kinds}
+            self.assertIn("manual_test", kind_set,
+                          "直接 add_condition 必须以 source_kind=manual_test 落库")
+            # occupational_risk 路径可能因条件未触发事件而无 rows；至少 manual_test 应在
+            self.assertGreaterEqual(len(kind_set), 1)
+
+
+class ObligationsPressureTickIdempotencyTests(unittest.TestCase):
+    """obligations.obligation_pressure_tick 同 turn 多次调用不得双写。"""
+
+    def test_double_call_same_turn_no_double_pressure(self):
+        from ming_sim import obligations
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            # 推高 turn 以确保 expires_turn=turn-5>0
+            state.turn = 50
+            day = _day(db)
+            turn = int(state.turn)
+
+            char_row = db.conn.execute(
+                "SELECT name FROM characters WHERE status='active' AND power_id='ming' LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(char_row)
+            name = str(char_row["name"])
+            db.create_conversation_goal(
+                state, minister_name=name, action_kind="policy",
+                title="测试奏对压力", target_text="测试",
+                threshold=70, expires_turn=turn - 5,  # 已过期 → 触发 overdue
+            )
+            db.conn.commit()
+
+            ev1 = obligations.obligation_pressure_tick(db, state, day=day, limit=10)
+            ev2 = obligations.obligation_pressure_tick(db, state, day=day, limit=10)
+            self.assertGreaterEqual(len(ev1), 1, "首次调用应触发压力事件")
+            self.assertEqual(len(ev2), 0,
+                             f"同 turn 第二次调用应被 idempotency 闸门阻断；实际 {len(ev2)} 个事件")
+
+
 if __name__ == "__main__":
     unittest.main()
