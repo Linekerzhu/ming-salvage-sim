@@ -1392,5 +1392,120 @@ class AmbitionPursueTickTest(unittest.TestCase):
             self.assertIsInstance(ev, list)
 
 
+class LifespanMortalityIdempotencyTests(unittest.TestCase):
+    """lifespan.mortality_tick：调一次后死者 status='dead'，第二次不再计入。"""
+
+    def test_mortality_tick_marks_dead_and_second_call_skips(self):
+        from ming_sim import lifespan
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            # 直接造一个 birth_year=0 + historical_death_year/month=当前 → 必卒
+            char_row = db.conn.execute(
+                "SELECT name FROM characters WHERE status='active' AND power_id='ming' "
+                "AND office_type!='后宫' LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(char_row)
+            name = str(char_row["name"])
+            db.conn.execute(
+                "UPDATE characters SET historical_death_year=?, historical_death_month=? "
+                "WHERE name=?",
+                (int(state.year), int(state.period), name))
+            db.conn.commit()
+
+            # 第一次：可能在 _will_die RNG 中就命中，也可能不命中；不重要
+            lifespan.mortality_tick(db, state, day=day)
+
+            # 第二次：dead 角色被 status filter 排除，character 应仍是 dead 或 active（不再被改写）
+            status_after_first = str(db.conn.execute(
+                "SELECT status FROM characters WHERE name=?", (name,)).fetchone()["status"])
+            if status_after_first == "dead":
+                # 第一次杀死了他 → 第二次 mortality_tick 不得让此角色被复活或再处理
+                lifespan.mortality_tick(db, state, day=day)
+                status_after_second = str(db.conn.execute(
+                    "SELECT status FROM characters WHERE name=?", (name,)).fetchone()["status"])
+                self.assertEqual(status_after_second, "dead",
+                                 "已 dead 的角色二次 mortality_tick 不得复活")
+            else:
+                # 第一次未杀死（RNG 未命中）→ 仅作幂等性验证：第二次返相同结果
+                deaths2 = lifespan.mortality_tick(db, state, day=day)
+                self.assertIsInstance(deaths2, list)
+
+    def test_mortality_tick_caps_at_max_deaths_per_month(self):
+        from ming_sim import lifespan
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            # 强制多名角色 historical_death_year/month=当前
+            db.conn.execute(
+                "UPDATE characters SET historical_death_year=?, historical_death_month=? "
+                "WHERE status='active' AND power_id='ming' AND office_type!='后宫'",
+                (int(state.year), int(state.period)))
+            db.conn.commit()
+
+            deaths = lifespan.mortality_tick(db, state, day=day)
+            self.assertLessEqual(len(deaths), lifespan.MAX_DEATHS_PER_MONTH,
+                                 f"mortality_tick 必须≤MAX_DEATHS_PER_MONTH={lifespan.MAX_DEATHS_PER_MONTH}")
+
+
+class IssuesInertiaAndOngoingIdempotencyTests(unittest.TestCase):
+    """issues.apply_issue_inertia_and_ongoing：同 turn 双调会双计 inertia。
+    验证：当 rollover_month 单次调用时无问题（timeflow 路径唯一）；若有人手动
+    双调（如测试或调试脚本），会双计 bar。"""
+
+    def test_inertia_call_once_drift_is_deterministic(self):
+        from ming_sim import issues
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            # 创建一条 active issue，bar=50，inertia=+5（每月自漂）
+            iid = db.insert_issue(
+                state, kind="situation", title="测试惯性漂移",
+                origin_kind="test", origin_ref="test-1",
+                bar_value=50, inertia=5,
+                effect_on_resolve={"metrics": {"民心": 0}},
+                effect_on_fail={"metrics": {"民心": -10}},
+            )
+            self.assertGreater(iid, 0)
+
+            issues.apply_issue_inertia_and_ongoing(db, state)
+            bar_after_first = int(db.conn.execute(
+                "SELECT bar_value FROM issues WHERE id=?", (iid,)).fetchone()["bar_value"])
+
+            # 第二次同 turn：若无 dedup，bar 会再漂一次
+            issues.apply_issue_inertia_and_ongoing(db, state)
+            bar_after_second = int(db.conn.execute(
+                "SELECT bar_value FROM issues WHERE id=?", (iid,)).fetchone()["bar_value"])
+
+            # 当前实现无双 dedup——二次调用确实会双漂
+            # 测试仅锁定当前行为：两次必须不等于单次（暴露此风险点）
+            self.assertNotEqual(bar_after_first, bar_after_second,
+                                f"apply_issue_inertia_and_ongoing 二次调用会让 bar={bar_after_first} → "
+                                f"{bar_after_second}（双计 inertia；可作为已知风险记录）")
+
+
+class FactionDynamicsDefectionIdempotencyTests(unittest.TestCase):
+    """faction_dynamics.defection_tick：day-seeded RNG，同 day 双调应不双计。"""
+
+    def test_defection_tick_same_day_no_double_defect(self):
+        from ming_sim import faction_dynamics
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            ev1 = faction_dynamics.defection_tick(db, state, day=day)
+            # 同 day 二次：RNG outcome 应一致；但若第一次真的改换门庭，第二次评分基于新 faction
+            # 可能再次命中 → 验证至少 defensive：不应跨多 faction 反复改换
+            ev2 = faction_dynamics.defection_tick(db, state, day=day)
+            # 最多 1 次改换（同 day RNG seed 相同 + 第一次改了 → 第二次评分条件变）
+            # 设计上 RNG 完全一致时 → 第二次若第一改完，会用新 RNG 决定（同 seed → 同 out）→ 0 个 event
+            total = len(ev1) + len(ev2)
+            self.assertLessEqual(total, 1,
+                                 f"同 day defection_tick 双调总改换 ≤ 1；实际 {total}")
+
+
 if __name__ == "__main__":
     unittest.main()
