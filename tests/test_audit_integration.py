@@ -968,5 +968,133 @@ class ObligationsPressureTickIdempotencyTests(unittest.TestCase):
                              f"同 turn 第二次调用应被 idempotency 闸门阻断；实际 {len(ev2)} 个事件")
 
 
+class IntrigueCoerceNoDoubleStackTests(unittest.TestCase):
+    """intrigue.coerce_with_secret 连续两次提交必须不再叠加 emp_trust/grievance
+    （同 secret 在 used=1 后不应再被 latent_secret_of 返回）。"""
+
+    def test_double_coerce_same_target_does_not_stack_effects(self):
+        from ming_sim import court, intrigue
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            intrigue.ensure_schema(db)
+
+            char_row = db.conn.execute(
+                "SELECT name FROM characters WHERE status='active' AND power_id='ming' LIMIT 1"
+            ).fetchone()
+            self.assertIsNotNone(char_row)
+            name = str(char_row["name"])
+
+            # 手动塞一条已知把柄
+            db.conn.execute(
+                "INSERT INTO secrets(holder, kind, detail, severity, known_to_crown) "
+                "VALUES (?, '贪墨', '受赇鬻爵', 60, 1)",
+                (name,))
+            db.conn.commit()
+            sid = int(db.conn.execute(
+                "SELECT id FROM secrets WHERE holder=? ORDER BY id DESC LIMIT 1",
+                (name,)).fetchone()["id"])
+
+            # 第一次 coerce(serve)：emp_trust+5, grievance+8
+            grv_before = int(db.conn.execute(
+                "SELECT grievance FROM characters WHERE name=?", (name,)).fetchone()["grievance"])
+            tr_before = int(db.conn.execute(
+                "SELECT emp_trust FROM characters WHERE name=?", (name,)).fetchone()["emp_trust"])
+            r1 = intrigue.coerce_with_secret(db, state, name, "serve", day=day)
+            self.assertTrue(r1["ok"])
+            grv_after_1 = int(db.conn.execute(
+                "SELECT grievance FROM characters WHERE name=?", (name,)).fetchone()["grievance"])
+            tr_after_1 = int(db.conn.execute(
+                "SELECT emp_trust FROM characters WHERE name=?", (name,)).fetchone()["emp_trust"])
+            self.assertEqual(grv_after_1 - grv_before, 8)
+            self.assertEqual(tr_after_1 - tr_before, 5)
+
+            # 第二次 coerce(serve)：若 latent_secret_of 不过滤 used，应再次 +5/+8 → 双计。
+            r2 = intrigue.coerce_with_secret(db, state, name, "serve", day=day)
+            grv_after_2 = int(db.conn.execute(
+                "SELECT grievance FROM characters WHERE name=?", (name,)).fetchone()["grievance"])
+            tr_after_2 = int(db.conn.execute(
+                "SELECT emp_trust FROM characters WHERE name=?", (name,)).fetchone()["emp_trust"])
+            # 第二次的增量必须为 0（已 used=1 的 secret 不再被 coerce）
+            self.assertEqual(grv_after_2 - grv_after_1, 0,
+                             f"第二次 coerce 不得叠加 grievance；实际 +{grv_after_2 - grv_after_1}")
+            self.assertEqual(tr_after_2 - tr_after_1, 0,
+                             f"第二次 coerce 不得叠加 emp_trust；实际 +{tr_after_2 - tr_after_1}")
+
+            # secret 必须保持 used=1
+            row = db.conn.execute(
+                "SELECT used FROM secrets WHERE id=?", (sid,)).fetchone()
+            self.assertEqual(int(row["used"]), 1)
+
+
+class IntrigueInvestigateIdempotencyTests(unittest.TestCase):
+    """investigate 已知秘密再次调用：应识别为 already，不重置 discovered_day。"""
+
+    def test_repeat_investigate_known_secret_does_not_reset_day(self):
+        from ming_sim import intrigue
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            intrigue.ensure_schema(db)
+
+            char_row = db.conn.execute(
+                "SELECT name FROM characters WHERE status='active' AND power_id='ming' LIMIT 1"
+            ).fetchone()
+            name = str(char_row["name"])
+            db.conn.execute(
+                "INSERT INTO secrets(holder, kind, detail, severity, known_to_crown, discovered_day) "
+                "VALUES (?, '私德', '狎游失检', 55, 1, 100)",
+                (name,))
+            db.conn.commit()
+            sid = int(db.conn.execute(
+                "SELECT id FROM secrets WHERE holder=? ORDER BY id DESC LIMIT 1",
+                (name,)).fetchone()["id"])
+
+            r1 = intrigue.investigate(db, name, day=day)
+            self.assertTrue(r1.get("ok"))
+            self.assertTrue(r1.get("found"))
+            self.assertTrue(r1.get("already"))
+            # discovered_day 应保持 100，不被重置为 day
+            row = db.conn.execute(
+                "SELECT discovered_day FROM secrets WHERE id=?", (sid,)).fetchone()
+            self.assertEqual(int(row["discovered_day"]), 100,
+                             "known secret 再次 investigate 不得重置 discovered_day")
+
+
+class VeilLedgerContradictionsNoDoubleCountTests(unittest.TestCase):
+    """veil.ledger_contradictions 仅做只读聚合，不写任何表。"""
+
+    def test_ledger_contradictions_readonly(self):
+        from ming_sim import veil
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            rows_before = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM report_ledger").fetchone()["n"]
+            contr_before = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM report_ledger WHERE entity_kind='directive' "
+                "AND ABS(reported_value - actual_value) >= 5").fetchone()["n"]
+            eve_before = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM events").fetchone()["n"]
+
+            # 多次调用
+            for _ in range(3):
+                veil.ledger_contradictions(db)
+
+            rows_after = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM report_ledger").fetchone()["n"]
+            contr_after = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM report_ledger WHERE entity_kind='directive' "
+                "AND ABS(reported_value - actual_value) >= 5").fetchone()["n"]
+            eve_after = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM events").fetchone()["n"]
+            self.assertEqual(rows_after, rows_before)
+            self.assertEqual(contr_after, contr_before)
+            self.assertEqual(eve_after, eve_before,
+                             "ledger_contradictions 不得插入 events 记录")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -165,10 +165,16 @@ def _concealment(db: GameDB, name: str) -> int:
 
 
 def latent_secret_of(db: GameDB, name: str) -> Optional[Dict[str, object]]:
+    """返回该人未用过的最重把柄（known_to_crown 优先，未用过的）。
+
+    仅 used=0 的 secret 才视为「可挟制」——已经 used=1 的 secret 已被对应模式消耗
+    （retire 退职/submit 输诚/serve 听用），再 coerce 不应再叠加 emp_trust/grievance。
+    """
     ensure_schema(db)
     row = db.conn.execute(
         "SELECT id, kind, detail, severity, known_to_crown FROM secrets "
-        "WHERE holder=? ORDER BY known_to_crown ASC, severity DESC LIMIT 1", (name,)).fetchone()
+        "WHERE holder=? AND used=0 "
+        "ORDER BY known_to_crown ASC, severity DESC LIMIT 1", (name,)).fetchone()
     if row is None:
         return None
     return {"id": int(row["id"]), "kind": str(row["kind"]), "detail": str(row["detail"]),
