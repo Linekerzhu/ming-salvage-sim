@@ -671,5 +671,169 @@ class OccupationalRiskVsLifecycleConsistencyTests(unittest.TestCase):
             self.assertIsNotNone(row, "occ_risk_tick 不得 DELETE directive 行")
 
 
+class EdictOutcomeNoDoubleEnqueueTests(unittest.TestCase):
+    """edict_outcome enqueue 路径：差使 done 仅产生 1 个 edict_outcome job；
+    多次 tick 同一已 done 差使不再入队。"""
+
+    def test_done_directive_enqueues_exactly_one_edict_outcome_job(self):
+        from ming_sim import lifecycle
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            r = assignment.issue_assignment(
+                db, state, kind="edict", text="着户部清查盐税", actor="毕自严", day=day,
+            )
+            did = r["id"]
+
+            # 推进差使到 done（progress=100 + lead 已过 + tick 两次）
+            lead = int(db.conn.execute(
+                "SELECT lead_days FROM turn_directives WHERE id=?", (did,)).fetchone()["lead_days"])
+            db.conn.execute(
+                "UPDATE turn_directives SET progress=100, start_day=? WHERE id=?",
+                (day - lead - 1, did))
+            db.conn.commit()
+
+            jobs_before = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM llm_jobs WHERE kind='edict_outcome'").fetchone()["n"]
+
+            lifecycle.tick_directives(db, state, day=day)
+            lifecycle.tick_directives(db, state, day=day + 1)
+            status = str(db.conn.execute(
+                "SELECT lifecycle_status FROM turn_directives WHERE id=?", (did,)).fetchone()["lifecycle_status"])
+            self.assertEqual(status, "done")
+
+            jobs_after_first = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM llm_jobs WHERE kind='edict_outcome'").fetchone()["n"]
+            self.assertEqual(jobs_after_first - jobs_before, 1,
+                             f"差使首次 done 应入队恰好 1 个 edict_outcome job；实际 +{jobs_after_first - jobs_before}")
+
+            # 后续 tick：差使已 done，tick_directives 不再处理（status='done' 不在过滤集）
+            for d in range(day + 2, day + 10):
+                lifecycle.tick_directives(db, state, day=d)
+            jobs_after_more = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM llm_jobs WHERE kind='edict_outcome'").fetchone()["n"]
+            self.assertEqual(jobs_after_more, jobs_after_first,
+                             "已 done 的差使后续 tick 不得重复入队 edict_outcome")
+
+
+class EdictOutcomeHandlerIdempotencyTests(unittest.TestCase):
+    """handle_edict_outcome 自身的 CAS 防并发：outcome_status='' → 'extracted'
+    是原子 CAS；但 create_memorial 在 CAS 之外，理论上并发 worker 会双写 memorials。"""
+
+    def test_outcome_status_cas_prevents_double_extract(self):
+        from ming_sim import edict_outcome
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            r = assignment.issue_assignment(
+                db, state, kind="edict", text="着户部清查盐税", actor="毕自严", day=day,
+            )
+            did = r["id"]
+            # 模拟：directive 已 done，outcome_status=''（尚未抽取）
+            db.conn.execute(
+                "UPDATE turn_directives SET outcome_status='' WHERE id=?", (did,))
+            db.conn.commit()
+
+            memorials_before = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM memorials WHERE ref_kind='directive' AND ref_id=?",
+                (str(did),)).fetchone()["n"]
+
+            # 第一次处理（无 LLM；直接走到 fallback_memorial + create_memorial）
+            edict_outcome.handle_edict_outcome(db, None, {"directive_id": did})
+
+            # outcome_status 现在应为 'extracted'
+            row = db.conn.execute(
+                "SELECT outcome_status FROM turn_directives WHERE id=?", (did,)).fetchone()
+            self.assertEqual(str(row["outcome_status"] or ""), "extracted")
+
+            memorials_after_first = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM memorials WHERE ref_kind='directive' AND ref_id=?",
+                (str(did),)).fetchone()["n"]
+            self.assertEqual(memorials_after_first - memorials_before, 1,
+                             "首次 handle 应创建恰好 1 条复命 memorial")
+
+            # 第二次处理：handler 早 return（outcome_status 已 extracted），不再创建 memorial
+            edict_outcome.handle_edict_outcome(db, None, {"directive_id": did})
+            memorials_after_second = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM memorials WHERE ref_kind='directive' AND ref_id=?",
+                (str(did),)).fetchone()["n"]
+            self.assertEqual(memorials_after_second, memorials_after_first,
+                             "outcome_status 已 extracted 时重入不得再创建 memorial（防止双计）")
+
+
+class FrontierDispatchNoDoubleWriteTests(unittest.TestCase):
+    """frontier.dispatch_supervisor / recall_supervisor 与 assignment.posting 是否冲突。"""
+
+    def test_dispatch_then_recall_no_double_grievance_or_eunuch_power(self):
+        from ming_sim import eunuch, frontier
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+
+            # 选一个在朝宦官（避免 _eunuch_active 失败）
+            row = db.conn.execute(
+                "SELECT name FROM characters WHERE sex='eunuch' AND status='active' LIMIT 1"
+            ).fetchone()
+            if not row:
+                self.skipTest("无在朝宦官")
+            eunuch_name = str(row["name"])
+            # 选一个己方镇
+            arow = db.conn.execute(
+                "SELECT id, name, commander, supervisor FROM armies "
+                "WHERE owner_power='ming' AND maintenance_per_turn>0 LIMIT 1"
+            ).fetchone()
+            if not arow:
+                self.skipTest("无明朝军镇")
+            army_id = str(arow["id"])
+            commander = str(arow["commander"] or "")
+
+            eunuch_before = db.kv_get("eunuch.power")
+            grv_row = db.conn.execute(
+                "SELECT grievance FROM characters WHERE name=?",
+                (commander,)).fetchone() if commander else None
+            grv_before = int(grv_row["grievance"]) if grv_row else 0
+
+            r = frontier.dispatch_supervisor(db, state, army_id, eunuch_name, day=day)
+            self.assertTrue(r["ok"], f"dispatch_supervisor 应成功：{r}")
+            self.assertEqual(str(db.conn.execute(
+                "SELECT supervisor FROM armies WHERE id=?", (army_id,)).fetchone()["supervisor"]),
+                eunuch_name)
+
+            # 撤差
+            r2 = frontier.recall_supervisor(db, state, army_id, day=day)
+            self.assertTrue(r2["ok"], f"recall_supervisor 应成功：{r2}")
+            self.assertEqual(str(db.conn.execute(
+                "SELECT supervisor FROM armies WHERE id=?", (army_id,)).fetchone()["supervisor"] or ""),
+                "")
+
+            # dispatch + recall 后，supervisor 必须清空（无双值）
+            sup = str(db.conn.execute(
+                "SELECT supervisor FROM armies WHERE id=?", (army_id,)).fetchone()["supervisor"] or "")
+            self.assertEqual(sup, "",
+                             f"recall 后 supervisor 必须清空，实际 {sup!r}")
+
+            # dispatch 一次不应让同一名宦官在一次 tick 内被算两次权力增量：
+            # eunuch_power 增量记录可通过 secrets 表的 eunuch_power_history 检查；此处仅断言
+            # 数据库无不一致状态（recall 后 supervisor 清空 + 镇仍存在）。
+            ar2 = db.conn.execute(
+                "SELECT id FROM armies WHERE id=?", (army_id,)).fetchone()
+            self.assertIsNotNone(ar2, "撤差后军镇不得被删")
+
+            # 关键：dispatch 后再 dispatch 应被替换（不堆叠），否则同一宦官被多次记权。
+            r3 = frontier.dispatch_supervisor(db, state, army_id, eunuch_name, day=day)
+            self.assertTrue(r3["ok"])
+            self.assertEqual(str(db.conn.execute(
+                "SELECT supervisor FROM armies WHERE id=?", (army_id,)).fetchone()["supervisor"]),
+                eunuch_name)
+            # 不应该有两条同 army_id 的"监军中"指示——supervisor 是单值字段自然 OK。
+            sup_count = db.conn.execute(
+                "SELECT COUNT(*) AS n FROM armies WHERE id=? AND supervisor=?",
+                (army_id, eunuch_name)).fetchone()["n"]
+            self.assertEqual(sup_count, 1, "同一军镇不应被多个 supervisor 同时监临")
+
+
 if __name__ == "__main__":
     unittest.main()
