@@ -1680,6 +1680,14 @@ def tick_directives(db: GameDB, state: GameState, day: int) -> List[Dict[str, ob
             db.conn.execute(
                 "UPDATE turn_directives SET lifecycle_status='done', progress=100, anomaly='' WHERE id=?",
                 (did,))
+            # 差使办结时若由奏请转化而来（source_petition_id>0），回写 player_quests=settled。
+            # 此钩子是奏请单"已转差使→办结→关闭"的唯一闭环，必须在 lifecycle 内触发，
+            # 外部不能依赖（lifecycle_status 是 lifecycle 的内部状态机）。
+            try:
+                from ming_sim.assignment import settle_petition_on_directive_done
+                settle_petition_on_directive_done(db, did)
+            except Exception:
+                pass
             adjust_belief(db, KV_SHI, +1, f"旨意#{did}如期办结", day=day)
             immediate_action = _apply_court_immediate_action(
                 db,
