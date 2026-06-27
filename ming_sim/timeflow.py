@@ -521,6 +521,12 @@ def _check_causal_seeds(db: GameDB, state: GameState, day: int, report: DayRepor
 def _tick_day(db: GameDB, state: GameState, day: int) -> DayReport:
     """单日规则层 tick。调用方保证 day 在本月窗口内。"""
     from ming_sim.thresholds import scan_thresholds
+    # 跨 tick 清空 dialogue_audit 的单轮 context 缓存——确保审计读到最新的人物/朝局。
+    try:
+        from ming_sim.dialogue_audit import _clear_context_cache
+        _clear_context_cache()
+    except Exception:
+        pass
     report = DayReport(day=day)
     dim = day_in_month(day)
 

@@ -934,7 +934,25 @@ def _normalize_dialogue_decision_testimony(data: Dict[str, object]) -> Dict[str,
     }
 
 
+# 单轮 memoization：key = (character_name, state.turn) → payload dict（不含 active_goal）。
+# 单进程内存；timeflow 跨 tick 时由 `_clear_context_cache` 清空，确保审计读最新 context。
+_CONTEXT_CACHE: Dict[tuple, Dict[str, object]] = {}
+
+
+def _clear_context_cache() -> None:
+    """清空 _context_payload 单轮缓存（timeflow 跨 tick 时调）。"""
+    _CONTEXT_CACHE.clear()
+
+
 def _context_payload(db: Any, state: GameState, character: Character, *, active_goal: Optional[Dict[str, object]] = None) -> Dict[str, object]:
+    # 单轮 memoization：同 (character.name, state.turn) 的 payload 不含 per-call
+    # active_goal——缓存 base payload，每次调用覆盖 active_goal 字段后返回。
+    cache_key = (str(getattr(character, "name", "")), int(getattr(state, "turn", 0) or 0))
+    cached = _CONTEXT_CACHE.get(cache_key)
+    if cached is not None:
+        result = dict(cached)
+        result["active_goal"] = active_goal or {}
+        return result
     try:
         goals = db.list_conversation_goals(minister_name=character.name, limit=8)
     except Exception:
@@ -984,7 +1002,7 @@ def _context_payload(db: Any, state: GameState, character: Character, *, active_
         )
     except Exception:
         temporal = {}
-    return {
+    payload = {
         "turn": {"year": state.year, "period": state.period, "turn": state.turn},
         "audience_temporal_context": temporal if isinstance(temporal, dict) else {},
         "npc": {
@@ -1009,6 +1027,11 @@ def _context_payload(db: Any, state: GameState, character: Character, *, active_
         "favor_memories": favors if isinstance(favors, list) else [],
         "active_custodies": active_custodies if isinstance(active_custodies, list) else [],
     }
+    # 缓存不含 active_goal（per-call 字段）；保留 base payload 供下次同 key 复用。
+    base_for_cache = dict(payload)
+    base_for_cache["active_goal"] = {}
+    _CONTEXT_CACHE[cache_key] = base_for_cache
+    return payload
 
 
 def _behavior_source_text(payload: Dict[str, object], extra_text: str = "") -> str:
