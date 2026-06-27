@@ -91,5 +91,94 @@ class ContextPayloadMemoizationTests(unittest.TestCase):
             self.assertEqual(p_b["active_goal"], goal_b)
 
 
+class CombinedIntentAuditTests(unittest.TestCase):
+    """route + action_probe 合并为单次 LLM：仅在生产路径（无 audit_client 注入）触发。
+    测试注入 audit_client 时走原有串行回退（行为兼容）。
+
+    本测试验证合并审计函数本身（dialogue_combined_intent_audit）在 audit_client
+    响应 combined_intent phase 时正确返回；以及 evaluate_combined_intent 在
+    无 audit_client + 有 LLM 配置时走合并路径。
+    """
+
+    def test_combined_audit_returns_route_when_fake_responds(self):
+        """audit_client 响应 combined_intent phase → 直接返 route 决策。"""
+        from ming_sim.dialogue_audit import dialogue_combined_intent_audit
+        from ming_sim.models import LLMConfig
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            character = db.content.characters["韩爌"]
+
+            def audit(phase, payload):
+                if phase == "combined_intent":
+                    return {
+                        "allow": True,
+                        "intent": "route",
+                        "action_type": "recruitment",
+                        "phase": "propose",
+                        "confidence": 90,
+                        "trigger_quote": payload.get("user_text"),
+                        "target": "韩爌",
+                        "actor": "韩爌",
+                    }
+                return None
+
+            review = dialogue_combined_intent_audit(
+                db, state, character, "朕要召见韩爌",
+                route_context={"semantic_route_enabled": True},
+                llm_config=LLMConfig(model="t", api_key="t", base_url="http://t"),
+                audit_client=audit,
+            )
+            self.assertTrue(review.get("allow"))
+            self.assertEqual(review.get("intent"), "route")
+
+    def test_engine_falls_back_to_serial_when_audit_client_injected(self):
+        """evaluate_user_message 在 audit_client 注入时走原有串行路径（兼容性）。"""
+        import os
+        from ming_sim.dialogue_semantics import DialogueSemanticEngine
+        from ming_sim.models import LLMConfig
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            character = db.content.characters["韩爌"]
+            call_log = []
+            old_action = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT")
+            old_route = os.environ.get("MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT")
+            os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = "0"
+            os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = "1"
+            try:
+                def audit(phase, payload):
+                    call_log.append(phase)
+                    if phase == "dialogue_action_intent":
+                        return {
+                            "allow": True,
+                            "action_type": "recruitment",
+                            "phase": "propose",
+                            "confidence": 90,
+                            "trigger_quote": payload.get("user_text"),
+                            "target": "韩爌",
+                        }
+                    return None
+
+                engine = DialogueSemanticEngine(
+                    db, state,
+                    llm_config=LLMConfig(model="t", api_key="t", base_url="http://t"),
+                    audit_client=audit,
+                )
+                decision = engine.evaluate_user_message(
+                    character, "朕要征辟韩爌",
+                    route_context={"semantic_route_enabled": False})
+                self.assertTrue(decision.allow)
+                self.assertNotIn("combined_intent", call_log,
+                    f"audit_client 注入时不得走合并路径；实际 {call_log}")
+            finally:
+                if old_action is not None:
+                    os.environ["MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT"] = old_action
+                else:
+                    os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ACTION_LLM_AUDIT", None)
+                if old_route is not None:
+                    os.environ["MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT"] = old_route
+                else:
+                    os.environ.pop("MING_SIM_DISABLE_DIALOGUE_ROUTE_LLM_AUDIT", None)
+
+
 if __name__ == "__main__":
     unittest.main()

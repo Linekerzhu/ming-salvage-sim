@@ -2144,6 +2144,79 @@ def dialogue_route_intent_audit(
         })
 
 
+COMBINED_INTENT_PROMPT = """你是奏对语义引擎。请同时判定以下两类意图：
+
+1. 路由意图（route_intent）：用户文本是否构成召回特定大臣、指定议题、或触发待确认动作。
+2. 行动探测（action_intent）：用户文本是否构成颁诏、征辟、密旨、承诺、净身等行动的语义先行确认。
+
+只返回命中的一类；若都不命中，返回 intent="none"。
+
+返回 JSON：
+{
+  "allow": true/false,
+  "intent": "route" | "action" | "none",
+  "action_type": "edict|secret_order|recruitment|appointment|promise|castration|eunuch_care|...",
+  "phase": "issue|confirm|execute|none",
+  "confidence": 0-100,
+  "trigger_quote": "用户文本中支撑判定的原话",
+  "target": "目标人物名（可空）",
+  "actor": "行动执行者（可空）",
+  "private_reason": "判定理由（可空）"
+}
+"""
+
+
+def dialogue_combined_intent_audit(
+    db: Any,
+    state: GameState,
+    character: Character,
+    user_text: str,
+    *,
+    pending_action: Optional[Dict[str, object]] = None,
+    route_context: Optional[Dict[str, object]] = None,
+    llm_config: Optional[LLMConfig] = None,
+    agno_db: object = None,
+    audit_client: object = None,
+) -> Dict[str, object]:
+    """合并 route + action_probe 为单次 LLM 调用。
+
+    替代 dialogue_route_intent_audit + dialogue_action_intent_audit 的串行双调。
+    返回 dict：intent ∈ {"route","action","none"}；下游据此分发到
+    SemanticDecision.from_route_review / from_action_review。
+    """
+    payload = _context_payload(db, state, character)
+    payload["user_text"] = user_text
+    payload["pending_action"] = {
+        key: value
+        for key, value in (pending_action or {}).items()
+        if key in {"type", "target", "actor", "faction", "kind", "mode", "note", "scheme_text", "trigger_quote"}
+    }
+    payload["route_context"] = route_context if isinstance(route_context, dict) else {}
+    _attach_behavior_context(payload, character, text=user_text)
+    try:
+        fake = _call_fake(audit_client, "combined_intent", payload)
+        if fake is not None:
+            return fake
+        if llm_config is None:
+            return {"allow": False, "intent": "none", "confidence": 0,
+                    "private_reason": "未配置 LLM，合并意图审计不落档。"}
+        agent = _agent(
+            llm_config, agno_db,
+            phase="dialogue_action_intent",
+            prompt=COMBINED_INTENT_PROMPT,
+            max_tokens=1200,
+        )
+        raw = run_agent_text(
+            agent,
+            json.dumps(payload, ensure_ascii=False, sort_keys=False),
+            tag="dialogue-audit/combined-intent",
+        )
+        return parse_agent_json(raw, "合并意图审计")
+    except Exception as exc:
+        return {"allow": False, "intent": "none", "confidence": 0,
+                "private_reason": str(exc)}
+
+
 def dialogue_pending_recovery_audit(
     db: Any,
     state: GameState,

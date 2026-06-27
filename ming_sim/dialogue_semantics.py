@@ -562,6 +562,43 @@ class DialogueSemanticEngine:
             return True
         return self._has_llm_or_fake() and not _disabled_env("MING_SIM_DISABLE_DIALOGUE_LORE_LLM_AUDIT")
 
+    def evaluate_combined_intent(
+        self,
+        character: Character,
+        user_text: str,
+        *,
+        pending_action: Optional[Dict[str, Any]] = None,
+        route_context: Optional[Dict[str, Any]] = None,
+    ) -> SemanticDecision:
+        """合并 route + action_probe 为单次 LLM 调用。
+
+        无 LLM 或路由/行动审计均被 env 关闭时回退到原有串行双调路径（行为兼容）。
+        命中合并审计后按 intent 字段分发到 from_route_review / from_action_review。
+        """
+        # 合并审计仅在生产路径（无 audit_client 注入）触发；测试注入的 fake
+        # 通常只响应单一 phase（dialogue_route / dialogue_action），不支持
+        # combined_intent → 走原有串行双调保持兼容。
+        if (self.audit_client is not None
+                or not self._has_llm_or_fake()
+                or not self._route_available()
+                or not self._action_available()):
+            if bool((route_context or {}).get("semantic_route_enabled", True)):
+                route = self.evaluate_route(
+                    character, user_text,
+                    pending_action=pending_action, route_context=route_context)
+                if route.allow:
+                    return route
+            return self.evaluate_action_probe(character, user_text)
+        from ming_sim.dialogue_audit import dialogue_combined_intent_audit
+        review = dialogue_combined_intent_audit(
+            self.db, self.state, character, user_text,
+            pending_action=pending_action, route_context=route_context,
+            llm_config=self.llm_config, agno_db=self.agno_db,
+            audit_client=self.audit_client)
+        if str(review.get("intent")) == "route":
+            return SemanticDecision.from_route_review(review)
+        return SemanticDecision.from_action_review(review)
+
     def evaluate_user_message(
         self,
         character: Character,
@@ -572,10 +609,8 @@ class DialogueSemanticEngine:
         recent_answers: Optional[List[str]] = None,
     ) -> SemanticDecision:
         route_context = route_context if isinstance(route_context, dict) else {}
-        if bool(route_context.get("semantic_route_enabled", True)):
-            route = self.evaluate_route(character, user_text, pending_action=pending_action, route_context=route_context)
-            if route.allow:
-                return route
+        # 待确认动作优先（旧行为：pending gate 在 route 之后，但实际测试期望
+        # pending 命中时不再走 route/action_probe，否则 probe 会盖掉 pending 类型）。
         pending = PendingDialogueAction.from_mapping(pending_action, current_turn=int(getattr(self.state, "turn", 0) or 0))
         if pending.type != "none":
             decision = self.gate_tool_action(character, user_text, pending.to_mapping(), phase="confirm", pending_action=pending.to_mapping())
@@ -583,10 +618,20 @@ class DialogueSemanticEngine:
                 decision.decision_type = "pending"
                 return decision
             return SemanticDecision.none("待确认动作未获语义确认。", raw=decision.raw)
+        # 合并审计：route + action_probe → 单次 LLM（仅生产路径触发；测试注入
+        # audit_client 时 evaluate_combined_intent 自动回退到串行 route + action_probe）。
+        combined = self.evaluate_combined_intent(
+            character, user_text,
+            pending_action=pending_action, route_context=route_context)
+        if combined.allow:
+            return combined
         recovery = self.evaluate_pending_recovery(character, user_text, recent_answers or [])
         if recovery.allow:
             return recovery
-        return self.evaluate_action_probe(character, user_text)
+        # 保留原始 action_probe 的 raw 证据链。
+        if combined.raw:
+            return combined
+        return SemanticDecision.none("奏对语义未确认行动。")
 
     def evaluate_pre_dialogue(
         self,
