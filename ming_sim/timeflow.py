@@ -710,6 +710,20 @@ def advance_days(db: GameDB, state: GameState, days: int, *,
                     report.events.append(ev)
             except ImportError:
                 pass
+            # P1.5 常驻差使按月产报：督师/矿税太监/巡按…月度效果与奏报。
+            try:
+                from ming_sim.assignment import posting_monthly_tick
+                for ev in posting_monthly_tick(db, state, new_day):
+                    report.events.append(ev)
+            except ImportError:
+                pass
+            # P1.6 NPC 主动上奏：野心/民变/派系信号 → 自动生成奏请单入御案。
+            try:
+                from ming_sim.assignment import petition_auto_tick
+                for ev in petition_auto_tick(db, state, new_day):
+                    report.events.append(ev)
+            except ImportError:
+                pass
             reports.append(report)
             advanced += 1
             _month_events_append(db, report.events)

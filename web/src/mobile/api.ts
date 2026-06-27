@@ -148,6 +148,10 @@ export type DirectiveLifecycle = {
     disabled_reason?: string;
     effects?: Array<{ kind?: string; label: string; tone?: "good" | "bad" | "neutral" | string }>;
   }>;
+  // P1.4 多阶段里程碑：{key,label,threshold,status,completed_day}
+  milestones?: Array<{ key: string; label: string; threshold: number; status: "pending" | "done"; completed_day: number }>;
+  // P1.1 领旨表态（来自差使大厅聚合卡片；lifecycle 接口可能为空）
+  acceptance?: { stance?: string; label?: string; willingness?: number; narrative?: string; effects?: string[] };
 };
 
 export type TickEvent = {
@@ -565,6 +569,77 @@ export const loadLifecycle = async (): Promise<DirectiveLifecycle[]> => {
   return r.directives || [];
 };
 
+// ── 差使大厅 / 功过册 / 奏请（P0/P1 后端）──────────────────────────────────
+export type AssignmentView = "by_official" | "by_region" | "by_category" | "by_status";
+export type AssignmentCard = {
+  id: number; uid: string; source_table: "directives" | "secret_orders";
+  assignment_kind: string; entry_label: string;
+  text: string; status: string; category?: string; progress: number;
+  assignee: string; eta_day: number; eta_turn?: number; overdue?: boolean;
+  resistance?: number; reported_rate?: number; anomaly?: string; settle_note?: string;
+  importance?: number;
+  milestones?: NonNullable<DirectiveLifecycle["milestones"]>;
+  acceptance?: DirectiveLifecycle["acceptance"];
+  outcome_summary?: DirectiveLifecycle["outcome_summary"];
+  followup_action?: DirectiveLifecycle["followup_action"];
+  intervention_options?: DirectiveLifecycle["intervention_options"];
+  depends_on?: number[];
+  deps_blocked?: boolean;
+};
+export type AssignmentDashboard = {
+  view: AssignmentView;
+  groups: Array<{
+    key: string; active_count: number; overloaded: boolean;
+    assignee?: string; office?: string; items: AssignmentCard[];
+  }>;
+  total: number;
+  summary: Record<string, number>;
+};
+export const loadAssignmentDashboard = async (view: AssignmentView, include_done = false): Promise<AssignmentDashboard> =>
+  api<AssignmentDashboard>(`/api/assignments?view=${view}&include_done=${include_done}`);
+export const loadAssignmentFocus = async (queue: "needs_action" | "overloaded" | "recent_settled"): Promise<{ items: AssignmentCard[] } | Array<{ assignee: string; office: string; active_count: number; overloaded: boolean }>> =>
+  api(`/api/assignments/${queue}`);
+export const issueAssignment = (body: { kind: string; text: string; actor?: string; deadline_days?: number; depends_on?: number[] }) =>
+  api<{ ok: boolean; id: number; assignment_kind: string; entry_label: string; assignee: string; eta_day: number; acceptance?: DirectiveLifecycle["acceptance"]; overload_warning?: string }>(
+    "/api/assignments", { method: "POST", body: JSON.stringify(body) }
+  );
+export const transformInvestigation = (id: number, target = "", reason = "") =>
+  api<{ ok: boolean; original_id: number; new_assignment_id: number; target: string; category: string }>(
+    `/api/assignments/${id}/transform`, { method: "POST", body: JSON.stringify({ target, reason }) }
+  );
+
+export type MeritLedger = {
+  assignee: string;
+  totals: { completed: number; succeeded: number; partial: number; failed: number; skim: number; overdue: number; reprimand: number };
+  avg_integrity: number; merit_score: number; reward_count: number; punish_count: number;
+  recent: Array<{ directive_id: number; text: string; category: string; grade: string; integrity_actual: number; skim: boolean; overdue_deca: number; day: number }>;
+};
+export const loadMeritOverview = async (): Promise<{ items: MeritLedger[] }> => api("/api/merit");
+export const loadMinisterMerit = async (minister: string): Promise<MeritLedger> => api(`/api/merit/${encodeURIComponent(minister)}`);
+export const grantReward = (minister: string, tier: string, reason = "") =>
+  api<{ ok: boolean; tier: string; label: string; effects: Record<string, number> }>(
+    `/api/merit/${encodeURIComponent(minister)}/reward`, { method: "POST", body: JSON.stringify({ tier, reason }) }
+  );
+export const applyPunishment = (minister: string, tier: string, reason = "") =>
+  api<{ ok: boolean; tier: string; label: string; effects: Record<string, number> }>(
+    `/api/merit/${encodeURIComponent(minister)}/punish`, { method: "POST", body: JSON.stringify({ tier, reason }) }
+  );
+
+export type Petition = {
+  id: number; petition_key: string; title: string; description?: string; status: string;
+  proposer_name: string; proposer_office: string; draft_directive: string; category_hint?: string;
+};
+export const loadPetitions = async (status = "available"): Promise<{ status: string; items: Petition[] }> =>
+  api(`/api/petitions?status=${status}`);
+export const grantPetition = (id: number, draft_text = "", actor = "") =>
+  api<{ ok: boolean; id: number; assignment_kind: string; entry_label: string }>(
+    `/api/petitions/${id}/grant`, { method: "POST", body: JSON.stringify({ draft_text, actor }) }
+  );
+export const rejectPetition = (id: number, reason = "") =>
+  api<{ ok: boolean; petition_id: number; status: string }>(
+    `/api/petitions/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }
+  );
+
 // ── 动作 ──────────────────────────────────────────────────────────────────
 export const advanceTime = (days: number, stopOnYellow = true): Promise<AdvanceResult> =>
   api<AdvanceResult>("/api/time/advance", {
@@ -703,4 +778,60 @@ export const loadCharacter = (name: string) =>
 export const loadChat = (name: string) =>
   api<{ minister?: PublicCharacter; history: ChatMessage[]; suggestions: Suggestion[]; can_undo_last_chat?: boolean }>(
     `/api/ministers/${encodeURIComponent(name)}/chat`,
+  );
+
+// ── 任务系统（Quest System）───────────────────────────────────────────────
+export type Quest = {
+  quest_key: string;
+  title: string;
+  description: string;
+  category: string;
+  tier: number;
+  objective_type?: string;
+  objective_config?: Record<string, any>;
+  reward_config?: Record<string, any>;
+};
+
+export type PlayerQuest = {
+  id: number;
+  quest_key: string;
+  title?: string;
+  status: string;
+  progress_current: number;
+  progress_target: number;
+  accepted_turn?: number;
+  expires_turn?: number;
+  source_npc_name?: string;
+  reward_config?: Record<string, any>;
+};
+
+export type NpcQuests = {
+  available?: Quest[];
+  active?: PlayerQuest[];
+  completable?: Array<PlayerQuest & { reward_config?: Record<string, any> }>;
+};
+
+// 获取特定NPC的任务（可用/进行中/可完成）
+export const loadNpcQuests = (npcName: string) =>
+  api<NpcQuests>(`/api/quests/npc/${encodeURIComponent(npcName)}`);
+
+// 接受任务
+export const acceptQuest = (questKey: string, sourceNpcName?: string) =>
+  api<{ success: boolean; player_quest_id?: number; status?: string }>(
+    `/api/quests/${encodeURIComponent(questKey)}/accept`,
+    { method: "POST", body: JSON.stringify({ source_npc_name: sourceNpcName || "" }) },
+  );
+
+// 完成任务并领取奖励
+export const completeQuest = (playerQuestId: number) =>
+  api<{ success: boolean; rewards?: Record<string, any> }>(
+    `/api/quests/${playerQuestId}/complete`,
+    { method: "POST" },
+  );
+
+// 放弃任务
+export const abandonQuest = (playerQuestId: number) =>
+  api<{ success: boolean }>(
+    `/api/quests/${playerQuestId}/abandon`,
+    { method: "POST" },
   );

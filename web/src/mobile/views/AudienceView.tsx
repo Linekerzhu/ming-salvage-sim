@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useGame } from "../GameData";
 import { ChatPane } from "../ChatPane";
 import { Portrait } from "../Portrait";
-import { consortCandidates, loadEunuch, loadEunuchCandidates, loadPlaystyleBrief, loadSummonHints, replaceEunuch, selectConsort } from "../api";
-import type { AudienceLead, ChatContext, ConsortCandidate, PlaystyleBriefCard, PublicCharacter, Suggestion, SummonHint, Tab } from "../api";
+import { consortCandidates, loadEunuch, loadEunuchCandidates, loadNpcQuests, loadPlaystyleBrief, loadSummonHints, replaceEunuch, selectConsort } from "../api";
+import type { AudienceLead, ChatContext, ConsortCandidate, NpcQuests, PlaystyleBriefCard, PublicCharacter, Suggestion, SummonHint, Tab } from "../api";
 import { usePerson } from "../personCtx";
 import { audienceLeadFromBrief, briefUrgency, closurePromptForAudience, shortName } from "./HomeView";
 
@@ -27,12 +27,13 @@ export function AudienceView({
   const { state, refresh, worldVersion } = useGame();
   const openPerson = usePerson();
   const [eunuch, setEunuch] = useState<PublicCharacter | null | undefined>(undefined);
-  const [sheet, setSheet] = useState<"" | "summon" | "replace" | "hooks">("");
+  const [sheet, setSheet] = useState<"" | "summon" | "replace" | "hooks" | "quests">("");
   const [dossierOpen, setDossierOpen] = useState(false);
   const [candidates, setCandidates] = useState<Array<{ name: string; office: string; is_eunuch: boolean }>>([]);
   const [leads, setLeads] = useState<PlaystyleBriefCard[]>([]);
   const [summonHints, setSummonHints] = useState<Record<string, SummonHint>>({});
   const [pendingConsorts, setPendingConsorts] = useState<ConsortCandidate[]>([]);
+  const [npcQuests, setNpcQuests] = useState<NpcQuests | null>(null);
 
   useEffect(() => {
     loadEunuch().then((r) => setEunuch(r.eunuch)).catch(() => setEunuch(null));
@@ -41,6 +42,14 @@ export function AudienceView({
     if (audience) return;  // 仅随侍枢纽视图加载待册封秀女
     consortCandidates().then((r) => setPendingConsorts(r.candidates || [])).catch(() => setPendingConsorts([]));
   }, [audience, worldVersion]);
+  // 加载NPC任务（当选择特定大臣时）
+  useEffect(() => {
+    if (!audience || audience === eunuch?.name) {
+      setNpcQuests(null);
+      return;
+    }
+    loadNpcQuests(audience).then((r) => setNpcQuests(r)).catch(() => setNpcQuests(null));
+  }, [audience, worldVersion, eunuch?.name]);
   const doSelectConsort = async (name: string) => {
     try {
       await selectConsort(name);
@@ -157,6 +166,16 @@ export function AudienceView({
                 案{dossierCount}
               </button>
             )}
+            {npcQuests && (npcQuests.active?.length || 0) + (npcQuests.completable?.length || 0) > 0 && (
+              <button
+                className="m-mini m-audience-quest-act"
+                onClick={() => setSheet("quests")}
+                aria-label={`${audience}的相关任务`}
+                title={`${npcQuests.active?.length || 0}项进行中 · ${npcQuests.completable?.length || 0}项可完成`}
+              >
+                任{(npcQuests.active?.length || 0) + (npcQuests.completable?.length || 0)}
+              </button>
+            )}
             <button className="m-mini" onClick={() => openPerson(audience)} aria-label={`查看${audience}档案`}>查档</button>
             {isAttendantAudience ? (
               <button className="m-mini m-mini-complete" onClick={() => onAudienceChange("")}>回侍</button>
@@ -257,7 +276,7 @@ export function AudienceView({
         <div className="m-sheet-backdrop" onClick={() => setSheet("")}>
           <div className="m-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="m-sheet-head">
-              <h3>{sheet === "summon" ? `命${eunuch.name}传召大臣觐见` : sheet === "replace" ? "改命随侍太监" : "随侍递话"}</h3>
+              <h3>{sheet === "summon" ? `命${eunuch.name}传召大臣觐见` : sheet === "replace" ? "改命随侍太监" : sheet === "quests" ? `${audience}的相关任务` : "随侍递话"}</h3>
               <button className="m-mini" onClick={() => setSheet("")}>关</button>
             </div>
             <div className="m-sheet-body">
@@ -294,6 +313,16 @@ export function AudienceView({
                     if (!actor) return;
                     onAudienceChange(actor, leadFor(card));
                     setSheet("");
+                  }}
+                />
+              )}
+              {sheet === "quests" && npcQuests && (
+                <AudienceQuestList
+                  quests={npcQuests}
+                  npcName={audience}
+                  onRefresh={() => {
+                    loadNpcQuests(audience).then((r) => setNpcQuests(r)).catch(() => setNpcQuests(null));
+                    refresh();
                   }}
                 />
               )}
@@ -741,4 +770,80 @@ function counterpartPrompts(kind: string, next: string, previous: string) {
     { label: "定可验证据", text: `不要空口。你能拿出什么证据、差使或期限，证明自己不是推脱？`, prefix: true },
     closurePromptForAudience(kind, who, other),
   ];
+}
+
+// ── 任务列表组件 ─────────────────────────────────────────────────────────
+function AudienceQuestList({
+  quests,
+  npcName,
+  onRefresh,
+}: {
+  quests: NpcQuests;
+  npcName: string;
+  onRefresh: () => void;
+}) {
+  const active = quests.active || [];
+  const completable = quests.completable || [];
+
+  if (active.length === 0 && completable.length === 0) {
+    return (
+      <div className="m-sheet-empty">
+        <p className="m-hint">{npcName} 当前没有进行中的任务。</p>
+        <p className="m-hint">与大臣对话达成约定后，任务将自动记录在此处。</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="m-quest-list">
+      {completable.length > 0 && (
+        <div className="m-quest-section">
+          <h4 className="m-quest-section-title">可完成 ({completable.length})</h4>
+          {completable.map((pq) => (
+            <div key={pq.id} className="m-card m-quest-card m-quest-card-completable">
+              <div className="m-quest-header">
+                <span className="m-quest-title">{pq.title || pq.quest_key}</span>
+                <span className="m-quest-badge tone-success">可完成</span>
+              </div>
+              <div className="m-quest-progress">
+                <span>进度 {pq.progress_current}/{pq.progress_target}</span>
+              </div>
+              <div className="m-quest-acts">
+                <button className="m-mini m-mini-complete">完成任务</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {active.length > 0 && (
+        <div className="m-quest-section">
+          <h4 className="m-quest-section-title">进行中 ({active.length})</h4>
+          {active.map((pq) => (
+            <div key={pq.id} className="m-card m-quest-card">
+              <div className="m-quest-header">
+                <span className="m-quest-title">{pq.title || pq.quest_key}</span>
+                <span className={`m-quest-status tone-${pq.status === "active" ? "info" : "warn"}`}>
+                  {pq.status === "active" ? "进行中" : pq.status}
+                </span>
+              </div>
+              <div className="m-quest-progress">
+                <span>进度 {pq.progress_current}/{pq.progress_target}</span>
+                <div className="m-quest-progress-bar">
+                  <div
+                    className="m-quest-progress-fill"
+                    style={{ width: `${Math.min(100, (pq.progress_current / pq.progress_target) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="m-hint" style={{ margin: "12px 4px 4px" }}>
+        继续与{npcName}对话推进任务进度。条件达成后任务将自动完成。
+      </p>
+    </div>
+  );
 }

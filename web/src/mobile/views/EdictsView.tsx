@@ -11,6 +11,8 @@ import {
 } from "../api";
 import type { AudienceLead, DirectiveLifecycle, InterventionEffect, Suggestion } from "../api";
 import { usePerson } from "../personCtx";
+import { MilestoneProgress } from "./MilestoneProgress";
+import { AssignmentHallView, MeritLedgerView, PetitionsView } from "./AssignmentViews";
 
 const STATUS_CN: Record<string, string> = {
   in_transit: "送达中", executing: "承办中", stalled: "封驳停摆", done: "已复命", aborted: "已收回",
@@ -234,7 +236,7 @@ function DirectiveCard({ d, today, onActed, ministers, activeMinisters, summon }
         </div>
       )}
       {live && (
-        <div className="m-prog-track"><span className="m-prog-fill" style={{ width: `${d.progress}%` }} /></div>
+        <MilestoneProgress progress={d.progress} milestones={d.milestones} overdue={overdue} />
       )}
       {followupActions.length > 0 && (
         <div className="m-followup-action" aria-label="复命追问状态">
@@ -472,6 +474,7 @@ function Composer({ onDone }: { onDone: () => void }) {
 
 export function EdictsView({ summon }: { summon?: SummonAudience }) {
   const { lifecycle, time, state, refresh } = useGame();
+  const [sub, setSub] = useState<"edicts" | "hall" | "merit" | "petitions">("edicts");
   const today = time?.current_day ?? 0;
   const ministers = (state?.ministers || []).filter((m: any) => m.status === "active");
   const activeMinisters = new Set(ministers.map((m: any) => String(m.name || "")).filter(Boolean));
@@ -492,6 +495,16 @@ export function EdictsView({ summon }: { summon?: SummonAudience }) {
 
   return (
     <div className="m-view m-edicts">
+      <div className="m-subtabs">
+        {([["edicts", "旨意"], ["hall", "差使大厅"], ["merit", "功过册"], ["petitions", "奏请"]] as const).map(([k, label]) => (
+          <button key={k} className={sub === k ? "active" : ""} onClick={() => setSub(k)}>{label}</button>
+        ))}
+      </div>
+      {sub === "hall" && <AssignmentHallView />}
+      {sub === "merit" && <MeritLedgerView />}
+      {sub === "petitions" && <PetitionsView />}
+      {sub === "edicts" && (
+      <>
       <section className="m-card m-card-hero">
         <h2 className="m-card-title">草案待颁（{drafts.length}）</h2>
         {drafts.length === 0 ? (
@@ -550,6 +563,8 @@ export function EdictsView({ summon }: { summon?: SummonAudience }) {
             />
           ))}
         </>
+      )}
+      </>
       )}
     </div>
   );

@@ -67,6 +67,21 @@ def ensure_upgrade_schema(db: "GameDB") -> None:
         CREATE INDEX IF NOT EXISTS idx_report_entity
             ON report_ledger(entity_kind, entity_id, field);
 
+        -- P1.3 办差功过册 · 赏罚兑现日志（append-only）：皇帝据功过册对某官员的奖/罚动作
+        CREATE TABLE IF NOT EXISTS merit_actions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            minister_name TEXT NOT NULL,
+            kind TEXT NOT NULL,             -- reward | punish
+            tier TEXT NOT NULL,             -- reward: merit_mark/raise/promote; punish: reprimand/fine/demote
+            reason TEXT NOT NULL DEFAULT '',
+            effects_json TEXT NOT NULL DEFAULT '{}',
+            turn INTEGER NOT NULL DEFAULT 0,
+            day INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_merit_actions_minister
+            ON merit_actions(minister_name, kind, id);
+
         -- S4 奏疏流：御案系统
         CREATE TABLE IF NOT EXISTS memorials (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -180,6 +195,10 @@ def ensure_upgrade_schema(db: "GameDB") -> None:
         # 主线程 drain_pending_outcomes 落库。outcome_status: ''→extracted→applied。
         "outcome_delta": "TEXT NOT NULL DEFAULT ''",       # worker 暂存的单诏抽取结果 JSON
         "outcome_status": "TEXT NOT NULL DEFAULT ''",      # ''(未到期/旧档)|extracted|applied
+        # 差使大厅（P0）：入口分类维度。assignment_kind 标明差使来源；
+        # source_petition_id 指向由 NPC 奏请转化而来的 player_quests.id（0=非奏请）。
+        "assignment_kind": "TEXT NOT NULL DEFAULT 'edict'",
+        "source_petition_id": "INTEGER NOT NULL DEFAULT 0",
     }.items():
         db.ensure_column("turn_directives", column, definition)
 

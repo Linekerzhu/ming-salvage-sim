@@ -409,6 +409,7 @@ def init_directive_lifecycles(db: GameDB, state: GameState, directives, day: int
             tlog(f"[policy] 国策标注失败，跳过：#{did} {exc}")
         eta = int(day) + int(plan["lead_days"]) + int(plan["exec_days"])
         initial_status = "executing" if int(plan["lead_days"]) <= 0 else "in_transit"
+        milestones = _generate_milestones(str(plan["category"]), int(plan["exec_days"]))
         db.conn.execute(
             """UPDATE turn_directives SET lifecycle_status=?, category=?,
                progress=0, lead_days=?, exec_days=?, start_day=?, eta_day=?,
@@ -427,7 +428,8 @@ def init_directive_lifecycles(db: GameDB, state: GameState, directives, day: int
                          "timing_profile": str(plan.get("timing_profile") or "administrative"),
                          "timing_note": str(plan.get("timing_note") or ""),
                          "policy_doctrine": policy_doctrine,
-                         "score_bonus": int(plan.get("score_bonus") or 0)}, ensure_ascii=False),
+                         "score_bonus": int(plan.get("score_bonus") or 0),
+                         "milestones": milestones}, ensure_ascii=False),
              did),
         )
         # 崇祯陷阱被动信号（S5）：严谴问罪之旨，百官自动更新「任事有多危险」的先验
@@ -1391,6 +1393,144 @@ def _apply_execution_consequence(db: GameDB, state: GameState, meta: Dict[str, o
     state.metrics["民心"] = max(0, before - max(1, round(shortfall / 20)))
 
 
+def _command_deadline_day(row, meta: Dict[str, object]) -> int:
+    """皇帝钦定限期的绝对日（玩家自定 deadline_days 或旨意正文 explicit_deadline_days）。0=无钦定期。"""
+    start = int(row["start_day"] or 0)
+    player_dl = int(meta.get("player_deadline_days") or 0)
+    explicit_dl = int(meta.get("explicit_deadline_days") or 0)
+    cmd = player_dl or explicit_dl
+    return start + cmd if cmd else 0
+
+
+def _unmet_dependencies(db: GameDB, meta: Dict[str, object]) -> List[int]:
+    """P2.1：返回尚未 done 的依赖 directive_id 列表（空=无依赖或已满足）。"""
+    deps = meta.get("depends_on")
+    if not isinstance(deps, list) or not deps:
+        return []
+    unmet: List[int] = []
+    placeholders = ",".join("?" for _ in deps)
+    rows = db.conn.execute(
+        f"SELECT id, lifecycle_status FROM turn_directives WHERE id IN ({placeholders})",
+        [int(d) for d in deps],
+    ).fetchall()
+    done = {int(r["id"]) for r in rows if str(r["lifecycle_status"]) == "done"}
+    for d in deps:
+        if int(d) not in done:
+            unmet.append(int(d))
+    return unmet
+
+
+# ── P1.4 多阶段里程碑 ────────────────────────────────────────────────────────
+# 类别 → 阶段标签（flavor）。首段隐含 0%（启程/颁行），末段固定 100%（复命）。
+_STAGE_TEMPLATES: Dict[str, List[str]] = {
+    "fiscal_allocation": ["钱粮征解", "解部", "入库"],
+    "tax_reform": ["清丈", "造册", "征解"],
+    "relief": ["拨银", "赈发", "安抚"],
+    "military_ops": ["调兵", "布防", "进剿"],
+    "audit_purge": ["查账", "追赃", "具奏"],
+    "personnel": ["逮问", "审讯", "定罪"],
+    "construction": ["备料", "兴工", "竣修"],
+    "diplomacy": ["遣使", "谈判", "复命"],
+    "secret_investigation": ["布线", "取证", "回奏"],
+}
+_STAGE_GENERIC = ["勘查", "议办", "施行"]
+
+
+def _generate_milestones(category_id: str, exec_days: int) -> List[Dict[str, object]]:
+    """按类别+工期生成阶段里程碑。短差使 2 段、中 3 段、长 4 段；末段阈值固定 100（复命）。"""
+    labels = list(_STAGE_TEMPLATES.get(category_id) or _STAGE_GENERIC)
+    # 工期决定分段数：<15日 2段（首+复命），15-40 3段（+1中段），>40 4段（+2中段）
+    if exec_days <= 15:
+        stages = [labels[0]] if labels else ["承办"]
+    elif exec_days <= 40:
+        stages = labels[:2]
+    else:
+        stages = labels[:3]
+    stages = stages + ["复命"]
+    # 阈值均匀分布：N 段 → 首段 1/(N+1)…，末段 100
+    n = len(stages)
+    return [
+        {
+            "key": f"stage_{i}",
+            "label": stages[i],
+            "threshold": round(100 * (i + 1) / n) if i < n - 1 else 100,
+            "status": "pending",
+            "completed_day": 0,
+        }
+        for i in range(n)
+    ]
+
+
+def _check_milestone_progress(
+    db: GameDB, state: GameState, *, did: int, assignee: str, text: str,
+    meta: Dict[str, object], progress: int,
+    day: int, events: List[Dict[str, object]],
+) -> None:
+    """P1.4：进度越过阶段阈值时标记完成 + 发阶段性复命事件（中途旬报）。"""
+    milestones = meta.get("milestones")
+    if not isinstance(milestones, list) or not milestones:
+        return
+    title_text = text[:20]
+    changed = False
+    for ms in milestones:
+        if not isinstance(ms, dict) or str(ms.get("status")) == "done":
+            continue
+        if progress >= int(ms.get("threshold") or 100):
+            ms["status"] = "done"
+            ms["completed_day"] = int(day)
+            changed = True
+            label = str(ms.get("label") or "阶段")
+            is_final = int(ms.get("threshold") or 0) >= 100
+            if not is_final:   # 最终复命事件由既有的 directive_done 发出，不重复
+                events.append({
+                    "level": LEVEL_BLUE, "kind": "directive_milestone",
+                    "title": f"〔{title_text}〕{label}阶段复命",
+                    "detail": f"{assignee}奏称「{label}」已办讫，转入下一段承办。",
+                    "ref_kind": "directive", "ref_id": str(did), "day": day,
+                })
+    if changed:
+        _save_chain_meta(db, did, meta)
+
+
+def _apply_overdue_consequence(
+    db: GameDB, state: GameState, row, meta: Dict[str, object],
+    day: int, events: List[Dict[str, object]],
+) -> Dict[str, object]:
+    """P1.2b：钦定期已过仍未结的在办旨意，每旬自动追责（怨气/信任/势）。
+
+    仅对有钦定期（玩家自定或旨意正文）且 day 已过限期的在办旨意生效；每旬（10日）一次，
+    后果随逾期旬数递增。返回更新后的 meta（chain 已落库）。零 LLM。
+    """
+    did = int(row["id"])
+    deadline_day = _command_deadline_day(row, meta)
+    if not deadline_day or day <= deadline_day:
+        return meta
+    last = int(meta.get("overdue_consequence_day") or 0)
+    if last and day - last < 10:   # 每旬一次
+        return meta
+    meta["overdue_consequence_day"] = int(day)
+    deca = int(meta.get("overdue_deca_count") or 0) + 1
+    meta["overdue_deca_count"] = deca
+    assignee = str(row["assignee"] or "")
+    g_delta = 2 + (deca - 1)       # 第1旬+2，第2旬+3…
+    t_delta = -(2 + (deca - 1))
+    if assignee:
+        db.conn.execute(
+            "UPDATE characters SET grievance=MIN(100, grievance+?), "
+            "emp_trust=MAX(0, emp_trust+?) WHERE name=?",
+            (g_delta, t_delta, assignee))
+    adjust_belief(db, KV_SHI, -1, f"旨意#{did}逾期未结（第{deca}旬）", day=day)
+    _save_chain_meta(db, did, meta)
+    title_text = str(row["text"] or "")[:24]
+    events.append({
+        "level": LEVEL_YELLOW, "kind": "directive_overdue",
+        "title": f"〔{title_text}〕逾期未结",
+        "detail": f"钦定期已过{deca}旬仍无复命。{assignee}怨望益深，君威有损。可申饬追责或宽限。",
+        "ref_kind": "directive", "ref_id": str(did), "day": day,
+    })
+    return meta
+
+
 def tick_directives(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]]:
     """日推进：送达→执行；执行中按日涨进度；逢旬（每10日）做执行检定。
     返回 timeflow 事件 dict 列表。"""
@@ -1404,6 +1544,9 @@ def tick_directives(db: GameDB, state: GameState, day: int) -> List[Dict[str, ob
         start_day = int(row["start_day"])
         lead = int(row["lead_days"])
         meta = _chain_meta(row)
+
+        # P1.2b：钦定期逾期的自动追责（每旬一次，对所有在办状态生效）
+        meta = _apply_overdue_consequence(db, state, row, meta, day, events)
 
         if status == "in_transit":
             if day >= start_day + lead:
@@ -1441,6 +1584,26 @@ def tick_directives(db: GameDB, state: GameState, day: int) -> List[Dict[str, ob
                                     (json.dumps(stall_meta, ensure_ascii=False), did))
             continue
 
+        # P1.5：常驻差使（posting）已完成送达转换，但不参与进度推进/结案——月度由 posting_monthly_tick 驱动
+        if str(row["assignment_kind"] or "") == "posting":
+            continue
+
+        # P2.1：依赖未满足时冻结进度推进（不发旬检定），依赖清则一次性解冻事件
+        unmet_deps = _unmet_dependencies(db, meta)
+        if unmet_deps:
+            if not meta.get("deps_blocked"):
+                meta["deps_blocked"] = True
+                _save_chain_meta(db, did, meta)
+            continue
+        if meta.get("deps_blocked"):
+            meta.pop("deps_blocked", None)
+            title_text = str(row["text"] or "")[:24]
+            events.append({"level": LEVEL_BLUE, "kind": "directive_unblocked",
+                           "title": f"〔{title_text}〕前置已办，解冻承办",
+                           "detail": f"所待前置差使已复命，本旨转入承办。",
+                           "ref_kind": "directive", "ref_id": str(did), "day": day})
+            _save_chain_meta(db, did, meta)
+
         # executing：按「剩余进度/剩余天数」自校正推进——
         # 工期中途延长（delay/surprise）自动摊薄、干预加成自动提前、
         # 提前颁诏跳日后自动追平，完成日与 eta_day 严格对齐（审计修复 P2-1）。
@@ -1453,6 +1616,12 @@ def tick_directives(db: GameDB, state: GameState, day: int) -> List[Dict[str, ob
         else:
             progress = min(100, old_progress + max(1, round((100 - old_progress) / remaining_days)))
         db.conn.execute("UPDATE turn_directives SET progress=? WHERE id=?", (progress, did))
+
+        # P1.4：进度越过阶段阈值 → 标记里程碑 + 阶段性复命事件
+        _check_milestone_progress(
+            db, state, did=did, assignee=str(row["assignee"] or ""),
+            text=str(row["text"] or ""), meta=meta, progress=progress, day=day, events=events,
+        )
 
         # 旬检定（执行期内每满10天一次；完成日不再检）
         days_in_exec = day - start_day - lead
@@ -1558,11 +1727,13 @@ def tick_directives(db: GameDB, state: GameState, day: int) -> List[Dict[str, ob
 # ── 玩家中途干预 ─────────────────────────────────────────────────────────────
 
 def intervene(db: GameDB, state: GameState, directive_id: int, action: str,
-              *, day: int, new_assignee: str = "", fund: int = 0) -> Dict[str, object]:
+              *, day: int, new_assignee: str = "", fund: int = 0,
+              severity: str = "") -> Dict[str, object]:
     """执行中旨意干预。
 
     常规：催办 cuiban / 换人 reassign / 加拨 fund / 独断 ducai / 收回 abort。
     阻力线索：协调 bargain_blocker / 申饬 pressure_blocker。
+    逾期追责（P1.2c）：reprimand_overdue（severity=reprimand/fine/demote，须该旨意已逾期）。
     """
     row = db.conn.execute("SELECT * FROM turn_directives WHERE id=?", (int(directive_id),)).fetchone()
     if row is None or str(row["lifecycle_status"]) not in LIVE_STATUSES:
@@ -1756,6 +1927,53 @@ def intervene(db: GameDB, state: GameState, directive_id: int, action: str,
             _effect("任事观望 +2", "bad"),
         ]
         msg = "收回成命。诏令反复，势有所损，百官益发观望。"
+    elif action == "reprimand_overdue":
+        # P1.2c：逾期追责。须该旨意已过钦定期；severity=reprimand/fine/demote。
+        deadline_day = _command_deadline_day(row, meta)
+        if not deadline_day:
+            return {"ok": False, "message": "该旨意无钦定期，无从追责逾期。"}
+        if day <= deadline_day:
+            return {"ok": False, "message": "该旨意尚未逾期，不可追责。"}
+        sev = (severity or "reprimand").strip()
+        if sev not in ("reprimand", "fine", "demote"):
+            return {"ok": False, "message": f"未知追责力度：{severity}（reprimand/fine/demote）"}
+        if not assignee:
+            return {"ok": False, "message": "该旨意无主办可追责。"}
+        deca = int(meta.get("overdue_deca_count") or 1)
+        if sev == "reprimand":       # 申饬
+            g, t, shi, ra = 8, -3, +1, +1
+            label_cn = "申饬"
+            detail = "御前申饬，主办惶恐，君威小振。"
+        elif sev == "fine":          # 罚俸
+            g, t, shi, ra = 10, -5, +1, +1
+            fine_silver = 5
+            db.record_issue_economy_move(state, "国库", +fine_silver, "罚俸", f"旨意#{did}逾期罚俸")
+            label_cn = "罚俸"
+            detail = f"罚俸{fine_silver}万两入国库，主办肉疼。"
+        else:                        # 降黜
+            g, t, shi, ra = 15, -15, +2, +2
+            meta["pending_demote"] = {"assignee": assignee, "day": int(day), "reason": f"旨意#{did}逾期{deca}旬"}
+            label_cn = "降黜"
+            detail = "御批降黜，主办信任崩塌，百官震怖。可后续正式改授（人事）。"
+        db.conn.execute(
+            "UPDATE characters SET grievance=MIN(100, grievance+?), "
+            "emp_trust=MAX(0, emp_trust+?) WHERE name=?",
+            (g, t, assignee))
+        adjust_belief(db, KV_SHI, shi, f"逾期{label_cn}（差使#{did}）", day=day)
+        adjust_belief(db, KV_RISK_AVERSION, ra, f"逾期{label_cn}（差使#{did}）", day=day)
+        meta["last_reprimand"] = {"severity": sev, "label": label_cn, "day": int(day), "deca": deca}
+        _save_chain_meta(db, did, meta)
+        effects = [
+            _effect(f"{assignee}怨气 +{g}", "bad"),
+            _effect(f"{assignee}信任 {t}", "bad"),
+            _effect(f"势 +{shi}", "good"),
+            _effect(f"任事观望 +{ra}", "bad"),
+        ]
+        if sev == "fine":
+            effects.append(_effect("国库 +5万", "good"))
+        if sev == "demote":
+            effects.append(_effect("候降黜（人事后续）", "bad"))
+        msg = f"逾期{deca}旬，御批{label_cn}。{detail}"
     else:
         return {"ok": False, "message": f"未知处置：{action}"}
     db.conn.commit()
@@ -1829,6 +2047,31 @@ def _intervention_options(db: GameDB, row, meta: Dict[str, object]) -> List[Dict
             tone="danger",
         ),
     ]
+
+    # P1.2c：逾期追责——仅当有钦定期且已逾期时露出（申饬/罚俸/降黜三档）
+    deadline_day = _command_deadline_day(row, meta)
+    if deadline_day:
+        today = kv_int(db, KV_CURRENT_DAY, 1)
+        if today > deadline_day:
+            options.append(_intervention_option(
+                "reprimand_overdue", "逾期追责·申饬",
+                [_effect("主办怨气 +8", "bad"), _effect("主办信任 -3", "bad"),
+                 _effect("势 +1", "good"), _effect("任事观望 +1", "bad")],
+                tone="danger",
+            ))
+            options.append(_intervention_option(
+                "reprimand_overdue", "逾期追责·罚俸",
+                [_effect("主办怨气 +10", "bad"), _effect("主办信任 -5", "bad"),
+                 _effect("国库 +5万", "good"), _effect("势 +1", "good"), _effect("任事观望 +1", "bad")],
+                tone="danger",
+                # 罚俸走 severity=fine，前端按 action+severity 调用
+            ))
+            options.append(_intervention_option(
+                "reprimand_overdue", "逾期追责·降黜",
+                [_effect("主办怨气 +15", "bad"), _effect("主办信任 -15", "bad"),
+                 _effect("势 +2", "good"), _effect("任事观望 +2", "bad"), _effect("候降黜", "bad")],
+                tone="danger",
+            ))
 
     clue = _blocker_clue(meta)
     label = _blocker_label(clue)
@@ -1920,6 +2163,9 @@ def lifecycle_payload(db: GameDB, *, include_done: bool = True, limit: int = 40)
             "blocker_action": meta.get("last_blocker_action") if isinstance(meta.get("last_blocker_action"), dict) else {},
             "followup_action": meta.get("last_followup_action") if isinstance(meta.get("last_followup_action"), dict) else {},
             "followup_history": _followup_history(meta),
+            "milestones": meta.get("milestones") if isinstance(meta.get("milestones"), list) else [],
+            "depends_on": meta.get("depends_on") if isinstance(meta.get("depends_on"), list) else [],
+            "deps_blocked": bool(meta.get("deps_blocked")),
             "policy_doctrine": meta.get("policy_doctrine") if isinstance(meta.get("policy_doctrine"), dict) else {},
             "statecraft_preflight": statecraft_preflight,
             "reported_rate": int(row["integrity_reported"]),

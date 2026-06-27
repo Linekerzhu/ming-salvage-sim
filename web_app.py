@@ -9858,6 +9858,14 @@ def _max_concurrent_turn_resolutions() -> int:
 
 app = FastAPI(title="Ming Salvage MVP Web")
 
+# 注册任务系统路由（quest_* 已软重定位为 NPC 奏请；旧路由保留过渡）
+from ming_sim.quest_api import register_quest_routes
+register_quest_routes(app, lambda: get_game().db)
+
+# 注册差使大厅 + NPC 奏请路由（玩家给 NPC 的任务统一入口）
+from ming_sim.assignment_api import register_assignment_routes
+register_assignment_routes(app, lambda: get_game().db)
+
 
 _GZIP_SKIP_PATH_SUFFIXES = (
     ".avif",

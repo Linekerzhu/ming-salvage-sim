@@ -1615,7 +1615,46 @@ def record_dialogue_effects(
         agreement_id=agreement_id,
         source_chat_turn_id=source_chat_turn_id,
     )
-    return {
+
+    # 任务系统整合：当对话握手 sealed 时创建任务
+    quest_result = None
+    if handshake_status == HANDSHAKE_SEALED and goal:
+        try:
+            # 御前与该大臣达成承办约定 → 落一道「召对交办」差使（统一入口 issue_assignment）。
+            # 旧路径 create_quest_from_dialogue（NPC→玩家 RPG 任务）方向反了，已废弃。
+            from ming_sim.assignment import issue_assignment
+            from ming_sim.upgrade_schema import KV_CURRENT_DAY, kv_int
+
+            topic = str(goal.get("target_text") or goal.get("title") or post.target_text or "奏对承办约定")
+            tasks = [str(t) for t in (post.tasks or []) if str(t).strip()]
+            assign_text = topic if not tasks else f"{topic}（承办：{'；'.join(tasks[:3])}）"
+            assign_result = issue_assignment(
+                db, state,
+                kind="audience_commission",
+                text=assign_text[:200],
+                actor=str(character.name),
+                day=kv_int(db, KV_CURRENT_DAY, 1),
+                source_context={
+                    "minister": str(character.name),
+                    "agreement_id": agreement_id,
+                    "action_kind": str(goal.get("action_kind") or post.action_kind),
+                    "core_topic": str(goal.get("title") or post.title),
+                },
+                source_tag="audience_handshake",
+            )
+            quest_result = {
+                "assignment_id": assign_result.get("id"),
+                "assignment_kind": "audience_commission",
+                "entry_label": assign_result.get("entry_label"),
+                "assignee": assign_result.get("assignee"),
+                "eta_day": assign_result.get("eta_day"),
+            }
+        except Exception as e:
+            # 差使创建失败不应阻塞对话记录
+            import logging
+            logging.warning(f"Failed to create assignment from dialogue: {e}")
+
+    result = {
         "audit_status": "recorded",
         "goal": goal,
         "stance_id": stance_id,
@@ -1629,6 +1668,12 @@ def record_dialogue_effects(
         "public_hint": post.public_hint,
         "audit_confidence": post.confidence,
     }
+
+    # 将任务结果附加到返回值
+    if quest_result:
+        result["quest_created"] = quest_result
+
+    return result
 
 
 def review_conversation_goals(
