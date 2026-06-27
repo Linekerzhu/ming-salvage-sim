@@ -63,6 +63,11 @@ RECOVERABLE_ACTIONS = {
     "bao_leverage",
 }
 
+# 模块级 compiled regex：_quote_supported_by_text 每次调用都重新编译同一组
+# pattern（Python 内部 LRU 缓存 512 条但仍需查表）；模块级常量消除该开销。
+_WHITESPACE_RE = re.compile(r"\s+")
+_NON_WORD_RE = re.compile(r"[\W_]+", flags=re.UNICODE)
+
 
 def _compact(value: object, limit: int = 240) -> str:
     return " ".join(str(value or "").strip().split())[:limit]
@@ -87,16 +92,16 @@ def _disabled_env(name: str) -> bool:
 
 
 def _quote_supported_by_text(quote: str, text: str) -> bool:
-    clean_quote = re.sub(r"\s+", "", str(quote or ""))
+    clean_quote = _WHITESPACE_RE.sub("", str(quote or ""))
     if not clean_quote:
         return False
-    clean_text = re.sub(r"\s+", "", str(text or ""))
+    clean_text = _WHITESPACE_RE.sub("", str(text or ""))
     if clean_text and clean_quote in clean_text:
         return True
-    normalized_quote = re.sub(r"[\W_]+", "", str(quote or ""), flags=re.UNICODE)
+    normalized_quote = _NON_WORD_RE.sub("", str(quote or ""))
     if not normalized_quote:
         return False
-    normalized_text = re.sub(r"[\W_]+", "", str(text or ""), flags=re.UNICODE)
+    normalized_text = _NON_WORD_RE.sub("", str(text or ""))
     return bool(normalized_text and normalized_quote in normalized_text)
 
 
@@ -198,6 +203,9 @@ class SemanticDecision:
     private_reason: str = ""
     public_hint: str = ""
     raw: Dict[str, Any] = field(default_factory=dict)
+    # 缓存 accepted_task_risk_profile 的计算结果，避免 from_action_review 与
+    # to_review 各算一次（同一 decision 上 risk_profile 不变）。
+    _cached_risk_profile: Optional[Dict[str, Any]] = None
 
     @property
     def allow(self) -> bool:
@@ -252,6 +260,7 @@ class SemanticDecision:
             private_reason=_compact(review.get("private_reason") or review.get("reason"), 520),
             public_hint=_compact(review.get("public_hint"), 180),
             raw=dict(review),
+            _cached_risk_profile=profile or None,
         )
 
     @classmethod
@@ -475,11 +484,14 @@ class SemanticDecision:
         for key in ("character_status_changes", "condition_changes", "punishment_changes"):
             if key in self.payload:
                 data[key] = self.payload[key]
-        raw_profile = self.raw.get("task_risk_profile") if isinstance(self.raw, dict) else {}
-        profile = accepted_task_risk_profile(
-            self.payload.get("task_risk_profile") or raw_profile,
-            actor=self.actor or self.target,
-        )
+        # 复用 from_action_review 已缓存的 risk_profile，避免重复 normalize
+        profile = self._cached_risk_profile
+        if profile is None:
+            raw_profile = self.raw.get("task_risk_profile") if isinstance(self.raw, dict) else {}
+            profile = accepted_task_risk_profile(
+                self.payload.get("task_risk_profile") or raw_profile,
+                actor=self.actor or self.target,
+            )
         if profile:
             data["task_risk_profile"] = profile
             data["payload"] = dict(data.get("payload") or {})
@@ -926,7 +938,7 @@ class DialogueSemanticEngine:
         )
         if not decision.allow:
             return []
-        candidates = [_compact(name, 80) for name in (candidate_names or []) if _compact(name, 80)]
+        candidates = [c for name in (candidate_names or []) if (c := _compact(name, 80))]
         return [name for name in decision.payload.get("accepted_names", []) if name in candidates]
 
     def evaluate_unknown_mentions_decision(
@@ -939,7 +951,7 @@ class DialogueSemanticEngine:
     ) -> SemanticDecision:
         if not self._mention_available() or not candidate_names:
             return SemanticDecision.none("未知人物审计不可用。")
-        candidates = [_compact(name, 80) for name in (candidate_names or []) if _compact(name, 80)]
+        candidates = [c for name in (candidate_names or []) if (c := _compact(name, 80))]
         if not candidates:
             return SemanticDecision.none("无未知人物候选。")
         if self.audit_client is not None:
@@ -985,7 +997,7 @@ class DialogueSemanticEngine:
     ) -> List[str]:
         if not self._lore_available() or not candidate_names:
             return []
-        candidates = [_compact(name, 80) for name in (candidate_names or []) if _compact(name, 80)]
+        candidates = [c for name in (candidate_names or []) if (c := _compact(name, 80))]
         if not candidates:
             return []
         if self.audit_client is not None:

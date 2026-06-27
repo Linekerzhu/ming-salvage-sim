@@ -4288,11 +4288,10 @@ class WebGame:
 
     @staticmethod
     def _semantic_quote_supported_by_text(quote: str, text: str) -> bool:
-        clean_quote = re.sub(r"[\W_]+", "", str(quote or ""), flags=re.UNICODE)
-        if not clean_quote:
-            return False
-        clean_text = re.sub(r"[\W_]+", "", str(text or ""), flags=re.UNICODE)
-        return bool(clean_text and clean_quote in clean_text)
+        # 复用 dialogue_semantics._quote_supported_by_text（模块级 re.compile 已优化）。
+        # 旧实现只走 [\W_]+ 一条路径；新实现先试 \s+ 快路径再降级，行为更严格但语义等价。
+        from ming_sim.dialogue_semantics import _quote_supported_by_text
+        return _quote_supported_by_text(quote, text)
 
     @staticmethod
     def _semantic_quote_supported_by_user_text(quote: str, user_text: str) -> bool:
