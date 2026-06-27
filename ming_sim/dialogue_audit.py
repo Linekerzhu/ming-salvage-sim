@@ -945,9 +945,10 @@ def _clear_context_cache() -> None:
 
 
 def _context_payload(db: Any, state: GameState, character: Character, *, active_goal: Optional[Dict[str, object]] = None) -> Dict[str, object]:
-    # 单轮 memoization：同 (character.name, state.turn) 的 payload 不含 per-call
-    # active_goal——缓存 base payload，每次调用覆盖 active_goal 字段后返回。
-    cache_key = (str(getattr(character, "name", "")), int(getattr(state, "turn", 0) or 0))
+    # 单轮 memoization：同 (db identity, character.name, state.turn) 的 payload 不含
+    # per-call active_goal——缓存 base payload，每次调用覆盖 active_goal 字段后返回。
+    # db identity 用 id(db) 避免不同 GameDB 实例（测试场景）串读同一缓存条目。
+    cache_key = (id(db), str(getattr(character, "name", "")), int(getattr(state, "turn", 0) or 0))
     cached = _CONTEXT_CACHE.get(cache_key)
     if cached is not None:
         result = dict(cached)

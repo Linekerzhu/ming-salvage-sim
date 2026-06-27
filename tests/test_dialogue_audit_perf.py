@@ -12,7 +12,7 @@ from tempfile import TemporaryDirectory
 from ming_sim.content import GameContent
 from ming_sim.db import GameDB
 from ming_sim import timeflow
-from ming_sim.dialogue_audit import _context_payload
+from ming_sim.dialogue_audit import _clear_context_cache, _context_payload
 from ming_sim.quest_db import apply_quest_schema
 
 
@@ -28,6 +28,13 @@ def _fresh(tmp: str):
 
 class ContextPayloadMemoizationTests(unittest.TestCase):
     """_context_payload 单轮 memoization：同 (character, turn) 命中缓存。"""
+
+    def setUp(self):
+        # 跨测试清缓存：不同测试可能用相同 character_name + turn，缓存会串读。
+        _clear_context_cache()
+
+    def tearDown(self):
+        _clear_context_cache()
 
     def test_same_character_same_turn_cached(self):
         with TemporaryDirectory() as tmp:
@@ -99,6 +106,12 @@ class CombinedIntentAuditTests(unittest.TestCase):
     响应 combined_intent phase 时正确返回；以及 evaluate_combined_intent 在
     无 audit_client + 有 LLM 配置时走合并路径。
     """
+
+    def setUp(self):
+        _clear_context_cache()
+
+    def tearDown(self):
+        _clear_context_cache()
 
     def test_combined_audit_returns_route_when_fake_responds(self):
         """audit_client 响应 combined_intent phase → 直接返 route 决策。"""
@@ -183,6 +196,12 @@ class CombinedIntentAuditTests(unittest.TestCase):
 class CombinedPostChatAuditTests(unittest.TestCase):
     """合并 post_chat 5 类审计：dialogue_combined_post_audit 函数本身正确性。
     evaluate_post_chat 在生产路径（无 audit_client）走合并；注入时回退串行。"""
+
+    def setUp(self):
+        _clear_context_cache()
+
+    def tearDown(self):
+        _clear_context_cache()
 
     def test_combined_post_returns_directive_pressure(self):
         """audit_client 响应 combined_post phase → 正确返回 directive_pressure 决策。"""
