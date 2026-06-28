@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# pre-commit hook：提交前快速检查，防明显错误入库。
+# 不跑全量测试（太慢）——只跑 tsc（类型安全）和 import 检查。
+# 全量测试由 CI 在 PR 时跑。
+set -euo pipefail
+
+echo "🔍 pre-commit: tsc --noEmit ..."
+if [ -f web/tsconfig.json ]; then
+    cd web
+    if ! npx tsc --noEmit 2>&1; then
+        echo "❌ TypeScript 类型检查失败，修复后再提交。"
+        exit 1
+    fi
+    cd ..
+fi
+
+echo "🔍 pre-commit: Python syntax check (py_compile) ..."
+STAGED_PY=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
+if [ -n "$STAGED_PY" ]; then
+    if ! echo "$STAGED_PY" | xargs -I{} python3 -m py_compile {} 2>&1; then
+        echo "❌ Python 语法错误，修复后再提交。"
+        exit 1
+    fi
+fi
+
+echo "✅ pre-commit checks passed."

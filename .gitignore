@@ -15,6 +15,7 @@ env/
 secrets/
 build
 dist
+
 # Logs and runtime files
 *.log
 logs/
@@ -25,15 +26,18 @@ data/
 *.sqlite
 *.sqlite3
 
+# Probe / bench run output（探针脚本 --out/--log 默认输出目录，每次运行重建）
+scripts/runs/
+
 # OS / editor noise
 .DS_Store
 Thumbs.db
+.vscode/
 
 # Local AI assistant workspace
 .claude/
 .codex/
 CLAUDE.md
-web/public/portraits/_original_before_cutout
 
 # Test / tooling caches
 .pytest_cache/
@@ -42,13 +46,14 @@ web/public/portraits/_original_before_cutout
 .coverage
 htmlcov/
 output
+
 # Frontend
 web/node_modules/
 web/dist/
 web/tsconfig.tsbuildinfo
-.vscode/
 
 # Portrait local backups (rembg 抠图前的 RGB 原图，git 历史里有，无需入库)
+web/public/portraits/_original_before_cutout
 web/public/portraits/_backup_rgb/
 output/imagegen/bg_ending.png
 output/imagegen/ending_timeline_scroll.png

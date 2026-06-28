@@ -27,10 +27,29 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: Install Python dependencies
+      # 用 requirements.lock 安装（可复现），而非 requirements.txt（可能拉到新版）
+      - name: Install Python dependencies (from lockfile)
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          python -m pip install -r requirements.lock
+
+      # lockfile 新鲜度检查：requirements.txt 是 source-of-truth，lockfile 是派生产物。
+      # 若两者不同步（有人改了 requirements.txt 但没更新 lockfile），CI 报错提醒。
+      - name: Check lockfile freshness
+        run: |
+          python -m pip install pip-tools 2>/dev/null || true
+          # 简单检查：requirements.lock 里必须包含 requirements.txt 里每个直接依赖的包名
+          FAIL=0
+          for pkg in $(grep -vE '^\s*#|^\s*$' requirements.txt | sed 's/[><=,].*//; s/\[.*//'); do
+            if ! grep -qi "^${pkg}==" requirements.lock; then
+              echo "❌ ${pkg} 在 requirements.txt 但不在 requirements.lock — 请更新 lockfile（pip freeze > requirements.lock）"
+              FAIL=1
+            fi
+          done
+          if [ "$FAIL" = "1" ]; then
+            exit 1
+          fi
+          echo "✅ lockfile 与 requirements.txt 同步。"
 
       - name: Install frontend dependencies
         working-directory: web

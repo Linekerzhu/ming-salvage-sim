@@ -7,11 +7,13 @@
 ```bash
 # 后端（Python 3.11+）
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt        # 直接依赖（带上限）
-# 或装锁定版本：pip install -r requirements.lock
+pip install -r requirements.lock      # 用 lockfile 安装（可复现）
 
 # 前端
 cd web && npm install
+
+# Git hooks（pre-commit: tsc + py_compile；commit-msg: 格式检查）
+git config core.hooksPath .githooks
 
 # 跑测试（改动前必跑）
 .venv/bin/python -m pytest tests/ -q   # 当前 1074+ 测试须全绿

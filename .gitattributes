@@ -1,0 +1,29 @@
+# 行尾规范化：代码文件统一 LF（跨平台协作防 CRLF 污染），Windows 脚本保留 CRLF。
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制文件：不 diff、不 merge、不转换行尾。
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+
+# lockfile：merge 策略用 ours（接受本方，避免 lockfile 合并冲突——实际 lockfile
+# 由 pip freeze / npm ci 重新生成，合并语义上用 ours + re-freeze 更安全）。
+# diff driver 关闭（lockfile 的 diff 噪声大、无信息量）。
+requirements.lock merge=ours -diff
+package-lock.json merge=ours -diff
+
+# 大文件标记（供 LFS 或审查用——当前不用 LFS，但标记可被工具识别）。
+*.db filter=lfs diff=lfs merge=lfs -text
+*.sqlite filter=lfs diff=lfs merge=lfs -text
+*.sqlite3 filter=lfs diff=lfs merge=lfs -text
