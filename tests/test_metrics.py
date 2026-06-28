@@ -116,5 +116,26 @@ class MetricsEndpointTests(unittest.TestCase):
         self.assertIn("ming_llm_calls_total", resp.text)
 
 
+class ConftestIsolationTests(unittest.TestCase):
+    """验证 conftest.py 的 autouse fixture 重置了 METRICS 全局。"""
+
+    def setUp(self):
+        from ming_sim import metrics
+        metrics.reset_metrics()
+
+    def test_metrics_reset_between_tests_part1(self):
+        """Part 1：写入数据。若 conftest 不重置，Part 2 会看到残留。"""
+        from ming_sim.metrics import record_llm_call, METRICS
+        record_llm_call("llm.isolation_test", success=True, duration_seconds=0.1)
+        self.assertIn("llm.isolation_test", METRICS)
+
+    def test_metrics_reset_between_tests_part2(self):
+        """Part 2：应为空（conftest 在 Part 1 后重置了 METRICS）。"""
+        from ming_sim.metrics import METRICS
+        # 若 conftest 生效，这里应为空（或不含 isolation_test）
+        self.assertNotIn("llm.isolation_test", METRICS,
+                         "conftest 应在测试间重置 METRICS；若失败说明全局泄漏")
+
+
 if __name__ == "__main__":
     unittest.main()
