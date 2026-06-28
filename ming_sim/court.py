@@ -224,12 +224,17 @@ def agenda_of(db: GameDB, name: str) -> Optional[Dict[str, object]]:
             "status": str(row["status"]), "bargain": bargain}
 
 
-def favor_memories(db: GameDB, name: str, limit: int = 3) -> List[Dict[str, object]]:
-    """Recent soft hooks: imperial favors that should color future summons."""
-    try:
-        state = db.load_state()
-    except Exception:
-        state = GameState()
+def favor_memories(db: GameDB, name: str, limit: int = 3, *, current_turn: Optional[int] = None) -> List[Dict[str, object]]:
+    """Recent soft hooks: imperial favors that should color future summons.
+
+    current_turn: 显式传入可省一次 db.load_state() 全态读（热路径 _context_payload 已持有 state）。
+    """
+    if current_turn is None:
+        try:
+            state = db.load_state()
+            current_turn = int(state.turn)
+        except Exception:
+            current_turn = 0
     rows = db.conn.execute(
         """
         SELECT turn, year, period, title, cause, process, outcome, sentiment, importance, tags
@@ -241,7 +246,7 @@ def favor_memories(db: GameDB, name: str, limit: int = 3) -> List[Dict[str, obje
         ORDER BY importance DESC, turn DESC, id DESC
         LIMIT ?
         """,
-        (name, int(state.turn), max(1, min(8, int(limit or 3)))),
+        (name, int(current_turn), max(1, min(8, int(limit or 3)))),
     ).fetchall()
     out: List[Dict[str, object]] = []
     for row in rows:

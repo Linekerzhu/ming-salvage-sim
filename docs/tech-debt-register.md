@@ -7,7 +7,7 @@ Total items: 11 | Estimated total effort: ~2 L + 4 M + 5 S
 
 | ID | Category | Description | Files | Effort | Impact | Priority | Added |
 |----|----------|-------------|-------|--------|--------|----------|-------|
-| TD-001 | Architecture | 5 个 `quest_*` 遗留模块仍在仓库（已迁移到 petition，端点返回 410 Gone，但模块本体未删，属死代码） | ming_sim/quest_{api,db,loader,manager,refresh}.py | S | Med | 1 | 2026-06-27 |
+| TD-001 | Architecture | ~~5 个 `quest_*` 遗留模块仍在仓库（死代码）~~ **误报，已否决**：经核实 `quest_db.apply_quest_schema` 是 `player_quests`/`quests` 表的 schema 来源，被 `assignment.py`（生产）+ 6 个测试文件活跃引用；`quest_api.register_quest_routes` 仍在 `web_app.py` 注册。删除会断构建。正确归属：归入 召对/诏旨 子系统或正式登记为第 17 子系统。 | ming_sim/quest_{api,db,loader,manager,refresh}.py | — | — | — | 2026-06-27 |
 | TD-002 | Dependency | 全部 7 个依赖用 `>=` 无上限，0 个 `==` 锁定；`pip install` 可能拉到不兼容大版本 | requirements.txt | S | Med | 2 | 2026-06-27 |
 | TD-003 | Architecture | God module：`db.py` = 8701 行，远超 500 行阈值，全项目最大单体，改动风险大、难单测 | ming_sim/db.py | L | High | 3 | 2026-06-27 |
 | TD-004 | Architecture | `assignment.py` 残留 2 个 P1 TODO（posting 常驻差使 lead/exec 时序、密旨入口收敛） | ming_sim/assignment.py:122,1410-11 | M | Med | 4 | 2026-06-27 |

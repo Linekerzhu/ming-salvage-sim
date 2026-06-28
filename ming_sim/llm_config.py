@@ -232,3 +232,9 @@ def save_runtime_llm(
     }
     with open(RUNTIME_LLM_PATH, "w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False, indent=2)
+    # SEC-003: 该文件明文含 api_key，收紧文件权限为仅属主可读写。
+    try:
+        os.chmod(RUNTIME_LLM_PATH, 0o600)
+    except OSError:
+        # 某些文件系统（如 Windows）不支持 chmod 0600；写盘已成功，忽略。
+        pass

@@ -1166,7 +1166,8 @@ class SessionRecordDialogueAfterChatWrapperTests(unittest.TestCase):
 
 class HaremTickConsortLifecycleTests(unittest.TestCase):
     """harem.harem_tick 月度中枢：seed_static_data 默认有妃（周皇后等）。
-    验证：(1) 单次 tick 最多 1 个 event；(2) 同 day 二次 tick 幂等（不叠加 factions.leverage）。"""
+    验证：(1) 单次 tick 最多 1 个 event；(2) 同 day 二次 tick 幂等（不叠加 factions.leverage）。
+    修复后：同 day 双调由 KV_HAREM_TICK_DAY 闸门阻断（同 eunuch_power_tick 模式）。"""
 
     def test_harem_tick_no_runtime_dup_event(self):
         from ming_sim import harem
@@ -1197,13 +1198,24 @@ class HaremTickConsortLifecycleTests(unittest.TestCase):
                 "SELECT name, leverage FROM factions ORDER BY name"
             ).fetchall()
 
-            # RNG 用 day-seeded；两次结果应完全一致
-            self.assertEqual(len(ev1), len(ev2),
-                             "同 day 二次 harem_tick 应返相同数量事件")
+            # 闸门生效：第二次调 early return → ev2 必空、factions 不再叠加
+            self.assertEqual(ev2, [],
+                             f"同 day 第二次 harem_tick 必须 early return；实际 {len(ev2)} 个 event")
+            for mid_row, after_row in zip(leverage_mid, leverage_after):
+                self.assertEqual(int(mid_row["leverage"]), int(after_row["leverage"]),
+                                 f"factions.{mid_row['name']}.leverage 二次 tick 必须不叠加")
 
-            for before_row, after_row in zip(leverage_mid, leverage_after):
-                self.assertEqual(int(before_row["leverage"]), int(after_row["leverage"]),
-                                 f"factions.{before_row['name']}.leverage 二次 tick 必须不叠加")
+    def test_harem_tick_next_day_can_tick_again(self):
+        """跨 day 后闸门 bucket 变化，可再次 tick（验证闸门不永久阻塞）。"""
+        from ming_sim import harem
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            harem.harem_tick(db, state, day=day)
+            # 跨 day：不应抛异常，闸门不再阻断
+            ev_next = harem.harem_tick(db, state, day=day + 1)
+            self.assertIsInstance(ev_next, list)
 
 
 class FoundationRecruitDedupTests(unittest.TestCase):
@@ -1510,7 +1522,7 @@ class IssuesInertiaAndOngoingIdempotencyTests(unittest.TestCase):
 
 
 class FactionDynamicsDefectionIdempotencyTests(unittest.TestCase):
-    """faction_dynamics.defection_tick：day-seeded RNG，同 day 双调应不双计。"""
+    """faction_dynamics.defection_tick：同 day 双调由 KV_DEFECTION_TICK_DAY 闸门阻断。"""
 
     def test_defection_tick_same_day_no_double_defect(self):
         from ming_sim import faction_dynamics
@@ -1519,14 +1531,116 @@ class FactionDynamicsDefectionIdempotencyTests(unittest.TestCase):
             db, state = _fresh(tmp)
             day = _day(db)
             ev1 = faction_dynamics.defection_tick(db, state, day=day)
-            # 同 day 二次：RNG outcome 应一致；但若第一次真的改换门庭，第二次评分基于新 faction
-            # 可能再次命中 → 验证至少 defensive：不应跨多 faction 反复改换
+            # 闸门生效：同 day 二次必须 early return → ev2 必空
             ev2 = faction_dynamics.defection_tick(db, state, day=day)
-            # 最多 1 次改换（同 day RNG seed 相同 + 第一次改了 → 第二次评分条件变）
-            # 设计上 RNG 完全一致时 → 第二次若第一改完，会用新 RNG 决定（同 seed → 同 out）→ 0 个 event
-            total = len(ev1) + len(ev2)
-            self.assertLessEqual(total, 1,
-                                 f"同 day defection_tick 双调总改换 ≤ 1；实际 {total}")
+            self.assertEqual(ev2, [],
+                             f"同 day 第二次 defection_tick 必须 early return；实际 {len(ev2)} 个 event")
+            # 总改换 ≤ 1（单次 tick 至多 1 人改换门庭）
+            self.assertLessEqual(len(ev1), 1,
+                                 f"单次 defection_tick 至多 1 个 event；实际 {len(ev1)}")
+
+    def test_defection_tick_next_day_can_tick_again(self):
+        """跨 day 后闸门 bucket 变化，可再次 tick。"""
+        from ming_sim import faction_dynamics
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            faction_dynamics.defection_tick(db, state, day=day)
+            ev_next = faction_dynamics.defection_tick(db, state, day=day + 1)
+            self.assertIsInstance(ev_next, list)
+
+
+class FactionDynamicsStrifeIdempotencyTests(unittest.TestCase):
+    """faction_dynamics.strife_tick：党内倾轧逐月蚀势力/满意。
+    修复后：同 day 双调由 KV_STRIFE_TICK_DAY 闸门阻断。"""
+
+    def test_strife_tick_same_day_no_double_erosion(self):
+        from ming_sim import faction_dynamics
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            # 预置一对同党深怨关系（opinion<=-50）以强制走 mutate 分支：
+            # 韩爌、钱龙锡都是东林，造一条 opinion<=-50 的对立关系。
+            db.conn.execute(
+                "INSERT OR REPLACE INTO relationships(a_name,b_name,basis,opinion) VALUES(?,?,?,?)",
+                ("韩爌", "钱龙锡", "私怨", -60))
+            db.conn.execute(
+                "UPDATE characters SET faction='东林' WHERE name IN ('韩爌','钱龙锡')")
+            db.conn.commit()
+
+            leverage_before = dict((r["name"], int(r["leverage"]))
+                                   for r in db.conn.execute(
+                "SELECT name, leverage FROM factions ORDER BY name").fetchall())
+            faction_dynamics.strife_tick(db, state, day=day)
+            leverage_mid = dict((r["name"], int(r["leverage"]))
+                                for r in db.conn.execute(
+                "SELECT name, leverage FROM factions ORDER BY name").fetchall())
+            # 同 day 二次：闸门 early return，leverage 不再蚀
+            faction_dynamics.strife_tick(db, state, day=day)
+            leverage_after = dict((r["name"], int(r["leverage"]))
+                                  for r in db.conn.execute(
+                "SELECT name, leverage FROM factions ORDER BY name").fetchall())
+
+            for fac in leverage_mid:
+                self.assertEqual(leverage_mid[fac], leverage_after[fac],
+                                 f"factions.{fac}.leverage 同 day 二次 strife_tick 不应再蚀")
+
+    def test_strife_tick_next_day_can_erode_again(self):
+        """跨 day 后闸门 bucket 变化，可再次蚀。"""
+        from ming_sim import faction_dynamics
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            faction_dynamics.strife_tick(db, state, day=day)
+            # 跨 day 不抛异常
+            faction_dynamics.strife_tick(db, state, day=day + 1)
+
+
+class HaremDuishiTickIdempotencyTests(unittest.TestCase):
+    """harem.duishi_tick：内宠权阉对食内外勾连。
+    修复后：同 day 双调由 KV_DUISHI_TICK_DAY 闸门阻断。"""
+
+    def test_duishi_tick_same_day_no_double_adjust(self):
+        from ming_sim import harem
+        from ming_sim import eunuch_power
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            eunuch_power.set_daipihong(db, True, keeper=None)
+            # 预置一对对食关系以强制走"内外勾连"分支
+            db.conn.execute(
+                "INSERT INTO relationships(a_name,b_name,basis,opinion) VALUES(?,?,?,?)",
+                ("客氏", "魏忠贤", "对食", 80))
+            db.conn.execute(
+                "UPDATE characters SET status='active' WHERE name IN ('客氏','魏忠贤')")
+            db.conn.commit()
+
+            power_before = eunuch_power.get_eunuch_power(db)
+            ev1 = harem.duishi_tick(db, state, day=day)
+            power_mid = eunuch_power.get_eunuch_power(db)
+            # 同 day 二次：闸门 early return → ev2 空、power 不变
+            ev2 = harem.duishi_tick(db, state, day=day)
+            power_after = eunuch_power.get_eunuch_power(db)
+
+            self.assertEqual(ev2, [],
+                             f"同 day 第二次 duishi_tick 必须 early return；实际 {len(ev2)} 个 event")
+            self.assertEqual(power_mid, power_after,
+                             f"eunuch_power 同 day 二次 duishi_tick 不应变：{power_mid} → {power_after}")
+
+    def test_duishi_tick_next_day_can_tick_again(self):
+        """跨 day 后闸门 bucket 变化，可再次 tick。"""
+        from ming_sim import harem
+
+        with TemporaryDirectory() as tmp:
+            db, state = _fresh(tmp)
+            day = _day(db)
+            harem.duishi_tick(db, state, day=day)
+            ev_next = harem.duishi_tick(db, state, day=day + 1)
+            self.assertIsInstance(ev_next, list)
 
 
 class EunuchPowerTickIdempotencyTests(unittest.TestCase):

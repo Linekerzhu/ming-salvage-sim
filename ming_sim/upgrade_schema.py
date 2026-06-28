@@ -23,6 +23,10 @@ KV_ATTENTION = "upgrade.attention_today"        # 今日注意力余量（S4）
 KV_DAILY_BUDGET_CACHE = "upgrade.daily_budget_cache"   # 当月日摊预算缓存 JSON
 KV_INERTIA_LAST_TURN = "upgrade.issue_inertia_last_turn"   # issues.apply_issue_inertia_and_ongoing 已落账的 (year*1000+period)；同 turn 双调闸门
 KV_EUNUCH_POWER_TICK_DAY = "upgrade.eunuch_power_tick_day"  # eunuch_power_tick 已漂移的 day；同 day 双调闸门
+KV_HAREM_TICK_DAY = "upgrade.harem_tick_day"               # harem_tick 已落账的 day；同 day 双调闸门（枕边风/进谗/争宠不双漂移）
+KV_DUISHI_TICK_DAY = "upgrade.duishi_tick_day"             # duishi_tick 已落账的 day；同 day 双调闸门（对食内外勾连不双涨）
+KV_DEFECTION_TICK_DAY = "upgrade.defection_tick_day"       # defection_tick 已落账的 day；同 day 双调闸门（改换门庭不双调权）
+KV_STRIFE_TICK_DAY = "upgrade.strife_tick_day"             # strife_tick 已落账的 day；同 day 双调闸门（党内倾轧不双蚀）
 
 DAYS_PER_MONTH = 30  # 抽象月长；turn = (current_day-1)//30 + 1
 

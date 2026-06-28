@@ -1026,6 +1026,11 @@ class GameDB:
             CREATE INDEX IF NOT EXISTS idx_event_memories_expiry
             ON event_memories(expires_turn, turn);
 
+            -- perf #3: court.favor_memories 热路径覆盖索引——按 (subject_type, subject_id, event_type)
+            -- 过滤并按 importance DESC, turn DESC, id DESC 排序，避免 filesort。
+            CREATE INDEX IF NOT EXISTS idx_event_memories_favor
+            ON event_memories(subject_type, subject_id, event_type, importance DESC, turn DESC, id DESC);
+
 
             CREATE TABLE IF NOT EXISTS event_memory_sources (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

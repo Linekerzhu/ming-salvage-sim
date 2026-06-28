@@ -38,6 +38,13 @@ def defection_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, obj
     """月初至多 1 人改换门庭。返回事件列表。"""
     from ming_sim.timeflow import LEVEL_YELLOW
     from ming_sim import court
+    from ming_sim.upgrade_schema import KV_DEFECTION_TICK_DAY, kv_int, kv_set_int
+
+    # 闸门：同 day 双调只生效一次（同 eunuch_power_tick 模式）。
+    if kv_int(db, KV_DEFECTION_TICK_DAY, -1) == int(day):
+        return []
+    kv_set_int(db, KV_DEFECTION_TICK_DAY, int(day))
+
     try:
         from ming_sim.traits import trait_bias
     except ImportError:
@@ -95,6 +102,13 @@ def defection_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, obj
 
 def strife_tick(db: GameDB, state: GameState, day: int) -> None:
     """党内倾轧：内部有深怨对立(opinion≤-50)的派系，势力/满意被内耗逐月蚀蚀。"""
+    from ming_sim.upgrade_schema import KV_STRIFE_TICK_DAY, kv_int, kv_set_int
+
+    # 闸门：同 day 双调只生效一次（同 eunuch_power_tick 模式）。
+    if kv_int(db, KV_STRIFE_TICK_DAY, -1) == int(day):
+        return
+    kv_set_int(db, KV_STRIFE_TICK_DAY, int(day))
+
     rows = db.conn.execute(
         "SELECT DISTINCT ca.faction AS fac FROM relationships r "
         "JOIN characters ca ON ca.name=r.a_name AND ca.status='active' AND ca.power_id='ming' "

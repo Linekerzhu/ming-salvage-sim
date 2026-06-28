@@ -9855,7 +9855,16 @@ def _max_concurrent_turn_resolutions() -> int:
     return _env_int("MING_SIM_MAX_CONCURRENT_TURNS", 2, minimum=1, maximum=1000)
 
 
-app = FastAPI(title="Ming Salvage MVP Web")
+# SEC-004: 多用户服务器部署时关闭 /docs /redoc /openapi.json，避免路由与
+# payload 结构外泄。单机桌面（无 MING_SIM_SERVER_USERS）保留 docs 便于本地调试。
+_server_mode = bool(os.environ.get("MING_SIM_SERVER_USERS", "").strip()
+                    or os.environ.get("MING_SIM_AUTH_USERS", "").strip())
+app = FastAPI(
+    title="Ming Salvage MVP Web",
+    docs_url=None if _server_mode else "/docs",
+    redoc_url=None if _server_mode else "/redoc",
+    openapi_url=None if _server_mode else "/openapi.json",
+)
 
 # 注册任务系统路由（quest_* 已软重定位为 NPC 奏请；旧路由保留过渡）
 from ming_sim.quest_api import register_quest_routes
@@ -9996,6 +10005,11 @@ def _verify_password(stored: str, provided: str) -> bool:
         except (TypeError, ValueError):
             return False
     if stored.startswith("sha256:"):
+        # SEC-005: legacy 无盐 SHA-256，易受彩虹表攻击。仅向后兼容保留；新凭证必须走 pbkdf2。
+        import logging as _logging
+        _logging.getLogger("ming_sim.web_app").warning(
+            "校验使用了已弃用的 sha256: 哈希格式（无盐，不安全）。"
+            "请尽快用 pbkdf2_sha256 重置该用户口令。")
         expected = stored.split(":", 1)[1].strip().lower()
         actual = hashlib.sha256(provided.encode("utf-8")).hexdigest()
         return secrets.compare_digest(actual, expected)
@@ -10091,7 +10105,10 @@ def _server_state_conn() -> sqlite3.Connection:
 
 
 def _registration_invite_code() -> str:
-    return os.environ.get("MING_SIM_INVITE_CODE", "shdl95598").strip()
+    # SEC-001: 不再提供默认邀请码。未显式设置 MING_SIM_INVITE_CODE 时返回空串，
+    # /api/auth/register 会以 bad_invite_code 拒绝（见 api_auth_register 的 not expected_invite 守卫）。
+    # 服务器部署必须显式设置 MING_SIM_INVITE_CODE 才能开放注册。
+    return os.environ.get("MING_SIM_INVITE_CODE", "").strip()
 
 
 def _registration_enabled() -> bool:

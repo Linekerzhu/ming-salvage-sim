@@ -77,6 +77,13 @@ def harem_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, object]
     """月初：在侧宠妃至多一记枕边风（荐人/进谗）+ 诸妃争宠。无妃则空转。"""
     from ming_sim.timeflow import LEVEL_YELLOW
     from ming_sim import court
+    from ming_sim.upgrade_schema import KV_HAREM_TICK_DAY, kv_int, kv_set_int
+
+    # 闸门：同 day 双调只生效一次。timeflow.rollover_month 月初唯一调用，但
+    # 调试脚本 / 测试可能双调；用 KV 已落库 trick 防双漂移 + 双 faction 调权。
+    if kv_int(db, KV_HAREM_TICK_DAY, -1) == int(day):
+        return []
+    kv_set_int(db, KV_HAREM_TICK_DAY, int(day))
 
     consorts = active_consorts(db)
     if not consorts:
@@ -170,6 +177,13 @@ def duishi_tick(db: GameDB, state: GameState, day: int) -> List[Dict[str, object
     """月初：内宠与权阉结对食 / 已成对食者内外勾连自固 / 偶被察觉成丑闻。挂 rollover。"""
     from ming_sim.timeflow import LEVEL_YELLOW
     from ming_sim import court
+    from ming_sim.upgrade_schema import KV_DUISHI_TICK_DAY, kv_int, kv_set_int
+
+    # 闸门：同 day 双调只生效一次（同 eunuch_power_tick 模式）。
+    if kv_int(db, KV_DUISHI_TICK_DAY, -1) == int(day):
+        return []
+    kv_set_int(db, KV_DUISHI_TICK_DAY, int(day))
+
     consorts = active_consorts(db)
     if not consorts:
         return []

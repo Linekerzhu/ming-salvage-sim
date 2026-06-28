@@ -1,5 +1,5 @@
 // 全局数据上下文：集中加载 state/time/desk/lifecycle，统一 refresh 与推进时日。
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   advanceTime,
@@ -147,21 +147,26 @@ export function GameDataProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  const value: GameData = {
-    state,
-    time,
-    desk,
-    lifecycle,
-    recentEvents,
-    zhongxing,
-    milestone,
-    decision,
-    loading,
-    error,
-    worldVersion,
-    metricFlash,
-    refresh,
-    advance,
-  };
+  // perf #4: memoize context value — otherwise every Provider render builds a new
+  // object identity, re-rendering the entire consumer tree on each metricFlash/worldVersion.
+  const value: GameData = useMemo(
+    () => ({
+      state,
+      time,
+      desk,
+      lifecycle,
+      recentEvents,
+      zhongxing,
+      milestone,
+      decision,
+      loading,
+      error,
+      worldVersion,
+      metricFlash,
+      refresh,
+      advance,
+    }),
+    [state, time, desk, lifecycle, recentEvents, zhongxing, milestone, decision, loading, error, worldVersion, metricFlash, refresh, advance],
+  );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

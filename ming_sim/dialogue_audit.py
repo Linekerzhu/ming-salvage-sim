@@ -984,7 +984,7 @@ def _context_payload(db: Any, state: GameState, character: Character, *, active_
         relation_network = {}
     try:
         from ming_sim.court import favor_memories
-        favors = favor_memories(db, character.name, limit=3)
+        favors = favor_memories(db, character.name, limit=3, current_turn=int(getattr(state, "turn", 0) or 0))
     except Exception:
         favors = []
     try:

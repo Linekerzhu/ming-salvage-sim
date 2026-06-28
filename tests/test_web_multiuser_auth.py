@@ -60,6 +60,8 @@ class WebMultiuserAuthTests(unittest.TestCase):
         os.environ.pop("MING_SIM_TRUST_PROXY_HEADERS", None)
         os.environ.pop("MING_SIM_MAX_RUNNING_GAMES", None)
         os.environ.pop("MING_SIM_MAX_CONCURRENT_TURNS", None)
+        # SEC-001: invite code 不再有默认值；默认不设置（auth-disabled 场景需要它为空）。
+        # 需要注册的测试（test_invite_registration_*）自行显式设置 MING_SIM_INVITE_CODE。
         os.environ.pop("MING_SIM_INVITE_CODE", None)
         os.environ.pop("MING_SIM_ALLOW_REGISTRATION", None)
 
@@ -142,6 +144,8 @@ class WebMultiuserAuthTests(unittest.TestCase):
         self.assertEqual(llm_write.status_code, 403)
 
     def test_invite_registration_creates_persistent_login_user(self) -> None:
+        # SEC-001: invite code 不再有默认值；测试显式注入已知邀请码。
+        os.environ["MING_SIM_INVITE_CODE"] = "shdl95598"
         client = TestClient(web_app.app)
 
         bad_invite = client.post(
