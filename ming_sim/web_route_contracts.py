@@ -181,6 +181,8 @@ EXCLUDED_WEB_PAYLOAD_ROUTES: Dict[str, str] = {
     "/api/merit/{minister}/punish": "惩处；assignment-owned mutation。",
     "/api/postings": "授常驻差使；assignment-owned mutation。",
     "/api/postings/{directive_id}/revoke": "撤差；assignment-owned mutation。",
+    # ── 调试/运维端点：非游戏 payload，不进 game-data hook。
+    "/api/debug/state": "Debug-only state dump; gated by MING_SIM_DEBUG_STATE + admin auth.",
 }
 
 

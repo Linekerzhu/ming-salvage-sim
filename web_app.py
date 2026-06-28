@@ -10740,6 +10740,37 @@ async def metrics_endpoint() -> Response:
     return Response(content=render_prometheus(), media_type="text/plain; version=0.0.4; charset=utf-8")
 
 
+@app.get("/api/debug/state")
+async def debug_state_endpoint() -> JSONResponse:
+    """调试状态转储（开发/调试用，免手写 SQL 查 ming_sim.db）。
+
+    双重门：MING_SIM_DEBUG_STATE=1 开关（默认关）+ _require_server_admin() admin 鉴权。
+    返回：turn/year/period/metrics + 关键表行数（directives/characters/factions/memorials）。
+    """
+    from ming_sim.settings import get_settings
+    if not get_settings().debug_state:
+        raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Not found"})
+    _require_server_admin()  # admin 鉴权
+
+    game = get_game()
+    state = game.session.db.load_state()
+    db = game.session.db
+    payload = {
+        "turn": state.turn,
+        "year": state.year,
+        "period": state.period,
+        "turn_phase": state.turn_phase,
+        "metrics": dict(state.metrics),
+        "counts": {
+            "directives": int(db.conn.execute("SELECT COUNT(*) FROM turn_directives").fetchone()[0]),
+            "characters": int(db.conn.execute("SELECT COUNT(*) FROM characters").fetchone()[0]),
+            "factions": int(db.conn.execute("SELECT COUNT(*) FROM factions").fetchone()[0]),
+            "memorials": int(db.conn.execute("SELECT COUNT(*) FROM memorials").fetchone()[0]),
+        },
+    }
+    return JSONResponse(payload)
+
+
 @app.get("/api/auth/me")
 async def api_auth_me() -> Dict[str, Any]:
     if not _auth_enabled():
