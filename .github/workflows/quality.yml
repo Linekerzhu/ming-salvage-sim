@@ -66,6 +66,14 @@ jobs:
           fi
           echo "✅ Python 语法检查通过（$(find ming_sim tests -name '*.py' -not -path '*/__pycache__/*' | wc -l | tr -d ' ') files）。"
 
+      # mypy 类型检查（渐进采用：当前仅报告，不阻断——等 Any 收敛后改 hard fail）
+      - name: Type check (mypy, advisory)
+        run: |
+          python -m pip install mypy 2>/dev/null || true
+          python -m mypy ming_sim/ 2>&1 | tee mypy-report.txt || true
+          ERRORS=$(grep -c "error:" mypy-report.txt || echo "0")
+          echo "mypy 报告 ${ERRORS} 个错误（当前 advisory，不阻断；目标：收敛后改阻断）"
+
       - name: Install frontend dependencies
         working-directory: web
         run: npm ci

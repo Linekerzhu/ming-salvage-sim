@@ -1,0 +1,26 @@
+# 项目元数据 + 工具配置（mypy / pytest）。
+# pyproject.toml 是现代 Python 项目标准配置入口。
+
+[tool.mypy]
+# 渐进式类型检查：先开"软"规则，不 disallow_any（ming_sim 有 153 处 Any，
+# 强开会产生大量噪声）。重点是捕获未标注函数 + 返回值不一致。
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false       # 渐进：先不强制（99% 已标注，剩余的是嵌套 helper）
+check_untyped_defs = true           # 但检查已标注函数的内部一致性
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_error_codes = true
+
+# 第三方库无 stub 时静默
+[[tool.mypy.overrides]]
+module = ["agno.*", "pywebview.*", "pexpect.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+# pytest 配置（此前无 pytest.ini / setup.cfg）
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q"
