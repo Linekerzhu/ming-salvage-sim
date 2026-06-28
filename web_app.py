@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from contextlib import closing
+from contextlib import asynccontextmanager, closing
 from contextvars import ContextVar
 from dataclasses import dataclass
 from functools import lru_cache
@@ -9859,11 +9859,33 @@ def _max_concurrent_turn_resolutions() -> int:
 # payload 结构外泄。单机桌面（无 MING_SIM_SERVER_USERS）保留 docs 便于本地调试。
 _server_mode = bool(os.environ.get("MING_SIM_SERVER_USERS", "").strip()
                     or os.environ.get("MING_SIM_AUTH_USERS", "").strip())
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    """启动时强制校验 module/pipeline 契约——任何不一致即 fail-fast 拒绝启动。
+
+    engineering-architecture.md TR-MOD-01/TR-PIPE-01：契约自洽是可维护性的底线。
+    此前 validator 仅在测试里跑，启动时不校验，坏 registry 可静默上线。
+    """
+    from ming_sim.module_registry import validate_module_registry
+    from ming_sim.pipeline_registry import validate_pipeline_registry
+    issues = list(validate_module_registry()) + list(validate_pipeline_registry())
+    if issues:
+        # fail_closed：坏契约不应能启动服务器（符合既有哲学）。
+        raise RuntimeError(
+            "启动契约校验失败——module/pipeline registry 不自洽：\n  - "
+            + "\n  - ".join(issues)
+        )
+    yield
+
+
 app = FastAPI(
     title="Ming Salvage MVP Web",
     docs_url=None if _server_mode else "/docs",
     redoc_url=None if _server_mode else "/redoc",
     openapi_url=None if _server_mode else "/openapi.json",
+    lifespan=_lifespan,
 )
 
 # 注册任务系统路由（quest_* 已软重定位为 NPC 奏请；旧路由保留过渡）
@@ -10706,6 +10728,16 @@ async def readyz() -> Response:
     if status != 200:
         payload["status"] = "degraded"
     return JSONResponse(payload, status_code=status)
+
+
+@app.get("/metrics")
+async def metrics_endpoint() -> Response:
+    """Prometheus 文本 exposition（G2.2）：LLM 管道调用/token/失败率/延迟直方图。
+
+    零依赖手写格式，由 ming_sim.metrics 渲染。此前 LLM 管道是可观测盲区。
+    """
+    from ming_sim.metrics import render_prometheus
+    return Response(content=render_prometheus(), media_type="text/plain; version=0.0.4; charset=utf-8")
 
 
 @app.get("/api/auth/me")

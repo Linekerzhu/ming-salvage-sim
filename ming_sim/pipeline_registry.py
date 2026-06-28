@@ -670,3 +670,46 @@ def llm_output_token_budget(
     if minimum > 0:
         desired = max(minimum, desired)
     return max(1, desired)
+
+
+def validate_pipeline_registry() -> Tuple[str, ...]:
+    """Return human-readable pipeline-registry issues; empty means the contract is sane.
+
+    Mirrors ``module_registry.validate_module_registry()``. Enforces the
+    ``engineering-architecture.md`` pipeline-contract invariant (TR-PIPE-01:
+    every pipeline declares owner/entrypoint + a failure policy consistent with
+    its risk). Run at FastAPI lifespan startup so a broken registry fails fast.
+    """
+    issues: list[str] = []
+    valid_kinds = {"frontend", "web", "admin", "llm", "portrait", "mechanic", "data"}
+    valid_policies = {"fail_closed", "best_effort", "defer", "dry_run_required"}
+    seen_ids: set[str] = set()
+    for spec in PIPELINE_REGISTRY.values():
+        if not spec.id:
+            issues.append("pipeline missing id")
+        elif spec.id in seen_ids:
+            issues.append(f"duplicate pipeline id: {spec.id}")
+        seen_ids.add(spec.id)
+
+        if not spec.owner:
+            issues.append(f"{spec.id}: missing owner")
+        if not spec.entrypoint:
+            issues.append(f"{spec.id}: missing entrypoint")
+        if spec.kind not in valid_kinds:
+            issues.append(f"{spec.id}: invalid kind {spec.kind!r}")
+        if spec.failure_policy not in valid_policies:
+            issues.append(f"{spec.id}: invalid failure_policy {spec.failure_policy!r}")
+        # TR-PIPE-01: a high-risk pipeline must not silently swallow failures.
+        # ``best_effort`` drops the result on failure (silent loss) — unsafe for a
+        # high-risk path that could corrupt state. ``defer`` is permitted: it means
+        # the pipeline is a scheduler one-shot retried by a worker with a template
+        # fallback (see _SPECS notes), not a silent drop.
+        if spec.risk == "high" and spec.failure_policy == "best_effort":
+            issues.append(
+                f"{spec.id}: high-risk pipeline cannot use best_effort "
+                f"(would silently drop a corruption-class failure; use fail_closed or defer)"
+            )
+        # LLM pipelines declare a role for routing/observability.
+        if spec.kind == "llm" and not spec.llm_role:
+            issues.append(f"{spec.id}: llm pipeline missing llm_role")
+    return tuple(sorted(issues))

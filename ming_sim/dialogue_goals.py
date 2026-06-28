@@ -1406,6 +1406,8 @@ def record_dialogue_effects(
             "audit_source": "llm",
             "audit_status": post.audit_status,
             "audit_confidence": post.confidence,
+            # G2.1: 失败原因落库——此前只存 audit_status 丢了 error，无法事后诊断 LLM 失败根因。
+            "audit_error": str(getattr(post, "error", "") or ""),
             "goal_relation": post.goal_relation,
             "goal_revision": {
                 "refines_active": bool(refines_active),

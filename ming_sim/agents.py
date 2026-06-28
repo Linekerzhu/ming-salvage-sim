@@ -111,13 +111,20 @@ def _dump_llm_messages(output: Any, tag: str, agent: Optional[Agent] = None) -> 
 def run_agent_text(agent: Agent, prompt: str, tag: str) -> str:
     """非流式跑 agent，返回最终完整文本。
     extractor/sanitizer 这类要严格 JSON 的场合用——避免流式 buffer 把 LLM 偶发重发段累加成畸形。"""
+    from ming_sim.metrics import record_llm_call_timed
     tlog(f"[{tag}] 开始非流式推演（等待完整响应）")
     t0 = time.monotonic()
-    output = agent.run(prompt)
-    _dump_llm_messages(output, tag)
-    text = extract_agent_text(output)
-    tlog(f"[{tag}] 完成，{len(text)} 字，用时 {time.monotonic() - t0:.1f}s")
-    return text
+    try:
+        with record_llm_call_timed(tag) as _timer:
+            output = agent.run(prompt)
+            _dump_llm_messages(output, tag)
+            text = extract_agent_text(output)
+        tlog(f"[{tag}] 完成，{len(text)} 字，用时 {time.monotonic() - t0:.1f}s")
+        return text
+    except Exception:
+        # 计时器 __exit__ 会自动记录 failure（exc_type is not None）后 re-raise
+        tlog(f"[{tag}] 异常，用时 {time.monotonic() - t0:.1f}s")
+        raise
 
 
 def run_agent_stream_text(

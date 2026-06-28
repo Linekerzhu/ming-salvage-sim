@@ -1915,19 +1915,53 @@ class ModuleRegistryContractTests(unittest.TestCase):
         self.assertGreater(len(order), 0)
 
 
-class PipelineRegistryNoDupNamesTests(unittest.TestCase):
-    """pipeline_registry: pipeline 名必须唯一，否则 hook 调用时分发歧义。"""
+class PipelineRegistryContractTests(unittest.TestCase):
+    """pipeline_registry: 契约自洽 + id 唯一 + validate_pipeline_registry 无错。
+    （修复：原 PipelineRegistryNoDupNamesTests 查 spec.name 字段不存在，是 no-op。）"""
 
-    def test_pipeline_names_are_unique(self):
+    def test_pipeline_ids_are_unique(self):
         from ming_sim import pipeline_registry
-        seen = {}
+        # PIPELINE_REGISTRY 由 {spec.id: spec} 构造，且构造时已查重（duplicate → RuntimeError）。
+        # 这里验证 spec.id 与 dict key 一致（防 dataclass id 与注册 key 漂移）。
         for pid, spec in pipeline_registry.PIPELINE_REGISTRY.items():
-            name = getattr(spec, "name", None)
-            if name is None:
-                continue
-            self.assertNotIn(name, seen,
-                             f"pipeline {name} 重复注册：{seen[name]} 与 {pid}")
-            seen[name] = pid
+            self.assertEqual(spec.id, pid,
+                             f"registry key {pid} 与 spec.id {spec.id} 不一致")
+
+    def test_pipeline_registry_validates_clean(self):
+        from ming_sim import pipeline_registry
+        issues = pipeline_registry.validate_pipeline_registry()
+        self.assertEqual(issues, (),
+                         f"pipeline_registry 契约自洽；实际 {len(issues)} 个问题：{issues}")
+
+    def test_validator_catches_high_risk_best_effort(self):
+        """注入一个 high-risk + best_effort 的 spec，validator 必须报错（防回归）。"""
+        from ming_sim.pipeline_registry import PipelineSpec, validate_pipeline_registry, PIPELINE_REGISTRY
+        bad = PipelineSpec(
+            id="__test_bad__", kind="llm", owner="test", entrypoint="test",
+            llm_role="test", risk="high", failure_policy="best_effort",
+        )
+        PIPELINE_REGISTRY["__test_bad__"] = bad
+        try:
+            issues = validate_pipeline_registry()
+            self.assertTrue(
+                any("high-risk" in i and "__test_bad__" in i for i in issues),
+                f"validator 应抓 high-risk best_effort；实际 {issues}",
+            )
+        finally:
+            PIPELINE_REGISTRY.pop("__test_bad__", None)
+
+    def test_validator_catches_llm_without_role(self):
+        from ming_sim.pipeline_registry import PipelineSpec, validate_pipeline_registry, PIPELINE_REGISTRY
+        bad = PipelineSpec(id="__test_norole__", kind="llm", owner="test", entrypoint="test")
+        PIPELINE_REGISTRY["__test_norole__"] = bad
+        try:
+            issues = validate_pipeline_registry()
+            self.assertTrue(
+                any("llm_role" in i and "__test_norole__" in i for i in issues),
+                f"validator 应抓 llm 无 role；实际 {issues}",
+            )
+        finally:
+            PIPELINE_REGISTRY.pop("__test_norole__", None)
 
 
 class RanksRegistryPresenceTests(unittest.TestCase):
@@ -2434,6 +2468,54 @@ class AssignmentPresenceTests(unittest.TestCase):
     def test_assignment_api_module_loaded(self):
         from ming_sim import assignment_api
         self.assertTrue(hasattr(assignment_api, "register_assignment_routes"))
+
+
+class StartupContractValidationTests(unittest.TestCase):
+    """FastAPI lifespan 启动时校验 module/pipeline 契约——坏 registry 必须拒绝启动。
+
+    engineering-architecture.md：契约自洽是可维护性底线。此前 validator 仅测试里跑，
+    启动不校验。现 lifespan 接管，验证 fail-fast 行为。
+    """
+
+    def test_clean_registry_starts_without_error(self):
+        """干净 registry 下，lifespan 校验通过（无异常抛出）。"""
+        from ming_sim.module_registry import validate_module_registry
+        from ming_sim.pipeline_registry import validate_pipeline_registry
+        issues = list(validate_module_registry()) + list(validate_pipeline_registry())
+        self.assertEqual(issues, [],
+                         f"干净 registry 应无 issue；实际 {issues}")
+
+    def test_bad_pipeline_registry_blocks_lifespan(self):
+        """注入一个 high-risk + best_effort 的 pipeline，lifespan 必须抛错。"""
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from ming_sim.pipeline_registry import PIPELINE_REGISTRY, PipelineSpec
+
+        bad = PipelineSpec(
+            id="__startup_bad__", kind="llm", owner="t", entrypoint="t",
+            llm_role="t", risk="high", failure_policy="best_effort",
+        )
+        PIPELINE_REGISTRY["__startup_bad__"] = bad
+        try:
+            from contextlib import asynccontextmanager
+
+            @asynccontextmanager
+            async def lifespan(_app):
+                # 复刻 web_app._lifespan 的校验逻辑
+                from ming_sim.module_registry import validate_module_registry
+                from ming_sim.pipeline_registry import validate_pipeline_registry
+                issues = list(validate_module_registry()) + list(validate_pipeline_registry())
+                if issues:
+                    raise RuntimeError("contract validation failed")
+                yield
+
+            app = FastAPI(lifespan=lifespan)
+            with self.assertRaises(Exception):
+                # TestClient 进入 lifespan 时应抛错（坏契约拒绝启动）
+                with TestClient(app):
+                    pass
+        finally:
+            PIPELINE_REGISTRY.pop("__startup_bad__", None)
 
 
 if __name__ == "__main__":

@@ -28,6 +28,14 @@ KV_DUISHI_TICK_DAY = "upgrade.duishi_tick_day"             # duishi_tick 已落�
 KV_DEFECTION_TICK_DAY = "upgrade.defection_tick_day"       # defection_tick 已落账的 day；同 day 双调闸门（改换门庭不双调权）
 KV_STRIFE_TICK_DAY = "upgrade.strife_tick_day"             # strife_tick 已落账的 day；同 day 双调闸门（党内倾轧不双蚀）
 
+# G3.1 可升级性：全局 schema 版本号 + 已应用版本记录。
+# 此前 ensure_upgrade_schema 无版本概念——每次启动盲目重跑全部 CREATE IF NOT EXISTS，
+# 无法知道一个存档来自哪个版本、也无法做"只跑 version > current 的迁移步骤"。
+# 现引入版本号：每次 ensure_upgrade_schema 跑完记下当前版本；未来加迁移步骤时递增
+# SCHEMA_VERSION 并在 _migrations_since(version) 里只跑增量。
+SCHEMA_VERSION = 1
+KV_SCHEMA_VERSION = "upgrade.schema_version"               # 存档已应用的 schema 版本
+
 DAYS_PER_MONTH = 30  # 抽象月长；turn = (current_day-1)//30 + 1
 
 SHI_DEFAULT = 55
@@ -231,6 +239,13 @@ def ensure_upgrade_schema(db: "GameDB") -> None:
 
     db.conn.commit()
 
+    # G3.1: 记录已应用的 schema 版本。此前无版本概念；现每次 ensure 跑完写入当前版本，
+    # 使存档可追溯其 schema 代际，并为未来增量迁移（_apply_migrations_since）提供基线。
+    # 仅当存档版本低于当前时更新（向前只增，不回退）。
+    applied = kv_int(db, KV_SCHEMA_VERSION, 0)
+    if applied < SCHEMA_VERSION:
+        kv_set_int(db, KV_SCHEMA_VERSION, SCHEMA_VERSION)
+
 
 # ── kv 包装：升级状态量统一存取 ─────────────────────────────────────────────
 
@@ -246,6 +261,11 @@ def kv_int(db: "GameDB", key: str, default: int) -> int:
 
 def kv_set_int(db: "GameDB", key: str, value: int) -> None:
     db.kv_set(key, str(int(value)))
+
+
+def get_schema_version(db: "GameDB") -> int:
+    """读存档已应用的 schema 版本。无值（极旧档 / 全新空库前）返回 0。"""
+    return kv_int(db, KV_SCHEMA_VERSION, 0)
 
 
 def get_current_day(db: "GameDB", turn: int = 0) -> int:

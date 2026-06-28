@@ -2,14 +2,23 @@
 
 TOKEN_STATS 是进程级遥测，留模块级单例。
 _TOKEN_PATCH_INSTALLED 守卫保证补丁只打一次。
+
+可观测性（G2.1）：tlog 收口到 logging.getLogger("ming_sim.llm")，与 HTTP 层的
+logging 统一，使 MING_SIM_JSON_LOGS=1 时 LLM 遥测也走结构化日志（此前是裸 print）。
 """
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Dict
 
 from ming_sim.llm_config import is_dashscope_base_url
+
+# LLM 层专用 logger：与 web_app._LOG("ming_sim.web") 同族，统一纳管。
+# 默认无 handler 时退化为 logging 末梢（不丢日志，只是不重复打 stdout）；
+# web_app 启动时 basicConfig 会把 root 配上 StreamHandler，此 logger 即生效。
+_LOG = logging.getLogger("ming_sim.llm")
 
 TOKEN_STATS: Dict[str, Dict[str, int]] = {}
 _TOKEN_PATCH_INSTALLED = False
@@ -21,7 +30,11 @@ def ts() -> str:
 
 
 def tlog(msg: str) -> None:
-    print(f"[{ts()}] {msg}", flush=True)
+    """LLM 层遥测：走结构化 logger（纳管），不再裸 print。
+
+    保留时间戳前缀以便多行 token 报告可读。INFO 级别，可被 MING_SIM_LOG_LEVEL 调静默。
+    """
+    _LOG.info("[%s] %s", ts(), msg)
 
 
 def _guess_caller_tag(kwargs: Dict[str, object]) -> str:

@@ -11,6 +11,22 @@
 - **管理平台走受限端口。** 管理能力使用白名单表、角色权限和审计日志，不和普通游戏 API 混在一起扩大风险面。
 - **性能预算是接口契约。** 首屏 state、按需详情接口、构建产物和 LLM token 上限都要有测试或 probe 约束。
 
+## 工程强制力（机器可执行，非散文）
+
+下列原本只是文档原则的项，现已**机器强制**——违反即测试失败或启动拒绝：
+
+| 原则 | 强制方式 | 位置 |
+|------|----------|------|
+| 契约自洽（module + pipeline registry） | `validate_module_registry()` + `validate_pipeline_registry()` 在 **FastAPI lifespan 启动时跑**，坏契约拒绝启动 | `web_app._lifespan`、`tests/test_audit_integration.py::StartupContractValidationTests` |
+| 机制层不依赖 Web 框架 | `ast` 扫 import 图，断言 `ming_sim/*.py`（除 `*_api.py` 白名单）不 import fastapi/starlette | `tests/test_architecture_boundaries.py::WebLayerBoundaryTests` |
+| L0 基础层不依赖上层 | `ast` 断言 models/exceptions/paths/constants 不 import 上层 ming_sim 模块 | `tests/test_architecture_boundaries.py::FoundationLayerBoundaryTests` |
+| 无循环依赖 | `module_dependency_order()` 不抛 RuntimeError | `tests/test_architecture_boundaries.py::RegistryDependencyCycleTests` |
+| schema 版本可追溯 | `SCHEMA_VERSION` + `KV_SCHEMA_VERSION` 记录存档代际，幂等向前升级 | `upgrade_schema.py`、`tests/test_schema_versioning.py` |
+| LLM 管道可观测 | `/metrics` 端点暴露调用/token/失败率/延迟直方图；失败原因落 `audit_error` | `ming_sim/metrics.py`、`web_app./metrics` |
+| 依赖有界 | `requirements.txt` 加 `<next-major` 上限 + `requirements.lock` 锁定可复现版本集 | `requirements.txt`、`requirements.lock` |
+
+
+
 ## 目标分层
 
 ```mermaid

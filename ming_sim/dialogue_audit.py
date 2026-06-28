@@ -1893,23 +1893,22 @@ def _agent(llm_config: LLMConfig, agno_db: object, *, phase: str, prompt: str, m
         "dialogue_eunuch_lore_intake": "llm.dialogue_eunuch_lore_intake",
         "dialogue_unknown_mention_intake": "llm.dialogue_unknown_mention_intake",
     }.get(phase, "llm.dialogue_condition_audit")
-    return Agent(
-        name=f"奏对审计-{phase}",
-        id=f"dialogue-audit-{phase}",
-        model=create_chat_model(
-            cfg,
-            temperature=0.1,
-            top_p=0.7,
-            max_tokens=llm_output_token_budget(
-                pipeline_id,
-                cfg.max_tokens,
-                requested=max_tokens,
-                minimum=1200,
-            ),
-            enable_thinking=False,
-            force_json_output=True,
-        ),
-        instructions=[prompt],
+    # G4.1: 经 llm_provider 接缝构造——集中 Agent 构造点，使未来换 provider 改一处。
+    # 其余调用点（registry/llm_model/rule_audit 等）暂保持原样，后续渐进迁入。
+    from ming_sim.llm_provider import build_agent
+    return build_agent(
+        cfg,
+        pipeline_id=pipeline_id,
+        prompt=prompt,
+        phase=phase,
+        agent_name=f"奏对审计-{phase}",
+        agent_id=f"dialogue-audit-{phase}",
+        max_tokens=max_tokens,
+        token_minimum=1200,
+        temperature=0.1,
+        top_p=0.7,
+        enable_thinking=False,
+        force_json_output=True,
         add_history_to_context=False,
         markdown=False,
     )
