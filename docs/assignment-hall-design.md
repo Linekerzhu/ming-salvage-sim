@@ -14,7 +14,7 @@
 | 表 | `quests` / `player_quests` | `turn_directives` |
 | 奖励 | 给玩家的 imperial_power / npc_trust | 落到国库 / 民心 / 势 / RA |
 | 完成度 | 半成品，`dialogue_to_quest.py` 桥接生硬 | 成熟：工期 / 旬检定 / 账实分离 / 干预 / 因果伏笔全有 |
-| 设计依据 | `quest-system-redesign.md` 照搬魔兽世界 RPG 任务 | 与"你是崇祯下旨"的核心机制一致 |
+| 设计依据 | `docs/archive/quest-system-redesign.md` 照搬魔兽世界 RPG 任务 | 与"你是崇祯下旨"的核心机制一致 |
 
 **核心判断**：本游戏玩家扮演崇祯下旨，"玩家给 NPC 的任务"本体就是系统 B。系统 A 方向相反（NPC 给玩家发任务），与游戏机制冲突，历史设计文档承认了这一点。
 

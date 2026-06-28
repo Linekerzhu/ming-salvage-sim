@@ -2,6 +2,47 @@
 
 本项目所有重要变更记录于此。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [未发布] · 工程化深化（可维护 · 可观测 · 可升级 · 可替换 · 清洗）
+
+v0.5.0 之后连续 4 轮工程化：从原型演进为有机器强制力的工程架构。
+
+### 工程化（骨架通电）
+- **可维护**：新增 `validate_pipeline_registry()`（此前 pipeline 无 validator）；FastAPI `lifespan` 启动时强校验 module+pipeline 契约，坏契约**拒绝启动**（fail_closed）。修复了一个坏的 no-op 测试（查不存在的 `spec.name`）。新增 `tests/test_architecture_boundaries.py`：ast 扫 import 图，机器强制分层（机制层不得 import fastapi、L0 基础不得 import 上层、无环）。
+- **可观测**：新增 `ming_sim/metrics.py`（零依赖）+ `/metrics` 端点（Prometheus 文本：LLM 调用/token/失败率/延迟直方图）；`agents.run_agent_text` 埋点；`token_stats.tlog` 收口到 `logging`（不再裸 print）；`dialogue_goals` 持久化 `audit_error`（此前只存 status 丢了根因）。
+- **可升级**：新增 `SCHEMA_VERSION` 全局版本号 + `KV_SCHEMA_VERSION` 记录存档代际，`ensure_upgrade_schema` 幂等向前迁移（向前只增不回退）。
+- **可替换**：新增 `ming_sim/llm_provider.py` 收口 agno Agent 构造 + `LLM_BACKEND` 开关；dialogue_audit 已迁入作参考实现。`requirements.txt` 加 `<next-major` 上限；新增 `requirements.lock` 锁定可复现版本集。
+
+### 双写类根治
+- 给 4 个未加闸门的 rollover tick 加 KV-day 闸门（复刻 eunuch_power 模式）：`harem_tick`/`duishi_tick`/`defection_tick`/`strife_tick`。项目历史复发的「状态 delta 双写」bug 类（petition/intrigue/session/issues/eunuch/harem/defection/strife）现 9/9 都有闸门 + 幂等测试。
+- 新增 `test_balance_rails_regression.py`：皇威漂移不棘轮、势 bleed cap -3、超时自罢。
+
+### 安全硬化
+- SEC-001：移除硬编码默认邀请码 `shdl95598`（须显式设 `MING_SIM_INVITE_CODE`）。
+- SEC-003：`runtime_llm.json` 写盘 `chmod 0600`。
+- SEC-004：多用户服务器模式关闭 `/docs` `/redoc` `/openapi.json`。
+- SEC-005：legacy `sha256:` 口令哈希加弃用警告。
+- （SEC-002：`.env` API key 轮换须运营者手动做——见 [SECURITY.md](SECURITY.md)。）
+
+### 前端 / UX
+- 安装 8 个官方 GSAP skills 到 `.agents/skills/`（gsap 已是选定库，直接适用）。
+- Gauge 数值滚动动画（推进时日时君威/任事平滑滚到新值，不再瞬变）。
+- 聊天气泡 stagger timeline（新消息错峰浮入，而非整批同时弹）。
+- 上轮 `GameData` context value `useMemo` 防整树重渲染。
+
+### AI 协作技能
+- 安装 8 个 CCGS 工作流技能（Ming 适配：smoke-check/security-audit/perf-profile/regression-suite/tech-debt/code-review/architecture-review/bug-triage）到 `.agents/skills/`。
+- 跑完全部 8 技能审计，产出 `docs/tech-debt-register.md`。
+
+### 清洗与规范化（本次）
+- 删除过时追踪文件：根 `主页1.png`（7MB，已被 docs/screenshots/home.png 取代）、`test_quest_system.py`（quest 已迁移）、`scripts/runs/`（57MB 旧 log）、`docs/邸报房推敲`（prompt dump）。
+- 归档已完成/迁移的设计文档到 `docs/archive/`：`quest-system-*.md`、`rebuildplan.md`。
+- 新增工程规范：`CONTRIBUTING.md`、`SECURITY.md`、`docs/project-structure.md`。
+- 刷新 `README.md`（工程化段 + 修正 invite code 说明）、本 CHANGELOG。
+- `engineering-architecture.md` 新增「工程强制力」表（散文原则 → 机器契约）。
+
+### 验证
+1074/1074 测试通过（v0.5.0 后净增 ~35 测试），tsc 干净。
+
 ## [2026-06-12] · v0.5.0「半即时 · 黑箱 · 基座」
 
 大版本：半即时时间引擎与升级总案（docs/upgrade-master-plan.md）M0-M6 全量落地 + NPC 数据基座深度接入。

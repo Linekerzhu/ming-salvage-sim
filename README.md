@@ -66,7 +66,7 @@ python3 -m uvicorn web_app:app --host 127.0.0.1 --port 8010
 
 打开 <http://127.0.0.1:8010>。
 
-如果沿用 `.env.example` 里的默认 `MING_SIM_INVITE_CODE=shdl95598`，网页会进入注册/登录模式；首次用户可用邀请码 `shdl95598` 注册。浏览器用户不需要、也默认不能修改 AI API，LLM API 统一使用服务端 `.env` 里的 `OPENAI_*` 配置。
+如果沿用 `.env.example` 里的默认配置，网页会进入注册/登录模式；首次用户需用 `.env` 里设置的 `MING_SIM_INVITE_CODE` 注册（**注意：自安全审计 SEC-001 起，不再有内置默认邀请码**——必须在 `.env` 里显式设置 `MING_SIM_INVITE_CODE`，或设 `MING_SIM_ALLOW_REGISTRATION=0` 关闭注册）。浏览器用户不需要、也默认不能修改 AI API，LLM API 统一使用服务端 `.env` 里的 `OPENAI_*` 配置。
 
 服务器多用户模式：
 
@@ -80,7 +80,7 @@ python3 -m uvicorn web_app:app --host 0.0.0.0 --port 8010
 ```
 
 此模式下所有浏览器用户必须用用户名密码登录；每个用户的主进度、存档和自定义立绘会隔离到 `data/users/<user_id>/`，LLM API 统一使用服务端 `.env` 里的 `OPENAI_*` 配置，普通用户默认不能修改 AI API。生产部署建议把密码配置为 `pbkdf2_sha256$<iterations>$<salt>$<hex>`，并按需设置 `MING_SIM_SESSION_TTL_SECONDS`、`MING_SIM_COOKIE_SECURE=1`。管理员后台在 <http://127.0.0.1:8010/server-admin>，可查看在线会话、运行中对局、主库/存档状态，并关闭对局、强制登出或删除某用户主进度。
-网页登录页支持邀请码注册，默认统一邀请码为 `shdl95598`；可通过 `MING_SIM_INVITE_CODE` 修改，或设置 `MING_SIM_ALLOW_REGISTRATION=0` 关闭注册。注册成功后会直接登录，进入菜单后可新游戏/继续进入游戏界面。
+网页登录页支持邀请码注册；邀请码由 `.env` 的 `MING_SIM_INVITE_CODE` 控制（**无内置默认值**，须显式设置），或设置 `MING_SIM_ALLOW_REGISTRATION=0` 关闭注册。注册成功后会直接登录，进入菜单后可新游戏/继续进入游戏界面。
 
 Web 进程默认只缓存/返回每名 NPC 最近 80 条召对消息（`MING_SIM_WEB_CHAT_HISTORY_LIMIT` 可调），SQLite 仍保留完整历史用于存档和追溯。LLM payload dump 默认关闭；只有排查问题时才设置 `MING_SIM_DUMP_LLM=1`，全文 dump 需额外设置 `MING_SIM_DUMP_LLM_FULL=1`。
 
@@ -235,19 +235,35 @@ python3 main.py
 | `CLI_BASE_URL` | 否 | 回退 `OPENAI_BASE_URL` | CLI 单独 API 地址 |
 | `CLI_MODEL` | 否 | 回退 `OPENAI_MODEL` | CLI 单独模型名 |
 
+## 工程化
+
+本项目已从原型演进为**有机器强制力的工程架构**——分层不变量、契约校验、可观测性、版本化、可替换接缝。详见 [`docs/engineering-architecture.md` §工程强制力](docs/engineering-architecture.md)。
+
+| 维度 | 机制 |
+|------|------|
+| 可维护 | module/pipeline registry 契约在 **FastAPI 启动时强校验**（坏契约拒绝启动）；分层边界 ast 机器检查（机制层不得 import fastapi、L0 不得 import 上层、无环） |
+| 可观测 | `/metrics`（Prometheus：LLM 调用/token/失败/延迟）、`/healthz`、`/readyz`；LLM 日志收口到 `logging`（`MING_SIM_JSON_LOGS=1` 结构化） |
+| 可升级 | `SCHEMA_VERSION` 全局版本号 + 幂等向前迁移；存档代际可追溯 |
+| 可替换 | `llm_provider.build_agent()` 收口 LLM 构造 + `LLM_BACKEND` 开关；依赖带上限 + `requirements.lock` |
+
+贡献约定见 [CONTRIBUTING.md](CONTRIBUTING.md)，安全策略见 [SECURITY.md](SECURITY.md)。
+
 ## 目录
 
+完整目录地图（含分层、入口点、各目录职责）见 [`docs/project-structure.md`](docs/project-structure.md)。简表：
+
 ```text
-.
-├── main.py                  # 纯文本入口
-├── web_app.py               # 网页入口
-├── ming_sim/                # 游戏规则、结算、存档、角色对话
-├── content/                 # 人物、事件、地区、军队、外部势力、提示词
-├── web/                     # 网页界面
-├── docs/                    # 设定和开发文档
-├── scripts/                 # 自动跑局与平衡性测试
-├── requirements.txt         # Python 依赖
-└── .env.example             # 配置模板
+├── main.py / web_app.py / launcher.py   # CLI / Web / 桌面打包 入口
+├── start.sh / start-server.sh           # 开发 / 服务器 启动脚本
+├── ming_sim/                # 后端核心：机制 + 管道 + DB（90 模块，按分层）
+├── web/                     # 前端 React 19 + TS + Vite（5 标签移动端 + 管理台）
+├── content/                 # 静态游戏数据（JSON，运行时只读）
+├── tests/                   # 测试套件（1074+ 测试，unittest/pytest）
+├── scripts/                 # 一次性工具（生成/探针/立绘/打包）
+├── docs/                    # 设计/工程/规范文档（+ archive/ 归档旧设计）
+├── .agents/skills/          # AI 协作技能（CCGS 工作流 + GSAP 动画）
+├── requirements.txt/.lock   # 直接依赖（带上限）/ 锁定版本集
+└── CONTRIBUTING / SECURITY / CHANGELOG / README
 ```
 
-更多设定见 [docs/setting-outline.md](docs/setting-outline.md)，模块拆分见 [docs/system-modules.md](docs/system-modules.md)。
+更多设定见 [docs/setting-outline.md](docs/setting-outline.md)，模块拆分见 [architecture_inventory.md](architecture_inventory.md)。
