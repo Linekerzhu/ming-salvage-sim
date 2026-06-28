@@ -51,6 +51,21 @@ jobs:
           fi
           echo "✅ lockfile 与 requirements.txt 同步。"
 
+      # Python 语法检查（与 pre-commit hook 一致，CI 也做兜底）
+      - name: Lint Python syntax
+        run: |
+          FAIL=0
+          for f in $(find ming_sim tests -name '*.py' -not -path '*/__pycache__/*'); do
+            if ! python -m py_compile "$f" 2>&1; then
+              FAIL=1
+            fi
+          done
+          if [ "$FAIL" = "1" ]; then
+            echo "❌ Python 语法错误，修复后再合并。"
+            exit 1
+          fi
+          echo "✅ Python 语法检查通过（$(find ming_sim tests -name '*.py' -not -path '*/__pycache__/*' | wc -l | tr -d ' ') files）。"
+
       - name: Install frontend dependencies
         working-directory: web
         run: npm ci

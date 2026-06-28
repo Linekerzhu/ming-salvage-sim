@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # commit-msg hook：检查提交信息格式（CONTRIBUTING.md 约定）。
 # 首行：祈使句，≤72 字符。允许 Merge/Revert 开头。
+# 长度超标 → 阻断（硬规则）；格式不符 → 警告（软规则）。
 set -euo pipefail
 
 MSG_FILE="$1"
@@ -12,15 +13,15 @@ if echo "$FIRST_LINE" | grep -qE '^(Merge|Revert) '; then
     exit 0
 fi
 
-# 首行长度检查
+# 首行长度检查（硬阻断：>72 字符违反 Git 最佳实践）
 LEN=${#FIRST_LINE}
 if [ "$LEN" -gt 72 ]; then
-    echo "⚠️  提交首行过长（${LEN} 字符，建议 ≤72）："
+    echo "❌ 提交首行过长（${LEN} 字符，必须 ≤72）："
     echo "   $FIRST_LINE"
-    echo "   继续提交（不阻断，仅警告）。"
+    exit 1
 fi
 
-# 首行应以大写英文或中文开头（祈使句）
+# 首行应以大写英文或中文开头（祈使句，软警告）
 if ! echo "$FIRST_LINE" | grep -qE '^[A-Z\u4e00-\u9fff]'; then
     echo "⚠️  提交首行建议以大写字母或中文开头（祈使句格式）："
     echo "   $FIRST_LINE"

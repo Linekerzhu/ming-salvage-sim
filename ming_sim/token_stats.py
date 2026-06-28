@@ -90,10 +90,9 @@ def _record_usage(model_id: str, usage: object, caller_tag: str = "?") -> None:
     bucket["reasoning"] += reasoning
     bucket["total"] += total
     cc_part = f" cache_creation={cache_creation}" if cache_creation else ""
-    print(
-        f"[TOKEN] caller={caller_tag} model={model_id} prompt={prompt} cached={cached}{cc_part} "
-        f"completion={completion} reasoning={reasoning} total={total}",
-        flush=True,
+    _LOG.info(
+        "[TOKEN] caller=%s model=%s prompt=%d cached=%d%s completion=%d reasoning=%d total=%d",
+        caller_tag, model_id, prompt, cached, cc_part, completion, reasoning, total,
     )
 
 
@@ -126,10 +125,9 @@ def record_stream_metrics(model_id: str, metrics: object, caller_tag: str = "?")
     bucket["reasoning"] += reasoning
     bucket["total"] += total
     cc_part = f" cache_creation={cache_creation}" if cache_creation else ""
-    print(
-        f"[TOKEN] caller={caller_tag} model={model_id} prompt={prompt} cached={cached}{cc_part} "
-        f"completion={completion} reasoning={reasoning} total={total}",
-        flush=True,
+    _LOG.info(
+        "[TOKEN] caller=%s model=%s prompt=%d cached=%d%s completion=%d reasoning=%d total=%d",
+        caller_tag, model_id, prompt, cached, cc_part, completion, reasoning, total,
     )
 
 
