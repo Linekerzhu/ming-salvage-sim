@@ -217,28 +217,31 @@ def install_token_stats_patch() -> None:
 
 
 def print_token_summary() -> None:
+    """关机时汇总 token 用量。走 logger（与 _record_usage / record_stream_metrics 统一）。"""
     if not TOKEN_STATS:
-        print("[TOKEN-SUMMARY] no LLM calls captured")
+        _LOG.info("[TOKEN-SUMMARY] no LLM calls captured")
         return
-    print("\n========== TOKEN USAGE SUMMARY ==========")
+    _LOG.info("========== TOKEN USAGE SUMMARY ==========")
     grand: Dict[str, int] = {}
     for model_id, bucket in TOKEN_STATS.items():
         hit_rate = (bucket["cached"] / bucket["prompt"] * 100) if bucket["prompt"] else 0
         cc = bucket.get("cache_creation", 0)
         cc_part = f" cache_creation={cc}" if cc else ""
-        print(
-            f"  {model_id}: calls={bucket['calls']} prompt={bucket['prompt']} "
-            f"cached={bucket['cached']} ({hit_rate:.1f}%){cc_part} completion={bucket['completion']} "
-            f"reasoning={bucket['reasoning']} total={bucket['total']}"
+        _LOG.info(
+            "  %s: calls=%d prompt=%d cached=%d (%.1f%%)%s completion=%d reasoning=%d total=%d",
+            model_id, bucket["calls"], bucket["prompt"],
+            bucket["cached"], hit_rate, cc_part, bucket["completion"],
+            bucket["reasoning"], bucket["total"],
         )
         for key, value in bucket.items():
             grand[key] = grand.get(key, 0) + int(value)
     grand_hit = (grand.get("cached", 0) / grand.get("prompt", 0) * 100) if grand.get("prompt") else 0
     grand_cc = grand.get("cache_creation", 0)
     grand_cc_part = f" cache_creation={grand_cc}" if grand_cc else ""
-    print(
-        f"  TOTAL: calls={grand.get('calls',0)} prompt={grand.get('prompt',0)} "
-        f"cached={grand.get('cached',0)} ({grand_hit:.1f}%){grand_cc_part} completion={grand.get('completion',0)} "
-        f"reasoning={grand.get('reasoning',0)} total={grand.get('total',0)}"
+    _LOG.info(
+        "  TOTAL: calls=%d prompt=%d cached=%d (%.1f%%)%s completion=%d reasoning=%d total=%d",
+        grand.get("calls", 0), grand.get("prompt", 0),
+        grand.get("cached", 0), grand_hit, grand_cc_part,
+        grand.get("completion", 0), grand.get("reasoning", 0), grand.get("total", 0),
     )
-    print("=========================================")
+    _LOG.info("=========================================")
