@@ -750,11 +750,10 @@ def sync_castration_medical_record(
     clean_name = _clean_text(name, 80)
     if not clean_name:
         return []
-    try:
+    from ming_sim.logging_util import log_swallow
+    with log_swallow("conditions 阉割写库（UPDATE characters sex）"):
         with db.conn:
             db.conn.execute("UPDATE characters SET sex='eunuch' WHERE name=?", (clean_name,))
-    except Exception:
-        pass
     sid = _source_id(source_id, clean_name)
     applied: List[Dict[str, object]] = []
     for item in _castration_medical_items(forced=forced, lore=lore, note=note):

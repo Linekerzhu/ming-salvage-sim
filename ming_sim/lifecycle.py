@@ -270,14 +270,13 @@ def build_chain(db: GameDB, state: GameState, text: str, actor: str) -> Dict[str
     ability = int(arow["ability"]) if arow else 50
     # NPC 数据基座深接：才总折百替代游戏 ability；擅/痼特质给检定修正与工期因子
     foundation_mods = {"score": 0, "exec_factor": 1.0, "anomaly_bias": {}, "resistance": 0, "notes": []}
-    try:
+    from ming_sim.logging_util import log_swallow
+    with log_swallow("lifecycle foundation.directive_modifiers"):
         from ming_sim import foundation
         fab = foundation.ability100(assignee)
         if fab is not None:
             ability = fab
         foundation_mods = foundation.directive_modifiers(assignee, str(category["id"]))
-    except Exception:
-        pass
     distance = float((cfg.get("distance_factors") or {}).get(
         region_id, (cfg.get("distance_factors") or {}).get("default", 1.4)))
     if timing_profile:
@@ -1309,13 +1308,12 @@ def _execution_score(db: GameDB, row, meta: Dict[str, object]) -> int:
     resistance = int(meta.get("resistance") or 0)
     bonus = int(meta.get("score_bonus") or 0) + int(meta.get("trait_score") or 0)
     # 基座五维能力（才总折百）优先于游戏 ability
-    try:
+    from ming_sim.logging_util import log_swallow
+    with log_swallow("lifecycle ability100 评分覆盖"):
         from ming_sim.foundation import ability100
         fab = ability100(str(row["assignee"] or ""))
         if fab is not None:
             ability = fab
-    except Exception:
-        pass
     score = (50
              + round((ability - 50) * 0.40)
              + round((loyalty - 50) * 0.15)

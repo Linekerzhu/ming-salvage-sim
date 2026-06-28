@@ -241,13 +241,12 @@ def _char_acceptance_inputs(db: GameDB, assignee: str) -> Dict[str, int]:
     if not row:
         return {"ability": 50, "loyalty": 50, "grievance": 20}
     ability = int(row["ability"] or 50)
-    try:
+    from ming_sim.logging_util import log_swallow
+    with log_swallow("assignment 能力覆盖（foundation.ability100）"):
         from ming_sim.foundation import ability100
         fab = ability100(assignee)
         if fab is not None:
             ability = fab
-    except Exception:
-        pass
     return {
         "ability": ability,
         "loyalty": int(row["loyalty"] or 50),
