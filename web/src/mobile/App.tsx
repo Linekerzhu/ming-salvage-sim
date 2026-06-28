@@ -1,6 +1,8 @@
 // 移动端五标签 App 骨架：顶部状态条 + tab 视图 + 底部导航。
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 import { formatApiError } from "../api/client";
 import { GameDataProvider, useGame } from "./GameData";
 import { PersonProvider } from "./Person";
@@ -13,6 +15,8 @@ import { DeskView } from "./views/DeskView";
 import { AudienceView } from "./views/AudienceView";
 import { EdictsView } from "./views/EdictsView";
 import { PolicyCenterView } from "./views/RealmView";
+
+gsap.registerPlugin(useGSAP);
 
 const PERIOD_CN = ["", "正", "二", "三", "四", "五", "六", "七", "八", "九", "十", "冬", "腊"];
 
@@ -59,6 +63,10 @@ function TopBar({ go, onHelp }: { go: (t: Tab) => void; onHelp: () => void }) {
 }
 
 function Gauge({ label, value, max, pct, tone, noRise }: { label: string; value: number; max?: number; pct: number; tone: string; noRise?: boolean }) {
+  // 数值滚动：推进时日时君威/任事/精力等数字平滑滚到新值，而非瞬变（高频正反馈）。
+  // 遵循 gsap-react skill：useGSAP + scope + refs，自动 cleanup。
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [display, setDisplay] = useState(value);
   // 数值上涨→金色脉冲：每一次正向变化都被即时看见（高频正反馈）。精力日耗日补，不脉冲。
   const prev = useRef(value);
   const [rise, setRise] = useState(false);
@@ -71,12 +79,25 @@ function Gauge({ label, value, max, pct, tone, noRise }: { label: string; value:
     }
     prev.current = value;
   }, [value, noRise]);
+  // GSAP 数字滚动：value 变化时把 display 从旧值插值到新值。
+  useGSAP(
+    () => {
+      const proxy = { v: display };
+      gsap.to(proxy, {
+        v: value,
+        duration: 0.5,
+        ease: "power2.out",
+        onUpdate: () => setDisplay(Math.round(proxy.v)),
+      });
+    },
+    { scope: rootRef, dependencies: [value] }
+  );
   return (
-    <div className={`m-gauge m-gauge-${tone}${rise ? " is-rise" : ""}`}>
+    <div className={`m-gauge m-gauge-${tone}${rise ? " is-rise" : ""}`} ref={rootRef}>
       <div className="m-gauge-top">
         <span className="m-gauge-label">{label}</span>
         <span className="m-gauge-value">
-          {value}
+          {display}
           {max != null && <span className="m-gauge-max">/{max}</span>}
         </span>
       </div>

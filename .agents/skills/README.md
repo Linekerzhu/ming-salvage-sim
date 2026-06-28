@@ -37,3 +37,46 @@ Python / FastAPI / SQLite / agno-LLM / React-TS 技术栈。
 
 在对话中输入 `/ccgs-smoke-check full` 等，或让 agent 在合适时机自动调用。
 所有技能都遵守 CCGS 的协作协议：**只读分析→展示草稿→经批准才写文件**。
+
+---
+
+# GSAP 动画技能（GreenSock 官方）
+
+来自 [greensock/gsap-skills](https://github.com/greensock/gsap-skills) 的 **8 个官方 GSAP 技能**，
+原样安装（无需适配——GSAP 已是本项目选定动画库，`gsap@3.15` + `@gsap/react@2.1` 已在 `web/package.json`）。
+
+> GSAP 自 Webflow 收购后全免费（含 SplitText/MorphSVG 等原 Club 插件），公共 npm 包即可，无需 token。
+
+## 8 个技能
+
+| 技能 | 用途 | 本项目典型场景 |
+|------|------|----------------|
+| `gsap-core` | `gsap.to/from/fromTo`、ease、duration、stagger、`gsap.matchMedia`（响应式/减弱动画） | 数值滚动、入场动画 |
+| `gsap-timeline` | `gsap.timeline()`、position 参数、label、嵌套、回放 | 聊天气泡错峰编排、多步高光 |
+| `gsap-scrolltrigger` | 滚动联动、pin、scrub、refresh、cleanup | （本项目单页 tab，暂未用） |
+| `gsap-plugins` | Flip/Draggable/SplitText/ScrambleText/MorphSVG/CustomEase 等 | ScrambleText 可做"密旨解密"动效 |
+| `gsap-utils` | `clamp/mapRange/interpolate/random/snap/wrap/pipe` | 数值映射、计数动画的 proxy |
+| `gsap-react` | `useGSAP` hook、refs、`gsap.context()`、cleanup、SSR | **本项目所有 GSAP 代码的强制模式** |
+| `gsap-performance` | transform 优先、will-change、batching | 60fps 保障 |
+| `gsap-frameworks` | Vue/Svelte 等生命周期 | （本项目用 React，见 gsap-react） |
+
+## 本项目 GSAP 使用约定（强制）
+
+所有 GSAP 代码必须遵循 **gsap-react skill** 的模式，已有两个文件（`MilestoneProgress.tsx`、`AssignmentViews.tsx`）是范本：
+
+1. **用 `useGSAP()` 而非裸 `useEffect`**——自动 cleanup，避免泄漏
+2. **传 scope**（ref/element）——选择器局限于该容器，不跨组件误匹配
+3. **用 refs 定位目标 DOM**——不依赖裸选择器字符串
+4. **`gsap.registerPlugin()` 只调一次**（模块顶层，非每次渲染）
+5. **CSS 动画作降级**——GSAP 接管主要动画，CSS 保留为无 JS 时的兜底
+
+## 何处该用 GSAP、何处该用 CSS
+
+| 场景 | 选 |
+|------|-----|
+| 数值滚动（gauge 数字 38→43） | **GSAP**（CSS 无法插值文本数字） |
+| 多元素错峰/时序编排（气泡 stagger） | **GSAP timeline**（CSS stagger 表达力弱） |
+| 一次性入场/退场 toast | CSS（GSAP 收益小） |
+| hover/focus 微交互 | CSS（更轻、声明式） |
+| 滚动驱动（本项目暂无） | GSAP ScrollTrigger |
+

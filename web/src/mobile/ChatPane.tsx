@@ -1,8 +1,12 @@
 import { Fragment, useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 import { loadChat, streamChat } from "./api";
 import { Portrait } from "./Portrait";
 import type { ChatContext, ChatMention, ChatMessage, ChatResponse, Suggestion, Tab } from "./api";
 import { mentionSegments } from "./mentionLinks";
+
+gsap.registerPlugin(useGSAP);
 
 const EMPTY_LOCAL_MESSAGES: ChatMessage[] = [];
 
@@ -201,6 +205,31 @@ export function ChatPane({
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, localMessages, streaming, busy]);
+
+  // 新消息错峰浮入：messages 追加时，只对"新增的"气泡走 stagger timeline，
+  // 让"说动人"的高光有节奏感，而非整批同时弹出。遵循 gsap-react skill（scope + 自动 cleanup）。
+  const prevCountRef = useRef(0);
+  useGSAP(
+    () => {
+      const total = messages.length;
+      const prev = prevCountRef.current;
+      prevCountRef.current = total;
+      if (total <= prev) return;
+      // 只动画新增的气泡（首批加载也会优雅浮入）
+      const bubbles = scrollRef.current?.querySelectorAll(".m-bubble, .m-chat-day-gap");
+      if (!bubbles || bubbles.length === 0) return;
+      const fresh = Array.from(bubbles).slice(prev);
+      if (fresh.length === 0) return;
+      gsap.from(fresh, {
+        opacity: 0,
+        y: 8,
+        duration: 0.34,
+        ease: "power2.out",
+        stagger: 0.04,
+      });
+    },
+    { scope: scrollRef, dependencies: [messages.length] }
+  );
 
   useEffect(() => {
     const el = inputRef.current;
