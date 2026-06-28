@@ -11334,9 +11334,11 @@ async def api_menu_save_llm(request: LlmSetupRequest) -> Dict[str, Any]:
         "ok": True,
         "llm": _public_llm_config_payload(config),
     }
+# CORS origins 走集中配置（Settings.cors_origins，env MING_SIM_CORS_ORIGINS 可覆盖）
+from ming_sim.settings import get_settings as _get_settings_for_cors
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=_get_settings_for_cors().cors_origin_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
