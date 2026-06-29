@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import atexit
 import os
 import sqlite3
 import threading
@@ -82,6 +83,9 @@ def reset_for_tests() -> None:
         _CONN = None
         _CONN_FAILED = False
         _PROFILE_CACHE.clear()
+
+
+atexit.register(reset_for_tests)
 
 
 # ── 档案读取 ─────────────────────────────────────────────────────────────────

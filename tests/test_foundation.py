@@ -51,7 +51,8 @@ class AdapterTests(unittest.TestCase):
 
     def test_full_game_roster_covered(self):
         import json
-        game = json.load(open(Path(__file__).resolve().parent.parent / "content" / "characters.json"))
+        with open(Path(__file__).resolve().parent.parent / "content" / "characters.json", encoding="utf-8") as fh:
+            game = json.load(fh)
         chars = game if isinstance(game, list) else game.get("characters", game)
         names = [c["name"] for c in chars] if isinstance(chars, list) else list(chars)
         missing = [n for n in names if foundation.profile(n) is None]

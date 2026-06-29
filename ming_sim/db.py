@@ -123,6 +123,7 @@ def effective_stored_office_type(office: str, stored_type: str = "") -> str:
 class GameDB:
     def __init__(self, path: str, content: Optional[GameContent] = None):
         self.path = path
+        self._closed = False
         # 静态设定来源。过渡期 content 可省略，省略时自行加载；
         # 步骤7 起由 GameSession 统一传入同一份 GameContent。
         self.content = content if content is not None else GameContent.load()
@@ -136,6 +137,18 @@ class GameDB:
         # 仅在 active 遗产集变化（insert_legacy / expire_legacies）时失效。
         self._legacy_mod_cache: Optional[Dict[str, object]] = None
         self.init_schema()
+
+    def __enter__(self) -> "GameDB":
+        return self
+
+    def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+        self.close()
+
+    def __del__(self) -> None:
+        try:
+            self.close()
+        except Exception:
+            pass
 
     def _configure_connection(self) -> None:
         pragmas = (
@@ -8692,7 +8705,10 @@ class GameDB:
         return cur.rowcount
 
     def close(self) -> None:
+        if self._closed:
+            return
         self.conn.close()
+        self._closed = True
 
     def backup_to(self, target_path: str) -> None:
         """SQLite backup API 热备到 target_path。不需关闭主连接。"""

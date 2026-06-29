@@ -1,6 +1,9 @@
 """v0.5.0 发布前审计修复的回归测试。零 LLM。"""
 
+import gc
+import sqlite3
 import unittest
+import warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -19,6 +22,30 @@ def _fresh(tmp: str):
 
 
 class WorkerLifecycleTests(unittest.TestCase):
+    def test_gamedb_close_is_idempotent_and_context_managed(self):
+        with TemporaryDirectory() as tmp:
+            path = str(Path(tmp) / "ctx.db")
+            with GameDB(path) as db:
+                db.seed_static_data()
+                self.assertIsNotNone(db.load_state())
+            db.close()
+            with self.assertRaises(sqlite3.ProgrammingError):
+                db.conn.execute("SELECT 1")
+
+    def test_gamedb_finalizer_closes_unclosed_connection(self):
+        with TemporaryDirectory() as tmp:
+            path = str(Path(tmp) / "finalizer.db")
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always", ResourceWarning)
+                db = GameDB(path)
+                db.seed_static_data()
+                del db
+                gc.collect()
+            self.assertEqual(
+                [w for w in caught if issubclass(w.category, ResourceWarning)],
+                [],
+            )
+
     def test_stop_worker_releases_and_removes(self):
         with TemporaryDirectory() as tmp:
             path = str(Path(tmp) / "w.db")

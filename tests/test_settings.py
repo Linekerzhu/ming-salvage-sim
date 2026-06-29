@@ -18,7 +18,10 @@ class SettingsTests(unittest.TestCase):
     def tearDown(self):
         from ming_sim.settings import get_settings
         get_settings.cache_clear()
-        # 恢复 env
+        # 先清掉测试中新建的 MING_SIM_ 变量，再恢复进入测试前的快照。
+        for k in list(os.environ):
+            if k.startswith("MING_SIM_"):
+                os.environ.pop(k)
         for k, v in self._saved.items():
             os.environ[k] = v
 
